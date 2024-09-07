@@ -8,25 +8,28 @@
 #include <wx/propgrid/propgrid.h>
 #include <wx/propgrid/advprops.h>
 
+#include "EngineCanvas.h"
+
 namespace Supernova{
     enum{
         ID_Hello = 1
     };
 
     class EditorFrame : public wxFrame{
-    public:
-        EditorFrame(const wxString &title, const wxPoint &pos, const wxSize &size);
-    
     private:
         wxSplitterWindow* splitterMain;
         wxSplitterWindow* splitter_left;
         wxSplitterWindow* splitter_top;
         wxTextCtrl* textConsole;
+        EngineCanvas* canvas;
 
         void OnShow(wxShowEvent& event);
         void OnHello(wxCommandEvent& event);
         void OnExit(wxCommandEvent& event);
         void OnAbout(wxCommandEvent& event);
+        
+    public:
+        EditorFrame(const wxString &title, const wxPoint &pos, const wxSize &size);
     };
 }
 

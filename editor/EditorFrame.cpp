@@ -46,19 +46,24 @@ EditorFrame::EditorFrame(const wxString &title, const wxPoint &pos, const wxSize
     splitterMain->SplitVertically(splitter_left, panel_right);
     splitterMain->SetMinimumPaneSize(100);
     splitterMain->SetSashGravity(1.0);
+    splitterMain->Layout();
 
     splitter_top->SplitVertically(panel_top_left, panel_top_middle);
     splitter_top->SetMinimumPaneSize(100);
     splitter_top->SetSashGravity(0.0);
-
+    splitter_top->Layout();
 
     splitter_left->SplitHorizontally(splitter_top, panel_bottom);
     splitter_left->SetMinimumPaneSize(100);
     splitter_left->SetSashGravity(1.0);
-
-    splitterMain->Layout();
     splitter_left->Layout();
-    splitter_top->Layout();
+    
+    
+    canvas = new EngineCanvas(panel_top_middle);
+
+    wxBoxSizer* canvasSizer = new wxBoxSizer(wxVERTICAL);
+    canvasSizer->Add(canvas, 1, wxEXPAND | wxALL, 0);
+    panel_top_middle->SetSizer(canvasSizer);
 
 
     // Assuming panel_top_left is already created and initialized
@@ -130,6 +135,8 @@ void EditorFrame::OnShow(wxShowEvent& event){
         textConsole->AppendText("Welcome to the Text Console!\n");
         textConsole->AppendText("This is an example of multi-line text.\n");
         textConsole->AppendText("You can add more lines as needed.\n");
+
+        canvas->ViewLoaded();
     }
     event.Skip();
 }

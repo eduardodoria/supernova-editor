@@ -1,0 +1,3 @@
+[submodule "supernova"]
+	path = supernova
+	url = https://github.com/supernovaengine/supernova.git
