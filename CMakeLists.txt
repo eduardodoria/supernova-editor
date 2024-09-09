@@ -1,18 +1,20 @@
 cmake_minimum_required(VERSION 3.10)
 project(supernova-editor)
 
-# Specify C++ Standard
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
-
 find_package(wxWidgets REQUIRED COMPONENTS gl core base propgrid)
+find_package(Threads REQUIRED)
 
 include(${wxWidgets_USE_FILE})
 
 set(SUPERNOVA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/supernova)
 
+add_definitions("-DNO_LUA_INIT")
+add_definitions("-DNO_CPP_INIT")
 add_definitions("-DSOKOL_GLCORE")
 add_definitions("-DWITH_MINIAUDIO") # For SoLoud
+add_definitions("-DSUPERNOVA_EDITOR")
+
+include_directories (${CMAKE_CURRENT_SOURCE_DIR}/editor)
 
 include_directories (${SUPERNOVA_ROOT}/engine/libs/sokol)
 include_directories (${SUPERNOVA_ROOT}/engine/libs/lua)
@@ -46,6 +48,16 @@ add_executable(
     editor/main.cpp
     editor/EditorFrame.cpp
     editor/EngineCanvas.cpp
-    )
+    editor/EditorSystem.cpp
+)
 
-target_link_libraries(supernova-editor ${wxWidgets_LIBRARIES} GL glfw)
+set_target_properties(
+    supernova-editor
+
+    PROPERTIES
+
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+)
+
+target_link_libraries(supernova-editor ${wxWidgets_LIBRARIES} Threads::Threads GL glfw supernova)
