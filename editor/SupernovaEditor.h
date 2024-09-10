@@ -5,14 +5,14 @@
 #include "EditorFrame.h"
 #include "System.h"
 
-class SupernovaEditor : public wxApp, public Supernova::System{
+class SupernovaEditor : public wxApp{
 private:
-    Supernova::EditorFrame *frame;
+    static Supernova::EditorFrame *frame;
+
 public:
     bool OnInit() override;
 
-    int getScreenWidth();
-    int getScreenHeight();
+    static Supernova::EditorFrame* getFrame();
 };
 
 #endif /* SUPERNOVAEDITOR_H */

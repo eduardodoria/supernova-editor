@@ -11,11 +11,11 @@ namespace Supernova{
         bool isInitialized;
         wxGLContext* context;
 
-    public:
-        EngineCanvas(wxWindow* parent);
-
         void ViewLoaded();
         void Render();
+
+    public:
+        EngineCanvas(wxWindow* parent);
 
         void OnPaint(wxPaintEvent& event);
         void OnResize(wxSizeEvent& event);

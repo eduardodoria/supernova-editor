@@ -1,5 +1,7 @@
 #include "EditorFrame.h"
 
+#include "Engine.h"
+
 using namespace Supernova;
 
 EditorFrame::EditorFrame(const wxString &title, const wxPoint &pos, const wxSize &size)
@@ -120,9 +122,11 @@ EditorFrame::EditorFrame(const wxString &title, const wxPoint &pos, const wxSize
     this->SetSizer(sizerMain);
  
     Bind(wxEVT_SHOW, &EditorFrame::OnShow, this);
-    Bind(wxEVT_MENU, &EditorFrame::OnHello, this, ID_Hello);
-    Bind(wxEVT_MENU, &EditorFrame::OnAbout, this, wxID_ABOUT);
-    Bind(wxEVT_MENU, &EditorFrame::OnExit, this, wxID_EXIT);
+    Bind(wxEVT_CLOSE_WINDOW, &EditorFrame::OnExit, this);
+
+    Bind(wxEVT_MENU, &EditorFrame::OnHelloMenu, this, ID_Hello);
+    Bind(wxEVT_MENU, &EditorFrame::OnAboutMenu, this, wxID_ABOUT);
+    Bind(wxEVT_MENU, &EditorFrame::OnExitMenu, this, wxID_EXIT);
 }
 
 void EditorFrame::OnShow(wxShowEvent& event){
@@ -135,22 +139,26 @@ void EditorFrame::OnShow(wxShowEvent& event){
         textConsole->AppendText("Welcome to the Text Console!\n");
         textConsole->AppendText("This is an example of multi-line text.\n");
         textConsole->AppendText("You can add more lines as needed.\n");
-
-        canvas->ViewLoaded();
     }
     event.Skip();
 }
+
+void EditorFrame::OnExit(wxCloseEvent& event){
+    Engine::systemShutdown();
+
+    event.Skip();
+}
  
-void EditorFrame::OnExit(wxCommandEvent& event){
+void EditorFrame::OnExitMenu(wxCommandEvent& event){
     Close(true);
 }
  
-void EditorFrame::OnAbout(wxCommandEvent& event){
+void EditorFrame::OnAboutMenu(wxCommandEvent& event){
     wxMessageBox("This is a wxWidgets Hello World example",
                  "About Hello World", wxOK | wxICON_INFORMATION);
 }
  
-void EditorFrame::OnHello(wxCommandEvent& event){
+void EditorFrame::OnHelloMenu(wxCommandEvent& event){
     wxLogMessage("Hello world from wxWidgets!");
 }
 

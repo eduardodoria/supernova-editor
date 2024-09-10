@@ -1,6 +1,6 @@
 #include "EngineCanvas.h"
 
-#include <GLFW/glfw3.h>
+#include "Engine.h"
 
 using namespace Supernova;
 
@@ -9,30 +9,40 @@ EngineCanvas::EngineCanvas(wxWindow* parent): wxGLCanvas(parent, wxID_ANY, nullp
     context = new wxGLContext(this);
     isInitialized = false;
 
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
     Bind(wxEVT_SIZE, &EngineCanvas::OnResize, this);
     Bind(wxEVT_PAINT, &EngineCanvas::OnPaint, this);
 }
 
 void EngineCanvas::ViewLoaded(){
+    SetCurrent(*context);
+
     isInitialized = true;
+
+    wxSize size = this->GetSize();
+    printf("resized to: %d x %d\n", size.GetWidth(), size.GetHeight());
+    Engine::systemViewLoaded();
+    Engine::systemViewChanged();
 }
 
 void EngineCanvas::Render() {
-    SetCurrent(*context);
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+    Engine::systemDraw();
 
     SwapBuffers();
+    printf("render\n");
 }
 
 void EngineCanvas::OnPaint(wxPaintEvent& event){
-    Render();
+    SetCurrent(*context);
+
+    if (!isInitialized){
+        ViewLoaded();
+
+        Render();
+    }
+
+    
+
+    event.Skip();
 }
 
 void EngineCanvas::OnResize(wxSizeEvent& event){
@@ -40,12 +50,16 @@ void EngineCanvas::OnResize(wxSizeEvent& event){
         event.Skip(); // Skip the event if not visible
         return;
     }
-
-    wxSize size = this->GetSize();
     
     // Log the new size of the left panel
+    wxSize size = this->GetSize();
     printf("resized to: %d x %d\n", size.GetWidth(), size.GetHeight());
+    Engine::systemViewChanged();
     
     // Call the base class handler
     event.Skip();
 }
+
+//void EngineCanvas::OnExit(wxCommandEvent& event){
+//    printf("oiii");
+//}

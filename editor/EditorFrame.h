@@ -24,10 +24,12 @@ namespace Supernova{
         EngineCanvas* canvas;
 
         void OnShow(wxShowEvent& event);
-        void OnHello(wxCommandEvent& event);
-        void OnExit(wxCommandEvent& event);
-        void OnAbout(wxCommandEvent& event);
-        
+        void OnExit(wxCloseEvent& event);
+
+        void OnHelloMenu(wxCommandEvent& event);
+        void OnExitMenu(wxCommandEvent& event);
+        void OnAboutMenu(wxCommandEvent& event);
+         
     public:
         EditorFrame(const wxString &title, const wxPoint &pos, const wxSize &size);
 
