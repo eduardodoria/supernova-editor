@@ -3,7 +3,6 @@
 
 #include <wx/wx.h>
 #include <wx/glcanvas.h>
-#include <GLFW/glfw3.h>
 
 namespace Supernova{
     class EngineCanvas : public wxGLCanvas {

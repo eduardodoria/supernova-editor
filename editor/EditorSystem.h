@@ -5,12 +5,16 @@
 #include "EditorFrame.h"
 #include "System.h"
 
-class EditorSystem : public Supernova::System{
+namespace Supernova{
 
-public:
+    class EditorSystem : public System{
 
-    int getScreenWidth();
-    int getScreenHeight();
-};
+    public:
+
+        virtual int getScreenWidth();
+        virtual int getScreenHeight();
+    };
+
+}
 
 #endif /* EDITORSYSTEM_H */

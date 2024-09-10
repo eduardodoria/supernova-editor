@@ -1,4 +1,4 @@
 #include "SupernovaEditor.h"
 
 
-wxIMPLEMENT_APP(SupernovaEditor);
+wxIMPLEMENT_APP(Supernova::SupernovaEditor);

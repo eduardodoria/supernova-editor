@@ -15,16 +15,17 @@ EngineCanvas::EngineCanvas(wxWindow* parent): wxGLCanvas(parent, wxID_ANY, nullp
 
 void EngineCanvas::ViewLoaded(){
     SetCurrent(*context);
-
     isInitialized = true;
 
     wxSize size = this->GetSize();
-    printf("resized to: %d x %d\n", size.GetWidth(), size.GetHeight());
+    printf("ViewLoaded to: %d x %d\n", size.GetWidth(), size.GetHeight());
     Engine::systemViewLoaded();
     Engine::systemViewChanged();
 }
 
 void EngineCanvas::Render() {
+    SetCurrent(*context);
+
     Engine::systemDraw();
 
     SwapBuffers();
@@ -32,15 +33,13 @@ void EngineCanvas::Render() {
 }
 
 void EngineCanvas::OnPaint(wxPaintEvent& event){
-    SetCurrent(*context);
+    wxPaintDC(this);
 
     if (!isInitialized){
         ViewLoaded();
-
-        Render();
     }
 
-    
+    Render();
 
     event.Skip();
 }
@@ -53,7 +52,7 @@ void EngineCanvas::OnResize(wxSizeEvent& event){
     
     // Log the new size of the left panel
     wxSize size = this->GetSize();
-    printf("resized to: %d x %d\n", size.GetWidth(), size.GetHeight());
+    printf("OnResize to: %d x %d\n", size.GetWidth(), size.GetHeight());
     Engine::systemViewChanged();
     
     // Call the base class handler

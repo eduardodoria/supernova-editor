@@ -2,6 +2,8 @@
 
 #include "SupernovaEditor.h"
 
+using namespace Supernova;
+
 int EditorSystem::getScreenWidth(){
     return SupernovaEditor::getFrame()->getCanvas()->GetSize().GetWidth();
 }

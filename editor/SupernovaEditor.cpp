@@ -3,13 +3,17 @@
 #include "Engine.h"
 #include "Supernova.h"
 
-Supernova::EditorFrame *SupernovaEditor::frame;
+using namespace Supernova;
+
+EditorFrame *SupernovaEditor::frame;
 
 bool SupernovaEditor::OnInit(){
-    frame = new Supernova::EditorFrame("Supernova Editor", wxDefaultPosition, wxSize(1280, 800));
+    frame = new EditorFrame("Supernova Editor", wxDefaultPosition, wxSize(1280, 800));
     frame->Show(true);
 
-    Supernova::Engine::systemInit(argc, argv);
+    Engine::systemInit(argc, argv);
+
+
 
     Supernova::Scene* scene = new Supernova::Scene();
     Supernova::Polygon* triangle = new Supernova::Polygon(scene);
@@ -22,12 +26,13 @@ bool SupernovaEditor::OnInit(){
     triangle->setColor(0.6, 0.2, 0.6, 1);
 
     //Engine::setCanvasSize(1000,480);
+    Supernova::Engine::setFixedTimeSceneUpdate(false);
     Supernova::Engine::setScene(scene);
 
 
     return true;
 }
 
-Supernova::EditorFrame* SupernovaEditor::getFrame(){
+EditorFrame* SupernovaEditor::getFrame(){
     return frame;
 }
