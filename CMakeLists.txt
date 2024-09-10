@@ -61,4 +61,4 @@ set_target_properties(
     CXX_STANDARD_REQUIRED ON
 )
 
-target_link_libraries(supernova-editor ${wxWidgets_LIBRARIES} Threads::Threads GL glfw supernova)
+target_link_libraries(supernova-editor ${wxWidgets_LIBRARIES} Threads::Threads GL supernova)
