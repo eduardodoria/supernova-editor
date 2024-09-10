@@ -48,7 +48,7 @@ add_executable(
     editor/main.cpp
     editor/EditorFrame.cpp
     editor/EngineCanvas.cpp
-    editor/EditorSystem.cpp
+    editor/SupernovaEditor.cpp
 )
 
 set_target_properties(

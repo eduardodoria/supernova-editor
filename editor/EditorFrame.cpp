@@ -20,8 +20,8 @@ EditorFrame::EditorFrame(const wxString &title, const wxPoint &pos, const wxSize
  
     SetMenuBar( menuBar );
  
-    CreateStatusBar();
-    SetStatusText("Welcome to wxWidgets!");
+    //CreateStatusBar();
+    //SetStatusText("Supernova Engine editor");
 
 
     splitterMain = new wxSplitterWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_BORDER | wxSP_LIVE_UPDATE);
@@ -152,4 +152,8 @@ void EditorFrame::OnAbout(wxCommandEvent& event){
  
 void EditorFrame::OnHello(wxCommandEvent& event){
     wxLogMessage("Hello world from wxWidgets!");
+}
+
+EngineCanvas* EditorFrame::getCanvas(){
+    return canvas;
 }
