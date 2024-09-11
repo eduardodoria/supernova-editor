@@ -1,13 +1,13 @@
-#ifndef SUPERNOVAEDITOR_H
-#define SUPERNOVAEDITOR_H
+#ifndef EDITORAPP_H
+#define EDITORAPP_H
 
 #include <wx/wx.h>
 #include "EditorFrame.h"
 #include "System.h"
 
-namespace Supernova{
+namespace Supernova::Editor{
 
-    class SupernovaEditor : public wxApp{
+    class App : public wxApp{
     private:
         static EditorFrame *frame;
 
@@ -19,4 +19,4 @@ namespace Supernova{
 
 }
 
-#endif /* SUPERNOVAEDITOR_H */
+#endif /* EDITORAPP_H */

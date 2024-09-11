@@ -1,13 +1,13 @@
-#include "SupernovaEditor.h"
+#include "App.h"
 
 #include "Engine.h"
 #include "Supernova.h"
 
 using namespace Supernova;
 
-EditorFrame *SupernovaEditor::frame;
+EditorFrame* Editor::App::frame;
 
-bool SupernovaEditor::OnInit(){
+bool Editor::App::OnInit(){
     frame = new EditorFrame("Supernova Editor", wxDefaultPosition, wxSize(1280, 800));
     frame->Show(true);
 
@@ -33,6 +33,6 @@ bool SupernovaEditor::OnInit(){
     return true;
 }
 
-EditorFrame* SupernovaEditor::getFrame(){
+EditorFrame* Editor::App::getFrame(){
     return frame;
 }

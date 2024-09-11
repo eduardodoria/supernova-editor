@@ -48,7 +48,7 @@ add_executable(
     editor/main.cpp
     editor/EditorFrame.cpp
     editor/EngineCanvas.cpp
-    editor/SupernovaEditor.cpp
+    editor/App.cpp
     editor/EditorSystem.cpp
 )
 

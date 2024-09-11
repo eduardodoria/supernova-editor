@@ -1,13 +1,13 @@
 #include "EditorSystem.h"
 
-#include "SupernovaEditor.h"
+#include "App.h"
 
 using namespace Supernova;
 
 int EditorSystem::getScreenWidth(){
-    return SupernovaEditor::getFrame()->getCanvas()->GetSize().GetWidth();
+    return Editor::App::getFrame()->getCanvas()->GetSize().GetWidth();
 }
 
 int EditorSystem::getScreenHeight(){
-    return SupernovaEditor::getFrame()->getCanvas()->GetSize().GetHeight();
+    return Editor::App::getFrame()->getCanvas()->GetSize().GetHeight();
 }
