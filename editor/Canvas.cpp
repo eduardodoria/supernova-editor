@@ -54,6 +54,8 @@ void Editor::Canvas::OnResize(wxSizeEvent& event){
     wxSize size = this->GetSize();
     printf("OnResize to: %d x %d\n", size.GetWidth(), size.GetHeight());
     Engine::systemViewChanged();
+
+    Render();
     
     // Call the base class handler
     event.Skip();

@@ -5,6 +5,7 @@
 #include <wx/splitter.h>
 #include <wx/treebase.h>
 #include <wx/treectrl.h>
+#include <wx/notebook.h>
 #include <wx/propgrid/propgrid.h>
 #include <wx/propgrid/advprops.h>
 

@@ -29,10 +29,10 @@ Editor::Frame::Frame(const wxString &title, const wxPoint &pos, const wxSize &si
     splitterRight = new wxSplitterWindow(splitterLeft, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_BORDER | wxSP_LIVE_UPDATE);
     splitterMiddle = new wxSplitterWindow(splitterRight, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_BORDER | wxSP_LIVE_UPDATE);
 
-    wxPanel* panelLeft = new wxPanel(splitterLeft, wxID_ANY, wxDefaultPosition, wxSize(200, 100));
-    wxPanel* panelRight = new wxPanel(splitterRight, wxID_ANY, wxDefaultPosition, wxSize(200, 100));
-    wxPanel* panelMiddleTop = new wxPanel(splitterMiddle, wxID_ANY, wxDefaultPosition, wxSize(200, 100));
-    wxPanel* panelMiddleBottom = new wxPanel(splitterMiddle, wxID_ANY, wxDefaultPosition, wxSize(200, 100));
+    wxPanel* panelLeft = new wxPanel(splitterLeft, wxID_ANY, wxDefaultPosition, wxDefaultSize);
+    wxPanel* panelRight = new wxPanel(splitterRight, wxID_ANY, wxDefaultPosition, wxDefaultSize);
+    wxPanel* panelMiddleTop = new wxPanel(splitterMiddle, wxID_ANY, wxDefaultPosition, wxDefaultSize);
+    wxPanel* panelMiddleBottom = new wxPanel(splitterMiddle, wxID_ANY, wxDefaultPosition, wxDefaultSize);
 
 
     splitterLeft->SplitVertically(panelLeft, splitterRight);
@@ -71,8 +71,24 @@ Editor::Frame::Frame(const wxString &title, const wxPoint &pos, const wxSize &si
     panelMiddleBottom->SetSizer(middleBottomSizer);
 
     wxBoxSizer* rightSizer = new wxBoxSizer(wxVERTICAL);
-    rightSizer->Add(propertyGrid, 1, wxEXPAND | wxALL, 0);
-    panelRight->SetSizer(rightSizer); 
+
+    // Create a notebook and add a tab for the property grid
+    wxNotebook* notebook = new wxNotebook(panelRight, wxID_ANY);
+    wxPanel* inspectorPanel = new wxPanel(notebook, wxID_ANY);
+    notebook->AddPage(inspectorPanel, "Inspector");
+
+    // Create the property grid with inspectorPanel as the parent
+    propertyGrid = new wxPropertyGrid(inspectorPanel, wxID_ANY, wxDefaultPosition, wxSize(300, 400));
+
+    // Add the property grid to the inspector panel
+    wxBoxSizer* inspectorSizer = new wxBoxSizer(wxVERTICAL);
+    inspectorSizer->Add(propertyGrid, 1, wxEXPAND | wxALL, 0);
+    inspectorPanel->SetSizer(inspectorSizer);
+
+    // Add the notebook to the right sizer
+    rightSizer->Add(notebook, 1, wxEXPAND | wxALL, 0);
+    panelRight->SetSizer(rightSizer);
+
 
 
 
@@ -107,7 +123,7 @@ void Editor::Frame::OnShow(wxShowEvent& event){
     if (event.IsShown()) {
         splitterLeft->SetSashPosition(200);
         splitterMiddle->SetSashPosition(GetSize().GetHeight() - 200);
-        splitterRight->SetSashPosition(GetSize().GetWidth() - 500);
+        splitterRight->SetSashPosition(GetSize().GetWidth() - splitterLeft->GetSashPosition() - 300);
 
         textConsole->AppendText("Supernova Engine console.\n");
         textConsole->AppendText("Welcome to the Text Console!\n");
