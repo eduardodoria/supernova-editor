@@ -5,10 +5,10 @@
 
 using namespace Supernova;
 
-EditorFrame* Editor::App::frame;
+Editor::Frame* Editor::App::frame;
 
 bool Editor::App::OnInit(){
-    frame = new EditorFrame("Supernova Editor", wxDefaultPosition, wxSize(1280, 800));
+    frame = new Editor::Frame("Supernova Editor", wxDefaultPosition, wxSize(1280, 800));
     frame->Show(true);
 
     Engine::systemInit(argc, argv);
@@ -33,6 +33,6 @@ bool Editor::App::OnInit(){
     return true;
 }
 
-EditorFrame* Editor::App::getFrame(){
+Editor::Frame* Editor::App::getFrame(){
     return frame;
 }

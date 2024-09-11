@@ -2,19 +2,19 @@
 #define EDITORAPP_H
 
 #include <wx/wx.h>
-#include "EditorFrame.h"
+#include "Frame.h"
 #include "System.h"
 
 namespace Supernova::Editor{
 
     class App : public wxApp{
     private:
-        static EditorFrame *frame;
+        static Editor::Frame *frame;
 
     public:
         bool OnInit() override;
 
-        static EditorFrame* getFrame();
+        static Editor::Frame* getFrame();
     };
 
 }

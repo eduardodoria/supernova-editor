@@ -1,11 +1,11 @@
-#ifndef ENGINECANVAS_H
-#define ENGINECANVAS_H
+#ifndef EDITORCANVAS_H
+#define EDITORCANVAS_H
 
 #include <wx/wx.h>
 #include <wx/glcanvas.h>
 
-namespace Supernova{
-    class EngineCanvas : public wxGLCanvas {
+namespace Supernova::Editor{
+    class Canvas : public wxGLCanvas {
     private:
         bool isInitialized;
         wxGLContext* context;
@@ -14,11 +14,11 @@ namespace Supernova{
         void Render();
 
     public:
-        EngineCanvas(wxWindow* parent);
+        Canvas(wxWindow* parent);
 
         void OnPaint(wxPaintEvent& event);
         void OnResize(wxSizeEvent& event);
     };
 }
 
-#endif /* ENGINECANVAS_H */
+#endif /* EDITORCANVAS_H */

@@ -14,7 +14,7 @@ add_definitions("-DSOKOL_GLCORE")
 add_definitions("-DWITH_MINIAUDIO") # For SoLoud
 add_definitions("-DSUPERNOVA_EDITOR")
 
-include_directories (${CMAKE_CURRENT_SOURCE_DIR}/editor)
+include_directories (${CMAKE_CURRENT_SOURCE_DIR})
 
 include_directories (${SUPERNOVA_ROOT}/engine/libs/sokol)
 include_directories (${SUPERNOVA_ROOT}/engine/libs/lua)
@@ -46,10 +46,10 @@ add_executable(
     supernova-editor 
 
     editor/main.cpp
-    editor/EditorFrame.cpp
-    editor/EngineCanvas.cpp
+    editor/Frame.cpp
+    editor/Canvas.cpp
     editor/App.cpp
-    editor/EditorSystem.cpp
+    editor/Platform.cpp
 )
 
 set_target_properties(

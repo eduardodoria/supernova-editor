@@ -1,19 +1,19 @@
-#include "EngineCanvas.h"
+#include "Canvas.h"
 
 #include "Engine.h"
 
 using namespace Supernova;
 
 
-EngineCanvas::EngineCanvas(wxWindow* parent): wxGLCanvas(parent, wxID_ANY, nullptr) {
+Editor::Canvas::Canvas(wxWindow* parent): wxGLCanvas(parent, wxID_ANY, nullptr) {
     context = new wxGLContext(this);
     isInitialized = false;
 
-    Bind(wxEVT_SIZE, &EngineCanvas::OnResize, this);
-    Bind(wxEVT_PAINT, &EngineCanvas::OnPaint, this);
+    Bind(wxEVT_SIZE, &Editor::Canvas::OnResize, this);
+    Bind(wxEVT_PAINT, &Editor::Canvas::OnPaint, this);
 }
 
-void EngineCanvas::ViewLoaded(){
+void Editor::Canvas::ViewLoaded(){
     SetCurrent(*context);
     isInitialized = true;
 
@@ -23,7 +23,7 @@ void EngineCanvas::ViewLoaded(){
     Engine::systemViewChanged();
 }
 
-void EngineCanvas::Render() {
+void Editor::Canvas::Render() {
     SetCurrent(*context);
 
     Engine::systemDraw();
@@ -32,7 +32,7 @@ void EngineCanvas::Render() {
     printf("render\n");
 }
 
-void EngineCanvas::OnPaint(wxPaintEvent& event){
+void Editor::Canvas::OnPaint(wxPaintEvent& event){
     wxPaintDC(this);
 
     if (!isInitialized){
@@ -44,7 +44,7 @@ void EngineCanvas::OnPaint(wxPaintEvent& event){
     event.Skip();
 }
 
-void EngineCanvas::OnResize(wxSizeEvent& event){
+void Editor::Canvas::OnResize(wxSizeEvent& event){
     if (!isInitialized) {
         event.Skip(); // Skip the event if not visible
         return;
