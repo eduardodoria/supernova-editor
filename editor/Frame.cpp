@@ -53,9 +53,8 @@ Editor::Frame::Frame(const wxString &title, const wxPoint &pos, const wxSize &si
     
     
     canvas = new Editor::Canvas(panelMiddleTop);
-    textConsole = new wxTextCtrl(panelMiddleBottom, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY);
-    sceneTree = new wxTreeCtrl(panelLeft, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTR_DEFAULT_STYLE);
-    propertyGrid = new wxPropertyGrid(panelRight, wxID_ANY, wxDefaultPosition, wxSize(300, 400));
+    textConsole = new wxTextCtrl(panelMiddleBottom, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY | wxBORDER_NONE);
+    sceneTree = new wxTreeCtrl(panelLeft, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTR_DEFAULT_STYLE | wxBORDER_NONE);
 
 
     wxBoxSizer* canvasSizer = new wxBoxSizer(wxVERTICAL);
@@ -78,7 +77,7 @@ Editor::Frame::Frame(const wxString &title, const wxPoint &pos, const wxSize &si
     notebook->AddPage(inspectorPanel, "Inspector");
 
     // Create the property grid with inspectorPanel as the parent
-    propertyGrid = new wxPropertyGrid(inspectorPanel, wxID_ANY, wxDefaultPosition, wxSize(300, 400));
+    propertyGrid = new wxPropertyGrid(inspectorPanel, wxID_ANY, wxDefaultPosition, wxSize(300, 400), wxBORDER_NONE);
 
     // Add the property grid to the inspector panel
     wxBoxSizer* inspectorSizer = new wxBoxSizer(wxVERTICAL);

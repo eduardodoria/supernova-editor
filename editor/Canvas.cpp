@@ -5,8 +5,10 @@
 using namespace Supernova;
 
 
-Editor::Canvas::Canvas(wxWindow* parent): wxGLCanvas(parent, wxID_ANY, nullptr) {
-    context = new wxGLContext(this);
+Editor::Canvas::Canvas(wxWindow* parent): wxGLCanvas(parent, wxID_ANY, nullptr, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE) {
+    wxGLContextAttrs attrs;
+    attrs.CoreProfile().OGLVersion(4, 1).EndList();
+    context = new wxGLContext(this, nullptr, &attrs);
     isInitialized = false;
 
     Bind(wxEVT_SIZE, &Editor::Canvas::OnResize, this);
@@ -55,7 +57,7 @@ void Editor::Canvas::OnResize(wxSizeEvent& event){
     printf("OnResize to: %d x %d\n", size.GetWidth(), size.GetHeight());
     Engine::systemViewChanged();
 
-    Render();
+    //Render();
     
     // Call the base class handler
     event.Skip();

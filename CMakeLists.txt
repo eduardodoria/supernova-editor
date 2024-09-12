@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(supernova-editor)
 
 find_package(wxWidgets REQUIRED COMPONENTS gl core base propgrid)
+find_package(OpenGL REQUIRED)
 find_package(Threads REQUIRED)
 
 include(${wxWidgets_USE_FILE})
@@ -61,4 +62,4 @@ set_target_properties(
     CXX_STANDARD_REQUIRED ON
 )
 
-target_link_libraries(supernova-editor ${wxWidgets_LIBRARIES} Threads::Threads GL supernova)
+target_link_libraries(supernova-editor ${wxWidgets_LIBRARIES} ${OPENGL_LIBRARIES} Threads::Threads supernova)
