@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 project(supernova-editor)
 
+if(POLICY CMP0072)
+  cmake_policy(SET CMP0072 NEW) # NEW for GLVND, OLD for legacy OpenGL
+endif()
+
 find_package(wxWidgets REQUIRED COMPONENTS gl core base propgrid)
 find_package(OpenGL REQUIRED)
 find_package(Threads REQUIRED)
