@@ -4,8 +4,9 @@
 #include <wx/wx.h>
 #include <wx/splitter.h>
 #include <wx/treebase.h>
-#include <wx/treectrl.h>
 #include <wx/notebook.h>
+#include <wx/dataview.h>
+#include <wx/artprov.h>
 #include <wx/propgrid/propgrid.h>
 #include <wx/propgrid/advprops.h>
 
@@ -24,7 +25,7 @@ namespace Supernova::Editor{
 
         wxTextCtrl* textConsole;
         Canvas* canvas;
-        wxTreeCtrl* sceneTree;
+        wxDataViewTreeCtrl* sceneTree;
         wxPropertyGrid* propertyGrid;
 
         void OnShow(wxShowEvent& event);

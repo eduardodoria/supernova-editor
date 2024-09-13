@@ -54,8 +54,7 @@ Editor::Frame::Frame(const wxString &title, const wxPoint &pos, const wxSize &si
     
     canvas = new Editor::Canvas(panelMiddleTop);
     textConsole = new wxTextCtrl(panelMiddleBottom, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY | wxBORDER_NONE);
-    sceneTree = new wxTreeCtrl(panelLeft, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTR_DEFAULT_STYLE | wxBORDER_NONE);
-
+    sceneTree = new wxDataViewTreeCtrl( panelLeft, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTR_DEFAULT_STYLE | wxDV_NO_HEADER );
 
     wxBoxSizer* canvasSizer = new wxBoxSizer(wxVERTICAL);
     canvasSizer->Add(canvas, 1, wxEXPAND | wxALL, 0);
@@ -89,13 +88,22 @@ Editor::Frame::Frame(const wxString &title, const wxPoint &pos, const wxSize &si
     panelRight->SetSizer(rightSizer);
 
 
+    //======== start tree ==================
+    wxDataViewTreeCtrl::Images images;
+    images.push_back(wxArtProvider::GetBitmapBundle(wxART_WX_LOGO, wxART_LIST));
+    sceneTree->SetImages(images);
 
+    const wxDataViewItem root = sceneTree->AppendContainer( wxDataViewItem(0), "The Root", 0 );
+    sceneTree->AppendItem( root, "Child 1", 0 );
+    sceneTree->AppendItem( root, "Child 2", 0 );
+    sceneTree->AppendItem( root, "Child 3, very long, long, long, long", 0 );
 
-    // Add some example nodes to the tree
-    wxTreeItemId rootId = sceneTree->AddRoot("Root Node");
-    sceneTree->AppendItem(rootId, "Child Node 1");
-    sceneTree->AppendItem(rootId, "Child Node 2");
+    wxDataViewItem cont = sceneTree->AppendContainer( root, "Container child", 0 );
+    sceneTree->AppendItem( cont, "Child 4", 0 );
+    sceneTree->AppendItem( cont, "Child 5", 0 );
 
+    sceneTree->Expand(cont);
+    //======== end tree ==================
 
 
     // Add properties to the property grid
