@@ -9,8 +9,25 @@ Editor of Supernova Engine
 
 ### macOS
 
+#### Using brew
+
 `brew install wxwidgets`
+
+#### Download wxWidgets source
+```
+mkdir build
+cd build
+../configure --enable-debug
+make
+sudo make install
+```
 
 ### Windows
 
-Download and install wxWidgets from the official website, and make sure it’s accessible in your build environment.
+Download wxWidgets binaries (https://www.wxwidgets.org/downloads):
+* Development files
+* Header files
+
+Extract both to same directory. Ex: `C:\wxWidgets-<version>`
+
+Create `WXWIN` environment variable with this directory
