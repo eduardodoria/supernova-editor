@@ -38,18 +38,18 @@ Editor::Frame::Frame(const wxString &title, const wxPoint &pos, const wxSize &si
     splitterLeft->SplitVertically(panelLeft, splitterRight);
     splitterLeft->SetMinimumPaneSize(100);
     splitterLeft->SetSashGravity(0.0);
-    splitterLeft->Layout();
+    //splitterLeft->Layout();
 
     splitterRight->SplitVertically(splitterMiddle, panelRight);
     splitterRight->SetMinimumPaneSize(100);
     splitterRight->SetSashGravity(1.0);
-    splitterRight->Layout();
+    //splitterRight->Layout();
 
     
     splitterMiddle->SplitHorizontally(panelMiddleTop, panelMiddleBottom);
     splitterMiddle->SetMinimumPaneSize(100);
     splitterMiddle->SetSashGravity(1.0);
-    splitterMiddle->Layout();
+    //splitterMiddle->Layout();
     
     
     canvas = new Editor::Canvas(panelMiddleTop);
@@ -116,9 +116,9 @@ Editor::Frame::Frame(const wxString &title, const wxPoint &pos, const wxSize &si
     propertyGrid->Append(new wxFloatProperty("Threshold", wxPG_LABEL, 0.5));
     propertyGrid->Append(new wxColourProperty("Color", wxPG_LABEL, *wxWHITE));
 
-
  
     Bind(wxEVT_SHOW, &Editor::Frame::OnShow, this);
+    Bind(wxEVT_SIZE, &Editor::Frame::OnSize, this);
     Bind(wxEVT_CLOSE_WINDOW, &Editor::Frame::OnExit, this);
 
     Bind(wxEVT_MENU, &Editor::Frame::OnHelloMenu, this, ID_Hello);
@@ -126,8 +126,12 @@ Editor::Frame::Frame(const wxString &title, const wxPoint &pos, const wxSize &si
     Bind(wxEVT_MENU, &Editor::Frame::OnExitMenu, this, wxID_EXIT);
 }
 
+
+
 void Editor::Frame::OnShow(wxShowEvent& event){
     if (event.IsShown()) {
+        Layout();
+
         splitterLeft->SetSashPosition(200);
         splitterMiddle->SetSashPosition(GetSize().GetHeight() - 200);
         splitterRight->SetSashPosition(GetSize().GetWidth() - splitterLeft->GetSashPosition() - 300);
@@ -137,6 +141,10 @@ void Editor::Frame::OnShow(wxShowEvent& event){
         textConsole->AppendText("This is an example of multi-line text.\n");
         textConsole->AppendText("You can add more lines as needed.\n");
     }
+    event.Skip();
+}
+
+void Editor::Frame::OnSize(wxSizeEvent& event) {
     event.Skip();
 }
 

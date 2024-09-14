@@ -29,6 +29,7 @@ namespace Supernova::Editor{
         wxPropertyGrid* propertyGrid;
 
         void OnShow(wxShowEvent& event);
+        void OnSize(wxSizeEvent& event);
         void OnExit(wxCloseEvent& event);
 
         void OnHelloMenu(wxCommandEvent& event);
