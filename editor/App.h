@@ -1,20 +1,34 @@
 #ifndef EDITORAPP_H
 #define EDITORAPP_H
 
-#include <wx/wx.h>
-#include "Frame.h"
-#include "System.h"
+#include "imgui.h"
+
+#include "layout/Properties.h"
+#include "layout/Objects.h"
+#include "layout/Console.h"
 
 namespace Supernova::Editor{
 
-    class App : public wxApp{
+    class App{
     private:
-        static Editor::Frame *frame;
+        ImGuiID dockspace_id;
+        Objects objectsWindow;
+        Properties propertiesWindow;
+        Console consoleWindow;
+
+        static bool isInitialized;
+
+        void showMenu();
+        void buildDockspace();
 
     public:
-        bool OnInit() override;
+        static unsigned int texture;
 
-        static Editor::Frame* getFrame();
+        App();
+
+        void show();
+
+        static void engineRender(const ImDrawList* parent_list, const ImDrawCmd* cmd);
     };
 
 }

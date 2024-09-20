@@ -1,23 +1,13 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.15)
 project(supernova-editor)
 
 if(POLICY CMP0072)
   cmake_policy(SET CMP0072 NEW) # NEW for GLVND, OLD for legacy OpenGL
 endif()
 
-# Required CMake 3.25+
-# https://github.com/wxWidgets/wxWidgets/issues/22590
-# https://docs.wxwidgets.org/trunk/overview_cmake.html#cmake_find_package
-
-
-#for using static libraries
-set(wxWidgets_USE_STATIC ON)
-
-find_package(wxWidgets REQUIRED COMPONENTS gl core base propgrid)
+# Find OpenGL
 find_package(OpenGL REQUIRED)
 find_package(Threads REQUIRED)
-
-include(${wxWidgets_USE_FILE})
 
 set(SUPERNOVA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/supernova)
 
@@ -26,10 +16,6 @@ add_definitions("-DNO_CPP_INIT")
 add_definitions("-DSOKOL_GLCORE")
 add_definitions("-DWITH_MINIAUDIO") # For SoLoud
 add_definitions("-DSUPERNOVA_EDITOR")
-
-if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    set(PLATFORM_EXEC_FLAGS WIN32)
-endif()
 
 include_directories (${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -58,17 +44,54 @@ include_directories (${SUPERNOVA_ROOT}/engine/renders)
 
 add_subdirectory(${SUPERNOVA_ROOT}/engine)
 
-# Add the executable
+# Add ImGui source files
+set(IMGUI_DIR libs/imgui)
+set(IMGUI_SOURCES
+    ${IMGUI_DIR}/imgui.cpp
+    #${IMGUI_DIR}/imgui_demo.cpp
+    ${IMGUI_DIR}/imgui_draw.cpp
+    ${IMGUI_DIR}/imgui_tables.cpp
+    ${IMGUI_DIR}/imgui_widgets.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
+)
+
+
+# Create executable
+set(EDITOR_DIR editor)
 add_executable(
     supernova-editor
 
-    ${PLATFORM_EXEC_FLAGS}
+    ${EDITOR_DIR}/main.cpp
+    ${EDITOR_DIR}/App.cpp
+    ${EDITOR_DIR}/Platform.cpp
+    ${EDITOR_DIR}/layout/Objects.cpp
+    ${EDITOR_DIR}/layout/Properties.cpp
+    ${EDITOR_DIR}/layout/Console.cpp
 
-    editor/main.cpp
-    editor/Frame.cpp
-    editor/Canvas.cpp
-    editor/App.cpp
-    editor/Platform.cpp
+    ${IMGUI_SOURCES}
+)
+
+include_directories (${CMAKE_CURRENT_BINARY_DIR})
+include_directories (editor)
+
+# Include directories
+target_include_directories(supernova-editor PRIVATE
+    ${IMGUI_DIR}
+    ${IMGUI_DIR}/backends
+    ${OPENGL_INCLUDE_DIR}
+)
+
+# Link libraries
+target_link_libraries(
+    supernova-editor
+    
+    PRIVATE
+    
+    glfw
+    ${OPENGL_LIBRARIES}
+    Threads::Threads
+    supernova
 )
 
 set_target_properties(
@@ -79,5 +102,3 @@ set_target_properties(
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
 )
-
-target_link_libraries(supernova-editor ${wxWidgets_LIBRARIES} ${OPENGL_LIBRARIES} Threads::Threads supernova)
