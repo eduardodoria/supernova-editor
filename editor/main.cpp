@@ -5,12 +5,9 @@
 //#include "fonts/roboto-v20-latin-regular_ttf.h"
 #include "external/IconsFontAwesome6.h"
 
-#include "Supernova.h"
-
 #include "App.h"
-#include "Platform.h"
 
-#include "GL_loader.h"
+#include "util/GLloader.h"
 #include <GLFW/glfw3.h>
 
 using namespace Supernova;
@@ -21,6 +18,8 @@ int main(int argc, char** argv){
     // Initialize GLFW
     if (!glfwInit())
         return -1;
+
+    Editor::App app;
 
     int sampleCount = 1;
 
@@ -51,8 +50,10 @@ int main(int argc, char** argv){
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;      // Enable Docking
-        
+    
+    #ifdef _DEBUG
     io.IniFilename = nullptr;  // Disable saving to ini file
+    #endif
 
     io.Fonts->AddFontDefault();
     //io.Fonts->AddFontFromMemoryTTF(roboto_v20_latin_regular_ttf, roboto_v20_latin_regular_ttf_len, 13.0f);
@@ -67,40 +68,13 @@ int main(int argc, char** argv){
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
 
-
-
-
-    Engine::systemInit(argc, argv);
-
-    Scene scene;
-    Polygon triangle(&scene);
-    Camera camera(&scene);
-
-    triangle.addVertex(0, -100);
-    triangle.addVertex(-50, 50);
-    triangle.addVertex(50, 50);
-
-    triangle.setPosition(Vector3(300,300,0));
-    triangle.setColor(0.6, 0.2, 0.6, 1);
-
-    camera.setType(CameraType::CAMERA_2D);
-
-    camera.setRenderToTexture(true);
-    camera.setUseFramebufferSizes(false);
-
-    scene.setCamera(&camera);
-
-    Engine::setFixedTimeSceneUpdate(false);
-    Engine::setScene(&scene);
-
+    app.engineInit(argc, argv);
 
     // Setup Platform/Renderer bindings
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 410");
 
-    Editor::App app;
-
-    Engine::systemViewLoaded();
+    app.engineViewLoaded();
 
 
     // Main loop
@@ -116,11 +90,7 @@ int main(int argc, char** argv){
         glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        if (Editor::Platform::width != 0 && Editor::Platform::height != 0){
-            camera.setFramebufferSize(Editor::Platform::width, Editor::Platform::height);
-            Engine::systemDraw();
-            Editor::App::texture = camera.getFramebuffer()->getRender().getColorTexture().getGLHandler();
-        }
+        app.engineRender();
 
         glDisable(GL_FRAMEBUFFER_SRGB);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -144,8 +114,12 @@ int main(int argc, char** argv){
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 
+    app.engineViewDestroyed();
+
     glfwDestroyWindow(window);
     glfwTerminate();
+
+    app.engineShutdown();
 
     return 0;
 }

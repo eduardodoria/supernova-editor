@@ -48,7 +48,7 @@ add_subdirectory(${SUPERNOVA_ROOT}/engine)
 set(IMGUI_DIR libs/imgui)
 set(IMGUI_SOURCES
     ${IMGUI_DIR}/imgui.cpp
-    #${IMGUI_DIR}/imgui_demo.cpp
+    ${IMGUI_DIR}/imgui_demo.cpp
     ${IMGUI_DIR}/imgui_draw.cpp
     ${IMGUI_DIR}/imgui_tables.cpp
     ${IMGUI_DIR}/imgui_widgets.cpp

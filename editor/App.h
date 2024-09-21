@@ -3,6 +3,8 @@
 
 #include "imgui.h"
 
+#include "Supernova.h"
+
 #include "layout/Properties.h"
 #include "layout/Objects.h"
 #include "layout/Console.h"
@@ -16,19 +18,29 @@ namespace Supernova::Editor{
         Properties propertiesWindow;
         Console consoleWindow;
 
+        Camera* camera;
+        Scene* scene;
+
+        uint32_t renderTexture;
+
         static bool isInitialized;
+        Vector2 lastMousePos;
 
         void showMenu();
         void buildDockspace();
+        void sceneEventHandler();
 
     public:
-        static unsigned int texture;
 
         App();
 
         void show();
 
-        static void engineRender(const ImDrawList* parent_list, const ImDrawCmd* cmd);
+        void engineInit(int argc, char** argv);
+        void engineViewLoaded();
+        void engineRender();
+        void engineViewDestroyed();
+        void engineShutdown();
     };
 
 }
