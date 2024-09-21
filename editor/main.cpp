@@ -7,7 +7,6 @@
 
 #include "App.h"
 
-#include "util/GLloader.h"
 #include <GLFW/glfw3.h>
 
 using namespace Supernova;
@@ -20,6 +19,7 @@ int main(int argc, char** argv){
         return -1;
 
     Editor::App app;
+    CameraRender render;
 
     int sampleCount = 1;
 
@@ -87,24 +87,21 @@ int main(int argc, char** argv){
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
         app.engineRender();
-
-        glDisable(GL_FRAMEBUFFER_SRGB);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glDisable(GL_SCISSOR_TEST);
 
         // Get window size
         int display_w, display_h;
         glfwGetFramebufferSize(window, &display_w, &display_h);
-        glViewport(0, 0, display_w, display_h);
+
+        render.setClearColor(Vector4(0.45f, 0.55f, 0.60f, 1.00f));
+        render.startFrameBuffer(display_w, display_h);
 
         app.show();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+        render.endFrameBuffer();
 
         glfwSwapBuffers(window);
     }
