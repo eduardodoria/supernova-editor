@@ -9,7 +9,18 @@ endif()
 find_package(OpenGL REQUIRED)
 find_package(Threads REQUIRED)
 
+set(GLFW_LIB "glfw")
+
 set(SUPERNOVA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/supernova)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    set(PLATFORM_EXEC_FLAGS WIN32)
+    set(PLATFORM_PROPERTIES_FLAGS LINK_FLAGS "/ENTRY:mainCRTStartup")
+
+    set(GLFW_DIR $ENV{GLFW_DIR})
+    include_directories(${GLFW_DIR}/include)
+    set(GLFW_LIB "${GLFW_DIR}/lib-vc2022/glfw3.lib")
+endif()
 
 add_definitions("-DNO_LUA_INIT")
 add_definitions("-DNO_CPP_INIT")
@@ -62,6 +73,8 @@ set(EDITOR_DIR editor)
 add_executable(
     supernova-editor
 
+    ${PLATFORM_EXEC_FLAGS}
+
     ${EDITOR_DIR}/main.cpp
     ${EDITOR_DIR}/App.cpp
     ${EDITOR_DIR}/Platform.cpp
@@ -88,7 +101,7 @@ target_link_libraries(
     
     PRIVATE
     
-    glfw
+    ${GLFW_LIB}
     ${OPENGL_LIBRARIES}
     Threads::Threads
     supernova
@@ -99,6 +112,7 @@ set_target_properties(
 
     PROPERTIES
 
+    ${PLATFORM_PROPERTIES_FLAGS}
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
 )

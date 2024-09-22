@@ -29,9 +29,4 @@ sudo make install
 1. Go to the GLFW website.
 2. Download the Windows binaries.
 3. Extract Files Extract the downloaded ZIP file to a folder of your choice.
-
-#### Configure Your Project
-
-1. Add the include directory to your compiler's include directories.
-2. Link against glfw3.lib found in the lib-vc2022 (or similar) directory.
-3. Ensure glfw3.dll is in your executable's directory or in your system's PATH.
+4. Add environment variable "GLFW_DIR" with path of binaries.
