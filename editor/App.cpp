@@ -13,6 +13,7 @@ bool Editor::App::isInitialized = false;
 Editor::App::App(){
 
     lastMousePos = Vector2(0, 0);
+    draggingMouse = false;
 
 }
 
@@ -57,24 +58,28 @@ void Editor::App::showMenu(){
 
 void Editor::App::buildDockspace(){
     ImGuiID dock_id_left, dock_id_right, dock_id_middle, dock_id_middle_top, dock_id_middle_bottom;
+    float size;
 
     ImGui::DockBuilderRemoveNode(dockspace_id);
     ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace);
     ImGui::DockBuilderSetNodeSize(dockspace_id, ImGui::GetMainViewport()->Size);
 
     // Split the dockspace into left and middle
+    size = 12*ImGui::GetFontSize();
     ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.0f, &dock_id_left, &dock_id_middle);
-    ImGui::DockBuilderSetNodeSize(dock_id_left, ImVec2(200, ImGui::GetMainViewport()->Size.y)); // Set left node size
+    ImGui::DockBuilderSetNodeSize(dock_id_left, ImVec2(size, ImGui::GetMainViewport()->Size.y)); // Set left node size
     ImGui::DockBuilderDockWindow("Objects", dock_id_left);
 
     // Split the middle into right and remaining middle
+    size = 18*ImGui::GetFontSize();
     ImGui::DockBuilderSplitNode(dock_id_middle, ImGuiDir_Right, 0.0f, &dock_id_right, &dock_id_middle);
-    ImGui::DockBuilderSetNodeSize(dock_id_right, ImVec2(300, ImGui::GetMainViewport()->Size.y)); // Set right node size
+    ImGui::DockBuilderSetNodeSize(dock_id_right, ImVec2(size, ImGui::GetMainViewport()->Size.y)); // Set right node size
     ImGui::DockBuilderDockWindow("Properties", dock_id_right);
 
     // Split the remaining middle into top and bottom
+    size = 10*ImGui::GetFontSize();
     ImGui::DockBuilderSplitNode(dock_id_middle, ImGuiDir_Down, 0.0f, &dock_id_middle_bottom, &dock_id_middle_top);
-    ImGui::DockBuilderSetNodeSize(dock_id_middle_bottom, ImVec2(ImGui::GetMainViewport()->Size.x, 150)); // Set bottom node size
+    ImGui::DockBuilderSetNodeSize(dock_id_middle_bottom, ImVec2(ImGui::GetMainViewport()->Size.x, size)); // Set bottom node size
     ImGui::DockBuilderDockWindow("Scene", dock_id_middle_top);
     ImGui::DockBuilderDockWindow("Console", dock_id_middle_bottom);
 
@@ -86,21 +91,30 @@ void Editor::App::sceneEventHandler(){
     ImVec2 windowPos = ImGui::GetWindowPos();
     ImVec2 windowSize = ImGui::GetWindowSize();
     ImVec2 mousePos = ImGui::GetMousePos();
+    ImGuiIO& io = ImGui::GetIO();
+    float mouseWheel = io.MouseWheel;
 
     // Check if the mouse is within the window bounds
     bool isMouseInWindow = ImGui::IsWindowHovered() && (mousePos.x >= windowPos.x && mousePos.x <= windowPos.x + windowSize.x &&
                             mousePos.y >= windowPos.y && mousePos.y <= windowPos.y + windowSize.y);
 
     // Log mouse position
-    if (isMouseInWindow && (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))) {
+    if (isMouseInWindow && (ImGui::IsMouseClicked(ImGuiMouseButton_Middle) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))) {
         float x = mousePos.x - windowPos.x;
         float y = mousePos.y - windowPos.y;
 
         lastMousePos = Vector2(x, y);
+
+        draggingMouse = true;
+
+    }
+
+    if (ImGui::IsMouseReleased(ImGuiMouseButton_Middle) || ImGui::IsMouseReleased(ImGuiMouseButton_Right)){
+        draggingMouse = false;
     }
 
     // Check for mouse clicks
-    if (isMouseInWindow && (ImGui::IsMouseDown(ImGuiMouseButton_Left) || ImGui::IsMouseDown(ImGuiMouseButton_Right))) {
+    if (draggingMouse && (ImGui::IsMouseDown(ImGuiMouseButton_Middle) || ImGui::IsMouseDown(ImGuiMouseButton_Right))) {
         float x = mousePos.x - windowPos.x;
         float y = mousePos.y - windowPos.y;
 
@@ -108,12 +122,33 @@ void Editor::App::sceneEventHandler(){
         float difY = lastMousePos.y - y;
         lastMousePos = Vector2(x, y);
 
-        if (ImGui::IsMouseDown(ImGuiMouseButton_Left)){
-            camera->walkForward(-0.05 * difY);
-            camera->slide(0.02 * difX);
-        }else{
+        if (ImGui::IsMouseDown(ImGuiMouseButton_Right)){
+
+            camera->rotateView(0.1 * difX);
+            camera->elevateView(0.1 * difY);
+
+            if (ImGui::IsKeyDown(ImGuiKey_W)){
+                camera->moveForward(0.05 * 10);
+            }
+            if (ImGui::IsKeyDown(ImGuiKey_S)){
+                camera->moveForward(-0.05 * 10);
+            }
+            if (ImGui::IsKeyDown(ImGuiKey_A)){
+                camera->slide(-0.02 * 10);
+            }
+            if (ImGui::IsKeyDown(ImGuiKey_D)){
+                camera->slide(0.02 * 10);
+            }
+
+            ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+        }
+        if (ImGui::IsMouseDown(ImGuiMouseButton_Middle)){
             camera->rotatePosition(0.1 * difX);
             camera->elevatePosition(-0.1 * difY);
+
+            if (mouseWheel != 0.0f){
+                camera->zoom(5 * mouseWheel);
+            }
         }
     }
 }

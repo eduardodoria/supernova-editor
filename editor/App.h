@@ -24,7 +24,9 @@ namespace Supernova::Editor{
         uint32_t renderTexture;
 
         static bool isInitialized;
+
         Vector2 lastMousePos;
+        bool draggingMouse;
 
         void showMenu();
         void buildDockspace();
