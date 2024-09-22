@@ -19,8 +19,8 @@ Editor::App::App(){
 
 void Editor::App::showMenu(){
     // Remove menu bar border
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    //ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
+    //ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
     // Create the main menu bar
     if (ImGui::BeginMainMenuBar()) {
@@ -53,7 +53,7 @@ void Editor::App::showMenu(){
     }
 
     // Restore previous style
-    ImGui::PopStyleVar(2);
+    //ImGui::PopStyleVar(2);
 }
 
 void Editor::App::buildDockspace(){
@@ -187,19 +187,21 @@ void Editor::App::show(){
 
 
     ImGui::Begin("Dear ImGui Style Editor");
-    // Get the current IO object to access display size
-    ImGuiIO& io = ImGui::GetIO();
-    ImVec2 windowSize = ImGui::GetWindowSize();
+    {
+        // Get the current IO object to access display size
+        ImGuiIO& io = ImGui::GetIO();
+        ImVec2 windowSize = ImGui::GetWindowSize();
 
-    // Calculate the centered position at the top
-    float windowX = (io.DisplaySize.x - windowSize.x) / 2;
-    float windowY = 0.0f; // Top of the screen
+        // Calculate the centered position at the top
+        float windowX = (io.DisplaySize.x - windowSize.x - 200) / 2;
+        float windowY = 0.0f; // Top of the screen
 
-    // Set the window position
-    ImGui::SetWindowPos(ImVec2(windowX, windowY), ImGuiCond_Once);
-    ImGui::SetWindowCollapsed(true, ImGuiCond_Once);
+        // Set the window position
+        ImGui::SetWindowPos(ImVec2(windowX, windowY), ImGuiCond_Once);
+        ImGui::SetWindowCollapsed(true, ImGuiCond_Once);
 
-    ImGui::ShowStyleEditor();
+        ImGui::ShowStyleEditor();
+    }
     ImGui::End();
     
     objectsWindow.show();
@@ -271,4 +273,115 @@ void Editor::App::engineViewDestroyed(){
 
 void Editor::App::engineShutdown(){
     Engine::systemShutdown();
+}
+
+void Editor::App::kewtStyleTheme(){
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImVec4* colors = style.Colors;
+
+    colors[ImGuiCol_Text]                   = ImVec4(0.75f, 0.73f, 0.73f, 1.00f);
+    colors[ImGuiCol_TextDisabled]           = ImVec4(0.47f, 0.44f, 0.42f, 1.00f);
+    colors[ImGuiCol_WindowBg]               = ImVec4(0.16f, 0.15f, 0.14f, 1.00f);
+    colors[ImGuiCol_ChildBg]                = ImVec4(0.16f, 0.15f, 0.14f, 1.00f);
+    colors[ImGuiCol_PopupBg]                = ImVec4(0.27f, 0.25f, 0.24f, 1.00f);
+    colors[ImGuiCol_Border]                 = ImVec4(0.11f, 0.10f, 0.09f, 1.00f);
+    colors[ImGuiCol_BorderShadow]           = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+    colors[ImGuiCol_FrameBg]                = ImVec4(0.05f, 0.04f, 0.04f, 1.00f);
+    colors[ImGuiCol_FrameBgHovered]         = ImVec4(0.11f, 0.10f, 0.09f, 1.00f);
+    colors[ImGuiCol_FrameBgActive]          = ImVec4(0.11f, 0.10f, 0.09f, 1.00f);
+    colors[ImGuiCol_TitleBg]                = ImVec4(0.16f, 0.15f, 0.14f, 1.00f);
+    colors[ImGuiCol_TitleBgActive]          = ImVec4(0.27f, 0.25f, 0.24f, 1.00f);
+    colors[ImGuiCol_TitleBgCollapsed]       = ImVec4(0.16f, 0.15f, 0.14f, 1.00f);
+    colors[ImGuiCol_MenuBarBg]              = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+    colors[ImGuiCol_ScrollbarBg]            = ImVec4(0.02f, 0.02f, 0.02f, 0.00f);
+    colors[ImGuiCol_ScrollbarGrab]          = ImVec4(0.31f, 0.31f, 0.31f, 1.00f);
+    colors[ImGuiCol_ScrollbarGrabHovered]   = ImVec4(0.41f, 0.41f, 0.41f, 1.00f);
+    colors[ImGuiCol_ScrollbarGrabActive]    = ImVec4(0.51f, 0.51f, 0.51f, 1.00f);
+    colors[ImGuiCol_CheckMark]              = ImVec4(0.28f, 0.33f, 0.41f, 1.00f);
+    colors[ImGuiCol_SliderGrab]             = ImVec4(0.28f, 0.33f, 0.41f, 1.00f);
+    colors[ImGuiCol_SliderGrabActive]       = ImVec4(0.39f, 0.45f, 0.55f, 1.00f);
+    colors[ImGuiCol_Button]                 = ImVec4(0.28f, 0.33f, 0.41f, 1.00f);
+    colors[ImGuiCol_ButtonHovered]          = ImVec4(0.34f, 0.40f, 0.48f, 1.00f);
+    colors[ImGuiCol_ButtonActive]           = ImVec4(0.39f, 0.45f, 0.55f, 1.00f);
+    colors[ImGuiCol_Header]                 = ImVec4(0.27f, 0.25f, 0.24f, 1.00f);
+    colors[ImGuiCol_HeaderHovered]          = ImVec4(0.34f, 0.33f, 0.31f, 1.00f);
+    colors[ImGuiCol_HeaderActive]           = ImVec4(0.34f, 0.33f, 0.31f, 1.00f);
+    colors[ImGuiCol_Separator]              = ImVec4(0.34f, 0.33f, 0.31f, 1.00f);
+    colors[ImGuiCol_SeparatorHovered]       = ImVec4(0.34f, 0.33f, 0.31f, 1.00f);
+    colors[ImGuiCol_SeparatorActive]        = ImVec4(0.47f, 0.44f, 0.42f, 1.00f);
+    colors[ImGuiCol_ResizeGrip]             = ImVec4(0.34f, 0.33f, 0.31f, 1.00f);
+    colors[ImGuiCol_ResizeGripHovered]      = ImVec4(0.47f, 0.44f, 0.42f, 1.00f);
+    colors[ImGuiCol_ResizeGripActive]       = ImVec4(0.47f, 0.44f, 0.42f, 1.00f);
+    colors[ImGuiCol_TabHovered]             = ImVec4(0.34f, 0.33f, 0.31f, 1.00f);
+    colors[ImGuiCol_Tab]                    = ImVec4(0.27f, 0.25f, 0.24f, 1.00f);
+    colors[ImGuiCol_TabSelected]            = ImVec4(0.34f, 0.33f, 0.31f, 1.00f);
+    colors[ImGuiCol_TabSelectedOverline]    = ImVec4(0.47f, 0.44f, 0.42f, 1.00f);
+    colors[ImGuiCol_TabDimmed]              = ImVec4(0.27f, 0.25f, 0.24f, 1.00f);
+    colors[ImGuiCol_TabDimmedSelected]      = ImVec4(0.34f, 0.33f, 0.31f, 1.00f);
+    colors[ImGuiCol_TabDimmedSelectedOverline]  = ImVec4(0.34f, 0.33f, 0.31f, 1.00f);
+    colors[ImGuiCol_DockingPreview]         = ImVec4(0.23f, 0.51f, 0.96f, 0.78f);
+    colors[ImGuiCol_DockingEmptyBg]         = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+    colors[ImGuiCol_PlotLines]              = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
+    colors[ImGuiCol_PlotLinesHovered]       = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
+    colors[ImGuiCol_PlotHistogram]          = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
+    colors[ImGuiCol_PlotHistogramHovered]   = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
+    colors[ImGuiCol_TableHeaderBg]          = ImVec4(0.27f, 0.25f, 0.24f, 1.00f);
+    colors[ImGuiCol_TableBorderStrong]      = ImVec4(0.47f, 0.44f, 0.42f, 1.00f);
+    colors[ImGuiCol_TableBorderLight]       = ImVec4(0.34f, 0.33f, 0.31f, 1.00f);
+    colors[ImGuiCol_TableRowBg]             = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+    colors[ImGuiCol_TableRowBgAlt]          = ImVec4(1.00f, 1.00f, 1.00f, 0.06f);
+    colors[ImGuiCol_TextLink]               = ImVec4(0.23f, 0.51f, 0.96f, 1.00f);
+    colors[ImGuiCol_TextSelectedBg]         = ImVec4(0.23f, 0.51f, 0.96f, 0.38f);
+    colors[ImGuiCol_DragDropTarget]         = ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
+    colors[ImGuiCol_NavHighlight]           = ImVec4(0.23f, 0.51f, 0.96f, 1.00f);
+    colors[ImGuiCol_NavWindowingHighlight]  = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
+    colors[ImGuiCol_NavWindowingDimBg]      = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
+    colors[ImGuiCol_ModalWindowDimBg]       = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
+
+    // main
+    style.WindowPadding = ImVec2(8, 8);
+    style.FramePadding = ImVec2(12, 6);
+    style.ItemSpacing = ImVec2(8, 8);
+    style.ItemInnerSpacing = ImVec2(8, 8);
+    style.TouchExtraPadding = ImVec2(0, 0);
+    style.IndentSpacing = 16;
+    style.ScrollbarSize = 12;
+    style.GrabRounding = 12;
+
+    // borders
+    style.WindowBorderSize = 0;
+    style.ChildBorderSize = 0;
+    style.PopupBorderSize = 0;
+    style.FrameBorderSize = 0;
+    style.TabBorderSize = 0;
+    style.TabBarBorderSize = 1;
+    style.TabBarOverlineSize = 2;
+
+    // rounding
+    style.WindowRounding = 2;
+    style.ChildRounding = 2;
+    style.FrameRounding = 2;
+    style.PopupRounding = 2;
+    style.ScrollbarRounding = 2;
+    style.GrabRounding = 2;
+    style.TabRounding = 2;
+
+    // tables
+    style.CellPadding = ImVec2(8, 4);
+    style.TableAngledHeadersAngle = 0.61; //35 deg
+    style.TableAngledHeadersTextAlign = ImVec2(0.50, 0.00);
+
+    // widgets
+    style.WindowTitleAlign = ImVec2(0.00, 0.50);
+    style.WindowMenuButtonPosition = ImGuiDir::ImGuiDir_Right;
+    style.ColorButtonPosition = ImGuiDir::ImGuiDir_Right;
+    style.ButtonTextAlign = ImVec2(0.50, 0.50);
+    style.SelectableTextAlign = ImVec2(0.00, 0.00);
+    style.SeparatorTextBorderSize = 1;
+    style.SeparatorTextAlign = ImVec2(0.00, 0.50);
+    style.SeparatorTextPadding = ImVec2(16, 0);
+    style.LogSliderDeadzone = 4;
+
+    // docking
+    style.DockingSeparatorSize = 6;
 }

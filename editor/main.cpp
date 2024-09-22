@@ -83,7 +83,8 @@ int main(int argc, char** argv){
     io.FontDefault = font1;
 
     // Setup Dear ImGui style
-    ImGui::StyleColorsDark();
+    //ImGui::StyleColorsDark();
+    app.kewtStyleTheme();
 
     app.engineInit(argc, argv);
 

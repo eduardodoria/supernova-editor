@@ -5,9 +5,9 @@
 
 #include "Supernova.h"
 
-#include "layout/Properties.h"
-#include "layout/Objects.h"
-#include "layout/Console.h"
+#include "window/Properties.h"
+#include "window/Objects.h"
+#include "window/Console.h"
 
 namespace Supernova::Editor{
 
@@ -43,6 +43,8 @@ namespace Supernova::Editor{
         void engineRender();
         void engineViewDestroyed();
         void engineShutdown();
+
+        void kewtStyleTheme();
     };
 
 }

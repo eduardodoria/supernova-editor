@@ -12,6 +12,8 @@ Editor::Properties::Properties(){
 void Editor::Properties::show(){
     ImGui::Begin("Properties");
 
+    float firstColSize = ImGui::GetFontSize() * 4;
+
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::CollapsingHeader("Mesh Component")){
 
@@ -19,7 +21,7 @@ void Editor::Properties::show(){
 
         ImGui::PushItemWidth(-1);
         if (ImGui::BeginTable("split2", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV)){
-            ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFontSize() * 6);
+            ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, firstColSize);
             ImGui::TableSetupColumn("Value");
             
             ImGui::TableNextRow();
@@ -77,7 +79,7 @@ void Editor::Properties::show(){
 
         ImGui::PushItemWidth(-1);
         if (ImGui::BeginTable("split2", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV)){
-            ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFontSize() * 6);
+            ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, firstColSize);
             ImGui::TableSetupColumn("Value");
             
             ImGui::TableNextRow();
