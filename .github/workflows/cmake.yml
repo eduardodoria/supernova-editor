@@ -109,7 +109,7 @@ jobs:
           elif [[ -z "$VERSION" ]]; then
             VERSION=${{ github.sha }}
           fi
-          echo "SUPERNOVA_VERSION=$VERSION" >> $GITHUB_EN
+          echo "SUPERNOVA_VERSION=$VERSION" >> $GITHUB_ENV
           
       - name: Configure
         shell: bash
