@@ -65,14 +65,6 @@ jobs:
           $glfwDir = "glfw-$glfwVersion.bin.WIN64"
           echo "GLFW_DIR=$env:GITHUB_WORKSPACE\$glfwDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Set up environment on macOS
-        if: startsWith(matrix.config.os, 'macos')
-        run: |
-          export CPATH=$CPATH:/opt/homebrew/include
-          export LIBRARY_PATH=$LIBRARY_PATH:/opt/homebrew/lib
-          echo "CPATH=$CPATH" >> $GITHUB_ENV
-          echo "LIBRARY_PATH=$LIBRARY_PATH" >> $GITHUB_ENV
-
       - name: Install dependencies on Windows
         if: startsWith(matrix.config.os, 'windows')
         run: |
@@ -92,7 +84,9 @@ jobs:
       - name: Install dependencies on macOS
         if: startsWith(matrix.config.os, 'macos')
         run: |
-          brew install cmake ninja glfw
+          brew uninstall glfw
+          brew install cmake ninja
+          arch -arm64 brew install glfw
           arch -x86_64 brew install glfw
           ninja --version
           cmake --version

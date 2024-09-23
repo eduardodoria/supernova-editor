@@ -13,6 +13,11 @@ set(GLFW_LIB "glfw")
 
 set(SUPERNOVA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/supernova)
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    include_directories(/opt/homebrew/include)
+    link_directories(/opt/homebrew/lib)
+endif()
+
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set(PLATFORM_EXEC_FLAGS WIN32)
     set(PLATFORM_PROPERTIES_FLAGS LINK_FLAGS "/ENTRY:mainCRTStartup")
