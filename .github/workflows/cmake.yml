@@ -84,7 +84,6 @@ jobs:
       - name: Install dependencies on macOS
         if: startsWith(matrix.config.os, 'macos')
         run: |
-          brew uninstall glfw
           brew install cmake ninja
           arch -arm64 brew install glfw
           arch -x86_64 brew install glfw
