@@ -101,7 +101,7 @@ jobs:
           cmake --version
 
       - name: Set version
-        shell: pwsh
+        shell: bash
         run: |
           VERSION=${{ github.ref_name }}
           if [[ $VERSION == refs/tags/* ]]; then
