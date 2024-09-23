@@ -8,7 +8,6 @@ on:
     types: [published]
     
 env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
   TARGET: supernova-editor
 
@@ -69,10 +68,8 @@ jobs:
       - name: Set up environment on macOS
         if: startsWith(matrix.config.os, 'macos')
         run: |
-          echo 'HOMEBREW_BUNDLE_INSTALL_UNIVERSAL=1' >> $GITHUB_ENV
-          echo 'HOMEBREW_ARCH=arm64_x86_64' >> $GITHUB_ENV
-          export CPATH=/opt/homebrew/include:/usr/local/include
-          export LIBRARY_PATH=/opt/homebrew/lib:/usr/local/lib
+          export CPATH=$CPATH:/opt/homebrew/include
+          export LIBRARY_PATH=$LIBRARY_PATH:/opt/homebrew/lib
           echo "CPATH=$CPATH" >> $GITHUB_ENV
           echo "LIBRARY_PATH=$LIBRARY_PATH" >> $GITHUB_ENV
 
@@ -95,8 +92,8 @@ jobs:
       - name: Install dependencies on macOS
         if: startsWith(matrix.config.os, 'macos')
         run: |
-          brew install cmake ninja
-          brew install --build-from-source glfw
+          brew install cmake ninja glfw
+          arch -x86_64 brew install glfw
           ninja --version
           cmake --version
 
