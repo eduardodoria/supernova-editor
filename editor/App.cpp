@@ -164,28 +164,6 @@ void Editor::App::show(){
 
     ImGui::DockSpaceOverViewport(dockspace_id, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
 
-    ImGui::Begin("Scene");
-    {
-        ImGui::BeginChild("GameRender");
-        {
-            sceneEventHandler();
-
-            float width = ImGui::GetContentRegionAvail().x;
-            float height = ImGui::GetContentRegionAvail().y;
-
-            if (Platform::width != width || Platform::height != height){
-                Platform::width = width;
-                Platform::height = height;
-                Engine::systemViewChanged();
-            }
-
-            ImGui::Image((void*)(intptr_t)renderTexture, ImGui::GetContentRegionAvail(), ImVec2(0, 1), ImVec2(1, 0));
-        }
-        ImGui::EndChild();
-    }
-    ImGui::End();
-
-
     ImGui::Begin("Dear ImGui Style Editor");
     {
         // Get the current IO object to access display size
@@ -207,6 +185,27 @@ void Editor::App::show(){
     objectsWindow.show();
     consoleWindow.show();
     propertiesWindow.show();
+
+    ImGui::Begin("Scene");
+    {
+        ImGui::BeginChild("GameRender");
+        {
+            sceneEventHandler();
+
+            float width = ImGui::GetContentRegionAvail().x;
+            float height = ImGui::GetContentRegionAvail().y;
+
+            if (Platform::width != width || Platform::height != height){
+                Platform::width = width;
+                Platform::height = height;
+                Engine::systemViewChanged();
+            }
+
+            ImGui::Image((void*)(intptr_t)renderTexture, ImGui::GetContentRegionAvail(), ImVec2(0, 1), ImVec2(1, 0));
+        }
+        ImGui::EndChild();
+    }
+    ImGui::End();
 }
 
 void Editor::App::engineInit(int argc, char** argv){
