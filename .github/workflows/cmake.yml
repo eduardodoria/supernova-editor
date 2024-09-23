@@ -11,7 +11,6 @@ env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
   TARGET: supernova-editor
-  TARGET_SOURCE_DIR: editor
 
 jobs:
   build:
@@ -70,12 +69,12 @@ jobs:
       - name: Set up environment on macOS
         if: startsWith(matrix.config.os, 'macos')
         run: |
-          export CPATH=/opt/homebrew/include
-          export LIBRARY_PATH=/opt/homebrew/lib
-          echo "CPATH=$CPATH" >> $GITHUB_ENV
-          echo "LIBRARY_PATH=$LIBRARY_PATH" >> $GITHUB_ENV
           echo 'HOMEBREW_BUNDLE_INSTALL_UNIVERSAL=1' >> $GITHUB_ENV
           echo 'HOMEBREW_ARCH=arm64_x86_64' >> $GITHUB_ENV
+          export CPATH=/opt/homebrew/include:/usr/local/include
+          export LIBRARY_PATH=/opt/homebrew/lib:/usr/local/lib
+          echo "CPATH=$CPATH" >> $GITHUB_ENV
+          echo "LIBRARY_PATH=$LIBRARY_PATH" >> $GITHUB_ENV
 
       - name: Install dependencies on Windows
         if: startsWith(matrix.config.os, 'windows')
@@ -96,18 +95,17 @@ jobs:
       - name: Install dependencies on macOS
         if: startsWith(matrix.config.os, 'macos')
         run: |
-          brew install cmake ninja glfw
+          brew install cmake ninja
+          brew install --build-from-source glfw
           ninja --version
           cmake --version
 
       - name: Set version
         shell: bash
         run: |
-          VERSION=${{ github.ref_name }}
+          VERSION=$(git rev-parse --short ${{ github.sha }})
           if [[ $VERSION == refs/tags/* ]]; then
             VERSION=${VERSION#refs/tags/}
-          elif [[ -z "$VERSION" ]]; then
-            VERSION=${{ github.sha }}
           fi
           echo "SUPERNOVA_VERSION=$VERSION" >> $GITHUB_ENV
           
@@ -137,7 +135,7 @@ jobs:
 
       - name: Install Strip
         shell: bash
-        run: cmake --install build/${{env.TARGET_SOURCE_DIR}} --config ${{env.BUILD_TYPE}} --strip
+        run: cmake --install build --config ${{env.BUILD_TYPE}} --strip
         
       - name: List directories
         shell: bash
