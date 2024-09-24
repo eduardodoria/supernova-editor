@@ -10,6 +10,7 @@ on:
 env:
   BUILD_TYPE: Release
   TARGET: supernova-editor
+  GLFW_VERSION: 3.4
 
 jobs:
   build:
@@ -54,17 +55,6 @@ jobs:
           echo github.event.action: ${{ github.event.action }}
           echo github.event_name: ${{ github.event_name }}
 
-      - name: Download GLFW binaries on Windows
-        if: startsWith(matrix.config.os, 'windows')
-        run: |
-          $glfwVersion = "3.4"
-          $glfwZip = "glfw-$glfwVersion.bin.WIN64.zip"
-          $glfwUrl = "https://github.com/glfw/glfw/releases/download/$glfwVersion/$glfwZip"
-          Invoke-WebRequest -Uri $glfwUrl -OutFile $glfwZip
-          Expand-Archive -Path $glfwZip -DestinationPath .
-          $glfwDir = "glfw-$glfwVersion.bin.WIN64"
-          echo "GLFW_DIR=$env:GITHUB_WORKSPACE\$glfwDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
       - name: Install dependencies on Windows
         if: startsWith(matrix.config.os, 'windows')
         run: |
@@ -76,7 +66,7 @@ jobs:
         if: startsWith(matrix.config.os, 'ubuntu')
         run: |
           sudo apt-get update
-          sudo apt-get install ninja-build cmake libglfw3-dev libxi-dev libxcursor-dev
+          sudo apt-get install ninja-build cmake libxi-dev libxcursor-dev libwayland-dev libxkbcommon-dev libxrandr-dev libxinerama-dev libglw1-mesa-dev wayland-protocols extra-cmake-modules
           ninja --version
           cmake --version
           gcc --version
@@ -85,15 +75,36 @@ jobs:
         if: startsWith(matrix.config.os, 'macos')
         run: |
           brew install cmake ninja
-          arch -arm64 brew install glfw
-          arch -x86_64 brew install glfw
           ninja --version
           cmake --version
+
+      - name: Download and install GLFW
+        shell: bash
+        env:
+          CC: ${{ matrix.config.cc }}
+          CXX: ${{ matrix.config.cxx }}
+        run: |
+          glfwFile=glfw-${{env.GLFW_VERSION}}
+          SUDO_CMD=$([ "$RUNNER_OS" != "Windows" ] && echo "sudo" || echo "")
+          curl -L https://github.com/glfw/glfw/releases/download/${{env.GLFW_VERSION}}/$glfwFile.zip -o $glfwFile.zip
+          unzip $glfwFile.zip
+          mv $glfwFile glfw
+          mkdir -p glfw/build
+          cmake \
+            -S glfw \
+            -B glfw/build \
+            -G "${{ matrix.config.generators }}" \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
+            -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
+            ${{ startsWith(matrix.config.os, 'windows') && '-A x64' || '' }}
+          cmake --build glfw/build --config ${{env.BUILD_TYPE}}
+          $SUDO_CMD cmake --install glfw/build --config ${{env.BUILD_TYPE}}
 
       - name: Set version
         shell: bash
         run: |
-          VERSION=$(git rev-parse --short ${{ github.sha }})
+          VERSION=$(git rev-parse --short ${{ github.sha }})-${{ github.ref_name }}
           if [[ $VERSION == refs/tags/* ]]; then
             VERSION=${VERSION#refs/tags/}
           fi
@@ -114,7 +125,6 @@ jobs:
             -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
             -G "${{ matrix.config.generators }}" \
             -DCMAKE_INSTALL_PREFIX:PATH=instdir \
-            -DCMAKE_PREFIX_PATH="C:/Program Files/GLFW" \
             -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
 
       - name: Build

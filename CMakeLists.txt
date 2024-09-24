@@ -8,23 +8,17 @@ endif()
 # Find OpenGL
 find_package(OpenGL REQUIRED)
 find_package(Threads REQUIRED)
+find_package(glfw3 REQUIRED)
 
 set(GLFW_LIB "glfw")
 
 set(SUPERNOVA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/supernova)
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    include_directories(/opt/homebrew/include)
-    link_directories(/opt/homebrew/lib)
-endif()
-
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set(PLATFORM_EXEC_FLAGS WIN32)
     set(PLATFORM_PROPERTIES_FLAGS LINK_FLAGS "/ENTRY:mainCRTStartup")
 
-    set(GLFW_DIR $ENV{GLFW_DIR})
-    include_directories(${GLFW_DIR}/include)
-    set(GLFW_LIB "${GLFW_DIR}/lib-vc2022/glfw3.lib")
+    set(CMAKE_PREFIX_PATH "ENV{ProgramFiles}/GLFW" ${CMAKE_PREFIX_PATH})
 endif()
 
 add_definitions("-DNO_LUA_INIT")
