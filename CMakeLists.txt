@@ -116,6 +116,7 @@ target_link_libraries(
     ${OPENGL_LIBRARIES}
     Threads::Threads
     supernova
+    $<$<CXX_COMPILER_ID:MSVC>:ucrt>
 )
 
 set_target_properties(
