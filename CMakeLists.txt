@@ -5,21 +5,23 @@ if(POLICY CMP0072)
   cmake_policy(SET CMP0072 NEW) # NEW for GLVND, OLD for legacy OpenGL
 endif()
 
-# Find OpenGL
-find_package(OpenGL REQUIRED)
-find_package(Threads REQUIRED)
-find_package(glfw3 REQUIRED)
-
-set(GLFW_LIB "glfw")
-
-set(SUPERNOVA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/supernova)
-
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set(PLATFORM_EXEC_FLAGS WIN32)
     set(PLATFORM_PROPERTIES_FLAGS LINK_FLAGS "/ENTRY:mainCRTStartup")
 
     set(CMAKE_PREFIX_PATH "$ENV{ProgramFiles}/GLFW" ${CMAKE_PREFIX_PATH})
 endif()
+
+# Find OpenGL
+find_package(OpenGL REQUIRED)
+find_package(Threads REQUIRED)
+find_package(glfw3 REQUIRED)
+
+if(NOT DEFINED GLFW_LIBRARIES)
+    set(GLFW_LIBRARIES glfw)
+endif()
+
+set(SUPERNOVA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/supernova)
 
 add_definitions("-DNO_LUA_INIT")
 add_definitions("-DNO_CPP_INIT")
@@ -84,7 +86,6 @@ add_executable(
     ${IMGUI_SOURCES}
 )
 
-include_directories (${CMAKE_CURRENT_BINARY_DIR})
 include_directories (editor)
 
 # Include directories
@@ -100,7 +101,7 @@ target_link_libraries(
     
     PRIVATE
     
-    ${GLFW_LIB}
+    ${GLFW_LIBRARIES}
     ${OPENGL_LIBRARIES}
     Threads::Threads
     supernova
