@@ -18,7 +18,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set(PLATFORM_EXEC_FLAGS WIN32)
     set(PLATFORM_PROPERTIES_FLAGS LINK_FLAGS "/ENTRY:mainCRTStartup")
 
-    set(CMAKE_PREFIX_PATH "ENV{ProgramFiles}/GLFW" ${CMAKE_PREFIX_PATH})
+    set(CMAKE_PREFIX_PATH "$ENV{ProgramFiles}/GLFW" ${CMAKE_PREFIX_PATH})
 endif()
 
 add_definitions("-DNO_LUA_INIT")
