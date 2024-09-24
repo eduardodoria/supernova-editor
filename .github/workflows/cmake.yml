@@ -102,6 +102,9 @@ jobs:
             -S glfw \
             -B glfw/build \
             -G "${{ matrix.config.generators }}" \
+            -DGLFW_BUILD_DOCS=OFF \
+            -DGLFW_BUILD_TESTS=OFF \
+            -DGLFW_BUILD_EXAMPLES=OFF \
             -DBUILD_SHARED_LIBS=OFF \
             -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
             -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" \

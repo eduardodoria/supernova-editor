@@ -13,6 +13,7 @@ if(WIN32)
 
     if(MSVC)
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /NODEFAULTLIB:MSVCRT")
     else()
         set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
         include(InstallRequiredSystemLibraries)
@@ -116,7 +117,6 @@ target_link_libraries(
     ${OPENGL_LIBRARIES}
     Threads::Threads
     supernova
-    $<$<CXX_COMPILER_ID:MSVC>:ucrt>
 )
 
 set_target_properties(
