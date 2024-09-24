@@ -13,7 +13,7 @@ if(WIN32)
     endif()
 
     if(MINGW)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++ -static")
+        set(MINGW_GCC_LIBS "-static -static-libgcc -static-libstdc++")
     endif()
 
     set(CMAKE_PREFIX_PATH "$ENV{ProgramFiles}/GLFW" ${CMAKE_PREFIX_PATH})
@@ -111,6 +111,7 @@ target_link_libraries(
     
     ${GLFW_LIBRARIES}
     ${OPENGL_LIBRARIES}
+    ${MINGW_GCC_LIBS}
     Threads::Threads
     supernova
 )
