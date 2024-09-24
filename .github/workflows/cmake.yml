@@ -107,6 +107,7 @@ jobs:
             -DGLFW_BUILD_EXAMPLES=OFF \
             -DBUILD_SHARED_LIBS=OFF \
             -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
+            -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded" \
             -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
             ${{ startsWith(matrix.config.artifact, 'windows_msvc') && '-A x64' || '' }}
           cmake --build glfw/build --config ${{env.BUILD_TYPE}}
