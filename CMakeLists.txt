@@ -9,14 +9,11 @@ if(WIN32)
     set(PLATFORM_EXEC_FLAGS WIN32)
     if(MSVC)
         set(PLATFORM_PROPERTIES_FLAGS LINK_FLAGS "/ENTRY:mainCRTStartup")
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     endif()
 
-    if(MSVC)
-        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-    else()
-        set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
-        include(InstallRequiredSystemLibraries)
-        file(COPY ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION ${CMAKE_BINARY_DIR})
+    if(MINGW)
+        set(MINGW_GCC_LIBS gcc stdc++ winpthread)
     endif()
 
     set(CMAKE_PREFIX_PATH "$ENV{ProgramFiles}/GLFW" ${CMAKE_PREFIX_PATH})
@@ -114,6 +111,7 @@ target_link_libraries(
     
     ${GLFW_LIBRARIES}
     ${OPENGL_LIBRARIES}
+    ${MINGW_GCC_LIBS}
     Threads::Threads
     supernova
 )
