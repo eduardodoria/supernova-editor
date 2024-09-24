@@ -128,10 +128,10 @@ void Editor::App::sceneEventHandler(){
             camera->elevateView(0.1 * difY);
 
             if (ImGui::IsKeyDown(ImGuiKey_W)){
-                camera->moveForward(0.05 * 10);
+                camera->slideForward(0.05 * 10);
             }
             if (ImGui::IsKeyDown(ImGuiKey_S)){
-                camera->moveForward(-0.05 * 10);
+                camera->slideForward(-0.05 * 10);
             }
             if (ImGui::IsKeyDown(ImGuiKey_A)){
                 camera->slide(-0.02 * 10);
@@ -143,13 +143,18 @@ void Editor::App::sceneEventHandler(){
             ImGui::SetMouseCursor(ImGuiMouseCursor_None);
         }
         if (ImGui::IsMouseDown(ImGuiMouseButton_Middle)){
-            camera->rotatePosition(0.1 * difX);
-            camera->elevatePosition(-0.1 * difY);
-
-            if (mouseWheel != 0.0f){
-                camera->zoom(5 * mouseWheel);
+            if (ImGui::IsKeyDown(ImGuiKey_ModCtrl)){
+                camera->slide(0.01 * difX);
+                camera->slideUp(-0.01 * difY);
+            }else{
+                camera->rotatePosition(0.1 * difX);
+                camera->elevatePosition(-0.1 * difY);
             }
         }
+    }
+
+    if (isMouseInWindow && mouseWheel != 0.0f){
+        camera->zoom(5 * mouseWheel);
     }
 }
 

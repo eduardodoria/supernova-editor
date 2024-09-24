@@ -7,6 +7,7 @@ endif()
 
 if(WIN32)
     set(PLATFORM_EXEC_FLAGS WIN32)
+ 
     if(MSVC)
         set(PLATFORM_PROPERTIES_FLAGS LINK_FLAGS "/ENTRY:mainCRTStartup")
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")

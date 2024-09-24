@@ -38,6 +38,8 @@ int main(int argc, char** argv){
         return -1;
     }
 
+    glfwMaximizeWindow(window);
+
     // Make the window's context current
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); // Enable vsync
