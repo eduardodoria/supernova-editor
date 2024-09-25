@@ -20,9 +20,17 @@ namespace Supernova::Editor{
 
         Camera* camera;
         Scene* scene;
+
         Scene* sceneGimbal;
         Camera* camGimbal;
-        Shape* gimbal;
+        Object* gimbal;
+        Shape* gimbalcube;
+        Shape* gimbalXaxis;
+        Shape* gimbalYaxis;
+        Shape* gimbalZaxis;
+        Shape* gimbalXarrow;
+        Shape* gimbalYarrow;
+        Shape* gimbalZarrow;
 
         uint32_t renderTexture;
         uint32_t renderTextureGimbal;

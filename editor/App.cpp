@@ -151,8 +151,6 @@ void Editor::App::sceneEventHandler(){
             }else{
                 camera->rotatePosition(0.1 * difX);
                 camera->elevatePosition(-0.1 * difY);
-
-                gimbal->setRotation(0, gimbal->getRotation().getYaw()+10, 0);
             }
         }
     }
@@ -236,19 +234,59 @@ void Editor::App::engineInit(int argc, char** argv){
 
     sceneGimbal = new Scene();
     camGimbal = new Camera(sceneGimbal);
-    gimbal = new Shape(sceneGimbal);
-    sceneGimbal->setBackgroundColor(0.8, 0.8, 0.8, 0.2);
+    gimbal = new Object(sceneGimbal);
+    gimbalcube = new Shape(sceneGimbal);
+    gimbalXaxis = new Shape(sceneGimbal);
+    gimbalYaxis = new Shape(sceneGimbal);
+    gimbalZaxis = new Shape(sceneGimbal);
+    gimbalXarrow = new Shape(sceneGimbal);
+    gimbalYarrow = new Shape(sceneGimbal);
+    gimbalZarrow = new Shape(sceneGimbal);
 
+    sceneGimbal->setBackgroundColor(0.0, 0.0, 0.0, 0.0);
     sceneGimbal->setCamera(camGimbal);
 
-    gimbal->createBox(2,2,2);
-    gimbal->setColor(0.8, 0.3, 0.2, 1.0);
+    gimbalcube->createBox(0.6,0.6,0.6);
+    gimbalcube->setColor(0.5, 0.5, 0.5, 1.0);
 
-    camGimbal->setFramebufferSize(1024, 1024);
-    camGimbal->setPosition(0, 2, 5);
+    gimbalXaxis->createCylinder(0.2, 2);
+    gimbalYaxis->createCylinder(0.2, 2);
+    gimbalZaxis->createCylinder(0.2, 2);
+
+    gimbalXaxis->setColor(0.7, 0.2, 0.2, 1.0);
+    gimbalYaxis->setColor(0.2, 0.7, 0.2, 1.0);
+    gimbalZaxis->setColor(0.2, 0.2, 0.7, 1.0);
+
+    gimbalXaxis->setRotation(0,0,90);
+    gimbalZaxis->setRotation(90,0,0);
+
+    gimbalXarrow->createCylinder(0.3, 0.0, 0.6);
+    gimbalYarrow->createCylinder(0.3, 0.0, 0.6);
+    gimbalZarrow->createCylinder(0.3, 0.0, 0.6);
+
+    gimbalXarrow->setPosition(1.2, 0, 0);
+    gimbalYarrow->setPosition(0, 1.2, 0);
+    gimbalZarrow->setPosition(0, 0, 1.2);
+
+    gimbalXarrow->setRotation(0,0,-90);
+    gimbalZarrow->setRotation(90,0,0);
+
+    gimbalXarrow->setColor(0.7, 0.2, 0.2, 1.0);
+    gimbalYarrow->setColor(0.2, 0.7, 0.2, 1.0);
+    gimbalZarrow->setColor(0.2, 0.2, 0.7, 1.0);
+
+    gimbal->addChild(gimbalcube);
+    gimbal->addChild(gimbalXaxis);
+    gimbal->addChild(gimbalYaxis);
+    gimbal->addChild(gimbalZaxis);
+    gimbal->addChild(gimbalXarrow);
+    gimbal->addChild(gimbalYarrow);
+    gimbal->addChild(gimbalZarrow);
+
+    camGimbal->setPosition(0, 0, 5);
     camGimbal->setView(0, 0, 0);
+    camGimbal->setFramebufferSize(128, 128);
     camGimbal->setRenderToTexture(true);
-    camGimbal->updateCamera();
 
 
     scene = new Scene();
@@ -281,8 +319,8 @@ void Editor::App::engineInit(int argc, char** argv){
     }
 
     //camera->setType(CameraType::CAMERA_2D);
-    camera->setPosition(0, 7, 20);
-    camera->setView(0, 2, 0);
+    camera->setPosition(-7, 7, 20);
+    camera->setView(0, 0, 0);
 
     camera->setRenderToTexture(true);
     camera->setUseFramebufferSizes(false);
@@ -302,6 +340,12 @@ void Editor::App::engineViewLoaded(){
 void Editor::App::engineRender(){
     if (Editor::Platform::width != 0 && Editor::Platform::height != 0){
         camera->setFramebufferSize(Editor::Platform::width, Editor::Platform::height);
+        Vector3 camereworldview = camera->getWorldView();
+        Vector3 view = (camera->getWorldPosition() - camera->getWorldView()).normalize();
+        Vector3 right = camera->getWorldUp().crossProduct(view).normalize();
+        Vector3 up = view.crossProduct(right);
+        gimbal->setRotation(Quaternion(right, up, view));
+
         Engine::systemDraw();
         renderTexture = camera->getFramebuffer()->getRender().getColorTexture().getGLHandler();
         renderTextureGimbal = camGimbal->getFramebuffer()->getRender().getColorTexture().getGLHandler();
