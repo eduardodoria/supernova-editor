@@ -20,8 +20,12 @@ namespace Supernova::Editor{
 
         Camera* camera;
         Scene* scene;
+        Scene* sceneGimbal;
+        Camera* camGimbal;
+        Shape* gimbal;
 
         uint32_t renderTexture;
+        uint32_t renderTextureGimbal;
 
         static bool isInitialized;
 

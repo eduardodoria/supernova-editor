@@ -143,12 +143,16 @@ void Editor::App::sceneEventHandler(){
             ImGui::SetMouseCursor(ImGuiMouseCursor_None);
         }
         if (ImGui::IsMouseDown(ImGuiMouseButton_Middle)){
-            if (ImGui::IsKeyDown(ImGuiKey_ModCtrl)){
+            if (ImGui::IsKeyDown(ImGuiKey_ModShift)){
                 camera->slide(0.01 * difX);
                 camera->slideUp(-0.01 * difY);
+            }else if (ImGui::IsKeyDown(ImGuiKey_ModCtrl)){
+                camera->zoom(0.1 * difY);
             }else{
                 camera->rotatePosition(0.1 * difX);
                 camera->elevatePosition(-0.1 * difY);
+
+                gimbal->setRotation(0, gimbal->getRotation().getYaw()+10, 0);
             }
         }
     }
@@ -169,7 +173,8 @@ void Editor::App::show(){
 
     ImGui::DockSpaceOverViewport(dockspace_id, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
 
-    ImGui::Begin("Dear ImGui Style Editor");
+#ifdef SHOW_STYLE_WINDOW
+    ImGui::Begin("Dear ImGui Style Editor", nullptr);
     {
         // Get the current IO object to access display size
         ImGuiIO& io = ImGui::GetIO();
@@ -186,6 +191,7 @@ void Editor::App::show(){
         ImGui::ShowStyleEditor();
     }
     ImGui::End();
+#endif
     
     objectsWindow.show();
     consoleWindow.show();
@@ -207,6 +213,18 @@ void Editor::App::show(){
             }
 
             ImGui::Image((void*)(intptr_t)renderTexture, ImGui::GetContentRegionAvail(), ImVec2(0, 1), ImVec2(1, 0));
+
+            // Create a new child window floating at top right
+            ImVec2 childSize(100, 100); // Determined size for the new child window
+            ImVec2 childPos(ImGui::GetWindowWidth() - childSize.x - 10, 10); // Position at top right with 10px padding
+
+            ImGui::SetCursorPos(childPos);
+
+            ImGui::BeginChild("GimbalChild", childSize, false, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBackground);
+            {
+                ImGui::Image((void*)(intptr_t)renderTextureGimbal, ImGui::GetContentRegionAvail(), ImVec2(0, 1), ImVec2(1, 0));
+            }
+            ImGui::EndChild();
         }
         ImGui::EndChild();
     }
@@ -215,6 +233,23 @@ void Editor::App::show(){
 
 void Editor::App::engineInit(int argc, char** argv){
     Engine::systemInit(argc, argv);
+
+    sceneGimbal = new Scene();
+    camGimbal = new Camera(sceneGimbal);
+    gimbal = new Shape(sceneGimbal);
+    sceneGimbal->setBackgroundColor(0.8, 0.8, 0.8, 0.2);
+
+    sceneGimbal->setCamera(camGimbal);
+
+    gimbal->createBox(2,2,2);
+    gimbal->setColor(0.8, 0.3, 0.2, 1.0);
+
+    camGimbal->setFramebufferSize(1024, 1024);
+    camGimbal->setPosition(0, 2, 5);
+    camGimbal->setView(0, 0, 0);
+    camGimbal->setRenderToTexture(true);
+    camGimbal->updateCamera();
+
 
     scene = new Scene();
     Lines* lines = new Lines(scene);
@@ -257,6 +292,7 @@ void Editor::App::engineInit(int argc, char** argv){
 
     Engine::setFixedTimeSceneUpdate(false);
     Engine::setScene(scene);
+    Engine::addSceneLayer(sceneGimbal);
 }
 
 void Editor::App::engineViewLoaded(){
@@ -268,6 +304,7 @@ void Editor::App::engineRender(){
         camera->setFramebufferSize(Editor::Platform::width, Editor::Platform::height);
         Engine::systemDraw();
         renderTexture = camera->getFramebuffer()->getRender().getColorTexture().getGLHandler();
+        renderTextureGimbal = camGimbal->getFramebuffer()->getRender().getColorTexture().getGLHandler();
     }
 }
 
