@@ -91,6 +91,7 @@ add_executable(
     ${EDITOR_DIR}/window/Objects.cpp
     ${EDITOR_DIR}/window/Properties.cpp
     ${EDITOR_DIR}/window/Console.cpp
+    ${EDITOR_DIR}/window/SceneWindow.cpp
 
     ${IMGUI_SOURCES}
 )

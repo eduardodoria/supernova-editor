@@ -3,11 +3,10 @@
 
 #include "imgui.h"
 
-#include "Supernova.h"
-
 #include "window/Properties.h"
 #include "window/Objects.h"
 #include "window/Console.h"
+#include "window/SceneWindow.h"
 
 namespace Supernova::Editor{
 
@@ -17,28 +16,9 @@ namespace Supernova::Editor{
         Objects objectsWindow;
         Properties propertiesWindow;
         Console consoleWindow;
-
-        Camera* camera;
-        Scene* scene;
-
-        Scene* sceneGimbal;
-        Camera* camGimbal;
-        Object* gimbal;
-        Shape* gimbalcube;
-        Shape* gimbalXaxis;
-        Shape* gimbalYaxis;
-        Shape* gimbalZaxis;
-        Shape* gimbalXarrow;
-        Shape* gimbalYarrow;
-        Shape* gimbalZarrow;
-
-        uint32_t renderTexture;
-        uint32_t renderTextureGimbal;
+        SceneWindow sceneWindow;
 
         static bool isInitialized;
-
-        Vector2 lastMousePos;
-        bool draggingMouse;
 
         void showMenu();
         void buildDockspace();
