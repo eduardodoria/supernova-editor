@@ -1,7 +1,8 @@
 #ifndef SCENEWINDOW_H
 #define SCENEWINDOW_H
 
-#include "Supernova.h"
+#include "imgui.h"
+#include "object/Camera.h"
 
 namespace Supernova::Editor{
 
@@ -12,38 +13,24 @@ namespace Supernova::Editor{
         Vector2 lastMousePos;
         bool draggingMouse;
 
-        Camera* camera;
-        Scene* scene;
-
-        Scene* sceneGimbal;
-        Camera* camGimbal;
-        Object* gimbal;
-        Shape* gimbalcube;
-        Shape* gimbalXaxis;
-        Shape* gimbalYaxis;
-        Shape* gimbalZaxis;
-        Shape* gimbalXarrow;
-        Shape* gimbalYarrow;
-        Shape* gimbalZarrow;
-
-        uint32_t renderTexture;
-        uint32_t renderTextureGimbal;
+        ImTextureID renderTexture;
+        ImTextureID renderTextureGimbal;
 
         int width;
         int height;
 
-        void sceneEventHandler();
+        void sceneEventHandler(Camera* camera);
         
     public:
         SceneWindow();
 
-        void init();
-        void render();
-
-        void show();
+        void show(Camera* camera);
 
         int getWidth() const;
         int getHeight() const;
+
+        void setTexure(ImTextureID tex);
+        void setGimbalTexure(ImTextureID tex);
     };
 
 }

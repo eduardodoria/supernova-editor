@@ -83,17 +83,7 @@ void Editor::App::buildDockspace(){
     ImGui::DockBuilderFinish(dockspace_id);
 }
 
-void Editor::App::show(){
-    dockspace_id = ImGui::GetID("MyDockspace");
-
-    showMenu();
-
-    if (ImGui::DockBuilderGetNode(dockspace_id) == nullptr) {
-        buildDockspace();
-    }
-
-    ImGui::DockSpaceOverViewport(dockspace_id, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
-
+void Editor::App::showStyleEditor(){
 #ifdef SHOW_STYLE_WINDOW
     ImGui::Begin("Dear ImGui Style Editor", nullptr);
     {
@@ -113,16 +103,29 @@ void Editor::App::show(){
     }
     ImGui::End();
 #endif
+}
+
+void Editor::App::show(){
+    dockspace_id = ImGui::GetID("MyDockspace");
+
+    showMenu();
+
+    if (ImGui::DockBuilderGetNode(dockspace_id) == nullptr) {
+        buildDockspace();
+    }
+
+    ImGui::DockSpaceOverViewport(dockspace_id, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
+
+    showStyleEditor();
     
     objectsWindow.show();
     consoleWindow.show();
     propertiesWindow.show();
-    sceneWindow.show();
+    sceneWindow.show(sceneRender.getCamera());
 }
 
 void Editor::App::engineInit(int argc, char** argv){
     Engine::systemInit(argc, argv);
-    sceneWindow.init();
 }
 
 void Editor::App::engineViewLoaded(){
@@ -130,8 +133,22 @@ void Editor::App::engineViewLoaded(){
 }
 
 void Editor::App::engineRender(){
-    sceneWindow.render();
+    int width = sceneWindow.getWidth();
+    int height = sceneWindow.getHeight();
+
+    if (Platform::width != width || Platform::height != height){
+        Platform::width = width;
+        Platform::height = height;
+        Engine::systemViewChanged();
+    }
+
+    sceneRender.update(Platform::width, Platform::height);
+
     Engine::systemDraw();
+
+    sceneWindow.setTexure((void*)(intptr_t)sceneRender.getTexture().getGLHandler());
+    sceneWindow.setGimbalTexure((void*)(intptr_t)sceneRender.getGimbal()->getTexture().getGLHandler());
+
 }
 
 void Editor::App::engineViewDestroyed(){

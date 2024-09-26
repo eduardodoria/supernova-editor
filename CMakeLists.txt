@@ -88,10 +88,14 @@ add_executable(
     ${EDITOR_DIR}/main.cpp
     ${EDITOR_DIR}/App.cpp
     ${EDITOR_DIR}/Platform.cpp
+
     ${EDITOR_DIR}/window/Objects.cpp
     ${EDITOR_DIR}/window/Properties.cpp
     ${EDITOR_DIR}/window/Console.cpp
     ${EDITOR_DIR}/window/SceneWindow.cpp
+
+    ${EDITOR_DIR}/render/Gimbal.cpp
+    ${EDITOR_DIR}/render/SceneRender.cpp
 
     ${IMGUI_SOURCES}
 )

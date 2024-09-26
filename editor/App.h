@@ -8,6 +8,8 @@
 #include "window/Console.h"
 #include "window/SceneWindow.h"
 
+#include "render/SceneRender.h"
+
 namespace Supernova::Editor{
 
     class App{
@@ -18,9 +20,12 @@ namespace Supernova::Editor{
         Console consoleWindow;
         SceneWindow sceneWindow;
 
+        SceneRender sceneRender;
+
         static bool isInitialized;
 
         void showMenu();
+        void showStyleEditor();
         void buildDockspace();
         void sceneEventHandler();
 
