@@ -10,7 +10,47 @@ Editor::Objects::Objects(){
 }
 
 void Editor::Objects::show(){
+
+    static char inputText[256] = "";
+
+
     ImGui::Begin("Objects");
+
+    if (ImGui::Button(ICON_FA_PLUS)) {
+        // Button click action here
+    }
+
+    ImGui::SameLine();
+
+    // Get default sizes
+    float inputHeight = ImGui::GetFrameHeight();
+    ImVec2 buttonSize = ImGui::CalcTextSize(ICON_FA_MAGNIFYING_GLASS);
+    buttonSize.x += ImGui::GetStyle().FramePadding.x * 2.0f;
+    buttonSize.y = inputHeight;
+
+    // Create a group for the input text with button
+    ImGui::BeginGroup();
+
+    // Input text
+    ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - buttonSize.x);
+    ImGui::InputText("##hiddenLabel", inputText, IM_ARRAYSIZE(inputText));
+
+    // Button inside input with same color as input background
+    ImGui::SameLine(0, 0);
+    ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_FrameBgHovered));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGui::GetStyleColorVec4(ImGuiCol_FrameBgActive));
+    if (ImGui::Button(ICON_FA_MAGNIFYING_GLASS))
+    {
+        // Button logic here
+    }
+    ImGui::PopStyleColor(3);
+
+    ImGui::PopItemWidth();
+    ImGui::EndGroup();
+
+
+
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::TreeNode(ICON_FA_ADDRESS_BOOK" Root Node"))
     {

@@ -89,6 +89,48 @@ void Editor::SceneWindow::sceneEventHandler(Camera* camera){
 void Editor::SceneWindow::show(Camera* camera){
     ImGui::Begin("Scene");
     {
+
+        if (ImGui::Button(ICON_FA_PLAY " Play")) {
+            // Handle play button click
+        }
+
+        ImGui::BeginDisabled();
+        ImGui::SameLine();
+        if (ImGui::Button(ICON_FA_STOP " Stop")) {
+            // Handle play button click
+        }
+        ImGui::EndDisabled();
+
+        ImGui::SameLine(0, 10);
+        ImGui::Dummy(ImVec2(1, 20));
+        ImGui::SameLine(0, 10);
+
+        ImGui::SameLine();
+        if (ImGui::Button(ICON_FA_ARROW_POINTER)) {
+            // Handle play button click
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(ICON_FA_HAND)) {
+            // Handle play button click
+        }
+
+        ImGui::SameLine(0, 10);
+        ImGui::Dummy(ImVec2(1, 20));
+        ImGui::SameLine(0, 10);
+
+        ImGui::SameLine();
+        if (ImGui::Button(ICON_FA_ARROWS_UP_DOWN_LEFT_RIGHT)) {
+            // Handle play button click
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(ICON_FA_ROTATE)) {
+            // Handle play button click
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(ICON_FA_UP_RIGHT_AND_DOWN_LEFT_FROM_CENTER)) {
+            // Handle play button click
+        }
+
         ImGui::BeginChild("SceneRender");
         {
             sceneEventHandler(camera);

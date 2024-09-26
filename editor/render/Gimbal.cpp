@@ -20,9 +20,9 @@ Editor::Gimbal::Gimbal(){
     cube->createBox(0.6,0.6,0.6);
     cube->setColor(0.5, 0.5, 0.5, 1.0);
 
-    xaxis->createCylinder(0.15, 2);
-    yaxis->createCylinder(0.15, 2);
-    zaxis->createCylinder(0.15, 2);
+    xaxis->createCylinder(0.12, 2);
+    yaxis->createCylinder(0.12, 2);
+    zaxis->createCylinder(0.12, 2);
 
     xaxis->setColor(0.7, 0.2, 0.2, 1.0);
     yaxis->setColor(0.2, 0.7, 0.2, 1.0);
