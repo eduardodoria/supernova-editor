@@ -4,6 +4,9 @@
 namespace Supernova::Editor{
 
     class Objects{
+    private:
+
+        void showIconMenu();
     public:
         Objects();
 

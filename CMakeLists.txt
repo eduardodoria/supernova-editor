@@ -77,9 +77,10 @@ set(IMGUI_SOURCES
     ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
 )
 
-
-# Create executable
 set(EDITOR_DIR editor)
+
+include_directories (${EDITOR_DIR})
+
 add_executable(
     supernova-editor
 
@@ -88,6 +89,7 @@ add_executable(
     ${EDITOR_DIR}/main.cpp
     ${EDITOR_DIR}/App.cpp
     ${EDITOR_DIR}/Platform.cpp
+    ${EDITOR_DIR}/Factory.cpp
 
     ${EDITOR_DIR}/window/Objects.cpp
     ${EDITOR_DIR}/window/Properties.cpp
@@ -99,8 +101,6 @@ add_executable(
 
     ${IMGUI_SOURCES}
 )
-
-include_directories (editor)
 
 # Include directories
 target_include_directories(supernova-editor PRIVATE

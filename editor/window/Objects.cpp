@@ -9,15 +9,14 @@ using namespace Supernova;
 Editor::Objects::Objects(){
 }
 
-void Editor::Objects::show(){
-
+void Editor::Objects::showIconMenu(){
     static char inputText[256] = "";
 
 
     ImGui::Begin("Objects");
 
     if (ImGui::Button(ICON_FA_PLUS)) {
-        // Button click action here
+        ImGui::OpenPopup("NewObjectMenu");
     }
 
     ImGui::SameLine();
@@ -49,7 +48,38 @@ void Editor::Objects::show(){
     ImGui::PopItemWidth();
     ImGui::EndGroup();
 
+    if (ImGui::BeginPopup("NewObjectMenu"))
+    {
+        if (ImGui::MenuItem("Scene"))
+        {
+            // Action for Item 1
+        }
 
+        if (ImGui::BeginMenu("Basic shape"))
+        {
+            if (ImGui::MenuItem("Box"))
+            {
+                // Action for SubItem 1
+            }
+            if (ImGui::MenuItem("Plane"))
+            {
+                // Action for SubItem 2
+            }
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::MenuItem("Model"))
+        {
+            // Action for Item 2
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
+void Editor::Objects::show(){
+
+    showIconMenu();
 
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::TreeNode(ICON_FA_ADDRESS_BOOK" Root Node"))
