@@ -11,7 +11,7 @@ using namespace Supernova;
 bool Editor::App::isInitialized = false;
 
 Editor::App::App(){
-
+    project.createNewScene("New Scene");
 }
 
 void Editor::App::showMenu(){

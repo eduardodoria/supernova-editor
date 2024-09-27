@@ -3,6 +3,8 @@
 
 #include "imgui.h"
 
+#include "Project.h"
+
 #include "window/Properties.h"
 #include "window/Objects.h"
 #include "window/Console.h"
@@ -14,6 +16,8 @@ namespace Supernova::Editor{
 
     class App{
     private:
+        Project project;
+
         ImGuiID dockspace_id;
         Objects objectsWindow;
         Properties propertiesWindow;
