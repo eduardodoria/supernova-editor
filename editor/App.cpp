@@ -120,7 +120,7 @@ void Editor::App::show(){
 
     showStyleEditor();
     
-    objectsWindow.show();
+    objectsWindow.show(&project);
     consoleWindow.show();
     propertiesWindow.show();
     sceneWindow.show(&project, sceneRender.getCamera());

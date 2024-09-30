@@ -12,9 +12,6 @@ Editor::Objects::Objects(){
 void Editor::Objects::showIconMenu(){
     static char inputText[256] = "";
 
-
-    ImGui::Begin("Objects");
-
     if (ImGui::Button(ICON_FA_PLUS)) {
         ImGui::OpenPopup("NewObjectMenu");
     }
@@ -77,56 +74,95 @@ void Editor::Objects::showIconMenu(){
     }
 }
 
-void Editor::Objects::show(){
+void Editor::Objects::showTreeNode(Editor::TreeNode& node) {
+    static char buffer[256];
+    static TreeNode* selectedNode = nullptr;
 
-    showIconMenu();
+    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
 
-    ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-    if (ImGui::TreeNode(ICON_FA_ADDRESS_BOOK" Root Node"))
-    {
-        if (ImGui::TreeNode(ICON_FA_CUBE" Player"))
-        {
-            ImGui::Text("Position: (0, 0, 0)");
-            ImGui::Text("Health: 100");
-            ImGui::TreePop();
+    if (node.children.empty()) {
+        flags |= ImGuiTreeNodeFlags_Leaf;
+    }
+
+    if (node.isScene){
+        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+    }
+
+    bool nodeOpen = ImGui::TreeNodeEx((node.icon + "  " + node.name).c_str(), flags);
+
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+        ImGui::OpenPopup("TreeNodeContextMenu");
+        selectedNode = &node;
+        strncpy(buffer, node.name.c_str(), sizeof(buffer) - 1);
+        buffer[sizeof(buffer) - 1] = '\0';
+    }
+
+    if (ImGui::BeginPopup("TreeNodeContextMenu")) {
+        if (selectedNode == &node) {
+            //ImGui::AlignTextToFramePadding();
+            ImGui::Text("Name:");
+            //ImGui::SameLine();
+
+            ImGui::PushItemWidth(200);
+            if (ImGui::InputText("##ChangeNameInput", buffer, IM_ARRAYSIZE(buffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
+                selectedNode->name = buffer;
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Duplicate"))
+            {
+                // Action for SubItem 1
+            }
+            if (ImGui::BeginMenu("Create child"))
+            {
+                if (ImGui::BeginMenu("Basic shape"))
+                {
+                    if (ImGui::MenuItem("Box"))
+                    {
+                        // Action for SubItem 1
+                    }
+                    if (ImGui::MenuItem("Plane"))
+                    {
+                        // Action for SubItem 2
+                    }
+                    ImGui::EndMenu();
+                }
+
+                if (ImGui::MenuItem("Model"))
+                {
+                    // Action for Item 2
+                }
+                ImGui::EndMenu();
+            }
         }
+        ImGui::EndPopup();
+    }else if (selectedNode == &node) {
+        // Update the name when popup is closed
+        selectedNode->name = buffer;
+        selectedNode = nullptr;
+    }
 
-        if (ImGui::TreeNode(ICON_FA_CUBE" Environment"))
-        {
-            if (ImGui::TreeNode(ICON_FA_CUBE" Tree"))
-            {
-                ImGui::Text("Type: Oak");
-                ImGui::Text("Height: 10m");
-                ImGui::TreePop();
-            }
-
-            if (ImGui::TreeNode(ICON_FA_CUBE" Rock"))
-            {
-                ImGui::Text("Size: Large");
-                ImGui::TreePop();
-            }
-
-            ImGui::TreePop();
+    if (nodeOpen) {
+        for (auto& child : node.children) {
+            showTreeNode(child);
         }
-
-        if (ImGui::TreeNode(ICON_FA_CUBE" Enemies"))
-        {
-            if (ImGui::TreeNode(ICON_FA_CUBE" Goblin"))
-            {
-                ImGui::Text("Health: 30");
-                ImGui::TreePop();
-            }
-
-            if (ImGui::TreeNode(ICON_FA_CUBE" Dragon"))
-            {
-                ImGui::Text("Health: 300");
-                ImGui::TreePop();
-            }
-
-            ImGui::TreePop();
-        }
-
         ImGui::TreePop();
     }
+}
+
+void Editor::Objects::show(Project* project){
+
+    static TreeNode root = {ICON_FA_TV, "Root Node", true, {
+        {ICON_FA_CUBE, "Player", false, {}},
+        {ICON_FA_CUBE, "Child 2", false, {
+            {ICON_FA_CUBE, "Grandchild 1", false, {}},
+            {ICON_FA_CUBE, "Grandchild 2", false, {}}
+        }},
+        {ICON_FA_FILE, "Child 3", false, {}}
+    }};
+
+    ImGui::Begin("Objects");
+    showIconMenu();
+    showTreeNode(root);
     ImGui::End();
 }
