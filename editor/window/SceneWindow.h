@@ -2,6 +2,7 @@
 #define SCENEWINDOW_H
 
 #include "imgui.h"
+#include "Project.h"
 #include "object/Camera.h"
 
 namespace Supernova::Editor{
@@ -24,7 +25,7 @@ namespace Supernova::Editor{
     public:
         SceneWindow();
 
-        void show(Camera* camera);
+        void show(Project* project, Camera* camera);
 
         int getWidth() const;
         int getHeight() const;

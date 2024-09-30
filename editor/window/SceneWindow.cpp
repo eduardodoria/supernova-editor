@@ -86,75 +86,78 @@ void Editor::SceneWindow::sceneEventHandler(Camera* camera){
     }
 }
 
-void Editor::SceneWindow::show(Camera* camera){
-    ImGui::Begin("Scene");
-    {
-
-        if (ImGui::Button(ICON_FA_PLAY " Play")) {
-            // Handle play button click
-        }
-
-        ImGui::BeginDisabled();
-        ImGui::SameLine();
-        if (ImGui::Button(ICON_FA_STOP " Stop")) {
-            // Handle play button click
-        }
-        ImGui::EndDisabled();
-
-        ImGui::SameLine(0, 10);
-        ImGui::Dummy(ImVec2(1, 20));
-        ImGui::SameLine(0, 10);
-
-        ImGui::SameLine();
-        if (ImGui::Button(ICON_FA_ARROW_POINTER)) {
-            // Handle play button click
-        }
-        ImGui::SameLine();
-        if (ImGui::Button(ICON_FA_HAND)) {
-            // Handle play button click
-        }
-
-        ImGui::SameLine(0, 10);
-        ImGui::Dummy(ImVec2(1, 20));
-        ImGui::SameLine(0, 10);
-
-        ImGui::SameLine();
-        if (ImGui::Button(ICON_FA_ARROWS_UP_DOWN_LEFT_RIGHT)) {
-            // Handle play button click
-        }
-        ImGui::SameLine();
-        if (ImGui::Button(ICON_FA_ROTATE)) {
-            // Handle play button click
-        }
-        ImGui::SameLine();
-        if (ImGui::Button(ICON_FA_UP_RIGHT_AND_DOWN_LEFT_FROM_CENTER)) {
-            // Handle play button click
-        }
-
-        ImGui::BeginChild("SceneRender");
+void Editor::SceneWindow::show(Project* project, Camera* camera){
+    for (auto& sceneData : project->getScenes()) {
+        ImGui::Begin((sceneData.name + "###Scene" + std::to_string(sceneData.id)).c_str());
         {
-            sceneEventHandler(camera);
 
-            width = ImGui::GetContentRegionAvail().x;
-            height = ImGui::GetContentRegionAvail().y;
+            if (ImGui::Button(ICON_FA_PLAY " Play")) {
+                sceneData.name = "Testing";
+                // Handle play button click
+            }
 
-            ImGui::Image(renderTexture, ImGui::GetContentRegionAvail(), ImVec2(0, 1), ImVec2(1, 0));
+            ImGui::BeginDisabled();
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_STOP " Stop")) {
+                // Handle play button click
+            }
+            ImGui::EndDisabled();
 
-            // Create a new child window floating at top right
-            ImVec2 childSize(100, 100); // Determined size for the new child window
-            ImVec2 childPos(ImGui::GetWindowWidth() - childSize.x - 2, 2); // Position at top right with 2px padding
+            ImGui::SameLine(0, 10);
+            ImGui::Dummy(ImVec2(1, 20));
+            ImGui::SameLine(0, 10);
 
-            ImGui::SetCursorPos(childPos);
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_ARROW_POINTER)) {
+                // Handle play button click
+            }
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_HAND)) {
+                // Handle play button click
+            }
 
-            ImGui::BeginChild("GimbalChild", childSize, false, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBackground);
+            ImGui::SameLine(0, 10);
+            ImGui::Dummy(ImVec2(1, 20));
+            ImGui::SameLine(0, 10);
+
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_ARROWS_UP_DOWN_LEFT_RIGHT)) {
+                // Handle play button click
+            }
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_ROTATE)) {
+                // Handle play button click
+            }
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_UP_RIGHT_AND_DOWN_LEFT_FROM_CENTER)) {
+                // Handle play button click
+            }
+
+            ImGui::BeginChild("Canvas");
             {
-                ImGui::Image(renderTextureGimbal, ImGui::GetContentRegionAvail(), ImVec2(0, 1), ImVec2(1, 0));
+                sceneEventHandler(camera);
+
+                width = ImGui::GetContentRegionAvail().x;
+                height = ImGui::GetContentRegionAvail().y;
+
+                ImGui::Image(renderTexture, ImGui::GetContentRegionAvail(), ImVec2(0, 1), ImVec2(1, 0));
+
+                // Create a new child window floating at top right
+                ImVec2 childSize(100, 100); // Determined size for the new child window
+                ImVec2 childPos(ImGui::GetWindowWidth() - childSize.x - 2, 2); // Position at top right with 2px padding
+
+                ImGui::SetCursorPos(childPos);
+
+                ImGui::BeginChild("GimbalChild", childSize, false, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBackground);
+                {
+                    ImGui::Image(renderTextureGimbal, ImGui::GetContentRegionAvail(), ImVec2(0, 1), ImVec2(1, 0));
+                }
+                ImGui::EndChild();
             }
             ImGui::EndChild();
         }
-        ImGui::EndChild();
+        ImGui::End();
     }
-    ImGui::End();
 }
 
 int Editor::SceneWindow::getWidth() const{

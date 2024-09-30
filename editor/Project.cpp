@@ -2,11 +2,13 @@
 
 using namespace Supernova;
 
+uint32_t Editor::Project::nextSceneId = 0;
+
 Editor::Project::Project(){
 }
 
 void Editor::Project::createNewScene(std::string sceneName){
-    scenes.push_back({sceneName, new Scene()});
+    scenes.push_back({++nextSceneId, sceneName, new Scene()});
 }
 
 Entity Editor::Project::createNewEntity(std::string sceneName){
@@ -22,6 +24,19 @@ Entity Editor::Project::createNewEntity(std::string sceneName){
     return NULL_ENTITY;
 }
 
-void Editor::Project::createNewComponent(std::string sceneName, Entity entity, ComponentType component){
+bool Editor::Project::createNewComponent(std::string sceneName, Entity entity, ComponentType component){
+    for (int i = 0; i < scenes.size(); i++){
+        if (scenes[i].name == sceneName){
+            if (component == ComponentType::Transform){
+                scenes[i].scene->addComponent<Transform>(entity, {});
+            }
+            return true;
+        }
+    }
 
+    return false;
+}
+
+std::vector<Editor::SceneData>&  Editor::Project::getScenes(){
+    return scenes;
 }

@@ -77,7 +77,9 @@ void Editor::App::buildDockspace(){
     size = 10*ImGui::GetFontSize();
     ImGui::DockBuilderSplitNode(dock_id_middle, ImGuiDir_Down, 0.0f, &dock_id_middle_bottom, &dock_id_middle_top);
     ImGui::DockBuilderSetNodeSize(dock_id_middle_bottom, ImVec2(ImGui::GetMainViewport()->Size.x, size)); // Set bottom node size
-    ImGui::DockBuilderDockWindow("Scene", dock_id_middle_top);
+    for (auto& sceneData : project.getScenes()) {
+        ImGui::DockBuilderDockWindow(("###Scene" + std::to_string(sceneData.id)).c_str(), dock_id_middle_top);
+    }
     ImGui::DockBuilderDockWindow("Console", dock_id_middle_bottom);
 
     ImGui::DockBuilderFinish(dockspace_id);
@@ -121,7 +123,7 @@ void Editor::App::show(){
     objectsWindow.show();
     consoleWindow.show();
     propertiesWindow.show();
-    sceneWindow.show(sceneRender.getCamera());
+    sceneWindow.show(&project, sceneRender.getCamera());
 }
 
 void Editor::App::engineInit(int argc, char** argv){
