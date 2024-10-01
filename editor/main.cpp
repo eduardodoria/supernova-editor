@@ -38,7 +38,7 @@ int main(int argc, char** argv){
         return -1;
     }
 
-    glfwMaximizeWindow(window);
+    //glfwMaximizeWindow(window);
 
     // Make the window's context current
     glfwMakeContextCurrent(window);

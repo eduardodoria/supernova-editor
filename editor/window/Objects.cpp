@@ -6,7 +6,30 @@
 
 using namespace Supernova;
 
-Editor::Objects::Objects(){
+Editor::Objects::Objects(Project* project){
+    this->project = project;
+}
+
+void Editor::Objects::showNewEntityMenu(){
+    if (ImGui::BeginMenu(ICON_FA_CUBE"  Basic shape"))
+    {
+        if (ImGui::MenuItem(ICON_FA_CUBE"  Box"))
+        {
+            //printf("%u\n", selectedNode->id);
+            // Action for SubItem 1
+        }
+        if (ImGui::MenuItem(ICON_FA_CUBE"  Plane"))
+        {
+            // Action for SubItem 2
+        }
+        ImGui::EndMenu();
+    }
+
+    if (ImGui::MenuItem(ICON_FA_PERSON_RUNNING"  Model"))
+    {
+        // Action for Item 2
+    }
+    ImGui::EndMenu();
 }
 
 void Editor::Objects::showIconMenu(){
@@ -47,27 +70,23 @@ void Editor::Objects::showIconMenu(){
 
     if (ImGui::BeginPopup("NewObjectMenu"))
     {
-        if (ImGui::MenuItem("Scene"))
-        {
-            // Action for Item 1
+        ImGui::Text("New scene:");
+        ImVec2 buttonSize = ImVec2(ImGui::GetFontSize() * 8, ImGui::GetFontSize() * 2);
+        if (ImGui::Button(ICON_FA_CUBES "  3D Scene", buttonSize)) {
+            // Handle play button click
         }
-
-        if (ImGui::BeginMenu("Basic shape"))
-        {
-            if (ImGui::MenuItem("Box"))
-            {
-                // Action for SubItem 1
-            }
-            if (ImGui::MenuItem("Plane"))
-            {
-                // Action for SubItem 2
-            }
-            ImGui::EndMenu();
+        //ImGui::SameLine();
+        if (ImGui::Button(ICON_FA_CUBES_STACKED "  2D Scene", buttonSize)) {
+            // Handle play button click
         }
-
-        if (ImGui::MenuItem("Model"))
+        //ImGui::SameLine();
+        if (ImGui::Button(ICON_FA_WINDOW_RESTORE "  UI Scene", buttonSize)) {
+            // Handle play button click
+        }
+        ImGui::Separator();
+        if (ImGui::BeginMenu(ICON_FA_CIRCLE_DOT"  Create entity"))
         {
-            // Action for Item 2
+            showNewEntityMenu();
         }
 
         ImGui::EndPopup();
@@ -75,13 +94,17 @@ void Editor::Objects::showIconMenu(){
 }
 
 void Editor::Objects::showTreeNode(Editor::TreeNode& node) {
-    static char buffer[256];
+    static char name[256];
     static TreeNode* selectedNode = nullptr;
+    static TreeNode* selectedNodeRight = nullptr;
 
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
 
     if (node.children.empty()) {
         flags |= ImGuiTreeNodeFlags_Leaf;
+    }
+    if (selectedNode == &node) {
+        flags |= ImGuiTreeNodeFlags_Selected;
     }
 
     if (node.isScene){
@@ -90,56 +113,53 @@ void Editor::Objects::showTreeNode(Editor::TreeNode& node) {
 
     bool nodeOpen = ImGui::TreeNodeEx((node.icon + "  " + node.name).c_str(), flags);
 
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+        selectedNode = &node;
+    }
     if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
         ImGui::OpenPopup("TreeNodeContextMenu");
-        selectedNode = &node;
-        strncpy(buffer, node.name.c_str(), sizeof(buffer) - 1);
-        buffer[sizeof(buffer) - 1] = '\0';
+        selectedNodeRight = &node;
+        strncpy(name, node.name.c_str(), sizeof(name) - 1);
+        name[sizeof(name) - 1] = '\0';
     }
 
     if (ImGui::BeginPopup("TreeNodeContextMenu")) {
-        if (selectedNode == &node) {
+        if (selectedNodeRight == &node) {
             //ImGui::AlignTextToFramePadding();
             ImGui::Text("Name:");
             //ImGui::SameLine();
 
             ImGui::PushItemWidth(200);
-            if (ImGui::InputText("##ChangeNameInput", buffer, IM_ARRAYSIZE(buffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
-                selectedNode->name = buffer;
-                ImGui::CloseCurrentPopup();
+            if (ImGui::InputText("##ChangeNameInput", name, IM_ARRAYSIZE(name), ImGuiInputTextFlags_EnterReturnsTrue)) {
+                if (name[0] != '\0'){
+                    changeNodeName(selectedNodeRight, name);
+
+                    selectedNodeRight = nullptr;
+                    ImGui::CloseCurrentPopup();
+                }
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Duplicate"))
+            if (ImGui::MenuItem(ICON_FA_COPY"  Duplicate"))
             {
                 // Action for SubItem 1
             }
-            if (ImGui::BeginMenu("Create child"))
+            if (ImGui::MenuItem(ICON_FA_TRASH"  Delete"))
             {
-                if (ImGui::BeginMenu("Basic shape"))
-                {
-                    if (ImGui::MenuItem("Box"))
-                    {
-                        // Action for SubItem 1
-                    }
-                    if (ImGui::MenuItem("Plane"))
-                    {
-                        // Action for SubItem 2
-                    }
-                    ImGui::EndMenu();
-                }
-
-                if (ImGui::MenuItem("Model"))
-                {
-                    // Action for Item 2
-                }
-                ImGui::EndMenu();
+                // Action for SubItem 1
+            }
+            ImGui::Separator();
+            if (ImGui::BeginMenu(ICON_FA_CIRCLE_DOT"  Create child"))
+            {
+                showNewEntityMenu();
             }
         }
         ImGui::EndPopup();
-    }else if (selectedNode == &node) {
+    }else if (selectedNodeRight == &node) {
         // Update the name when popup is closed
-        selectedNode->name = buffer;
-        selectedNode = nullptr;
+        if (name[0] != '\0'){
+            changeNodeName(selectedNodeRight, name);
+        }
+        selectedNodeRight = nullptr;
     }
 
     if (nodeOpen) {
@@ -150,16 +170,35 @@ void Editor::Objects::showTreeNode(Editor::TreeNode& node) {
     }
 }
 
-void Editor::Objects::show(Project* project){
+void Editor::Objects::changeNodeName(const TreeNode* node, const std::string name){
+    if (node->isScene){
+        project->getScene(node->id)->name = name;
+    }
+}
 
-    static TreeNode root = {ICON_FA_TV, "Root Node", true, {
-        {ICON_FA_CUBE, "Player", false, {}},
-        {ICON_FA_CUBE, "Child 2", false, {
-            {ICON_FA_CUBE, "Grandchild 1", false, {}},
-            {ICON_FA_CUBE, "Grandchild 2", false, {}}
+void Editor::Objects::show(){
+
+    static TreeNode root = {ICON_FA_TV, "Root Node", true, 1, {
+        {ICON_FA_CUBE, "Player", false, 1, {}},
+        {ICON_FA_CUBE, "Child 2", false, 1, {
+            {ICON_FA_CUBE, "Grandchild 1", false, 1, {}},
+            {ICON_FA_CUBE, "Grandchild 2", false, 1, {}}
         }},
-        {ICON_FA_FILE, "Child 3", false, {}}
+        {ICON_FA_CIRCLE_DOT, "Entity 3", false, 1, {}}
     }};
+
+/*
+    SceneData* sceneData = project->getSelectedScene();
+
+
+    TreeNode root;
+
+    root.icon = ICON_FA_TV;
+    root.id = sceneData->id;
+    root.isScene = true;
+    root.name = sceneData->name;
+*/
+
 
     ImGui::Begin("Objects");
     showIconMenu();

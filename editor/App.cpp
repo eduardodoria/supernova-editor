@@ -10,8 +10,10 @@ using namespace Supernova;
 
 bool Editor::App::isInitialized = false;
 
-Editor::App::App(){
-    project.createNewScene("New Scene");
+Editor::App::App(): objectsWindow(&project){
+    uint32_t sceneid = project.createNewScene("New Scene");
+    project.createNewEntity(sceneid);
+    project.createNewEntity(sceneid);
 }
 
 void Editor::App::showMenu(){
@@ -120,7 +122,7 @@ void Editor::App::show(){
 
     showStyleEditor();
     
-    objectsWindow.show(&project);
+    objectsWindow.show();
     consoleWindow.show();
     propertiesWindow.show();
     sceneWindow.show(&project, sceneRender.getCamera());

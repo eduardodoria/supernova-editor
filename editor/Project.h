@@ -22,14 +22,21 @@ namespace Supernova::Editor{
 
         std::vector<SceneData> scenes;
 
+        uint32_t selectedScene;
+
     public:
         Project();
 
-        void createNewScene(std::string sceneName);
-        Entity createNewEntity(std::string sceneName);
-        bool createNewComponent(std::string sceneName, Entity entity, ComponentType component);
+        uint32_t createNewScene(std::string sceneName);
+        Entity createNewEntity(uint32_t sceneId);
+        bool createNewComponent(uint32_t sceneId, Entity entity, ComponentType component);
 
         std::vector<SceneData>& getScenes();
+        SceneData* getScene(uint32_t sceneId);
+        SceneData* getSelectedScene();
+
+        void setSelectedSceneId(uint32_t selectedScene);
+        uint32_t getSelectedSceneId() const;
     };
 
 }

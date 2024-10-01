@@ -11,18 +11,23 @@ namespace Supernova::Editor{
         std::string icon;
         std::string name;
         bool isScene;
+        uint32_t id;
         std::vector<TreeNode> children;
     };
 
     class Objects{
     private:
 
+        Project* project;
+
+        void showNewEntityMenu();
         void showIconMenu();
         void showTreeNode(TreeNode& node);
+        void changeNodeName(const TreeNode* node, const std::string name);
     public:
-        Objects();
+        Objects(Project* project);
 
-        void show(Project* project);
+        void show();
     };
 
 }

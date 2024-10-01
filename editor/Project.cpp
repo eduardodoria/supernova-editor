@@ -5,15 +5,22 @@ using namespace Supernova;
 uint32_t Editor::Project::nextSceneId = 0;
 
 Editor::Project::Project(){
+    selectedScene = NULL_PROJECT_SCENE;
 }
 
-void Editor::Project::createNewScene(std::string sceneName){
+uint32_t Editor::Project::createNewScene(std::string sceneName){
     scenes.push_back({++nextSceneId, sceneName, new Scene()});
+
+    if (selectedScene == NULL_PROJECT_SCENE){
+        selectedScene = scenes.back().id;
+    }
+
+    return scenes.back().id;
 }
 
-Entity Editor::Project::createNewEntity(std::string sceneName){
+Entity Editor::Project::createNewEntity(uint32_t sceneId){
     for (int i = 0; i < scenes.size(); i++){
-        if (scenes[i].name == sceneName){
+        if (scenes[i].id == sceneId){
             Entity entity = scenes[i].scene->createEntity();
             scenes[i].entities.push_back(entity);
 
@@ -24,9 +31,9 @@ Entity Editor::Project::createNewEntity(std::string sceneName){
     return NULL_ENTITY;
 }
 
-bool Editor::Project::createNewComponent(std::string sceneName, Entity entity, ComponentType component){
+bool Editor::Project::createNewComponent(uint32_t sceneId, Entity entity, ComponentType component){
     for (int i = 0; i < scenes.size(); i++){
-        if (scenes[i].name == sceneName){
+        if (scenes[i].id == sceneId){
             if (component == ComponentType::Transform){
                 scenes[i].scene->addComponent<Transform>(entity, {});
             }
@@ -39,4 +46,26 @@ bool Editor::Project::createNewComponent(std::string sceneName, Entity entity, C
 
 std::vector<Editor::SceneData>&  Editor::Project::getScenes(){
     return scenes;
+}
+
+Editor::SceneData* Editor::Project::getScene(uint32_t sceneId){
+    for (int i = 0; i < scenes.size(); i++){
+        if (scenes[i].id == sceneId){
+            return &scenes[i];
+        }
+    }
+
+    throw std::out_of_range("cannot find selected scene");
+}
+
+Editor::SceneData* Editor::Project::getSelectedScene(){
+    return getScene(selectedScene);
+}
+
+void Editor::Project::setSelectedSceneId(uint32_t selectedScene){
+    this->selectedScene = selectedScene;
+}
+
+uint32_t Editor::Project::getSelectedSceneId() const{
+    return selectedScene;
 }
