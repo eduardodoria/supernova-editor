@@ -11,21 +11,23 @@ namespace Supernova::Editor{
 
     private:
 
+        Project* project;
+
         Vector2 lastMousePos;
         bool draggingMouse;
-
-        ImTextureID renderTexture;
-        ImTextureID renderTextureGimbal;
 
         int width;
         int height;
 
+        ImTextureID renderTexture;
+        ImTextureID renderTextureGimbal;
+
         void sceneEventHandler(Camera* camera);
         
     public:
-        SceneWindow();
+        SceneWindow(Project* project);
 
-        void show(Project* project, Camera* camera);
+        void show(Camera* camera);
 
         int getWidth() const;
         int getHeight() const;

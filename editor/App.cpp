@@ -10,10 +10,20 @@ using namespace Supernova;
 
 bool Editor::App::isInitialized = false;
 
-Editor::App::App(): objectsWindow(&project){
+Editor::App::App(){
+    objectsWindow = new Objects(&project);
+    propertiesWindow = new Properties();
+    consoleWindow = new Console();
+    sceneWindow = new SceneWindow(&project);
+
     uint32_t sceneid = project.createNewScene("New Scene");
-    project.createNewEntity(sceneid);
-    project.createNewEntity(sceneid);
+    project.createNewEntity(sceneid, "Entity 1");
+    project.createNewEntity(sceneid, "Entity 2");
+
+    uint32_t sceneid2 = project.createNewScene("New Scene 2");
+    project.createNewEntity(sceneid2, "Entity 4");
+    project.createNewEntity(sceneid2, "Entity 5");
+    project.createNewEntity(sceneid2, "Entity 6");
 }
 
 void Editor::App::showMenu(){
@@ -122,10 +132,10 @@ void Editor::App::show(){
 
     showStyleEditor();
     
-    objectsWindow.show();
-    consoleWindow.show();
-    propertiesWindow.show();
-    sceneWindow.show(&project, sceneRender.getCamera());
+    objectsWindow->show();
+    consoleWindow->show();
+    propertiesWindow->show();
+    sceneWindow->show(sceneRender.getCamera());
 }
 
 void Editor::App::engineInit(int argc, char** argv){
@@ -137,8 +147,8 @@ void Editor::App::engineViewLoaded(){
 }
 
 void Editor::App::engineRender(){
-    int width = sceneWindow.getWidth();
-    int height = sceneWindow.getHeight();
+    int width = sceneWindow->getWidth();
+    int height = sceneWindow->getHeight();
 
     if (Platform::width != width || Platform::height != height){
         Platform::width = width;
@@ -150,8 +160,8 @@ void Editor::App::engineRender(){
 
     Engine::systemDraw();
 
-    sceneWindow.setTexure((void*)(intptr_t)sceneRender.getTexture().getGLHandler());
-    sceneWindow.setGimbalTexure((void*)(intptr_t)sceneRender.getGimbal()->getTexture().getGLHandler());
+    sceneWindow->setTexure((void*)(intptr_t)sceneRender.getTexture().getGLHandler());
+    sceneWindow->setGimbalTexure((void*)(intptr_t)sceneRender.getGimbal()->getTexture().getGLHandler());
 
 }
 

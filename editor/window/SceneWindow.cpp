@@ -7,9 +7,13 @@
 
 using namespace Supernova;
 
-Editor::SceneWindow::SceneWindow(){
+Editor::SceneWindow::SceneWindow(Project* project){
+    this->project = project;
+
     lastMousePos = Vector2(0, 0);
     draggingMouse = false;
+    width = 0;
+    height = 0;
 }
 
 void Editor::SceneWindow::sceneEventHandler(Camera* camera){
@@ -86,10 +90,14 @@ void Editor::SceneWindow::sceneEventHandler(Camera* camera){
     }
 }
 
-void Editor::SceneWindow::show(Project* project, Camera* camera){
+void Editor::SceneWindow::show(Camera* camera){
     for (auto& sceneData : project->getScenes()) {
         ImGui::Begin((sceneData.name + "###Scene" + std::to_string(sceneData.id)).c_str());
         {
+
+            if (ImGui::IsWindowFocused()){
+                project->setSelectedSceneId(sceneData.id);
+            }
 
             if (ImGui::Button(ICON_FA_PLAY " Play")) {
                 sceneData.name = "Testing";

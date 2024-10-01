@@ -18,10 +18,12 @@ uint32_t Editor::Project::createNewScene(std::string sceneName){
     return scenes.back().id;
 }
 
-Entity Editor::Project::createNewEntity(uint32_t sceneId){
+Entity Editor::Project::createNewEntity(uint32_t sceneId, std::string entityName){
     for (int i = 0; i < scenes.size(); i++){
         if (scenes[i].id == sceneId){
             Entity entity = scenes[i].scene->createEntity();
+            scenes[i].scene->setEntityName(entity, entityName);
+
             scenes[i].entities.push_back(entity);
 
             return entity;

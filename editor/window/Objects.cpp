@@ -173,11 +173,13 @@ void Editor::Objects::showTreeNode(Editor::TreeNode& node) {
 void Editor::Objects::changeNodeName(const TreeNode* node, const std::string name){
     if (node->isScene){
         project->getScene(node->id)->name = name;
+    }else{
+        project->getSelectedScene()->scene->setEntityName(node->id, name);
     }
 }
 
 void Editor::Objects::show(){
-
+/*
     static TreeNode root = {ICON_FA_TV, "Root Node", true, 1, {
         {ICON_FA_CUBE, "Player", false, 1, {}},
         {ICON_FA_CUBE, "Child 2", false, 1, {
@@ -186,10 +188,9 @@ void Editor::Objects::show(){
         }},
         {ICON_FA_CIRCLE_DOT, "Entity 3", false, 1, {}}
     }};
+*/
 
-/*
     SceneData* sceneData = project->getSelectedScene();
-
 
     TreeNode root;
 
@@ -197,8 +198,17 @@ void Editor::Objects::show(){
     root.id = sceneData->id;
     root.isScene = true;
     root.name = sceneData->name;
-*/
 
+    for (auto& entity : project->getSelectedScene()->entities) {
+        TreeNode child;
+
+        child.icon = ICON_FA_CIRCLE_DOT;
+        child.id = entity;
+        child.isScene = false;
+        child.name = project->getSelectedScene()->scene->getEntityName(entity);
+
+        root.children.push_back(child);
+    }
 
     ImGui::Begin("Objects");
     showIconMenu();

@@ -28,7 +28,7 @@ namespace Supernova::Editor{
         Project();
 
         uint32_t createNewScene(std::string sceneName);
-        Entity createNewEntity(uint32_t sceneId);
+        Entity createNewEntity(uint32_t sceneId, std::string entityName);
         bool createNewComponent(uint32_t sceneId, Entity entity, ComponentType component);
 
         std::vector<SceneData>& getScenes();

@@ -19,10 +19,11 @@ namespace Supernova::Editor{
         Project project;
 
         ImGuiID dockspace_id;
-        Objects objectsWindow;
-        Properties propertiesWindow;
-        Console consoleWindow;
-        SceneWindow sceneWindow;
+
+        Objects* objectsWindow;
+        Properties* propertiesWindow;
+        Console* consoleWindow;
+        SceneWindow* sceneWindow;
 
         SceneRender sceneRender;
 
