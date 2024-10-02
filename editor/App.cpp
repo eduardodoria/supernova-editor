@@ -24,6 +24,11 @@ Editor::App::App(){
     project.createNewEntity(sceneid2, "Entity 4");
     project.createNewEntity(sceneid2, "Entity 5");
     project.createNewEntity(sceneid2, "Entity 6");
+
+    uint32_t sceneid3 = project.createNewScene("New Scene 3");
+    project.createNewEntity(sceneid3, "Entity 8");
+    project.createNewEntity(sceneid3, "Entity 9");
+    project.createNewEntity(sceneid3, "Entity 10");
 }
 
 void Editor::App::showMenu(){
@@ -147,8 +152,34 @@ void Editor::App::engineViewLoaded(){
 }
 
 void Editor::App::engineRender(){
-    int width = sceneWindow->getWidth();
-    int height = sceneWindow->getHeight();
+    static bool firstStart = true;
+
+    if (firstStart){
+        for (auto& sceneData : project.getScenes()) {
+            int width = sceneWindow->getWidth(sceneData.id);
+            int height = sceneWindow->getHeight(sceneData.id);
+
+            if (Platform::width != width || Platform::height != height){
+                Platform::width = width;
+                Platform::height = height;
+                Engine::systemViewChanged();
+            }
+            SceneRender* sceneRender = sceneData.sceneRender;
+
+            sceneData.sceneRender->activate();
+
+            sceneRender->update(Platform::width, Platform::height);
+
+            Engine::systemDraw();
+        }
+
+        project.getSelectedScene()->sceneRender->activate();
+
+        firstStart = false;
+    }
+
+    int width = sceneWindow->getWidth(project.getSelectedSceneId());
+    int height = sceneWindow->getHeight(project.getSelectedSceneId());
 
     if (Platform::width != width || Platform::height != height){
         Platform::width = width;

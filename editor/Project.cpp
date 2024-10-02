@@ -17,9 +17,9 @@ uint32_t Editor::Project::createNewScene(std::string sceneName){
 
     scenes.push_back(data);
 
-    if (selectedScene == NULL_PROJECT_SCENE){
-        selectedScene = scenes.back().id;
-    }
+    //if (selectedScene == NULL_PROJECT_SCENE){
+        setSelectedSceneId(scenes.back().id);
+    //}
 
     return scenes.back().id;
 }
@@ -71,7 +71,10 @@ Editor::SceneData* Editor::Project::getSelectedScene(){
 }
 
 void Editor::Project::setSelectedSceneId(uint32_t selectedScene){
-    this->selectedScene = selectedScene;
+    if (this->selectedScene != selectedScene){
+        this->selectedScene = selectedScene;
+        getScene(selectedScene)->sceneRender->activate();
+    }
 }
 
 uint32_t Editor::Project::getSelectedSceneId() const{

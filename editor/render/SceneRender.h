@@ -15,6 +15,7 @@ namespace Supernova::Editor{
     public:
         SceneRender(Scene* scene);
 
+        void activate();
         void update(int width, int height);
 
         TextureRender& getTexture();

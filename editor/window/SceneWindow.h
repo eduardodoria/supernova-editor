@@ -16,8 +16,8 @@ namespace Supernova::Editor{
         Vector2 lastMousePos;
         bool draggingMouse;
 
-        int width;
-        int height;
+        std::map<uint32_t, int> width;
+        std::map<uint32_t, int> height;
 
         void sceneEventHandler(Camera* camera);
         
@@ -26,8 +26,8 @@ namespace Supernova::Editor{
 
         void show();
 
-        int getWidth() const;
-        int getHeight() const;
+        int getWidth(uint32_t sceneId) const;
+        int getHeight(uint32_t sceneId) const;
     };
 
 }

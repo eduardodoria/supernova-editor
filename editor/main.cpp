@@ -55,7 +55,7 @@ int main(int argc, char** argv){
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;      // Enable Docking
     
     #ifdef _DEBUG
-    io.IniFilename = nullptr;  // Disable saving to ini file
+    //io.IniFilename = nullptr;  // Disable saving to ini file
     #endif
 
     io.Fonts->AddFontDefault();

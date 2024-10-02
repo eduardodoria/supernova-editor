@@ -45,7 +45,11 @@ Editor::SceneRender::SceneRender(Scene* scene){
     scene->setBackgroundColor(Vector4(0.25, 0.45, 0.65, 1.0));
 
     Engine::setFixedTimeSceneUpdate(false);
+}
+
+void Editor::SceneRender::activate(){
     Engine::setScene(scene);
+    Engine::removeAllSceneLayers();
     Engine::addSceneLayer(gimbal.getScene());
 }
 

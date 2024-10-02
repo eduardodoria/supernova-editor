@@ -12,8 +12,6 @@ Editor::SceneWindow::SceneWindow(Project* project){
 
     lastMousePos = Vector2(0, 0);
     draggingMouse = false;
-    width = 0;
-    height = 0;
 }
 
 void Editor::SceneWindow::sceneEventHandler(Camera* camera){
@@ -146,8 +144,8 @@ void Editor::SceneWindow::show(){
                 if (project->getSelectedSceneId() == sceneData.id){
                     sceneEventHandler(sceneData.sceneRender->getCamera());
 
-                    width = ImGui::GetContentRegionAvail().x;
-                    height = ImGui::GetContentRegionAvail().y;
+                    width[sceneData.id] = ImGui::GetContentRegionAvail().x;
+                    height[sceneData.id] = ImGui::GetContentRegionAvail().y;
                 }
 
                 ImGui::Image((void*)(intptr_t)sceneData.sceneRender->getTexture().getGLHandler(), ImGui::GetContentRegionAvail(), ImVec2(0, 1), ImVec2(1, 0));
@@ -170,10 +168,18 @@ void Editor::SceneWindow::show(){
     }
 }
 
-int Editor::SceneWindow::getWidth() const{
-    return width;
+int Editor::SceneWindow::getWidth(uint32_t sceneId) const{
+    if (width.count(sceneId)){
+        return width.at(sceneId);
+    }
+
+    return 0;
 }
 
-int Editor::SceneWindow::getHeight() const{
-    return height;
+int Editor::SceneWindow::getHeight(uint32_t sceneId) const{
+    if (height.count(sceneId)){
+        return height.at(sceneId);
+    }
+
+    return 0;
 }
