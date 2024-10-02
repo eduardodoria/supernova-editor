@@ -9,7 +9,13 @@ Editor::Project::Project(){
 }
 
 uint32_t Editor::Project::createNewScene(std::string sceneName){
-    scenes.push_back({++nextSceneId, sceneName, new Scene()});
+    SceneData data;
+    data.id = ++nextSceneId;
+    data.name = sceneName;
+    data.scene = new Scene();
+    data.sceneRender = new SceneRender(data.scene);
+
+    scenes.push_back(data);
 
     if (selectedScene == NULL_PROJECT_SCENE){
         selectedScene = scenes.back().id;

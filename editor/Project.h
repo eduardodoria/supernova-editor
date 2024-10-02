@@ -3,6 +3,7 @@
 
 #include "Scene.h"
 #include "Factory.h"
+#include "render/SceneRender.h"
 
 #define NULL_PROJECT_SCENE 0
 
@@ -13,6 +14,7 @@ namespace Supernova::Editor{
         std::string name;
         Scene* scene;
         std::vector<Entity> entities;
+        SceneRender* sceneRender;
     };
 
     class Project{

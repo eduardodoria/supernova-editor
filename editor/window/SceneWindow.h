@@ -19,21 +19,15 @@ namespace Supernova::Editor{
         int width;
         int height;
 
-        ImTextureID renderTexture;
-        ImTextureID renderTextureGimbal;
-
         void sceneEventHandler(Camera* camera);
         
     public:
         SceneWindow(Project* project);
 
-        void show(Camera* camera);
+        void show();
 
         int getWidth() const;
         int getHeight() const;
-
-        void setTexure(ImTextureID tex);
-        void setGimbalTexure(ImTextureID tex);
     };
 
 }

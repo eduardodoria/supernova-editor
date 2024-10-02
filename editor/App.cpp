@@ -98,7 +98,6 @@ void Editor::App::buildDockspace(){
 }
 
 void Editor::App::showStyleEditor(){
-#ifdef SHOW_STYLE_WINDOW
     ImGui::Begin("Dear ImGui Style Editor", nullptr);
     {
         // Get the current IO object to access display size
@@ -116,7 +115,6 @@ void Editor::App::showStyleEditor(){
         ImGui::ShowStyleEditor();
     }
     ImGui::End();
-#endif
 }
 
 void Editor::App::show(){
@@ -130,12 +128,14 @@ void Editor::App::show(){
 
     ImGui::DockSpaceOverViewport(dockspace_id, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
 
+    #ifdef SHOW_STYLE_WINDOW
     showStyleEditor();
-    
+    #endif
+
     objectsWindow->show();
     consoleWindow->show();
     propertiesWindow->show();
-    sceneWindow->show(sceneRender.getCamera());
+    sceneWindow->show();
 }
 
 void Editor::App::engineInit(int argc, char** argv){
@@ -155,14 +155,11 @@ void Editor::App::engineRender(){
         Platform::height = height;
         Engine::systemViewChanged();
     }
+    SceneRender* sceneRender = project.getSelectedScene()->sceneRender;
 
-    sceneRender.update(Platform::width, Platform::height);
+    sceneRender->update(Platform::width, Platform::height);
 
     Engine::systemDraw();
-
-    sceneWindow->setTexure((void*)(intptr_t)sceneRender.getTexture().getGLHandler());
-    sceneWindow->setGimbalTexure((void*)(intptr_t)sceneRender.getGimbal()->getTexture().getGLHandler());
-
 }
 
 void Editor::App::engineViewDestroyed(){

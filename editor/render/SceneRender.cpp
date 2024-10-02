@@ -2,8 +2,9 @@
 
 using namespace Supernova;
 
-Editor::SceneRender::SceneRender(){
-    scene = new Scene();
+Editor::SceneRender::SceneRender(Scene* scene){
+    this->scene = scene;
+
     Lines* lines = new Lines(scene);
     camera = new Camera(scene);
 

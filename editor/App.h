@@ -25,8 +25,6 @@ namespace Supernova::Editor{
         Console* consoleWindow;
         SceneWindow* sceneWindow;
 
-        SceneRender sceneRender;
-
         static bool isInitialized;
 
         void showMenu();

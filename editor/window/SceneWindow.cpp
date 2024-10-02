@@ -90,12 +90,12 @@ void Editor::SceneWindow::sceneEventHandler(Camera* camera){
     }
 }
 
-void Editor::SceneWindow::show(Camera* camera){
+void Editor::SceneWindow::show(){
     for (auto& sceneData : project->getScenes()) {
         ImGui::Begin((sceneData.name + "###Scene" + std::to_string(sceneData.id)).c_str());
         {
 
-            if (ImGui::IsWindowFocused()){
+            if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)){
                 project->setSelectedSceneId(sceneData.id);
             }
 
@@ -141,14 +141,16 @@ void Editor::SceneWindow::show(Camera* camera){
                 // Handle play button click
             }
 
-            ImGui::BeginChild("Canvas");
+            ImGui::BeginChild(("Canvas" + std::to_string(sceneData.id)).c_str());
             {
-                sceneEventHandler(camera);
+                if (project->getSelectedSceneId() == sceneData.id){
+                    sceneEventHandler(sceneData.sceneRender->getCamera());
 
-                width = ImGui::GetContentRegionAvail().x;
-                height = ImGui::GetContentRegionAvail().y;
+                    width = ImGui::GetContentRegionAvail().x;
+                    height = ImGui::GetContentRegionAvail().y;
+                }
 
-                ImGui::Image(renderTexture, ImGui::GetContentRegionAvail(), ImVec2(0, 1), ImVec2(1, 0));
+                ImGui::Image((void*)(intptr_t)sceneData.sceneRender->getTexture().getGLHandler(), ImGui::GetContentRegionAvail(), ImVec2(0, 1), ImVec2(1, 0));
 
                 // Create a new child window floating at top right
                 ImVec2 childSize(100, 100); // Determined size for the new child window
@@ -158,7 +160,7 @@ void Editor::SceneWindow::show(Camera* camera){
 
                 ImGui::BeginChild("GimbalChild", childSize, false, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBackground);
                 {
-                    ImGui::Image(renderTextureGimbal, ImGui::GetContentRegionAvail(), ImVec2(0, 1), ImVec2(1, 0));
+                    ImGui::Image((void*)(intptr_t)sceneData.sceneRender->getGimbal()->getTexture().getGLHandler(), ImGui::GetContentRegionAvail(), ImVec2(0, 1), ImVec2(1, 0));
                 }
                 ImGui::EndChild();
             }
@@ -174,12 +176,4 @@ int Editor::SceneWindow::getWidth() const{
 
 int Editor::SceneWindow::getHeight() const{
     return height;
-}
-
-void Editor::SceneWindow::setTexure(ImTextureID tex){
-    renderTexture = tex;
-}
-
-void Editor::SceneWindow::setGimbalTexure(ImTextureID tex){
-    renderTextureGimbal = tex;
 }

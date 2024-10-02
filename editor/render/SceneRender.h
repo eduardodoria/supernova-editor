@@ -13,12 +13,11 @@ namespace Supernova::Editor{
 
         Gimbal gimbal;
     public:
-        SceneRender();
+        SceneRender(Scene* scene);
 
         void update(int width, int height);
 
         TextureRender& getTexture();
-        TextureRender& getGimbalTexture();
 
         Camera* getCamera();
         Gimbal* getGimbal();
