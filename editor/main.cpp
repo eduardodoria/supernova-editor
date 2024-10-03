@@ -84,6 +84,8 @@ int main(int argc, char** argv){
 
     io.FontDefault = font1;
 
+    //io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;
+
     // Setup Dear ImGui style
     //ImGui::StyleColorsDark();
     app.kewtStyleTheme();

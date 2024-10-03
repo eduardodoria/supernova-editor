@@ -9,12 +9,9 @@ using namespace Supernova;
 
 Editor::SceneWindow::SceneWindow(Project* project){
     this->project = project;
-
-    lastMousePos = Vector2(0, 0);
-    draggingMouse = false;
 }
 
-void Editor::SceneWindow::sceneEventHandler(Camera* camera){
+void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
     // Get the current window's position and size
     ImVec2 windowPos = ImGui::GetWindowPos();
     ImVec2 windowSize = ImGui::GetWindowSize();
@@ -26,29 +23,34 @@ void Editor::SceneWindow::sceneEventHandler(Camera* camera){
     bool isMouseInWindow = ImGui::IsWindowHovered() && (mousePos.x >= windowPos.x && mousePos.x <= windowPos.x + windowSize.x &&
                             mousePos.y >= windowPos.y && mousePos.y <= windowPos.y + windowSize.y);
 
-    // Log mouse position
+
     if (isMouseInWindow && (ImGui::IsMouseClicked(ImGuiMouseButton_Middle) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))) {
         float x = mousePos.x - windowPos.x;
         float y = mousePos.y - windowPos.y;
 
-        lastMousePos = Vector2(x, y);
+        lastMousePos[sceneId] = Vector2(x, y);
 
-        draggingMouse = true;
+        draggingMouse[sceneId] = true;
+
+        ImGui::SetWindowFocus();
 
     }
 
     if (ImGui::IsMouseReleased(ImGuiMouseButton_Middle) || ImGui::IsMouseReleased(ImGuiMouseButton_Right)){
-        draggingMouse = false;
+        draggingMouse[sceneId] = false;
     }
 
+    Camera* camera = project->getScene(sceneId)->sceneRender->getCamera();
+
     // Check for mouse clicks
-    if (draggingMouse && (ImGui::IsMouseDown(ImGuiMouseButton_Middle) || ImGui::IsMouseDown(ImGuiMouseButton_Right))) {
+    if (draggingMouse[sceneId] && (ImGui::IsMouseDown(ImGuiMouseButton_Middle) || ImGui::IsMouseDown(ImGuiMouseButton_Right))) {
         float x = mousePos.x - windowPos.x;
         float y = mousePos.y - windowPos.y;
 
-        float difX = lastMousePos.x - x;
-        float difY = lastMousePos.y - y;
-        lastMousePos = Vector2(x, y);
+        float difX = lastMousePos[sceneId].x - x;
+        float difY = lastMousePos[sceneId].y - y;
+
+        lastMousePos[sceneId] = Vector2(x, y);
 
         if (ImGui::IsMouseDown(ImGuiMouseButton_Right)){
 
@@ -141,9 +143,7 @@ void Editor::SceneWindow::show(){
 
             ImGui::BeginChild(("Canvas" + std::to_string(sceneData.id)).c_str());
             {
-                if (project->getSelectedSceneId() == sceneData.id){
-                    sceneEventHandler(sceneData.sceneRender->getCamera());
-                }
+                sceneEventHandler(project, sceneData.id);
 
                 int widthNew = ImGui::GetContentRegionAvail().x;
                 int heightNew = ImGui::GetContentRegionAvail().y;

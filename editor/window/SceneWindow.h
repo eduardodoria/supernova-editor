@@ -2,6 +2,7 @@
 #define SCENEWINDOW_H
 
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "Project.h"
 #include "object/Camera.h"
 
@@ -13,13 +14,13 @@ namespace Supernova::Editor{
 
         Project* project;
 
-        Vector2 lastMousePos;
-        bool draggingMouse;
+        std::map<uint32_t, Vector2> lastMousePos;
+        std::map<uint32_t, bool> draggingMouse;
 
         std::map<uint32_t, int> width;
         std::map<uint32_t, int> height;
 
-        void sceneEventHandler(Camera* camera);
+        void sceneEventHandler(Project* project, uint32_t sceneId);
         
     public:
         SceneWindow(Project* project);
