@@ -15,83 +15,101 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
     // Get the current window's position and size
     ImVec2 windowPos = ImGui::GetWindowPos();
     ImVec2 windowSize = ImGui::GetWindowSize();
-    ImVec2 mousePos = ImGui::GetMousePos();
     ImGuiIO& io = ImGui::GetIO();
     float mouseWheel = io.MouseWheel;
+    ImVec2 mousePos = io.MousePos;
+    ImVec2 mouseDelta = io.MouseDelta;
 
     // Check if the mouse is within the window bounds
     bool isMouseInWindow = ImGui::IsWindowHovered() && (mousePos.x >= windowPos.x && mousePos.x <= windowPos.x + windowSize.x &&
                             mousePos.y >= windowPos.y && mousePos.y <= windowPos.y + windowSize.y);
 
-
     if (isMouseInWindow && (ImGui::IsMouseClicked(ImGuiMouseButton_Middle) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))) {
         float x = mousePos.x - windowPos.x;
         float y = mousePos.y - windowPos.y;
 
-        lastMousePos[sceneId] = Vector2(x, y);
-
         draggingMouse[sceneId] = true;
 
         ImGui::SetWindowFocus();
-
     }
 
     if (ImGui::IsMouseReleased(ImGuiMouseButton_Middle) || ImGui::IsMouseReleased(ImGuiMouseButton_Right)){
         draggingMouse[sceneId] = false;
+        Platform::enableMouseCursor();
+        ImGuiIO& io = ImGui::GetIO();
+        io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
     }
 
     Camera* camera = project->getScene(sceneId)->sceneRender->getCamera();
 
     // Check for mouse clicks
     if (draggingMouse[sceneId] && (ImGui::IsMouseDown(ImGuiMouseButton_Middle) || ImGui::IsMouseDown(ImGuiMouseButton_Right))) {
-        float x = mousePos.x - windowPos.x;
-        float y = mousePos.y - windowPos.y;
-
-        float difX = lastMousePos[sceneId].x - x;
-        float difY = lastMousePos[sceneId].y - y;
-
-        lastMousePos[sceneId] = Vector2(x, y);
 
         if (ImGui::IsMouseDown(ImGuiMouseButton_Right)){
 
-            camera->rotateView(0.1 * difX);
-            camera->elevateView(0.1 * difY);
+            camera->rotateView(-0.1 * mouseDelta.x);
+            camera->elevateView(-0.1 * mouseDelta.y);
+
+            float minSpeed = 0.5;
+            float maxSpeed = 1000;
+            float speedOffset = 10.0;
+
+            walkSpeed[sceneId] += mouseWheel;
+            if (walkSpeed[sceneId] <= -speedOffset){
+                walkSpeed[sceneId] = -speedOffset + minSpeed;
+            }
+            if (walkSpeed[sceneId] > maxSpeed){
+                walkSpeed[sceneId] = maxSpeed;
+            }
+
+            float finalSpeed = 0.02 * (speedOffset + walkSpeed[sceneId]);
 
             if (ImGui::IsKeyDown(ImGuiKey_W)){
-                camera->slideForward(0.05 * 10);
+                camera->slideForward(finalSpeed);
             }
             if (ImGui::IsKeyDown(ImGuiKey_S)){
-                camera->slideForward(-0.05 * 10);
+                camera->slideForward(-finalSpeed);
             }
             if (ImGui::IsKeyDown(ImGuiKey_A)){
-                camera->slide(-0.02 * 10);
+                camera->slide(-finalSpeed);
             }
             if (ImGui::IsKeyDown(ImGuiKey_D)){
-                camera->slide(0.02 * 10);
+                camera->slide(finalSpeed);
+            }
+            if (ImGui::IsKeyDown(ImGuiKey_E)){
+                camera->slideUp(finalSpeed);
+            }
+            if (ImGui::IsKeyDown(ImGuiKey_Q)){
+                camera->slideUp(-finalSpeed);
             }
 
-            ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+            //ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+            io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
+            Platform::disableMouseCursor();
         }
         if (ImGui::IsMouseDown(ImGuiMouseButton_Middle)){
             if (ImGui::IsKeyDown(ImGuiKey_ModShift)){
-                camera->slide(0.01 * difX);
-                camera->slideUp(-0.01 * difY);
+                camera->slide(0.01 * mouseDelta.x);
+                camera->slideUp(-0.01 * mouseDelta.y);
             }else if (ImGui::IsKeyDown(ImGuiKey_ModCtrl)){
-                camera->zoom(0.1 * difY);
+                camera->zoom(0.1 * mouseDelta.y);
             }else{
-                camera->rotatePosition(0.1 * difX);
-                camera->elevatePosition(-0.1 * difY);
+                camera->rotatePosition(-0.1 * mouseDelta.x);
+                camera->elevatePosition(0.1 * mouseDelta.y);
             }
         }
     }
 
-    if (isMouseInWindow && mouseWheel != 0.0f){
-        camera->zoom(5 * mouseWheel);
+    if (!ImGui::IsMouseDown(ImGuiMouseButton_Right)){
+        if (isMouseInWindow && mouseWheel != 0.0f){
+            camera->zoom(2.0 * mouseWheel);
+        }
     }
 }
 
 void Editor::SceneWindow::show(){
     for (auto& sceneData : project->getScenes()) {
+        ImGui::SetNextWindowSizeConstraints(ImVec2(200, 200), ImVec2(FLT_MAX, FLT_MAX));
         ImGui::Begin((sceneData.name + "###Scene" + std::to_string(sceneData.id)).c_str());
         {
 

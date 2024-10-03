@@ -54,7 +54,7 @@ void Editor::SceneRender::activate(){
 }
 
 void Editor::SceneRender::update(int width, int height){
-    if (width != 0 && height != 0){
+    if (width > 0 && height > 0){
         camera->setFramebufferSize(width, height);
     }
 

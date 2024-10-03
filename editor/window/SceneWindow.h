@@ -5,17 +5,17 @@
 #include "imgui_internal.h"
 #include "Project.h"
 #include "object/Camera.h"
+#include <GLFW/glfw3.h>
 
 namespace Supernova::Editor{
 
     class SceneWindow{
 
     private:
-
         Project* project;
 
-        std::map<uint32_t, Vector2> lastMousePos;
         std::map<uint32_t, bool> draggingMouse;
+        std::map<uint32_t, float> walkSpeed;
 
         std::map<uint32_t, int> width;
         std::map<uint32_t, int> height;

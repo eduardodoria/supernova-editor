@@ -94,10 +94,11 @@ void Editor::App::buildDockspace(){
     size = 10*ImGui::GetFontSize();
     ImGui::DockBuilderSplitNode(dock_id_middle, ImGuiDir_Down, 0.0f, &dock_id_middle_bottom, &dock_id_middle_top);
     ImGui::DockBuilderSetNodeSize(dock_id_middle_bottom, ImVec2(ImGui::GetMainViewport()->Size.x, size)); // Set bottom node size
+    ImGui::DockBuilderDockWindow("Console", dock_id_middle_bottom);
+
     for (auto& sceneData : project.getScenes()) {
         ImGui::DockBuilderDockWindow(("###Scene" + std::to_string(sceneData.id)).c_str(), dock_id_middle_top);
     }
-    ImGui::DockBuilderDockWindow("Console", dock_id_middle_bottom);
 
     ImGui::DockBuilderFinish(dockspace_id);
 }
