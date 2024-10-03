@@ -14,12 +14,11 @@ uint32_t Editor::Project::createNewScene(std::string sceneName){
     data.name = sceneName;
     data.scene = new Scene();
     data.sceneRender = new SceneRender(data.scene);
+    data.needUpdateRender = true;
 
     scenes.push_back(data);
 
-    //if (selectedScene == NULL_PROJECT_SCENE){
-        setSelectedSceneId(scenes.back().id);
-    //}
+    setSelectedSceneId(scenes.back().id);
 
     return scenes.back().id;
 }

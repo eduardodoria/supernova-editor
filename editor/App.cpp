@@ -141,6 +141,8 @@ void Editor::App::show(){
     consoleWindow->show();
     propertiesWindow->show();
     sceneWindow->show();
+
+    isInitialized = true;
 }
 
 void Editor::App::engineInit(int argc, char** argv){
@@ -152,10 +154,8 @@ void Editor::App::engineViewLoaded(){
 }
 
 void Editor::App::engineRender(){
-    static bool firstStart = true;
-
-    if (firstStart){
-        for (auto& sceneData : project.getScenes()) {
+    for (auto& sceneData : project.getScenes()) {
+        if (sceneData.needUpdateRender || sceneData.id == project.getSelectedSceneId()){
             int width = sceneWindow->getWidth(sceneData.id);
             int height = sceneWindow->getHeight(sceneData.id);
 
@@ -166,31 +166,16 @@ void Editor::App::engineRender(){
             }
             SceneRender* sceneRender = sceneData.sceneRender;
 
+            //TODO: avoid calling every frame
             sceneData.sceneRender->activate();
 
             sceneRender->update(Platform::width, Platform::height);
 
             Engine::systemDraw();
+
+            sceneData.needUpdateRender = false;
         }
-
-        project.getSelectedScene()->sceneRender->activate();
-
-        firstStart = false;
     }
-
-    int width = sceneWindow->getWidth(project.getSelectedSceneId());
-    int height = sceneWindow->getHeight(project.getSelectedSceneId());
-
-    if (Platform::width != width || Platform::height != height){
-        Platform::width = width;
-        Platform::height = height;
-        Engine::systemViewChanged();
-    }
-    SceneRender* sceneRender = project.getSelectedScene()->sceneRender;
-
-    sceneRender->update(Platform::width, Platform::height);
-
-    Engine::systemDraw();
 }
 
 void Editor::App::engineViewDestroyed(){

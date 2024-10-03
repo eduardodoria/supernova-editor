@@ -143,9 +143,16 @@ void Editor::SceneWindow::show(){
             {
                 if (project->getSelectedSceneId() == sceneData.id){
                     sceneEventHandler(sceneData.sceneRender->getCamera());
+                }
 
+                int widthNew = ImGui::GetContentRegionAvail().x;
+                int heightNew = ImGui::GetContentRegionAvail().y;
+
+                if (widthNew != width[sceneData.id] || heightNew != height[sceneData.id]){
                     width[sceneData.id] = ImGui::GetContentRegionAvail().x;
                     height[sceneData.id] = ImGui::GetContentRegionAvail().y;
+
+                    sceneData.needUpdateRender = true;
                 }
 
                 ImGui::Image((void*)(intptr_t)sceneData.sceneRender->getTexture().getGLHandler(), ImGui::GetContentRegionAvail(), ImVec2(0, 1), ImVec2(1, 0));

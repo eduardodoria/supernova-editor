@@ -15,6 +15,7 @@ namespace Supernova::Editor{
         Scene* scene;
         std::vector<Entity> entities;
         SceneRender* sceneRender;
+        bool needUpdateRender;
     };
 
     class Project{
