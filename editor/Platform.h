@@ -2,7 +2,7 @@
 #define EDITORPLATFORM_H
 
 #include "System.h"
-#include "GLFW/glfw3.h"
+#include <GLFW/glfw3.h>
 
 namespace Supernova::Editor{
 
