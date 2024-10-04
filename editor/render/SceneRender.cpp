@@ -6,6 +6,7 @@ Editor::SceneRender::SceneRender(Scene* scene){
     this->scene = scene;
 
     Lines* lines = new Lines(scene);
+    Light* sun = new Light(scene);
     camera = new Camera(scene);
 
     int gridHeight = 0;
@@ -41,6 +42,12 @@ Editor::SceneRender::SceneRender(Scene* scene){
     camera->setRenderToTexture(true);
     camera->setUseFramebufferSizes(false);
 
+    sun->setType(LightType::DIRECTIONAL);
+    sun->setDirection(-0.2, -0.5, 0.3);
+    sun->setIntensity(4.0);
+    sun->setShadows(true);
+
+    scene->setAmbientLight(0.4);
     scene->setCamera(camera);
     scene->setBackgroundColor(Vector4(0.25, 0.45, 0.65, 1.0));
 

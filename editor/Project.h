@@ -34,6 +34,8 @@ namespace Supernova::Editor{
         Entity createNewEntity(uint32_t sceneId, std::string entityName);
         bool createNewComponent(uint32_t sceneId, Entity entity, ComponentType component);
 
+        void createBoxShape(uint32_t sceneId);
+
         std::vector<SceneData>& getScenes();
         SceneData* getScene(uint32_t sceneId);
         SceneData* getSelectedScene();

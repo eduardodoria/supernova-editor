@@ -15,6 +15,7 @@ void Editor::Objects::showNewEntityMenu(){
     {
         if (ImGui::MenuItem(ICON_FA_CUBE"  Box"))
         {
+            project->createBoxShape(project->getSelectedSceneId());
             //printf("%u\n", selectedNode->id);
             // Action for SubItem 1
         }

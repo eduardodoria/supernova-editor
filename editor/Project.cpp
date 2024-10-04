@@ -1,5 +1,7 @@
 #include "Project.h"
 
+#include "subsystem/MeshSystem.h"
+
 using namespace Supernova;
 
 uint32_t Editor::Project::nextSceneId = 0;
@@ -44,11 +46,26 @@ bool Editor::Project::createNewComponent(uint32_t sceneId, Entity entity, Compon
             if (component == ComponentType::Transform){
                 scenes[i].scene->addComponent<Transform>(entity, {});
             }
+            if (component == ComponentType::MeshComponent){
+                scenes[i].scene->addComponent<MeshComponent>(entity, {});
+            }
             return true;
         }
     }
 
     return false;
+}
+
+void Editor::Project::createBoxShape(uint32_t sceneId){
+    Entity box = createNewEntity(sceneId, "Box");
+    createNewComponent(sceneId, box, ComponentType::Transform);
+    createNewComponent(sceneId, box, ComponentType::MeshComponent);
+
+    Scene* scene = getScene(sceneId)->scene;
+    MeshComponent& mesh = scene->getComponent<MeshComponent>(box);
+
+    scene->getSystem<MeshSystem>()->createBox(box, 1, 1, 1);
+    //mesh.submeshes[0].material.baseColorFactor = Color::sRGBToLinear(Vector4(0.5, 0.5, 0.5, 1.0));
 }
 
 std::vector<Editor::SceneData>&  Editor::Project::getScenes(){
