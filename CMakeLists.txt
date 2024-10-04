@@ -92,6 +92,8 @@ add_executable(
     ${EDITOR_DIR}/Platform.cpp
     ${EDITOR_DIR}/Project.cpp
 
+    ${EDITOR_DIR}/backend/BackendGLFW.cpp
+
     ${EDITOR_DIR}/window/Objects.cpp
     ${EDITOR_DIR}/window/Properties.cpp
     ${EDITOR_DIR}/window/Console.cpp

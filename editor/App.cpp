@@ -160,9 +160,7 @@ void Editor::App::engineRender(){
             int width = sceneWindow->getWidth(sceneData.id);
             int height = sceneWindow->getHeight(sceneData.id);
 
-            if (Platform::width != width || Platform::height != height){
-                Platform::width = width;
-                Platform::height = height;
+            if (Platform::setSizes(width, height)){
                 Engine::systemViewChanged();
             }
             SceneRender* sceneRender = sceneData.sceneRender;
@@ -170,7 +168,7 @@ void Editor::App::engineRender(){
             //TODO: avoid calling every frame
             sceneData.sceneRender->activate();
 
-            sceneRender->update(Platform::width, Platform::height);
+            sceneRender->update(width, height);
 
             Engine::systemDraw();
 

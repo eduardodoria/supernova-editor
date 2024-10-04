@@ -1,7 +1,7 @@
 #include "SceneWindow.h"
 
 #include "external/IconsFontAwesome6.h"
-#include "Platform.h"
+#include "backend/BackendGLFW.h"
 
 #include "math/Vector2.h"
 
@@ -35,7 +35,7 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
 
     if (ImGui::IsMouseReleased(ImGuiMouseButton_Middle) || ImGui::IsMouseReleased(ImGuiMouseButton_Right)){
         draggingMouse[sceneId] = false;
-        Platform::enableMouseCursor();
+        Backend::enableMouseCursor();
         ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
     }
@@ -85,7 +85,7 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
 
             //ImGui::SetMouseCursor(ImGuiMouseCursor_None);
             io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
-            Platform::disableMouseCursor();
+            Backend::disableMouseCursor();
         }
         if (ImGui::IsMouseDown(ImGuiMouseButton_Middle)){
             if (ImGui::IsKeyDown(ImGuiKey_ModShift)){
