@@ -1,5 +1,12 @@
 #include "SceneRender.h"
 
+#include "sky/Daylight_Box_Back_png.h"
+#include "sky/Daylight_Box_Bottom_png.h"
+#include "sky/Daylight_Box_Front_png.h"
+#include "sky/Daylight_Box_Left_png.h"
+#include "sky/Daylight_Box_Right_png.h"
+#include "sky/Daylight_Box_Top_png.h"
+
 using namespace Supernova;
 
 Editor::SceneRender::SceneRender(Scene* scene){
@@ -7,7 +14,24 @@ Editor::SceneRender::SceneRender(Scene* scene){
 
     Lines* lines = new Lines(scene);
     Light* sun = new Light(scene);
+    SkyBox* sky = new SkyBox(scene);
     camera = new Camera(scene);
+
+    TextureData skyBack;
+    TextureData skyBottom;
+    TextureData skyFront;
+    TextureData skyLeft;
+    TextureData skyRight;
+    TextureData skyTop;
+
+    skyBack.loadTextureFromMemory(Daylight_Box_Back_png, Daylight_Box_Back_png_len);
+    skyBottom.loadTextureFromMemory(Daylight_Box_Bottom_png, Daylight_Box_Bottom_png_len);
+    skyFront.loadTextureFromMemory(Daylight_Box_Front_png, Daylight_Box_Front_png_len);
+    skyLeft.loadTextureFromMemory(Daylight_Box_Left_png, Daylight_Box_Left_png_len);
+    skyRight.loadTextureFromMemory(Daylight_Box_Right_png, Daylight_Box_Right_png_len);
+    skyTop.loadTextureFromMemory(Daylight_Box_Top_png, Daylight_Box_Top_png_len);
+
+    sky->setTextures("default_editor_sky", skyBack, skyFront, skyLeft, skyRight, skyTop, skyBottom);
 
     int gridHeight = 0;
 

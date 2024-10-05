@@ -30,3 +30,7 @@ sudo make install
 2. Download the Windows binaries.
 3. Extract Files Extract the downloaded ZIP file to a folder of your choice.
 4. Add environment variable "GLFW_DIR" with path of binaries.
+
+## Assets
+
+ - https://opengameart.org/content/sky-box-sunny-day
