@@ -175,13 +175,22 @@ void Editor::SceneWindow::show(){
 
                 ImGui::Image((void*)(intptr_t)sceneData.sceneRender->getTexture().getGLHandler(), ImGui::GetContentRegionAvail(), ImVec2(0, 1), ImVec2(1, 0));
 
+                ImGui::SetCursorPos(ImVec2(0, 0));
+
+                // Create a new child window covering the entire Canvas
+                ImGui::BeginChild("MiddleChild", ImGui::GetContentRegionAvail(), false, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+                {
+                    ImGui::Image((void*)(intptr_t)sceneData.sceneRender->getGizmos()->getTexture().getGLHandler(), ImGui::GetContentRegionAvail(), ImVec2(0, 1), ImVec2(1, 0));
+                }
+                ImGui::EndChild();
+
                 // Create a new child window floating at top right
                 ImVec2 childSize(100, 100); // Determined size for the new child window
                 ImVec2 childPos(ImGui::GetWindowWidth() - childSize.x - 2, 2); // Position at top right with 2px padding
 
                 ImGui::SetCursorPos(childPos);
 
-                ImGui::BeginChild("GimbalChild", childSize, false, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBackground);
+                ImGui::BeginChild("GimbalChild", childSize, false, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
                 {
                     ImGui::Image((void*)(intptr_t)sceneData.sceneRender->getGimbal()->getTexture().getGLHandler(), ImGui::GetContentRegionAvail(), ImVec2(0, 1), ImVec2(1, 0));
                 }

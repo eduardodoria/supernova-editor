@@ -15,6 +15,10 @@ Editor::SceneRender::SceneRender(Scene* scene){
     Lines* lines = new Lines(scene);
     Light* sun = new Light(scene);
     SkyBox* sky = new SkyBox(scene);
+    cube  = new Shape(scene);
+
+    cube->createBox(1,1,1);
+
     camera = new Camera(scene);
 
     TextureData skyBack;
@@ -81,18 +85,35 @@ Editor::SceneRender::SceneRender(Scene* scene){
 void Editor::SceneRender::activate(){
     Engine::setScene(scene);
     Engine::removeAllSceneLayers();
+    Engine::addSceneLayer(gizmos.getScene());
     Engine::addSceneLayer(gimbal.getScene());
 }
 
-void Editor::SceneRender::update(int width, int height){
+void Editor::SceneRender::updateSize(int width, int height){
     if (width > 0 && height > 0){
         camera->setFramebufferSize(width, height);
-    }
+        gizmos.getCamera()->setFramebufferSize(width, height);
 
+        //gizmos.getCamera()->setOrtho(0, width, 0, height, -100, 100);
+    }
+}
+
+void Editor::SceneRender::update(){
     gimbal.applyRotation(camera);
+
+    float width = gizmos.getCamera()->getFramebuffer()->getWidth();
+    float height = gizmos.getCamera()->getFramebuffer()->getHeight();
+
+    //float width = gizmos.getCamera()->getRight();
+    //float height = gizmos.getCamera()->getTop();
+
+    Vector3 gpos = cube->getModelViewProjectionMatrix() * cube->getPosition();
+    gpos = Vector3((gpos.x + 1.0) / 2.0 * width, (gpos.y + 1.0) / 2.0 * height, 0);
+    gizmos.getGizmo()->setPosition(gpos);
 }
 
 TextureRender& Editor::SceneRender::getTexture(){
+    //return Engine::framebuffer.getRender().getColorTexture();
     return camera->getFramebuffer()->getRender().getColorTexture();
 }
 
@@ -102,4 +123,8 @@ Camera* Editor::SceneRender::getCamera(){
 
 Editor::Gimbal* Editor::SceneRender::getGimbal(){
     return &gimbal;
+}
+
+Editor::Gizmos* Editor::SceneRender::getGizmos(){
+    return &gizmos;
 }

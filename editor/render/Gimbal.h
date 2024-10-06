@@ -27,6 +27,7 @@ namespace Supernova::Editor{
 
         void applyRotation(Camera* sceneCam);
 
+        Framebuffer* getFramebuffer();
         TextureRender& getTexture();
         Scene* getScene();
         Object* getObject();

@@ -68,8 +68,12 @@ void Editor::Gimbal::applyRotation(Camera* sceneCam){
     mainObject->setRotation(Quaternion(right, up, view).inverse());
 }
 
+Framebuffer* Editor::Gimbal::getFramebuffer(){
+    return camera->getFramebuffer();
+}
+
 TextureRender& Editor::Gimbal::getTexture(){
-    return camera->getFramebuffer()->getRender().getColorTexture();
+    return getFramebuffer()->getRender().getColorTexture();
 }
 
 Scene* Editor::Gimbal::getScene(){

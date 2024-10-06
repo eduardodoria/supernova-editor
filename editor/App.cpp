@@ -25,10 +25,10 @@ Editor::App::App(){
     project.createNewEntity(sceneid2, "Entity 5");
     project.createNewEntity(sceneid2, "Entity 6");
 
-    uint32_t sceneid3 = project.createNewScene("New Scene 3");
-    project.createNewEntity(sceneid3, "Entity 8");
-    project.createNewEntity(sceneid3, "Entity 9");
-    project.createNewEntity(sceneid3, "Entity 10");
+    //uint32_t sceneid3 = project.createNewScene("New Scene 3");
+    //project.createNewEntity(sceneid3, "Entity 8");
+    //project.createNewEntity(sceneid3, "Entity 9");
+    //project.createNewEntity(sceneid3, "Entity 10");
 }
 
 void Editor::App::showMenu(){
@@ -160,19 +160,22 @@ void Editor::App::engineRender(){
             int width = sceneWindow->getWidth(sceneData.id);
             int height = sceneWindow->getHeight(sceneData.id);
 
-            if (Platform::setSizes(width, height)){
-                Engine::systemViewChanged();
-            }
             SceneRender* sceneRender = sceneData.sceneRender;
 
-            //TODO: avoid calling every frame
-            sceneData.sceneRender->activate();
+            if (Platform::setSizes(width, height)){
+                Engine::systemViewChanged();
+                sceneRender->updateSize(width, height);
+            }
+            if (width != 0 && height != 0){
+                //TODO: avoid calling every frame
+                sceneData.sceneRender->activate();
 
-            sceneRender->update(width, height);
+                sceneRender->update();
 
-            Engine::systemDraw();
+                Engine::systemDraw();
 
-            sceneData.needUpdateRender = false;
+                sceneData.needUpdateRender = false;
+            }
         }
     }
 }
