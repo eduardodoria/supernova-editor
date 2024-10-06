@@ -18,7 +18,21 @@ Editor::Gizmos::Gizmos(){
     gizmo->createSphere(10);
     gizmo->setColor(1.0, 0.5, 0.2, 1.0);
 
+    gimbalImage = new Image(scene);
+    gimbalImage->setSize(100, 100);
+
     scene->setCamera(camera);
+}
+
+void Editor::Gizmos::setGimbalTexture(Framebuffer* framebuffer){
+    gimbalImage->setTexture(framebuffer);
+}
+
+void Editor::Gizmos::updateSize(int width, int height){
+    //camera->setFramebufferSize(width, height);
+    camera->setOrtho(0, width, 0, height, DEFAULT_ORTHO_NEAR, DEFAULT_ORTHO_FAR);
+
+    gimbalImage->setPosition(width - gimbalImage->getWidth(), height - gimbalImage->getHeight());
 }
 
 Framebuffer* Editor::Gizmos::getFramebuffer(){

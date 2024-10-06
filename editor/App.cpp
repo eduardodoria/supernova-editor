@@ -25,10 +25,10 @@ Editor::App::App(){
     project.createNewEntity(sceneid2, "Entity 5");
     project.createNewEntity(sceneid2, "Entity 6");
 
-    //uint32_t sceneid3 = project.createNewScene("New Scene 3");
-    //project.createNewEntity(sceneid3, "Entity 8");
-    //project.createNewEntity(sceneid3, "Entity 9");
-    //project.createNewEntity(sceneid3, "Entity 10");
+    uint32_t sceneid3 = project.createNewScene("New Scene 3");
+    project.createNewEntity(sceneid3, "Entity 8");
+    project.createNewEntity(sceneid3, "Entity 9");
+    project.createNewEntity(sceneid3, "Entity 10");
 }
 
 void Editor::App::showMenu(){

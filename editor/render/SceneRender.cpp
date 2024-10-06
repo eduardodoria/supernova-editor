@@ -79,6 +79,8 @@ Editor::SceneRender::SceneRender(Scene* scene){
     scene->setCamera(camera);
     scene->setBackgroundColor(Vector4(0.25, 0.45, 0.65, 1.0));
 
+    gizmos.setGimbalTexture(gimbal.getFramebuffer());
+
     Engine::setFixedTimeSceneUpdate(false);
 }
 
@@ -93,9 +95,8 @@ void Editor::SceneRender::activate(){
 void Editor::SceneRender::updateSize(int width, int height){
     if (width > 0 && height > 0){
         camera->setFramebufferSize(width, height);
-        //gizmos.getCamera()->setFramebufferSize(width, height);
 
-        gizmos.getCamera()->setOrtho(0, width, 0, height, DEFAULT_ORTHO_NEAR, DEFAULT_ORTHO_FAR);
+        gizmos.updateSize(width, height);
     }
 }
 

@@ -5,6 +5,7 @@
 #include "object/Camera.h"
 #include "object/Object.h"
 #include "object/Shape.h"
+#include "object/ui/Image.h"
 
 namespace Supernova::Editor{
 
@@ -14,8 +15,13 @@ namespace Supernova::Editor{
         Camera* camera;
 
         Shape* gizmo;
+        Image* gimbalImage;
     public:
         Gizmos();
+
+        void setGimbalTexture(Framebuffer* framebuffer);
+
+        void updateSize(int width, int height);
 
         Framebuffer* getFramebuffer();
         TextureRender& getTexture();
