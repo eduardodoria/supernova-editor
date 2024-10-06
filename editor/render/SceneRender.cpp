@@ -67,8 +67,8 @@ Editor::SceneRender::SceneRender(Scene* scene){
     camera->setPosition(10, 4, 10);
     camera->setView(0, 0, 0);
 
-    camera->setRenderToTexture(true);
-    camera->setUseFramebufferSizes(false);
+    //camera->setRenderToTexture(true);
+    //camera->setUseFramebufferSizes(false);
 
     sun->setType(LightType::DIRECTIONAL);
     sun->setDirection(-0.2, -0.5, 0.3);
@@ -83,6 +83,7 @@ Editor::SceneRender::SceneRender(Scene* scene){
 }
 
 void Editor::SceneRender::activate(){
+    Engine::setFramebuffer(&framebuffer);
     Engine::setScene(scene);
     Engine::removeAllSceneLayers();
     Engine::addSceneLayer(gizmos.getScene());
@@ -92,29 +93,31 @@ void Editor::SceneRender::activate(){
 void Editor::SceneRender::updateSize(int width, int height){
     if (width > 0 && height > 0){
         camera->setFramebufferSize(width, height);
-        gizmos.getCamera()->setFramebufferSize(width, height);
+        //gizmos.getCamera()->setFramebufferSize(width, height);
 
-        //gizmos.getCamera()->setOrtho(0, width, 0, height, -100, 100);
+        gizmos.getCamera()->setOrtho(0, width, 0, height, DEFAULT_ORTHO_NEAR, DEFAULT_ORTHO_FAR);
     }
 }
 
 void Editor::SceneRender::update(){
     gimbal.applyRotation(camera);
 
-    float width = gizmos.getCamera()->getFramebuffer()->getWidth();
-    float height = gizmos.getCamera()->getFramebuffer()->getHeight();
+    //float width = gizmos.getCamera()->getFramebuffer()->getWidth();
+    //float height = gizmos.getCamera()->getFramebuffer()->getHeight();
 
-    //float width = gizmos.getCamera()->getRight();
-    //float height = gizmos.getCamera()->getTop();
+    float width = gizmos.getCamera()->getRight();
+    float height = gizmos.getCamera()->getTop();
 
     Vector3 gpos = cube->getModelViewProjectionMatrix() * cube->getPosition();
-    gpos = Vector3((gpos.x + 1.0) / 2.0 * width, (gpos.y + 1.0) / 2.0 * height, 0);
-    gizmos.getGizmo()->setPosition(gpos);
+    if (gpos.z >= 0 && gpos.z <= 1){
+        gpos = Vector3((gpos.x + 1.0) / 2.0 * width, (gpos.y + 1.0) / 2.0 * height, 0);
+        gizmos.getGizmo()->setPosition(gpos);
+    }
 }
 
 TextureRender& Editor::SceneRender::getTexture(){
-    //return Engine::framebuffer.getRender().getColorTexture();
-    return camera->getFramebuffer()->getRender().getColorTexture();
+    //return camera->getFramebuffer()->getRender().getColorTexture();
+    return framebuffer.getRender().getColorTexture();
 }
 
 Camera* Editor::SceneRender::getCamera(){

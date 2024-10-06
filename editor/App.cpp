@@ -162,14 +162,14 @@ void Editor::App::engineRender(){
 
             SceneRender* sceneRender = sceneData.sceneRender;
 
+            sceneData.sceneRender->activate();
+
             if (Platform::setSizes(width, height)){
                 Engine::systemViewChanged();
                 sceneRender->updateSize(width, height);
             }
             if (width != 0 && height != 0){
                 //TODO: avoid calling every frame
-                sceneData.sceneRender->activate();
-
                 sceneRender->update();
 
                 Engine::systemDraw();

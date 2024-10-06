@@ -4,14 +4,14 @@ using namespace Supernova;
 
 Editor::Gizmos::Gizmos(){
     scene = new Scene();
-    scene->setBackgroundColor(0.0, 0.0, 0.0, 0.0);
+    //scene->setBackgroundColor(0.0, 0.0, 0.0, 0.0);
 
     camera = new Camera(scene);
     camera->setType(CameraType::CAMERA_ORTHO);
     //camera->setPosition(0, 0, 1);
     //camera->setView(0, 0, 0);
 
-    camera->setRenderToTexture(true);
+    //camera->setRenderToTexture(true);
     //camera->setUseFramebufferSizes(false);
     
     gizmo = new Shape(scene);

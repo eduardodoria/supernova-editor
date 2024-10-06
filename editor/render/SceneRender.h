@@ -13,6 +13,8 @@ namespace Supernova::Editor{
         Scene* scene;
         Shape* cube;
 
+        Framebuffer framebuffer;
+
         Gizmos gizmos;
         Gimbal gimbal;
     public:
