@@ -32,7 +32,7 @@ int Editor::Backend::init(int argc, char **argv){
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // Create a windowed mode window and its OpenGL context
-    window = glfwCreateWindow(1280, 720, "Supernova Editor", NULL, NULL);
+    window = glfwCreateWindow(1280, 720, "Supernova Engine", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
