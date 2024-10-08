@@ -30,7 +30,6 @@ namespace Supernova::Editor{
         void showMenu();
         void showStyleEditor();
         void buildDockspace();
-        void sceneEventHandler();
 
     public:
 

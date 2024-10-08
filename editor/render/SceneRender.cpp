@@ -15,9 +15,6 @@ Editor::SceneRender::SceneRender(Scene* scene){
     Lines* lines = new Lines(scene);
     Light* sun = new Light(scene);
     SkyBox* sky = new SkyBox(scene);
-    cube  = new Shape(scene);
-
-    cube->createBox(1,1,1);
 
     camera = new Camera(scene);
 
@@ -81,6 +78,7 @@ Editor::SceneRender::SceneRender(Scene* scene){
 
     gizmos.setGimbalTexture(gimbal.getFramebuffer());
 
+    Engine::setScalingMode(Scaling::NATIVE);
     Engine::setFixedTimeSceneUpdate(false);
 }
 
@@ -100,20 +98,39 @@ void Editor::SceneRender::updateSize(int width, int height){
     }
 }
 
-void Editor::SceneRender::update(){
+void Editor::SceneRender::update(Entity selectedEntity){
     gimbal.applyRotation(camera);
 
-    //float width = gizmos.getCamera()->getFramebuffer()->getWidth();
-    //float height = gizmos.getCamera()->getFramebuffer()->getHeight();
+    //Entity cameraent = camera->getEntity();
+    //CameraComponent& cameracomp = scene->getComponent<CameraComponent>(cameraent);
 
-    float width = gizmos.getCamera()->getRight();
-    float height = gizmos.getCamera()->getTop();
+    bool gizmoVisibility = false;
+    if (selectedEntity != NULL_ENTITY){
+        Transform* transform = scene->findComponent<Transform>(selectedEntity);
 
-    Vector3 gpos = cube->getModelViewProjectionMatrix() * cube->getPosition();
-    if (gpos.z >= 0 && gpos.z <= 1){
-        gpos = Vector3((gpos.x + 1.0) / 2.0 * width, (gpos.y + 1.0) / 2.0 * height, 0);
-        gizmos.getGizmo()->setPosition(gpos);
+        if (transform){
+            float width = framebuffer.getWidth();
+            float height = framebuffer.getHeight();
+
+            Vector3 gpos = transform->modelViewProjectionMatrix * transform->position;
+            if (gpos.z >= 0 && gpos.z <= 1){
+                gizmoVisibility = true;
+                gpos = Vector3((gpos.x + 1.0) / 2.0 * width, (gpos.y + 1.0) / 2.0 * height, 0);
+                gizmos.getGizmo()->setPosition(gpos);
+
+
+                Vector3 view = (camera->getWorldPosition() - transform->worldPosition).normalize();
+                Vector3 right = camera->getWorldUp().crossProduct(view).normalize();
+                Vector3 up = view.crossProduct(right);
+
+                gizmos.getGizmo()->setRotation(Quaternion(right, up, view).inverse());
+            }
+        }
     }
+    gizmos.getGizmo()->setVisible(gizmoVisibility);
+
+    Vector3 cubePosition = Vector3(0,0,0);
+
 }
 
 TextureRender& Editor::SceneRender::getTexture(){
@@ -129,6 +146,6 @@ Editor::Gimbal* Editor::SceneRender::getGimbal(){
     return &gimbal;
 }
 
-Editor::Gizmos* Editor::SceneRender::getGizmos(){
+Editor::ToolsLayer* Editor::SceneRender::getToolsLayer(){
     return &gizmos;
 }

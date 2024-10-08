@@ -16,6 +16,7 @@ uint32_t Editor::Project::createNewScene(std::string sceneName){
     data.name = sceneName;
     data.scene = new Scene();
     data.sceneRender = new SceneRender(data.scene);
+    data.selectedEntity = NULL_ENTITY;
     data.needUpdateRender = true;
 
     scenes.push_back(data);
@@ -32,6 +33,8 @@ Entity Editor::Project::createNewEntity(uint32_t sceneId, std::string entityName
             scenes[i].scene->setEntityName(entity, entityName);
 
             scenes[i].entities.push_back(entity);
+
+            setSelectedEntity(sceneId, entity);
 
             return entity;
         }
@@ -72,17 +75,32 @@ std::vector<Editor::SceneData>&  Editor::Project::getScenes(){
     return scenes;
 }
 
-Editor::SceneData* Editor::Project::getScene(uint32_t sceneId){
-    for (int i = 0; i < scenes.size(); i++){
-        if (scenes[i].id == sceneId){
-            return &scenes[i];
+template<typename T>
+T* Editor::Project::findScene(uint32_t sceneId) const {
+    for (int i = 0; i < scenes.size(); i++) {
+        if (scenes[i].id == sceneId) {
+            return const_cast<T*>(&scenes[i]);
         }
     }
-
     throw std::out_of_range("cannot find selected scene");
 }
 
+
+// Non-const version
+Editor::SceneData* Editor::Project::getScene(uint32_t sceneId) {
+    return findScene<Editor::SceneData>(sceneId);
+}
+
+// Const version
+const Editor::SceneData* Editor::Project::getScene(uint32_t sceneId) const {
+    return findScene<const Editor::SceneData>(sceneId);
+}
+
 Editor::SceneData* Editor::Project::getSelectedScene(){
+    return getScene(selectedScene);
+}
+
+const Editor::SceneData* Editor::Project::getSelectedScene() const{
     return getScene(selectedScene);
 }
 
@@ -95,4 +113,15 @@ void Editor::Project::setSelectedSceneId(uint32_t selectedScene){
 
 uint32_t Editor::Project::getSelectedSceneId() const{
     return selectedScene;
+}
+
+void Editor::Project::setSelectedEntity(uint32_t sceneId, Entity selectedEntity){
+    SceneData* sceneData = getScene(sceneId);
+    if (sceneData->selectedEntity != selectedEntity){
+        sceneData->selectedEntity = selectedEntity;
+    }
+}
+
+Entity Editor::Project::getSelectedEntity(uint32_t sceneId) const{
+    return getScene(sceneId)->selectedEntity;
 }

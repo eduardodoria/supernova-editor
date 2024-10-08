@@ -119,14 +119,14 @@ int Editor::Backend::init(int argc, char **argv){
         glfwGetFramebufferSize(window, &display_w, &display_h);
 
         render.setClearColor(Vector4(0.45f, 0.55f, 0.60f, 1.00f));
-        render.startFrameBuffer(display_w, display_h);
+        render.startRenderPass(display_w, display_h);
 
         app.show();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-        render.endFrameBuffer();
+        render.endRenderPass();
 
         glfwSwapBuffers(window);
     }

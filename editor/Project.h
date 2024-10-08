@@ -15,6 +15,7 @@ namespace Supernova::Editor{
         Scene* scene;
         std::vector<Entity> entities;
         SceneRender* sceneRender;
+        Entity selectedEntity;
         bool needUpdateRender;
     };
 
@@ -27,6 +28,9 @@ namespace Supernova::Editor{
 
         uint32_t selectedScene;
 
+        template<typename T>
+        T* findScene(uint32_t sceneId) const;
+
     public:
         Project();
 
@@ -38,10 +42,15 @@ namespace Supernova::Editor{
 
         std::vector<SceneData>& getScenes();
         SceneData* getScene(uint32_t sceneId);
+        const SceneData* getScene(uint32_t sceneId) const;
         SceneData* getSelectedScene();
+        const SceneData* getSelectedScene() const;
 
         void setSelectedSceneId(uint32_t selectedScene);
         uint32_t getSelectedSceneId() const;
+
+        void setSelectedEntity(uint32_t sceneId, Entity selectedEntity);
+        Entity getSelectedEntity(uint32_t sceneId) const;
     };
 
 }

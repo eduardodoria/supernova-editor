@@ -170,7 +170,7 @@ void Editor::App::engineRender(){
             }
             if (width != 0 && height != 0){
                 //TODO: avoid calling every frame
-                sceneRender->update();
+                sceneRender->update(project.getSelectedEntity(sceneData.id));
 
                 Engine::systemDraw();
 

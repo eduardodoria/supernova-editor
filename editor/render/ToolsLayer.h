@@ -1,5 +1,5 @@
-#ifndef GIZMOS_H
-#define GIZMOS_H
+#ifndef TOOLSLAYER_H
+#define TOOLSLAYER_H
 
 #include "Scene.h"
 #include "object/Camera.h"
@@ -9,15 +9,24 @@
 
 namespace Supernova::Editor{
 
-    class Gizmos{
+    class ToolsLayer{
     private:
         Scene* scene;
         Camera* camera;
 
-        Shape* gizmo;
+        Object* gizmo;
+
+        Shape* sphere;
+        Shape* xaxis;
+        Shape* yaxis;
+        Shape* zaxis;
+        Shape* xarrow;
+        Shape* yarrow;
+        Shape* zarrow;
+
         Image* gimbalImage;
     public:
-        Gizmos();
+        ToolsLayer();
 
         void setGimbalTexture(Framebuffer* framebuffer);
 
@@ -27,9 +36,9 @@ namespace Supernova::Editor{
         TextureRender& getTexture();
         Camera* getCamera();
         Scene* getScene();
-        Shape* getGizmo();
+        Object* getGizmo();
     };
 
 }
 
-#endif /* GIZMOS_H */
+#endif /* TOOLSLAYER_H */

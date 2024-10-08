@@ -20,6 +20,11 @@ namespace Supernova::Editor{
 
         Project* project;
 
+        TreeNode* selectedNodeRight;
+
+        char nameBuffer[256];
+        char searchBuffer[256] = "";
+
         void showNewEntityMenu();
         void showIconMenu();
         void showTreeNode(TreeNode& node);

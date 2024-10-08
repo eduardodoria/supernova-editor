@@ -24,10 +24,14 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
     bool isMouseInWindow = ImGui::IsWindowHovered() && (mousePos.x >= windowPos.x && mousePos.x <= windowPos.x + windowSize.x &&
                             mousePos.y >= windowPos.y && mousePos.y <= windowPos.y + windowSize.y);
 
-    if (isMouseInWindow && (ImGui::IsMouseClicked(ImGuiMouseButton_Middle) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))) {
+    if (isMouseInWindow && ImGui::IsMouseClicked(ImGuiMouseButton_Left)){
         float x = mousePos.x - windowPos.x;
         float y = mousePos.y - windowPos.y;
 
+        printf("%f %f\n",x, y);
+    }
+
+    if (isMouseInWindow && (ImGui::IsMouseClicked(ImGuiMouseButton_Middle) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))) {
         draggingMouse[sceneId] = true;
 
         ImGui::SetWindowFocus();

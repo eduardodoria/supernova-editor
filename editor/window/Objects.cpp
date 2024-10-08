@@ -8,6 +8,8 @@ using namespace Supernova;
 
 Editor::Objects::Objects(Project* project){
     this->project = project;
+
+    this->selectedNodeRight = nullptr;
 }
 
 void Editor::Objects::showNewEntityMenu(){
@@ -34,8 +36,6 @@ void Editor::Objects::showNewEntityMenu(){
 }
 
 void Editor::Objects::showIconMenu(){
-    static char inputText[256] = "";
-
     if (ImGui::Button(ICON_FA_PLUS)) {
         ImGui::OpenPopup("NewObjectMenu");
     }
@@ -53,7 +53,7 @@ void Editor::Objects::showIconMenu(){
 
     // Input text
     ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - buttonSize.x);
-    ImGui::InputText("##hiddenLabel", inputText, IM_ARRAYSIZE(inputText));
+    ImGui::InputText("##hiddenLabel", searchBuffer, IM_ARRAYSIZE(searchBuffer));
 
     // Button inside input with same color as input background
     ImGui::SameLine(0, 0);
@@ -95,9 +95,7 @@ void Editor::Objects::showIconMenu(){
 }
 
 void Editor::Objects::showTreeNode(Editor::TreeNode& node) {
-    static char name[256];
     static TreeNode* selectedNode = nullptr;
-    static TreeNode* selectedNodeRight = nullptr;
 
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
 
@@ -116,12 +114,20 @@ void Editor::Objects::showTreeNode(Editor::TreeNode& node) {
 
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
         selectedNode = &node;
+        if (!node.isScene){
+            project->setSelectedEntity(project->getSelectedSceneId(), node.id);
+        }else{
+            project->setSelectedEntity(project->getSelectedSceneId(), NULL_ENTITY);
+        }
+    }
+    if (!node.isScene && project->getSelectedEntity(project->getSelectedSceneId()) == node.id){
+        selectedNode = &node;
     }
     if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
         ImGui::OpenPopup("TreeNodeContextMenu");
         selectedNodeRight = &node;
-        strncpy(name, node.name.c_str(), sizeof(name) - 1);
-        name[sizeof(name) - 1] = '\0';
+        strncpy(nameBuffer, node.name.c_str(), sizeof(nameBuffer) - 1);
+        nameBuffer[sizeof(nameBuffer) - 1] = '\0';
     }
 
     if (ImGui::BeginPopup("TreeNodeContextMenu")) {
@@ -131,9 +137,9 @@ void Editor::Objects::showTreeNode(Editor::TreeNode& node) {
             //ImGui::SameLine();
 
             ImGui::PushItemWidth(200);
-            if (ImGui::InputText("##ChangeNameInput", name, IM_ARRAYSIZE(name), ImGuiInputTextFlags_EnterReturnsTrue)) {
-                if (name[0] != '\0'){
-                    changeNodeName(selectedNodeRight, name);
+            if (ImGui::InputText("##ChangeNameInput", nameBuffer, IM_ARRAYSIZE(nameBuffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
+                if (nameBuffer[0] != '\0'){
+                    changeNodeName(selectedNodeRight, nameBuffer);
 
                     selectedNodeRight = nullptr;
                     ImGui::CloseCurrentPopup();
@@ -157,8 +163,8 @@ void Editor::Objects::showTreeNode(Editor::TreeNode& node) {
         ImGui::EndPopup();
     }else if (selectedNodeRight == &node) {
         // Update the name when popup is closed
-        if (name[0] != '\0'){
-            changeNodeName(selectedNodeRight, name);
+        if (nameBuffer[0] != '\0'){
+            changeNodeName(selectedNodeRight, nameBuffer);
         }
         selectedNodeRight = nullptr;
     }

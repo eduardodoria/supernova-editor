@@ -3,7 +3,7 @@
 
 #include "Supernova.h"
 #include "Gimbal.h"
-#include "Gizmos.h"
+#include "ToolsLayer.h"
 
 namespace Supernova::Editor{
 
@@ -11,24 +11,23 @@ namespace Supernova::Editor{
     private:
         Camera* camera;
         Scene* scene;
-        Shape* cube;
 
         Framebuffer framebuffer;
 
-        Gizmos gizmos;
+        ToolsLayer gizmos;
         Gimbal gimbal;
     public:
         SceneRender(Scene* scene);
 
         void activate();
         void updateSize(int width, int height);
-        void update();
+        void update(Entity selectedEntity);
 
         TextureRender& getTexture();
 
         Camera* getCamera();
         Gimbal* getGimbal();
-        Gizmos* getGizmos();
+        ToolsLayer* getToolsLayer();
     };
 
 }
