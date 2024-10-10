@@ -2,7 +2,21 @@
 
 using namespace Supernova;
 
+const Vector4 Editor::ToolsLayer::sphereColor = Vector4(1.0, 0.5, 0.2, 1.0);
+const Vector4 Editor::ToolsLayer::xaxisColor = Vector4(0.7, 0.2, 0.2, 1.0);
+const Vector4 Editor::ToolsLayer::yaxisColor = Vector4(0.2, 0.7, 0.2, 1.0);
+const Vector4 Editor::ToolsLayer::zaxisColor = Vector4(0.2, 0.2, 0.7, 1.0);
+const Vector4 Editor::ToolsLayer::sphereColorHightlight = Vector4(0.7, 0.7, 1.0, 1.0);
+const Vector4 Editor::ToolsLayer::xaxisColorHightlight = Vector4(0.9, 0.7, 0.7, 1.0);
+const Vector4 Editor::ToolsLayer::yaxisColorHightlight = Vector4(0.7, 0.9, 0.7, 1.0);
+const Vector4 Editor::ToolsLayer::zaxisColorHightlight = Vector4(0.7, 0.7, 0.9, 1.0);
+
 Editor::ToolsLayer::ToolsLayer(){
+    float cylinderRadius = 0.05;
+    float cylinderHeight = 2;
+    float arrowRadius = 0.1;
+    float arrowHeight = 0.4;
+
     scene = new Scene();
     camera = new Camera(scene);
 
@@ -16,37 +30,39 @@ Editor::ToolsLayer::ToolsLayer(){
     zarrow = new Shape(scene);
     
     sphere->createSphere(0.2);
-    sphere->setColor(1.0, 0.5, 0.2, 1.0);
+    sphere->setColor(sphereColor);
 
-    xaxis->createCylinder(0.05, 2);
-    yaxis->createCylinder(0.05, 2);
-    zaxis->createCylinder(0.05, 2);
+    xaxis->createCylinder(cylinderRadius, cylinderHeight);
+    yaxis->createCylinder(cylinderRadius, cylinderHeight);
+    zaxis->createCylinder(cylinderRadius, cylinderHeight);
 
-    xaxis->setColor(0.7, 0.2, 0.2, 1.0);
-    yaxis->setColor(0.2, 0.7, 0.2, 1.0);
-    zaxis->setColor(0.2, 0.2, 0.7, 1.0);
+    xaxis->setColor(xaxisColor);
+    yaxis->setColor(yaxisColor);
+    zaxis->setColor(zaxisColor);
 
-    xaxis->setPosition(1, 0, 0);
-    yaxis->setPosition(0, 1, 0);
-    zaxis->setPosition(0, 0, 1);
+    xaxis->setPosition(cylinderHeight/2.0, 0, 0);
+    yaxis->setPosition(0, cylinderHeight/2.0, 0);
+    zaxis->setPosition(0, 0, cylinderHeight/2.0);
 
     xaxis->setRotation(0,0,90);
     zaxis->setRotation(90,0,0);
 
-    xarrow->createCylinder(0.1, 0.0, 0.4);
-    yarrow->createCylinder(0.1, 0.0, 0.4);
-    zarrow->createCylinder(0.1, 0.0, 0.4);
+    xarrow->createCylinder(arrowRadius, 0.0, arrowHeight);
+    yarrow->createCylinder(arrowRadius, 0.0, arrowHeight);
+    zarrow->createCylinder(arrowRadius, 0.0, arrowHeight);
 
-    xarrow->setPosition(2, 0, 0);
-    yarrow->setPosition(0, 2, 0);
-    zarrow->setPosition(0, 0, 2);
+    xarrow->setPosition(cylinderHeight, 0, 0);
+    yarrow->setPosition(0, cylinderHeight, 0);
+    zarrow->setPosition(0, 0, cylinderHeight);
 
     xarrow->setRotation(0,0,-90);
     zarrow->setRotation(90,0,0);
 
-    xarrow->setColor(0.7, 0.2, 0.2, 1.0);
-    yarrow->setColor(0.2, 0.7, 0.2, 1.0);
-    zarrow->setColor(0.2, 0.2, 0.7, 1.0);
+    //xho
+
+    xarrow->setColor(xaxisColor);
+    yarrow->setColor(yaxisColor);
+    zarrow->setColor(zaxisColor);
 
     gizmo->addChild(sphere);
     gizmo->addChild(xaxis);
@@ -81,6 +97,60 @@ void Editor::ToolsLayer::updateCamera(CameraComponent& extCamera, Transform& ext
     }
 
     AABB aabb = zarrow->getWorldAABB();
+}
+
+bool Editor::ToolsLayer::updateGizmo(Vector3& position, float scale, Ray& mouseRay){
+    gizmo->setPosition(position);
+    gizmo->setScale(scale);
+    return checkHoverHighlight(mouseRay);
+}
+
+bool Editor::ToolsLayer::checkHoverHighlight(Ray& ray){
+    bool selected = false;
+    bool sphereSelected = false;
+
+    AABB sphereaabb = Matrix4::scaleMatrix(Vector3(2,2,2)) * sphere->getWorldAABB();
+
+    if (ray.intersects(sphereaabb)){
+        sphere->setColor(sphereColorHightlight);
+        selected = true;
+        sphereSelected = true;
+    }else{
+        sphere->setColor(sphereColor);
+    }
+
+    AABB xaabb = (gizmo->getRotation().getRotationMatrix() * Matrix4::scaleMatrix(Vector3(1,2,2))) * xaxis->getWorldAABB().merge(xarrow->getWorldAABB());
+    AABB yaabb = (gizmo->getRotation().getRotationMatrix() * Matrix4::scaleMatrix(Vector3(2,1,2))) * yaxis->getWorldAABB().merge(yarrow->getWorldAABB());
+    AABB zaabb = (gizmo->getRotation().getRotationMatrix() * Matrix4::scaleMatrix(Vector3(2,2,1))) * zaxis->getWorldAABB().merge(zarrow->getWorldAABB());
+
+    if (!sphereSelected && ray.intersects(xaabb)){
+        xaxis->setColor(xaxisColorHightlight);
+        xarrow->setColor(xaxisColorHightlight);
+        selected = true;
+    }else{
+        xaxis->setColor(xaxisColor);
+        xarrow->setColor(xaxisColor);
+    }
+
+    if (!sphereSelected && ray.intersects(yaabb)){
+        yaxis->setColor(yaxisColorHightlight);
+        yarrow->setColor(yaxisColorHightlight);
+        selected = true;
+    }else{
+        yaxis->setColor(yaxisColor);
+        yarrow->setColor(yaxisColor);
+    }
+
+    if (!sphereSelected && ray.intersects(zaabb)){
+        zaxis->setColor(zaxisColorHightlight);
+        zarrow->setColor(zaxisColorHightlight);
+        selected = true;
+    }else{
+        zaxis->setColor(zaxisColor);
+        zarrow->setColor(zaxisColor);
+    }
+
+    return selected;
 }
 
 Framebuffer* Editor::ToolsLayer::getFramebuffer(){

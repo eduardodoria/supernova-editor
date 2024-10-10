@@ -9,8 +9,11 @@
 
 using namespace Supernova;
 
+float Editor::SceneRender::gizmoSize = 40;
+
 Editor::SceneRender::SceneRender(Scene* scene){
     this->scene = scene;
+    gizmoSelected = false;
 
     Lines* lines = new Lines(scene);
     Light* sun = new Light(scene);
@@ -116,14 +119,16 @@ void Editor::SceneRender::update(Entity selectedEntity){
             gizmoVisibility = true;
 
             float dist = (transform->worldPosition - camera->getWorldPosition()).length();
-            float scale = std::tan(cameracomp.yfov) * dist * (30 / (float)framebuffer.getHeight());
+            float scale = std::tan(cameracomp.yfov) * dist * (gizmoSize / (float)framebuffer.getHeight());
 
-            toolslayer.getGizmo()->setPosition(transform->worldPosition);
-            toolslayer.getGizmo()->setScale(scale);
+            gizmoSelected = toolslayer.updateGizmo(transform->worldPosition, scale, mouseRay);
         }
     }
     toolslayer.getGizmo()->setVisible(gizmoVisibility);
+}
 
+void Editor::SceneRender::mouseHoverEvent(float x, float y){
+    mouseRay = camera->screenToRay(x, y);
 }
 
 TextureRender& Editor::SceneRender::getTexture(){
@@ -141,4 +146,12 @@ Editor::ViewportGizmo* Editor::SceneRender::getViewportGizmo(){
 
 Editor::ToolsLayer* Editor::SceneRender::getToolsLayer(){
     return &toolslayer;
+}
+
+Editor::UILayer* Editor::SceneRender::getUILayer(){
+    return &uilayer;
+}
+
+bool Editor::SceneRender::isGizmoSelected() const{
+    return gizmoSelected;
 }

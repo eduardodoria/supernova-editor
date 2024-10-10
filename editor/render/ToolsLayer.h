@@ -23,10 +23,22 @@ namespace Supernova::Editor{
         Shape* xarrow;
         Shape* yarrow;
         Shape* zarrow;
+
+        static const Vector4 sphereColor;
+        static const Vector4 xaxisColor;
+        static const Vector4 yaxisColor;
+        static const Vector4 zaxisColor;
+        static const Vector4 sphereColorHightlight;
+        static const Vector4 xaxisColorHightlight;
+        static const Vector4 yaxisColorHightlight;
+        static const Vector4 zaxisColorHightlight;
+
+        bool checkHoverHighlight(Ray& ray);
     public:
         ToolsLayer();
 
         void updateCamera(CameraComponent& extCamera, Transform& extCameraTransform);
+        bool updateGizmo(Vector3& position, float scale, Ray& mouseRay);
 
         Framebuffer* getFramebuffer();
         TextureRender& getTexture();

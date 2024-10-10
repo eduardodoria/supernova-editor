@@ -95,7 +95,9 @@ bool Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
         return true;
     }
 
-    setSelectedEntity(sceneId, NULL_ENTITY);
+    if (!scenedata->sceneRender->isGizmoSelected()){
+        setSelectedEntity(sceneId, NULL_ENTITY);
+    }
 
     return false;
 }

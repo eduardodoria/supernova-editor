@@ -24,11 +24,17 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
     bool isMouseInWindow = ImGui::IsWindowHovered() && (mousePos.x >= windowPos.x && mousePos.x <= windowPos.x + windowSize.x &&
                             mousePos.y >= windowPos.y && mousePos.y <= windowPos.y + windowSize.y);
 
-    if (isMouseInWindow && ImGui::IsMouseClicked(ImGuiMouseButton_Left)){
+    if (isMouseInWindow){
         float x = mousePos.x - windowPos.x;
         float y = mousePos.y - windowPos.y;
 
-        project->findObjectByRay(sceneId, x, y);
+        if (!(ImGui::IsMouseDown(ImGuiMouseButton_Middle) || ImGui::IsMouseDown(ImGuiMouseButton_Right))){
+            project->getScene(sceneId)->sceneRender->mouseHoverEvent(x, y);
+        }
+
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)){
+            project->findObjectByRay(sceneId, x, y);
+        }
     }
 
     if (isMouseInWindow && (ImGui::IsMouseClicked(ImGuiMouseButton_Middle) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))) {
@@ -93,10 +99,10 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
         }
         if (ImGui::IsMouseDown(ImGuiMouseButton_Middle)){
             if (ImGui::IsKeyDown(ImGuiKey_ModShift)){
-                camera->slide(0.01 * mouseDelta.x);
-                camera->slideUp(-0.01 * mouseDelta.y);
+                camera->slide(-0.01 * mouseDelta.x);
+                camera->slideUp(0.01 * mouseDelta.y);
             }else if (ImGui::IsKeyDown(ImGuiKey_ModCtrl)){
-                camera->zoom(0.1 * mouseDelta.y);
+                camera->zoom(-0.1 * mouseDelta.y);
             }else{
                 camera->rotatePosition(-0.1 * mouseDelta.x);
                 camera->elevatePosition(0.1 * mouseDelta.y);

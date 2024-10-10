@@ -18,18 +18,28 @@ namespace Supernova::Editor{
         ToolsLayer toolslayer;
         UILayer uilayer;
         ViewportGizmo viewgizmo;
+
+        Ray mouseRay;
+        bool gizmoSelected;
+
+        static float gizmoSize;
+
     public:
         SceneRender(Scene* scene);
 
         void activate();
         void updateSize(int width, int height);
         void update(Entity selectedEntity);
+        void mouseHoverEvent(float x, float y);
 
         TextureRender& getTexture();
 
         Camera* getCamera();
         ViewportGizmo* getViewportGizmo();
         ToolsLayer* getToolsLayer();
+        UILayer* getUILayer();
+
+        bool isGizmoSelected() const;
     };
 
 }
