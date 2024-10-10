@@ -40,6 +40,8 @@ namespace Supernova::Editor{
 
         void createBoxShape(uint32_t sceneId);
 
+        bool findObjectByRay(uint32_t sceneId, float x, float y);
+
         std::vector<SceneData>& getScenes();
         SceneData* getScene(uint32_t sceneId);
         const SceneData* getScene(uint32_t sceneId) const;

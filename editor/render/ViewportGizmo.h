@@ -1,5 +1,5 @@
-#ifndef GIMBAL_H
-#define GIMBAL_H
+#ifndef VIEWPORTGIZMO_H
+#define VIEWPORTGIZMO_H
 
 #include "Scene.h"
 #include "object/Camera.h"
@@ -8,7 +8,7 @@
 
 namespace Supernova::Editor{
 
-    class Gimbal{
+    class ViewportGizmo{
     private:
         Scene* scene;
         Camera* camera;
@@ -23,7 +23,7 @@ namespace Supernova::Editor{
         Shape* yarrow;
         Shape* zarrow;
     public:
-        Gimbal();
+        ViewportGizmo();
 
         void applyRotation(Camera* sceneCam);
 
@@ -35,4 +35,4 @@ namespace Supernova::Editor{
 
 }
 
-#endif /* GIMBAL_H */
+#endif /* VIEWPORTGIZMO_H */

@@ -14,45 +14,32 @@ Editor::ToolsLayer::ToolsLayer(){
     xarrow = new Shape(scene);
     yarrow = new Shape(scene);
     zarrow = new Shape(scene);
-
-    gimbalImage = new Image(scene);
-
-    //scene->setBackgroundColor(0.0, 0.0, 0.0, 0.0);
     
-    camera->setType(CameraType::CAMERA_ORTHO);
-    camera->setNear(-200);
-    camera->setFar(200);
-    //camera->setPosition(0, 0, 1);
-    //camera->setView(0, 0, 0);
-
-    //camera->setRenderToTexture(true);
-    //camera->setUseFramebufferSizes(false);
-    
-    sphere->createSphere(5);
+    sphere->createSphere(0.2);
     sphere->setColor(1.0, 0.5, 0.2, 1.0);
 
-    xaxis->createCylinder(2, 80);
-    yaxis->createCylinder(2, 80);
-    zaxis->createCylinder(2, 80);
+    xaxis->createCylinder(0.05, 2);
+    yaxis->createCylinder(0.05, 2);
+    zaxis->createCylinder(0.05, 2);
 
     xaxis->setColor(0.7, 0.2, 0.2, 1.0);
     yaxis->setColor(0.2, 0.7, 0.2, 1.0);
     zaxis->setColor(0.2, 0.2, 0.7, 1.0);
 
-    xaxis->setPosition(40, 0, 0);
-    yaxis->setPosition(0, 40, 0);
-    zaxis->setPosition(0, 0, 40);
+    xaxis->setPosition(1, 0, 0);
+    yaxis->setPosition(0, 1, 0);
+    zaxis->setPosition(0, 0, 1);
 
     xaxis->setRotation(0,0,90);
     zaxis->setRotation(90,0,0);
 
-    xarrow->createCylinder(4, 0.0, 10);
-    yarrow->createCylinder(4, 0.0, 10);
-    zarrow->createCylinder(4, 0.0, 10);
+    xarrow->createCylinder(0.1, 0.0, 0.4);
+    yarrow->createCylinder(0.1, 0.0, 0.4);
+    zarrow->createCylinder(0.1, 0.0, 0.4);
 
-    xarrow->setPosition(80, 0, 0);
-    yarrow->setPosition(0, 80, 0);
-    zarrow->setPosition(0, 0, 80);
+    xarrow->setPosition(2, 0, 0);
+    yarrow->setPosition(0, 2, 0);
+    zarrow->setPosition(0, 0, 2);
 
     xarrow->setRotation(0,0,-90);
     zarrow->setRotation(90,0,0);
@@ -69,22 +56,31 @@ Editor::ToolsLayer::ToolsLayer(){
     gizmo->addChild(yarrow);
     gizmo->addChild(zarrow);
 
-
-    gimbalImage->setSize(100, 100);
-
     scene->setCamera(camera);
 }
 
-void Editor::ToolsLayer::setGimbalTexture(Framebuffer* framebuffer){
-    gimbalImage->setTexture(framebuffer);
-}
+void Editor::ToolsLayer::updateCamera(CameraComponent& extCamera, Transform& extCameraTransform){
+    Entity entity = camera->getEntity();
+    CameraComponent& cameracomp = scene->getComponent<CameraComponent>(entity);
 
-void Editor::ToolsLayer::updateSize(int width, int height){
-    //camera->setFramebufferSize(width, height);
-    // not needed because setScalingMode(Scaling::NATIVE)
-    //camera->setOrtho(0, width, 0, height, DEFAULT_ORTHO_NEAR, DEFAULT_ORTHO_FAR);
+    camera->setPosition(extCameraTransform.position);
+    camera->setView(extCamera.view);
 
-    gimbalImage->setPosition(width - gimbalImage->getWidth(), height - gimbalImage->getHeight());
+    cameracomp.type = extCamera.type;
+    cameracomp.left = extCamera.left;
+    cameracomp.right = extCamera.right;
+    cameracomp.bottom = extCamera.bottom;
+    cameracomp.top = extCamera.top;
+    cameracomp.nearPlane = extCamera.nearPlane;
+    cameracomp.farPlane = extCamera.farPlane;
+    cameracomp.yfov = extCamera.yfov;
+    cameracomp.aspect = extCamera.aspect;
+    cameracomp.automatic = extCamera.automatic;
+    if (extCamera.needUpdate){
+        cameracomp.needUpdate = extCamera.needUpdate;
+    }
+
+    AABB aabb = zarrow->getWorldAABB();
 }
 
 Framebuffer* Editor::ToolsLayer::getFramebuffer(){

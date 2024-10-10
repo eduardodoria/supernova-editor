@@ -99,8 +99,9 @@ add_executable(
     ${EDITOR_DIR}/window/Console.cpp
     ${EDITOR_DIR}/window/SceneWindow.cpp
 
-    ${EDITOR_DIR}/render/Gimbal.cpp
+    ${EDITOR_DIR}/render/ViewportGizmo.cpp
     ${EDITOR_DIR}/render/ToolsLayer.cpp
+    ${EDITOR_DIR}/render/UILayer.cpp
     ${EDITOR_DIR}/render/SceneRender.cpp
 
     ${IMGUI_SOURCES}

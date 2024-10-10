@@ -1,8 +1,8 @@
-#include "Gimbal.h"
+#include "ViewportGizmo.h"
 
 using namespace Supernova;
 
-Editor::Gimbal::Gimbal(){
+Editor::ViewportGizmo::ViewportGizmo(){
     scene = new Scene();
     camera = new Camera(scene);
     mainObject = new Object(scene);
@@ -60,7 +60,7 @@ Editor::Gimbal::Gimbal(){
     camera->setRenderToTexture(true);
 }
 
-void Editor::Gimbal::applyRotation(Camera* sceneCam){
+void Editor::ViewportGizmo::applyRotation(Camera* sceneCam){
     Vector3 view = (sceneCam->getWorldPosition() - sceneCam->getWorldView()).normalize();
     Vector3 right = sceneCam->getWorldUp().crossProduct(view).normalize();
     Vector3 up = view.crossProduct(right);
@@ -68,18 +68,18 @@ void Editor::Gimbal::applyRotation(Camera* sceneCam){
     mainObject->setRotation(Quaternion(right, up, view).inverse());
 }
 
-Framebuffer* Editor::Gimbal::getFramebuffer(){
+Framebuffer* Editor::ViewportGizmo::getFramebuffer(){
     return camera->getFramebuffer();
 }
 
-TextureRender& Editor::Gimbal::getTexture(){
+TextureRender& Editor::ViewportGizmo::getTexture(){
     return getFramebuffer()->getRender().getColorTexture();
 }
 
-Scene* Editor::Gimbal::getScene(){
+Scene* Editor::ViewportGizmo::getScene(){
     return scene;
 }
 
-Object* Editor::Gimbal::getObject(){
+Object* Editor::ViewportGizmo::getObject(){
     return mainObject;
 }

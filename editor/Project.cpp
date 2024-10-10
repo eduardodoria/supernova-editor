@@ -71,6 +71,35 @@ void Editor::Project::createBoxShape(uint32_t sceneId){
     //mesh.submeshes[0].material.baseColorFactor = Color::sRGBToLinear(Vector4(0.5, 0.5, 0.5, 1.0));
 }
 
+bool Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
+    SceneData* scenedata = getScene(sceneId);
+    Ray ray = scenedata->sceneRender->getCamera()->screenToRay(x, y);
+
+    float distance = FLT_MAX;
+    Entity selEntity = NULL_ENTITY;
+    for (auto& entity : scenedata->entities) {
+        MeshComponent* mesh = scenedata->scene->findComponent<MeshComponent>(entity);
+        if (mesh){
+            RayReturn rreturn = ray.intersects(mesh->worldAABB);
+            if (rreturn.hit){
+                if (rreturn.distance < distance){
+                    distance = rreturn.distance;
+                    selEntity = entity;
+                }
+            }
+        }
+    }
+
+    if (selEntity != NULL_ENTITY){
+        setSelectedEntity(sceneId, selEntity);
+        return true;
+    }
+
+    setSelectedEntity(sceneId, NULL_ENTITY);
+
+    return false;
+}
+
 std::vector<Editor::SceneData>&  Editor::Project::getScenes(){
     return scenes;
 }

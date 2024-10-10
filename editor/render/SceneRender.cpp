@@ -76,7 +76,7 @@ Editor::SceneRender::SceneRender(Scene* scene){
     scene->setCamera(camera);
     scene->setBackgroundColor(Vector4(0.25, 0.45, 0.65, 1.0));
 
-    gizmos.setGimbalTexture(gimbal.getFramebuffer());
+    uilayer.setViewportGizmoTexture(viewgizmo.getFramebuffer());
 
     Engine::setScalingMode(Scaling::NATIVE);
     Engine::setFixedTimeSceneUpdate(false);
@@ -86,50 +86,43 @@ void Editor::SceneRender::activate(){
     Engine::setFramebuffer(&framebuffer);
     Engine::setScene(scene);
     Engine::removeAllSceneLayers();
-    Engine::addSceneLayer(gizmos.getScene());
-    Engine::addSceneLayer(gimbal.getScene());
+    Engine::addSceneLayer(toolslayer.getScene());
+    Engine::addSceneLayer(uilayer.getScene());
+    Engine::addSceneLayer(viewgizmo.getScene());
 }
 
 void Editor::SceneRender::updateSize(int width, int height){
     if (width > 0 && height > 0){
-        camera->setFramebufferSize(width, height);
+        //camera->setFramebufferSize(width, height);
 
-        gizmos.updateSize(width, height);
+        uilayer.updateSize(width, height);
     }
 }
 
 void Editor::SceneRender::update(Entity selectedEntity){
-    gimbal.applyRotation(camera);
+    viewgizmo.applyRotation(camera);
 
-    //Entity cameraent = camera->getEntity();
-    //CameraComponent& cameracomp = scene->getComponent<CameraComponent>(cameraent);
+    Entity cameraEntity = camera->getEntity();
+    CameraComponent& cameracomp = scene->getComponent<CameraComponent>(cameraEntity);
+    Transform& cameratransform = scene->getComponent<Transform>(cameraEntity);
+
+    toolslayer.updateCamera(cameracomp, cameratransform);
 
     bool gizmoVisibility = false;
     if (selectedEntity != NULL_ENTITY){
         Transform* transform = scene->findComponent<Transform>(selectedEntity);
 
         if (transform){
-            float width = framebuffer.getWidth();
-            float height = framebuffer.getHeight();
+            gizmoVisibility = true;
 
-            Vector3 gpos = transform->modelViewProjectionMatrix * transform->position;
-            if (gpos.z >= 0 && gpos.z <= 1){
-                gizmoVisibility = true;
-                gpos = Vector3((gpos.x + 1.0) / 2.0 * width, (gpos.y + 1.0) / 2.0 * height, 0);
-                gizmos.getGizmo()->setPosition(gpos);
+            float dist = (transform->worldPosition - camera->getWorldPosition()).length();
+            float scale = std::tan(cameracomp.yfov) * dist * (30 / (float)framebuffer.getHeight());
 
-
-                Vector3 view = (camera->getWorldPosition() - transform->worldPosition).normalize();
-                Vector3 right = camera->getWorldUp().crossProduct(view).normalize();
-                Vector3 up = view.crossProduct(right);
-
-                gizmos.getGizmo()->setRotation(Quaternion(right, up, view).inverse());
-            }
+            toolslayer.getGizmo()->setPosition(transform->worldPosition);
+            toolslayer.getGizmo()->setScale(scale);
         }
     }
-    gizmos.getGizmo()->setVisible(gizmoVisibility);
-
-    Vector3 cubePosition = Vector3(0,0,0);
+    toolslayer.getGizmo()->setVisible(gizmoVisibility);
 
 }
 
@@ -142,10 +135,10 @@ Camera* Editor::SceneRender::getCamera(){
     return camera;
 }
 
-Editor::Gimbal* Editor::SceneRender::getGimbal(){
-    return &gimbal;
+Editor::ViewportGizmo* Editor::SceneRender::getViewportGizmo(){
+    return &viewgizmo;
 }
 
 Editor::ToolsLayer* Editor::SceneRender::getToolsLayer(){
-    return &gizmos;
+    return &toolslayer;
 }

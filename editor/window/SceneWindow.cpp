@@ -28,7 +28,7 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
         float x = mousePos.x - windowPos.x;
         float y = mousePos.y - windowPos.y;
 
-        printf("%f %f\n",x, y);
+        project->findObjectByRay(sceneId, x, y);
     }
 
     if (isMouseInWindow && (ImGui::IsMouseClicked(ImGuiMouseButton_Middle) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))) {

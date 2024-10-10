@@ -112,6 +112,15 @@ void Editor::Objects::showTreeNode(Editor::TreeNode& node) {
 
     bool nodeOpen = ImGui::TreeNodeEx((node.icon + "  " + node.name).c_str(), flags);
 
+    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered() && ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows)) {
+        selectedNode = nullptr;
+        project->setSelectedEntity(project->getSelectedSceneId(), NULL_ENTITY);
+    }
+
+    if (project->getSelectedEntity(project->getSelectedSceneId()) == NULL_ENTITY){
+        selectedNode = nullptr;
+    }
+
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
         selectedNode = &node;
         if (!node.isScene){

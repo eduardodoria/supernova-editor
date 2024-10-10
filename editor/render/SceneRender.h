@@ -2,8 +2,9 @@
 #define SCENERENDER_H
 
 #include "Supernova.h"
-#include "Gimbal.h"
+#include "ViewportGizmo.h"
 #include "ToolsLayer.h"
+#include "UILayer.h"
 
 namespace Supernova::Editor{
 
@@ -14,8 +15,9 @@ namespace Supernova::Editor{
 
         Framebuffer framebuffer;
 
-        ToolsLayer gizmos;
-        Gimbal gimbal;
+        ToolsLayer toolslayer;
+        UILayer uilayer;
+        ViewportGizmo viewgizmo;
     public:
         SceneRender(Scene* scene);
 
@@ -26,7 +28,7 @@ namespace Supernova::Editor{
         TextureRender& getTexture();
 
         Camera* getCamera();
-        Gimbal* getGimbal();
+        ViewportGizmo* getViewportGizmo();
         ToolsLayer* getToolsLayer();
     };
 

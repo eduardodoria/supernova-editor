@@ -23,14 +23,10 @@ namespace Supernova::Editor{
         Shape* xarrow;
         Shape* yarrow;
         Shape* zarrow;
-
-        Image* gimbalImage;
     public:
         ToolsLayer();
 
-        void setGimbalTexture(Framebuffer* framebuffer);
-
-        void updateSize(int width, int height);
+        void updateCamera(CameraComponent& extCamera, Transform& extCameraTransform);
 
         Framebuffer* getFramebuffer();
         TextureRender& getTexture();
