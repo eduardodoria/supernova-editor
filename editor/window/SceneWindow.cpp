@@ -28,13 +28,25 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
         float x = mousePos.x - windowPos.x;
         float y = mousePos.y - windowPos.y;
 
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)){
+            project->findObjectByRay(sceneId, x, y);
+            project->getScene(sceneId)->sceneRender->mouseClickEvent(x, y, project->getSelectedEntity(sceneId));
+        }
+
         if (!(ImGui::IsMouseDown(ImGuiMouseButton_Middle) || ImGui::IsMouseDown(ImGuiMouseButton_Right))){
             project->getScene(sceneId)->sceneRender->mouseHoverEvent(x, y);
         }
 
-        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)){
-            project->findObjectByRay(sceneId, x, y);
+        if (ImGui::IsMouseDown(ImGuiMouseButton_Left)){
+            project->getScene(sceneId)->sceneRender->mouseDragEvent(x, y, project->getSelectedEntity(sceneId));
         }
+    }
+
+    if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)){
+        float x = mousePos.x - windowPos.x;
+        float y = mousePos.y - windowPos.y;
+
+        project->getScene(sceneId)->sceneRender->mouseReleaseEvent(x, y);
     }
 
     if (isMouseInWindow && (ImGui::IsMouseClicked(ImGuiMouseButton_Middle) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))) {

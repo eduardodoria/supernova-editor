@@ -13,7 +13,7 @@ float Editor::SceneRender::gizmoSize = 40;
 
 Editor::SceneRender::SceneRender(Scene* scene){
     this->scene = scene;
-    gizmoSelected = false;
+    mouseClicked = false;
 
     Lines* lines = new Lines(scene);
     Light* sun = new Light(scene);
@@ -121,7 +121,7 @@ void Editor::SceneRender::update(Entity selectedEntity){
             float dist = (transform->worldPosition - camera->getWorldPosition()).length();
             float scale = std::tan(cameracomp.yfov) * dist * (gizmoSize / (float)framebuffer.getHeight());
 
-            gizmoSelected = toolslayer.updateGizmo(transform->worldPosition, scale, mouseRay);
+            toolslayer.updateGizmo(transform->worldPosition, scale, mouseRay, mouseClicked);
         }
     }
     toolslayer.getGizmo()->setVisible(gizmoVisibility);
@@ -129,6 +129,60 @@ void Editor::SceneRender::update(Entity selectedEntity){
 
 void Editor::SceneRender::mouseHoverEvent(float x, float y){
     mouseRay = camera->screenToRay(x, y);
+}
+
+void Editor::SceneRender::mouseClickEvent(float x, float y, Entity entity){
+    mouseClicked = true;
+
+    Transform* transform = scene->findComponent<Transform>(entity);
+
+    if (transform){
+        Vector3 viewDir = camera->getWorldPosition() - camera->getWorldView();
+
+        float dotX = viewDir.dotProduct(Vector3(1,0,0));
+        float dotY = viewDir.dotProduct(Vector3(0,1,0));
+        float dotZ = viewDir.dotProduct(Vector3(0,0,1));
+
+        if (toolslayer.getGizmoSelected() == GizmoSelected::XYZ){
+            cursorPlane = Plane(Vector3(dotX, dotY, dotZ).normalize(), transform->worldPosition);
+        }else if (toolslayer.getGizmoSelected() == GizmoSelected::X){
+            cursorPlane = Plane(Vector3(0, dotY, dotZ).normalize(), transform->worldPosition);
+        }else if (toolslayer.getGizmoSelected() == GizmoSelected::Y){
+            cursorPlane = Plane(Vector3(dotX, 0, dotZ).normalize(), transform->worldPosition);
+        }else if (toolslayer.getGizmoSelected() == GizmoSelected::Z){
+            cursorPlane = Plane(Vector3(dotX, dotY, 0).normalize(), transform->worldPosition);
+        }
+
+        RayReturn rretrun = mouseRay.intersects(cursorPlane);
+        if (rretrun){
+            objectOffset = transform->worldPosition - rretrun.point;
+        }
+    }
+}
+
+void Editor::SceneRender::mouseReleaseEvent(float x, float y){
+    mouseClicked = false;
+}
+
+void Editor::SceneRender::mouseDragEvent(float x, float y, Entity entity){
+    Transform* transform = scene->findComponent<Transform>(entity);
+
+    if (transform){
+        RayReturn rretrun = mouseRay.intersects(cursorPlane);
+
+        if (rretrun){
+            if (toolslayer.getGizmoSelected() == GizmoSelected::XYZ){
+                transform->position = rretrun.point + objectOffset;
+            }else if (toolslayer.getGizmoSelected() == GizmoSelected::X){
+                transform->position.x = rretrun.point.x + objectOffset.x;
+            }else if (toolslayer.getGizmoSelected() == GizmoSelected::Y){
+                transform->position.y = rretrun.point.y + objectOffset.y;
+            }else if (toolslayer.getGizmoSelected() == GizmoSelected::Z){
+                transform->position.z = rretrun.point.z + objectOffset.z;
+            }
+            transform->needUpdate = true;
+        }
+    }
 }
 
 TextureRender& Editor::SceneRender::getTexture(){
@@ -153,5 +207,5 @@ Editor::UILayer* Editor::SceneRender::getUILayer(){
 }
 
 bool Editor::SceneRender::isGizmoSelected() const{
-    return gizmoSelected;
+    return (toolslayer.getGizmoSelected() != Editor::GizmoSelected::NONE);
 }

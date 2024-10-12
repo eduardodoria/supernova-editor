@@ -16,6 +16,7 @@ Editor::ToolsLayer::ToolsLayer(){
     float cylinderHeight = 2;
     float arrowRadius = 0.1;
     float arrowHeight = 0.4;
+    gizmoSelected = GizmoSelected::NONE;
 
     scene = new Scene();
     camera = new Camera(scene);
@@ -99,34 +100,37 @@ void Editor::ToolsLayer::updateCamera(CameraComponent& extCamera, Transform& ext
     AABB aabb = zarrow->getWorldAABB();
 }
 
-bool Editor::ToolsLayer::updateGizmo(Vector3& position, float scale, Ray& mouseRay){
+void Editor::ToolsLayer::updateGizmo(Vector3& position, float scale, Ray& mouseRay, bool mouseClicked){
     gizmo->setPosition(position);
     gizmo->setScale(scale);
-    return checkHoverHighlight(mouseRay);
+    if (!mouseClicked){
+        checkHoverHighlight(mouseRay);
+    }
 }
 
-bool Editor::ToolsLayer::checkHoverHighlight(Ray& ray){
-    bool selected = false;
+void Editor::ToolsLayer::checkHoverHighlight(Ray& ray){
     bool sphereSelected = false;
 
-    AABB sphereaabb = Matrix4::scaleMatrix(Vector3(2,2,2)) * sphere->getWorldAABB();
+    AABB sphereaabb = sphere->getModelMatrix() * Matrix4::scaleMatrix(Vector3(2,2,2)) * sphere->getAABB();
+
+    gizmoSelected = GizmoSelected::NONE;
 
     if (ray.intersects(sphereaabb)){
         sphere->setColor(sphereColorHightlight);
-        selected = true;
         sphereSelected = true;
+        gizmoSelected = GizmoSelected::XYZ;
     }else{
         sphere->setColor(sphereColor);
     }
 
-    AABB xaabb = (gizmo->getRotation().getRotationMatrix() * Matrix4::scaleMatrix(Vector3(1,2,2))) * xaxis->getWorldAABB().merge(xarrow->getWorldAABB());
-    AABB yaabb = (gizmo->getRotation().getRotationMatrix() * Matrix4::scaleMatrix(Vector3(2,1,2))) * yaxis->getWorldAABB().merge(yarrow->getWorldAABB());
-    AABB zaabb = (gizmo->getRotation().getRotationMatrix() * Matrix4::scaleMatrix(Vector3(2,2,1))) * zaxis->getWorldAABB().merge(zarrow->getWorldAABB());
+    AABB xaabb = xaxis->getModelMatrix() * Matrix4::scaleMatrix(Vector3(2,1,2)) * xaxis->getAABB().merge(xarrow->getAABB());
+    AABB yaabb = yaxis->getModelMatrix() * Matrix4::scaleMatrix(Vector3(2,1,2)) * yaxis->getAABB().merge(yarrow->getAABB());
+    AABB zaabb = zaxis->getModelMatrix() * Matrix4::scaleMatrix(Vector3(2,1,2)) * zaxis->getAABB().merge(zarrow->getAABB());
 
     if (!sphereSelected && ray.intersects(xaabb)){
         xaxis->setColor(xaxisColorHightlight);
         xarrow->setColor(xaxisColorHightlight);
-        selected = true;
+        gizmoSelected = GizmoSelected::X;
     }else{
         xaxis->setColor(xaxisColor);
         xarrow->setColor(xaxisColor);
@@ -135,7 +139,7 @@ bool Editor::ToolsLayer::checkHoverHighlight(Ray& ray){
     if (!sphereSelected && ray.intersects(yaabb)){
         yaxis->setColor(yaxisColorHightlight);
         yarrow->setColor(yaxisColorHightlight);
-        selected = true;
+        gizmoSelected = GizmoSelected::Y;
     }else{
         yaxis->setColor(yaxisColor);
         yarrow->setColor(yaxisColor);
@@ -144,13 +148,11 @@ bool Editor::ToolsLayer::checkHoverHighlight(Ray& ray){
     if (!sphereSelected && ray.intersects(zaabb)){
         zaxis->setColor(zaxisColorHightlight);
         zarrow->setColor(zaxisColorHightlight);
-        selected = true;
+        gizmoSelected = GizmoSelected::Z;
     }else{
         zaxis->setColor(zaxisColor);
         zarrow->setColor(zaxisColor);
     }
-
-    return selected;
 }
 
 Framebuffer* Editor::ToolsLayer::getFramebuffer(){
@@ -171,4 +173,8 @@ Scene* Editor::ToolsLayer::getScene(){
 
 Object* Editor::ToolsLayer::getGizmo(){
     return gizmo;
+}
+
+Editor::GizmoSelected Editor::ToolsLayer::getGizmoSelected() const{
+    return gizmoSelected;
 }

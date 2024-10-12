@@ -9,6 +9,17 @@
 
 namespace Supernova::Editor{
 
+    enum class GizmoSelected{
+        NONE,
+        X,
+        Y,
+        Z,
+        XY,
+        XZ,
+        YZ,
+        XYZ
+    };
+
     class ToolsLayer{
     private:
         Scene* scene;
@@ -24,6 +35,8 @@ namespace Supernova::Editor{
         Shape* yarrow;
         Shape* zarrow;
 
+        GizmoSelected gizmoSelected;
+
         static const Vector4 sphereColor;
         static const Vector4 xaxisColor;
         static const Vector4 yaxisColor;
@@ -33,18 +46,19 @@ namespace Supernova::Editor{
         static const Vector4 yaxisColorHightlight;
         static const Vector4 zaxisColorHightlight;
 
-        bool checkHoverHighlight(Ray& ray);
+        void checkHoverHighlight(Ray& ray);
     public:
         ToolsLayer();
 
         void updateCamera(CameraComponent& extCamera, Transform& extCameraTransform);
-        bool updateGizmo(Vector3& position, float scale, Ray& mouseRay);
+        void updateGizmo(Vector3& position, float scale, Ray& mouseRay, bool mouseClicked);
 
         Framebuffer* getFramebuffer();
         TextureRender& getTexture();
         Camera* getCamera();
         Scene* getScene();
         Object* getGizmo();
+        GizmoSelected getGizmoSelected() const;
     };
 
 }

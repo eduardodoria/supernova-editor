@@ -20,7 +20,9 @@ namespace Supernova::Editor{
         ViewportGizmo viewgizmo;
 
         Ray mouseRay;
-        bool gizmoSelected;
+        bool mouseClicked;
+        Plane cursorPlane;
+        Vector3 objectOffset;
 
         static float gizmoSize;
 
@@ -31,6 +33,9 @@ namespace Supernova::Editor{
         void updateSize(int width, int height);
         void update(Entity selectedEntity);
         void mouseHoverEvent(float x, float y);
+        void mouseClickEvent(float x, float y, Entity entity);
+        void mouseReleaseEvent(float x, float y);
+        void mouseDragEvent(float x, float y, Entity entity);
 
         TextureRender& getTexture();
 
