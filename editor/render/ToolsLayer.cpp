@@ -25,10 +25,10 @@ void Editor::ToolsLayer::updateCamera(CameraComponent& extCamera, Transform& ext
     camera->setView(extCamera.view);
 
     cameracomp.type = extCamera.type;
-    cameracomp.left = extCamera.left;
-    cameracomp.right = extCamera.right;
-    cameracomp.bottom = extCamera.bottom;
-    cameracomp.top = extCamera.top;
+    cameracomp.leftPlane = extCamera.leftPlane;
+    cameracomp.rightPlane = extCamera.rightPlane;
+    cameracomp.bottomPlane = extCamera.bottomPlane;
+    cameracomp.topPlane = extCamera.topPlane;
     cameracomp.nearPlane = extCamera.nearPlane;
     cameracomp.farPlane = extCamera.farPlane;
     cameracomp.yfov = extCamera.yfov;
