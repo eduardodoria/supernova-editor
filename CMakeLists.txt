@@ -103,6 +103,7 @@ add_executable(
     ${EDITOR_DIR}/render/ToolsLayer.cpp
     ${EDITOR_DIR}/render/UILayer.cpp
     ${EDITOR_DIR}/render/SceneRender.cpp
+    ${EDITOR_DIR}/render/gizmo/TranslateGizmo.cpp
 
     ${IMGUI_SOURCES}
 )

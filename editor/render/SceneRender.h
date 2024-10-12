@@ -44,7 +44,7 @@ namespace Supernova::Editor{
         ToolsLayer* getToolsLayer();
         UILayer* getUILayer();
 
-        bool isGizmoSelected() const;
+        bool isGizmoSideSelected() const;
     };
 
 }

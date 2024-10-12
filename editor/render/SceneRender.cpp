@@ -143,13 +143,13 @@ void Editor::SceneRender::mouseClickEvent(float x, float y, Entity entity){
         float dotY = viewDir.dotProduct(Vector3(0,1,0));
         float dotZ = viewDir.dotProduct(Vector3(0,0,1));
 
-        if (toolslayer.getGizmoSelected() == GizmoSelected::XYZ){
+        if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XYZ){
             cursorPlane = Plane(Vector3(dotX, dotY, dotZ).normalize(), transform->worldPosition);
-        }else if (toolslayer.getGizmoSelected() == GizmoSelected::X){
+        }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
             cursorPlane = Plane(Vector3(0, dotY, dotZ).normalize(), transform->worldPosition);
-        }else if (toolslayer.getGizmoSelected() == GizmoSelected::Y){
+        }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
             cursorPlane = Plane(Vector3(dotX, 0, dotZ).normalize(), transform->worldPosition);
-        }else if (toolslayer.getGizmoSelected() == GizmoSelected::Z){
+        }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
             cursorPlane = Plane(Vector3(dotX, dotY, 0).normalize(), transform->worldPosition);
         }
 
@@ -171,15 +171,23 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, Entity entity){
         RayReturn rretrun = mouseRay.intersects(cursorPlane);
 
         if (rretrun){
-            if (toolslayer.getGizmoSelected() == GizmoSelected::XYZ){
-                transform->position = rretrun.point + objectOffset;
-            }else if (toolslayer.getGizmoSelected() == GizmoSelected::X){
-                transform->position.x = rretrun.point.x + objectOffset.x;
-            }else if (toolslayer.getGizmoSelected() == GizmoSelected::Y){
-                transform->position.y = rretrun.point.y + objectOffset.y;
-            }else if (toolslayer.getGizmoSelected() == GizmoSelected::Z){
-                transform->position.z = rretrun.point.z + objectOffset.z;
+
+            Transform* transformParent = scene->findComponent<Transform>(transform->parent);
+            Vector3 pos = (rretrun.point + objectOffset);
+            if (transformParent){
+                pos = transformParent->modelMatrix.inverse() * pos;
             }
+
+            if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XYZ){
+                transform->position = pos;
+            }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
+                transform->position.x = pos.x;
+            }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
+                transform->position.y = pos.y;
+            }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
+                transform->position.z = pos.z;
+            }
+
             transform->needUpdate = true;
         }
     }
@@ -206,6 +214,6 @@ Editor::UILayer* Editor::SceneRender::getUILayer(){
     return &uilayer;
 }
 
-bool Editor::SceneRender::isGizmoSelected() const{
-    return (toolslayer.getGizmoSelected() != Editor::GizmoSelected::NONE);
+bool Editor::SceneRender::isGizmoSideSelected() const{
+    return (toolslayer.getGizmoSideSelected() != Editor::GizmoSideSelected::NONE);
 }

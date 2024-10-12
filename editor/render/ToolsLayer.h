@@ -7,46 +7,19 @@
 #include "object/Shape.h"
 #include "object/ui/Image.h"
 
-namespace Supernova::Editor{
+#include "RenderUtil.h"
+#include "gizmo/TranslateGizmo.h"
 
-    enum class GizmoSelected{
-        NONE,
-        X,
-        Y,
-        Z,
-        XY,
-        XZ,
-        YZ,
-        XYZ
-    };
+namespace Supernova::Editor{
 
     class ToolsLayer{
     private:
         Scene* scene;
         Camera* camera;
 
-        Object* gizmo;
+        TranslateGizmo* tGizmo;
 
-        Shape* sphere;
-        Shape* xaxis;
-        Shape* yaxis;
-        Shape* zaxis;
-        Shape* xarrow;
-        Shape* yarrow;
-        Shape* zarrow;
-
-        GizmoSelected gizmoSelected;
-
-        static const Vector4 sphereColor;
-        static const Vector4 xaxisColor;
-        static const Vector4 yaxisColor;
-        static const Vector4 zaxisColor;
-        static const Vector4 sphereColorHightlight;
-        static const Vector4 xaxisColorHightlight;
-        static const Vector4 yaxisColorHightlight;
-        static const Vector4 zaxisColorHightlight;
-
-        void checkHoverHighlight(Ray& ray);
+        GizmoSideSelected gizmoSideSelected;
     public:
         ToolsLayer();
 
@@ -58,7 +31,7 @@ namespace Supernova::Editor{
         Camera* getCamera();
         Scene* getScene();
         Object* getGizmo();
-        GizmoSelected getGizmoSelected() const;
+        GizmoSideSelected getGizmoSideSelected() const;
     };
 
 }

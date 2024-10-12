@@ -95,7 +95,7 @@ bool Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
         return true;
     }
 
-    if (!scenedata->sceneRender->isGizmoSelected()){
+    if (!scenedata->sceneRender->isGizmoSideSelected()){
         setSelectedEntity(sceneId, NULL_ENTITY);
     }
 
