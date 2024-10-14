@@ -55,13 +55,13 @@ Editor::ViewportGizmo::ViewportGizmo(){
     mainObject->addChild(zarrow);
 
     camera->setPosition(0, 0, 5);
-    camera->setView(0, 0, 0);
+    camera->setTarget(0, 0, 0);
     camera->setFramebufferSize(128, 128);
     camera->setRenderToTexture(true);
 }
 
 void Editor::ViewportGizmo::applyRotation(Camera* sceneCam){
-    Vector3 view = (sceneCam->getWorldPosition() - sceneCam->getWorldView()).normalize();
+    Vector3 view = (sceneCam->getWorldPosition() - sceneCam->getWorldTarget()).normalize();
     Vector3 right = sceneCam->getWorldUp().crossProduct(view).normalize();
     Vector3 up = view.crossProduct(right);
 

@@ -65,7 +65,7 @@ Editor::SceneRender::SceneRender(Scene* scene){
 
     //camera->setType(CameraType::CAMERA_2D);
     camera->setPosition(10, 4, 10);
-    camera->setView(0, 0, 0);
+    camera->setTarget(0, 0, 0);
 
     //camera->setRenderToTexture(true);
     //camera->setUseFramebufferSizes(false);
@@ -137,7 +137,7 @@ void Editor::SceneRender::mouseClickEvent(float x, float y, Entity entity){
     Transform* transform = scene->findComponent<Transform>(entity);
 
     if (transform){
-        Vector3 viewDir = camera->getWorldPosition() - camera->getWorldView();
+        Vector3 viewDir = camera->getWorldPosition() - camera->getWorldTarget();
 
         float dotX = viewDir.dotProduct(Vector3(1,0,0));
         float dotY = viewDir.dotProduct(Vector3(0,1,0));

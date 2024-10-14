@@ -22,7 +22,7 @@ void Editor::ToolsLayer::updateCamera(CameraComponent& extCamera, Transform& ext
     CameraComponent& cameracomp = scene->getComponent<CameraComponent>(entity);
 
     camera->setPosition(extCameraTransform.position);
-    camera->setView(extCamera.view);
+    camera->setTarget(extCamera.target);
 
     cameracomp.type = extCamera.type;
     cameracomp.leftPlane = extCamera.leftPlane;
