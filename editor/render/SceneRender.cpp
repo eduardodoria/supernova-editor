@@ -151,6 +151,12 @@ void Editor::SceneRender::mouseClickEvent(float x, float y, Entity entity){
             cursorPlane = Plane(Vector3(dotX, 0, dotZ).normalize(), transform->worldPosition);
         }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
             cursorPlane = Plane(Vector3(dotX, dotY, 0).normalize(), transform->worldPosition);
+        }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XY){
+            cursorPlane = Plane(Vector3(0, 0, dotZ).normalize(), transform->worldPosition);
+        }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XZ){
+            cursorPlane = Plane(Vector3(0, dotY, 0).normalize(), transform->worldPosition);
+        }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::YZ){
+            cursorPlane = Plane(Vector3(dotX, 0, 0).normalize(), transform->worldPosition);
         }
 
         RayReturn rretrun = mouseRay.intersects(cursorPlane);
@@ -185,6 +191,15 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, Entity entity){
             }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
                 transform->position.y = pos.y;
             }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
+                transform->position.z = pos.z;
+            }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XY){
+                transform->position.x = pos.x;
+                transform->position.y = pos.y;
+            }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XZ){
+                transform->position.x = pos.x;
+                transform->position.z = pos.z;
+            }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::YZ){
+                transform->position.y = pos.y;
                 transform->position.z = pos.z;
             }
 

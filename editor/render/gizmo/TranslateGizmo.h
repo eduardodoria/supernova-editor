@@ -19,15 +19,19 @@ namespace Supernova::Editor{
         Shape* xarrow;
         Shape* yarrow;
         Shape* zarrow;
+        Shape* xyrect;
+        Shape* xzrect;
+        Shape* yzrect;
 
-        static const Vector4 centerColor;
-        static const Vector4 xaxisColor;
-        static const Vector4 yaxisColor;
-        static const Vector4 zaxisColor;
-        static const Vector4 centerColorHightlight;
-        static const Vector4 xaxisColorHightlight;
-        static const Vector4 yaxisColorHightlight;
-        static const Vector4 zaxisColorHightlight;
+        static const Vector3 centerColor;
+        static const Vector3 xaxisColor;
+        static const Vector3 yaxisColor;
+        static const Vector3 zaxisColor;
+        static const Vector3 centerColorHightlight;
+        static const Vector3 xaxisColorHightlight;
+        static const Vector3 yaxisColorHightlight;
+        static const Vector3 zaxisColorHightlight;
+        static const float rectAlpha;
 
     public:
         TranslateGizmo(Scene* scene);
