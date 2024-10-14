@@ -61,11 +61,11 @@ Editor::ViewportGizmo::ViewportGizmo(){
 }
 
 void Editor::ViewportGizmo::applyRotation(Camera* sceneCam){
-    Vector3 view = (sceneCam->getWorldPosition() - sceneCam->getWorldTarget()).normalize();
-    Vector3 right = sceneCam->getWorldUp().crossProduct(view).normalize();
-    Vector3 up = view.crossProduct(right);
+    Vector3 direction = sceneCam->getWorldDirection();
+    Vector3 right = sceneCam->getWorldRight();
+    Vector3 up = direction.crossProduct(right);
 
-    mainObject->setRotation(Quaternion(right, up, view).inverse());
+    mainObject->setRotation(Quaternion(right, up, direction).inverse());
 }
 
 Framebuffer* Editor::ViewportGizmo::getFramebuffer(){

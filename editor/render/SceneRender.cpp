@@ -137,7 +137,7 @@ void Editor::SceneRender::mouseClickEvent(float x, float y, Entity entity){
     Transform* transform = scene->findComponent<Transform>(entity);
 
     if (transform){
-        Vector3 viewDir = camera->getWorldPosition() - camera->getWorldTarget();
+        Vector3 viewDir = camera->getWorldDirection();
 
         float dotX = viewDir.dotProduct(Vector3(1,0,0));
         float dotY = viewDir.dotProduct(Vector3(0,1,0));
