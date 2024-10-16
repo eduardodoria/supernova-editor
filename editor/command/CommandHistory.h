@@ -3,6 +3,7 @@
 
 #include "Command.h"
 #include <vector>
+#include <cstddef>
 
 namespace Supernova::Editor{
 
@@ -10,7 +11,7 @@ namespace Supernova::Editor{
 
     private:
         std::vector<Command*> list;
-        size_t index;
+        size_t index; // real index is (index-1)
 
     public:
         CommandHistory();

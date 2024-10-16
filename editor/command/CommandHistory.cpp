@@ -9,24 +9,24 @@ Editor::CommandHistory::CommandHistory(){
 void Editor::CommandHistory::addCommand(Editor::Command* cmd){
     cmd->execute();
 
-    if ((index + 1) < list.size()){
-        list.erase(list.begin() + (index + 1), list.end());
+    if (index < list.size()){
+        list.erase(list.begin() + index, list.end());
     }
 
     list.push_back(cmd);
-    index = list.size() - 1;
+    index = list.size();
 }
 
 void Editor::CommandHistory::undo(){
-    if (list.size() > 0 && index >= 0){
-        list[index]->undo();
-
-        if ((index - 1) >= 0){
-            index--;
-        }
+    if (index > 0){
+        list[index-1]->undo();
+        index--;
     }
 }
 
 void Editor::CommandHistory::redo(){
-
+    if (index < list.size()){
+        index++;
+        list[index-1]->execute();
+    }
 }
