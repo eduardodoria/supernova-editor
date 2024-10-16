@@ -30,10 +30,7 @@ void Editor::CreateEntityCmd::undo(){
         if (scenes[i].id == sceneId){
             scenes[i].scene->destroyEntity(entity);
 
-            // Remove the element using erase function and iterators
             auto it = std::find(scenes[i].entities.begin(), scenes[i].entities.end(), entity);
-
-            // If element is found found, erase it
             if (it != scenes[i].entities.end()) {
                 scenes[i].entities.erase(it);
             }

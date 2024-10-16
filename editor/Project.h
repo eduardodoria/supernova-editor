@@ -4,6 +4,7 @@
 #include "Scene.h"
 #include "Factory.h"
 #include "render/SceneRender.h"
+#include "command/CommandHistory.h"
 
 #define NULL_PROJECT_SCENE 0
 
@@ -25,8 +26,9 @@ namespace Supernova::Editor{
         static uint32_t nextSceneId;
 
         std::vector<SceneData> scenes;
-
         uint32_t selectedScene;
+
+        CommandHistory commandHistory;
 
         template<typename T>
         T* findScene(uint32_t sceneId) const;
@@ -34,11 +36,17 @@ namespace Supernova::Editor{
     public:
         Project();
 
+        // TODO: make this private
         uint32_t createNewScene(std::string sceneName);
         Entity createNewEntity(uint32_t sceneId, std::string entityName);
         bool createNewComponent(uint32_t sceneId, Entity entity, ComponentType component);
+        // ------
 
+
+        void createEmptyEntity(uint32_t sceneId);
         void createBoxShape(uint32_t sceneId);
+
+        void deleteEntity(uint32_t sceneId, Entity entity);
 
         bool findObjectByRay(uint32_t sceneId, float x, float y);
 
@@ -53,6 +61,8 @@ namespace Supernova::Editor{
 
         void setSelectedEntity(uint32_t sceneId, Entity selectedEntity);
         Entity getSelectedEntity(uint32_t sceneId) const;
+
+        CommandHistory& getCommandHistory();
     };
 
 }

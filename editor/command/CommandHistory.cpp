@@ -10,6 +10,10 @@ void Editor::CommandHistory::addCommand(Editor::Command* cmd){
     cmd->execute();
 
     if (index < list.size()){
+        for (auto it = list.begin() + index; it != list.end(); ++it) {
+            delete *it;
+        }
+
         list.erase(list.begin() + index, list.end());
     }
 

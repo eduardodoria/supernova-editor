@@ -106,7 +106,8 @@ add_executable(
     ${EDITOR_DIR}/render/gizmo/TranslateGizmo.cpp
 
     ${EDITOR_DIR}/command/CommandHistory.cpp
-    ${EDITOR_DIR}/command/CreateEntityCmd.cpp
+    ${EDITOR_DIR}/command/type/CreateEntityCmd.cpp
+    ${EDITOR_DIR}/command/type/DeleteEntityCmd.cpp
 
     ${IMGUI_SOURCES}
 )

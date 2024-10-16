@@ -52,11 +52,10 @@ void Editor::App::showMenu(){
         }
         if (ImGui::BeginMenu("Edit")) {
             if (ImGui::MenuItem("Undo")) {
-                // Handle undo action
+                undo();
             }
             if (ImGui::MenuItem("Redo")) {
-
-                // Handle redo action
+                redo();
             }
             if (ImGui::MenuItem("Reset layout")) {
                 buildDockspace();
@@ -103,6 +102,16 @@ void Editor::App::buildDockspace(){
     ImGui::DockBuilderFinish(dockspace_id);
 }
 
+void Editor::App::undo(){
+    //printf("undo\n");
+    project.getCommandHistory().undo();
+}
+
+void Editor::App::redo(){
+    //printf("redo\n");
+    project.getCommandHistory().redo();
+}
+
 void Editor::App::showStyleEditor(){
     ImGui::Begin("Dear ImGui Style Editor", nullptr);
     {
@@ -124,6 +133,24 @@ void Editor::App::showStyleEditor(){
 }
 
 void Editor::App::show(){
+    ImGuiIO& io = ImGui::GetIO();
+#ifdef __APPLE__
+    bool isUndo = (io.KeySuper && ImGui::IsKeyPressed(ImGuiKey_Z) && !io.KeyShift);
+    bool isRedo = (io.KeySuper && ImGui::IsKeyPressed(ImGuiKey_Z) && io.KeyShift);
+#else
+    bool isUndo = (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Z) && !io.KeyShift);
+    bool isRedo = (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Y)) || (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Z) && io.KeyShift);
+#endif
+
+    // Update the Undo and Redo button logic:
+    if (isUndo) {
+        undo();
+    }
+    ImGui::SameLine();
+    if (isRedo) {
+        redo();
+    }
+
     dockspace_id = ImGui::GetID("MyDockspace");
 
     showMenu();

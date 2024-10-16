@@ -1,6 +1,8 @@
 #include "Project.h"
 
 #include "subsystem/MeshSystem.h"
+#include "command/type/CreateEntityCmd.h"
+#include "command/type/DeleteEntityCmd.h"
 
 using namespace Supernova;
 
@@ -59,6 +61,10 @@ bool Editor::Project::createNewComponent(uint32_t sceneId, Entity entity, Compon
     return false;
 }
 
+void Editor::Project::createEmptyEntity(uint32_t sceneId){
+    commandHistory.addCommand(new CreateEntityCmd(this, sceneId, "Entity"));
+}
+
 void Editor::Project::createBoxShape(uint32_t sceneId){
     Entity box = createNewEntity(sceneId, "Box");
     createNewComponent(sceneId, box, ComponentType::Transform);
@@ -69,6 +75,10 @@ void Editor::Project::createBoxShape(uint32_t sceneId){
 
     scene->getSystem<MeshSystem>()->createBox(box, 1, 1, 1);
     //mesh.submeshes[0].material.baseColorFactor = Color::sRGBToLinear(Vector4(0.5, 0.5, 0.5, 1.0));
+}
+
+void Editor::Project::deleteEntity(uint32_t sceneId, Entity entity){
+    commandHistory.addCommand(new DeleteEntityCmd(this, sceneId, entity));
 }
 
 bool Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
@@ -155,4 +165,8 @@ void Editor::Project::setSelectedEntity(uint32_t sceneId, Entity selectedEntity)
 
 Entity Editor::Project::getSelectedEntity(uint32_t sceneId) const{
     return getScene(sceneId)->selectedEntity;
+}
+
+Editor::CommandHistory& Editor::Project::getCommandHistory(){
+    return commandHistory;
 }

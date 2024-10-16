@@ -32,6 +32,12 @@ void Editor::Objects::showNewEntityMenu(){
     {
         // Action for Item 2
     }
+
+    if (ImGui::MenuItem(ICON_FA_CIRCLE_DOT"  Empty entity"))
+    {
+        project->createEmptyEntity(project->getSelectedSceneId());
+        // Action for Item 2
+    }
     ImGui::EndMenu();
 }
 
@@ -161,7 +167,9 @@ void Editor::Objects::showTreeNode(Editor::TreeNode& node) {
             }
             if (ImGui::MenuItem(ICON_FA_TRASH"  Delete"))
             {
-                // Action for SubItem 1
+                if (!selectedNodeRight->isScene){
+                    project->deleteEntity(project->getSelectedSceneId(), selectedNodeRight->id);
+                }
             }
             ImGui::Separator();
             if (ImGui::BeginMenu(ICON_FA_CIRCLE_DOT"  Create child"))

@@ -1,7 +1,7 @@
 #ifndef CREATEENTITYCMD_H
 #define CREATEENTITYCMD_H
 
-#include "Command.h"
+#include "command/Command.h"
 #include "Project.h"
 #include <cstdint>
 #include <string>
