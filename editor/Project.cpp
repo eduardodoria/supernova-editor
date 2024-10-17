@@ -62,7 +62,7 @@ bool Editor::Project::createNewComponent(uint32_t sceneId, Entity entity, Compon
 }
 
 void Editor::Project::createEmptyEntity(uint32_t sceneId){
-    commandHistory.addCommand(new CreateEntityCmd(this, sceneId, "Entity"));
+    CommandHistory::addCommand(new CreateEntityCmd(this, sceneId, "Entity"));
 }
 
 void Editor::Project::createBoxShape(uint32_t sceneId){
@@ -78,7 +78,7 @@ void Editor::Project::createBoxShape(uint32_t sceneId){
 }
 
 void Editor::Project::deleteEntity(uint32_t sceneId, Entity entity){
-    commandHistory.addCommand(new DeleteEntityCmd(this, sceneId, entity));
+    CommandHistory::addCommand(new DeleteEntityCmd(this, sceneId, entity));
 }
 
 bool Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
@@ -165,8 +165,4 @@ void Editor::Project::setSelectedEntity(uint32_t sceneId, Entity selectedEntity)
 
 Entity Editor::Project::getSelectedEntity(uint32_t sceneId) const{
     return getScene(sceneId)->selectedEntity;
-}
-
-Editor::CommandHistory& Editor::Project::getCommandHistory(){
-    return commandHistory;
 }

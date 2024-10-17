@@ -28,8 +28,6 @@ namespace Supernova::Editor{
         std::vector<SceneData> scenes;
         uint32_t selectedScene;
 
-        CommandHistory commandHistory;
-
         template<typename T>
         T* findScene(uint32_t sceneId) const;
 
@@ -61,8 +59,6 @@ namespace Supernova::Editor{
 
         void setSelectedEntity(uint32_t sceneId, Entity selectedEntity);
         Entity getSelectedEntity(uint32_t sceneId) const;
-
-        CommandHistory& getCommandHistory();
     };
 
 }

@@ -7,6 +7,9 @@
 #include "sky/Daylight_Box_Right_png.h"
 #include "sky/Daylight_Box_Top_png.h"
 
+#include "command/CommandHistory.h"
+#include "command/type/ChangeVec3Cmd.h"
+
 using namespace Supernova;
 
 float Editor::SceneRender::gizmoSize = 40;
@@ -185,7 +188,8 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, Entity entity){
             }
 
             if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XYZ){
-                transform->position = pos;
+                //transform->position = pos;
+                CommandHistory::addCommand(new ChangeVec3Cmd(transform->position, pos));
             }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
                 transform->position.x = pos.x;
             }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){

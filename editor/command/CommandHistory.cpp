@@ -1,10 +1,10 @@
 #include "CommandHistory.h"
+#include <stdio.h>
 
 using namespace Supernova;
 
-Editor::CommandHistory::CommandHistory(){
-    index = 0;
-}
+std::vector<Editor::Command*> Editor::CommandHistory::list;
+size_t Editor::CommandHistory::index = 0;
 
 void Editor::CommandHistory::addCommand(Editor::Command* cmd){
     cmd->execute();
@@ -25,6 +25,10 @@ void Editor::CommandHistory::undo(){
     if (index > 0){
         list[index-1]->undo();
         index--;
+
+        #ifdef _DEBUG
+        printf("DEBUG: undo (%lu from %lu)\n", index, list.size());
+        #endif
     }
 }
 
@@ -32,5 +36,9 @@ void Editor::CommandHistory::redo(){
     if (index < list.size()){
         index++;
         list[index-1]->execute();
+
+        #ifdef _DEBUG
+        printf("DEBUG: redo (%lu from %lu)\n", index, list.size());
+        #endif
     }
 }
