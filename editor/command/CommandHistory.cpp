@@ -17,6 +17,12 @@ void Editor::CommandHistory::addCommand(Editor::Command* cmd){
         list.erase(list.begin() + index, list.end());
     }
 
+    if (list.size() > 0 && list.back()->canMerge() && cmd->canMerge()){
+        if (cmd->mergeWith(list.back())){
+            list.pop_back();
+        }
+    }
+
     list.push_back(cmd);
     index = list.size();
 }

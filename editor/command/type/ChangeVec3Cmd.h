@@ -3,6 +3,8 @@
 
 #include "command/Command.h"
 #include "math/Vector3.h"
+#include "ecs/Entity.h"
+#include "component/Transform.h"
 
 
 namespace Supernova::Editor{
@@ -14,11 +16,16 @@ namespace Supernova::Editor{
         Vector3 oldVector;
         Vector3 newVector;
 
+        Transform* transform;
+
     public:
-        ChangeVec3Cmd(Vector3& originalVector, Vector3& newVector);
+        ChangeVec3Cmd(Vector3& originalVector, Vector3 newVector);
+        ChangeVec3Cmd(Vector3& originalVector, Vector3 newVector, Transform* transform);
 
         virtual void execute();
         virtual void undo();
+
+        virtual bool mergeWith(Command* olderCommand);
     };
 
 }

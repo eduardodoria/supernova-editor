@@ -17,6 +17,7 @@ float Editor::SceneRender::gizmoSize = 40;
 Editor::SceneRender::SceneRender(Scene* scene){
     this->scene = scene;
     mouseClicked = false;
+    lastCommand = nullptr;
 
     Lines* lines = new Lines(scene);
     Light* sun = new Light(scene);
@@ -171,6 +172,11 @@ void Editor::SceneRender::mouseClickEvent(float x, float y, Entity entity){
 
 void Editor::SceneRender::mouseReleaseEvent(float x, float y){
     mouseClicked = false;
+
+    if (lastCommand){
+        lastCommand->setNoMerge();
+        lastCommand = nullptr;
+    }
 }
 
 void Editor::SceneRender::mouseDragEvent(float x, float y, Entity entity){
@@ -188,26 +194,24 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, Entity entity){
             }
 
             if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XYZ){
-                //transform->position = pos;
-                CommandHistory::addCommand(new ChangeVec3Cmd(transform->position, pos));
+                lastCommand = new ChangeVec3Cmd(transform->position, pos, transform);
             }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
-                transform->position.x = pos.x;
+                lastCommand = new ChangeVec3Cmd(transform->position, Vector3(pos.x, transform->position.y, transform->position.z), transform);
             }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
-                transform->position.y = pos.y;
+                lastCommand = new ChangeVec3Cmd(transform->position, Vector3(transform->position.x, pos.y, transform->position.z), transform);
             }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
-                transform->position.z = pos.z;
+                lastCommand = new ChangeVec3Cmd(transform->position, Vector3(transform->position.x, transform->position.y, pos.z), transform);
             }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XY){
-                transform->position.x = pos.x;
-                transform->position.y = pos.y;
+                lastCommand = new ChangeVec3Cmd(transform->position, Vector3(pos.x, pos.y, transform->position.z), transform);
             }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XZ){
-                transform->position.x = pos.x;
-                transform->position.z = pos.z;
+                lastCommand = new ChangeVec3Cmd(transform->position, Vector3(pos.x, transform->position.y, pos.z), transform);
             }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::YZ){
-                transform->position.y = pos.y;
-                transform->position.z = pos.z;
+                lastCommand = new ChangeVec3Cmd(transform->position, Vector3(transform->position.x, pos.y, pos.z), transform);
             }
 
-            transform->needUpdate = true;
+            if (lastCommand){
+                CommandHistory::addCommand(lastCommand);
+            }
         }
     }
 }

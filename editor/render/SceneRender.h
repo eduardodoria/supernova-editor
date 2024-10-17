@@ -5,6 +5,7 @@
 #include "ViewportGizmo.h"
 #include "ToolsLayer.h"
 #include "UILayer.h"
+#include "command/Command.h"
 
 namespace Supernova::Editor{
 
@@ -23,6 +24,8 @@ namespace Supernova::Editor{
         bool mouseClicked;
         Plane cursorPlane;
         Vector3 objectOffset;
+
+        Command* lastCommand;
 
         static float gizmoSize;
 

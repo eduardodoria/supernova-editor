@@ -43,3 +43,7 @@ void Editor::CreateEntityCmd::undo(){
         }
     }
 }
+
+bool Editor::CreateEntityCmd::mergeWith(Editor::Command* otherCommand){
+    return false;
+}
