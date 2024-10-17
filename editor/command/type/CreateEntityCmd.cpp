@@ -20,7 +20,11 @@ void Editor::CreateEntityCmd::execute(){
     std::vector<Supernova::Editor::SceneData> &scenes = project->getScenes();
     for (int i = 0; i < scenes.size(); i++){
         if (scenes[i].id == sceneId){
-            Entity entity = scenes[i].scene->createEntity();
+            if (entity == NULL_ENTITY){
+                entity = scenes[i].scene->createEntity();
+            }else{
+                entity = scenes[i].scene->createEntityInternal(entity); // recreate same entity
+            }
 
             if (type == EntityCreationType::BOX){
                 scenes[i].scene->addComponent<Transform>(entity, {});
@@ -36,8 +40,6 @@ void Editor::CreateEntityCmd::execute(){
             scenes[i].entities.push_back(entity);
 
             project->setSelectedEntity(sceneId, entity);
-
-            this->entity = entity;
         }
     }
 }
@@ -56,8 +58,6 @@ void Editor::CreateEntityCmd::undo(){
             if (project->getSelectedEntity(sceneId) == entity){
                 project->setSelectedEntity(sceneId, NULL_ENTITY);
             }
-
-            this->entity = NULL_ENTITY;
         }
     }
 }

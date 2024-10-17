@@ -33,8 +33,6 @@ void Editor::DeleteEntityCmd::execute(){
                 project->setSelectedEntity(sceneId, NULL_ENTITY);
                 isSelected = true;
             }
-
-            this->entity = NULL_ENTITY;
         }
     }
 }
@@ -43,13 +41,13 @@ void Editor::DeleteEntityCmd::undo(){
     std::vector<Supernova::Editor::SceneData> &scenes = project->getScenes();
     for (int i = 0; i < scenes.size(); i++){
         if (scenes[i].id == sceneId){
-            Entity entity = scenes[i].scene->createEntity();
+            entity = scenes[i].scene->createEntityInternal(entity);
             scenes[i].scene->setEntityName(entity, entityName);
 
             scenes[i].entities.push_back(entity);
 
             if (signature.test(scenes[i].scene->getComponentType<Transform>())){
-                scenes[i].scene->addComponent<Transform>(entity, {});
+                scenes[i].scene->addComponent<Transform>(entity, transform);
             }
             if (signature.test(scenes[i].scene->getComponentType<MeshComponent>())){
                 scenes[i].scene->addComponent<MeshComponent>(entity, {});
@@ -58,8 +56,6 @@ void Editor::DeleteEntityCmd::undo(){
             if (isSelected){
                 project->setSelectedEntity(sceneId, entity);
             }
-
-            this->entity = entity;
         }
     }
 }
