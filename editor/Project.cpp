@@ -66,15 +66,7 @@ void Editor::Project::createEmptyEntity(uint32_t sceneId){
 }
 
 void Editor::Project::createBoxShape(uint32_t sceneId){
-    Entity box = createNewEntity(sceneId, "Box");
-    createNewComponent(sceneId, box, ComponentType::Transform);
-    createNewComponent(sceneId, box, ComponentType::MeshComponent);
-
-    Scene* scene = getScene(sceneId)->scene;
-    MeshComponent& mesh = scene->getComponent<MeshComponent>(box);
-
-    scene->getSystem<MeshSystem>()->createBox(box, 1, 1, 1);
-    //mesh.submeshes[0].material.baseColorFactor = Color::sRGBToLinear(Vector4(0.5, 0.5, 0.5, 1.0));
+    CommandHistory::addCommand(new CreateEntityCmd(this, sceneId, "Entity", EntityCreationType::BOX));
 }
 
 void Editor::Project::deleteEntity(uint32_t sceneId, Entity entity){

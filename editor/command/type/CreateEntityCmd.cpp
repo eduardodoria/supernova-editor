@@ -6,6 +6,14 @@ Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std
     this->project = project;
     this->sceneId = sceneId;
     this->entityName = entityName;
+    this->type = EntityCreationType::EMPTY;
+}
+
+Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type){
+    this->project = project;
+    this->sceneId = sceneId;
+    this->entityName = entityName;
+    this->type = type;
 }
 
 void Editor::CreateEntityCmd::execute(){
@@ -13,6 +21,16 @@ void Editor::CreateEntityCmd::execute(){
     for (int i = 0; i < scenes.size(); i++){
         if (scenes[i].id == sceneId){
             Entity entity = scenes[i].scene->createEntity();
+
+            if (type == EntityCreationType::BOX){
+                scenes[i].scene->addComponent<Transform>(entity, {});
+                scenes[i].scene->addComponent<MeshComponent>(entity, {});
+
+                MeshComponent& mesh = scenes[i].scene->getComponent<MeshComponent>(entity);
+
+                scenes[i].scene->getSystem<MeshSystem>()->createBox(entity, 1, 1, 1);
+            }
+
             scenes[i].scene->setEntityName(entity, entityName);
 
             scenes[i].entities.push_back(entity);

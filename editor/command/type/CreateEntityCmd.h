@@ -8,6 +8,11 @@
 
 namespace Supernova::Editor{
 
+    enum class EntityCreationType{
+        EMPTY,
+        BOX
+    };
+
     class CreateEntityCmd: public Command{
 
     private:
@@ -16,9 +21,11 @@ namespace Supernova::Editor{
         std::string entityName;
 
         Entity entity;
+        EntityCreationType type;
 
     public:
         CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName);
+        CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type);
 
         virtual void execute();
         virtual void undo();
