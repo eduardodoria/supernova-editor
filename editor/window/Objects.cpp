@@ -118,6 +118,21 @@ void Editor::Objects::showTreeNode(Editor::TreeNode& node) {
 
     bool nodeOpen = ImGui::TreeNodeEx((node.icon + "  " + node.name).c_str(), flags);
 
+    if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+        ImGui::SetDragDropPayload("TREE_NODE", &node, sizeof(TreeNode));
+        ImGui::Text("Moving %s", node.name.c_str());
+        ImGui::EndDragDropSource();
+    }
+
+    if (ImGui::BeginDragDropTarget()) {
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("TREE_NODE")) {
+            TreeNode* source = (TreeNode*)payload->Data;
+            //node.children.push_back(*payload_node);
+            printf("Dropped: %s in %s\n", source->name.c_str(), node.name.c_str());
+        }
+        ImGui::EndDragDropTarget();
+    }
+
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered() && ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows)) {
         selectedNode = nullptr;
         project->setSelectedEntity(project->getSelectedSceneId(), NULL_ENTITY);
