@@ -2,6 +2,7 @@
 #define LAYOUTOBJECTS_H
 
 #include "Project.h"
+#include "imgui.h"
 #include <string>
 #include <vector>
 
@@ -29,6 +30,8 @@ namespace Supernova::Editor{
         void showIconMenu();
         void showTreeNode(TreeNode& node);
         void changeNodeName(const TreeNode* node, const std::string name);
+        void drawInsertionMarker(const ImVec2& p1, const ImVec2& p2);
+
     public:
         Objects(Project* project);
 

@@ -1,7 +1,5 @@
 #include "Objects.h"
 
-#include "imgui.h"
-
 #include "external/IconsFontAwesome6.h"
 
 using namespace Supernova;
@@ -100,6 +98,14 @@ void Editor::Objects::showIconMenu(){
     }
 }
 
+void Editor::Objects::drawInsertionMarker(const ImVec2& p1, const ImVec2& p2) {
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    ImU32 col = ImGui::GetColorU32(ImGuiCol_DragDropTarget);
+    float thickness = 2.0f;
+    draw_list->AddLine(p1, p2, col, thickness);
+}
+
+
 void Editor::Objects::showTreeNode(Editor::TreeNode& node) {
     static TreeNode* selectedNode = nullptr;
 
@@ -112,11 +118,12 @@ void Editor::Objects::showTreeNode(Editor::TreeNode& node) {
         flags |= ImGuiTreeNodeFlags_Selected;
     }
 
+
     if (node.isScene){
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     }
 
-    bool nodeOpen = ImGui::TreeNodeEx((node.icon + "  " + node.name).c_str(), flags);
+    bool nodeOpen = ImGui::TreeNodeEx((node.icon + "  " + node.name + "##" + std::to_string(node.id)).c_str(), flags);
 
     if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
         ImGui::SetDragDropPayload("TREE_NODE", &node, sizeof(TreeNode));
@@ -124,13 +131,60 @@ void Editor::Objects::showTreeNode(Editor::TreeNode& node) {
         ImGui::EndDragDropSource();
     }
 
+    bool insertBefore = false;
+    bool insertAfter = false;
+
     if (ImGui::BeginDragDropTarget()) {
-        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("TREE_NODE")) {
+        ImVec2 mousePos = ImGui::GetMousePos();
+        ImVec2 itemMin = ImGui::GetItemRectMin();
+        ImVec2 itemMax = ImGui::GetItemRectMax();
+        insertBefore = (mousePos.y - itemMin.y) < (itemMax.y - itemMin.y) * 0.2f;
+        insertAfter = (mousePos.y - itemMin.y) > (itemMax.y - itemMin.y) * 0.8f;
+
+        ImGuiDragDropFlags flags;
+        //ImGuiDragDropFlags flags = ImGuiDragDropFlags_AcceptBeforeDelivery;
+
+        if (insertBefore || insertAfter){
+            flags |= ImGuiDragDropFlags_AcceptNoDrawDefaultRect;
+        }
+
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("TREE_NODE", flags)) {
             TreeNode* source = (TreeNode*)payload->Data;
             //node.children.push_back(*payload_node);
             printf("Dropped: %s in %s\n", source->name.c_str(), node.name.c_str());
         }
         ImGui::EndDragDropTarget();
+    }
+
+    if (!node.isScene && insertBefore) {
+        const ImVec2& padding = ImGui::GetStyle().FramePadding;
+
+        ImVec2 lineStart = ImGui::GetCursorScreenPos();
+        ImVec2 lineEnd = lineStart;
+        lineEnd.x += ImGui::GetContentRegionAvail().x;
+
+        lineStart.y -= padding.y * 2.0;
+        lineEnd.y -= padding.y * 2.0;
+
+        ImVec2 node_size = ImGui::GetItemRectSize();
+
+        lineStart.y -= node_size.y;
+        lineEnd.y -= node_size.y;
+
+        drawInsertionMarker(lineStart, lineEnd);
+    }
+
+    if (!node.isScene && insertAfter) {
+        const ImVec2& padding = ImGui::GetStyle().FramePadding;
+
+        ImVec2 lineStart = ImGui::GetCursorScreenPos();
+        ImVec2 lineEnd = lineStart;
+        lineEnd.x += ImGui::GetContentRegionAvail().x;
+
+        lineStart.y -= padding.y;
+        lineEnd.y -= padding.y;
+
+        drawInsertionMarker(lineStart, lineEnd);
     }
 
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered() && ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows)) {
