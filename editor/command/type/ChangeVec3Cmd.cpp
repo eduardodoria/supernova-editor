@@ -3,6 +3,10 @@
 
 using namespace Supernova;
 
+//Editor::ChangeVec3Cmd::ChangeVec3Cmd(Scene* scene, Entity entity, ComponentType type, std::string property, Vector3 newVector){
+//    std::vector<PropertyData> properties = Structure::getProperties();
+//}
+
 Editor::ChangeVec3Cmd::ChangeVec3Cmd(Vector3& originalVector, Vector3 newVector): vector(originalVector){
     this->oldVector = Vector3();
     this->newVector = newVector;
