@@ -6,6 +6,7 @@ Editor::DeleteEntityCmd::DeleteEntityCmd(Project* project, uint32_t sceneId, Ent
     this->project = project;
     this->sceneId = sceneId;
     this->entity = entity;
+    this->wasSelected = false;
 }
 
 void Editor::DeleteEntityCmd::execute(){
@@ -31,7 +32,7 @@ void Editor::DeleteEntityCmd::execute(){
 
             if (project->getSelectedEntity(sceneId) == entity){
                 project->setSelectedEntity(sceneId, NULL_ENTITY);
-                isSelected = true;
+                wasSelected = true;
             }
         }
     }
@@ -53,7 +54,7 @@ void Editor::DeleteEntityCmd::undo(){
                 scenes[i].scene->addComponent<MeshComponent>(entity, {});
             }
 
-            if (isSelected){
+            if (wasSelected){
                 project->setSelectedEntity(sceneId, entity);
             }
         }

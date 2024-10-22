@@ -17,7 +17,7 @@ namespace Supernova::Editor{
 
         std::string entityName;
         Signature signature;
-        bool isSelected;
+        bool wasSelected;
         
         Transform transform;
         MeshComponent mesh;

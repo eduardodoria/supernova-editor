@@ -8,7 +8,7 @@
 #include "sky/Daylight_Box_Top_png.h"
 
 #include "command/CommandHistory.h"
-#include "command/type/ChangeVec3Cmd.h"
+#include "command/type/ChangePropertyCmd.h"
 
 using namespace Supernova;
 
@@ -194,25 +194,25 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, Entity entity){
             }
 
             if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XYZ){
-                lastCommand = new ChangeVec3Cmd(scene, entity, ComponentType::Transform, "position", pos);
+                lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", pos);
             }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
                 Vector3 newPos = Vector3(pos.x, transform->position.y, transform->position.z);
-                lastCommand = new ChangeVec3Cmd(scene, entity, ComponentType::Transform, "position", newPos);
+                lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", newPos);
             }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
                 Vector3 newPos = Vector3(transform->position.x, pos.y, transform->position.z);
-                lastCommand = new ChangeVec3Cmd(scene, entity, ComponentType::Transform, "position", newPos);
+                lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", newPos);
             }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
                 Vector3 newPos = Vector3(transform->position.x, transform->position.y, pos.z);
-                lastCommand = new ChangeVec3Cmd(scene, entity, ComponentType::Transform, "position", newPos);
+                lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", newPos);
             }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XY){
                 Vector3 newPos = Vector3(pos.x, pos.y, transform->position.z);
-                lastCommand = new ChangeVec3Cmd(scene, entity, ComponentType::Transform, "position", newPos);
+                lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", newPos);
             }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XZ){
                 Vector3 newPos = Vector3(pos.x, transform->position.y, pos.z);
-                lastCommand = new ChangeVec3Cmd(scene, entity, ComponentType::Transform, "position", newPos);
+                lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", newPos);
             }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::YZ){
                 Vector3 newPos = Vector3(transform->position.x, pos.y, pos.z);
-                lastCommand = new ChangeVec3Cmd(scene, entity, ComponentType::Transform, "position", newPos);
+                lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", newPos);
             }
 
             if (lastCommand){

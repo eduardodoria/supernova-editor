@@ -22,6 +22,7 @@ namespace Supernova::Editor{
 
         Entity entity;
         EntityCreationType type;
+        Entity lastSelected;
 
     public:
         CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName);

@@ -6,14 +6,18 @@ Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std
     this->project = project;
     this->sceneId = sceneId;
     this->entityName = entityName;
+    this->entity = NULL_ENTITY;
     this->type = EntityCreationType::EMPTY;
+    this->lastSelected = NULL_ENTITY;
 }
 
 Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type){
     this->project = project;
     this->sceneId = sceneId;
     this->entityName = entityName;
+    this->entity = NULL_ENTITY;
     this->type = type;
+    this->lastSelected = NULL_ENTITY;
 }
 
 void Editor::CreateEntityCmd::execute(){
@@ -39,6 +43,10 @@ void Editor::CreateEntityCmd::execute(){
 
             scenes[i].entities.push_back(entity);
 
+            if (project->getSelectedEntity(sceneId) != NULL_ENTITY){
+                lastSelected = project->getSelectedEntity(sceneId);
+            }
+
             project->setSelectedEntity(sceneId, entity);
         }
     }
@@ -56,7 +64,7 @@ void Editor::CreateEntityCmd::undo(){
             }
 
             if (project->getSelectedEntity(sceneId) == entity){
-                project->setSelectedEntity(sceneId, NULL_ENTITY);
+                project->setSelectedEntity(sceneId, lastSelected);
             }
         }
     }

@@ -109,7 +109,6 @@ add_executable(
     ${EDITOR_DIR}/command/CommandHistory.cpp
     ${EDITOR_DIR}/command/type/CreateEntityCmd.cpp
     ${EDITOR_DIR}/command/type/DeleteEntityCmd.cpp
-    ${EDITOR_DIR}/command/type/ChangeVec3Cmd.cpp
 
     ${IMGUI_SOURCES}
 )
