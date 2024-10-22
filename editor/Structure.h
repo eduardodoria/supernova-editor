@@ -67,8 +67,8 @@ namespace Supernova::Editor{
 
     struct PropertyData{
         PropertyType type;
+        std::string label;
         std::string name;
-        std::string refName;
         void* ref;
     };
 
@@ -80,7 +80,19 @@ namespace Supernova::Editor{
 
         static size_t getPropertiesSize(ComponentType component);
         static std::vector<PropertyData> getProperties(ComponentType component, void* compRef);
-        static std::vector<PropertyData> getProperties(ComponentType component, Scene* scene, Entity entity);
+        static std::vector<PropertyData> getProperties(Scene* scene, Entity entity, ComponentType component);
+
+        template<typename T>
+        static T* getPropertyRef(Scene* scene, Entity entity, ComponentType component, std::string propertyName){
+            for (auto& property : Structure::getProperties(scene, entity, component)) {
+                if (property.name == propertyName){
+                    return static_cast<T*>(property.ref);
+                }
+            }
+
+            printf("ERROR: Cannot find property %s", propertyName.c_str());
+            return nullptr;
+        }
 
     };
 

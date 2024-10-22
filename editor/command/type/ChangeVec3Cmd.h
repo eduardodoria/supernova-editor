@@ -14,16 +14,16 @@ namespace Supernova::Editor{
     class ChangeVec3Cmd: public Command{
 
     private:
-        Vector3& vector;
         Vector3 oldVector;
         Vector3 newVector;
 
-        Transform* transform;
+        Scene* scene;
+        Entity entity;
+        ComponentType type;
+        std::string propertyName;
 
     public:
-//        ChangeVec3Cmd(Scene* scene, Entity entity, ComponentType type, std::string property, Vector3 newVector);
-        ChangeVec3Cmd(Vector3& originalVector, Vector3 newVector);
-        ChangeVec3Cmd(Vector3& originalVector, Vector3 newVector, Transform* transform);
+        ChangeVec3Cmd(Scene* scene, Entity entity, ComponentType type, std::string propertyName, Vector3 newVector);
 
         virtual void execute();
         virtual void undo();

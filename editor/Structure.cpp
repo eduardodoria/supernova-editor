@@ -122,7 +122,7 @@ std::vector<Editor::PropertyData> Editor::Structure::getProperties(ComponentType
     return ps;
 }
 
-std::vector<Editor::PropertyData> Editor::Structure::getProperties(ComponentType component, Scene* scene, Entity entity){
+std::vector<Editor::PropertyData> Editor::Structure::getProperties(Scene* scene, Entity entity, ComponentType component){
     if(component == ComponentType::Transform){
         if (Transform* compRef = scene->findComponent<Transform>(entity)){
             return getProperties(component, compRef);
