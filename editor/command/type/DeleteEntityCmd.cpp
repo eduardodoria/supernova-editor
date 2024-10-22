@@ -16,10 +16,10 @@ void Editor::DeleteEntityCmd::execute(){
             entityName = scenes[i].scene->getEntityName(entity);
             signature = scenes[i].scene->getSignature(entity);
 
-            if (signature.test(scenes[i].scene->getComponentType<Transform>())){
+            if (signature.test(scenes[i].scene->getComponentId<Transform>())){
                 transform = scenes[i].scene->getComponent<Transform>(entity);
             }
-            if (signature.test(scenes[i].scene->getComponentType<MeshComponent>())){
+            if (signature.test(scenes[i].scene->getComponentId<MeshComponent>())){
                 mesh = scenes[i].scene->getComponent<MeshComponent>(entity);
             }
 
@@ -47,10 +47,10 @@ void Editor::DeleteEntityCmd::undo(){
 
             scenes[i].entities.push_back(entity);
 
-            if (signature.test(scenes[i].scene->getComponentType<Transform>())){
+            if (signature.test(scenes[i].scene->getComponentId<Transform>())){
                 scenes[i].scene->addComponent<Transform>(entity, transform);
             }
-            if (signature.test(scenes[i].scene->getComponentType<MeshComponent>())){
+            if (signature.test(scenes[i].scene->getComponentId<MeshComponent>())){
                 scenes[i].scene->addComponent<MeshComponent>(entity, {});
             }
 

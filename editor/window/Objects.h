@@ -31,6 +31,7 @@ namespace Supernova::Editor{
         void showTreeNode(TreeNode& node);
         void changeNodeName(const TreeNode* node, const std::string name);
         void drawInsertionMarker(const ImVec2& p1, const ImVec2& p2);
+        std::string getObjectIcon(Signature signature, Scene* scene);
 
     public:
         Objects(Project* project);

@@ -105,6 +105,17 @@ void Editor::Objects::drawInsertionMarker(const ImVec2& p1, const ImVec2& p2) {
     draw_list->AddLine(p1, p2, col, thickness);
 }
 
+std::string Editor::Objects::getObjectIcon(Signature signature, Scene* scene){
+    if (signature.test(scene->getComponentId<ModelComponent>())){
+        return ICON_FA_PERSON_WALKING;
+    }else if (signature.test(scene->getComponentId<MeshComponent>())){
+        return ICON_FA_CUBE;
+    }else if (signature.test(scene->getComponentId<Transform>())){
+        return ICON_FA_SITEMAP;
+    }
+
+    return ICON_FA_CIRCLE_DOT;
+}
 
 void Editor::Objects::showTreeNode(Editor::TreeNode& node) {
     static TreeNode* selectedNode = nullptr;
@@ -292,15 +303,34 @@ void Editor::Objects::show(){
     root.isScene = true;
     root.name = sceneData->name;
 
-    for (auto& entity : project->getSelectedScene()->entities) {
-        TreeNode child;
+    // non-hierarchical entities
+    for (auto& entity : sceneData->entities) {
+        Signature signature = sceneData->scene->getSignature(entity);
 
-        child.icon = ICON_FA_CIRCLE_DOT;
-        child.id = entity;
-        child.isScene = false;
-        child.name = project->getSelectedScene()->scene->getEntityName(entity);
+        if (!signature.test(sceneData->scene->getComponentId<Transform>())){
+            TreeNode child;
+            child.icon = getObjectIcon(signature, sceneData->scene);
+            child.id = entity;
+            child.isScene = false;
+            child.name = sceneData->scene->getEntityName(entity);
 
-        root.children.push_back(child);
+            root.children.push_back(child);
+        }
+    }
+
+    // hierarchical entities
+    for (auto& entity : sceneData->entities) {
+        Signature signature = sceneData->scene->getSignature(entity);
+
+        if (signature.test(sceneData->scene->getComponentId<Transform>())){
+            TreeNode child;
+            child.icon = getObjectIcon(signature, sceneData->scene);
+            child.id = entity;
+            child.isScene = false;
+            child.name = sceneData->scene->getEntityName(entity);
+
+            root.children.push_back(child);
+        }
     }
 
     ImGui::Begin("Objects");
