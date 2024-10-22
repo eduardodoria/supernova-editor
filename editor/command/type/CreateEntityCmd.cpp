@@ -30,6 +30,21 @@ void Editor::CreateEntityCmd::execute(){
                 entity = scenes[i].scene->createEntityInternal(entity); // recreate same entity
             }
 
+            unsigned int nameCount = 2;
+            std::string baseName = entityName;
+            bool foundName = true;
+            while (foundName){
+                foundName = false;
+                for (auto& entity : scenes[i].entities) {
+                    std::string usedName = scenes[i].scene->getEntityName(entity);
+                    if (usedName == entityName){
+                        entityName = baseName + " " + std::to_string(nameCount);
+                        nameCount++;
+                        foundName = true;
+                    }
+                }
+            }
+
             if (type == EntityCreationType::BOX){
                 scenes[i].scene->addComponent<Transform>(entity, {});
                 scenes[i].scene->addComponent<MeshComponent>(entity, {});

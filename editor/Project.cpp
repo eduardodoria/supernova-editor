@@ -66,7 +66,7 @@ void Editor::Project::createEmptyEntity(uint32_t sceneId){
 }
 
 void Editor::Project::createBoxShape(uint32_t sceneId){
-    CommandHistory::addCommand(new CreateEntityCmd(this, sceneId, "Entity", EntityCreationType::BOX));
+    CommandHistory::addCommand(new CreateEntityCmd(this, sceneId, "Box", EntityCreationType::BOX));
 }
 
 void Editor::Project::deleteEntity(uint32_t sceneId, Entity entity){
