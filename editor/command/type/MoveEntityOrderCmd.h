@@ -24,7 +24,8 @@ namespace Supernova::Editor{
         Entity target;
         InsertionType type;
 
-        size_t originalIndex;
+        size_t oldIndex;
+        Entity oldParent;
 
         size_t getIndex(std::vector<Entity>& entities, Entity entity);
 

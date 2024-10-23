@@ -120,6 +120,21 @@ std::string Editor::Objects::getObjectIcon(Signature signature, Scene* scene){
     return ICON_FA_CIRCLE_DOT;
 }
 
+Editor::TreeNode* Editor::Objects::findNode(Editor::TreeNode* root, Entity entity){
+     for (int i = 0; i < root->children.size(); i++){
+        Editor::TreeNode* node = &root->children[i];
+        if (!node->isScene && node->id == entity){
+            return node;
+        }
+
+        if (Editor::TreeNode* child = findNode(node, entity)){
+            return child;
+        }
+     }
+
+     return nullptr;
+}
+
 void Editor::Objects::showTreeNode(Editor::TreeNode& node) {
     static TreeNode* selectedNode = nullptr;
 
@@ -160,7 +175,7 @@ void Editor::Objects::showTreeNode(Editor::TreeNode& node) {
             insertAfter = (mousePos.y - itemMin.y) >= (itemMax.y - itemMin.y) * 0.5f;
         }
 
-        ImGuiDragDropFlags flags;
+        ImGuiDragDropFlags flags = 0;
         //ImGuiDragDropFlags flags = ImGuiDragDropFlags_AcceptBeforeDelivery;
 
         if (insertBefore || insertAfter){
@@ -339,17 +354,28 @@ void Editor::Objects::show(){
     }
 
     // hierarchical entities
-    for (auto& entity : sceneData->entities) {
-        Signature signature = sceneData->scene->getSignature(entity);
+    auto transforms = sceneData->scene->getComponentArray<Transform>();
+    for (int i = 0; i < transforms->size(); i++){
+		Transform& transform = transforms->getComponentFromIndex(i);
+		Entity entity = transforms->getEntity(i);
+		Signature signature = sceneData->scene->getSignature(entity);
 
-        if (signature.test(sceneData->scene->getComponentId<Transform>())){
+        if (std::count(sceneData->entities.begin(), sceneData->entities.end(), entity) > 0){
             TreeNode child;
             child.icon = getObjectIcon(signature, sceneData->scene);
             child.id = entity;
             child.isScene = false;
             child.name = sceneData->scene->getEntityName(entity);
-
-            root.children.push_back(child);
+            if (transform.parent == NULL_ENTITY){
+                root.children.push_back(child);
+            }else{
+                TreeNode* parent = findNode(&root, transform.parent);
+                if (parent){
+                    parent->children.push_back(child);
+                }else{
+                    printf("ERROR: Could not find parent of entity %u\n", entity);
+                }
+            }
         }
     }
 

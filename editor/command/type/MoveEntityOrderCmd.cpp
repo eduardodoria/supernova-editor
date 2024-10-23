@@ -20,11 +20,20 @@ size_t Editor::MoveEntityOrderCmd::getIndex(std::vector<Entity>& entities, Entit
 }
 
 void Editor::MoveEntityOrderCmd::execute(){
-    std::vector<Entity>& entities = project->getScene(sceneId)->entities;
+    SceneData* sceneData = project->getScene(sceneId);
+    std::vector<Entity>& entities = sceneData->entities;
 
     size_t sourceIndex = getIndex(entities, source);
     size_t targetIndex = getIndex(entities, target);
-    originalIndex = sourceIndex;
+
+    oldIndex = sourceIndex;
+    if (Transform* transform = sceneData->scene->findComponent<Transform>(source)){
+        oldParent = transform->parent;
+    }
+
+    if (type == InsertionType::IN){
+        sceneData->scene->addEntityChild(target, source, true);
+    }
 
     if (type == InsertionType::AFTER){
         targetIndex++;
@@ -40,13 +49,18 @@ void Editor::MoveEntityOrderCmd::execute(){
 }
 
 void Editor::MoveEntityOrderCmd::undo(){
-    std::vector<Entity>& entities = project->getScene(sceneId)->entities;
+    SceneData* sceneData = project->getScene(sceneId);
+    std::vector<Entity>& entities = sceneData->entities;
+
+    if (type == InsertionType::IN){
+        sceneData->scene->addEntityChild(oldParent, source, true);
+    }
 
     size_t sourceIndex = getIndex(entities, source);
 
     entities.erase(entities.begin() + sourceIndex);
 
-    entities.insert(entities.begin() + originalIndex, source);
+    entities.insert(entities.begin() + oldIndex, source);
 }
 
 bool Editor::MoveEntityOrderCmd::mergeWith(Command* otherCommand){

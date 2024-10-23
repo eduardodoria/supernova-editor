@@ -90,7 +90,7 @@ namespace Supernova::Editor{
                 }
             }
 
-            printf("ERROR: Cannot find property %s", propertyName.c_str());
+            printf("ERROR: Cannot find property %s\n", propertyName.c_str());
             return nullptr;
         }
 
