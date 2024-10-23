@@ -26,7 +26,7 @@ namespace Supernova::Editor{
         char nameBuffer[256];
         char searchBuffer[256] = "";
 
-        void showNewEntityMenu();
+        void showNewEntityMenu(bool isScene);
         void showIconMenu();
         void showTreeNode(TreeNode& node);
         void changeNodeName(const TreeNode* node, const std::string name);

@@ -1,6 +1,7 @@
 #include "Objects.h"
 
 #include "external/IconsFontAwesome6.h"
+#include "command/type/MoveEntityOrderCmd.h"
 
 using namespace Supernova;
 
@@ -10,7 +11,7 @@ Editor::Objects::Objects(Project* project){
     this->selectedNodeRight = nullptr;
 }
 
-void Editor::Objects::showNewEntityMenu(){
+void Editor::Objects::showNewEntityMenu(bool isScene){
     if (ImGui::BeginMenu(ICON_FA_CUBE"  Basic shape"))
     {
         if (ImGui::MenuItem(ICON_FA_CUBE"  Box"))
@@ -31,10 +32,12 @@ void Editor::Objects::showNewEntityMenu(){
         // Action for Item 2
     }
 
-    if (ImGui::MenuItem(ICON_FA_CIRCLE_DOT"  Empty entity"))
-    {
-        project->createEmptyEntity(project->getSelectedSceneId());
-        // Action for Item 2
+    if (isScene){
+        if (ImGui::MenuItem(ICON_FA_CIRCLE_DOT"  Empty entity"))
+        {
+            project->createEmptyEntity(project->getSelectedSceneId());
+            // Action for Item 2
+        }
     }
     ImGui::EndMenu();
 }
@@ -91,7 +94,7 @@ void Editor::Objects::showIconMenu(){
         ImGui::Separator();
         if (ImGui::BeginMenu(ICON_FA_CIRCLE_DOT"  Create entity"))
         {
-            showNewEntityMenu();
+            showNewEntityMenu(true);
         }
 
         ImGui::EndPopup();
@@ -149,8 +152,13 @@ void Editor::Objects::showTreeNode(Editor::TreeNode& node) {
         ImVec2 mousePos = ImGui::GetMousePos();
         ImVec2 itemMin = ImGui::GetItemRectMin();
         ImVec2 itemMax = ImGui::GetItemRectMax();
-        insertBefore = (mousePos.y - itemMin.y) < (itemMax.y - itemMin.y) * 0.2f;
-        insertAfter = (mousePos.y - itemMin.y) > (itemMax.y - itemMin.y) * 0.8f;
+        if (!node.isScene && project->getSelectedScene()->scene->findComponent<Transform>(node.id)){
+            insertBefore = (mousePos.y - itemMin.y) < (itemMax.y - itemMin.y) * 0.2f;
+            insertAfter = (mousePos.y - itemMin.y) > (itemMax.y - itemMin.y) * 0.8f;
+        }else{
+            insertBefore = (mousePos.y - itemMin.y) < (itemMax.y - itemMin.y) * 0.5f;
+            insertAfter = (mousePos.y - itemMin.y) >= (itemMax.y - itemMin.y) * 0.5f;
+        }
 
         ImGuiDragDropFlags flags;
         //ImGuiDragDropFlags flags = ImGuiDragDropFlags_AcceptBeforeDelivery;
@@ -161,8 +169,20 @@ void Editor::Objects::showTreeNode(Editor::TreeNode& node) {
 
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("TREE_NODE", flags)) {
             TreeNode* source = (TreeNode*)payload->Data;
-            //node.children.push_back(*payload_node);
-            printf("Dropped: %s in %s\n", source->name.c_str(), node.name.c_str());
+
+            if (!source->isScene && !node.isScene && payload->IsDelivery()){
+                printf("Dropped: %s in %s\n", source->name.c_str(), node.name.c_str());
+                InsertionType type;
+                if (insertBefore){
+                    type = InsertionType::BEFORE;
+                }else if (insertAfter){
+                    type = InsertionType::AFTER;
+                }else{
+                    type = InsertionType::IN;
+                }
+                CommandHistory::addCommand(new MoveEntityOrderCmd(project, project->getSelectedSceneId(), source->id, node.id, type));
+            }
+
         }
         ImGui::EndDragDropTarget();
     }
@@ -254,7 +274,7 @@ void Editor::Objects::showTreeNode(Editor::TreeNode& node) {
             ImGui::Separator();
             if (ImGui::BeginMenu(ICON_FA_CIRCLE_DOT"  Create child"))
             {
-                showNewEntityMenu();
+                showNewEntityMenu(node.isScene);
             }
         }
         ImGui::EndPopup();
