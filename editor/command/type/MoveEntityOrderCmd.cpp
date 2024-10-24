@@ -23,28 +23,50 @@ void Editor::MoveEntityOrderCmd::execute(){
     SceneData* sceneData = project->getScene(sceneId);
     std::vector<Entity>& entities = sceneData->entities;
 
+    Transform* transformSource = sceneData->scene->findComponent<Transform>(source);
+    Transform* transformTarget = sceneData->scene->findComponent<Transform>(target);
+
+    if (transformSource && transformTarget){
+        auto transforms = sceneData->scene->getComponentArray<Transform>();
+
+        size_t sourceTransformIndex = transforms->getIndex(source);
+        size_t targetTransformIndex = transforms->getIndex(target);
+
+        Entity newParent = NULL_ENTITY;
+        if (type == InsertionType::IN){
+            newParent = target;
+        }else{
+            newParent = transformTarget->parent;
+        }
+
+        oldParent = transformSource->parent;
+        sceneData->scene->addEntityChild(newParent, source, true);
+
+        oldTransformIndex = sourceTransformIndex;
+
+        if (type == InsertionType::AFTER || type == InsertionType::IN){
+            targetTransformIndex++;
+        }
+        if (sourceTransformIndex < targetTransformIndex){
+            --targetTransformIndex;
+        }
+
+        sceneData->scene->moveChildToIndex(source, targetTransformIndex);
+    }
+
     size_t sourceIndex = getIndex(entities, source);
     size_t targetIndex = getIndex(entities, target);
 
     oldIndex = sourceIndex;
-    if (Transform* transform = sceneData->scene->findComponent<Transform>(source)){
-        oldParent = transform->parent;
-    }
 
-    if (type == InsertionType::IN){
-        sceneData->scene->addEntityChild(target, source, true);
-    }
-
-    if (type == InsertionType::AFTER){
+    if (type == InsertionType::AFTER || type == InsertionType::IN){
         targetIndex++;
     }
-
-    entities.erase(entities.begin() + sourceIndex);
-
     if (sourceIndex < targetIndex){
         --targetIndex;
     }
 
+    entities.erase(entities.begin() + sourceIndex);
     entities.insert(entities.begin() + targetIndex, source);
 }
 
@@ -52,14 +74,18 @@ void Editor::MoveEntityOrderCmd::undo(){
     SceneData* sceneData = project->getScene(sceneId);
     std::vector<Entity>& entities = sceneData->entities;
 
-    if (type == InsertionType::IN){
+    Transform* transformSource = sceneData->scene->findComponent<Transform>(source);
+    Transform* transformTarget = sceneData->scene->findComponent<Transform>(target);
+
+    if (transformSource && transformTarget){
         sceneData->scene->addEntityChild(oldParent, source, true);
+
+        sceneData->scene->moveChildToIndex(source, oldTransformIndex);
     }
 
     size_t sourceIndex = getIndex(entities, source);
 
     entities.erase(entities.begin() + sourceIndex);
-
     entities.insert(entities.begin() + oldIndex, source);
 }
 

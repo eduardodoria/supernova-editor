@@ -301,6 +301,10 @@ void Editor::Objects::showTreeNode(Editor::TreeNode& node) {
         selectedNodeRight = nullptr;
     }
 
+    if (node.separator){
+        ImGui::Separator();
+    }
+
     if (nodeOpen) {
         for (auto& child : node.children) {
             showTreeNode(child);
@@ -336,6 +340,7 @@ void Editor::Objects::show(){
     root.icon = ICON_FA_TV;
     root.id = sceneData->id;
     root.isScene = true;
+    root.separator = false;
     root.name = sceneData->name;
 
     // non-hierarchical entities
@@ -347,10 +352,16 @@ void Editor::Objects::show(){
             child.icon = getObjectIcon(signature, sceneData->scene);
             child.id = entity;
             child.isScene = false;
+            child.separator = false;
             child.name = sceneData->scene->getEntityName(entity);
 
             root.children.push_back(child);
         }
+    }
+
+    bool applySeparator = false;
+    if (root.children.size() > 0){
+        applySeparator = true;
     }
 
     // hierarchical entities
@@ -361,10 +372,16 @@ void Editor::Objects::show(){
 		Signature signature = sceneData->scene->getSignature(entity);
 
         if (std::count(sceneData->entities.begin(), sceneData->entities.end(), entity) > 0){
+            if (applySeparator){
+                root.children.back().separator = true;
+                applySeparator = false;
+            }
+
             TreeNode child;
             child.icon = getObjectIcon(signature, sceneData->scene);
             child.id = entity;
             child.isScene = false;
+            child.separator = false;
             child.name = sceneData->scene->getEntityName(entity);
             if (transform.parent == NULL_ENTITY){
                 root.children.push_back(child);

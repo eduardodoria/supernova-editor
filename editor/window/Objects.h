@@ -12,6 +12,7 @@ namespace Supernova::Editor{
         std::string icon;
         std::string name;
         bool isScene;
+        bool separator;
         uint32_t id;
         std::vector<TreeNode> children;
     };
