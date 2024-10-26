@@ -168,18 +168,28 @@ void Editor::SceneWindow::show(){
             ImGui::Dummy(ImVec2(1, 20));
             ImGui::SameLine(0, 10);
 
+            GizmoSelected gizmoSelected = sceneData.sceneRender->getToolsLayer()->getGizmoSelected();
+
+            ImGui::BeginDisabled(gizmoSelected == GizmoSelected::TRANSLATE);
             ImGui::SameLine();
             if (ImGui::Button(ICON_FA_ARROWS_UP_DOWN_LEFT_RIGHT)) {
-                // Handle play button click
+                sceneData.sceneRender->getToolsLayer()->enableTranslateGizmo();
             }
+            ImGui::EndDisabled();
+
+            ImGui::BeginDisabled(gizmoSelected == GizmoSelected::ROTATE);
             ImGui::SameLine();
             if (ImGui::Button(ICON_FA_ROTATE)) {
-                // Handle play button click
+                sceneData.sceneRender->getToolsLayer()->enableRotateGizmo();
             }
+            ImGui::EndDisabled();
+
+            ImGui::BeginDisabled(gizmoSelected == GizmoSelected::SCALE);
             ImGui::SameLine();
             if (ImGui::Button(ICON_FA_UP_RIGHT_AND_DOWN_LEFT_FROM_CENTER)) {
-                // Handle play button click
+                sceneData.sceneRender->getToolsLayer()->enableScaleGizmo();
             }
+            ImGui::EndDisabled();
 
             ImGui::BeginChild(("Canvas" + std::to_string(sceneData.id)).c_str());
             {

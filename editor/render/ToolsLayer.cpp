@@ -7,12 +7,14 @@ Editor::ToolsLayer::ToolsLayer(){
     float cylinderHeight = 2;
     float arrowRadius = 0.1;
     float arrowHeight = 0.4;
+    gizmoSelected = GizmoSelected::TRANSLATE;
     gizmoSideSelected = GizmoSideSelected::NONE;
 
     scene = new Scene();
     camera = new Camera(scene);
 
     tGizmo = new TranslateGizmo(scene);
+    rGizmo = new RotateGizmo(scene);
 
     scene->setCamera(camera);
 }
@@ -40,10 +42,43 @@ void Editor::ToolsLayer::updateCamera(CameraComponent& extCamera, Transform& ext
 }
 
 void Editor::ToolsLayer::updateGizmo(Vector3& position, float scale, Ray& mouseRay, bool mouseClicked){
-    tGizmo->setPosition(position);
-    tGizmo->setScale(scale);
-    if (!mouseClicked){
-        gizmoSideSelected = tGizmo->checkHoverHighlight(mouseRay);
+    if (gizmoSelected == GizmoSelected::TRANSLATE){
+        tGizmo->setPosition(position);
+        tGizmo->setScale(scale);
+        if (!mouseClicked){
+            gizmoSideSelected = tGizmo->checkHoverHighlight(mouseRay);
+        }
+    }
+    if (gizmoSelected == GizmoSelected::ROTATE){
+        rGizmo->setPosition(position);
+        rGizmo->setScale(scale);
+        if (!mouseClicked){
+            gizmoSideSelected = rGizmo->checkHoverHighlight(mouseRay);
+        }
+    }
+}
+
+void Editor::ToolsLayer::enableTranslateGizmo(){
+     gizmoSelected = GizmoSelected::TRANSLATE;
+}
+
+void Editor::ToolsLayer::enableRotateGizmo(){
+    gizmoSelected = GizmoSelected::ROTATE;
+}
+
+void Editor::ToolsLayer::enableScaleGizmo(){
+    gizmoSelected = GizmoSelected::SCALE;
+}
+
+void Editor::ToolsLayer::setGizmoVisible(bool visible){
+    tGizmo->setVisible(false);
+    rGizmo->setVisible(false);
+
+    if (gizmoSelected == GizmoSelected::TRANSLATE){
+        tGizmo->setVisible(visible);
+    }
+    if (gizmoSelected == GizmoSelected::ROTATE){
+        rGizmo->setVisible(visible);
     }
 }
 
@@ -63,8 +98,8 @@ Scene* Editor::ToolsLayer::getScene(){
     return scene;
 }
 
-Object* Editor::ToolsLayer::getGizmo(){
-    return tGizmo;
+Editor::GizmoSelected Editor::ToolsLayer::getGizmoSelected() const{
+    return gizmoSelected;
 }
 
 Editor::GizmoSideSelected Editor::ToolsLayer::getGizmoSideSelected() const{

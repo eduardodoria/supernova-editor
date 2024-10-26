@@ -128,7 +128,7 @@ void Editor::SceneRender::update(Entity selectedEntity){
             toolslayer.updateGizmo(transform->worldPosition, scale, mouseRay, mouseClicked);
         }
     }
-    toolslayer.getGizmo()->setVisible(gizmoVisibility);
+    toolslayer.setGizmoVisible(gizmoVisibility);
 }
 
 void Editor::SceneRender::mouseHoverEvent(float x, float y){
