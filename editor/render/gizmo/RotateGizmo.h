@@ -27,8 +27,12 @@ namespace Supernova::Editor{
         static const Vector3 zaxisColorHightlight;
         static const float circleAlpha;
 
+        void createHalfTorus(Entity entity, float radius, float ringRadius, unsigned int sides, unsigned int rings);
+
     public:
         RotateGizmo(Scene* scene);
+
+        void updateRotations(Camera* camera);
 
         GizmoSideSelected checkHoverHighlight(Ray& ray);
     };

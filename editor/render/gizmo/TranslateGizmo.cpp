@@ -90,8 +90,6 @@ Editor::GizmoSideSelected Editor::TranslateGizmo::checkHoverHighlight(Ray& ray){
 
     Editor::GizmoSideSelected gizmoSideSelected = GizmoSideSelected::NONE;
 
-    int axis = -1;
-
     AABB xaabb = xaxis->getModelMatrix() * Matrix4::scaleMatrix(Vector3(2, 1, 2)) * xaxis->getAABB().merge(xarrow->getAABB());
     AABB yaabb = yaxis->getModelMatrix() * Matrix4::scaleMatrix(Vector3(2, 1, 2)) * yaxis->getAABB().merge(yarrow->getAABB());
     AABB zaabb = zaxis->getModelMatrix() * Matrix4::scaleMatrix(Vector3(2, 1, 2)) * zaxis->getAABB().merge(zarrow->getAABB());
@@ -110,6 +108,7 @@ Editor::GizmoSideSelected Editor::TranslateGizmo::checkHoverHighlight(Ray& ray){
     rreturn[5] = ray.intersects(yzaabb);
     rreturn[6] = ray.intersects(sphereaabb);
 
+    int axis = -1;
     float minDist = FLT_MAX;
     for (int i = 0; i < 7; i++){
         if (rreturn[i]){

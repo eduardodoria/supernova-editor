@@ -125,7 +125,7 @@ void Editor::SceneRender::update(Entity selectedEntity){
             float dist = (transform->worldPosition - camera->getWorldPosition()).length();
             float scale = std::tan(cameracomp.yfov) * dist * (gizmoSize / (float)framebuffer.getHeight());
 
-            toolslayer.updateGizmo(transform->worldPosition, scale, mouseRay, mouseClicked);
+            toolslayer.updateGizmo(camera, transform->worldPosition, scale, mouseRay, mouseClicked);
         }
     }
     toolslayer.setGizmoVisible(gizmoVisibility);

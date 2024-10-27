@@ -41,7 +41,7 @@ void Editor::ToolsLayer::updateCamera(CameraComponent& extCamera, Transform& ext
     }
 }
 
-void Editor::ToolsLayer::updateGizmo(Vector3& position, float scale, Ray& mouseRay, bool mouseClicked){
+void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, float scale, Ray& mouseRay, bool mouseClicked){
     if (gizmoSelected == GizmoSelected::TRANSLATE){
         tGizmo->setPosition(position);
         tGizmo->setScale(scale);
@@ -50,6 +50,7 @@ void Editor::ToolsLayer::updateGizmo(Vector3& position, float scale, Ray& mouseR
         }
     }
     if (gizmoSelected == GizmoSelected::ROTATE){
+        rGizmo->updateRotations(camera);
         rGizmo->setPosition(position);
         rGizmo->setScale(scale);
         if (!mouseClicked){
