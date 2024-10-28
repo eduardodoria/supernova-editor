@@ -2,6 +2,7 @@
 
 #include "subsystem/MeshSystem.h"
 #include "util/Angle.h"
+#include "math/Sphere.h"
 
 using namespace Supernova;
 
@@ -200,13 +201,12 @@ Editor::GizmoSideSelected Editor::RotateGizmo::checkHoverHighlight(Ray& ray){
 
     Editor::GizmoSideSelected gizmoSideSelected = GizmoSideSelected::NONE;
 
-    RayReturn rreturn[3];
+    Sphere sphere(getWorldPosition(), 2 * getWorldScale().x);
 
     int axis = -1;
 
     for (int i = 0; i < xcircleAABBs.size(); i++){
         if (RayReturn creturn = ray.intersects(xcircle->getModelMatrix() * xcircleAABBs[i])){
-            rreturn[0] = creturn;
             axis = 0;
             break;
         }
@@ -214,7 +214,6 @@ Editor::GizmoSideSelected Editor::RotateGizmo::checkHoverHighlight(Ray& ray){
 
     for (int i = 0; i < ycircleAABBs.size(); i++){
         if (RayReturn creturn = ray.intersects(ycircle->getModelMatrix() * ycircleAABBs[i])){
-            rreturn[1] = creturn;
             axis = 1;
             break;
         }
@@ -222,9 +221,14 @@ Editor::GizmoSideSelected Editor::RotateGizmo::checkHoverHighlight(Ray& ray){
 
     for (int i = 0; i < zcircleAABBs.size(); i++){
         if (RayReturn creturn = ray.intersects(zcircle->getModelMatrix() * zcircleAABBs[i])){
-            rreturn[2] = creturn;
             axis = 2;
             break;
+        }
+    }
+
+    if (axis == -1){
+        if (RayReturn creturn = ray.intersects(sphere)){
+            axis = 3;
         }
     }
 
@@ -247,6 +251,13 @@ Editor::GizmoSideSelected Editor::RotateGizmo::checkHoverHighlight(Ray& ray){
         gizmoSideSelected = GizmoSideSelected::Z;
     }else{
         zcircle->setColor(Vector4(zaxisColor, 1.0));
+    }
+
+    if (axis == 3){
+        maincircle->setColor(Vector4(Vector3(1.0, 1.0, 1.0), circleAlpha));
+        gizmoSideSelected = GizmoSideSelected::XYZ;
+    }else{
+        maincircle->setColor(Vector4(mainColor, circleAlpha));
     }
 
     return gizmoSideSelected;
