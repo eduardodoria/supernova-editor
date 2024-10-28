@@ -26,9 +26,10 @@ Editor::RotateGizmo::RotateGizmo(Scene* scene): Object(scene){
     zcircle = new Shape(scene);
 
     maincircle->createTorus(torusHeight, mainRadius, 32, 32);
-    createHalfTorus(xcircle->getEntity(), torusHeight, axisRadius, 32, 16);
-    createHalfTorus(ycircle->getEntity(), torusHeight, axisRadius, 32, 16);
-    createHalfTorus(zcircle->getEntity(), torusHeight, axisRadius, 32, 16);
+
+    xcircleAABBs = createHalfTorus(xcircle->getEntity(), torusHeight, axisRadius, 32, 16);
+    ycircleAABBs = createHalfTorus(ycircle->getEntity(), torusHeight, axisRadius, 32, 16);
+    zcircleAABBs = createHalfTorus(zcircle->getEntity(), torusHeight, axisRadius, 32, 16);
 
     maincircle->setColor(Vector4(mainColor, circleAlpha));
     xcircle->setColor(Vector4(xaxisColor, 1.0));
@@ -44,7 +45,10 @@ Editor::RotateGizmo::RotateGizmo(Scene* scene): Object(scene){
     this->addChild(zcircle);
 }
 
-void Editor::RotateGizmo::createHalfTorus(Entity entity, float radius, float ringRadius, unsigned int sides, unsigned int rings) {
+std::vector<AABB> Editor::RotateGizmo::createHalfTorus(Entity entity, float radius, float ringRadius, unsigned int sides, unsigned int rings) {
+    std::vector<AABB> aabbs;
+    aabbs.resize(rings);
+
     MeshComponent& mesh = scene->getComponent<MeshComponent>(entity);
 
     mesh.submeshes[0].primitiveType = PrimitiveType::TRIANGLES;
@@ -87,6 +91,13 @@ void Editor::RotateGizmo::createHalfTorus(Entity entity, float radius, float rin
             mesh.buffer.addVector3(attNormal, Vector3(spx - ipx, spy - ipy, spz - ipz));
             mesh.buffer.addVector2(attTexcoord, Vector2(ring * du, 1.0f - side * dv));
             mesh.buffer.addVector4(attColor, Vector4(1.0f, 1.0f, 1.0f, 1.0f));
+
+            if (ring < rings){
+                aabbs[ring].merge(Vector3(spx, spy, spz));
+            }
+            if (ring > 0){
+                aabbs[ring-1].merge(Vector3(spx, spy, spz));
+            }
         }
     }
 
@@ -167,6 +178,8 @@ void Editor::RotateGizmo::createHalfTorus(Entity entity, float radius, float rin
         mesh.needReload = true;
 
     scene->getSystem<MeshSystem>()->calculateMeshAABB(mesh);
+
+    return aabbs;
 }
 
 void Editor::RotateGizmo::updateRotations(Camera* camera){
@@ -187,24 +200,31 @@ Editor::GizmoSideSelected Editor::RotateGizmo::checkHoverHighlight(Ray& ray){
 
     Editor::GizmoSideSelected gizmoSideSelected = GizmoSideSelected::NONE;
 
-    AABB xaabb = xcircle->getModelMatrix() * xcircle->getAABB();
-    AABB yaabb = ycircle->getModelMatrix() * ycircle->getAABB();
-    AABB zaabb = zcircle->getModelMatrix() * zcircle->getAABB();
-
     RayReturn rreturn[3];
 
-    rreturn[0] = ray.intersects(xaabb);
-    rreturn[1] = ray.intersects(yaabb);
-    rreturn[2] = ray.intersects(zaabb);
-
     int axis = -1;
-    float minDist = FLT_MAX;
-    for (int i = 0; i < 3; i++){
-        if (rreturn[i]){
-            if (rreturn[i].distance <= minDist || (i >= 3 && axis <= 2)){
-                minDist = rreturn[i].distance;
-                axis = i;
-            }
+
+    for (int i = 0; i < xcircleAABBs.size(); i++){
+        if (RayReturn creturn = ray.intersects(xcircle->getModelMatrix() * xcircleAABBs[i])){
+            rreturn[0] = creturn;
+            axis = 0;
+            break;
+        }
+    }
+
+    for (int i = 0; i < ycircleAABBs.size(); i++){
+        if (RayReturn creturn = ray.intersects(ycircle->getModelMatrix() * ycircleAABBs[i])){
+            rreturn[1] = creturn;
+            axis = 1;
+            break;
+        }
+    }
+
+    for (int i = 0; i < zcircleAABBs.size(); i++){
+        if (RayReturn creturn = ray.intersects(zcircle->getModelMatrix() * zcircleAABBs[i])){
+            rreturn[2] = creturn;
+            axis = 2;
+            break;
         }
     }
 

@@ -17,6 +17,10 @@ namespace Supernova::Editor{
         Shape* ycircle;
         Shape* zcircle;
 
+        std::vector<AABB> xcircleAABBs;
+        std::vector<AABB> ycircleAABBs;
+        std::vector<AABB> zcircleAABBs;
+
         static const Vector3 mainColor;
         static const Vector3 xaxisColor;
         static const Vector3 yaxisColor;
@@ -27,7 +31,7 @@ namespace Supernova::Editor{
         static const Vector3 zaxisColorHightlight;
         static const float circleAlpha;
 
-        void createHalfTorus(Entity entity, float radius, float ringRadius, unsigned int sides, unsigned int rings);
+        std::vector<AABB> createHalfTorus(Entity entity, float radius, float ringRadius, unsigned int sides, unsigned int rings);
 
     public:
         RotateGizmo(Scene* scene);
