@@ -59,6 +59,18 @@ void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, float 
     }
 }
 
+void Editor::ToolsLayer::mouseDrag(Vector3 point){
+    if (gizmoSelected == GizmoSelected::ROTATE){
+        rGizmo->drawLine(point);
+    }
+}
+
+void Editor::ToolsLayer::mouseRelease(){
+    if (gizmoSelected == GizmoSelected::ROTATE){
+        rGizmo->removeLine();
+    }
+}
+
 void Editor::ToolsLayer::enableTranslateGizmo(){
      gizmoSelected = GizmoSelected::TRANSLATE;
 }

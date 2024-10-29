@@ -180,6 +180,8 @@ void Editor::SceneRender::mouseClickEvent(float x, float y, Entity entity){
 void Editor::SceneRender::mouseReleaseEvent(float x, float y){
     mouseClicked = false;
 
+    toolslayer.mouseRelease();
+
     if (lastCommand){
         lastCommand->setNoMerge();
         lastCommand = nullptr;
@@ -193,6 +195,8 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, Entity entity){
         RayReturn rretrun = mouseRay.intersects(cursorPlane);
 
         if (rretrun){
+
+            toolslayer.mouseDrag(rretrun.point);
 
             Transform* transformParent = scene->findComponent<Transform>(transform->parent);
 
@@ -241,20 +245,19 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, Entity entity){
 
                 Vector3 rotAxis = cursorPlane.normal;
                 if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
-                    rotAxis = Vector3(1.0, 0.0, 0.0);
+                    rotAxis = Vector3(cursorPlane.normal.x, 0.0, 0.0).normalize();
                 }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
-                    rotAxis = Vector3(0.0, 1.0, 0.0);
+                    rotAxis = Vector3(0.0, cursorPlane.normal.y, 0.0).normalize();
                 }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
-                    rotAxis = Vector3(0.0, 0.0, 1.0);
+                    rotAxis = Vector3(0.0, 0.0, cursorPlane.normal.z).normalize();
                 }
 
-                Quaternion localRotation = Quaternion(Angle::radToDefault(angle), rotAxis) * rotationStartOffset;
+                Quaternion newRot = Quaternion(Angle::radToDefault(angle), rotAxis) * rotationStartOffset;
                 if (transformParent){
-                    localRotation = Quaternion(transformParent->modelMatrix.inverse() * localRotation.getRotationMatrix());
+                    newRot = Quaternion(transformParent->modelMatrix.inverse() * newRot.getRotationMatrix());
                 }
 
-                transform->rotation = localRotation;
-                transform->needUpdate = true;
+                lastCommand = new ChangePropertyCmd<Quaternion>(scene, entity, ComponentType::Transform, "rotation", newRot);
             }
 
             if (lastCommand){

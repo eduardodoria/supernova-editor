@@ -10,6 +10,7 @@ const Vector3 Editor::RotateGizmo::mainColor = Vector3(0.8, 0.8, 0.8);
 const Vector3 Editor::RotateGizmo::xaxisColor = Vector3(0.7, 0.2, 0.2);
 const Vector3 Editor::RotateGizmo::yaxisColor = Vector3(0.2, 0.7, 0.2);
 const Vector3 Editor::RotateGizmo::zaxisColor = Vector3(0.2, 0.2, 0.7);
+const Vector3 Editor::RotateGizmo::lineColor = Vector3(1.0, 0.5, 0.2);
 const Vector3 Editor::RotateGizmo::mainColorHightlight = Vector3(0.9, 0.9, 0.9);
 const Vector3 Editor::RotateGizmo::xaxisColorHightlight = Vector3(0.9, 0.7, 0.7);
 const Vector3 Editor::RotateGizmo::yaxisColorHightlight = Vector3(0.7, 0.9, 0.7);
@@ -25,6 +26,10 @@ Editor::RotateGizmo::RotateGizmo(Scene* scene): Object(scene){
     xcircle = new Shape(scene);
     ycircle = new Shape(scene);
     zcircle = new Shape(scene);
+    lines = new Lines(scene);
+
+    lines->addLine(Vector3::ZERO, Vector3::ZERO, Vector4(lineColor, 1.0));
+    lines->setVisible(false);
 
     maincircle->createTorus(torusHeight, mainRadius, 32, 32);
 
@@ -195,6 +200,15 @@ void Editor::RotateGizmo::updateRotations(Camera* camera){
     xcircle->setRotation(Quaternion(Angle::radToDefault(atan2(viewX.z, viewX.y)), planeX.normal) * Quaternion(0, 0, 90));
     ycircle->setRotation(Quaternion(Angle::radToDefault(atan2(viewY.x, viewY.z) - M_PI_2), planeY.normal));
     zcircle->setRotation(Quaternion(Angle::radToDefault(atan2(viewZ.y, viewZ.x)), planeZ.normal) * Quaternion(90, 0, 0));
+}
+
+void Editor::RotateGizmo::drawLine(Vector3 point){
+    lines->setVisible(true);
+    lines->updateLine(0, getWorldPosition(), point);
+}
+
+void Editor::RotateGizmo::removeLine(){
+    lines->setVisible(false);
 }
 
 Editor::GizmoSideSelected Editor::RotateGizmo::checkHoverHighlight(Ray& ray){

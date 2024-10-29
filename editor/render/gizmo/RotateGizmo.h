@@ -5,6 +5,7 @@
 #include "object/Object.h"
 #include "object/Shape.h"
 #include "object/ui/Image.h"
+#include "object/Lines.h"
 
 #include "render/RenderUtil.h"
 
@@ -17,6 +18,8 @@ namespace Supernova::Editor{
         Shape* ycircle;
         Shape* zcircle;
 
+        Lines* lines;
+
         std::vector<AABB> xcircleAABBs;
         std::vector<AABB> ycircleAABBs;
         std::vector<AABB> zcircleAABBs;
@@ -25,6 +28,7 @@ namespace Supernova::Editor{
         static const Vector3 xaxisColor;
         static const Vector3 yaxisColor;
         static const Vector3 zaxisColor;
+        static const Vector3 lineColor;
         static const Vector3 mainColorHightlight;
         static const Vector3 xaxisColorHightlight;
         static const Vector3 yaxisColorHightlight;
@@ -37,6 +41,8 @@ namespace Supernova::Editor{
         RotateGizmo(Scene* scene);
 
         void updateRotations(Camera* camera);
+        void drawLine(Vector3 point);
+        void removeLine();
 
         GizmoSideSelected checkHoverHighlight(Ray& ray);
     };
