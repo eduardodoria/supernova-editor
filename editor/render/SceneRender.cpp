@@ -165,7 +165,8 @@ void Editor::SceneRender::mouseClickEvent(float x, float y, Entity entity){
 
         RayReturn rretrun = mouseRay.intersects(cursorPlane);
         if (rretrun){
-            objectOffset = transform->worldPosition - rretrun.point;
+            cursorStartOffset = transform->worldPosition - rretrun.point;
+            rotationStartOffset = transform->worldRotation;
         }
     }
 }
@@ -188,31 +189,54 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, Entity entity){
         if (rretrun){
 
             Transform* transformParent = scene->findComponent<Transform>(transform->parent);
-            Vector3 pos = (rretrun.point + objectOffset);
-            if (transformParent){
-                pos = transformParent->modelMatrix.inverse() * pos;
+
+            if (toolslayer.getGizmoSelected() == GizmoSelected::TRANSLATE){
+                Vector3 pos = (rretrun.point + cursorStartOffset);
+                if (transformParent){
+                    pos = transformParent->modelMatrix.inverse() * pos;
+                }
+
+                if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XYZ){
+                    lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", pos);
+                }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
+                    Vector3 newPos = Vector3(pos.x, transform->position.y, transform->position.z);
+                    lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", newPos);
+                }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
+                    Vector3 newPos = Vector3(transform->position.x, pos.y, transform->position.z);
+                    lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", newPos);
+                }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
+                    Vector3 newPos = Vector3(transform->position.x, transform->position.y, pos.z);
+                    lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", newPos);
+                }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XY){
+                    Vector3 newPos = Vector3(pos.x, pos.y, transform->position.z);
+                    lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", newPos);
+                }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XZ){
+                    Vector3 newPos = Vector3(pos.x, transform->position.y, pos.z);
+                    lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", newPos);
+                }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::YZ){
+                    Vector3 newPos = Vector3(transform->position.x, pos.y, pos.z);
+                    lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", newPos);
+                }
             }
 
-            if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XYZ){
-                lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", pos);
-            }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
-                Vector3 newPos = Vector3(pos.x, transform->position.y, transform->position.z);
-                lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", newPos);
-            }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
-                Vector3 newPos = Vector3(transform->position.x, pos.y, transform->position.z);
-                lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", newPos);
-            }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
-                Vector3 newPos = Vector3(transform->position.x, transform->position.y, pos.z);
-                lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", newPos);
-            }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XY){
-                Vector3 newPos = Vector3(pos.x, pos.y, transform->position.z);
-                lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", newPos);
-            }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XZ){
-                Vector3 newPos = Vector3(pos.x, transform->position.y, pos.z);
-                lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", newPos);
-            }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::YZ){
-                Vector3 newPos = Vector3(transform->position.x, pos.y, pos.z);
-                lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", newPos);
+            if (toolslayer.getGizmoSelected() == GizmoSelected::ROTATE){
+                Vector3 lastPoint = transform->worldPosition - rretrun.point;
+
+                float dot = cursorStartOffset.dotProduct(lastPoint);
+                float slength = cursorStartOffset.length() * lastPoint.length();
+                float cosine = (slength != 0) ? dot / slength : 0;
+                cosine = std::fmax(-1.0, std::fmin(1.0, cosine));
+                float orig_angle = acos(cosine);
+
+                Vector3 cross = cursorStartOffset.crossProduct(lastPoint);
+                float sign = cross.dotProduct(cursorPlane.normal);
+
+                float angle = (sign < 0) ? -orig_angle : orig_angle;
+
+                transform->rotation = rotationStartOffset * Quaternion(Angle::radToDefault(angle), cursorPlane.normal);
+                transform->needUpdate = true;
+
+                printf("%f %s\n", angle, cursorPlane.normal.toString().c_str());
             }
 
             if (lastCommand){

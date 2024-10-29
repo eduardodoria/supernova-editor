@@ -2,11 +2,11 @@
 
 using namespace Supernova;
 
-const Vector3 Editor::TranslateGizmo::centerColor = Vector3(1.0, 0.5, 0.2);
+const Vector3 Editor::TranslateGizmo::centerColor = Vector3(0.8, 0.8, 0.8);
 const Vector3 Editor::TranslateGizmo::xaxisColor = Vector3(0.7, 0.2, 0.2);
 const Vector3 Editor::TranslateGizmo::yaxisColor = Vector3(0.2, 0.7, 0.2);
 const Vector3 Editor::TranslateGizmo::zaxisColor = Vector3(0.2, 0.2, 0.7);
-const Vector3 Editor::TranslateGizmo::centerColorHightlight = Vector3(0.7, 0.7, 1.0);
+const Vector3 Editor::TranslateGizmo::centerColorHightlight = Vector3(0.9, 0.9, 0.9);
 const Vector3 Editor::TranslateGizmo::xaxisColorHightlight = Vector3(0.9, 0.7, 0.7);
 const Vector3 Editor::TranslateGizmo::yaxisColorHightlight = Vector3(0.7, 0.9, 0.7);
 const Vector3 Editor::TranslateGizmo::zaxisColorHightlight = Vector3(0.7, 0.7, 0.9);

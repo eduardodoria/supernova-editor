@@ -6,11 +6,11 @@
 
 using namespace Supernova;
 
-const Vector3 Editor::RotateGizmo::mainColor = Vector3(1.0, 0.5, 0.2);
+const Vector3 Editor::RotateGizmo::mainColor = Vector3(0.8, 0.8, 0.8);
 const Vector3 Editor::RotateGizmo::xaxisColor = Vector3(0.7, 0.2, 0.2);
 const Vector3 Editor::RotateGizmo::yaxisColor = Vector3(0.2, 0.7, 0.2);
 const Vector3 Editor::RotateGizmo::zaxisColor = Vector3(0.2, 0.2, 0.7);
-const Vector3 Editor::RotateGizmo::centerColorHightlight = Vector3(0.7, 0.7, 1.0);
+const Vector3 Editor::RotateGizmo::mainColorHightlight = Vector3(0.9, 0.9, 0.9);
 const Vector3 Editor::RotateGizmo::xaxisColorHightlight = Vector3(0.9, 0.7, 0.7);
 const Vector3 Editor::RotateGizmo::yaxisColorHightlight = Vector3(0.7, 0.9, 0.7);
 const Vector3 Editor::RotateGizmo::zaxisColorHightlight = Vector3(0.7, 0.7, 0.9);
@@ -105,7 +105,7 @@ std::vector<AABB> Editor::RotateGizmo::createHalfTorus(Entity entity, float radi
     // Add cap vertices
     uint32_t baseIndex = (sides + 1) * (rings + 1);
 
-    // For both ends (0 and π)
+    // For both ends
     for (int end = 0; end <= 1; end++) {
         float theta = end * pi;
         float sin_theta = sinf(theta);
@@ -254,7 +254,7 @@ Editor::GizmoSideSelected Editor::RotateGizmo::checkHoverHighlight(Ray& ray){
     }
 
     if (axis == 3){
-        maincircle->setColor(Vector4(Vector3(1.0, 1.0, 1.0), circleAlpha));
+        maincircle->setColor(Vector4(mainColorHightlight, circleAlpha));
         gizmoSideSelected = GizmoSideSelected::XYZ;
     }else{
         maincircle->setColor(Vector4(mainColor, circleAlpha));

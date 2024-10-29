@@ -23,7 +23,8 @@ namespace Supernova::Editor{
         Ray mouseRay;
         bool mouseClicked;
         Plane cursorPlane;
-        Vector3 objectOffset;
+        Vector3 cursorStartOffset;
+        Quaternion rotationStartOffset;
 
         Command* lastCommand;
 

@@ -25,7 +25,7 @@ namespace Supernova::Editor{
         static const Vector3 xaxisColor;
         static const Vector3 yaxisColor;
         static const Vector3 zaxisColor;
-        static const Vector3 centerColorHightlight;
+        static const Vector3 mainColorHightlight;
         static const Vector3 xaxisColorHightlight;
         static const Vector3 yaxisColorHightlight;
         static const Vector3 zaxisColorHightlight;
