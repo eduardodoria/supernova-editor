@@ -147,20 +147,26 @@ void Editor::SceneRender::mouseClickEvent(float x, float y, Entity entity){
         float dotY = viewDir.dotProduct(Vector3(0,1,0));
         float dotZ = viewDir.dotProduct(Vector3(0,0,1));
 
-        if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XYZ){
+        if (toolslayer.getGizmoSelected() == GizmoSelected::TRANSLATE){
+            if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XYZ){
+                cursorPlane = Plane(Vector3(dotX, dotY, dotZ).normalize(), transform->worldPosition);
+            }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
+                cursorPlane = Plane(Vector3(0, dotY, dotZ).normalize(), transform->worldPosition);
+            }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
+                cursorPlane = Plane(Vector3(dotX, 0, dotZ).normalize(), transform->worldPosition);
+            }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
+                cursorPlane = Plane(Vector3(dotX, dotY, 0).normalize(), transform->worldPosition);
+            }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XY){
+                cursorPlane = Plane(Vector3(0, 0, dotZ).normalize(), transform->worldPosition);
+            }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XZ){
+                cursorPlane = Plane(Vector3(0, dotY, 0).normalize(), transform->worldPosition);
+            }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::YZ){
+                cursorPlane = Plane(Vector3(dotX, 0, 0).normalize(), transform->worldPosition);
+            }
+        }
+
+        if (toolslayer.getGizmoSelected() == GizmoSelected::ROTATE){
             cursorPlane = Plane(Vector3(dotX, dotY, dotZ).normalize(), transform->worldPosition);
-        }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
-            cursorPlane = Plane(Vector3(0, dotY, dotZ).normalize(), transform->worldPosition);
-        }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
-            cursorPlane = Plane(Vector3(dotX, 0, dotZ).normalize(), transform->worldPosition);
-        }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
-            cursorPlane = Plane(Vector3(dotX, dotY, 0).normalize(), transform->worldPosition);
-        }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XY){
-            cursorPlane = Plane(Vector3(0, 0, dotZ).normalize(), transform->worldPosition);
-        }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XZ){
-            cursorPlane = Plane(Vector3(0, dotY, 0).normalize(), transform->worldPosition);
-        }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::YZ){
-            cursorPlane = Plane(Vector3(dotX, 0, 0).normalize(), transform->worldPosition);
         }
 
         RayReturn rretrun = mouseRay.intersects(cursorPlane);
@@ -233,10 +239,22 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, Entity entity){
 
                 float angle = (sign < 0) ? -orig_angle : orig_angle;
 
-                transform->rotation = rotationStartOffset * Quaternion(Angle::radToDefault(angle), cursorPlane.normal);
-                transform->needUpdate = true;
+                Vector3 rotAxis = cursorPlane.normal;
+                if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
+                    rotAxis = Vector3(1.0, 0.0, 0.0);
+                }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
+                    rotAxis = Vector3(0.0, 1.0, 0.0);
+                }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
+                    rotAxis = Vector3(0.0, 0.0, 1.0);
+                }
 
-                printf("%f %s\n", angle, cursorPlane.normal.toString().c_str());
+                Quaternion localRotation = Quaternion(Angle::radToDefault(angle), rotAxis) * rotationStartOffset;
+                if (transformParent){
+                    localRotation = Quaternion(transformParent->modelMatrix.inverse() * localRotation.getRotationMatrix());
+                }
+
+                transform->rotation = localRotation;
+                transform->needUpdate = true;
             }
 
             if (lastCommand){
