@@ -1,5 +1,5 @@
-#ifndef STRUCTURE_H
-#define STRUCTURE_H
+#ifndef METADATA_H
+#define METADATA_H
 
 #include <stddef.h>
 #include <string>
@@ -72,11 +72,11 @@ namespace Supernova::Editor{
         void* ref;
     };
 
-    class Structure{
+    class Metadata{
     private:
 
     public:
-        Structure();
+        Metadata();
 
         static size_t getPropertiesSize(ComponentType component);
         static std::vector<PropertyData> getProperties(ComponentType component, void* compRef);
@@ -84,7 +84,7 @@ namespace Supernova::Editor{
 
         template<typename T>
         static T* getPropertyRef(Scene* scene, Entity entity, ComponentType component, std::string propertyName){
-            for (auto& property : Structure::getProperties(scene, entity, component)) {
+            for (auto& property : Metadata::getProperties(scene, entity, component)) {
                 if (property.name == propertyName){
                     return static_cast<T*>(property.ref);
                 }
@@ -98,4 +98,4 @@ namespace Supernova::Editor{
 
 }
 
-#endif /* STRUCTURE_H */
+#endif /* METADATA_H */

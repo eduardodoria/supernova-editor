@@ -12,7 +12,7 @@ using namespace Supernova;
 bool Editor::App::isInitialized = false;
 
 Editor::App::App(){
-    objectsWindow = new Objects(&project);
+    structureWindow = new Structure(&project);
     propertiesWindow = new Properties();
     consoleWindow = new Console();
     sceneWindow = new SceneWindow(&project);
@@ -82,7 +82,7 @@ void Editor::App::buildDockspace(){
     size = 14*ImGui::GetFontSize();
     ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.0f, &dock_id_left, &dock_id_middle);
     ImGui::DockBuilderSetNodeSize(dock_id_left, ImVec2(size, ImGui::GetMainViewport()->Size.y)); // Set left node size
-    ImGui::DockBuilderDockWindow("Objects", dock_id_left);
+    ImGui::DockBuilderDockWindow("Structure", dock_id_left);
 
     // Split the middle into right and remaining middle
     size = 18*ImGui::GetFontSize();
@@ -156,7 +156,7 @@ void Editor::App::show(){
     showStyleEditor();
     #endif
 
-    objectsWindow->show();
+    structureWindow->show();
     consoleWindow->show();
     propertiesWindow->show();
     sceneWindow->show();

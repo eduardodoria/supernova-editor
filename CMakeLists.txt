@@ -91,14 +91,14 @@ add_executable(
     ${EDITOR_DIR}/Factory.cpp
     ${EDITOR_DIR}/Platform.cpp
     ${EDITOR_DIR}/Project.cpp
-    ${EDITOR_DIR}/Structure.cpp
+    ${EDITOR_DIR}/Metadata.cpp
 
     ${EDITOR_DIR}/backend/BackendGLFW.cpp
 
-    ${EDITOR_DIR}/window/Objects.cpp
     ${EDITOR_DIR}/window/Properties.cpp
     ${EDITOR_DIR}/window/Console.cpp
     ${EDITOR_DIR}/window/SceneWindow.cpp
+    ${EDITOR_DIR}/window/Structure.cpp
 
     ${EDITOR_DIR}/render/ViewportGizmo.cpp
     ${EDITOR_DIR}/render/ToolsLayer.cpp

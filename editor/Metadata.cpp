@@ -1,13 +1,13 @@
-#include "Structure.h"
+#include "Metadata.h"
 
 #include "Scene.h"
 
 using namespace Supernova;
 
-Editor::Structure::Structure(){
+Editor::Metadata::Metadata(){
 }
 
-size_t Editor::Structure::getPropertiesSize(ComponentType component){
+size_t Editor::Metadata::getPropertiesSize(ComponentType component){
     if(component == ComponentType::ActionComponent){
         return 1;
     }else if(component == ComponentType::AlphaActionComponent){
@@ -103,7 +103,7 @@ size_t Editor::Structure::getPropertiesSize(ComponentType component){
     return 0;
 }
 
-std::vector<Editor::PropertyData> Editor::Structure::getProperties(ComponentType component, void* compRef){
+std::vector<Editor::PropertyData> Editor::Metadata::getProperties(ComponentType component, void* compRef){
     std::vector<PropertyData> ps;
     if(component == ComponentType::Transform){
         Transform* comp = (Transform*)compRef;
@@ -122,7 +122,7 @@ std::vector<Editor::PropertyData> Editor::Structure::getProperties(ComponentType
     return ps;
 }
 
-std::vector<Editor::PropertyData> Editor::Structure::getProperties(Scene* scene, Entity entity, ComponentType component){
+std::vector<Editor::PropertyData> Editor::Metadata::getProperties(Scene* scene, Entity entity, ComponentType component){
     if(component == ComponentType::Transform){
         if (Transform* compRef = scene->findComponent<Transform>(entity)){
             return getProperties(component, compRef);

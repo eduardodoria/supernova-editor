@@ -2,7 +2,7 @@
 #define PROJECT_H
 
 #include "Scene.h"
-#include "Structure.h"
+#include "Metadata.h"
 #include "render/SceneRender.h"
 #include "command/CommandHistory.h"
 

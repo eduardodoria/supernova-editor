@@ -6,7 +6,7 @@
 #include "Project.h"
 
 #include "window/Properties.h"
-#include "window/Objects.h"
+#include "window/Structure.h"
 #include "window/Console.h"
 #include "window/SceneWindow.h"
 
@@ -20,7 +20,7 @@ namespace Supernova::Editor{
 
         ImGuiID dockspace_id;
 
-        Objects* objectsWindow;
+        Structure* structureWindow;
         Properties* propertiesWindow;
         Console* consoleWindow;
         SceneWindow* sceneWindow;

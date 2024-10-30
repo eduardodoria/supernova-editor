@@ -1,17 +1,17 @@
-#include "Objects.h"
+#include "Structure.h"
 
 #include "external/IconsFontAwesome6.h"
 #include "command/type/MoveEntityOrderCmd.h"
 
 using namespace Supernova;
 
-Editor::Objects::Objects(Project* project){
+Editor::Structure::Structure(Project* project){
     this->project = project;
 
     this->selectedNodeRight = nullptr;
 }
 
-void Editor::Objects::showNewEntityMenu(bool isScene){
+void Editor::Structure::showNewEntityMenu(bool isScene){
     if (ImGui::BeginMenu(ICON_FA_CUBE"  Basic shape"))
     {
         if (ImGui::MenuItem(ICON_FA_CUBE"  Box"))
@@ -42,7 +42,7 @@ void Editor::Objects::showNewEntityMenu(bool isScene){
     ImGui::EndMenu();
 }
 
-void Editor::Objects::showIconMenu(){
+void Editor::Structure::showIconMenu(){
     if (ImGui::Button(ICON_FA_PLUS)) {
         ImGui::OpenPopup("NewObjectMenu");
     }
@@ -101,14 +101,14 @@ void Editor::Objects::showIconMenu(){
     }
 }
 
-void Editor::Objects::drawInsertionMarker(const ImVec2& p1, const ImVec2& p2) {
+void Editor::Structure::drawInsertionMarker(const ImVec2& p1, const ImVec2& p2) {
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     ImU32 col = ImGui::GetColorU32(ImGuiCol_DragDropTarget);
     float thickness = 2.0f;
     draw_list->AddLine(p1, p2, col, thickness);
 }
 
-std::string Editor::Objects::getObjectIcon(Signature signature, Scene* scene){
+std::string Editor::Structure::getObjectIcon(Signature signature, Scene* scene){
     if (signature.test(scene->getComponentId<ModelComponent>())){
         return ICON_FA_PERSON_WALKING;
     }else if (signature.test(scene->getComponentId<MeshComponent>())){
@@ -120,7 +120,7 @@ std::string Editor::Objects::getObjectIcon(Signature signature, Scene* scene){
     return ICON_FA_CIRCLE_DOT;
 }
 
-Editor::TreeNode* Editor::Objects::findNode(Editor::TreeNode* root, Entity entity){
+Editor::TreeNode* Editor::Structure::findNode(Editor::TreeNode* root, Entity entity){
      for (int i = 0; i < root->children.size(); i++){
         Editor::TreeNode* node = &root->children[i];
         if (!node->isScene && node->id == entity){
@@ -135,7 +135,7 @@ Editor::TreeNode* Editor::Objects::findNode(Editor::TreeNode* root, Entity entit
      return nullptr;
 }
 
-void Editor::Objects::showTreeNode(Editor::TreeNode& node) {
+void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     static TreeNode* selectedNode = nullptr;
 
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
@@ -322,7 +322,7 @@ void Editor::Objects::showTreeNode(Editor::TreeNode& node) {
     }
 }
 
-void Editor::Objects::changeNodeName(const TreeNode* node, const std::string name){
+void Editor::Structure::changeNodeName(const TreeNode* node, const std::string name){
     if (node->isScene){
         project->getScene(node->id)->name = name;
     }else{
@@ -330,7 +330,7 @@ void Editor::Objects::changeNodeName(const TreeNode* node, const std::string nam
     }
 }
 
-void Editor::Objects::show(){
+void Editor::Structure::show(){
     SceneData* sceneData = project->getSelectedScene();
     size_t order = 0;
 
@@ -402,7 +402,7 @@ void Editor::Objects::show(){
         }
     }
 
-    ImGui::Begin("Objects");
+    ImGui::Begin("Structure");
     showIconMenu();
     showTreeNode(root);
     ImGui::End();

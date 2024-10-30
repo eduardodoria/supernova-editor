@@ -6,7 +6,7 @@
 #include "math/Vector3.h"
 #include "ecs/Entity.h"
 #include "component/Transform.h"
-#include "Structure.h"
+#include "Metadata.h"
 
 
 namespace Supernova::Editor{
@@ -34,7 +34,7 @@ namespace Supernova::Editor{
         }
 
         void execute(){
-            T* valueRef = Structure::getPropertyRef<T>(scene, entity, type, propertyName);
+            T* valueRef = Metadata::getPropertyRef<T>(scene, entity, type, propertyName);
 
             oldValue = T(*valueRef);
             *valueRef = newValue;
@@ -43,7 +43,7 @@ namespace Supernova::Editor{
         }
 
         void undo(){
-            T* valueRef = Structure::getPropertyRef<T>(scene, entity, type, propertyName);
+            T* valueRef = Metadata::getPropertyRef<T>(scene, entity, type, propertyName);
 
             *valueRef = oldValue;
 
@@ -51,10 +51,10 @@ namespace Supernova::Editor{
         }
 
         bool mergeWith(Editor::Command* olderCommand){
-            T* valueRef = Structure::getPropertyRef<T>(scene, entity, type, propertyName);
+            T* valueRef = Metadata::getPropertyRef<T>(scene, entity, type, propertyName);
             ChangePropertyCmd* olderCmd = dynamic_cast<ChangePropertyCmd*>(olderCommand);
             if (olderCmd != nullptr){
-                T* olderValueRef = Structure::getPropertyRef<T>(olderCmd->scene, olderCmd->entity, olderCmd->type, olderCmd->propertyName);
+                T* olderValueRef = Metadata::getPropertyRef<T>(olderCmd->scene, olderCmd->entity, olderCmd->type, olderCmd->propertyName);
                 if (valueRef == olderValueRef){
                     this->oldValue = olderCmd->oldValue;
                     return true;

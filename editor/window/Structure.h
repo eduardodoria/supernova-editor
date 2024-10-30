@@ -1,5 +1,5 @@
-#ifndef LAYOUTOBJECTS_H
-#define LAYOUTOBJECTS_H
+#ifndef STRUCTURE_H
+#define STRUCTURE_H
 
 #include "Project.h"
 #include "imgui.h"
@@ -19,7 +19,7 @@ namespace Supernova::Editor{
         std::vector<TreeNode> children;
     };
 
-    class Objects{
+    class Structure{
     private:
 
         Project* project;
@@ -38,11 +38,11 @@ namespace Supernova::Editor{
         TreeNode* findNode(Editor::TreeNode* root, Entity entity);
 
     public:
-        Objects(Project* project);
+        Structure(Project* project);
 
         void show();
     };
 
 }
 
-#endif /* LAYOUTOBJECTS_H */
+#endif /* STRUCTURE_H */
