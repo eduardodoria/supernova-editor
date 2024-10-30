@@ -201,31 +201,27 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, Entity entity){
             Transform* transformParent = scene->findComponent<Transform>(transform->parent);
 
             if (toolslayer.getGizmoSelected() == GizmoSelected::TRANSLATE){
-                Vector3 pos = (rretrun.point + cursorStartOffset);
+                Vector3 pos = (rretrun.point + cursorStartOffset); //XYZ
+                if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
+                    pos = Vector3(pos.x, transform->worldPosition.y, transform->worldPosition.z);
+                }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
+                    pos = Vector3(transform->worldPosition.x, pos.y, transform->worldPosition.z);
+                }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
+                    pos = Vector3(transform->worldPosition.x, transform->worldPosition.y, pos.z);
+                }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XY){
+                    pos = Vector3(pos.x, pos.y, transform->worldPosition.z);
+                }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XZ){
+                    pos = Vector3(pos.x, transform->worldPosition.y, pos.z);
+                }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::YZ){
+                    pos = Vector3(transform->worldPosition.x, pos.y, pos.z);
+                }
+
                 if (transformParent){
                     pos = transformParent->modelMatrix.inverse() * pos;
                 }
 
-                if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XYZ){
+                if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
                     lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", pos);
-                }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
-                    Vector3 newPos = Vector3(pos.x, transform->position.y, transform->position.z);
-                    lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", newPos);
-                }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
-                    Vector3 newPos = Vector3(transform->position.x, pos.y, transform->position.z);
-                    lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", newPos);
-                }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
-                    Vector3 newPos = Vector3(transform->position.x, transform->position.y, pos.z);
-                    lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", newPos);
-                }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XY){
-                    Vector3 newPos = Vector3(pos.x, pos.y, transform->position.z);
-                    lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", newPos);
-                }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XZ){
-                    Vector3 newPos = Vector3(pos.x, transform->position.y, pos.z);
-                    lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", newPos);
-                }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::YZ){
-                    Vector3 newPos = Vector3(transform->position.x, pos.y, pos.z);
-                    lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", newPos);
                 }
             }
 
@@ -257,7 +253,9 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, Entity entity){
                     newRot = Quaternion(transformParent->modelMatrix.inverse() * newRot.getRotationMatrix());
                 }
 
-                lastCommand = new ChangePropertyCmd<Quaternion>(scene, entity, ComponentType::Transform, "rotation", newRot);
+                if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
+                    lastCommand = new ChangePropertyCmd<Quaternion>(scene, entity, ComponentType::Transform, "rotation", newRot);
+                }
             }
 
             if (lastCommand){
