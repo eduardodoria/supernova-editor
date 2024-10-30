@@ -175,8 +175,8 @@ void Editor::Objects::showTreeNode(Editor::TreeNode& node) {
             insertAfter = (mousePos.y - itemMin.y) >= (itemMax.y - itemMin.y) * 0.5f;
         }
 
-        ImGuiDragDropFlags flags = 0;
-        //ImGuiDragDropFlags flags = ImGuiDragDropFlags_AcceptBeforeDelivery;
+        //ImGuiDragDropFlags flags = 0;
+        ImGuiDragDropFlags flags = ImGuiDragDropFlags_AcceptBeforeDelivery;
 
         if (insertBefore || insertAfter){
             flags |= ImGuiDragDropFlags_AcceptNoDrawDefaultRect;
@@ -185,8 +185,17 @@ void Editor::Objects::showTreeNode(Editor::TreeNode& node) {
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("TREE_NODE", flags)) {
             TreeNode* source = (TreeNode*)payload->Data;
 
+            if (node.parent == source->parent){
+                if (node.order == (source->order+1)){
+                    insertBefore = false;
+                }
+                if (node.order == (source->order-1)){
+                    insertAfter = false;
+                }
+            }
+
             if (!source->isScene && !node.isScene && payload->IsDelivery()){
-                printf("Dropped: %s in %s\n", source->name.c_str(), node.name.c_str());
+                //printf("Dropped: %s in %s\n", source->name.c_str(), node.name.c_str());
                 InsertionType type;
                 if (insertBefore){
                     type = InsertionType::BEFORE;
@@ -322,18 +331,8 @@ void Editor::Objects::changeNodeName(const TreeNode* node, const std::string nam
 }
 
 void Editor::Objects::show(){
-/*
-    static TreeNode root = {ICON_FA_TV, "Root Node", true, 1, {
-        {ICON_FA_CUBE, "Player", false, 1, {}},
-        {ICON_FA_CUBE, "Child 2", false, 1, {
-            {ICON_FA_CUBE, "Grandchild 1", false, 1, {}},
-            {ICON_FA_CUBE, "Grandchild 2", false, 1, {}}
-        }},
-        {ICON_FA_CIRCLE_DOT, "Entity 3", false, 1, {}}
-    }};
-*/
-
     SceneData* sceneData = project->getSelectedScene();
+    size_t order = 0;
 
     TreeNode root;
 
@@ -341,6 +340,8 @@ void Editor::Objects::show(){
     root.id = sceneData->id;
     root.isScene = true;
     root.separator = false;
+    root.order = order++;
+    root.parent = 0;
     root.name = sceneData->name;
 
     // non-hierarchical entities
@@ -353,6 +354,8 @@ void Editor::Objects::show(){
             child.id = entity;
             child.isScene = false;
             child.separator = false;
+            child.order = order++;
+            child.parent = 0;
             child.name = sceneData->scene->getEntityName(entity);
 
             root.children.push_back(child);
@@ -382,12 +385,15 @@ void Editor::Objects::show(){
             child.id = entity;
             child.isScene = false;
             child.separator = false;
+            child.order = order++;
+            child.parent = 0;
             child.name = sceneData->scene->getEntityName(entity);
             if (transform.parent == NULL_ENTITY){
                 root.children.push_back(child);
             }else{
                 TreeNode* parent = findNode(&root, transform.parent);
                 if (parent){
+                    child.parent = parent->id;
                     parent->children.push_back(child);
                 }else{
                     printf("ERROR: Could not find parent of entity %u\n", entity);

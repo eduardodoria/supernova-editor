@@ -14,6 +14,8 @@ namespace Supernova::Editor{
         bool isScene;
         bool separator;
         uint32_t id;
+        size_t order;
+        uint32_t parent;
         std::vector<TreeNode> children;
     };
 
