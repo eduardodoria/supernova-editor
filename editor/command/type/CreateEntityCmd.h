@@ -21,12 +21,13 @@ namespace Supernova::Editor{
         std::string entityName;
 
         Entity entity;
+        Entity parent;
         EntityCreationType type;
         Entity lastSelected;
 
     public:
         CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName);
-        CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type);
+        CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type, Entity parent);
 
         virtual void execute();
         virtual void undo();

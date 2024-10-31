@@ -18,18 +18,18 @@ Editor::App::App(){
     sceneWindow = new SceneWindow(&project);
 
     uint32_t sceneid = project.createNewScene("New Scene");
-    project.createNewEntity(sceneid, "Entity 1");
-    project.createNewEntity(sceneid, "Entity 2");
+    //project.createNewEntity(sceneid, "Entity 1");
+    //project.createNewEntity(sceneid, "Entity 2");
 
-    uint32_t sceneid2 = project.createNewScene("New Scene 2");
-    project.createNewEntity(sceneid2, "Entity 4");
-    project.createNewEntity(sceneid2, "Entity 5");
-    project.createNewEntity(sceneid2, "Entity 6");
+    //uint32_t sceneid2 = project.createNewScene("New Scene 2");
+    //project.createNewEntity(sceneid2, "Entity 4");
+    //project.createNewEntity(sceneid2, "Entity 5");
+    //project.createNewEntity(sceneid2, "Entity 6");
 
-    uint32_t sceneid3 = project.createNewScene("New Scene 3");
-    project.createNewEntity(sceneid3, "Entity 8");
-    project.createNewEntity(sceneid3, "Entity 9");
-    project.createNewEntity(sceneid3, "Entity 10");
+    //uint32_t sceneid3 = project.createNewScene("New Scene 3");
+    //project.createNewEntity(sceneid3, "Entity 8");
+    //project.createNewEntity(sceneid3, "Entity 9");
+    //project.createNewEntity(sceneid3, "Entity 10");
 }
 
 void Editor::App::showMenu(){

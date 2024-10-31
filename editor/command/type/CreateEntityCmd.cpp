@@ -7,15 +7,17 @@ Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std
     this->sceneId = sceneId;
     this->entityName = entityName;
     this->entity = NULL_ENTITY;
+    this->parent = NULL_ENTITY;
     this->type = EntityCreationType::EMPTY;
     this->lastSelected = NULL_ENTITY;
 }
 
-Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type){
+Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type, Entity parent){
     this->project = project;
     this->sceneId = sceneId;
     this->entityName = entityName;
     this->entity = NULL_ENTITY;
+    this->parent = parent;
     this->type = type;
     this->lastSelected = NULL_ENTITY;
 }
@@ -55,6 +57,10 @@ void Editor::CreateEntityCmd::execute(){
             }
 
             scenes[i].scene->setEntityName(entity, entityName);
+
+            if (parent != NULL_ENTITY){
+                scenes[i].scene->addEntityChild(parent, entity, false);
+            }
 
             scenes[i].entities.push_back(entity);
 

@@ -15,6 +15,7 @@ namespace Supernova::Editor{
         uint32_t sceneId;
         Entity entity;
 
+        Entity parent;
         std::string entityName;
         Signature signature;
         bool wasSelected;

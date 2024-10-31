@@ -42,7 +42,7 @@ namespace Supernova::Editor{
 
 
         void createEmptyEntity(uint32_t sceneId);
-        void createBoxShape(uint32_t sceneId);
+        void createBoxShape(uint32_t sceneId, Entity parent);
 
         void deleteEntity(uint32_t sceneId, Entity entity);
 

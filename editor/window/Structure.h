@@ -13,6 +13,7 @@ namespace Supernova::Editor{
         std::string name;
         bool isScene;
         bool separator;
+        bool hasTransform;
         uint32_t id;
         size_t order;
         uint32_t parent;

@@ -12,13 +12,15 @@ Editor::Structure::Structure(Project* project){
 }
 
 void Editor::Structure::showNewEntityMenu(bool isScene){
+    Entity parent = NULL_ENTITY;
+    if (!isScene && selectedNodeRight){
+        parent = selectedNodeRight->id;
+    }
     if (ImGui::BeginMenu(ICON_FA_CUBE"  Basic shape"))
     {
         if (ImGui::MenuItem(ICON_FA_CUBE"  Box"))
         {
-            project->createBoxShape(project->getSelectedSceneId());
-            //printf("%u\n", selectedNode->id);
-            // Action for SubItem 1
+            project->createBoxShape(project->getSelectedSceneId(), parent);
         }
         if (ImGui::MenuItem(ICON_FA_CUBE"  Plane"))
         {
@@ -36,7 +38,6 @@ void Editor::Structure::showNewEntityMenu(bool isScene){
         if (ImGui::MenuItem(ICON_FA_CIRCLE_DOT"  Empty entity"))
         {
             project->createEmptyEntity(project->getSelectedSceneId());
-            // Action for Item 2
         }
     }
     ImGui::EndMenu();
@@ -154,8 +155,13 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
 
     bool nodeOpen = ImGui::TreeNodeEx((node.icon + "  " + node.name + "##" + std::to_string(node.id)).c_str(), flags);
 
+    std::string dragDropName = "ENTITY";
+    if (node.hasTransform){
+        dragDropName = dragDropName + "_T";
+    }
+
     if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
-        ImGui::SetDragDropPayload("TREE_NODE", &node, sizeof(TreeNode));
+        ImGui::SetDragDropPayload(dragDropName.c_str(), &node, sizeof(TreeNode));
         ImGui::Text("Moving %s", node.name.c_str());
         ImGui::EndDragDropSource();
     }
@@ -182,7 +188,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
             flags |= ImGuiDragDropFlags_AcceptNoDrawDefaultRect;
         }
 
-        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("TREE_NODE", flags)) {
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(dragDropName.c_str(), flags)) {
             TreeNode* source = (TreeNode*)payload->Data;
 
             if (node.parent == source->parent){
@@ -340,6 +346,7 @@ void Editor::Structure::show(){
     root.id = sceneData->id;
     root.isScene = true;
     root.separator = false;
+    root.hasTransform = false;
     root.order = order++;
     root.parent = 0;
     root.name = sceneData->name;
@@ -354,6 +361,7 @@ void Editor::Structure::show(){
             child.id = entity;
             child.isScene = false;
             child.separator = false;
+            child.hasTransform = false;
             child.order = order++;
             child.parent = 0;
             child.name = sceneData->scene->getEntityName(entity);
@@ -385,6 +393,7 @@ void Editor::Structure::show(){
             child.id = entity;
             child.isScene = false;
             child.separator = false;
+            child.hasTransform = true;
             child.order = order++;
             child.parent = 0;
             child.name = sceneData->scene->getEntityName(entity);
