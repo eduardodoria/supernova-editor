@@ -15,6 +15,7 @@ Editor::ToolsLayer::ToolsLayer(){
 
     tGizmo = new TranslateGizmo(scene);
     rGizmo = new RotateGizmo(scene);
+    sGizmo = new ScaleGizmo(scene);
 
     scene->setCamera(camera);
 }
@@ -57,6 +58,13 @@ void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, float 
             gizmoSideSelected = rGizmo->checkHoverHighlight(mouseRay);
         }
     }
+    if (gizmoSelected == GizmoSelected::SCALE){
+        sGizmo->setPosition(position);
+        sGizmo->setScale(scale);
+        if (!mouseClicked){
+            gizmoSideSelected = sGizmo->checkHoverHighlight(mouseRay);
+        }
+    }
 }
 
 void Editor::ToolsLayer::mouseDrag(Vector3 point){
@@ -86,12 +94,16 @@ void Editor::ToolsLayer::enableScaleGizmo(){
 void Editor::ToolsLayer::setGizmoVisible(bool visible){
     tGizmo->setVisible(false);
     rGizmo->setVisible(false);
+    sGizmo->setVisible(false);
 
     if (gizmoSelected == GizmoSelected::TRANSLATE){
         tGizmo->setVisible(visible);
     }
     if (gizmoSelected == GizmoSelected::ROTATE){
         rGizmo->setVisible(visible);
+    }
+    if (gizmoSelected == GizmoSelected::SCALE){
+        sGizmo->setVisible(visible);
     }
 }
 

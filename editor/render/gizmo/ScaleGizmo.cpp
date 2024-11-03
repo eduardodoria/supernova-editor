@@ -1,37 +1,36 @@
-#include "TranslateGizmo.h"
+#include "ScaleGizmo.h"
 
 using namespace Supernova;
 
-const Vector3 Editor::TranslateGizmo::centerColor = Vector3(0.8, 0.8, 0.8);
-const Vector3 Editor::TranslateGizmo::xaxisColor = Vector3(0.7, 0.2, 0.2);
-const Vector3 Editor::TranslateGizmo::yaxisColor = Vector3(0.2, 0.7, 0.2);
-const Vector3 Editor::TranslateGizmo::zaxisColor = Vector3(0.2, 0.2, 0.7);
-const Vector3 Editor::TranslateGizmo::centerColorHightlight = Vector3(0.9, 0.9, 0.9);
-const Vector3 Editor::TranslateGizmo::xaxisColorHightlight = Vector3(0.9, 0.7, 0.7);
-const Vector3 Editor::TranslateGizmo::yaxisColorHightlight = Vector3(0.7, 0.9, 0.7);
-const Vector3 Editor::TranslateGizmo::zaxisColorHightlight = Vector3(0.7, 0.7, 0.9);
-const float Editor::TranslateGizmo::rectAlpha = 0.6;
+const Vector3 Editor::ScaleGizmo::centerColor = Vector3(0.8, 0.8, 0.8);
+const Vector3 Editor::ScaleGizmo::xaxisColor = Vector3(0.7, 0.2, 0.2);
+const Vector3 Editor::ScaleGizmo::yaxisColor = Vector3(0.2, 0.7, 0.2);
+const Vector3 Editor::ScaleGizmo::zaxisColor = Vector3(0.2, 0.2, 0.7);
+const Vector3 Editor::ScaleGizmo::centerColorHightlight = Vector3(0.9, 0.9, 0.9);
+const Vector3 Editor::ScaleGizmo::xaxisColorHightlight = Vector3(0.9, 0.7, 0.7);
+const Vector3 Editor::ScaleGizmo::yaxisColorHightlight = Vector3(0.7, 0.9, 0.7);
+const Vector3 Editor::ScaleGizmo::zaxisColorHightlight = Vector3(0.7, 0.7, 0.9);
+const float Editor::ScaleGizmo::rectAlpha = 0.6;
 
-Editor::TranslateGizmo::TranslateGizmo(Scene* scene): Object(scene){
+Editor::ScaleGizmo::ScaleGizmo(Scene* scene): Object(scene){
     float cylinderRadius = 0.05;
     float cylinderHeight = 2;
-    float centerSize = 0.2;
-    float arrowRadius = 0.1;
-    float arrowHeight = 0.4;
+    float centerSize = 0.3;
+    float cubeSize = 0.2;
 
-    sphere = new Shape(scene);
+    centerbox = new Shape(scene);
     xaxis = new Shape(scene);
     yaxis = new Shape(scene);
     zaxis = new Shape(scene);
-    xarrow = new Shape(scene);
-    yarrow = new Shape(scene);
-    zarrow = new Shape(scene);
+    xbox = new Shape(scene);
+    ybox = new Shape(scene);
+    zbox = new Shape(scene);
     xyrect = new Shape(scene);
     xzrect = new Shape(scene);
     yzrect = new Shape(scene);
     
-    sphere->createSphere(centerSize);
-    sphere->setColor(Vector4(centerColor, 1.0));
+    centerbox->createBox(centerSize, centerSize, centerSize);
+    centerbox->setColor(Vector4(centerColor, 1.0));
 
     xaxis->createCylinder(cylinderRadius, cylinderHeight);
     yaxis->createCylinder(cylinderRadius, cylinderHeight);
@@ -48,20 +47,20 @@ Editor::TranslateGizmo::TranslateGizmo(Scene* scene): Object(scene){
     xaxis->setRotation(0,0,90);
     zaxis->setRotation(90,0,0);
 
-    xarrow->createCylinder(arrowRadius, 0.0, arrowHeight);
-    yarrow->createCylinder(arrowRadius, 0.0, arrowHeight);
-    zarrow->createCylinder(arrowRadius, 0.0, arrowHeight);
+    xbox->createBox(cubeSize, cubeSize, cubeSize);
+    ybox->createBox(cubeSize, cubeSize, cubeSize);
+    zbox->createBox(cubeSize, cubeSize, cubeSize);
 
-    xarrow->setPosition(cylinderHeight, 0, 0);
-    yarrow->setPosition(0, cylinderHeight, 0);
-    zarrow->setPosition(0, 0, cylinderHeight);
+    xbox->setPosition(cylinderHeight, 0, 0);
+    ybox->setPosition(0, cylinderHeight, 0);
+    zbox->setPosition(0, 0, cylinderHeight);
 
-    xarrow->setRotation(0,0,-90);
-    zarrow->setRotation(90,0,0);
+    //xarrow->setRotation(0,0,-90);
+    //zarrow->setRotation(90,0,0);
 
-    xarrow->setColor(Vector4(xaxisColor, 1.0));
-    yarrow->setColor(Vector4(yaxisColor, 1.0));
-    zarrow->setColor(Vector4(zaxisColor, 1.0));
+    xbox->setColor(Vector4(xaxisColor, 1.0));
+    ybox->setColor(Vector4(yaxisColor, 1.0));
+    zbox->setColor(Vector4(zaxisColor, 1.0));
 
     xyrect->createBox(cylinderHeight/4.0, cylinderHeight/4.0, cylinderRadius);
     xzrect->createBox(cylinderHeight/4.0, cylinderRadius, cylinderHeight/4.0);
@@ -75,30 +74,30 @@ Editor::TranslateGizmo::TranslateGizmo(Scene* scene): Object(scene){
     xzrect->setColor(Vector4(yaxisColor, rectAlpha));
     yzrect->setColor(Vector4(xaxisColor, rectAlpha));
 
-    this->addChild(sphere);
+    this->addChild(centerbox);
     this->addChild(xaxis);
     this->addChild(yaxis);
     this->addChild(zaxis);
-    this->addChild(xarrow);
-    this->addChild(yarrow);
-    this->addChild(zarrow);
+    this->addChild(xbox);
+    this->addChild(ybox);
+    this->addChild(zbox);
     this->addChild(xyrect);
     this->addChild(xzrect);
     this->addChild(yzrect);
 }
 
-Editor::GizmoSideSelected Editor::TranslateGizmo::checkHoverHighlight(Ray& ray){
+Editor::GizmoSideSelected Editor::ScaleGizmo::checkHoverHighlight(Ray& ray){
 
     Editor::GizmoSideSelected gizmoSideSelected = GizmoSideSelected::NONE;
 
-    AABB xaabb = xaxis->getModelMatrix() * Matrix4::scaleMatrix(Vector3(2, 1, 2)) * xaxis->getAABB().merge(xarrow->getAABB());
-    AABB yaabb = yaxis->getModelMatrix() * Matrix4::scaleMatrix(Vector3(2, 1, 2)) * yaxis->getAABB().merge(yarrow->getAABB());
-    AABB zaabb = zaxis->getModelMatrix() * Matrix4::scaleMatrix(Vector3(2, 1, 2)) * zaxis->getAABB().merge(zarrow->getAABB());
+    AABB xaabb = xaxis->getModelMatrix() * Matrix4::scaleMatrix(Vector3(2, 1, 2)) * xaxis->getAABB().merge(xbox->getAABB());
+    AABB yaabb = yaxis->getModelMatrix() * Matrix4::scaleMatrix(Vector3(2, 1, 2)) * yaxis->getAABB().merge(ybox->getAABB());
+    AABB zaabb = zaxis->getModelMatrix() * Matrix4::scaleMatrix(Vector3(2, 1, 2)) * zaxis->getAABB().merge(zbox->getAABB());
     AABB xyaabb = xyrect->getWorldAABB();
     AABB xzaabb = xzrect->getWorldAABB();
     AABB yzaabb = yzrect->getWorldAABB();
-    AABB sphereaabb = sphere->getModelMatrix() * Matrix4::scaleMatrix(Vector3(1.5, 1.5, 1.5)) * sphere->getAABB();
-    AABB supersphereaabb = sphere->getModelMatrix() * Matrix4::scaleMatrix(Vector3(5, 5, 5)) * sphere->getAABB();
+    AABB boxaabb = centerbox->getModelMatrix() * Matrix4::scaleMatrix(Vector3(1.5, 1.5, 1.5)) * centerbox->getAABB();
+    AABB superboxaabb = centerbox->getModelMatrix() * Matrix4::scaleMatrix(Vector3(5, 5, 5)) * centerbox->getAABB();
 
     RayReturn rreturn[7];
 
@@ -108,7 +107,7 @@ Editor::GizmoSideSelected Editor::TranslateGizmo::checkHoverHighlight(Ray& ray){
     rreturn[3] = ray.intersects(xyaabb);
     rreturn[4] = ray.intersects(xzaabb);
     rreturn[5] = ray.intersects(yzaabb);
-    rreturn[6] = ray.intersects(sphereaabb);
+    rreturn[6] = ray.intersects(boxaabb);
 
     int axis = -1;
     float minDist = FLT_MAX;
@@ -122,36 +121,36 @@ Editor::GizmoSideSelected Editor::TranslateGizmo::checkHoverHighlight(Ray& ray){
     }
 
     if (axis == -1){
-        if (RayReturn creturn = ray.intersects(supersphereaabb)){
+        if (RayReturn creturn = ray.intersects(superboxaabb)){
             axis = 6;
         }
     }
 
     if (axis == 0){
         xaxis->setColor(Vector4(xaxisColorHightlight, 1.0));
-        xarrow->setColor(Vector4(xaxisColorHightlight, 1.0));
+        xbox->setColor(Vector4(xaxisColorHightlight, 1.0));
         gizmoSideSelected = GizmoSideSelected::X;
     }else{
         xaxis->setColor(Vector4(xaxisColor, 1.0));
-        xarrow->setColor(Vector4(xaxisColor, 1.0));
+        xbox->setColor(Vector4(xaxisColor, 1.0));
     }
 
     if (axis == 1){
         yaxis->setColor(Vector4(yaxisColorHightlight, 1.0));
-        yarrow->setColor(Vector4(yaxisColorHightlight, 1.0));
+        ybox->setColor(Vector4(yaxisColorHightlight, 1.0));
         gizmoSideSelected = GizmoSideSelected::Y;
     }else{
         yaxis->setColor(Vector4(yaxisColor, 1.0));
-        yarrow->setColor(Vector4(yaxisColor, 1.0));
+        ybox->setColor(Vector4(yaxisColor, 1.0));
     }
 
     if (axis == 2){
         zaxis->setColor(Vector4(zaxisColorHightlight, 1.0));
-        zarrow->setColor(Vector4(zaxisColorHightlight, 1.0));
+        zbox->setColor(Vector4(zaxisColorHightlight, 1.0));
         gizmoSideSelected = GizmoSideSelected::Z;
     }else{
         zaxis->setColor(Vector4(zaxisColor, 1.0));
-        zarrow->setColor(Vector4(zaxisColor, 1.0));
+        zbox->setColor(Vector4(zaxisColor, 1.0));
     }
 
     if (axis == 3){
@@ -176,10 +175,10 @@ Editor::GizmoSideSelected Editor::TranslateGizmo::checkHoverHighlight(Ray& ray){
     }
 
     if (axis == 6){
-        sphere->setColor(Vector4(centerColorHightlight, 1.0));
+        centerbox->setColor(Vector4(centerColorHightlight, 1.0));
         gizmoSideSelected = GizmoSideSelected::XYZ;
     }else{
-        sphere->setColor(Vector4(centerColor, 1.0));
+        centerbox->setColor(Vector4(centerColor, 1.0));
     }
 
     return gizmoSideSelected;

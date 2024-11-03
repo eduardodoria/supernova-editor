@@ -25,6 +25,7 @@ namespace Supernova::Editor{
         Plane cursorPlane;
         Vector3 cursorStartOffset;
         Quaternion rotationStartOffset;
+        Vector3 scaleStartOffset;
 
         Command* lastCommand;
 

@@ -10,6 +10,7 @@
 #include "RenderUtil.h"
 #include "gizmo/TranslateGizmo.h"
 #include "gizmo/RotateGizmo.h"
+#include "gizmo/ScaleGizmo.h"
 
 namespace Supernova::Editor{
 
@@ -20,6 +21,7 @@ namespace Supernova::Editor{
 
         TranslateGizmo* tGizmo;
         RotateGizmo* rGizmo;
+        ScaleGizmo* sGizmo;
 
         GizmoSelected gizmoSelected;
         GizmoSideSelected gizmoSideSelected;
