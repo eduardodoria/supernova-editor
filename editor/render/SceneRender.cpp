@@ -251,7 +251,7 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, Entity entity){
 
                 Quaternion newRot = Quaternion(Angle::radToDefault(angle), rotAxis) * rotationStartOffset;
                 if (transformParent){
-                    newRot = Quaternion(transformParent->worldRotation.getRotationMatrix().inverse() * newRot.getRotationMatrix());
+                    newRot = transformParent->worldRotation.inverse() * newRot;
                 }
 
                 if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
@@ -264,7 +264,7 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, Entity entity){
 
                 Vector3 newScale;
                 if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XYZ){
-                    newScale = scaleStartOffset * (lastPoint.length() / cursorStartOffset.length());
+                    newScale = Vector3((lastPoint.length() / cursorStartOffset.length()));
                 }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
                     newScale = Vector3((lastPoint.x / cursorStartOffset.x), 1, 1);
                 }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
@@ -279,11 +279,9 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, Entity entity){
                     newScale = Vector3(1, (lastPoint.y / cursorStartOffset.y), (lastPoint.z / cursorStartOffset.z));
                 }
 
-                if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::XYZ){
-                    Matrix4 mScale = Matrix4::scaleMatrix(newScale);
-                    Matrix4 mRot = transform->worldRotation.getRotationMatrix();
-                    newScale = (mRot.inverse() * mScale * mRot) * scaleStartOffset;
-                }
+                Matrix4 mScale = Matrix4::scaleMatrix(newScale);
+                Matrix4 mRot = transform->worldRotation.getRotationMatrix();
+                newScale = (mRot.inverse() * mScale * mRot) * scaleStartOffset;
 
                 newScale = Vector3(abs(newScale.x), abs(newScale.y), abs(newScale.z));
 
