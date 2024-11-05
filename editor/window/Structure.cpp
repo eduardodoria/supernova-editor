@@ -7,6 +7,7 @@ using namespace Supernova;
 
 Editor::Structure::Structure(Project* project){
     this->project = project;
+    this->contextMenuOpened = "";
 }
 
 void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent){
@@ -266,22 +267,22 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         selectedNode = &node;
     }
 
+    std::string popupId = "##ContextMenu" + getNodeImGuiId(node);
+
     if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
         strncpy(nameBuffer, node.name.c_str(), sizeof(nameBuffer) - 1);
         nameBuffer[sizeof(nameBuffer) - 1] = '\0';
-        ImGui::OpenPopup(("##ContextMenu" + getNodeImGuiId(node)).c_str());
+        ImGui::OpenPopup(popupId.c_str());
     }
 
-    if (ImGui::BeginPopup(("##ContextMenu" + getNodeImGuiId(node)).c_str())) {
+    if (ImGui::BeginPopup(popupId.c_str())) {
+        contextMenuOpened = popupId;
 
         ImGui::Text("Name:");
 
-        ImGui::PushItemWidth(150);
+        ImGui::PushItemWidth(200);
         bool enterPressed = ImGui::InputText("##ChangeNameInput", nameBuffer, IM_ARRAYSIZE(nameBuffer), ImGuiInputTextFlags_EnterReturnsTrue);
-        ImGui::SameLine();
-        bool okClicked = ImGui::Button("OK");
-
-        if (enterPressed || okClicked) {
+        if (enterPressed) {
             if (nameBuffer[0] != '\0') {
                 changeNodeName(&node, nameBuffer);
                 ImGui::CloseCurrentPopup();
@@ -304,6 +305,13 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
             }
         }
         ImGui::EndPopup();
+    }
+
+    if (!ImGui::IsPopupOpen(popupId.c_str()) && contextMenuOpened == popupId){
+        contextMenuOpened = "";
+        if (nameBuffer[0] != '\0' && strcmp(nameBuffer, node.name.c_str()) != 0) {
+            changeNodeName(&node, nameBuffer);
+        }
     }
 
     if (node.separator){
