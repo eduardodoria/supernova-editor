@@ -12,7 +12,13 @@ Editor::Structure::Structure(Project* project){
 void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent){
     if (isScene){
         parent = NULL_ENTITY;
+
+        if (ImGui::MenuItem(ICON_FA_CIRCLE_DOT"  Empty entity"))
+        {
+            project->createEmptyEntity(project->getSelectedSceneId());
+        }
     }
+
     if (ImGui::BeginMenu(ICON_FA_CUBE"  Basic shape"))
     {
         if (ImGui::MenuItem(ICON_FA_CUBE"  Box"))
@@ -31,12 +37,6 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent){
         // Action for Item 2
     }
 
-    if (isScene){
-        if (ImGui::MenuItem(ICON_FA_CIRCLE_DOT"  Empty entity"))
-        {
-            project->createEmptyEntity(project->getSelectedSceneId());
-        }
-    }
     ImGui::EndMenu();
 }
 
@@ -150,7 +150,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     }
 
-    bool nodeOpen = ImGui::TreeNodeEx((node.icon + "  " + node.name + "##" + getNodeImGuiId(node)).c_str(), flags);
+    bool nodeOpen = ImGui::TreeNodeEx((node.icon + "  " + node.name + "###" + getNodeImGuiId(node)).c_str(), flags);
 
     std::string dragDropName = "ENTITY";
     if (node.hasTransform){
@@ -297,9 +297,11 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                 project->deleteEntity(project->getSelectedSceneId(), node.id);
             }
         }
-        ImGui::Separator();
-        if (ImGui::BeginMenu(ICON_FA_CIRCLE_DOT"  Create child")){
-            showNewEntityMenu(node.isScene, node.id);
+        if (node.hasTransform || node.isScene){
+            ImGui::Separator();
+            if (ImGui::BeginMenu(ICON_FA_CIRCLE_DOT"  Create child")){
+                showNewEntityMenu(node.isScene, node.id);
+            }
         }
         ImGui::EndPopup();
     }
@@ -319,9 +321,11 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
 std::string Editor::Structure::getNodeImGuiId(TreeNode& node){
     std::string id;
     if (node.isScene){
-        id += "S";
+        id += "ItemScene";
     }else{
-        id += "E";
+        id += "ItemScene";
+        id += std::to_string(project->getSelectedSceneId());
+        id += "Entity";
     }
     id += std::to_string(node.id);
 
