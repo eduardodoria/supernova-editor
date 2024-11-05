@@ -7,14 +7,11 @@ using namespace Supernova;
 
 Editor::Structure::Structure(Project* project){
     this->project = project;
-
-    this->selectedNodeRight = nullptr;
 }
 
-void Editor::Structure::showNewEntityMenu(bool isScene){
-    Entity parent = NULL_ENTITY;
-    if (!isScene && selectedNodeRight){
-        parent = selectedNodeRight->id;
+void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent){
+    if (isScene){
+        parent = NULL_ENTITY;
     }
     if (ImGui::BeginMenu(ICON_FA_CUBE"  Basic shape"))
     {
@@ -95,7 +92,7 @@ void Editor::Structure::showIconMenu(){
         ImGui::Separator();
         if (ImGui::BeginMenu(ICON_FA_CIRCLE_DOT"  Create entity"))
         {
-            showNewEntityMenu(true);
+            showNewEntityMenu(true, NULL_ENTITY);
         }
 
         ImGui::EndPopup();
@@ -153,7 +150,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     }
 
-    bool nodeOpen = ImGui::TreeNodeEx((node.icon + "  " + node.name + "##" + std::to_string(node.id)).c_str(), flags);
+    bool nodeOpen = ImGui::TreeNodeEx((node.icon + "  " + node.name + "##" + getNodeImGuiId(node)).c_str(), flags);
 
     std::string dragDropName = "ENTITY";
     if (node.hasTransform){
@@ -268,52 +265,43 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     if (!node.isScene && project->getSelectedEntity(project->getSelectedSceneId()) == node.id){
         selectedNode = &node;
     }
+
     if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
-        ImGui::OpenPopup("TreeNodeContextMenu");
-        selectedNodeRight = &node;
         strncpy(nameBuffer, node.name.c_str(), sizeof(nameBuffer) - 1);
         nameBuffer[sizeof(nameBuffer) - 1] = '\0';
+        ImGui::OpenPopup(("##ContextMenu" + getNodeImGuiId(node)).c_str());
     }
 
-    if (ImGui::BeginPopup("TreeNodeContextMenu")) {
-        if (selectedNodeRight == &node) {
-            //ImGui::AlignTextToFramePadding();
-            ImGui::Text("Name:");
-            //ImGui::SameLine();
+    if (ImGui::BeginPopup(("##ContextMenu" + getNodeImGuiId(node)).c_str())) {
 
-            ImGui::PushItemWidth(200);
-            if (ImGui::InputText("##ChangeNameInput", nameBuffer, IM_ARRAYSIZE(nameBuffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
-                if (nameBuffer[0] != '\0'){
-                    changeNodeName(selectedNodeRight, nameBuffer);
+        ImGui::Text("Name:");
 
-                    selectedNodeRight = nullptr;
-                    ImGui::CloseCurrentPopup();
-                }
+        ImGui::PushItemWidth(150);
+        bool enterPressed = ImGui::InputText("##ChangeNameInput", nameBuffer, IM_ARRAYSIZE(nameBuffer), ImGuiInputTextFlags_EnterReturnsTrue);
+        ImGui::SameLine();
+        bool okClicked = ImGui::Button("OK");
+
+        if (enterPressed || okClicked) {
+            if (nameBuffer[0] != '\0') {
+                changeNodeName(&node, nameBuffer);
+                ImGui::CloseCurrentPopup();
             }
-            ImGui::Separator();
-            if (ImGui::MenuItem(ICON_FA_COPY"  Duplicate"))
-            {
-                // Action for SubItem 1
+        }
+
+        ImGui::Separator();
+        if (ImGui::MenuItem(ICON_FA_COPY"  Duplicate")){
+            // Action for SubItem 1
+        }
+        if (ImGui::MenuItem(ICON_FA_TRASH"  Delete")){
+            if (!node.isScene){
+                project->deleteEntity(project->getSelectedSceneId(), node.id);
             }
-            if (ImGui::MenuItem(ICON_FA_TRASH"  Delete"))
-            {
-                if (!selectedNodeRight->isScene){
-                    project->deleteEntity(project->getSelectedSceneId(), selectedNodeRight->id);
-                }
-            }
-            ImGui::Separator();
-            if (ImGui::BeginMenu(ICON_FA_CIRCLE_DOT"  Create child"))
-            {
-                showNewEntityMenu(node.isScene);
-            }
+        }
+        ImGui::Separator();
+        if (ImGui::BeginMenu(ICON_FA_CIRCLE_DOT"  Create child")){
+            showNewEntityMenu(node.isScene, node.id);
         }
         ImGui::EndPopup();
-    }else if (selectedNodeRight == &node) {
-        // Update the name when popup is closed
-        if (nameBuffer[0] != '\0'){
-            changeNodeName(selectedNodeRight, nameBuffer);
-        }
-        selectedNodeRight = nullptr;
     }
 
     if (node.separator){
@@ -326,6 +314,18 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         }
         ImGui::TreePop();
     }
+}
+
+std::string Editor::Structure::getNodeImGuiId(TreeNode& node){
+    std::string id;
+    if (node.isScene){
+        id += "S";
+    }else{
+        id += "E";
+    }
+    id += std::to_string(node.id);
+
+    return id;
 }
 
 void Editor::Structure::changeNodeName(const TreeNode* node, const std::string name){

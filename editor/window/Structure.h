@@ -25,14 +25,13 @@ namespace Supernova::Editor{
 
         Project* project;
 
-        TreeNode* selectedNodeRight;
-
         char nameBuffer[256];
         char searchBuffer[256] = "";
 
-        void showNewEntityMenu(bool isScene);
+        void showNewEntityMenu(bool isScene, Entity parent);
         void showIconMenu();
         void showTreeNode(TreeNode& node);
+        std::string getNodeImGuiId(TreeNode& node);
         void changeNodeName(const TreeNode* node, const std::string name);
         void drawInsertionMarker(const ImVec2& p1, const ImVec2& p2);
         std::string getObjectIcon(Signature signature, Scene* scene);
