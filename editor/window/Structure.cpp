@@ -8,6 +8,7 @@ using namespace Supernova;
 Editor::Structure::Structure(Project* project){
     this->project = project;
     this->contextMenuOpened = "";
+    this->openParent = NULL_ENTITY;
 }
 
 void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent){
@@ -25,6 +26,7 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent){
         if (ImGui::MenuItem(ICON_FA_CUBE"  Box"))
         {
             project->createBoxShape(project->getSelectedSceneId(), parent);
+            openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_CUBE"  Plane"))
         {
@@ -146,9 +148,11 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         flags |= ImGuiTreeNodeFlags_Selected;
     }
 
+    ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 
-    if (node.isScene){
-        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+    if(!node.isScene && openParent == node.id) {
+        ImGui::SetNextItemOpen(true);
+        openParent = NULL_ENTITY;
     }
 
     bool nodeOpen = ImGui::TreeNodeEx((node.icon + "  " + node.name + "###" + getNodeImGuiId(node)).c_str(), flags);
