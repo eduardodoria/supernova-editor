@@ -6,6 +6,7 @@
 #include "object/Object.h"
 #include "object/Shape.h"
 #include "object/ui/Image.h"
+#include "RenderUtil.h"
 
 namespace Supernova::Editor{
 
@@ -15,6 +16,8 @@ namespace Supernova::Editor{
         Camera* camera;
 
         Image* viewGizmoImage;
+
+        CursorSelected cursorSelected;
     public:
         UILayer();
 
@@ -22,10 +25,14 @@ namespace Supernova::Editor{
 
         void updateSize(int width, int height);
 
+        void enableCursorPointer();
+        void enableCursorHand();
+
         Framebuffer* getFramebuffer();
         TextureRender& getTexture();
         Camera* getCamera();
         Scene* getScene();
+        CursorSelected getCursorSelected();
     };
 
 }

@@ -3,6 +3,11 @@
 
 namespace Supernova::Editor{
 
+    enum class CursorSelected{
+        POINTER,
+        HAND
+    };
+
     enum class GizmoSelected{
         TRANSLATE,
         ROTATE,

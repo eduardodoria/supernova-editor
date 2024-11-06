@@ -3,6 +3,8 @@
 using namespace Supernova;
 
 Editor::UILayer::UILayer(){
+    cursorSelected = CursorSelected::POINTER;
+
     scene = new Scene();
     camera = new Camera(scene);
     viewGizmoImage = new Image(scene);
@@ -26,6 +28,15 @@ void Editor::UILayer::updateSize(int width, int height){
     viewGizmoImage->setPosition(width - viewGizmoImage->getWidth(), height - viewGizmoImage->getHeight());
 }
 
+void Editor::UILayer::enableCursorPointer(){
+    cursorSelected = CursorSelected::POINTER;
+}
+
+void Editor::UILayer::enableCursorHand(){
+    cursorSelected = CursorSelected::HAND;
+}
+
+
 Framebuffer* Editor::UILayer::getFramebuffer(){
     return camera->getFramebuffer();
 }
@@ -40,4 +51,8 @@ Camera* Editor::UILayer::getCamera(){
 
 Scene* Editor::UILayer::getScene(){
     return scene;
+}
+
+Editor::CursorSelected Editor::UILayer::getCursorSelected(){
+    return cursorSelected;
 }

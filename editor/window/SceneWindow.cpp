@@ -155,14 +155,21 @@ void Editor::SceneWindow::show(){
             ImGui::Dummy(ImVec2(1, 20));
             ImGui::SameLine(0, 10);
 
+            CursorSelected cursorSelected = sceneData.sceneRender->getUILayer()->getCursorSelected();
+
+            ImGui::BeginDisabled(cursorSelected == CursorSelected::POINTER);
             ImGui::SameLine();
             if (ImGui::Button(ICON_FA_ARROW_POINTER)) {
-                // Handle play button click
+                sceneData.sceneRender->getUILayer()->enableCursorPointer();
             }
+            ImGui::EndDisabled();
+
+            ImGui::BeginDisabled(cursorSelected == CursorSelected::HAND);
             ImGui::SameLine();
             if (ImGui::Button(ICON_FA_HAND)) {
-                // Handle play button click
+                sceneData.sceneRender->getUILayer()->enableCursorHand();
             }
+            ImGui::EndDisabled();
 
             ImGui::SameLine(0, 10);
             ImGui::Dummy(ImVec2(1, 20));
