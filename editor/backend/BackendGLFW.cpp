@@ -1,4 +1,6 @@
-#include "BackendGLFW.h"
+#include "Backend.h"
+
+#include <GLFW/glfw3.h>
 
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
@@ -8,19 +10,17 @@
 #include "util/DefaultFont.h"
 #include "external/IconsFontAwesome6.h"
 
-#include "App.h"
-
+static GLFWwindow* window = nullptr;
 
 using namespace Supernova;
 
-GLFWwindow* Editor::Backend::window = nullptr;
+Editor::App Editor::Backend::app;
 
 int Editor::Backend::init(int argc, char **argv){
     // Initialize GLFW
     if (!glfwInit())
         return -1;
 
-    Editor::App app;
     CameraRender render;
 
     int sampleCount = 1;
@@ -144,6 +144,10 @@ int Editor::Backend::init(int argc, char **argv){
     app.engineShutdown();
 
     return 0;
+}
+
+Editor::App& Editor::Backend::getApp(){
+    return app;
 }
 
 void Editor::Backend::disableMouseCursor(){

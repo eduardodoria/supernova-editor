@@ -18,18 +18,6 @@ Editor::App::App(){
     sceneWindow = new SceneWindow(&project);
 
     uint32_t sceneid = project.createNewScene("New Scene");
-    //project.createNewEntity(sceneid, "Entity 1");
-    //project.createNewEntity(sceneid, "Entity 2");
-
-    //uint32_t sceneid2 = project.createNewScene("New Scene 2");
-    //project.createNewEntity(sceneid2, "Entity 4");
-    //project.createNewEntity(sceneid2, "Entity 5");
-    //project.createNewEntity(sceneid2, "Entity 6");
-
-    //uint32_t sceneid3 = project.createNewScene("New Scene 3");
-    //project.createNewEntity(sceneid3, "Entity 8");
-    //project.createNewEntity(sceneid3, "Entity 9");
-    //project.createNewEntity(sceneid3, "Entity 10");
 }
 
 void Editor::App::showMenu(){
@@ -71,7 +59,7 @@ void Editor::App::showMenu(){
 }
 
 void Editor::App::buildDockspace(){
-    ImGuiID dock_id_left, dock_id_right, dock_id_middle, dock_id_middle_top, dock_id_middle_bottom;
+    ImGuiID dock_id_left, dock_id_right, dock_id_middle, dock_id_middle_bottom;
     float size;
 
     ImGui::DockBuilderRemoveNode(dockspace_id);
@@ -97,7 +85,7 @@ void Editor::App::buildDockspace(){
     ImGui::DockBuilderDockWindow("Console", dock_id_middle_bottom);
 
     for (auto& sceneProject : project.getScenes()) {
-        ImGui::DockBuilderDockWindow(("###Scene" + std::to_string(sceneProject.id)).c_str(), dock_id_middle_top);
+        addNewSceneToDock(sceneProject.id);
     }
 
     ImGui::DockBuilderFinish(dockspace_id);
@@ -146,6 +134,8 @@ void Editor::App::show(){
 
     showMenu();
 
+    isInitialized = true;
+
     if (ImGui::DockBuilderGetNode(dockspace_id) == nullptr) {
         buildDockspace();
     }
@@ -160,8 +150,6 @@ void Editor::App::show(){
     consoleWindow->show();
     propertiesWindow->show();
     sceneWindow->show();
-
-    isInitialized = true;
 }
 
 void Editor::App::engineInit(int argc, char** argv){
@@ -204,6 +192,12 @@ void Editor::App::engineViewDestroyed(){
 
 void Editor::App::engineShutdown(){
     Engine::systemShutdown();
+}
+
+void Editor::App::addNewSceneToDock(uint32_t sceneId){
+    if (isInitialized){
+        ImGui::DockBuilderDockWindow(("###Scene" + std::to_string(sceneId)).c_str(), dock_id_middle_top);
+    }
 }
 
 void Editor::App::kewtStyleTheme(){

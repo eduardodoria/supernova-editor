@@ -1,5 +1,7 @@
 #include "Project.h"
 
+#include "Backend.h"
+
 #include "subsystem/MeshSystem.h"
 #include "command/type/CreateEntityCmd.h"
 #include "command/type/DeleteEntityCmd.h"
@@ -13,6 +15,21 @@ Editor::Project::Project(){
 }
 
 uint32_t Editor::Project::createNewScene(std::string sceneName){
+    unsigned int nameCount = 2;
+    std::string baseName = sceneName;
+    bool foundName = true;
+    while (foundName){
+        foundName = false;
+        for (auto& sceneProject : scenes) {
+            std::string usedName = sceneProject.name;
+            if (usedName == sceneName){
+                sceneName = baseName + " " + std::to_string(nameCount);
+                nameCount++;
+                foundName = true;
+            }
+        }
+    }
+
     SceneProject data;
     data.id = ++nextSceneId;
     data.name = sceneName;
@@ -24,6 +41,8 @@ uint32_t Editor::Project::createNewScene(std::string sceneName){
     scenes.push_back(data);
 
     setSelectedSceneId(scenes.back().id);
+
+    Backend::getApp().addNewSceneToDock(scenes.back().id);
 
     return scenes.back().id;
 }

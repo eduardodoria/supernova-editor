@@ -1,4 +1,4 @@
-#include "backend/BackendGLFW.h"
+#include "Backend.h"
 
 using namespace Supernova;
 

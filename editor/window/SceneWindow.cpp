@@ -1,7 +1,7 @@
 #include "SceneWindow.h"
 
 #include "external/IconsFontAwesome6.h"
-#include "backend/BackendGLFW.h"
+#include "Backend.h"
 
 #include "math/Vector2.h"
 

@@ -19,6 +19,7 @@ namespace Supernova::Editor{
         Project project;
 
         ImGuiID dockspace_id;
+        ImGuiID dock_id_middle_top;
 
         Structure* structureWindow;
         Properties* propertiesWindow;
@@ -42,6 +43,8 @@ namespace Supernova::Editor{
         void engineRender();
         void engineViewDestroyed();
         void engineShutdown();
+
+        void addNewSceneToDock(uint32_t sceneId);
 
         void kewtStyleTheme();
     };
