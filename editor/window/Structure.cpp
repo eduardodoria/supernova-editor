@@ -353,34 +353,34 @@ void Editor::Structure::changeNodeName(const TreeNode* node, const std::string n
 }
 
 void Editor::Structure::show(){
-    SceneData* sceneData = project->getSelectedScene();
+    SceneProject* sceneProject = project->getSelectedScene();
     size_t order = 0;
 
     TreeNode root;
 
     root.icon = ICON_FA_TV;
-    root.id = sceneData->id;
+    root.id = sceneProject->id;
     root.isScene = true;
     root.separator = false;
     root.hasTransform = false;
     root.order = order++;
     root.parent = 0;
-    root.name = sceneData->name;
+    root.name = sceneProject->name;
 
     // non-hierarchical entities
-    for (auto& entity : sceneData->entities) {
-        Signature signature = sceneData->scene->getSignature(entity);
+    for (auto& entity : sceneProject->entities) {
+        Signature signature = sceneProject->scene->getSignature(entity);
 
-        if (!signature.test(sceneData->scene->getComponentId<Transform>())){
+        if (!signature.test(sceneProject->scene->getComponentId<Transform>())){
             TreeNode child;
-            child.icon = getObjectIcon(signature, sceneData->scene);
+            child.icon = getObjectIcon(signature, sceneProject->scene);
             child.id = entity;
             child.isScene = false;
             child.separator = false;
             child.hasTransform = false;
             child.order = order++;
             child.parent = 0;
-            child.name = sceneData->scene->getEntityName(entity);
+            child.name = sceneProject->scene->getEntityName(entity);
 
             root.children.push_back(child);
         }
@@ -392,27 +392,27 @@ void Editor::Structure::show(){
     }
 
     // hierarchical entities
-    auto transforms = sceneData->scene->getComponentArray<Transform>();
+    auto transforms = sceneProject->scene->getComponentArray<Transform>();
     for (int i = 0; i < transforms->size(); i++){
 		Transform& transform = transforms->getComponentFromIndex(i);
 		Entity entity = transforms->getEntity(i);
-		Signature signature = sceneData->scene->getSignature(entity);
+		Signature signature = sceneProject->scene->getSignature(entity);
 
-        if (std::count(sceneData->entities.begin(), sceneData->entities.end(), entity) > 0){
+        if (std::count(sceneProject->entities.begin(), sceneProject->entities.end(), entity) > 0){
             if (applySeparator){
                 root.children.back().separator = true;
                 applySeparator = false;
             }
 
             TreeNode child;
-            child.icon = getObjectIcon(signature, sceneData->scene);
+            child.icon = getObjectIcon(signature, sceneProject->scene);
             child.id = entity;
             child.isScene = false;
             child.separator = false;
             child.hasTransform = true;
             child.order = order++;
             child.parent = 0;
-            child.name = sceneData->scene->getEntityName(entity);
+            child.name = sceneProject->scene->getEntityName(entity);
             if (transform.parent == NULL_ENTITY){
                 root.children.push_back(child);
             }else{

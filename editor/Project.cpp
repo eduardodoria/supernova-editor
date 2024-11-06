@@ -13,7 +13,7 @@ Editor::Project::Project(){
 }
 
 uint32_t Editor::Project::createNewScene(std::string sceneName){
-    SceneData data;
+    SceneProject data;
     data.id = ++nextSceneId;
     data.name = sceneName;
     data.scene = new Scene();
@@ -74,7 +74,7 @@ void Editor::Project::deleteEntity(uint32_t sceneId, Entity entity){
 }
 
 bool Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
-    SceneData* scenedata = getScene(sceneId);
+    SceneProject* scenedata = getScene(sceneId);
     Ray ray = scenedata->sceneRender->getCamera()->screenToRay(x, y);
 
     float distance = FLT_MAX;
@@ -104,7 +104,7 @@ bool Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
     return false;
 }
 
-std::vector<Editor::SceneData>&  Editor::Project::getScenes(){
+std::vector<Editor::SceneProject>&  Editor::Project::getScenes(){
     return scenes;
 }
 
@@ -120,20 +120,20 @@ T* Editor::Project::findScene(uint32_t sceneId) const {
 
 
 // Non-const version
-Editor::SceneData* Editor::Project::getScene(uint32_t sceneId) {
-    return findScene<Editor::SceneData>(sceneId);
+Editor::SceneProject* Editor::Project::getScene(uint32_t sceneId) {
+    return findScene<Editor::SceneProject>(sceneId);
 }
 
 // Const version
-const Editor::SceneData* Editor::Project::getScene(uint32_t sceneId) const {
-    return findScene<const Editor::SceneData>(sceneId);
+const Editor::SceneProject* Editor::Project::getScene(uint32_t sceneId) const {
+    return findScene<const Editor::SceneProject>(sceneId);
 }
 
-Editor::SceneData* Editor::Project::getSelectedScene(){
+Editor::SceneProject* Editor::Project::getSelectedScene(){
     return getScene(selectedScene);
 }
 
-const Editor::SceneData* Editor::Project::getSelectedScene() const{
+const Editor::SceneProject* Editor::Project::getSelectedScene() const{
     return getScene(selectedScene);
 }
 
@@ -149,9 +149,9 @@ uint32_t Editor::Project::getSelectedSceneId() const{
 }
 
 void Editor::Project::setSelectedEntity(uint32_t sceneId, Entity selectedEntity){
-    SceneData* sceneData = getScene(sceneId);
-    if (sceneData->selectedEntity != selectedEntity){
-        sceneData->selectedEntity = selectedEntity;
+    SceneProject* sceneProject = getScene(sceneId);
+    if (sceneProject->selectedEntity != selectedEntity){
+        sceneProject->selectedEntity = selectedEntity;
     }
 }
 

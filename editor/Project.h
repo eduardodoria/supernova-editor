@@ -10,7 +10,7 @@
 
 namespace Supernova::Editor{
 
-    struct SceneData{
+    struct SceneProject{
         uint32_t id;
         std::string name;
         Scene* scene;
@@ -25,7 +25,7 @@ namespace Supernova::Editor{
 
         static uint32_t nextSceneId;
 
-        std::vector<SceneData> scenes;
+        std::vector<SceneProject> scenes;
         uint32_t selectedScene;
 
         template<typename T>
@@ -48,11 +48,11 @@ namespace Supernova::Editor{
 
         bool findObjectByRay(uint32_t sceneId, float x, float y);
 
-        std::vector<SceneData>& getScenes();
-        SceneData* getScene(uint32_t sceneId);
-        const SceneData* getScene(uint32_t sceneId) const;
-        SceneData* getSelectedScene();
-        const SceneData* getSelectedScene() const;
+        std::vector<SceneProject>& getScenes();
+        SceneProject* getScene(uint32_t sceneId);
+        const SceneProject* getScene(uint32_t sceneId) const;
+        SceneProject* getSelectedScene();
+        const SceneProject* getSelectedScene() const;
 
         void setSelectedSceneId(uint32_t selectedScene);
         uint32_t getSelectedSceneId() const;

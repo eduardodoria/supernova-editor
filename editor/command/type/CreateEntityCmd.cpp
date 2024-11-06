@@ -23,7 +23,7 @@ Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std
 }
 
 void Editor::CreateEntityCmd::execute(){
-    std::vector<Supernova::Editor::SceneData> &scenes = project->getScenes();
+    std::vector<Supernova::Editor::SceneProject> &scenes = project->getScenes();
     for (int i = 0; i < scenes.size(); i++){
         if (scenes[i].id == sceneId){
             if (entity == NULL_ENTITY){
@@ -74,7 +74,7 @@ void Editor::CreateEntityCmd::execute(){
 }
 
 void Editor::CreateEntityCmd::undo(){
-    std::vector<Supernova::Editor::SceneData> &scenes = project->getScenes();
+    std::vector<Supernova::Editor::SceneProject> &scenes = project->getScenes();
     for (int i = 0; i < scenes.size(); i++){
         if (scenes[i].id == sceneId){
             scenes[i].scene->destroyEntity(entity);

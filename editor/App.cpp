@@ -96,8 +96,8 @@ void Editor::App::buildDockspace(){
     ImGui::DockBuilderSetNodeSize(dock_id_middle_bottom, ImVec2(ImGui::GetMainViewport()->Size.x, size)); // Set bottom node size
     ImGui::DockBuilderDockWindow("Console", dock_id_middle_bottom);
 
-    for (auto& sceneData : project.getScenes()) {
-        ImGui::DockBuilderDockWindow(("###Scene" + std::to_string(sceneData.id)).c_str(), dock_id_middle_top);
+    for (auto& sceneProject : project.getScenes()) {
+        ImGui::DockBuilderDockWindow(("###Scene" + std::to_string(sceneProject.id)).c_str(), dock_id_middle_top);
     }
 
     ImGui::DockBuilderFinish(dockspace_id);
@@ -173,14 +173,14 @@ void Editor::App::engineViewLoaded(){
 }
 
 void Editor::App::engineRender(){
-    for (auto& sceneData : project.getScenes()) {
-        if (sceneData.needUpdateRender || sceneData.id == project.getSelectedSceneId()){
-            int width = sceneWindow->getWidth(sceneData.id);
-            int height = sceneWindow->getHeight(sceneData.id);
+    for (auto& sceneProject : project.getScenes()) {
+        if (sceneProject.needUpdateRender || sceneProject.id == project.getSelectedSceneId()){
+            int width = sceneWindow->getWidth(sceneProject.id);
+            int height = sceneWindow->getHeight(sceneProject.id);
 
-            SceneRender* sceneRender = sceneData.sceneRender;
+            SceneRender* sceneRender = sceneProject.sceneRender;
 
-            sceneData.sceneRender->activate();
+            sceneProject.sceneRender->activate();
 
             if (Platform::setSizes(width, height)){
                 Engine::systemViewChanged();
@@ -188,11 +188,11 @@ void Editor::App::engineRender(){
             }
             if (width != 0 && height != 0){
                 //TODO: avoid calling every frame
-                sceneRender->update(project.getSelectedEntity(sceneData.id));
+                sceneRender->update(project.getSelectedEntity(sceneProject.id));
 
                 Engine::systemDraw();
 
-                sceneData.needUpdateRender = false;
+                sceneProject.needUpdateRender = false;
             }
         }
     }

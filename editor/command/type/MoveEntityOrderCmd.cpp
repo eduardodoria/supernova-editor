@@ -20,14 +20,14 @@ size_t Editor::MoveEntityOrderCmd::getIndex(std::vector<Entity>& entities, Entit
 }
 
 void Editor::MoveEntityOrderCmd::execute(){
-    SceneData* sceneData = project->getScene(sceneId);
-    std::vector<Entity>& entities = sceneData->entities;
+    SceneProject* sceneProject = project->getScene(sceneId);
+    std::vector<Entity>& entities = sceneProject->entities;
 
-    Transform* transformSource = sceneData->scene->findComponent<Transform>(source);
-    Transform* transformTarget = sceneData->scene->findComponent<Transform>(target);
+    Transform* transformSource = sceneProject->scene->findComponent<Transform>(source);
+    Transform* transformTarget = sceneProject->scene->findComponent<Transform>(target);
 
     if (transformSource && transformTarget){
-        auto transforms = sceneData->scene->getComponentArray<Transform>();
+        auto transforms = sceneProject->scene->getComponentArray<Transform>();
 
         size_t sourceTransformIndex = transforms->getIndex(source);
         size_t targetTransformIndex = transforms->getIndex(target);
@@ -40,7 +40,7 @@ void Editor::MoveEntityOrderCmd::execute(){
         }
 
         oldParent = transformSource->parent;
-        sceneData->scene->addEntityChild(newParent, source, true);
+        sceneProject->scene->addEntityChild(newParent, source, true);
 
         oldTransformIndex = sourceTransformIndex;
 
@@ -51,7 +51,7 @@ void Editor::MoveEntityOrderCmd::execute(){
             --targetTransformIndex;
         }
 
-        sceneData->scene->moveChildToIndex(source, targetTransformIndex);
+        sceneProject->scene->moveChildToIndex(source, targetTransformIndex);
     }
 
     size_t sourceIndex = getIndex(entities, source);
@@ -71,16 +71,16 @@ void Editor::MoveEntityOrderCmd::execute(){
 }
 
 void Editor::MoveEntityOrderCmd::undo(){
-    SceneData* sceneData = project->getScene(sceneId);
-    std::vector<Entity>& entities = sceneData->entities;
+    SceneProject* sceneProject = project->getScene(sceneId);
+    std::vector<Entity>& entities = sceneProject->entities;
 
-    Transform* transformSource = sceneData->scene->findComponent<Transform>(source);
-    Transform* transformTarget = sceneData->scene->findComponent<Transform>(target);
+    Transform* transformSource = sceneProject->scene->findComponent<Transform>(source);
+    Transform* transformTarget = sceneProject->scene->findComponent<Transform>(target);
 
     if (transformSource && transformTarget){
-        sceneData->scene->addEntityChild(oldParent, source, true);
+        sceneProject->scene->addEntityChild(oldParent, source, true);
 
-        sceneData->scene->moveChildToIndex(source, oldTransformIndex);
+        sceneProject->scene->moveChildToIndex(source, oldTransformIndex);
     }
 
     size_t sourceIndex = getIndex(entities, source);

@@ -130,17 +130,17 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
 }
 
 void Editor::SceneWindow::show(){
-    for (auto& sceneData : project->getScenes()) {
+    for (auto& sceneProject : project->getScenes()) {
         ImGui::SetNextWindowSizeConstraints(ImVec2(200, 200), ImVec2(FLT_MAX, FLT_MAX));
-        ImGui::Begin((sceneData.name + "###Scene" + std::to_string(sceneData.id)).c_str());
+        ImGui::Begin((sceneProject.name + "###Scene" + std::to_string(sceneProject.id)).c_str());
         {
 
             if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)){
-                project->setSelectedSceneId(sceneData.id);
+                project->setSelectedSceneId(sceneProject.id);
             }
 
             if (ImGui::Button(ICON_FA_PLAY " Play")) {
-                sceneData.name = "Testing";
+                sceneProject.name = "Testing";
                 // Handle play button click
             }
 
@@ -155,19 +155,19 @@ void Editor::SceneWindow::show(){
             ImGui::Dummy(ImVec2(1, 20));
             ImGui::SameLine(0, 10);
 
-            CursorSelected cursorSelected = sceneData.sceneRender->getUILayer()->getCursorSelected();
+            CursorSelected cursorSelected = sceneProject.sceneRender->getUILayer()->getCursorSelected();
 
             ImGui::BeginDisabled(cursorSelected == CursorSelected::POINTER);
             ImGui::SameLine();
             if (ImGui::Button(ICON_FA_ARROW_POINTER)) {
-                sceneData.sceneRender->getUILayer()->enableCursorPointer();
+                sceneProject.sceneRender->getUILayer()->enableCursorPointer();
             }
             ImGui::EndDisabled();
 
             ImGui::BeginDisabled(cursorSelected == CursorSelected::HAND);
             ImGui::SameLine();
             if (ImGui::Button(ICON_FA_HAND)) {
-                sceneData.sceneRender->getUILayer()->enableCursorHand();
+                sceneProject.sceneRender->getUILayer()->enableCursorHand();
             }
             ImGui::EndDisabled();
 
@@ -175,44 +175,44 @@ void Editor::SceneWindow::show(){
             ImGui::Dummy(ImVec2(1, 20));
             ImGui::SameLine(0, 10);
 
-            GizmoSelected gizmoSelected = sceneData.sceneRender->getToolsLayer()->getGizmoSelected();
+            GizmoSelected gizmoSelected = sceneProject.sceneRender->getToolsLayer()->getGizmoSelected();
 
             ImGui::BeginDisabled(gizmoSelected == GizmoSelected::TRANSLATE);
             ImGui::SameLine();
             if (ImGui::Button(ICON_FA_ARROWS_UP_DOWN_LEFT_RIGHT)) {
-                sceneData.sceneRender->getToolsLayer()->enableTranslateGizmo();
+                sceneProject.sceneRender->getToolsLayer()->enableTranslateGizmo();
             }
             ImGui::EndDisabled();
 
             ImGui::BeginDisabled(gizmoSelected == GizmoSelected::ROTATE);
             ImGui::SameLine();
             if (ImGui::Button(ICON_FA_ROTATE)) {
-                sceneData.sceneRender->getToolsLayer()->enableRotateGizmo();
+                sceneProject.sceneRender->getToolsLayer()->enableRotateGizmo();
             }
             ImGui::EndDisabled();
 
             ImGui::BeginDisabled(gizmoSelected == GizmoSelected::SCALE);
             ImGui::SameLine();
             if (ImGui::Button(ICON_FA_UP_RIGHT_AND_DOWN_LEFT_FROM_CENTER)) {
-                sceneData.sceneRender->getToolsLayer()->enableScaleGizmo();
+                sceneProject.sceneRender->getToolsLayer()->enableScaleGizmo();
             }
             ImGui::EndDisabled();
 
-            ImGui::BeginChild(("Canvas" + std::to_string(sceneData.id)).c_str());
+            ImGui::BeginChild(("Canvas" + std::to_string(sceneProject.id)).c_str());
             {
-                sceneEventHandler(project, sceneData.id);
+                sceneEventHandler(project, sceneProject.id);
 
                 int widthNew = ImGui::GetContentRegionAvail().x;
                 int heightNew = ImGui::GetContentRegionAvail().y;
 
-                if (widthNew != width[sceneData.id] || heightNew != height[sceneData.id]){
-                    width[sceneData.id] = ImGui::GetContentRegionAvail().x;
-                    height[sceneData.id] = ImGui::GetContentRegionAvail().y;
+                if (widthNew != width[sceneProject.id] || heightNew != height[sceneProject.id]){
+                    width[sceneProject.id] = ImGui::GetContentRegionAvail().x;
+                    height[sceneProject.id] = ImGui::GetContentRegionAvail().y;
 
-                    sceneData.needUpdateRender = true;
+                    sceneProject.needUpdateRender = true;
                 }
 
-                ImGui::Image((void*)(intptr_t)sceneData.sceneRender->getTexture().getGLHandler(), ImGui::GetContentRegionAvail(), ImVec2(0, 1), ImVec2(1, 0));
+                ImGui::Image((void*)(intptr_t)sceneProject.sceneRender->getTexture().getGLHandler(), ImGui::GetContentRegionAvail(), ImVec2(0, 1), ImVec2(1, 0));
             }
             ImGui::EndChild();
         }
