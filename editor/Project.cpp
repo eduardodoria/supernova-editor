@@ -160,6 +160,7 @@ void Editor::Project::setSelectedSceneId(uint32_t selectedScene){
     if (this->selectedScene != selectedScene){
         this->selectedScene = selectedScene;
         getScene(selectedScene)->sceneRender->activate();
+        Backend::getApp().notifySceneChange();
     }
 }
 

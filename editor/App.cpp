@@ -10,14 +10,13 @@
 using namespace Supernova;
 
 bool Editor::App::isInitialized = false;
+bool Editor::App::sceneChanged = false;
 
 Editor::App::App(){
     structureWindow = new Structure(&project);
     propertiesWindow = new Properties();
     consoleWindow = new Console();
     sceneWindow = new SceneWindow(&project);
-
-    uint32_t sceneid = project.createNewScene("New Scene");
 }
 
 void Editor::App::showMenu(){
@@ -153,6 +152,8 @@ void Editor::App::show(){
 }
 
 void Editor::App::engineInit(int argc, char** argv){
+    uint32_t sceneid = project.createNewScene("New Scene");
+
     Engine::systemInit(argc, argv);
 }
 
@@ -168,13 +169,13 @@ void Editor::App::engineRender(){
 
             SceneRender* sceneRender = sceneProject.sceneRender;
 
-            sceneProject.sceneRender->activate();
-
-            if (Platform::setSizes(width, height)){
-                Engine::systemViewChanged();
-                sceneRender->updateSize(width, height);
-            }
             if (width != 0 && height != 0){
+                if (Platform::setSizes(width, height) || sceneChanged){
+                    Engine::systemViewChanged();
+                    sceneRender->updateSize(width, height);
+                    sceneChanged = false;
+                }
+
                 //TODO: avoid calling every frame
                 sceneRender->update(project.getSelectedEntity(sceneProject.id));
 
@@ -198,6 +199,10 @@ void Editor::App::addNewSceneToDock(uint32_t sceneId){
     if (isInitialized){
         ImGui::DockBuilderDockWindow(("###Scene" + std::to_string(sceneId)).c_str(), dock_id_middle_top);
     }
+}
+
+void Editor::App::notifySceneChange(){
+    sceneChanged = true;
 }
 
 void Editor::App::kewtStyleTheme(){
