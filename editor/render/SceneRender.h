@@ -22,6 +22,7 @@ namespace Supernova::Editor{
 
         Ray mouseRay;
         bool mouseClicked;
+        Vector2 mouseStartPosition;
         Plane cursorPlane;
         Vector3 cursorStartOffset;
         Quaternion rotationStartOffset;
@@ -38,9 +39,9 @@ namespace Supernova::Editor{
         void updateSize(int width, int height);
         void update(Entity selectedEntity);
         void mouseHoverEvent(float x, float y);
-        void mouseClickEvent(float x, float y, Entity entity);
+        void mouseClickEvent(float x, float y, Entity selEntity);
         void mouseReleaseEvent(float x, float y);
-        void mouseDragEvent(float x, float y, Entity entity);
+        void mouseDragEvent(float x, float y, Entity selEntity);
 
         TextureRender& getTexture();
 

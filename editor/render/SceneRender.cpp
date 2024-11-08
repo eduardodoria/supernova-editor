@@ -99,11 +99,9 @@ void Editor::SceneRender::activate(){
 }
 
 void Editor::SceneRender::updateSize(int width, int height){
-    if (width > 0 && height > 0){
+    //if (width > 0 && height > 0){
         //camera->setFramebufferSize(width, height);
-
-        uilayer.updateSize(width, height);
-    }
+    //}
 }
 
 void Editor::SceneRender::update(Entity selectedEntity){
@@ -135,10 +133,11 @@ void Editor::SceneRender::mouseHoverEvent(float x, float y){
     mouseRay = camera->screenToRay(x, y);
 }
 
-void Editor::SceneRender::mouseClickEvent(float x, float y, Entity entity){
+void Editor::SceneRender::mouseClickEvent(float x, float y, Entity selEntity){
     mouseClicked = true;
+    mouseStartPosition = Vector2(x, y);
 
-    Transform* transform = scene->findComponent<Transform>(entity);
+    Transform* transform = scene->findComponent<Transform>(selEntity);
 
     if (transform){
         Vector3 viewDir = camera->getWorldDirection();
@@ -179,6 +178,8 @@ void Editor::SceneRender::mouseClickEvent(float x, float y, Entity entity){
 }
 
 void Editor::SceneRender::mouseReleaseEvent(float x, float y){
+    uilayer.setRectVisible(false);
+
     mouseClicked = false;
 
     toolslayer.mouseRelease();
@@ -189,8 +190,11 @@ void Editor::SceneRender::mouseReleaseEvent(float x, float y){
     }
 }
 
-void Editor::SceneRender::mouseDragEvent(float x, float y, Entity entity){
-    Transform* transform = scene->findComponent<Transform>(entity);
+void Editor::SceneRender::mouseDragEvent(float x, float y, Entity selEntity){
+    uilayer.setRectVisible(true);
+    uilayer.updateRect(mouseStartPosition, Vector2(x, y) - mouseStartPosition);
+
+    Transform* transform = scene->findComponent<Transform>(selEntity);
 
     if (transform){
         RayReturn rretrun = mouseRay.intersects(cursorPlane);
@@ -222,7 +226,7 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, Entity entity){
                 }
 
                 if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
-                    lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", newPos);
+                    lastCommand = new ChangePropertyCmd<Vector3>(scene, selEntity, ComponentType::Transform, "position", newPos);
                 }
             }
 
@@ -255,7 +259,7 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, Entity entity){
                 }
 
                 if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
-                    lastCommand = new ChangePropertyCmd<Quaternion>(scene, entity, ComponentType::Transform, "rotation", newRot);
+                    lastCommand = new ChangePropertyCmd<Quaternion>(scene, selEntity, ComponentType::Transform, "rotation", newRot);
                 }
             }
 
@@ -290,7 +294,7 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, Entity entity){
                 }
 
                 if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
-                    lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "scale", newScale);
+                    lastCommand = new ChangePropertyCmd<Vector3>(scene, selEntity, ComponentType::Transform, "scale", newScale);
                 }
 
             }

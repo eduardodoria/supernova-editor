@@ -6,6 +6,7 @@
 #include "object/Object.h"
 #include "object/Shape.h"
 #include "object/ui/Image.h"
+#include "object/ui/Polygon.h"
 #include "RenderUtil.h"
 
 namespace Supernova::Editor{
@@ -15,6 +16,14 @@ namespace Supernova::Editor{
         Scene* scene;
         Camera* camera;
 
+        Object* rect;
+
+        Polygon* upRect;
+        Polygon* bottomRect;
+        Polygon* leftRect;
+        Polygon* rightRect;
+        Polygon* centralRect;
+
         Image* viewGizmoImage;
 
         CursorSelected cursorSelected;
@@ -23,10 +32,11 @@ namespace Supernova::Editor{
 
         void setViewportGizmoTexture(Framebuffer* framebuffer);
 
-        void updateSize(int width, int height);
-
         void enableCursorPointer();
         void enableCursorHand();
+
+        void setRectVisible(bool visible);
+        void updateRect(Vector2 position, Vector2 size);
 
         Framebuffer* getFramebuffer();
         TextureRender& getTexture();

@@ -172,7 +172,7 @@ void Editor::App::engineRender(){
             if (width != 0 && height != 0){
                 if (Platform::setSizes(width, height) || sceneChanged){
                     Engine::systemViewChanged();
-                    sceneRender->updateSize(width, height);
+                    sceneRender->updateSize(width, height); //TODO: not been used
                     sceneChanged = false;
                 }
 
