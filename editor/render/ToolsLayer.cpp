@@ -42,9 +42,10 @@ void Editor::ToolsLayer::updateCamera(CameraComponent& extCamera, Transform& ext
     }
 }
 
-void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, float scale, Ray& mouseRay, bool mouseClicked){
+void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quaternion& rotation, float scale, Ray& mouseRay, bool mouseClicked){
     if (gizmoSelected == GizmoSelected::TRANSLATE){
         tGizmo->setPosition(position);
+        tGizmo->setRotation(rotation);
         tGizmo->setScale(scale);
         if (!mouseClicked){
             gizmoSideSelected = tGizmo->checkHoverHighlight(mouseRay);
@@ -53,6 +54,7 @@ void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, float 
     if (gizmoSelected == GizmoSelected::ROTATE){
         rGizmo->updateRotations(camera);
         rGizmo->setPosition(position);
+        rGizmo->setRotation(rotation);
         rGizmo->setScale(scale);
         if (!mouseClicked){
             gizmoSideSelected = rGizmo->checkHoverHighlight(mouseRay);
@@ -60,6 +62,7 @@ void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, float 
     }
     if (gizmoSelected == GizmoSelected::SCALE){
         sGizmo->setPosition(position);
+        sGizmo->setRotation(rotation);
         sGizmo->setScale(scale);
         if (!mouseClicked){
             gizmoSideSelected = sGizmo->checkHoverHighlight(mouseRay);

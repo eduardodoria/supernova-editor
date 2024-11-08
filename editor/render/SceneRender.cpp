@@ -18,6 +18,7 @@ Editor::SceneRender::SceneRender(Scene* scene){
     this->scene = scene;
     mouseClicked = false;
     lastCommand = nullptr;
+    useGlobalTransform = true;
 
     Lines* lines = new Lines(scene);
     Light* sun = new Light(scene);
@@ -123,7 +124,12 @@ void Editor::SceneRender::update(Entity selectedEntity){
             float dist = (transform->worldPosition - camera->getWorldPosition()).length();
             float scale = std::tan(cameracomp.yfov) * dist * (gizmoSize / (float)framebuffer.getHeight());
 
-            toolslayer.updateGizmo(camera, transform->worldPosition, scale, mouseRay, mouseClicked);
+            Quaternion gizmoRotation;
+            if (!useGlobalTransform){
+                gizmoRotation = transform->worldRotation;
+            }
+
+            toolslayer.updateGizmo(camera, transform->worldPosition, gizmoRotation, scale, mouseRay, mouseClicked);
         }
     }
     toolslayer.setGizmoVisible(gizmoVisibility);
@@ -145,6 +151,11 @@ void Editor::SceneRender::mouseClickEvent(float x, float y, Entity selEntity){
         float dotX = viewDir.dotProduct(Vector3(1,0,0));
         float dotY = viewDir.dotProduct(Vector3(0,1,0));
         float dotZ = viewDir.dotProduct(Vector3(0,0,1));
+
+        Quaternion gizmoRotation;
+        if (!useGlobalTransform){
+            gizmoRotation = transform->worldRotation;
+        }
 
         if (toolslayer.getGizmoSelected() == GizmoSelected::TRANSLATE || toolslayer.getGizmoSelected() == GizmoSelected::SCALE){
             if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XYZ){
@@ -191,13 +202,20 @@ void Editor::SceneRender::mouseReleaseEvent(float x, float y){
 }
 
 void Editor::SceneRender::mouseDragEvent(float x, float y, Entity selEntity){
-    uilayer.setRectVisible(true);
-    uilayer.updateRect(mouseStartPosition, Vector2(x, y) - mouseStartPosition);
+    if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::NONE){
+        uilayer.setRectVisible(true);
+        uilayer.updateRect(mouseStartPosition, Vector2(x, y) - mouseStartPosition);
+    }
 
     Transform* transform = scene->findComponent<Transform>(selEntity);
 
     if (transform){
         RayReturn rretrun = mouseRay.intersects(cursorPlane);
+
+        Quaternion gizmoRotation;
+        if (!useGlobalTransform){
+            gizmoRotation = transform->worldRotation;
+        }
 
         if (rretrun){
 
@@ -329,4 +347,12 @@ Editor::UILayer* Editor::SceneRender::getUILayer(){
 
 bool Editor::SceneRender::isGizmoSideSelected() const{
     return (toolslayer.getGizmoSideSelected() != Editor::GizmoSideSelected::NONE);
+}
+
+bool Editor::SceneRender::isUseGlobalTransform() const{
+    return useGlobalTransform;
+}
+
+void Editor::SceneRender::setUseGlobalTransform(bool useGlobalTransform){
+    this->useGlobalTransform = useGlobalTransform;
 }

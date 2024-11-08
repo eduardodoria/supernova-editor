@@ -20,6 +20,8 @@ namespace Supernova::Editor{
         UILayer uilayer;
         ViewportGizmo viewgizmo;
 
+        bool useGlobalTransform;
+
         Ray mouseRay;
         bool mouseClicked;
         Vector2 mouseStartPosition;
@@ -51,6 +53,9 @@ namespace Supernova::Editor{
         UILayer* getUILayer();
 
         bool isGizmoSideSelected() const;
+
+        bool isUseGlobalTransform() const;
+        void setUseGlobalTransform(bool useGlobalTransform);
     };
 
 }

@@ -182,6 +182,7 @@ void Editor::SceneWindow::show(){
             if (ImGui::Button(ICON_FA_ARROWS_UP_DOWN_LEFT_RIGHT)) {
                 sceneProject.sceneRender->getToolsLayer()->enableTranslateGizmo();
             }
+            ImGui::SetItemTooltip("Translate (W)");
             ImGui::EndDisabled();
 
             ImGui::BeginDisabled(gizmoSelected == GizmoSelected::ROTATE);
@@ -189,6 +190,7 @@ void Editor::SceneWindow::show(){
             if (ImGui::Button(ICON_FA_ROTATE)) {
                 sceneProject.sceneRender->getToolsLayer()->enableRotateGizmo();
             }
+            ImGui::SetItemTooltip("Rotate (W)");
             ImGui::EndDisabled();
 
             ImGui::BeginDisabled(gizmoSelected == GizmoSelected::SCALE);
@@ -196,6 +198,29 @@ void Editor::SceneWindow::show(){
             if (ImGui::Button(ICON_FA_UP_RIGHT_AND_DOWN_LEFT_FROM_CENTER)) {
                 sceneProject.sceneRender->getToolsLayer()->enableScaleGizmo();
             }
+            ImGui::SetItemTooltip("Scale (R)");
+            ImGui::EndDisabled();
+
+            ImGui::SameLine(0, 10);
+            ImGui::Dummy(ImVec2(1, 20));
+            ImGui::SameLine(0, 10);
+
+            bool useGlobalTransform = sceneProject.sceneRender->isUseGlobalTransform();
+
+            ImGui::BeginDisabled(useGlobalTransform);
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_GLOBE)) {
+                sceneProject.sceneRender->setUseGlobalTransform(true);
+            }
+            ImGui::SetItemTooltip("World transform (T)");
+            ImGui::EndDisabled();
+
+            ImGui::BeginDisabled(!useGlobalTransform);
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_LOCATION_DOT)) {
+                sceneProject.sceneRender->setUseGlobalTransform(false);
+            }
+            ImGui::SetItemTooltip("Local transform (T)");
             ImGui::EndDisabled();
 
             ImGui::BeginChild(("Canvas" + std::to_string(sceneProject.id)).c_str());
