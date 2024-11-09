@@ -12,6 +12,7 @@ uint32_t Editor::Project::nextSceneId = 0;
 
 Editor::Project::Project(){
     selectedScene = NULL_PROJECT_SCENE;
+    lastActivatedScene = NULL_PROJECT_SCENE;
 }
 
 uint32_t Editor::Project::createNewScene(std::string sceneName){
@@ -159,13 +160,19 @@ const Editor::SceneProject* Editor::Project::getSelectedScene() const{
 void Editor::Project::setSelectedSceneId(uint32_t selectedScene){
     if (this->selectedScene != selectedScene){
         this->selectedScene = selectedScene;
-        getScene(selectedScene)->sceneRender->activate();
-        Backend::getApp().notifySceneChange();
     }
 }
 
 uint32_t Editor::Project::getSelectedSceneId() const{
     return selectedScene;
+}
+
+void Editor::Project::setLastActivatedSceneId(uint32_t lastActivatedScene){
+    this->lastActivatedScene = lastActivatedScene;
+}
+
+uint32_t Editor::Project::getLastActivatedSceneId() const{
+    return lastActivatedScene;
 }
 
 void Editor::Project::setSelectedEntity(uint32_t sceneId, Entity selectedEntity){

@@ -55,6 +55,8 @@ int Editor::Backend::init(int argc, char **argv){
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;      // Enable Docking
 
+    io.ConfigWindowsMoveFromTitleBarOnly = true;
+
     #ifdef _DEBUG
     io.IniFilename = nullptr;  // Disable saving to ini file
     #endif

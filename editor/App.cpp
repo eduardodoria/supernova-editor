@@ -10,7 +10,6 @@
 using namespace Supernova;
 
 bool Editor::App::isInitialized = false;
-bool Editor::App::sceneChanged = false;
 
 Editor::App::App(){
     structureWindow = new Structure(&project);
@@ -169,12 +168,26 @@ void Editor::App::engineRender(){
 
             SceneRender* sceneRender = sceneProject.sceneRender;
 
+            bool sceneChanged = false;
+
+            if (project.getLastActivatedSceneId() != sceneProject.id){
+                sceneProject.sceneRender->activate();
+                project.setLastActivatedSceneId(sceneProject.id);
+                sceneChanged = true;
+                #ifdef _DEBUG
+                printf("DEBUG: Activated scene %u\n", project.getLastActivatedSceneId());
+                #endif
+            }
+
             if (width != 0 && height != 0){
                 if (Platform::setSizes(width, height) || sceneChanged){
                     Engine::systemViewChanged();
                     sceneRender->updateSize(width, height); //TODO: not been used
                     sceneChanged = false;
                 }
+
+                // to avoid delay when move objects with gizmo
+                sceneRender->updateRenderSystem();
 
                 //TODO: avoid calling every frame
                 sceneRender->update(project.getSelectedEntity(sceneProject.id));
@@ -199,10 +212,6 @@ void Editor::App::addNewSceneToDock(uint32_t sceneId){
     if (isInitialized){
         ImGui::DockBuilderDockWindow(("###Scene" + std::to_string(sceneId)).c_str(), dock_id_middle_top);
     }
-}
-
-void Editor::App::notifySceneChange(){
-    sceneChanged = true;
 }
 
 void Editor::App::kewtStyleTheme(){

@@ -38,6 +38,7 @@ namespace Supernova::Editor{
         SceneRender(Scene* scene);
 
         void activate();
+        void updateRenderSystem();
         void updateSize(int width, int height);
         void update(Entity selectedEntity);
         void mouseHoverEvent(float x, float y);

@@ -27,7 +27,6 @@ namespace Supernova::Editor{
         SceneWindow* sceneWindow;
 
         static bool isInitialized;
-        static bool sceneChanged;
 
         void showMenu();
         void showStyleEditor();
@@ -46,7 +45,6 @@ namespace Supernova::Editor{
         void engineShutdown();
 
         void addNewSceneToDock(uint32_t sceneId);
-        void notifySceneChange();
 
         void kewtStyleTheme();
     };
