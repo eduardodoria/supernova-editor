@@ -152,35 +152,36 @@ void Editor::SceneRender::mouseClickEvent(float x, float y, Entity selEntity){
     if (transform){
         Vector3 viewDir = camera->getWorldDirection();
 
-        float dotX = viewDir.dotProduct(Vector3(1,0,0));
-        float dotY = viewDir.dotProduct(Vector3(0,1,0));
-        float dotZ = viewDir.dotProduct(Vector3(0,0,1));
-
         Quaternion gizmoRotation;
         if (!useGlobalTransform){
             gizmoRotation = transform->worldRotation;
         }
+        Matrix4 gizmoRMatrix = gizmoRotation.getRotationMatrix();
+
+        float dotX = viewDir.dotProduct(gizmoRMatrix * Vector3(1,0,0));
+        float dotY = viewDir.dotProduct(gizmoRMatrix * Vector3(0,1,0));
+        float dotZ = viewDir.dotProduct(gizmoRMatrix * Vector3(0,0,1));
 
         if (toolslayer.getGizmoSelected() == GizmoSelected::TRANSLATE || toolslayer.getGizmoSelected() == GizmoSelected::SCALE){
             if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XYZ){
-                cursorPlane = Plane(Vector3(dotX, dotY, dotZ).normalize(), transform->worldPosition);
+                cursorPlane = Plane((gizmoRMatrix * Vector3(dotX, dotY, dotZ).normalize()), transform->worldPosition);
             }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
-                cursorPlane = Plane(Vector3(0, dotY, dotZ).normalize(), transform->worldPosition);
+                cursorPlane = Plane((gizmoRMatrix * Vector3(0, dotY, dotZ).normalize()), transform->worldPosition);
             }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
-                cursorPlane = Plane(Vector3(dotX, 0, dotZ).normalize(), transform->worldPosition);
+                cursorPlane = Plane((gizmoRMatrix * Vector3(dotX, 0, dotZ).normalize()), transform->worldPosition);
             }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
-                cursorPlane = Plane(Vector3(dotX, dotY, 0).normalize(), transform->worldPosition);
+                cursorPlane = Plane((gizmoRMatrix * Vector3(dotX, dotY, 0).normalize()), transform->worldPosition);
             }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XY){
-                cursorPlane = Plane(Vector3(0, 0, dotZ).normalize(), transform->worldPosition);
+                cursorPlane = Plane((gizmoRMatrix * Vector3(0, 0, dotZ).normalize()), transform->worldPosition);
             }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XZ){
-                cursorPlane = Plane(Vector3(0, dotY, 0).normalize(), transform->worldPosition);
+                cursorPlane = Plane((gizmoRMatrix * Vector3(0, dotY, 0).normalize()), transform->worldPosition);
             }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::YZ){
-                cursorPlane = Plane(Vector3(dotX, 0, 0).normalize(), transform->worldPosition);
+                cursorPlane = Plane((gizmoRMatrix * Vector3(dotX, 0, 0).normalize()), transform->worldPosition);
             }
         }
 
         if (toolslayer.getGizmoSelected() == GizmoSelected::ROTATE){
-            cursorPlane = Plane(Vector3(dotX, dotY, dotZ).normalize(), transform->worldPosition);
+            cursorPlane = Plane((gizmoRMatrix * Vector3(dotX, dotY, dotZ).normalize()), transform->worldPosition);
         }
 
         RayReturn rretrun = mouseRay.intersects(cursorPlane);
@@ -220,6 +221,7 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, Entity selEntity){
         if (!useGlobalTransform){
             gizmoRotation = transform->worldRotation;
         }
+        Matrix4 gizmoRMatrix = gizmoRotation.getRotationMatrix();
 
         if (rretrun){
 
@@ -228,19 +230,21 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, Entity selEntity){
             Transform* transformParent = scene->findComponent<Transform>(transform->parent);
 
             if (toolslayer.getGizmoSelected() == GizmoSelected::TRANSLATE){
-                Vector3 newPos = (rretrun.point + cursorStartOffset); //XYZ
-                if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
-                    newPos = Vector3(newPos.x, transform->worldPosition.y, transform->worldPosition.z);
+                Vector3 newPos = gizmoRMatrix.inverse() * ((rretrun.point + cursorStartOffset) - transform->worldPosition);
+                if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XYZ){
+                    newPos = transform->worldPosition + (gizmoRMatrix * newPos);
+                }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
+                    newPos = transform->worldPosition + (gizmoRMatrix * Vector3(newPos.x, 0, 0));
                 }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
-                    newPos = Vector3(transform->worldPosition.x, newPos.y, transform->worldPosition.z);
+                    newPos = transform->worldPosition + (gizmoRMatrix * Vector3(0, newPos.y, 0));
                 }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
-                    newPos = Vector3(transform->worldPosition.x, transform->worldPosition.y, newPos.z);
+                    newPos = transform->worldPosition + (gizmoRMatrix * Vector3(0, 0, newPos.z));
                 }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XY){
-                    newPos = Vector3(newPos.x, newPos.y, transform->worldPosition.z);
+                    newPos = transform->worldPosition + (gizmoRMatrix * Vector3(newPos.x, newPos.y, 0));
                 }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XZ){
-                    newPos = Vector3(newPos.x, transform->worldPosition.y, newPos.z);
+                    newPos = transform->worldPosition + (gizmoRMatrix * Vector3(newPos.x, 0, newPos.z));
                 }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::YZ){
-                    newPos = Vector3(transform->worldPosition.x, newPos.y, newPos.z);
+                    newPos = transform->worldPosition + (gizmoRMatrix * Vector3(0, newPos.y, newPos.z));
                 }
 
                 if (transformParent){

@@ -189,13 +189,15 @@ std::vector<AABB> Editor::RotateGizmo::createHalfTorus(Entity entity, float radi
 }
 
 void Editor::RotateGizmo::updateRotations(Camera* camera){
+    Matrix4 rotMatrixInv = getWorldRotation().getRotationMatrix().inverse();
+
     Plane planeX(Vector3(1,0,0), 0);
     Plane planeY(Vector3(0,1,0), 0);
     Plane planeZ(Vector3(0,0,1), 0);
 
-    Vector3 viewX = planeX.projectVector(camera->getWorldDirection()).normalize();
-    Vector3 viewY = planeY.projectVector(camera->getWorldDirection()).normalize();
-    Vector3 viewZ = planeZ.projectVector(camera->getWorldDirection()).normalize();
+    Vector3 viewX = planeX.projectVector(rotMatrixInv * camera->getWorldDirection()).normalize();
+    Vector3 viewY = planeY.projectVector(rotMatrixInv * camera->getWorldDirection()).normalize();
+    Vector3 viewZ = planeZ.projectVector(rotMatrixInv * camera->getWorldDirection()).normalize();
 
     xcircle->setRotation(Quaternion(Angle::radToDefault(atan2(viewX.z, viewX.y)), planeX.normal) * Quaternion(0, 0, 90));
     ycircle->setRotation(Quaternion(Angle::radToDefault(atan2(viewY.x, viewY.z) - M_PI_2), planeY.normal));
