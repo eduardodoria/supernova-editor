@@ -182,6 +182,16 @@ void Editor::SceneRender::mouseClickEvent(float x, float y, Entity selEntity){
 
         if (toolslayer.getGizmoSelected() == GizmoSelected::ROTATE){
             cursorPlane = Plane((gizmoRMatrix * Vector3(dotX, dotY, dotZ).normalize()), transform->worldPosition);
+
+            if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
+                rotationAxis = gizmoRMatrix * Vector3(dotX, 0.0, 0.0).normalize();
+            }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
+                rotationAxis = gizmoRMatrix * Vector3(0.0, dotY, 0.0).normalize();
+            }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
+                rotationAxis = gizmoRMatrix * Vector3(0.0, 0.0, dotZ).normalize();
+            }else{
+                rotationAxis = cursorPlane.normal;
+            }
         }
 
         RayReturn rretrun = mouseRay.intersects(cursorPlane);
@@ -270,16 +280,7 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, Entity selEntity){
 
                 float angle = (sign < 0) ? -orig_angle : orig_angle;
 
-                Vector3 rotAxis = cursorPlane.normal;
-                if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
-                    rotAxis = Vector3(cursorPlane.normal.x, 0.0, 0.0).normalize();
-                }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
-                    rotAxis = Vector3(0.0, cursorPlane.normal.y, 0.0).normalize();
-                }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
-                    rotAxis = Vector3(0.0, 0.0, cursorPlane.normal.z).normalize();
-                }
-
-                Quaternion newRot = Quaternion(Angle::radToDefault(angle), rotAxis) * rotationStartOffset;
+                Quaternion newRot = Quaternion(Angle::radToDefault(angle), rotationAxis) * rotationStartOffset;
                 if (transformParent){
                     newRot = transformParent->worldRotation.inverse() * newRot;
                 }
@@ -310,8 +311,12 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, Entity selEntity){
                 }
 
                 Matrix4 mScale = Matrix4::scaleMatrix(newScale);
-                Matrix4 mRot = transform->worldRotation.getRotationMatrix();
-                newScale = (mRot.inverse() * mScale * mRot) * scaleStartOffset;
+                if (useGlobalTransform){
+                    Matrix4 mRot = transform->worldRotation.getRotationMatrix();
+                    newScale = (mRot.inverse() * mScale * mRot) * scaleStartOffset;
+                }else{
+                    newScale = mScale * scaleStartOffset;
+                }
 
                 newScale = Vector3(abs(newScale.x), abs(newScale.y), abs(newScale.z));
 
