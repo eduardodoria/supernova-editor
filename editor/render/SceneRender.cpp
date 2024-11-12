@@ -293,21 +293,30 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, Entity selEntity){
             if (toolslayer.getGizmoSelected() == GizmoSelected::SCALE){
                 Vector3 lastPoint = transform->worldPosition - rretrun.point;
 
+                float radioX = (cursorStartOffset.x != 0) ? (lastPoint.x / cursorStartOffset.x) : 1;
+                float radioY = (cursorStartOffset.y != 0) ? (lastPoint.y / cursorStartOffset.y) : 1;
+                float radioZ = (cursorStartOffset.z != 0) ? (lastPoint.z / cursorStartOffset.z) : 1;
+                Vector3 scaleRatio = Vector3(radioX, radioY, radioZ);
+
+                float factorX = ((gizmoRMatrix * Vector3(1,0,0)) * scaleRatio).length();
+                float factorY = ((gizmoRMatrix * Vector3(0,1,0)) * scaleRatio).length();
+                float factorZ = ((gizmoRMatrix * Vector3(0,0,1)) * scaleRatio).length();
+
                 Vector3 newScale;
                 if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XYZ){
                     newScale = Vector3((lastPoint.length() / cursorStartOffset.length()));
                 }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
-                    newScale = Vector3((lastPoint.x / cursorStartOffset.x), 1, 1);
+                    newScale = Vector3(factorX, 1, 1);
                 }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
-                    newScale = Vector3(1, (lastPoint.y / cursorStartOffset.y), 1);
+                    newScale = Vector3(1, factorY, 1);
                 }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
-                    newScale = Vector3(1, 1, (lastPoint.z / cursorStartOffset.z));
+                    newScale = Vector3(1, 1, factorZ);
                 }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XY){
-                    newScale = Vector3((lastPoint.x / cursorStartOffset.x), (lastPoint.y / cursorStartOffset.y), 1);
+                    newScale = Vector3(factorX, factorY, 1);
                 }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XZ){
-                    newScale = Vector3((lastPoint.x / cursorStartOffset.x), 1, (lastPoint.z / cursorStartOffset.z));
+                    newScale = Vector3(factorX, 1, factorZ);
                 }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::YZ){
-                    newScale = Vector3(1, (lastPoint.y / cursorStartOffset.y), (lastPoint.z / cursorStartOffset.z));
+                    newScale = Vector3(1, factorY, factorZ);
                 }
 
                 Matrix4 mScale = Matrix4::scaleMatrix(newScale);
