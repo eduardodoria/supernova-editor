@@ -317,14 +317,11 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, Entity selEntity){
                     newScale = Vector3(1, radioY, radioZ);
                 }
 
-                Matrix4 mScale = Matrix4::scaleMatrix(newScale);
                 if (useGlobalTransform){
                     Matrix4 mRot = transform->worldRotation.getRotationMatrix();
-                    newScale = (mRot.inverse() * mScale * mRot) * scaleStartOffset;
-                }else{
-                    newScale = mScale * scaleStartOffset;
+                    newScale = (mRot.inverse() * Matrix4::scaleMatrix(newScale) * mRot) * newScale;
                 }
-
+                newScale = newScale * scaleStartOffset;
                 newScale = Vector3(abs(newScale.x), abs(newScale.y), abs(newScale.z));
 
                 if (transformParent){
