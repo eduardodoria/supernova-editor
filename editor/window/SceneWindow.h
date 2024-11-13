@@ -14,6 +14,8 @@ namespace Supernova::Editor{
     private:
         Project* project;
 
+        Vector2 mouseLeftClickPos;
+
         std::map<uint32_t, bool> draggingMouse;
         std::map<uint32_t, float> walkSpeed;
 

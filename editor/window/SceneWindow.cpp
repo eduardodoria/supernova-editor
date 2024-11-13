@@ -29,6 +29,7 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
         float y = mousePos.y - windowPos.y;
 
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)){
+            mouseLeftClickPos = Vector2(x, y);
             project->findObjectByRay(sceneId, x, y);
             project->getScene(sceneId)->sceneRender->mouseClickEvent(x, y, project->getSelectedEntity(sceneId));
         }
@@ -38,7 +39,8 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
         }
 
         if (ImGui::IsMouseDown(ImGuiMouseButton_Left)){
-            project->getScene(sceneId)->sceneRender->mouseDragEvent(x, y, project->getSelectedEntity(sceneId));
+            project->findObjectsByRect(mouseLeftClickPos, Vector2(x, y));
+            project->getScene(sceneId)->sceneRender->mouseDragEvent(x, y, mouseLeftClickPos.x, mouseLeftClickPos.y, project->getSelectedEntity(sceneId));
         }
     }
 

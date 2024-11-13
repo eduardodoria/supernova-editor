@@ -124,6 +124,10 @@ bool Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
     return false;
 }
 
+bool Editor::Project::findObjectsByRect(Vector2 start, Vector2 end){
+    return false;
+}
+
 std::vector<Editor::SceneProject>&  Editor::Project::getScenes(){
     return scenes;
 }

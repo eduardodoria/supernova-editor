@@ -145,7 +145,6 @@ void Editor::SceneRender::mouseHoverEvent(float x, float y){
 
 void Editor::SceneRender::mouseClickEvent(float x, float y, Entity selEntity){
     mouseClicked = true;
-    mouseStartPosition = Vector2(x, y);
 
     Transform* transform = scene->findComponent<Transform>(selEntity);
 
@@ -216,10 +215,10 @@ void Editor::SceneRender::mouseReleaseEvent(float x, float y){
     }
 }
 
-void Editor::SceneRender::mouseDragEvent(float x, float y, Entity selEntity){
+void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float origY, Entity selEntity){
     if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::NONE){
         uilayer.setRectVisible(true);
-        uilayer.updateRect(mouseStartPosition, Vector2(x, y) - mouseStartPosition);
+        uilayer.updateRect(Vector2(origX, origY), Vector2(x, y) - Vector2(origX, origY));
     }
 
     Transform* transform = scene->findComponent<Transform>(selEntity);
