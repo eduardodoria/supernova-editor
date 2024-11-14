@@ -36,7 +36,7 @@ uint32_t Editor::Project::createNewScene(std::string sceneName){
     data.name = sceneName;
     data.scene = new Scene();
     data.sceneRender = new SceneRender(data.scene);
-    data.selectedEntity = NULL_ENTITY;
+    data.selectedEntities.clear();
     data.needUpdateRender = true;
 
     scenes.push_back(data);
@@ -118,7 +118,7 @@ bool Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
             return true;
         }
 
-        setSelectedEntity(sceneId, NULL_ENTITY);
+        clearSelectedEntities(sceneId);
     }
 
     return false;
@@ -127,6 +127,8 @@ bool Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
 bool Editor::Project::findObjectsByRect(uint32_t sceneId, Vector2 start, Vector2 end){
     SceneProject* scenedata = getScene(sceneId);
     Camera* camera = scenedata->sceneRender->getCamera();
+
+    clearSelectedEntities(sceneId);
 
     float distance = FLT_MAX;
     Entity selEntity = NULL_ENTITY;
@@ -151,7 +153,8 @@ bool Editor::Project::findObjectsByRect(uint32_t sceneId, Vector2 start, Vector2
             }
 
             if (found){
-                printf("Found entity %u\n", entity);
+                //printf("Found entity %u\n", entity);
+                addSelectedEntity(sceneId, entity);
             }
         }
     }
@@ -210,13 +213,47 @@ uint32_t Editor::Project::getLastActivatedSceneId() const{
     return lastActivatedScene;
 }
 
+void Editor::Project::replaceSelectedEntities(uint32_t sceneId, std::vector<Entity> selectedEntities){
+    getScene(sceneId)->selectedEntities = selectedEntities;
+}
+
 void Editor::Project::setSelectedEntity(uint32_t sceneId, Entity selectedEntity){
-    SceneProject* sceneProject = getScene(sceneId);
-    if (sceneProject->selectedEntity != selectedEntity){
-        sceneProject->selectedEntity = selectedEntity;
+    std::vector<Entity>& entities = getScene(sceneId)->selectedEntities;
+
+    entities.clear();
+    if (selectedEntity != NULL_ENTITY){
+        entities.push_back(selectedEntity);
     }
 }
 
-Entity Editor::Project::getSelectedEntity(uint32_t sceneId) const{
-    return getScene(sceneId)->selectedEntity;
+void Editor::Project::addSelectedEntity(uint32_t sceneId, Entity selectedEntity){
+    std::vector<Entity>& entities = getScene(sceneId)->selectedEntities;
+
+    if (selectedEntity != NULL_ENTITY){
+        if (std::find(entities.begin(), entities.end(), selectedEntity) == entities.end()) {
+            entities.push_back(selectedEntity);
+        }
+    }
+}
+
+bool Editor::Project::isSelectedEntity(uint32_t sceneId, Entity selectedEntity){
+    std::vector<Entity>& entities = getScene(sceneId)->selectedEntities;
+
+    if (std::find(entities.begin(), entities.end(), selectedEntity) != entities.end()) {
+        return true;
+    }
+
+    return false;
+}
+
+void Editor::Project::clearSelectedEntities(uint32_t sceneId){
+    getScene(sceneId)->selectedEntities.clear();
+}
+
+std::vector<Entity> Editor::Project::getSelectedEntities(uint32_t sceneId) const{
+    return getScene(sceneId)->selectedEntities;
+}
+
+bool Editor::Project::hasSelectedEntities(uint32_t sceneId) const{
+    return (getScene(sceneId)->selectedEntities.size() > 0);
 }

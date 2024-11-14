@@ -40,11 +40,11 @@ namespace Supernova::Editor{
         void activate();
         void updateRenderSystem();
         void updateSize(int width, int height);
-        void update(Entity selectedEntity);
+        void update(std::vector<Entity> selEntities);
         void mouseHoverEvent(float x, float y);
-        void mouseClickEvent(float x, float y, Entity selEntity);
+        void mouseClickEvent(float x, float y, std::vector<Entity> selEntities);
         void mouseReleaseEvent(float x, float y);
-        void mouseDragEvent(float x, float y, float origX, float origY, Entity selEntity);
+        void mouseDragEvent(float x, float y, float origX, float origY, std::vector<Entity> selEntities);
 
         TextureRender& getTexture();
 

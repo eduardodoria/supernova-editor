@@ -137,14 +137,14 @@ Editor::TreeNode* Editor::Structure::findNode(Editor::TreeNode* root, Entity ent
 }
 
 void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
-    static TreeNode* selectedNode = nullptr;
+    static std::vector<TreeNode*> selectedNodes;
 
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
 
     if (node.children.empty()) {
         flags |= ImGuiTreeNodeFlags_Leaf;
     }
-    if (selectedNode == &node) {
+    if (std::find(selectedNodes.begin(), selectedNodes.end(), &node) != selectedNodes.end()) {
         flags |= ImGuiTreeNodeFlags_Selected;
     }
 
@@ -251,24 +251,26 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     }
 
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered() && ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows)) {
-        selectedNode = nullptr;
+        //TODO
         project->setSelectedEntity(project->getSelectedSceneId(), NULL_ENTITY);
     }
 
-    if (project->getSelectedEntity(project->getSelectedSceneId()) == NULL_ENTITY){
-        selectedNode = nullptr;
+    if (!project->hasSelectedEntities(project->getSelectedSceneId())){
+        selectedNodes.clear();
     }
 
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-        selectedNode = &node;
+        selectedNodes.clear();
+        selectedNodes.push_back(&node);
         if (!node.isScene){
             project->setSelectedEntity(project->getSelectedSceneId(), node.id);
         }else{
+            //TODO
             project->setSelectedEntity(project->getSelectedSceneId(), NULL_ENTITY);
         }
     }
-    if (!node.isScene && project->getSelectedEntity(project->getSelectedSceneId()) == node.id){
-        selectedNode = &node;
+    if (!node.isScene && project->isSelectedEntity(project->getSelectedSceneId(), node.id)){
+        selectedNodes.push_back(&node);
     }
 
     std::string popupId = "##ContextMenu" + getNodeImGuiId(node);
@@ -428,6 +430,10 @@ void Editor::Structure::show(){
     }
 
     ImGui::Begin("Structure");
+    //if (ImGui::BeginPopupContextWindow("EmptyAreaContextMenu", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)){
+    //    ImGui::Text("TODO");
+    //    ImGui::EndPopup();
+    //}
     showIconMenu();
     showTreeNode(root);
     ImGui::End();

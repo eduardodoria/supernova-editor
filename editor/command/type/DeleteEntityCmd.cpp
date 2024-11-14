@@ -6,7 +6,6 @@ Editor::DeleteEntityCmd::DeleteEntityCmd(Project* project, uint32_t sceneId, Ent
     this->project = project;
     this->sceneId = sceneId;
     this->entity = entity;
-    this->wasSelected = false;
 }
 
 void Editor::DeleteEntityCmd::execute(){
@@ -31,9 +30,10 @@ void Editor::DeleteEntityCmd::execute(){
                 scenes[i].entities.erase(it);
             }
 
-            if (project->getSelectedEntity(sceneId) == entity){
-                project->setSelectedEntity(sceneId, NULL_ENTITY);
-                wasSelected = true;
+            lastSelected = project->getSelectedEntities(sceneId);
+
+            if (project->isSelectedEntity(sceneId, entity)){
+                project->clearSelectedEntities(sceneId);
             }
         }
     }
@@ -59,8 +59,8 @@ void Editor::DeleteEntityCmd::undo(){
 
             scenes[i].entities.push_back(entity);
 
-            if (wasSelected){
-                project->setSelectedEntity(sceneId, entity);
+            if (lastSelected.size() > 0){
+                project->replaceSelectedEntities(sceneId, lastSelected);
             }
         }
     }

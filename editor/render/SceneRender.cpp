@@ -109,7 +109,7 @@ void Editor::SceneRender::updateSize(int width, int height){
     //}
 }
 
-void Editor::SceneRender::update(Entity selectedEntity){
+void Editor::SceneRender::update(std::vector<Entity> selEntities){
     viewgizmo.applyRotation(camera);
 
     Entity cameraEntity = camera->getEntity();
@@ -119,8 +119,8 @@ void Editor::SceneRender::update(Entity selectedEntity){
     toolslayer.updateCamera(cameracomp, cameratransform);
 
     bool gizmoVisibility = false;
-    if (selectedEntity != NULL_ENTITY){
-        Transform* transform = scene->findComponent<Transform>(selectedEntity);
+    if (selEntities.size() > 0){
+        Transform* transform = scene->findComponent<Transform>(selEntities[0]);
 
         if (transform){
             gizmoVisibility = true;
@@ -143,8 +143,13 @@ void Editor::SceneRender::mouseHoverEvent(float x, float y){
     mouseRay = camera->screenToRay(x, y);
 }
 
-void Editor::SceneRender::mouseClickEvent(float x, float y, Entity selEntity){
+void Editor::SceneRender::mouseClickEvent(float x, float y, std::vector<Entity> selEntities){
     mouseClicked = true;
+
+    Entity selEntity = NULL_ENTITY;
+    if (selEntities.size() > 0){
+        selEntity = selEntities[0];
+    }
 
     Transform* transform = scene->findComponent<Transform>(selEntity);
 
@@ -215,10 +220,15 @@ void Editor::SceneRender::mouseReleaseEvent(float x, float y){
     }
 }
 
-void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float origY, Entity selEntity){
+void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float origY, std::vector<Entity> selEntities){
     if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::NONE){
         uilayer.setRectVisible(true);
         uilayer.updateRect(Vector2(origX, origY), Vector2(x, y) - Vector2(origX, origY));
+    }
+
+    Entity selEntity = NULL_ENTITY;
+    if (selEntities.size() > 0){
+        selEntity = selEntities[0];
     }
 
     Transform* transform = scene->findComponent<Transform>(selEntity);
