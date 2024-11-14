@@ -49,7 +49,7 @@ namespace Supernova::Editor{
         void deleteEntity(uint32_t sceneId, Entity entity);
 
         bool findObjectByRay(uint32_t sceneId, float x, float y);
-        bool findObjectsByRect(Vector2 start, Vector2 end);
+        bool findObjectsByRect(uint32_t sceneId, Vector2 start, Vector2 end);
 
         std::vector<SceneProject>& getScenes();
         SceneProject* getScene(uint32_t sceneId);

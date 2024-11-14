@@ -124,7 +124,38 @@ bool Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
     return false;
 }
 
-bool Editor::Project::findObjectsByRect(Vector2 start, Vector2 end){
+bool Editor::Project::findObjectsByRect(uint32_t sceneId, Vector2 start, Vector2 end){
+    SceneProject* scenedata = getScene(sceneId);
+    Camera* camera = scenedata->sceneRender->getCamera();
+
+    float distance = FLT_MAX;
+    Entity selEntity = NULL_ENTITY;
+    for (auto& entity : scenedata->entities) {
+        MeshComponent* mesh = scenedata->scene->findComponent<MeshComponent>(entity);
+        if (mesh){
+            const Vector3* corners = mesh->worldAABB.getAllCorners();
+
+            Vector2 minRect = Vector2(std::min(start.x, end.x), std::min(start.y, end.y));
+            Vector2 maxRect = Vector2(std::max(start.x, end.x), std::max(start.y, end.y));
+
+            bool found = true;
+
+            for (int c = 0; c < 8; c++){
+                Vector4 clipCorner = camera->getViewProjectionMatrix() * Vector4(corners[c], 1.0);
+                Vector3 ndcCorner = Vector3(clipCorner) / clipCorner.w;
+
+                if (!(ndcCorner.x >= minRect.x && ndcCorner.x <= maxRect.x && ndcCorner.y >= minRect.y && ndcCorner.y <= maxRect.y)){
+                    found = false;
+                    break;
+                }
+            }
+
+            if (found){
+                printf("Found entity %u\n", entity);
+            }
+        }
+    }
+
     return false;
 }
 

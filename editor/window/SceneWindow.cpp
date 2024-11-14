@@ -9,6 +9,7 @@ using namespace Supernova;
 
 Editor::SceneWindow::SceneWindow(Project* project){
     this->project = project;
+    this->mouseLeftDraggedInside = false;
 }
 
 void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
@@ -39,8 +40,11 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
         }
 
         if (ImGui::IsMouseDown(ImGuiMouseButton_Left)){
-            project->findObjectsByRect(mouseLeftClickPos, Vector2(x, y));
-            project->getScene(sceneId)->sceneRender->mouseDragEvent(x, y, mouseLeftClickPos.x, mouseLeftClickPos.y, project->getSelectedEntity(sceneId));
+            mouseLeftDragPos = Vector2(x, y);
+            if (mouseLeftClickPos != mouseLeftDragPos){
+                mouseLeftDraggedInside = true;
+                project->getScene(sceneId)->sceneRender->mouseDragEvent(x, y, mouseLeftClickPos.x, mouseLeftClickPos.y, project->getSelectedEntity(sceneId));
+            }
         }
     }
 
@@ -48,7 +52,15 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
         float x = mousePos.x - windowPos.x;
         float y = mousePos.y - windowPos.y;
 
+        if (mouseLeftDraggedInside && !project->getScene(sceneId)->sceneRender->isGizmoSideSelected()){
+            Vector2 clickStartPos = Vector2((2 * mouseLeftClickPos.x / width[sceneId]) - 1, -((2 * mouseLeftClickPos.y / height[sceneId]) - 1));
+            Vector2 clickEndPos = Vector2((2 * mouseLeftDragPos.x / width[sceneId]) - 1, -((2 * mouseLeftDragPos.y / height[sceneId]) - 1));
+            project->findObjectsByRect(sceneId, clickStartPos, clickEndPos);
+        }
+
         project->getScene(sceneId)->sceneRender->mouseReleaseEvent(x, y);
+
+        mouseLeftDraggedInside = false;
     }
 
     if (isMouseInWindow && (ImGui::IsMouseClicked(ImGuiMouseButton_Middle) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))) {
