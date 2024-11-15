@@ -28,6 +28,8 @@ namespace Supernova::Editor{
         char nameBuffer[256];
         char searchBuffer[256] = "";
 
+        std::vector<TreeNode*> selectedScenes;
+
         Entity openParent;
 
         std::string contextMenuOpened;

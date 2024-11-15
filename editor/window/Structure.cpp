@@ -137,14 +137,17 @@ Editor::TreeNode* Editor::Structure::findNode(Editor::TreeNode* root, Entity ent
 }
 
 void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
-    static std::vector<TreeNode*> selectedNodes;
-
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
 
     if (node.children.empty()) {
         flags |= ImGuiTreeNodeFlags_Leaf;
     }
-    if (std::find(selectedNodes.begin(), selectedNodes.end(), &node) != selectedNodes.end()) {
+
+    if (std::find(selectedScenes.begin(), selectedScenes.end(), &node) != selectedScenes.end()) {
+        flags |= ImGuiTreeNodeFlags_Selected;
+    }
+
+    if (project->isSelectedEntity(project->getSelectedSceneId(), node.id)) {
         flags |= ImGuiTreeNodeFlags_Selected;
     }
 
@@ -251,26 +254,22 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     }
 
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered() && ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows)) {
-        //TODO
-        project->setSelectedEntity(project->getSelectedSceneId(), NULL_ENTITY);
-    }
-
-    if (!project->hasSelectedEntities(project->getSelectedSceneId())){
-        selectedNodes.clear();
+        project->clearSelectedEntities(project->getSelectedSceneId());
+        selectedScenes.clear();
     }
 
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-        selectedNodes.clear();
-        selectedNodes.push_back(&node);
         if (!node.isScene){
             project->setSelectedEntity(project->getSelectedSceneId(), node.id);
         }else{
-            //TODO
-            project->setSelectedEntity(project->getSelectedSceneId(), NULL_ENTITY);
+            project->clearSelectedEntities(project->getSelectedSceneId());
+            selectedScenes.clear();
+            selectedScenes.push_back(&node);
         }
     }
-    if (!node.isScene && project->isSelectedEntity(project->getSelectedSceneId(), node.id)){
-        selectedNodes.push_back(&node);
+
+    if (project->hasSelectedEntities(project->getSelectedSceneId())){
+        selectedScenes.clear();
     }
 
     std::string popupId = "##ContextMenu" + getNodeImGuiId(node);
