@@ -118,23 +118,36 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities){
 
     toolslayer.updateCamera(cameracomp, cameratransform);
 
-    bool gizmoVisibility = false;
-    if (selEntities.size() > 0){
-        Transform* transform = scene->findComponent<Transform>(selEntities[0]);
+    // TODO: avoid get gizmo position and rotation every frame
+    Vector3 gizmoPosition;
+    Quaternion gizmoRotation;
+
+    size_t numTEntities = 0;
+
+    for (Entity& entity: selEntities){
+        Transform* transform = scene->findComponent<Transform>(entity);
 
         if (transform){
-            gizmoVisibility = true;
+            numTEntities++;
 
-            float dist = (transform->worldPosition - camera->getWorldPosition()).length();
-            float scale = std::tan(cameracomp.yfov) * dist * (gizmoSize / (float)framebuffer.getHeight());
+            gizmoPosition += transform->worldPosition;
 
-            Quaternion gizmoRotation;
-            if (!useGlobalTransform){
+            if (!useGlobalTransform && selEntities.size() == 1){
                 gizmoRotation = transform->worldRotation;
             }
-
-            toolslayer.updateGizmo(camera, transform->worldPosition, gizmoRotation, scale, mouseRay, mouseClicked);
         }
+    }
+
+    bool gizmoVisibility = false;
+    if (numTEntities > 0){
+        gizmoPosition /= numTEntities;
+
+        gizmoVisibility = true;
+
+        float dist = (gizmoPosition - camera->getWorldPosition()).length();
+        float scale = std::tan(cameracomp.yfov) * dist * (gizmoSize / (float)framebuffer.getHeight());
+
+        toolslayer.updateGizmo(camera, gizmoPosition, gizmoRotation, scale, mouseRay, mouseClicked);
     }
     toolslayer.setGizmoVisible(gizmoVisibility);
 }
@@ -146,65 +159,64 @@ void Editor::SceneRender::mouseHoverEvent(float x, float y){
 void Editor::SceneRender::mouseClickEvent(float x, float y, std::vector<Entity> selEntities){
     mouseClicked = true;
 
-    Entity selEntity = NULL_ENTITY;
-    if (selEntities.size() > 0){
-        selEntity = selEntities[0];
-    }
+    Vector3 viewDir = camera->getWorldDirection();
 
-    Transform* transform = scene->findComponent<Transform>(selEntity);
+    Vector3 gizmoPosition = toolslayer.getGizmoPosition();
+    Quaternion gizmoRotation = toolslayer.getGizmoRotation();
+    Matrix4 gizmoRMatrix = gizmoRotation.getRotationMatrix();
+    Matrix4 gizmoMatrix = Matrix4::translateMatrix(gizmoPosition) * gizmoRMatrix * Matrix4::scaleMatrix(Vector3(1,1,1));
 
-    if (transform){
-        Vector3 viewDir = camera->getWorldDirection();
+    float dotX = viewDir.dotProduct(gizmoRMatrix * Vector3(1,0,0));
+    float dotY = viewDir.dotProduct(gizmoRMatrix * Vector3(0,1,0));
+    float dotZ = viewDir.dotProduct(gizmoRMatrix * Vector3(0,0,1));
 
-        Quaternion gizmoRotation;
-        if (!useGlobalTransform){
-            gizmoRotation = transform->worldRotation;
-        }
-        Matrix4 gizmoRMatrix = gizmoRotation.getRotationMatrix();
-
-        float dotX = viewDir.dotProduct(gizmoRMatrix * Vector3(1,0,0));
-        float dotY = viewDir.dotProduct(gizmoRMatrix * Vector3(0,1,0));
-        float dotZ = viewDir.dotProduct(gizmoRMatrix * Vector3(0,0,1));
-
-        if (toolslayer.getGizmoSelected() == GizmoSelected::TRANSLATE || toolslayer.getGizmoSelected() == GizmoSelected::SCALE){
-            if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XYZ){
-                cursorPlane = Plane((gizmoRMatrix * Vector3(dotX, dotY, dotZ).normalize()), transform->worldPosition);
-            }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
-                cursorPlane = Plane((gizmoRMatrix * Vector3(0, dotY, dotZ).normalize()), transform->worldPosition);
-            }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
-                cursorPlane = Plane((gizmoRMatrix * Vector3(dotX, 0, dotZ).normalize()), transform->worldPosition);
-            }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
-                cursorPlane = Plane((gizmoRMatrix * Vector3(dotX, dotY, 0).normalize()), transform->worldPosition);
-            }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XY){
-                cursorPlane = Plane((gizmoRMatrix * Vector3(0, 0, dotZ).normalize()), transform->worldPosition);
-            }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XZ){
-                cursorPlane = Plane((gizmoRMatrix * Vector3(0, dotY, 0).normalize()), transform->worldPosition);
-            }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::YZ){
-                cursorPlane = Plane((gizmoRMatrix * Vector3(dotX, 0, 0).normalize()), transform->worldPosition);
-            }
-        }
-
-        if (toolslayer.getGizmoSelected() == GizmoSelected::ROTATE){
-            cursorPlane = Plane((gizmoRMatrix * Vector3(dotX, dotY, dotZ).normalize()), transform->worldPosition);
-
-            if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
-                rotationAxis = gizmoRMatrix * Vector3(dotX, 0.0, 0.0).normalize();
-            }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
-                rotationAxis = gizmoRMatrix * Vector3(0.0, dotY, 0.0).normalize();
-            }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
-                rotationAxis = gizmoRMatrix * Vector3(0.0, 0.0, dotZ).normalize();
-            }else{
-                rotationAxis = cursorPlane.normal;
-            }
-        }
-
-        RayReturn rretrun = mouseRay.intersects(cursorPlane);
-        if (rretrun){
-            cursorStartOffset = transform->worldPosition - rretrun.point;
-            rotationStartOffset = transform->worldRotation;
-            scaleStartOffset = transform->worldScale;
+    if (toolslayer.getGizmoSelected() == GizmoSelected::TRANSLATE || toolslayer.getGizmoSelected() == GizmoSelected::SCALE){
+        if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XYZ){
+            cursorPlane = Plane((gizmoRMatrix * Vector3(dotX, dotY, dotZ).normalize()), gizmoPosition);
+        }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
+            cursorPlane = Plane((gizmoRMatrix * Vector3(0, dotY, dotZ).normalize()), gizmoPosition);
+        }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
+            cursorPlane = Plane((gizmoRMatrix * Vector3(dotX, 0, dotZ).normalize()), gizmoPosition);
+        }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
+            cursorPlane = Plane((gizmoRMatrix * Vector3(dotX, dotY, 0).normalize()), gizmoPosition);
+        }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XY){
+            cursorPlane = Plane((gizmoRMatrix * Vector3(0, 0, dotZ).normalize()), gizmoPosition);
+        }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XZ){
+            cursorPlane = Plane((gizmoRMatrix * Vector3(0, dotY, 0).normalize()), gizmoPosition);
+        }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::YZ){
+            cursorPlane = Plane((gizmoRMatrix * Vector3(dotX, 0, 0).normalize()), gizmoPosition);
         }
     }
+
+    if (toolslayer.getGizmoSelected() == GizmoSelected::ROTATE){
+        cursorPlane = Plane((gizmoRMatrix * Vector3(dotX, dotY, dotZ).normalize()), gizmoPosition);
+
+        if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
+            rotationAxis = gizmoRMatrix * Vector3(dotX, 0.0, 0.0).normalize();
+        }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
+            rotationAxis = gizmoRMatrix * Vector3(0.0, dotY, 0.0).normalize();
+        }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
+            rotationAxis = gizmoRMatrix * Vector3(0.0, 0.0, dotZ).normalize();
+        }else{
+            rotationAxis = cursorPlane.normal;
+        }
+    }
+
+    RayReturn rretrun = mouseRay.intersects(cursorPlane);
+    objectMatrixOffset.clear();
+    if (rretrun){
+        cursorStartOffset = gizmoPosition - rretrun.point;
+        rotationStartOffset = gizmoRotation;
+        scaleStartOffset = Vector3(1,1,1);
+
+        for (Entity& entity: selEntities){
+            Transform* transform = scene->findComponent<Transform>(entity);
+            if (transform){
+                objectMatrixOffset[entity] = gizmoMatrix.inverse() * transform->modelMatrix;
+            }
+        }
+    }
+
 }
 
 void Editor::SceneRender::mouseReleaseEvent(float x, float y){
@@ -226,125 +238,137 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
         uilayer.updateRect(Vector2(origX, origY), Vector2(x, y) - Vector2(origX, origY));
     }
 
-    Entity selEntity = NULL_ENTITY;
-    if (selEntities.size() > 0){
-        selEntity = selEntities[0];
-    }
+    Vector3 gizmoPosition = toolslayer.getGizmoPosition();
+    Matrix4 gizmoRMatrix = toolslayer.getGizmoRotation().getRotationMatrix();
 
-    Transform* transform = scene->findComponent<Transform>(selEntity);
+    for (Entity& entity: selEntities){
+        Transform* transform = scene->findComponent<Transform>(entity);
+        if (transform){
+            RayReturn rretrun = mouseRay.intersects(cursorPlane);
 
-    if (transform){
-        RayReturn rretrun = mouseRay.intersects(cursorPlane);
+            if (rretrun){
 
-        Quaternion gizmoRotation;
-        if (!useGlobalTransform){
-            gizmoRotation = transform->worldRotation;
-        }
-        Matrix4 gizmoRMatrix = gizmoRotation.getRotationMatrix();
+                toolslayer.mouseDrag(rretrun.point);
 
-        if (rretrun){
+                Transform* transformParent = scene->findComponent<Transform>(transform->parent);
 
-            toolslayer.mouseDrag(rretrun.point);
+                if (toolslayer.getGizmoSelected() == GizmoSelected::TRANSLATE){
+                    Vector3 newPos = gizmoRMatrix.inverse() * ((rretrun.point + cursorStartOffset) - gizmoPosition);
+                    if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XYZ){
+                        newPos = gizmoPosition + (gizmoRMatrix * newPos);
+                    }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
+                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(newPos.x, 0, 0));
+                    }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
+                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(0, newPos.y, 0));
+                    }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
+                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(0, 0, newPos.z));
+                    }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XY){
+                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(newPos.x, newPos.y, 0));
+                    }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XZ){
+                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(newPos.x, 0, newPos.z));
+                    }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::YZ){
+                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(0, newPos.y, newPos.z));
+                    }
 
-            Transform* transformParent = scene->findComponent<Transform>(transform->parent);
+                    Matrix4 gizmoMatrix = Matrix4::translateMatrix(newPos) * gizmoRMatrix * Matrix4::scaleMatrix(Vector3(1,1,1));
+                    Matrix4 objMatrix = gizmoMatrix * objectMatrixOffset[entity];
 
-            if (toolslayer.getGizmoSelected() == GizmoSelected::TRANSLATE){
-                Vector3 newPos = gizmoRMatrix.inverse() * ((rretrun.point + cursorStartOffset) - transform->worldPosition);
-                if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XYZ){
-                    newPos = transform->worldPosition + (gizmoRMatrix * newPos);
-                }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
-                    newPos = transform->worldPosition + (gizmoRMatrix * Vector3(newPos.x, 0, 0));
-                }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
-                    newPos = transform->worldPosition + (gizmoRMatrix * Vector3(0, newPos.y, 0));
-                }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
-                    newPos = transform->worldPosition + (gizmoRMatrix * Vector3(0, 0, newPos.z));
-                }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XY){
-                    newPos = transform->worldPosition + (gizmoRMatrix * Vector3(newPos.x, newPos.y, 0));
-                }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XZ){
-                    newPos = transform->worldPosition + (gizmoRMatrix * Vector3(newPos.x, 0, newPos.z));
-                }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::YZ){
-                    newPos = transform->worldPosition + (gizmoRMatrix * Vector3(0, newPos.y, newPos.z));
+                    if (transformParent){
+                        objMatrix = transformParent->modelMatrix.inverse() * objMatrix;
+                    }
+
+                    if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
+                        //lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", objPos);
+                        transform->position = objMatrix.decomposePosition();
+                        transform->needUpdate = true;
+                    }
                 }
 
-                if (transformParent){
-                    newPos = transformParent->modelMatrix.inverse() * newPos;
+                if (toolslayer.getGizmoSelected() == GizmoSelected::ROTATE){
+                    Vector3 lastPoint = gizmoPosition - rretrun.point;
+
+                    float dot = cursorStartOffset.dotProduct(lastPoint);
+                    float slength = cursorStartOffset.length() * lastPoint.length();
+                    float cosine = (slength != 0) ? dot / slength : 0;
+                    cosine = std::fmax(-1.0, std::fmin(1.0, cosine));
+                    float orig_angle = acos(cosine);
+
+                    Vector3 cross = cursorStartOffset.crossProduct(lastPoint);
+                    float sign = cross.dotProduct(cursorPlane.normal);
+
+                    float angle = (sign < 0) ? -orig_angle : orig_angle;
+
+                    Quaternion newRot = Quaternion(Angle::radToDefault(angle), rotationAxis) * rotationStartOffset;
+
+                    Matrix4 gizmoMatrix = Matrix4::translateMatrix(gizmoPosition) * newRot.getRotationMatrix() * Matrix4::scaleMatrix(Vector3(1,1,1));
+                    Matrix4 objMatrix = gizmoMatrix * objectMatrixOffset[entity];
+
+                    if (transformParent){
+                        objMatrix = transformParent->modelMatrix.inverse() * objMatrix;
+                    }
+
+                    if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
+                        //lastCommand = new ChangePropertyCmd<Quaternion>(scene, entity, ComponentType::Transform, "rotation", objRot);
+                        transform->position = objMatrix.decomposePosition();
+                        transform->rotation = objMatrix.decomposeRotation();
+                        transform->needUpdate = true;
+                    }
                 }
 
-                if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
-                    lastCommand = new ChangePropertyCmd<Vector3>(scene, selEntity, ComponentType::Transform, "position", newPos);
-                }
-            }
+                if (toolslayer.getGizmoSelected() == GizmoSelected::SCALE){
+                    Vector3 lastPoint = gizmoPosition - rretrun.point;
 
-            if (toolslayer.getGizmoSelected() == GizmoSelected::ROTATE){
-                Vector3 lastPoint = transform->worldPosition - rretrun.point;
+                    Vector3 startRotPoint = gizmoRMatrix.inverse() * cursorStartOffset;
+                    Vector3 lastRotPoint = gizmoRMatrix.inverse() * lastPoint;
 
-                float dot = cursorStartOffset.dotProduct(lastPoint);
-                float slength = cursorStartOffset.length() * lastPoint.length();
-                float cosine = (slength != 0) ? dot / slength : 0;
-                cosine = std::fmax(-1.0, std::fmin(1.0, cosine));
-                float orig_angle = acos(cosine);
+                    float radioX = (startRotPoint.x != 0) ? (lastRotPoint.x / startRotPoint.x) : 1;
+                    float radioY = (startRotPoint.y != 0) ? (lastRotPoint.y / startRotPoint.y) : 1;
+                    float radioZ = (startRotPoint.z != 0) ? (lastRotPoint.z / startRotPoint.z) : 1;
 
-                Vector3 cross = cursorStartOffset.crossProduct(lastPoint);
-                float sign = cross.dotProduct(cursorPlane.normal);
+                    Vector3 newScale;
+                    if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XYZ){
+                        newScale = Vector3((lastPoint.length() / cursorStartOffset.length()));
+                    }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
+                        newScale = Vector3(radioX, 1, 1);
+                    }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
+                        newScale = Vector3(1, radioY, 1);
+                    }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
+                        newScale = Vector3(1, 1, radioZ);
+                    }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XY){
+                        newScale = Vector3(radioX, radioY, 1);
+                    }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XZ){
+                        newScale = Vector3(radioX, 1, radioZ);
+                    }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::YZ){
+                        newScale = Vector3(1, radioY, radioZ);
+                    }
 
-                float angle = (sign < 0) ? -orig_angle : orig_angle;
+                    //if (useGlobalTransform){
+                    //    Matrix4 mRot = transform->worldRotation.getRotationMatrix();
+                    //    newScale = (mRot.inverse() * Matrix4::scaleMatrix(newScale) * mRot) * newScale;
+                    //}
+                    newScale = newScale * scaleStartOffset;
+                    newScale = Vector3(abs(newScale.x), abs(newScale.y), abs(newScale.z));
 
-                Quaternion newRot = Quaternion(Angle::radToDefault(angle), rotationAxis) * rotationStartOffset;
-                if (transformParent){
-                    newRot = transformParent->worldRotation.inverse() * newRot;
-                }
+                    Matrix4 gizmoMatrix = Matrix4::translateMatrix(gizmoPosition) * gizmoRMatrix * Matrix4::scaleMatrix(newScale);
+                    Matrix4 objMatrix = gizmoMatrix * objectMatrixOffset[entity];
 
-                if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
-                    lastCommand = new ChangePropertyCmd<Quaternion>(scene, selEntity, ComponentType::Transform, "rotation", newRot);
-                }
-            }
+                    if (transformParent){
+                        objMatrix = transformParent->modelMatrix.inverse() * objMatrix;
+                        //newScale = Vector3(newScale.x / transformParent->worldScale.x, newScale.y / transformParent->worldScale.y, newScale.z / transformParent->worldScale.z);
+                    }
 
-            if (toolslayer.getGizmoSelected() == GizmoSelected::SCALE){
-                Vector3 lastPoint = transform->worldPosition - rretrun.point;
+                    if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
+                        //lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "scale", newScale);
+                        transform->position = objMatrix.decomposePosition();
+                        transform->scale = objMatrix.decomposeScale();
+                        transform->needUpdate = true;
+                    }
 
-                Vector3 startRotPoint = gizmoRMatrix.inverse() * cursorStartOffset;
-                Vector3 lastRotPoint = gizmoRMatrix.inverse() * lastPoint;
-
-                float radioX = (startRotPoint.x != 0) ? (lastRotPoint.x / startRotPoint.x) : 1;
-                float radioY = (startRotPoint.y != 0) ? (lastRotPoint.y / startRotPoint.y) : 1;
-                float radioZ = (startRotPoint.z != 0) ? (lastRotPoint.z / startRotPoint.z) : 1;
-
-                Vector3 newScale;
-                if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XYZ){
-                    newScale = Vector3((lastPoint.length() / cursorStartOffset.length()));
-                }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
-                    newScale = Vector3(radioX, 1, 1);
-                }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
-                    newScale = Vector3(1, radioY, 1);
-                }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
-                    newScale = Vector3(1, 1, radioZ);
-                }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XY){
-                    newScale = Vector3(radioX, radioY, 1);
-                }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XZ){
-                    newScale = Vector3(radioX, 1, radioZ);
-                }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::YZ){
-                    newScale = Vector3(1, radioY, radioZ);
                 }
 
-                if (useGlobalTransform){
-                    Matrix4 mRot = transform->worldRotation.getRotationMatrix();
-                    newScale = (mRot.inverse() * Matrix4::scaleMatrix(newScale) * mRot) * newScale;
+                if (lastCommand){
+                    CommandHistory::addCommand(lastCommand);
                 }
-                newScale = newScale * scaleStartOffset;
-                newScale = Vector3(abs(newScale.x), abs(newScale.y), abs(newScale.z));
-
-                if (transformParent){
-                    newScale = Vector3(newScale.x / transformParent->worldScale.x, newScale.y / transformParent->worldScale.y, newScale.z / transformParent->worldScale.z);
-                }
-
-                if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
-                    lastCommand = new ChangePropertyCmd<Vector3>(scene, selEntity, ComponentType::Transform, "scale", newScale);
-                }
-
-            }
-
-            if (lastCommand){
-                CommandHistory::addCommand(lastCommand);
             }
         }
     }

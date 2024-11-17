@@ -25,10 +25,13 @@ namespace Supernova::Editor{
         Ray mouseRay;
         bool mouseClicked;
         Plane cursorPlane;
+        Vector3 rotationAxis;
         Vector3 cursorStartOffset;
         Quaternion rotationStartOffset;
         Vector3 scaleStartOffset;
-        Vector3 rotationAxis;
+
+        std::map<Entity, Matrix4> objectMatrixOffset;
+        
 
         Command* lastCommand;
 

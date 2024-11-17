@@ -126,6 +126,28 @@ Scene* Editor::ToolsLayer::getScene(){
     return scene;
 }
 
+Object* Editor::ToolsLayer::getGizmoObject() const{
+    if (gizmoSelected == GizmoSelected::TRANSLATE){
+        return tGizmo;
+    }
+    if (gizmoSelected == GizmoSelected::ROTATE){
+        return rGizmo;
+    }
+    if (gizmoSelected == GizmoSelected::SCALE){
+        return sGizmo;
+    }
+
+    return nullptr;
+}
+
+Vector3 Editor::ToolsLayer::getGizmoPosition() const{
+    return getGizmoObject()->getPosition();
+}
+
+Quaternion Editor::ToolsLayer::getGizmoRotation() const{
+    return getGizmoObject()->getRotation();
+}
+
 Editor::GizmoSelected Editor::ToolsLayer::getGizmoSelected() const{
     return gizmoSelected;
 }

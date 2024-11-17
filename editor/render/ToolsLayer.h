@@ -44,6 +44,11 @@ namespace Supernova::Editor{
         TextureRender& getTexture();
         Camera* getCamera();
         Scene* getScene();
+
+        Object* getGizmoObject() const;
+        Vector3 getGizmoPosition() const;
+        Quaternion getGizmoRotation() const;
+
         GizmoSelected getGizmoSelected() const;
         GizmoSideSelected getGizmoSideSelected() const;
     };
