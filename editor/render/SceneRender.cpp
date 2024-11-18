@@ -279,7 +279,8 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
 
                     if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
                         //lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", objPos);
-                        transform->position = objMatrix.decomposePosition();
+                        //transform->position = objMatrix.decomposePosition();
+                        objMatrix.decompose(transform->position, transform->scale, transform->rotation);
                         transform->needUpdate = true;
                     }
                 }
@@ -309,8 +310,9 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
 
                     if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
                         //lastCommand = new ChangePropertyCmd<Quaternion>(scene, entity, ComponentType::Transform, "rotation", objRot);
-                        transform->position = objMatrix.decomposePosition();
-                        transform->rotation = objMatrix.decomposeRotation();
+                        //transform->position = objMatrix.decomposePosition();
+                        //transform->rotation = objMatrix.decomposeRotation();
+                        objMatrix.decompose(transform->position, transform->scale, transform->rotation);
                         transform->needUpdate = true;
                     }
                 }
@@ -359,8 +361,9 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
 
                     if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
                         //lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "scale", newScale);
-                        transform->position = objMatrix.decomposePosition();
-                        transform->scale = objMatrix.decomposeScale();
+                        //transform->position = objMatrix.decomposePosition();
+                        //transform->scale = objMatrix.decomposeScale3();
+                        objMatrix.decompose(transform->position, transform->scale, transform->rotation);
                         transform->needUpdate = true;
                     }
 
