@@ -50,13 +50,13 @@ namespace Supernova::Editor{
             scene->getComponent<Transform>(entity).needUpdate = true;
         }
 
-        bool mergeWith(Editor::Command* olderCommand){
+        bool mergeWith(Editor::Command* otherCommand){
             T* valueRef = Metadata::getPropertyRef<T>(scene, entity, type, propertyName);
-            ChangePropertyCmd* olderCmd = dynamic_cast<ChangePropertyCmd*>(olderCommand);
-            if (olderCmd != nullptr){
-                T* olderValueRef = Metadata::getPropertyRef<T>(olderCmd->scene, olderCmd->entity, olderCmd->type, olderCmd->propertyName);
+            ChangePropertyCmd* otherCmd = dynamic_cast<ChangePropertyCmd*>(otherCommand);
+            if (otherCmd != nullptr){
+                T* olderValueRef = Metadata::getPropertyRef<T>(otherCmd->scene, otherCmd->entity, otherCmd->type, otherCmd->propertyName);
                 if (valueRef == olderValueRef){
-                    this->oldValue = olderCmd->oldValue;
+                    this->oldValue = otherCmd->oldValue;
                     return true;
                 }
             }

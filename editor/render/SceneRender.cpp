@@ -9,6 +9,7 @@
 
 #include "command/CommandHistory.h"
 #include "command/type/ChangePropertyCmd.h"
+#include "command/type/ChangeObjTransfCmd.h"
 
 using namespace Supernova;
 
@@ -278,10 +279,7 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                     }
 
                     if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
-                        //lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "position", objPos);
-                        //transform->position = objMatrix.decomposePosition();
-                        objMatrix.decompose(transform->position, transform->scale, transform->rotation);
-                        transform->needUpdate = true;
+                        lastCommand = new ChangeObjTransfCmd(scene, entity, objMatrix);
                     }
                 }
 
@@ -309,11 +307,7 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                     }
 
                     if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
-                        //lastCommand = new ChangePropertyCmd<Quaternion>(scene, entity, ComponentType::Transform, "rotation", objRot);
-                        //transform->position = objMatrix.decomposePosition();
-                        //transform->rotation = objMatrix.decomposeRotation();
-                        objMatrix.decompose(transform->position, transform->scale, transform->rotation);
-                        transform->needUpdate = true;
+                        lastCommand = new ChangeObjTransfCmd(scene, entity, objMatrix);
                     }
                 }
 
@@ -344,10 +338,6 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                         newScale = Vector3(1, radioY, radioZ);
                     }
 
-                    //if (useGlobalTransform){
-                    //    Matrix4 mRot = transform->worldRotation.getRotationMatrix();
-                    //    newScale = (mRot.inverse() * Matrix4::scaleMatrix(newScale) * mRot) * newScale;
-                    //}
                     newScale = newScale * scaleStartOffset;
                     newScale = Vector3(abs(newScale.x), abs(newScale.y), abs(newScale.z));
 
@@ -356,15 +346,10 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
 
                     if (transformParent){
                         objMatrix = transformParent->modelMatrix.inverse() * objMatrix;
-                        //newScale = Vector3(newScale.x / transformParent->worldScale.x, newScale.y / transformParent->worldScale.y, newScale.z / transformParent->worldScale.z);
                     }
 
                     if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
-                        //lastCommand = new ChangePropertyCmd<Vector3>(scene, entity, ComponentType::Transform, "scale", newScale);
-                        //transform->position = objMatrix.decomposePosition();
-                        //transform->scale = objMatrix.decomposeScale3();
-                        objMatrix.decompose(transform->position, transform->scale, transform->rotation);
-                        transform->needUpdate = true;
+                        lastCommand = new ChangeObjTransfCmd(scene, entity, objMatrix);
                     }
 
                 }
