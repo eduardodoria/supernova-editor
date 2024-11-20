@@ -71,7 +71,7 @@ void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quater
 }
 
 void Editor::ToolsLayer::mouseDrag(Vector3 point){
-    if (gizmoSelected == GizmoSelected::ROTATE){
+    if (gizmoSelected == GizmoSelected::ROTATE && gizmoSideSelected != GizmoSideSelected::NONE){
         rGizmo->drawLine(point);
     }
 }

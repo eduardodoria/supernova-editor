@@ -31,7 +31,6 @@ namespace Supernova::Editor{
         Vector3 scaleStartOffset;
 
         std::map<Entity, Matrix4> objectMatrixOffset;
-        
 
         Command* lastCommand;
 
