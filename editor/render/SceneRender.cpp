@@ -21,9 +21,15 @@ Editor::SceneRender::SceneRender(Scene* scene){
     lastCommand = nullptr;
     useGlobalTransform = true;
 
-    Lines* lines = new Lines(scene);
-    Light* sun = new Light(scene);
-    SkyBox* sky = new SkyBox(scene);
+    lines = new Lines(scene);
+    sun = new Light(scene);
+    sky = new SkyBox(scene);
+
+    selAABBLines = new Lines(scene);
+    for (int i = 0; i < 12; i++){
+        selAABBLines->addLine(Vector3::ZERO, Vector3::ZERO, Vector4(1.0, 0.6, 0.0, 1.0));
+    }
+    selAABBLines->setVisible(false);
 
     camera = new Camera(scene);
 
@@ -124,17 +130,20 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities){
     Quaternion gizmoRotation;
 
     size_t numTEntities = 0;
+    AABB selAABB;
 
     for (Entity& entity: selEntities){
-        Transform* transform = scene->findComponent<Transform>(entity);
-
-        if (transform){
+        if (Transform* transform = scene->findComponent<Transform>(entity)){
             numTEntities++;
 
             gizmoPosition += transform->worldPosition;
 
             if (!useGlobalTransform && selEntities.size() == 1){
                 gizmoRotation = transform->worldRotation;
+            }
+
+            if (MeshComponent* mesh = scene->findComponent<MeshComponent>(entity)){
+                selAABB.merge(mesh->worldAABB);
             }
         }
     }
@@ -149,8 +158,26 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities){
         float scale = std::tan(cameracomp.yfov) * dist * (gizmoSize / (float)framebuffer.getHeight());
 
         toolslayer.updateGizmo(camera, gizmoPosition, gizmoRotation, scale, mouseRay, mouseClicked);
+
+        selAABB = Matrix4::scaleMatrix(Vector3(1.01)) * selAABB;
+
+        selAABBLines->updateLine(0, selAABB.getCorner(AABB::FAR_LEFT_BOTTOM), selAABB.getCorner(AABB::FAR_LEFT_TOP));
+        selAABBLines->updateLine(1, selAABB.getCorner(AABB::FAR_LEFT_TOP), selAABB.getCorner(AABB::FAR_RIGHT_TOP));
+        selAABBLines->updateLine(2, selAABB.getCorner(AABB::FAR_RIGHT_TOP), selAABB.getCorner(AABB::FAR_RIGHT_BOTTOM));
+        selAABBLines->updateLine(3, selAABB.getCorner(AABB::FAR_RIGHT_BOTTOM), selAABB.getCorner(AABB::FAR_LEFT_BOTTOM));
+
+        selAABBLines->updateLine(4, selAABB.getCorner(AABB::NEAR_LEFT_BOTTOM), selAABB.getCorner(AABB::NEAR_LEFT_TOP));
+        selAABBLines->updateLine(5, selAABB.getCorner(AABB::NEAR_LEFT_TOP), selAABB.getCorner(AABB::NEAR_RIGHT_TOP));
+        selAABBLines->updateLine(6, selAABB.getCorner(AABB::NEAR_RIGHT_TOP), selAABB.getCorner(AABB::NEAR_RIGHT_BOTTOM));
+        selAABBLines->updateLine(7, selAABB.getCorner(AABB::NEAR_RIGHT_BOTTOM), selAABB.getCorner(AABB::NEAR_LEFT_BOTTOM));
+
+        selAABBLines->updateLine(8, selAABB.getCorner(AABB::FAR_LEFT_BOTTOM), selAABB.getCorner(AABB::NEAR_LEFT_BOTTOM));
+        selAABBLines->updateLine(9, selAABB.getCorner(AABB::FAR_LEFT_TOP), selAABB.getCorner(AABB::NEAR_LEFT_TOP));
+        selAABBLines->updateLine(10, selAABB.getCorner(AABB::FAR_RIGHT_TOP), selAABB.getCorner(AABB::NEAR_RIGHT_TOP));
+        selAABBLines->updateLine(11, selAABB.getCorner(AABB::FAR_RIGHT_BOTTOM), selAABB.getCorner(AABB::NEAR_RIGHT_BOTTOM));
     }
     toolslayer.setGizmoVisible(gizmoVisibility);
+    selAABBLines->setVisible(gizmoVisibility);
 }
 
 void Editor::SceneRender::mouseHoverEvent(float x, float y){

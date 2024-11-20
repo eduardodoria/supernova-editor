@@ -14,6 +14,11 @@ namespace Supernova::Editor{
         Camera* camera;
         Scene* scene;
 
+        Lines* lines;
+        Light* sun;
+        SkyBox* sky;
+        Lines* selAABBLines;
+
         Framebuffer framebuffer;
 
         ToolsLayer toolslayer;
