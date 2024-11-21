@@ -232,29 +232,38 @@ void Editor::Project::setSelectedEntity(uint32_t sceneId, Entity selectedEntity)
 
 void Editor::Project::addSelectedEntity(uint32_t sceneId, Entity selectedEntity){
     std::vector<Entity>& entities = getScene(sceneId)->selectedEntities;
-
     Scene* scene = getScene(sceneId)->scene;
-    if (scene->getSignature(selectedEntity).test(scene->getComponentId<Transform>())){
-        auto transforms = scene->getComponentArray<Transform>();
-        size_t firstIndex = transforms->getIndex(selectedEntity);
-        size_t branchIndex = scene->findBranchLastIndex(selectedEntity);
-
-        for (auto& entity: entities){
-            if (scene->getSignature(entity).test(scene->getComponentId<Transform>())){
-                size_t index = transforms->getIndex(entity);
-
-                if (index >= firstIndex && index <= branchIndex){
-                    printf("Remove %u\n", entity);
-                }
-            }
-        }
-    }
+    auto transforms = scene->getComponentArray<Transform>();
 
     if (selectedEntity != NULL_ENTITY){
         if (std::find(entities.begin(), entities.end(), selectedEntity) == entities.end()) {
             entities.push_back(selectedEntity);
         }
     }
+
+    // removing childs of selected entities
+    std::vector<Entity> removeChilds;
+    for (auto& entity: entities){
+        if (scene->getSignature(entity).test(scene->getComponentId<Transform>())){
+            size_t firstIndex = transforms->getIndex(entity);
+            size_t branchIndex = scene->findBranchLastIndex(entity);
+            for (int t = (firstIndex+1); t <= branchIndex; t++){
+                Entity childEntity = transforms->getEntity(t);
+                if (std::find(entities.begin(), entities.end(), childEntity) != entities.end()) {
+                    removeChilds.push_back(childEntity);
+                    #ifdef _DEBUG
+                    printf("DEBUG: Removed entity %u from selection\n", childEntity);
+                    #endif
+                }
+            }
+        }
+    }
+    entities.erase(
+        std::remove_if(entities.begin(), entities.end(), [&removeChilds](Entity value) {
+            return std::find(removeChilds.begin(), removeChilds.end(), value) != removeChilds.end();
+        }),
+        entities.end()
+    );
 }
 
 bool Editor::Project::isSelectedEntity(uint32_t sceneId, Entity selectedEntity){
