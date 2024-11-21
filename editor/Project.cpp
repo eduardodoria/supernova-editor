@@ -93,7 +93,7 @@ void Editor::Project::deleteEntity(uint32_t sceneId, Entity entity){
     CommandHistory::addCommand(new DeleteEntityCmd(this, sceneId, entity));
 }
 
-bool Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
+bool Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y, bool shiftPressed){
     SceneProject* scenedata = getScene(sceneId);
     Ray ray = scenedata->sceneRender->getCamera()->screenToRay(x, y);
 
@@ -114,7 +114,10 @@ bool Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
 
     if (!scenedata->sceneRender->isGizmoSideSelected()){
         if (selEntity != NULL_ENTITY){
-            setSelectedEntity(sceneId, selEntity);
+            if (!shiftPressed){
+                clearSelectedEntities(sceneId);
+            }
+            addSelectedEntity(sceneId, selEntity);
             return true;
         }
 
@@ -229,6 +232,23 @@ void Editor::Project::setSelectedEntity(uint32_t sceneId, Entity selectedEntity)
 
 void Editor::Project::addSelectedEntity(uint32_t sceneId, Entity selectedEntity){
     std::vector<Entity>& entities = getScene(sceneId)->selectedEntities;
+
+    Scene* scene = getScene(sceneId)->scene;
+    if (scene->getSignature(selectedEntity).test(scene->getComponentId<Transform>())){
+        auto transforms = scene->getComponentArray<Transform>();
+        size_t firstIndex = transforms->getIndex(selectedEntity);
+        size_t branchIndex = scene->findBranchLastIndex(selectedEntity);
+
+        for (auto& entity: entities){
+            if (scene->getSignature(entity).test(scene->getComponentId<Transform>())){
+                size_t index = transforms->getIndex(entity);
+
+                if (index >= firstIndex && index <= branchIndex){
+                    printf("Remove %u\n", entity);
+                }
+            }
+        }
+    }
 
     if (selectedEntity != NULL_ENTITY){
         if (std::find(entities.begin(), entities.end(), selectedEntity) == entities.end()) {

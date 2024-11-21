@@ -260,7 +260,11 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
 
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
         if (!node.isScene){
-            project->setSelectedEntity(project->getSelectedSceneId(), node.id);
+            ImGuiIO& io = ImGui::GetIO();
+            if (!io.KeyShift){
+                project->clearSelectedEntities(project->getSelectedSceneId());
+            }
+            project->addSelectedEntity(project->getSelectedSceneId(), node.id);
         }else{
             project->clearSelectedEntities(project->getSelectedSceneId());
             selectedScenes.clear();

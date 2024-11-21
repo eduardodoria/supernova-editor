@@ -48,7 +48,7 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
 
         if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)){
             if (!mouseLeftDraggedInside){
-                project->findObjectByRay(sceneId, x, y);
+                project->findObjectByRay(sceneId, x, y, io.KeyShift);
             }
         }
     }
@@ -173,7 +173,7 @@ void Editor::SceneWindow::show(){
             ImGui::SameLine(0, 10);
             ImGui::Dummy(ImVec2(1, 20));
             ImGui::SameLine(0, 10);
-
+            /*
             CursorSelected cursorSelected = sceneProject.sceneRender->getUILayer()->getCursorSelected();
 
             ImGui::BeginDisabled(cursorSelected == CursorSelected::POINTER);
@@ -193,7 +193,7 @@ void Editor::SceneWindow::show(){
             ImGui::SameLine(0, 10);
             ImGui::Dummy(ImVec2(1, 20));
             ImGui::SameLine(0, 10);
-
+            */
             GizmoSelected gizmoSelected = sceneProject.sceneRender->getToolsLayer()->getGizmoSelected();
 
             ImGui::BeginDisabled(gizmoSelected == GizmoSelected::TRANSLATE);
