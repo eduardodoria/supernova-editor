@@ -41,6 +41,8 @@ namespace Supernova::Editor{
 
         static float gizmoSize;
 
+        AABB getFamilyAABB(Entity entity);
+
     public:
         SceneRender(Scene* scene);
 

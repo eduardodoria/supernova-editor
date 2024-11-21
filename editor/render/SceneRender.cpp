@@ -97,6 +97,33 @@ Editor::SceneRender::SceneRender(Scene* scene){
     Engine::setFixedTimeSceneUpdate(false);
 }
 
+AABB Editor::SceneRender::getFamilyAABB(Entity entity){
+    auto transforms = scene->getComponentArray<Transform>();
+    size_t index = transforms->getIndex(entity);
+
+    AABB aabb;
+    std::vector<Entity> parentList;
+    for (int i = index; i < transforms->size(); i++){
+        Transform& transform = transforms->getComponentFromIndex(i);
+
+        // Finding childs
+        if (i > index){
+            if (std::find(parentList.begin(), parentList.end(), transform.parent) == parentList.end()){
+                break;
+            }
+        }
+
+        entity = transforms->getEntity(i);
+        parentList.push_back(entity);
+
+        if (MeshComponent* mesh = scene->findComponent<MeshComponent>(entity)){
+            aabb.merge(transform.modelMatrix * Matrix4::scaleMatrix(Vector3(1.01)) * mesh->aabb);
+        }
+    }
+
+    return aabb;
+}
+
 void Editor::SceneRender::activate(){
     Engine::setFramebuffer(&framebuffer);
     Engine::setScene(scene);
@@ -142,9 +169,7 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities){
                 gizmoRotation = transform->worldRotation;
             }
 
-            if (MeshComponent* mesh = scene->findComponent<MeshComponent>(entity)){
-                selAABB.merge(mesh->worldAABB);
-            }
+            selAABB.merge(getFamilyAABB(entity));
         }
     }
 
@@ -158,8 +183,6 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities){
         float scale = std::tan(cameracomp.yfov) * dist * (gizmoSize / (float)framebuffer.getHeight());
 
         toolslayer.updateGizmo(camera, gizmoPosition, gizmoRotation, scale, mouseRay, mouseClicked);
-
-        selAABB = Matrix4::scaleMatrix(Vector3(1.01)) * selAABB;
 
         selAABBLines->updateLine(0, selAABB.getCorner(AABB::FAR_LEFT_BOTTOM), selAABB.getCorner(AABB::FAR_LEFT_TOP));
         selAABBLines->updateLine(1, selAABB.getCorner(AABB::FAR_LEFT_TOP), selAABB.getCorner(AABB::FAR_RIGHT_TOP));
