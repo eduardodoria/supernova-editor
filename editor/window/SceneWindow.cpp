@@ -154,8 +154,33 @@ void Editor::SceneWindow::show(){
         ImGui::Begin((sceneProject.name + "###Scene" + std::to_string(sceneProject.id)).c_str());
         {
 
+            GizmoSelected gizmoSelected = sceneProject.sceneRender->getToolsLayer()->getGizmoSelected();
+            bool useGlobalTransform = sceneProject.sceneRender->isUseGlobalTransform();
+
             if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)){
                 project->setSelectedSceneId(sceneProject.id);
+
+                if (ImGui::IsKeyPressed(ImGuiKey_W)) {
+                    sceneProject.sceneRender->getToolsLayer()->enableTranslateGizmo();
+                }
+
+                if (ImGui::IsKeyPressed(ImGuiKey_E)) {
+                    sceneProject.sceneRender->getToolsLayer()->enableRotateGizmo();
+                }
+
+                if (ImGui::IsKeyPressed(ImGuiKey_R)) {
+                    sceneProject.sceneRender->getToolsLayer()->enableScaleGizmo();
+                }
+
+                if (ImGui::IsKeyPressed(ImGuiKey_T)){
+                    sceneProject.sceneRender->setUseGlobalTransform(!useGlobalTransform);
+                }
+
+                if (ImGui::IsKeyPressed(ImGuiKey_Delete)){
+                    for (Entity& entity : project->getSelectedEntities(sceneProject.id)){
+                        project->deleteEntity(sceneProject.id, entity);
+                    }
+                }
             }
 
             if (ImGui::Button(ICON_FA_PLAY " Play")) {
@@ -194,7 +219,6 @@ void Editor::SceneWindow::show(){
             ImGui::Dummy(ImVec2(1, 20));
             ImGui::SameLine(0, 10);
             */
-            GizmoSelected gizmoSelected = sceneProject.sceneRender->getToolsLayer()->getGizmoSelected();
 
             ImGui::BeginDisabled(gizmoSelected == GizmoSelected::TRANSLATE);
             ImGui::SameLine();
@@ -209,7 +233,7 @@ void Editor::SceneWindow::show(){
             if (ImGui::Button(ICON_FA_ROTATE)) {
                 sceneProject.sceneRender->getToolsLayer()->enableRotateGizmo();
             }
-            ImGui::SetItemTooltip("Rotate (W)");
+            ImGui::SetItemTooltip("Rotate (E)");
             ImGui::EndDisabled();
 
             ImGui::BeginDisabled(gizmoSelected == GizmoSelected::SCALE);
@@ -223,8 +247,6 @@ void Editor::SceneWindow::show(){
             ImGui::SameLine(0, 10);
             ImGui::Dummy(ImVec2(1, 20));
             ImGui::SameLine(0, 10);
-
-            bool useGlobalTransform = sceneProject.sceneRender->isUseGlobalTransform();
 
             ImGui::BeginDisabled(useGlobalTransform);
             ImGui::SameLine();
