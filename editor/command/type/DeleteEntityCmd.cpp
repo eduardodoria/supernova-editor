@@ -5,67 +5,87 @@ using namespace Supernova;
 Editor::DeleteEntityCmd::DeleteEntityCmd(Project* project, uint32_t sceneId, Entity entity){
     this->project = project;
     this->sceneId = sceneId;
-    this->entity = entity;
+
+    DeleteEntityData entityData;
+    entityData.entity = entity;
+    this->entities.push_back(entityData);
 }
 
 void Editor::DeleteEntityCmd::execute(){
-    std::vector<Supernova::Editor::SceneProject> &scenes = project->getScenes();
-    for (int i = 0; i < scenes.size(); i++){
-        if (scenes[i].id == sceneId){
-            entityName = scenes[i].scene->getEntityName(entity);
-            signature = scenes[i].scene->getSignature(entity);
+    SceneProject* sceneProject = project->getScene(sceneId);
 
-            if (signature.test(scenes[i].scene->getComponentId<Transform>())){
-                transform = scenes[i].scene->getComponent<Transform>(entity);
-                parent = transform.parent;
-            }
-            if (signature.test(scenes[i].scene->getComponentId<MeshComponent>())){
-                mesh = scenes[i].scene->getComponent<MeshComponent>(entity);
-            }
+    lastSelected = project->getSelectedEntities(sceneId);
 
-            scenes[i].scene->destroyEntity(entity);
+    for (DeleteEntityData& entityData : entities){
+        entityData.entityName = sceneProject->scene->getEntityName(entityData.entity);
+        entityData.signature = sceneProject->scene->getSignature(entityData.entity);
 
-            auto it = std::find(scenes[i].entities.begin(), scenes[i].entities.end(), entity);
-            if (it != scenes[i].entities.end()) {
-                scenes[i].entities.erase(it);
-            }
+        if (entityData.signature.test(sceneProject->scene->getComponentId<Transform>())){
+            entityData.transform = sceneProject->scene->getComponent<Transform>(entityData.entity);
+            entityData.transformIndex = sceneProject->scene->getComponentArray<Transform>()->getIndex(entityData.entity);
+            entityData.parent = entityData.transform.parent;
+        }
+        if (entityData.signature.test(sceneProject->scene->getComponentId<MeshComponent>())){
+            entityData.mesh = sceneProject->scene->getComponent<MeshComponent>(entityData.entity);
+        }
 
-            lastSelected = project->getSelectedEntities(sceneId);
+        sceneProject->scene->destroyEntity(entityData.entity);
 
-            if (project->isSelectedEntity(sceneId, entity)){
-                project->clearSelectedEntities(sceneId);
-            }
+        auto it = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), entityData.entity);
+        if (it != sceneProject->entities.end()) {
+            sceneProject->entities.erase(it);
+        }
+
+        if (project->isSelectedEntity(sceneId, entityData.entity)){
+            project->clearSelectedEntities(sceneId);
         }
     }
 }
 
 void Editor::DeleteEntityCmd::undo(){
-    std::vector<Supernova::Editor::SceneProject> &scenes = project->getScenes();
-    for (int i = 0; i < scenes.size(); i++){
-        if (scenes[i].id == sceneId){
-            entity = scenes[i].scene->createEntityInternal(entity);
+    SceneProject* sceneProject = project->getScene(sceneId);
 
-            if (signature.test(scenes[i].scene->getComponentId<Transform>())){
-                scenes[i].scene->addComponent<Transform>(entity, transform);
-            }
-            if (signature.test(scenes[i].scene->getComponentId<MeshComponent>())){
-                scenes[i].scene->addComponent<MeshComponent>(entity, {});
-            }
+    for (auto it = entities.rbegin(); it != entities.rend(); ++it) {
+        DeleteEntityData& entityData = *it;
 
-            scenes[i].scene->setEntityName(entity, entityName);
-            if (parent != NULL_ENTITY){
-                scenes[i].scene->addEntityChild(parent, entity, false);
-            }
+        entityData.entity = sceneProject->scene->createEntityInternal(entityData.entity);
 
-            scenes[i].entities.push_back(entity);
+        sceneProject->entities.push_back(entityData.entity);
 
-            if (lastSelected.size() > 0){
-                project->replaceSelectedEntities(sceneId, lastSelected);
+        sceneProject->scene->setEntityName(entityData.entity, entityData.entityName);
+
+        if (entityData.signature.test(sceneProject->scene->getComponentId<Transform>())){
+            sceneProject->scene->addComponent<Transform>(entityData.entity, entityData.transform);
+            sceneProject->scene->moveChildToIndex(entityData.entity, entityData.transformIndex);
+            if (entityData.parent != NULL_ENTITY){
+                sceneProject->scene->addEntityChild(entityData.parent, entityData.entity, false);
             }
         }
+        if (entityData.signature.test(sceneProject->scene->getComponentId<MeshComponent>())){
+            sceneProject->scene->addComponent<MeshComponent>(entityData.entity, {});
+        }
+    }
+
+    if (lastSelected.size() > 0){
+        project->replaceSelectedEntities(sceneId, lastSelected);
     }
 }
 
 bool Editor::DeleteEntityCmd::mergeWith(Editor::Command* otherCommand){
+    DeleteEntityCmd* otherCmd = dynamic_cast<DeleteEntityCmd*>(otherCommand);
+    if (otherCmd != nullptr){
+        if (sceneId == otherCmd->sceneId){
+
+            lastSelected = otherCmd->lastSelected;
+
+            for (DeleteEntityData& otherEntityData :  otherCmd->entities){
+                // insert at begin to keep deletion order
+                entities.insert(entities.begin(), otherEntityData);
+            }
+
+            return true;
+        }
+    }
+
     return false;
 }

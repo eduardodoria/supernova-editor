@@ -6,6 +6,12 @@ using namespace Supernova;
 std::vector<Editor::Command*> Editor::CommandHistory::list;
 size_t Editor::CommandHistory::index = 0;
 
+Editor::CommandHistory::~CommandHistory(){
+    for (int i = 0; i < list.size(); i++){
+        delete list[i];
+    }
+}
+
 void Editor::CommandHistory::addCommand(Editor::Command* cmd){
     cmd->execute();
 

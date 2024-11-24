@@ -177,9 +177,7 @@ void Editor::SceneWindow::show(){
                 }
 
                 if (ImGui::IsKeyPressed(ImGuiKey_Delete)){
-                    for (Entity& entity : project->getSelectedEntities(sceneProject.id)){
-                        project->deleteEntity(sceneProject.id, entity);
-                    }
+                    project->deleteEntities(sceneProject.id, project->getSelectedEntities(sceneProject.id));
                 }
             }
 

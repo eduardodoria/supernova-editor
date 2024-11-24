@@ -90,7 +90,20 @@ void Editor::Project::createBoxShape(uint32_t sceneId, Entity parent){
 }
 
 void Editor::Project::deleteEntity(uint32_t sceneId, Entity entity){
-    CommandHistory::addCommand(new DeleteEntityCmd(this, sceneId, entity));
+    DeleteEntityCmd* deleteCmd = new DeleteEntityCmd(this, sceneId, entity);
+    CommandHistory::addCommand(deleteCmd);
+    deleteCmd->setNoMerge();
+}
+
+void Editor::Project::deleteEntities(uint32_t sceneId, std::vector<Entity> entities){
+    DeleteEntityCmd* deleteCmd = nullptr;
+     for(Entity& entity : entities){
+        deleteCmd = new DeleteEntityCmd(this, sceneId, entity);
+        CommandHistory::addCommand(deleteCmd);
+     }
+     if (deleteCmd){
+        deleteCmd->setNoMerge(); // the last
+     }
 }
 
 bool Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y, bool shiftPressed){

@@ -8,20 +8,27 @@
 
 namespace Supernova::Editor{
 
-    class DeleteEntityCmd: public Command{
-
-    private:
-        Project* project;
-        uint32_t sceneId;
+    struct DeleteEntityData{
         Entity entity;
 
         Entity parent;
         std::string entityName;
         Signature signature;
-        std::vector<Entity> lastSelected;
+        size_t transformIndex;
         
         Transform transform;
         MeshComponent mesh;
+    };
+
+    class DeleteEntityCmd: public Command{
+
+    private:
+        Project* project;
+        uint32_t sceneId;
+
+        std::vector<Entity> lastSelected;
+
+        std::vector<DeleteEntityData> entities;
 
     public:
         DeleteEntityCmd(Project* project, uint32_t sceneId, Entity entity);

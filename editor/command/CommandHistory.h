@@ -14,6 +14,8 @@ namespace Supernova::Editor{
         static size_t index; // real index is (index-1)
 
     public:
+        virtual ~CommandHistory();
+
         static void addCommand(Command* cmd);
 
         static void undo();

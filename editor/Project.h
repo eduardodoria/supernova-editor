@@ -47,6 +47,7 @@ namespace Supernova::Editor{
         void createBoxShape(uint32_t sceneId, Entity parent);
 
         void deleteEntity(uint32_t sceneId, Entity entity);
+        void deleteEntities(uint32_t sceneId, std::vector<Entity> entities);
 
         bool findObjectByRay(uint32_t sceneId, float x, float y, bool shiftPressed);
         bool findObjectsByRect(uint32_t sceneId, Vector2 start, Vector2 end);
