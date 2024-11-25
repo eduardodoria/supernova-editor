@@ -16,7 +16,9 @@ void Editor::DeleteEntityCmd::execute(){
 
     lastSelected = project->getSelectedEntities(sceneId);
 
-    for (DeleteEntityData& entityData : entities){
+    for (auto it = entities.rbegin(); it != entities.rend(); ++it) {
+        DeleteEntityData& entityData = *it;
+
         entityData.entityName = sceneProject->scene->getEntityName(entityData.entity);
         entityData.signature = sceneProject->scene->getSignature(entityData.entity);
 
@@ -31,9 +33,9 @@ void Editor::DeleteEntityCmd::execute(){
 
         sceneProject->scene->destroyEntity(entityData.entity);
 
-        auto it = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), entityData.entity);
-        if (it != sceneProject->entities.end()) {
-            sceneProject->entities.erase(it);
+        auto ite = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), entityData.entity);
+        if (ite != sceneProject->entities.end()) {
+            sceneProject->entities.erase(ite);
         }
 
         if (project->isSelectedEntity(sceneId, entityData.entity)){
@@ -45,8 +47,7 @@ void Editor::DeleteEntityCmd::execute(){
 void Editor::DeleteEntityCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
-    for (auto it = entities.rbegin(); it != entities.rend(); ++it) {
-        DeleteEntityData& entityData = *it;
+    for (DeleteEntityData& entityData : entities){
 
         entityData.entity = sceneProject->scene->createEntityInternal(entityData.entity);
 
@@ -80,8 +81,12 @@ bool Editor::DeleteEntityCmd::mergeWith(Editor::Command* otherCommand){
 
             for (DeleteEntityData& otherEntityData :  otherCmd->entities){
                 // insert at begin to keep deletion order
-                entities.insert(entities.begin(), otherEntityData);
+                entities.push_back(otherEntityData);
             }
+
+            std::sort(entities.begin(), entities.end(), [](const DeleteEntityData& a, const DeleteEntityData& b) {
+                return a.parent < b.parent || a.transformIndex < b.transformIndex;
+            });
 
             return true;
         }

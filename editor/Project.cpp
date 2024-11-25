@@ -90,17 +90,30 @@ void Editor::Project::createBoxShape(uint32_t sceneId, Entity parent){
 }
 
 void Editor::Project::deleteEntity(uint32_t sceneId, Entity entity){
-    DeleteEntityCmd* deleteCmd = new DeleteEntityCmd(this, sceneId, entity);
-    CommandHistory::addCommand(deleteCmd);
-    deleteCmd->setNoMerge();
+    deleteEntities(sceneId, {entity});
 }
 
 void Editor::Project::deleteEntities(uint32_t sceneId, std::vector<Entity> entities){
     DeleteEntityCmd* deleteCmd = nullptr;
+
+    Scene* scene = getScene(sceneId)->scene;
+    auto transforms = scene->getComponentArray<Transform>();
+
      for(Entity& entity : entities){
+        size_t firstIndex = transforms->getIndex(entity);
+        size_t branchIndex = scene->findBranchLastIndex(entity);
+        for (int t = branchIndex; t >= (firstIndex + 1); t--) {
+            Entity childEntity = transforms->getEntity(t);
+            if (childEntity != NULL_ENTITY) {
+                deleteCmd = new DeleteEntityCmd(this, sceneId, childEntity);
+                CommandHistory::addCommand(deleteCmd);
+            }
+        }
+
         deleteCmd = new DeleteEntityCmd(this, sceneId, entity);
         CommandHistory::addCommand(deleteCmd);
      }
+
      if (deleteCmd){
         deleteCmd->setNoMerge(); // the last
      }

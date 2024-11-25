@@ -444,3 +444,7 @@ bool Editor::SceneRender::isUseGlobalTransform() const{
 void Editor::SceneRender::setUseGlobalTransform(bool useGlobalTransform){
     this->useGlobalTransform = useGlobalTransform;
 }
+
+void Editor::SceneRender::changeUseGlobalTransform(){
+    this->useGlobalTransform = !this->useGlobalTransform;
+}

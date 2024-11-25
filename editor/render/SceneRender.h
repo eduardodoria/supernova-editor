@@ -66,6 +66,7 @@ namespace Supernova::Editor{
 
         bool isUseGlobalTransform() const;
         void setUseGlobalTransform(bool useGlobalTransform);
+        void changeUseGlobalTransform();
     };
 
 }
