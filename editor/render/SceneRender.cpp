@@ -17,6 +17,7 @@ float Editor::SceneRender::gizmoSize = 40;
 
 Editor::SceneRender::SceneRender(Scene* scene){
     this->scene = scene;
+    linesOffset = Vector2(0, 0);
     mouseClicked = false;
     lastCommand = nullptr;
     useGlobalTransform = true;
@@ -49,31 +50,7 @@ Editor::SceneRender::SceneRender(Scene* scene){
 
     sky->setTextures("default_editor_sky", skyBack, skyFront, skyLeft, skyRight, skyTop, skyBottom);
 
-    int gridHeight = 0;
-
-    for (int i = -1000; i <= 1000; i++){
-        if (i == 0){
-            lines->addLine(Vector3(i, gridHeight, -1000), Vector3(i, gridHeight, 1000), Vector4(0.5, 0.5, 1.0, 1.0));
-        }else{
-            if (i % 10 == 0){
-                lines->addLine(Vector3(i, gridHeight, -1000), Vector3(i, gridHeight, 1000), Vector4(0.5, 0.5, 0.5, 1.0));
-            }else{
-                lines->addLine(Vector3(i, gridHeight, -1000), Vector3(i, gridHeight, 1000), Vector4(0.5, 0.5, 0.5, 0.5));
-            }
-        }
-    }
-    for (int i = -1000; i <= 1000; i++){
-        if (i == 0){
-            lines->addLine(Vector3(-1000, gridHeight, i), Vector3(1000, gridHeight, i), Vector4(1.0, 0.5, 0.5, 1.0));
-        }else{
-            if (i % 10 == 0){
-                lines->addLine(Vector3(-1000, gridHeight, i), Vector3(1000, gridHeight, i), Vector4(0.5, 0.5, 0.5, 1.0));
-            }else{
-                lines->addLine(Vector3(-1000, gridHeight, i), Vector3(1000, gridHeight, i), Vector4(0.5, 0.5, 0.5, 0.5));
-            }
-        }
-    }
-    lines->addLine(Vector3(0, -1000, 0), Vector3(0, 1000, 0), Vector4(0.5, 1.0, 0.5, 1.0));
+    createLines();
 
     //camera->setType(CameraType::CAMERA_2D);
     camera->setPosition(10, 4, 10);
@@ -124,6 +101,43 @@ AABB Editor::SceneRender::getFamilyAABB(Entity entity){
     return aabb;
 }
 
+void Editor::SceneRender::createLines(){
+    int gridHeight = 0;
+    int gridSize = camera->getFarClip() * 2;
+
+    int xGridStart = -gridSize + linesOffset.x;
+    int xGridEnd = gridSize + linesOffset.x;
+
+    int yGridStart = -gridSize + linesOffset.y;
+    int yGridEnd = gridSize + linesOffset.y;
+
+    lines->clearLines();
+
+    for (int i = xGridStart; i <= xGridEnd; i++){
+        if (i == 0){
+            lines->addLine(Vector3(i, gridHeight, yGridStart), Vector3(i, gridHeight, yGridEnd), Vector4(0.5, 0.5, 1.0, 1.0));
+        }else{
+            if (i % 10 == 0){
+                lines->addLine(Vector3(i, gridHeight, yGridStart), Vector3(i, gridHeight, yGridEnd), Vector4(0.5, 0.5, 0.5, 1.0));
+            }else{
+                lines->addLine(Vector3(i, gridHeight, yGridStart), Vector3(i, gridHeight, yGridEnd), Vector4(0.5, 0.5, 0.5, 0.5));
+            }
+        }
+    }
+    for (int i = yGridStart; i <= yGridEnd; i++){
+        if (i == 0){
+            lines->addLine(Vector3(xGridStart, gridHeight, i), Vector3(xGridEnd, gridHeight, i), Vector4(1.0, 0.5, 0.5, 1.0));
+        }else{
+            if (i % 10 == 0){
+                lines->addLine(Vector3(xGridStart, gridHeight, i), Vector3(xGridEnd, gridHeight, i), Vector4(0.5, 0.5, 0.5, 1.0));
+            }else{
+                lines->addLine(Vector3(xGridStart, gridHeight, i), Vector3(xGridEnd, gridHeight, i), Vector4(0.5, 0.5, 0.5, 0.5));
+            }
+        }
+    }
+    lines->addLine(Vector3(0, -gridSize, 0), Vector3(0, gridSize, 0), Vector4(0.5, 1.0, 0.5, 1.0));
+}
+
 void Editor::SceneRender::activate(){
     Engine::setFramebuffer(&framebuffer);
     Engine::setScene(scene);
@@ -144,6 +158,15 @@ void Editor::SceneRender::updateSize(int width, int height){
 }
 
 void Editor::SceneRender::update(std::vector<Entity> selEntities){
+    int linesStepChange = (int)(camera->getFarClip() / 2);
+    int cameraLineStepX = (int)(camera->getWorldPosition().x / linesStepChange) * linesStepChange;
+    int cameraLineStepZ = (int)(camera->getWorldPosition().z / linesStepChange) * linesStepChange;
+    if (cameraLineStepX != linesOffset.x || cameraLineStepZ != linesOffset.y){
+        linesOffset = Vector2(cameraLineStepX, cameraLineStepZ);
+
+        createLines();
+    }
+
     viewgizmo.applyRotation(camera);
 
     Entity cameraEntity = camera->getEntity();

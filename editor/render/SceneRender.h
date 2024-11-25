@@ -27,6 +27,8 @@ namespace Supernova::Editor{
 
         bool useGlobalTransform;
 
+        Vector2 linesOffset;
+
         Ray mouseRay;
         bool mouseClicked;
         Plane cursorPlane;
@@ -42,6 +44,7 @@ namespace Supernova::Editor{
         static float gizmoSize;
 
         AABB getFamilyAABB(Entity entity);
+        void createLines();
 
     public:
         SceneRender(Scene* scene);
