@@ -10,16 +10,16 @@ namespace Supernova::Editor{
     class CommandHistory{
 
     private:
-        static std::vector<Command*> list;
-        static size_t index; // real index is (index-1)
+        std::vector<Command*> list;
+        size_t index; // real index is (index-1)
 
     public:
         virtual ~CommandHistory();
 
-        static void addCommand(Command* cmd);
+        void addCommand(Command* cmd);
 
-        static void undo();
-        static void redo();
+        void undo();
+        void redo();
     };
 
 }

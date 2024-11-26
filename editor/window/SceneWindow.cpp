@@ -42,7 +42,7 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
             mouseLeftDragPos = Vector2(x, y);
             if (mouseLeftClickPos.distance(mouseLeftDragPos) > 5){
                 mouseLeftDraggedInside = true;
-                project->getScene(sceneId)->sceneRender->mouseDragEvent(x, y, mouseLeftClickPos.x, mouseLeftClickPos.y, project->getSelectedEntities(sceneId));
+                project->getScene(sceneId)->sceneRender->mouseDragEvent(x, y, mouseLeftClickPos.x, mouseLeftClickPos.y, sceneId, project->getSelectedEntities(sceneId));
             }
         }
 

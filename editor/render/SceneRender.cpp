@@ -7,7 +7,7 @@
 #include "sky/Daylight_Box_Right_png.h"
 #include "sky/Daylight_Box_Top_png.h"
 
-#include "command/CommandHistory.h"
+#include "command/CommandHandle.h"
 #include "command/type/ChangePropertyCmd.h"
 #include "command/type/ChangeObjTransfCmd.h"
 
@@ -306,7 +306,7 @@ void Editor::SceneRender::mouseReleaseEvent(float x, float y){
     }
 }
 
-void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float origY, std::vector<Entity> selEntities){
+void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float origY, size_t sceneId, std::vector<Entity> selEntities){
     if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::NONE){
         uilayer.setRectVisible(true);
         uilayer.updateRect(Vector2(origX, origY), Vector2(x, y) - Vector2(origX, origY));
@@ -428,7 +428,7 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                 }
 
                 if (lastCommand){
-                    CommandHistory::addCommand(lastCommand);
+                    CommandHandle::get(sceneId)->addCommand(lastCommand);
                 }
             }
         }

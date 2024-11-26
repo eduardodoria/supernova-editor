@@ -3,6 +3,7 @@
 #include "Backend.h"
 
 #include "subsystem/MeshSystem.h"
+#include "command/CommandHandle.h"
 #include "command/type/CreateEntityCmd.h"
 #include "command/type/DeleteEntityCmd.h"
 
@@ -82,11 +83,11 @@ bool Editor::Project::createNewComponent(uint32_t sceneId, Entity entity, Compon
 }
 
 void Editor::Project::createEmptyEntity(uint32_t sceneId){
-    CommandHistory::addCommand(new CreateEntityCmd(this, sceneId, "Entity"));
+    CommandHandle::get(getSelectedSceneId())->addCommand(new CreateEntityCmd(this, sceneId, "Entity"));
 }
 
 void Editor::Project::createBoxShape(uint32_t sceneId, Entity parent){
-    CommandHistory::addCommand(new CreateEntityCmd(this, sceneId, "Box", EntityCreationType::BOX, parent));
+    CommandHandle::get(getSelectedSceneId())->addCommand(new CreateEntityCmd(this, sceneId, "Box", EntityCreationType::BOX, parent));
 }
 
 void Editor::Project::deleteEntity(uint32_t sceneId, Entity entity){
@@ -106,12 +107,12 @@ void Editor::Project::deleteEntities(uint32_t sceneId, std::vector<Entity> entit
             Entity childEntity = transforms->getEntity(t);
             if (childEntity != NULL_ENTITY) {
                 deleteCmd = new DeleteEntityCmd(this, sceneId, childEntity);
-                CommandHistory::addCommand(deleteCmd);
+                CommandHandle::get(getSelectedSceneId())->addCommand(deleteCmd);
             }
         }
 
         deleteCmd = new DeleteEntityCmd(this, sceneId, entity);
-        CommandHistory::addCommand(deleteCmd);
+        CommandHandle::get(getSelectedSceneId())->addCommand(deleteCmd);
      }
 
      if (deleteCmd){

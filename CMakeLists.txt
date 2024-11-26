@@ -108,6 +108,7 @@ add_executable(
     ${EDITOR_DIR}/render/gizmo/RotateGizmo.cpp
     ${EDITOR_DIR}/render/gizmo/ScaleGizmo.cpp
 
+    ${EDITOR_DIR}/command/CommandHandle.cpp
     ${EDITOR_DIR}/command/CommandHistory.cpp
     ${EDITOR_DIR}/command/type/CreateEntityCmd.cpp
     ${EDITOR_DIR}/command/type/DeleteEntityCmd.cpp

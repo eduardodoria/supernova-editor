@@ -1,6 +1,7 @@
 #include "Structure.h"
 
 #include "external/IconsFontAwesome6.h"
+#include "command/CommandHandle.h"
 #include "command/type/MoveEntityOrderCmd.h"
 
 using namespace Supernova;
@@ -215,7 +216,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                 }else{
                     type = InsertionType::IN;
                 }
-                CommandHistory::addCommand(new MoveEntityOrderCmd(project, project->getSelectedSceneId(), source->id, node.id, type));
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(new MoveEntityOrderCmd(project, project->getSelectedSceneId(), source->id, node.id, type));
             }
 
         }

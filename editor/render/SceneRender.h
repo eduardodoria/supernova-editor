@@ -56,7 +56,7 @@ namespace Supernova::Editor{
         void mouseHoverEvent(float x, float y);
         void mouseClickEvent(float x, float y, std::vector<Entity> selEntities);
         void mouseReleaseEvent(float x, float y);
-        void mouseDragEvent(float x, float y, float origX, float origY, std::vector<Entity> selEntities);
+        void mouseDragEvent(float x, float y, float origX, float origY, size_t sceneId, std::vector<Entity> selEntities);
 
         TextureRender& getTexture();
 

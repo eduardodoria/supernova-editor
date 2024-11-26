@@ -5,7 +5,7 @@
 #include "Supernova.h"
 
 #include "external/IconsFontAwesome6.h"
-#include "command/CommandHistory.h"
+#include "command/CommandHandle.h"
 
 using namespace Supernova;
 
@@ -39,10 +39,10 @@ void Editor::App::showMenu(){
         }
         if (ImGui::BeginMenu("Edit")) {
             if (ImGui::MenuItem("Undo")) {
-                CommandHistory::undo();
+                CommandHandle::get(project.getSelectedSceneId())->undo();
             }
             if (ImGui::MenuItem("Redo")) {
-                CommandHistory::redo();
+                CommandHandle::get(project.getSelectedSceneId())->redo();
             }
             if (ImGui::MenuItem("Reset layout")) {
                 buildDockspace();
@@ -141,11 +141,11 @@ void Editor::App::show(){
 
     // Update the Undo and Redo button logic:
     if (isUndo) {
-        CommandHistory::undo();
+        CommandHandle::get(project.getSelectedSceneId())->undo();
     }
     ImGui::SameLine();
     if (isRedo) {
-        CommandHistory::redo();
+        CommandHandle::get(project.getSelectedSceneId())->redo();
     }
 
     dockspace_id = ImGui::GetID("MyDockspace");
