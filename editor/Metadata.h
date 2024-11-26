@@ -78,13 +78,17 @@ namespace Supernova::Editor{
     public:
         Metadata();
 
-        static size_t getPropertiesSize(ComponentType component);
+        static std::string getComponentName(ComponentType component);
+
         static std::vector<PropertyData> getProperties(ComponentType component, void* compRef);
-        static std::vector<PropertyData> getProperties(Scene* scene, Entity entity, ComponentType component);
+
+        static std::vector<ComponentType> findComponents(Scene* scene, Entity entity);
+        static std::vector<PropertyData> findProperties(Scene* scene, Entity entity, ComponentType component);
+
 
         template<typename T>
         static T* getPropertyRef(Scene* scene, Entity entity, ComponentType component, std::string propertyName){
-            for (auto& property : Metadata::getProperties(scene, entity, component)) {
+            for (auto& property : Metadata::findProperties(scene, entity, component)) {
                 if (property.name == propertyName){
                     return static_cast<T*>(property.ref);
                 }
@@ -93,7 +97,6 @@ namespace Supernova::Editor{
             printf("ERROR: Cannot find property %s\n", propertyName.c_str());
             return nullptr;
         }
-
     };
 
 }

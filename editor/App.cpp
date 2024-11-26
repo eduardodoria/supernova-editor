@@ -13,7 +13,7 @@ bool Editor::App::isInitialized = false;
 
 Editor::App::App(){
     structureWindow = new Structure(&project);
-    propertiesWindow = new Properties();
+    propertiesWindow = new Properties(&project);
     consoleWindow = new Console();
     sceneWindow = new SceneWindow(&project);
 }

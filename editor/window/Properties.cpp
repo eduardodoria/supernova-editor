@@ -6,7 +6,8 @@
 
 using namespace Supernova;
 
-Editor::Properties::Properties(){
+Editor::Properties::Properties(Project* project){
+    this->project = project;
 }
 
 void Editor::Properties::show(){
