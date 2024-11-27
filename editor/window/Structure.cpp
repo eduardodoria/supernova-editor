@@ -138,7 +138,7 @@ Editor::TreeNode* Editor::Structure::findNode(Editor::TreeNode* root, Entity ent
 }
 
 void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
-    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
+    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
 
     if (node.children.empty()) {
         flags |= ImGuiTreeNodeFlags_Leaf;

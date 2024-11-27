@@ -26,6 +26,11 @@ void Editor::Properties::show(){
     if (entities.size() > 0){
         entity = entities[0];
         components = Metadata::findComponents(scene, entity);
+
+        if (ImGui::Button(ICON_FA_PLUS" New component", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+            // Button was clicked
+            //ImGui::Text("Button clicked!");
+        }
     }
 
     for (ComponentType& cpType : components){
@@ -72,6 +77,12 @@ void Editor::Properties::show(){
                     }
                 }
                 ImGui::EndTable();
+
+                ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetStyle().ItemSpacing.y);
+                if (ImGui::TreeNodeEx("More", ImGuiTreeNodeFlags_SpanAvailWidth)){
+
+                    ImGui::TreePop();
+                }
             }
 
 /*
