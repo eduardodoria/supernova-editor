@@ -30,6 +30,11 @@ void Editor::CommandHistory::addCommand(Editor::Command* cmd){
     index = list.size();
 }
 
+void Editor::CommandHistory::addCommandNoMerge(Command* cmd){
+    cmd->setNoMerge();
+    addCommand(cmd);
+}
+
 void Editor::CommandHistory::undo(){
     if (index > 0){
         list[index-1]->undo();

@@ -62,6 +62,7 @@ namespace Supernova::Editor{
         Float2,
         Float3,
         Float4,
+        Quat,
         Int
     };
 

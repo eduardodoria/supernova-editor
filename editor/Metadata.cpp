@@ -109,7 +109,7 @@ std::vector<Editor::PropertyData> Editor::Metadata::getProperties(ComponentType 
         Transform* comp = (Transform*)compRef;
 
         ps.push_back({PropertyType::Float3, "Position", "position", (void*)&comp->position});
-        ps.push_back({PropertyType::Float4, "Rotation", "rotation", (void*)&comp->rotation});
+        ps.push_back({PropertyType::Quat, "Rotation", "rotation", (void*)&comp->rotation});
         ps.push_back({PropertyType::Float3, "Scale", "scale", (void*)&comp->scale});
 
     }else if (component == ComponentType::MeshComponent){

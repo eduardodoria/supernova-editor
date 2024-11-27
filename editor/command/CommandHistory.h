@@ -17,6 +17,7 @@ namespace Supernova::Editor{
         virtual ~CommandHistory();
 
         void addCommand(Command* cmd);
+        void addCommandNoMerge(Command* cmd);
 
         void undo();
         void redo();

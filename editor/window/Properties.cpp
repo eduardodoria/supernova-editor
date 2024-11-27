@@ -3,6 +3,8 @@
 #include "imgui.h"
 
 #include "external/IconsFontAwesome6.h"
+#include "command/CommandHandle.h"
+#include "command/type/ChangePropertyCmd.h"
 
 using namespace Supernova;
 
@@ -19,8 +21,11 @@ void Editor::Properties::show(){
     std::vector<Entity> entities = project->getSelectedEntities(sceneProject->id);
 
     std::vector<ComponentType> components;
+    Entity entity = NULL_ENTITY;
+    Scene* scene = sceneProject->scene;
     if (entities.size() > 0){
-        components = Metadata::findComponents(sceneProject->scene, entities[0]);
+        entity = entities[0];
+        components = Metadata::findComponents(scene, entity);
     }
 
     for (ComponentType& cpType : components){
@@ -28,7 +33,7 @@ void Editor::Properties::show(){
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
         if (ImGui::CollapsingHeader(Metadata::getComponentName(cpType).c_str())){
 
-            std::vector<PropertyData> props = Metadata::findProperties(sceneProject->scene, entities[0], cpType);
+            std::vector<PropertyData> props = Metadata::findProperties(scene, entity, cpType);
 
             ImGui::PushItemWidth(-1);
             if (ImGui::BeginTable(("table_"+Metadata::getComponentName(cpType)).c_str(), 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV)){
@@ -36,16 +41,34 @@ void Editor::Properties::show(){
                 ImGui::TableSetupColumn("Value");
                 for (PropertyData& prop : props){
                     if (prop.type == PropertyType::Float3){
-                        Vector3* value = Metadata::getPropertyRef<Vector3>(sceneProject->scene, entities[0], cpType, prop.name);
+                        Vector3* value = Metadata::getPropertyRef<Vector3>(scene, entity, cpType, prop.name);
 
                         ImGui::TableNextRow();
                         ImGui::TableNextColumn();
                         ImGui::Text("%s", prop.label.c_str());
                         ImGui::TableNextColumn();
                         ImGui::SetNextItemWidth(-1);
-                        //static float vec4a[4] = { 0.10f, 0.20f, 0.30f, 0.44f };
-                        ImGui::InputFloat3(("##input_"+prop.name).c_str(), &(value->x));
-                        //printf("%s\n", value->toString().c_str());
+                        Vector3 newValue = *value;
+                        ImGui::InputFloat3(("##input_"+prop.name).c_str(), &(newValue.x), "%.2f");
+                        ImGui::SetItemTooltip("%s (X, Y, Z)", prop.label.c_str());
+                        if (ImGui::IsItemDeactivatedAfterEdit()) {
+                            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new ChangePropertyCmd<Vector3>(scene, entity, cpType, prop.name, newValue));
+                        }
+                    }else if (prop.type == PropertyType::Quat){
+                        Quaternion* value = Metadata::getPropertyRef<Quaternion>(scene, entity, cpType, prop.name);
+
+                        ImGui::TableNextRow();
+                        ImGui::TableNextColumn();
+                        ImGui::Text("%s", prop.label.c_str());
+                        ImGui::TableNextColumn();
+                        ImGui::SetNextItemWidth(-1);
+                        Vector3 newValueFmt = value->getEulerAngles();
+                        ImGui::InputFloat3(("##input_"+prop.name).c_str(), &(newValueFmt.x), "%.2f");
+                        ImGui::SetItemTooltip("%s in degrees (X, Y, Z)", prop.label.c_str());
+                        if (ImGui::IsItemDeactivatedAfterEdit()) {
+                            Quaternion newValue(newValueFmt.x, newValueFmt.y, newValueFmt.z);
+                            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new ChangePropertyCmd<Quaternion>(scene, entity, cpType, prop.name, newValue));
+                        }
                     }
                 }
                 ImGui::EndTable();
