@@ -62,7 +62,7 @@ void Editor::Structure::showIconMenu(){
 
     // Input text
     ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - buttonSize.x);
-    ImGui::InputText("##hiddenLabel", searchBuffer, IM_ARRAYSIZE(searchBuffer));
+    ImGui::InputText("##structure_search", searchBuffer, IM_ARRAYSIZE(searchBuffer));
 
     // Button inside input with same color as input background
     ImGui::SameLine(0, 0);
@@ -291,11 +291,10 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         ImGui::Text("Name:");
 
         ImGui::PushItemWidth(200);
-        bool enterPressed = ImGui::InputText("##ChangeNameInput", nameBuffer, IM_ARRAYSIZE(nameBuffer), ImGuiInputTextFlags_EnterReturnsTrue);
-        if (enterPressed) {
-            if (nameBuffer[0] != '\0') {
+        ImGui::InputText("##ChangeNameInput", nameBuffer, IM_ARRAYSIZE(nameBuffer), ImGuiInputTextFlags_EnterReturnsTrue);
+        if (ImGui::IsItemDeactivatedAfterEdit()) {
+            if (nameBuffer[0] != '\0' && strcmp(nameBuffer, node.name.c_str()) != 0) {
                 changeNodeName(&node, nameBuffer);
-                ImGui::CloseCurrentPopup();
             }
         }
 
@@ -319,9 +318,6 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
 
     if (!ImGui::IsPopupOpen(popupId.c_str()) && contextMenuOpened == popupId){
         contextMenuOpened = "";
-        if (nameBuffer[0] != '\0' && strcmp(nameBuffer, node.name.c_str()) != 0) {
-            changeNodeName(&node, nameBuffer);
-        }
     }
 
     if (node.separator){

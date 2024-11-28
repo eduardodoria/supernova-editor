@@ -125,6 +125,9 @@ std::vector<Editor::PropertyData> Editor::Metadata::getProperties(ComponentType 
 std::vector<Editor::ComponentType> Editor::Metadata::findComponents(Scene* scene, Entity entity){
     std::vector<Editor::ComponentType> ret;
 
+    if (scene->findComponent<Transform>(entity)){
+        ret.push_back(ComponentType::Transform);
+    }
     if (scene->findComponent<ActionComponent>(entity)){
         ret.push_back(ComponentType::ActionComponent);
     }
@@ -241,9 +244,6 @@ std::vector<Editor::ComponentType> Editor::Metadata::findComponents(Scene* scene
     }
     if (scene->findComponent<TimedActionComponent>(entity)){
         ret.push_back(ComponentType::TimedActionComponent);
-    }
-    if (scene->findComponent<Transform>(entity)){
-        ret.push_back(ComponentType::Transform);
     }
     if (scene->findComponent<TranslateTracksComponent>(entity)){
         ret.push_back(ComponentType::TranslateTracksComponent);

@@ -111,32 +111,34 @@ void Editor::App::showStyleEditor(){
 
 void Editor::App::show(){
     ImGuiIO& io = ImGui::GetIO();
-#ifdef __APPLE__
+    #ifdef __APPLE__
     bool isUndo = (io.KeySuper && ImGui::IsKeyPressed(ImGuiKey_Z) && !io.KeyShift);
     bool isRedo = (io.KeySuper && ImGui::IsKeyPressed(ImGuiKey_Z) && io.KeyShift);
-#else
+    #else
     bool isUndo = (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Z) && !io.KeyShift);
     bool isRedo = (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Y)) || (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Z) && io.KeyShift);
-#endif
+    #endif
 
-    if (ImGui::IsKeyPressed(ImGuiKey_W)) {
-        project.getSelectedScene()->sceneRender->getToolsLayer()->enableTranslateGizmo();
-    }
+    if (!ImGui::IsAnyItemActive() && !ImGui::IsAnyItemFocused()){
+        if (ImGui::IsKeyPressed(ImGuiKey_W)) {
+            project.getSelectedScene()->sceneRender->getToolsLayer()->enableTranslateGizmo();
+        }
 
-    if (ImGui::IsKeyPressed(ImGuiKey_E)) {
-        project.getSelectedScene()->sceneRender->getToolsLayer()->enableRotateGizmo();
-    }
+        if (ImGui::IsKeyPressed(ImGuiKey_E)) {
+            project.getSelectedScene()->sceneRender->getToolsLayer()->enableRotateGizmo();
+        }
 
-    if (ImGui::IsKeyPressed(ImGuiKey_R)) {
-        project.getSelectedScene()->sceneRender->getToolsLayer()->enableScaleGizmo();
-    }
+        if (ImGui::IsKeyPressed(ImGuiKey_R)) {
+            project.getSelectedScene()->sceneRender->getToolsLayer()->enableScaleGizmo();
+        }
 
-    if (ImGui::IsKeyPressed(ImGuiKey_T)){
-        project.getSelectedScene()->sceneRender->changeUseGlobalTransform();
-    }
+        if (ImGui::IsKeyPressed(ImGuiKey_T)){
+            project.getSelectedScene()->sceneRender->changeUseGlobalTransform();
+        }
 
-    if (ImGui::IsKeyPressed(ImGuiKey_Delete)){
-        project.deleteEntities(project.getSelectedSceneId(), project.getSelectedEntities(project.getSelectedSceneId()));
+        if (ImGui::IsKeyPressed(ImGuiKey_Delete)){
+            project.deleteEntities(project.getSelectedSceneId(), project.getSelectedEntities(project.getSelectedSceneId()));
+        }
     }
 
     // Update the Undo and Redo button logic:
