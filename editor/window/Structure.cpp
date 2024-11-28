@@ -3,7 +3,8 @@
 #include "external/IconsFontAwesome6.h"
 #include "command/CommandHandle.h"
 #include "command/type/MoveEntityOrderCmd.h"
-#include "command/type/ChangeEntityNameCmd.h"
+#include "command/type/EntityNameCmd.h"
+#include "command/type/SceneNameCmd.h"
 
 using namespace Supernova;
 
@@ -295,9 +296,9 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         if (ImGui::IsItemDeactivatedAfterEdit()) {
             if (nameBuffer[0] != '\0' && strcmp(nameBuffer, node.name.c_str()) != 0) {
                 if (node.isScene){
-                    project->getScene(node.id)->name = nameBuffer;
+                    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new SceneNameCmd(project, node.id, nameBuffer));
                 }else{
-                    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new ChangeEntityNameCmd(project->getSelectedScene()->scene, node.id, nameBuffer));
+                    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new EntityNameCmd(project->getSelectedScene()->scene, node.id, nameBuffer));
                 }
             }
         }

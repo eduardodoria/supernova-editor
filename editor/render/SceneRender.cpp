@@ -8,8 +8,7 @@
 #include "sky/Daylight_Box_Top_png.h"
 
 #include "command/CommandHandle.h"
-#include "command/type/ChangePropertyCmd.h"
-#include "command/type/ChangeObjTransfCmd.h"
+#include "command/type/ObjectTransformCmd.h"
 
 using namespace Supernova;
 
@@ -352,7 +351,7 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                     }
 
                     if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
-                        lastCommand = new ChangeObjTransfCmd(scene, entity, objMatrix);
+                        lastCommand = new ObjectTransformCmd(scene, entity, objMatrix);
                     }
                 }
 
@@ -380,7 +379,7 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                     }
 
                     if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
-                        lastCommand = new ChangeObjTransfCmd(scene, entity, objMatrix);
+                        lastCommand = new ObjectTransformCmd(scene, entity, objMatrix);
                     }
                 }
 
@@ -422,7 +421,7 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                     }
 
                     if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
-                        lastCommand = new ChangeObjTransfCmd(scene, entity, objMatrix);
+                        lastCommand = new ObjectTransformCmd(scene, entity, objMatrix);
                     }
 
                 }

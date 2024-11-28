@@ -8,7 +8,7 @@
 
 namespace Supernova::Editor{
 
-    class ChangeEntityNameCmd: public Command{
+    class EntityNameCmd: public Command{
 
     private:
         std::string oldName;
@@ -18,7 +18,7 @@ namespace Supernova::Editor{
         Entity entity;
 
     public:
-        ChangeEntityNameCmd(Scene* scene, Entity entity, std::string name);
+        EntityNameCmd(Scene* scene, Entity entity, std::string name);
 
         virtual void execute();
         virtual void undo();

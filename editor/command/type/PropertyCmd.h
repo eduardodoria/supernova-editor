@@ -12,7 +12,7 @@
 namespace Supernova::Editor{
 
     template<typename T>
-    class ChangePropertyCmd: public Command{
+    class PropertyCmd: public Command{
 
     private:
         T oldValue;
@@ -35,7 +35,7 @@ namespace Supernova::Editor{
 
     public:
 
-        ChangePropertyCmd(Scene* scene, Entity entity, ComponentType type, std::string propertyName, int updateFlags, T newValue){
+        PropertyCmd(Scene* scene, Entity entity, ComponentType type, std::string propertyName, int updateFlags, T newValue){
             this->scene = scene;
             this->entity = entity;
             this->type = type;
@@ -63,7 +63,7 @@ namespace Supernova::Editor{
 
         bool mergeWith(Editor::Command* otherCommand){
             T* valueRef = Metadata::getPropertyRef<T>(scene, entity, type, propertyName);
-            ChangePropertyCmd* otherCmd = dynamic_cast<ChangePropertyCmd*>(otherCommand);
+            PropertyCmd* otherCmd = dynamic_cast<PropertyCmd*>(otherCommand);
             if (otherCmd != nullptr){
                 T* olderValueRef = Metadata::getPropertyRef<T>(otherCmd->scene, otherCmd->entity, otherCmd->type, otherCmd->propertyName);
                 if (valueRef == olderValueRef){

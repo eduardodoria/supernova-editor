@@ -1,14 +1,14 @@
-#include "ChangeObjTransfCmd.h"
+#include "ObjectTransformCmd.h"
 
 using namespace Supernova;
 
-Editor::ChangeObjTransfCmd::ChangeObjTransfCmd(Scene* scene, Entity entity, Matrix4 localMatrix){
+Editor::ObjectTransformCmd::ObjectTransformCmd(Scene* scene, Entity entity, Matrix4 localMatrix){
     this->scene = scene;
     
     localMatrix.decomposeStandard(props[entity].newPosition, props[entity].newScale, props[entity].newRotation);
 }
 
-Editor::ChangeObjTransfCmd::ChangeObjTransfCmd(Scene* scene, Entity entity, Vector3 position, Quaternion rotation, Vector3 scale){
+Editor::ObjectTransformCmd::ObjectTransformCmd(Scene* scene, Entity entity, Vector3 position, Quaternion rotation, Vector3 scale){
     this->scene = scene;
 
     props[entity].newPosition = position;
@@ -16,7 +16,7 @@ Editor::ChangeObjTransfCmd::ChangeObjTransfCmd(Scene* scene, Entity entity, Vect
     props[entity].newScale = scale;
 }
 
-void Editor::ChangeObjTransfCmd::execute(){
+void Editor::ObjectTransformCmd::execute(){
     for (auto& [entity, property] : props){
         if (Transform* transform = scene->findComponent<Transform>(entity)){
             property.oldPosition = transform->position;
@@ -32,7 +32,7 @@ void Editor::ChangeObjTransfCmd::execute(){
     }
 }
 
-void Editor::ChangeObjTransfCmd::undo(){
+void Editor::ObjectTransformCmd::undo(){
     for (auto const& [entity, property] : props){
         if (Transform* transform = scene->findComponent<Transform>(entity)){
             transform->position = property.oldPosition;
@@ -44,8 +44,8 @@ void Editor::ChangeObjTransfCmd::undo(){
     }
 }
 
-bool Editor::ChangeObjTransfCmd::mergeWith(Editor::Command* otherCommand){
-    ChangeObjTransfCmd* otherCmd = dynamic_cast<ChangeObjTransfCmd*>(otherCommand);
+bool Editor::ObjectTransformCmd::mergeWith(Editor::Command* otherCommand){
+    ObjectTransformCmd* otherCmd = dynamic_cast<ObjectTransformCmd*>(otherCommand);
     if (otherCmd != nullptr){
         if (scene == otherCmd->scene){
 

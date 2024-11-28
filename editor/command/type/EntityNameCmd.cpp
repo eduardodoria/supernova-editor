@@ -1,24 +1,24 @@
-#include "ChangeEntityNameCmd.h"
+#include "EntityNameCmd.h"
 
 using namespace Supernova;
 
-Editor::ChangeEntityNameCmd::ChangeEntityNameCmd(Scene* scene, Entity entity, std::string name){
+Editor::EntityNameCmd::EntityNameCmd(Scene* scene, Entity entity, std::string name){
     this->scene = scene;
     this->entity = entity;
     this->newName = name;
 }
 
-void Editor::ChangeEntityNameCmd::execute(){
+void Editor::EntityNameCmd::execute(){
     oldName = scene->getEntityName(entity);
     scene->setEntityName(entity, newName);
 }
 
-void Editor::ChangeEntityNameCmd::undo(){
+void Editor::EntityNameCmd::undo(){
     scene->setEntityName(entity, oldName);
 }
 
-bool Editor::ChangeEntityNameCmd::mergeWith(Editor::Command* otherCommand){
-    ChangeEntityNameCmd* otherCmd = dynamic_cast<ChangeEntityNameCmd*>(otherCommand);
+bool Editor::EntityNameCmd::mergeWith(Editor::Command* otherCommand){
+    EntityNameCmd* otherCmd = dynamic_cast<EntityNameCmd*>(otherCommand);
     if (otherCmd != nullptr){
         if (scene == otherCmd->scene && entity == otherCmd->entity){
             this->oldName = otherCmd->oldName;

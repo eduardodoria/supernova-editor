@@ -18,7 +18,7 @@ namespace Supernova::Editor{
         Vector3 oldScale;
     };
 
-    class ChangeObjTransfCmd: public Command{
+    class ObjectTransformCmd: public Command{
 
     private:
         Scene* scene;
@@ -26,8 +26,8 @@ namespace Supernova::Editor{
         std::map<Entity, CommandTransform> props;
 
     public:
-        ChangeObjTransfCmd(Scene* scene, Entity entity, Matrix4 localMatrix);
-        ChangeObjTransfCmd(Scene* scene, Entity entity, Vector3 position, Quaternion rotation, Vector3 scale);
+        ObjectTransformCmd(Scene* scene, Entity entity, Matrix4 localMatrix);
+        ObjectTransformCmd(Scene* scene, Entity entity, Vector3 position, Quaternion rotation, Vector3 scale);
 
         virtual void execute();
         virtual void undo();

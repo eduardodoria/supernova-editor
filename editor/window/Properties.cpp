@@ -4,8 +4,8 @@
 
 #include "external/IconsFontAwesome6.h"
 #include "command/CommandHandle.h"
-#include "command/type/ChangePropertyCmd.h"
-#include "command/type/ChangeEntityNameCmd.h"
+#include "command/type/PropertyCmd.h"
+#include "command/type/EntityNameCmd.h"
 
 using namespace Supernova;
 
@@ -36,7 +36,7 @@ void Editor::Properties::show(){
         ImGui::InputText("##input_name", nameBuffer, IM_ARRAYSIZE(nameBuffer));
         if (ImGui::IsItemDeactivatedAfterEdit()) {
             if (nameBuffer[0] != '\0' && strcmp(nameBuffer, scene->getEntityName(entity).c_str()) != 0) {
-                CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new ChangeEntityNameCmd(scene, entity, nameBuffer));
+                CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new EntityNameCmd(scene, entity, nameBuffer));
             }
         }
 
@@ -77,7 +77,7 @@ void Editor::Properties::show(){
                         ImGui::InputFloat3(("##input_"+prop.name).c_str(), &(newValue.x), "%.2f");
                         ImGui::SetItemTooltip("%s (X, Y, Z)", prop.label.c_str());
                         if (ImGui::IsItemDeactivatedAfterEdit()) {
-                            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new ChangePropertyCmd<Vector3>(scene, entity, cpType, prop.name, prop.updateFlags, newValue));
+                            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new PropertyCmd<Vector3>(scene, entity, cpType, prop.name, prop.updateFlags, newValue));
                         }
 
                     }else if (prop.type == PropertyType::Quat){
@@ -87,7 +87,7 @@ void Editor::Properties::show(){
                         ImGui::SetItemTooltip("%s in degrees (X, Y, Z)", prop.label.c_str());
                         if (ImGui::IsItemDeactivatedAfterEdit()) {
                             Quaternion newValue(newValueFmt.x, newValueFmt.y, newValueFmt.z);
-                            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new ChangePropertyCmd<Quaternion>(scene, entity, cpType, prop.name, prop.updateFlags, newValue));
+                            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new PropertyCmd<Quaternion>(scene, entity, cpType, prop.name, prop.updateFlags, newValue));
                         }
 
                     }else if (prop.type == PropertyType::Bool){
@@ -96,7 +96,7 @@ void Editor::Properties::show(){
                         ImGui::Checkbox(("##checkbox_"+prop.name).c_str(), &newValue);
                         ImGui::SetItemTooltip("%s", prop.label.c_str());
                         if (ImGui::IsItemDeactivatedAfterEdit()) {
-                            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new ChangePropertyCmd<bool>(scene, entity, cpType, prop.name, prop.updateFlags, newValue));
+                            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new PropertyCmd<bool>(scene, entity, cpType, prop.name, prop.updateFlags, newValue));
                         }
                     }
 
