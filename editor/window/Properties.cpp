@@ -15,8 +15,6 @@ Editor::Properties::Properties(Project* project){
 void Editor::Properties::show(){
     ImGui::Begin("Properties");
 
-    float firstColSize = ImGui::GetFontSize() * 4;
-
     SceneProject* sceneProject = project->getSelectedScene();
     std::vector<Entity> entities = project->getSelectedEntities(sceneProject->id);
 
@@ -40,49 +38,60 @@ void Editor::Properties::show(){
 
             std::vector<PropertyData> props = Metadata::findProperties(scene, entity, cpType);
 
+            float firstColSize = ImGui::GetFontSize();
+            for (PropertyData& prop : props){
+                firstColSize = std::max(firstColSize, ImGui::CalcTextSize(prop.label.c_str()).x);
+            }
+
             ImGui::PushItemWidth(-1);
             if (ImGui::BeginTable(("table_"+Metadata::getComponentName(cpType)).c_str(), 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV)){
                 ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, firstColSize);
                 ImGui::TableSetupColumn("Value");
                 for (PropertyData& prop : props){
+                    ImGui::TableNextRow();
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s", prop.label.c_str());
+                    ImGui::TableNextColumn();
+                    ImGui::SetNextItemWidth(-1);
+
                     if (prop.type == PropertyType::Float3){
                         Vector3* value = Metadata::getPropertyRef<Vector3>(scene, entity, cpType, prop.name);
-
-                        ImGui::TableNextRow();
-                        ImGui::TableNextColumn();
-                        ImGui::Text("%s", prop.label.c_str());
-                        ImGui::TableNextColumn();
-                        ImGui::SetNextItemWidth(-1);
                         Vector3 newValue = *value;
                         ImGui::InputFloat3(("##input_"+prop.name).c_str(), &(newValue.x), "%.2f");
                         ImGui::SetItemTooltip("%s (X, Y, Z)", prop.label.c_str());
                         if (ImGui::IsItemDeactivatedAfterEdit()) {
-                            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new ChangePropertyCmd<Vector3>(scene, entity, cpType, prop.name, newValue));
+                            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new ChangePropertyCmd<Vector3>(scene, entity, cpType, prop.name, prop.updateFlags, newValue));
                         }
+
                     }else if (prop.type == PropertyType::Quat){
                         Quaternion* value = Metadata::getPropertyRef<Quaternion>(scene, entity, cpType, prop.name);
-
-                        ImGui::TableNextRow();
-                        ImGui::TableNextColumn();
-                        ImGui::Text("%s", prop.label.c_str());
-                        ImGui::TableNextColumn();
-                        ImGui::SetNextItemWidth(-1);
                         Vector3 newValueFmt = value->getEulerAngles();
                         ImGui::InputFloat3(("##input_"+prop.name).c_str(), &(newValueFmt.x), "%.2f");
                         ImGui::SetItemTooltip("%s in degrees (X, Y, Z)", prop.label.c_str());
                         if (ImGui::IsItemDeactivatedAfterEdit()) {
                             Quaternion newValue(newValueFmt.x, newValueFmt.y, newValueFmt.z);
-                            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new ChangePropertyCmd<Quaternion>(scene, entity, cpType, prop.name, newValue));
+                            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new ChangePropertyCmd<Quaternion>(scene, entity, cpType, prop.name, prop.updateFlags, newValue));
+                        }
+
+                    }else if (prop.type == PropertyType::Bool){
+                        bool* value = Metadata::getPropertyRef<bool>(scene, entity, cpType, prop.name);
+                        bool newValue = *value;
+                        ImGui::Checkbox(("##checkbox_"+prop.name).c_str(), &newValue);
+                        ImGui::SetItemTooltip("%s", prop.label.c_str());
+                        if (ImGui::IsItemDeactivatedAfterEdit()) {
+                            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new ChangePropertyCmd<bool>(scene, entity, cpType, prop.name, prop.updateFlags, newValue));
                         }
                     }
+
+
+
                 }
                 ImGui::EndTable();
 
-                ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetStyle().ItemSpacing.y);
-                if (ImGui::TreeNodeEx("More", ImGuiTreeNodeFlags_SpanAvailWidth)){
-
-                    ImGui::TreePop();
-                }
+                //ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetStyle().ItemSpacing.y);
+                //if (ImGui::TreeNodeEx("More", ImGuiTreeNodeFlags_SpanAvailWidth)){
+                //    ImGui::TreePop();
+                //}
             }
 
 /*

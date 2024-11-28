@@ -22,14 +22,25 @@ namespace Supernova::Editor{
         Entity entity;
         ComponentType type;
         std::string propertyName;
+        int updateFlags;
+
+        void updateEntity(){
+            if (updateFlags & UpdateFlags_Transform){
+                scene->getComponent<Transform>(entity).needUpdate = true;
+            }
+            if (updateFlags & UpdateFlags_MeshReload){
+                scene->getComponent<MeshComponent>(entity).needReload = true;
+            }
+        }
 
     public:
 
-        ChangePropertyCmd(Scene* scene, Entity entity, ComponentType type, std::string propertyName, T newValue){
+        ChangePropertyCmd(Scene* scene, Entity entity, ComponentType type, std::string propertyName, int updateFlags, T newValue){
             this->scene = scene;
             this->entity = entity;
             this->type = type;
             this->propertyName = propertyName;
+            this->updateFlags = updateFlags;
             this->newValue = newValue;
         }
 
@@ -39,7 +50,7 @@ namespace Supernova::Editor{
             oldValue = T(*valueRef);
             *valueRef = newValue;
 
-            scene->getComponent<Transform>(entity).needUpdate = true;
+            updateEntity();
         }
 
         void undo(){
@@ -47,7 +58,7 @@ namespace Supernova::Editor{
 
             *valueRef = oldValue;
 
-            scene->getComponent<Transform>(entity).needUpdate = true;
+            updateEntity();
         }
 
         bool mergeWith(Editor::Command* otherCommand){
@@ -57,6 +68,7 @@ namespace Supernova::Editor{
                 T* olderValueRef = Metadata::getPropertyRef<T>(otherCmd->scene, otherCmd->entity, otherCmd->type, otherCmd->propertyName);
                 if (valueRef == olderValueRef){
                     this->oldValue = otherCmd->oldValue;
+                    this->updateFlags |= otherCmd->updateFlags;
                     return true;
                 }
             }

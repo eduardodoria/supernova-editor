@@ -7,6 +7,12 @@
 #include "Scene.h"
 
 namespace Supernova::Editor{
+    enum UpdateFlags{
+        UpdateFlags_None                     = 0,
+        UpdateFlags_Transform                = 1 << 0,
+        UpdateFlags_MeshReload               = 1 << 1,
+    };
+
     enum class ComponentType : int {
         ActionComponent,
         AlphaActionComponent,
@@ -70,6 +76,7 @@ namespace Supernova::Editor{
         PropertyType type;
         std::string label;
         std::string name;
+        int updateFlags;
         void* ref;
     };
 

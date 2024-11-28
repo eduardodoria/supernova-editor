@@ -299,7 +299,7 @@ void Editor::App::kewtStyleTheme(){
 
     // main
     style.WindowPadding = ImVec2(8, 8);
-    style.FramePadding = ImVec2(12, 6);
+    style.FramePadding = ImVec2(12, 4);
     style.ItemSpacing = ImVec2(8, 8);
     style.ItemInnerSpacing = ImVec2(8, 8);
     style.TouchExtraPadding = ImVec2(0, 0);

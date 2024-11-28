@@ -108,16 +108,15 @@ std::vector<Editor::PropertyData> Editor::Metadata::getProperties(ComponentType 
     if(component == ComponentType::Transform){
         Transform* comp = (Transform*)compRef;
 
-        ps.push_back({PropertyType::Float3, "Position", "position", (void*)&comp->position});
-        ps.push_back({PropertyType::Quat, "Rotation", "rotation", (void*)&comp->rotation});
-        ps.push_back({PropertyType::Float3, "Scale", "scale", (void*)&comp->scale});
+        ps.push_back({PropertyType::Float3, "Position", "position", UpdateFlags_Transform, (void*)&comp->position});
+        ps.push_back({PropertyType::Quat, "Rotation", "rotation", UpdateFlags_Transform, (void*)&comp->rotation});
+        ps.push_back({PropertyType::Float3, "Scale", "scale", UpdateFlags_Transform, (void*)&comp->scale});
 
     }else if (component == ComponentType::MeshComponent){
         MeshComponent* comp = (MeshComponent*)compRef;
 
-        ps.push_back({PropertyType::Bool, "Cast shadows", "castShadows", (void*)&comp->castShadows});
-        ps.push_back({PropertyType::Bool, "Receive shadows", "receiveShadows", (void*)&comp->receiveShadows});
-        ps.push_back({PropertyType::Bool, "Transparent", "transparent", (void*)&comp->transparent});
+        ps.push_back({PropertyType::Bool, "Cast shadows", "castShadows", UpdateFlags_MeshReload, (void*)&comp->castShadows});
+        ps.push_back({PropertyType::Bool, "Receive shadows", "receiveShadows", UpdateFlags_MeshReload, (void*)&comp->receiveShadows});
     }
 
     return ps;
