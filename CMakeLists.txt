@@ -114,6 +114,7 @@ add_executable(
     ${EDITOR_DIR}/command/type/DeleteEntityCmd.cpp
     ${EDITOR_DIR}/command/type/MoveEntityOrderCmd.cpp
     ${EDITOR_DIR}/command/type/ChangeObjTransfCmd.cpp
+    ${EDITOR_DIR}/command/type/ChangeEntityNameCmd.cpp
 
     ${IMGUI_SOURCES}
 )

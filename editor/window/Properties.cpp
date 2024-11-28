@@ -5,6 +5,7 @@
 #include "external/IconsFontAwesome6.h"
 #include "command/CommandHandle.h"
 #include "command/type/ChangePropertyCmd.h"
+#include "command/type/ChangeEntityNameCmd.h"
 
 using namespace Supernova;
 
@@ -26,26 +27,17 @@ void Editor::Properties::show(){
         entity = entities[0];
         components = Metadata::findComponents(scene, entity);
 
-        if (ImGui::BeginTable("table_name", 2)){
-            ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("Entity").x);
-            ImGui::TableSetupColumn("Value");
-
-            ImGui::TableNextRow();
-            ImGui::TableNextColumn();
-            ImGui::Text("Entity");
-            ImGui::TableNextColumn();
-            ImGui::SetNextItemWidth(-1);
-            static char nameBuffer[128];
-            strncpy(nameBuffer, scene->getEntityName(entity).c_str(), sizeof(nameBuffer) - 1);
-            nameBuffer[sizeof(nameBuffer) - 1] = '\0';
-            ImGui::InputText("##input_name", nameBuffer, IM_ARRAYSIZE(nameBuffer));
-            if (ImGui::IsItemDeactivatedAfterEdit()) {
-                if (nameBuffer[0] != '\0' && strcmp(nameBuffer, scene->getEntityName(entity).c_str()) != 0) {
-                    scene->setEntityName(entity, nameBuffer);
-                }
+        ImGui::Text("Entity");
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(-1);
+        static char nameBuffer[128];
+        strncpy(nameBuffer, scene->getEntityName(entity).c_str(), sizeof(nameBuffer) - 1);
+        nameBuffer[sizeof(nameBuffer) - 1] = '\0';
+        ImGui::InputText("##input_name", nameBuffer, IM_ARRAYSIZE(nameBuffer));
+        if (ImGui::IsItemDeactivatedAfterEdit()) {
+            if (nameBuffer[0] != '\0' && strcmp(nameBuffer, scene->getEntityName(entity).c_str()) != 0) {
+                CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new ChangeEntityNameCmd(scene, entity, nameBuffer));
             }
-
-            ImGui::EndTable();
         }
 
         ImGui::Separator();

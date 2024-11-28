@@ -3,6 +3,7 @@
 #include "external/IconsFontAwesome6.h"
 #include "command/CommandHandle.h"
 #include "command/type/MoveEntityOrderCmd.h"
+#include "command/type/ChangeEntityNameCmd.h"
 
 using namespace Supernova;
 
@@ -294,7 +295,11 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         ImGui::InputText("##ChangeNameInput", nameBuffer, IM_ARRAYSIZE(nameBuffer), ImGuiInputTextFlags_EnterReturnsTrue);
         if (ImGui::IsItemDeactivatedAfterEdit()) {
             if (nameBuffer[0] != '\0' && strcmp(nameBuffer, node.name.c_str()) != 0) {
-                changeNodeName(&node, nameBuffer);
+                if (node.isScene){
+                    project->getScene(node.id)->name = nameBuffer;
+                }else{
+                    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new ChangeEntityNameCmd(project->getSelectedScene()->scene, node.id, nameBuffer));
+                }
             }
         }
 
@@ -344,14 +349,6 @@ std::string Editor::Structure::getNodeImGuiId(TreeNode& node){
     id += std::to_string(node.id);
 
     return id;
-}
-
-void Editor::Structure::changeNodeName(const TreeNode* node, const std::string name){
-    if (node->isScene){
-        project->getScene(node->id)->name = name;
-    }else{
-        project->getSelectedScene()->scene->setEntityName(node->id, name);
-    }
 }
 
 void Editor::Structure::show(){
