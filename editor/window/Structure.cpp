@@ -9,7 +9,6 @@ using namespace Supernova;
 
 Editor::Structure::Structure(Project* project){
     this->project = project;
-    this->contextMenuOpened = "";
     this->openParent = NULL_ENTITY;
 }
 
@@ -287,12 +286,12 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     }
 
     if (ImGui::BeginPopup(popupId.c_str())) {
-        contextMenuOpened = popupId;
-
         ImGui::Text("Name:");
 
         ImGui::PushItemWidth(200);
-        ImGui::InputText("##ChangeNameInput", nameBuffer, IM_ARRAYSIZE(nameBuffer), ImGuiInputTextFlags_EnterReturnsTrue);
+        if (ImGui::InputText("##ChangeNameInput", nameBuffer, IM_ARRAYSIZE(nameBuffer), ImGuiInputTextFlags_EnterReturnsTrue)){
+            ImGui::CloseCurrentPopup();
+        }
         if (ImGui::IsItemDeactivatedAfterEdit()) {
             if (nameBuffer[0] != '\0' && strcmp(nameBuffer, node.name.c_str()) != 0) {
                 if (node.isScene){
@@ -319,10 +318,6 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
             }
         }
         ImGui::EndPopup();
-    }
-
-    if (!ImGui::IsPopupOpen(popupId.c_str()) && contextMenuOpened == popupId){
-        contextMenuOpened = "";
     }
 
     if (node.separator){

@@ -32,8 +32,6 @@ namespace Supernova::Editor{
 
         Entity openParent;
 
-        std::string contextMenuOpened;
-
         void showNewEntityMenu(bool isScene, Entity parent);
         void showIconMenu();
         void showTreeNode(TreeNode& node);
