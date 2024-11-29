@@ -78,6 +78,7 @@ namespace Supernova::Editor{
         std::string name;
         int updateFlags;
         void* ref;
+        bool* showAfter = nullptr;
     };
 
     class Metadata{
