@@ -57,13 +57,8 @@ void Editor::Properties::show(){
 
             float firstColSize = ImGui::GetFontSize();
 
-            bool firstProperty = true;
-            std::string lastGroup = "";
-
             for (PropertyData& prop : props){
-                if (prop.showAfter == nullptr){
-                    firstColSize = std::max(firstColSize, ImGui::CalcTextSize(prop.label.c_str()).x);
-                }
+                firstColSize = std::max(firstColSize, ImGui::CalcTextSize(prop.label.c_str()).x);
             }
 
             ImGui::PushItemWidth(-1);
@@ -72,12 +67,6 @@ void Editor::Properties::show(){
             ImGui::TableSetupColumn("Value");
 
             for (PropertyData& prop : props){
-                if (prop.showAfter != nullptr){
-                    //ImGui::Indent();
-                    if (!(*prop.showAfter)){
-                        continue;
-                    }
-                }
 
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
@@ -114,8 +103,29 @@ void Editor::Properties::show(){
                     }
                 }
 
-                if (prop.showAfter != nullptr){
-                    //ImGui::Unindent();
+                if (prop.childs.size() > 0){
+                    ImGui::SameLine();
+                    if (ImGui::Button(ICON_FA_GEAR)){
+                        ImGui::OpenPopup(("menusettings_"+prop.name).c_str());
+                    }
+                    if (ImGui::BeginPopup(("menusettings_"+prop.name).c_str())){
+                        ImGui::Text("%s settings", prop.label.c_str());
+                        ImGui::Separator();
+                        for (PropertyData& childConfig : prop.childs){
+
+                            if (childConfig.type == PropertyType::Bool){
+                                bool* valueC = Metadata::getPropertyRef<bool>(scene, entity, cpType, childConfig.name);
+                                bool newValueC = *valueC;
+                                ImGui::Checkbox((childConfig.label+"##checkbox_"+childConfig.name).c_str(), &newValueC);
+                                ImGui::SetItemTooltip("%s", childConfig.label.c_str());
+                                if (ImGui::IsItemDeactivatedAfterEdit()) {
+                                    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new PropertyCmd<bool>(scene, entity, cpType, childConfig.name, childConfig.updateFlags, newValueC));
+                                }
+                            }
+
+                        }
+                        ImGui::EndPopup();
+                    }
                 }
 
             }

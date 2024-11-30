@@ -112,9 +112,10 @@ std::vector<Editor::PropertyData> Editor::Metadata::getProperties(ComponentType 
         ps.push_back({PropertyType::Quat, "Rotation", "rotation", UpdateFlags_Transform, (void*)&comp->rotation});
         ps.push_back({PropertyType::Float3, "Scale", "scale", UpdateFlags_Transform, (void*)&comp->scale});
         ps.push_back({PropertyType::Bool, "Visible", "visible", UpdateFlags_None, (void*)&comp->visible});
-        ps.push_back({PropertyType::Bool, "Billboard", "billboard", UpdateFlags_Transform, (void*)&comp->billboard});
-        ps.push_back({PropertyType::Bool, "Fake Billboard", "fake_billboard", UpdateFlags_None, (void*)&comp->fakeBillboard, (bool*)&comp->billboard});
-        ps.push_back({PropertyType::Bool, "Cyl Billboard", "cylindrical_billboard", UpdateFlags_None, (void*)&comp->cylindricalBillboard, (bool*)&comp->billboard});
+        std::vector<PropertyData> bilChilds;
+        bilChilds.push_back({PropertyType::Bool, "Fake", "fake_billboard", UpdateFlags_None, (void*)&comp->fakeBillboard});
+        bilChilds.push_back({PropertyType::Bool, "Cylindrical", "cylindrical_billboard", UpdateFlags_None, (void*)&comp->cylindricalBillboard});
+        ps.push_back({PropertyType::Bool, "Billboard", "billboard", UpdateFlags_Transform, (void*)&comp->billboard, bilChilds});
 
     }else if (component == ComponentType::MeshComponent){
         MeshComponent* comp = (MeshComponent*)compRef;

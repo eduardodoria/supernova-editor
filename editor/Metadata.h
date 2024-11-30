@@ -78,7 +78,7 @@ namespace Supernova::Editor{
         std::string name;
         int updateFlags;
         void* ref;
-        bool* showAfter = nullptr;
+        std::vector<PropertyData> childs;
     };
 
     class Metadata{
@@ -100,6 +100,11 @@ namespace Supernova::Editor{
             for (auto& property : Metadata::findProperties(scene, entity, component)) {
                 if (property.name == propertyName){
                     return static_cast<T*>(property.ref);
+                }
+                for (auto& childConfig : property.childs){
+                    if (childConfig.name == propertyName){
+                        return static_cast<T*>(childConfig.ref);
+                    }
                 }
             }
 
