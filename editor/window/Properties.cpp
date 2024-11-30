@@ -13,7 +13,7 @@ Editor::Properties::Properties(Project* project){
     this->project = project;
 }
 
-void Editor::Properties::drawPropertiesTable(ComponentType cpType, std::vector<PropertyData> props, Scene* scene, Entity entity, std::string tableNameAddon, float inputWidth){
+void Editor::Properties::drawPropertiesTable(ComponentType cpType, std::vector<PropertyData> props, Scene* scene, Entity entity, std::string tableNameAddon, float secColSize){
     float firstColSize = ImGui::GetFontSize();
 
     for (PropertyData& prop : props){
@@ -31,7 +31,7 @@ void Editor::Properties::drawPropertiesTable(ComponentType cpType, std::vector<P
         ImGui::TableNextColumn();
         ImGui::Text("%s", prop.label.c_str());
         ImGui::TableNextColumn();
-        ImGui::SetNextItemWidth(inputWidth);
+        ImGui::SetNextItemWidth(secColSize);
 
         if (prop.type == PropertyType::Float3){
             Vector3* value = Metadata::getPropertyRef<Vector3>(scene, entity, cpType, prop.name);
@@ -67,6 +67,7 @@ void Editor::Properties::drawPropertiesTable(ComponentType cpType, std::vector<P
             if (ImGui::Button(ICON_FA_GEAR)){
                 ImGui::OpenPopup(("menusettings_"+prop.name).c_str());
             }
+            //ImGui::SetNextWindowSizeConstraints(ImVec2(400, 0), ImVec2(FLT_MAX, FLT_MAX));
             if (ImGui::BeginPopup(("menusettings_"+prop.name).c_str())){
                 ImGui::Text("%s settings", prop.label.c_str());
                 ImGui::Separator();
