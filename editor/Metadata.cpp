@@ -113,8 +113,9 @@ std::vector<Editor::PropertyData> Editor::Metadata::getProperties(ComponentType 
         ps.push_back({PropertyType::Float3, "Scale", "scale", UpdateFlags_Transform, (void*)&comp->scale});
         ps.push_back({PropertyType::Bool, "Visible", "visible", UpdateFlags_None, (void*)&comp->visible});
         std::vector<PropertyData> bilChilds;
-        bilChilds.push_back({PropertyType::Bool, "Fake", "fake_billboard", UpdateFlags_None, (void*)&comp->fakeBillboard});
-        bilChilds.push_back({PropertyType::Bool, "Cylindrical", "cylindrical_billboard", UpdateFlags_None, (void*)&comp->cylindricalBillboard});
+        bilChilds.push_back({PropertyType::Bool, "Fake", "fake_billboard", UpdateFlags_Transform, (void*)&comp->fakeBillboard});
+        bilChilds.push_back({PropertyType::Bool, "Cylindrical", "cylindrical_billboard", UpdateFlags_Transform, (void*)&comp->cylindricalBillboard});
+        bilChilds.push_back({PropertyType::Quat, "Rotation", "billboard_rotation", UpdateFlags_Transform, (void*)&comp->billboardBase});
         ps.push_back({PropertyType::Bool, "Billboard", "billboard", UpdateFlags_Transform, (void*)&comp->billboard, bilChilds});
 
     }else if (component == ComponentType::MeshComponent){

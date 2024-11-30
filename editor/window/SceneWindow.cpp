@@ -30,7 +30,6 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
         float y = mousePos.y - windowPos.y;
 
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)){
-            mouseLeftClickPos = Vector2(x, y);
             project->getScene(sceneId)->sceneRender->mouseClickEvent(x, y, project->getSelectedEntities(sceneId));
         }
 
@@ -39,14 +38,19 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
         }
 
         if (ImGui::IsMouseDown(ImGuiMouseButton_Left)){
+            if (!mouseLeftDown){
+                mouseLeftStartPos = Vector2(x, y);
+                mouseLeftDown = true;
+            }
             mouseLeftDragPos = Vector2(x, y);
-            if (mouseLeftClickPos.distance(mouseLeftDragPos) > 5){
+            if (mouseLeftStartPos.distance(mouseLeftDragPos) > 5){
                 mouseLeftDraggedInside = true;
-                project->getScene(sceneId)->sceneRender->mouseDragEvent(x, y, mouseLeftClickPos.x, mouseLeftClickPos.y, sceneId, project->getSelectedEntities(sceneId));
+                project->getScene(sceneId)->sceneRender->mouseDragEvent(x, y, mouseLeftStartPos.x, mouseLeftStartPos.y, sceneId, project->getSelectedEntities(sceneId));
             }
         }
 
         if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)){
+            mouseLeftDown = false;
             if (!mouseLeftDraggedInside){
                 project->findObjectByRay(sceneId, x, y, io.KeyShift);
             }
@@ -58,7 +62,7 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
         float y = mousePos.y - windowPos.y;
 
         if (mouseLeftDraggedInside && !project->getScene(sceneId)->sceneRender->isGizmoSideSelected()){
-            Vector2 clickStartPos = Vector2((2 * mouseLeftClickPos.x / width[sceneId]) - 1, -((2 * mouseLeftClickPos.y / height[sceneId]) - 1));
+            Vector2 clickStartPos = Vector2((2 * mouseLeftStartPos.x / width[sceneId]) - 1, -((2 * mouseLeftStartPos.y / height[sceneId]) - 1));
             Vector2 clickEndPos = Vector2((2 * mouseLeftDragPos.x / width[sceneId]) - 1, -((2 * mouseLeftDragPos.y / height[sceneId]) - 1));
             project->findObjectsByRect(sceneId, clickStartPos, clickEndPos);
         }

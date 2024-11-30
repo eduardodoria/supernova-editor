@@ -14,7 +14,8 @@ namespace Supernova::Editor{
     private:
         Project* project;
 
-        Vector2 mouseLeftClickPos;
+        bool mouseLeftDown = false;
+        Vector2 mouseLeftStartPos;
         Vector2 mouseLeftDragPos;
         bool mouseLeftDraggedInside;
 
