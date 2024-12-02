@@ -71,7 +71,7 @@ void Editor::App::buildDockspace(){
     ImGui::DockBuilderDockWindow("Structure", dock_id_left);
 
     // Split the middle into right and remaining middle
-    size = 18*ImGui::GetFontSize();
+    size = 19*ImGui::GetFontSize();
     ImGui::DockBuilderSplitNode(dock_id_middle, ImGuiDir_Right, 0.0f, &dock_id_right, &dock_id_middle);
     ImGui::DockBuilderSetNodeSize(dock_id_right, ImVec2(size, ImGui::GetMainViewport()->Size.y)); // Set right node size
     ImGui::DockBuilderDockWindow("Properties", dock_id_right);

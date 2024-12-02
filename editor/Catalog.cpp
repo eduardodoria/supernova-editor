@@ -1,13 +1,13 @@
-#include "Metadata.h"
+#include "Catalog.h"
 
 #include "Scene.h"
 
 using namespace Supernova;
 
-Editor::Metadata::Metadata(){
+Editor::Catalog::Catalog(){
 }
 
-std::string Editor::Metadata::getComponentName(ComponentType component){
+std::string Editor::Catalog::getComponentName(ComponentType component){
     if(component == ComponentType::ActionComponent){
         return "ActionComponent";
     }else if(component == ComponentType::AlphaActionComponent){
@@ -103,7 +103,7 @@ std::string Editor::Metadata::getComponentName(ComponentType component){
     return "";
 }
 
-std::map<std::string, Editor::PropertyData> Editor::Metadata::getProperties(ComponentType component, void* compRef){
+std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(ComponentType component, void* compRef){
     std::map<std::string, Editor::PropertyData> ps;
     if(component == ComponentType::Transform){
         Transform* comp = (Transform*)compRef;
@@ -120,15 +120,18 @@ std::map<std::string, Editor::PropertyData> Editor::Metadata::getProperties(Comp
     }else if (component == ComponentType::MeshComponent){
         MeshComponent* comp = (MeshComponent*)compRef;
 
-        ps["castShadows"] = {PropertyType::Bool, "Cast shadows", UpdateFlags_MeshReload, (void*)&comp->castShadows};
-        ps["receiveShadows"] = {PropertyType::Bool, "Receive shadows", UpdateFlags_MeshReload, (void*)&comp->receiveShadows};
-        //ps["submeshes"] = {PropertyType::Submeshes, "Submesh", UpdateFlags_None, (void*)&comp->numSubmeshes};
+        ps["cast_shadows"] = {PropertyType::Bool, "Cast shadows", UpdateFlags_MeshReload, (void*)&comp->castShadows};
+        ps["receive_shadows"] = {PropertyType::Bool, "Receive shadows", UpdateFlags_MeshReload, (void*)&comp->receiveShadows};
+        ps["num_submeshes"] = {PropertyType::UInt, "Num submesh", UpdateFlags_None, (void*)&comp->numSubmeshes};
+        for (int s = 0; s < comp->numSubmeshes; s++){
+            ps["submeshes["+std::to_string(s)+"].texture_rect"] = {PropertyType::Float4, "Texture rect", UpdateFlags_None, (void*)&comp->submeshes[s].textureRect};
+        }
     }
 
     return ps;
 }
 
-std::vector<Editor::ComponentType> Editor::Metadata::findComponents(Scene* scene, Entity entity){
+std::vector<Editor::ComponentType> Editor::Catalog::findComponents(Scene* scene, Entity entity){
     std::vector<Editor::ComponentType> ret;
 
     if (scene->findComponent<Transform>(entity)){
@@ -267,7 +270,7 @@ std::vector<Editor::ComponentType> Editor::Metadata::findComponents(Scene* scene
     return ret;
 }
 
-std::map<std::string, Editor::PropertyData> Editor::Metadata::findProperties(Scene* scene, Entity entity, ComponentType component){
+std::map<std::string, Editor::PropertyData> Editor::Catalog::findProperties(Scene* scene, Entity entity, ComponentType component){
     if(component == ComponentType::Transform){
         if (Transform* compRef = scene->findComponent<Transform>(entity)){
             return getProperties(component, compRef);

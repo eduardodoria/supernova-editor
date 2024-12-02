@@ -9,7 +9,7 @@ namespace Supernova::Editor{
     private:
         Project* project;
 
-        float getMaxLabelSize(std::map<std::string, PropertyData> props);
+        float getMaxLabelSize(std::map<std::string, PropertyData> props, const std::string& include = "", const std::string& exclude = "");
 
         void beginTable(ComponentType cpType, float firstColSize, std::string nameAddon = "");
         void endTable();

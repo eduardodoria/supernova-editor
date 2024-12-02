@@ -1,5 +1,5 @@
-#ifndef METADATA_H
-#define METADATA_H
+#ifndef CATALOG_H
+#define CATALOG_H
 
 #include <stddef.h>
 #include <string>
@@ -69,7 +69,9 @@ namespace Supernova::Editor{
         Float3,
         Float4,
         Quat,
-        Int
+        Int,
+        UInt,
+        Array_Submesh
     };
 
     struct PropertyData{
@@ -79,11 +81,11 @@ namespace Supernova::Editor{
         void* ref;
     };
 
-    class Metadata{
+    class Catalog{
     private:
 
     public:
-        Metadata();
+        Catalog();
 
         static std::string getComponentName(ComponentType component);
 
@@ -95,7 +97,7 @@ namespace Supernova::Editor{
 
         template<typename T>
         static T* getPropertyRef(Scene* scene, Entity entity, ComponentType component, std::string propertyName){
-            for (auto& [name, property] : Metadata::findProperties(scene, entity, component)){
+            for (auto& [name, property] : Catalog::findProperties(scene, entity, component)){
                 if (name == propertyName){
                     return static_cast<T*>(property.ref);
                 }
@@ -108,4 +110,4 @@ namespace Supernova::Editor{
 
 }
 
-#endif /* METADATA_H */
+#endif /* CATALOG_H */
