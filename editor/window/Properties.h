@@ -9,7 +9,14 @@ namespace Supernova::Editor{
     private:
         Project* project;
 
-        void drawPropertiesTable(ComponentType cpType, std::vector<PropertyData> props, Scene* scene, Entity entity, std::string tableNameAddon = "", float secColSize = -1);
+        float getMaxLabelSize(std::map<std::string, PropertyData> props);
+
+        void beginTable(ComponentType cpType, float firstColSize, std::string nameAddon = "");
+        void endTable();
+        void propertyRow(ComponentType cpType, std::map<std::string, PropertyData> props, std::string name, Scene* scene, Entity entity, float secondColSize = -1);
+
+        void drawTransform(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, Entity entity);
+        void drawMeshComponent(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, Entity entity);
 
     public:
         Properties(Project* project);

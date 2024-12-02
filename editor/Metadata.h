@@ -75,10 +75,8 @@ namespace Supernova::Editor{
     struct PropertyData{
         PropertyType type;
         std::string label;
-        std::string name;
         int updateFlags;
         void* ref;
-        std::vector<PropertyData> childs;
     };
 
     class Metadata{
@@ -89,22 +87,17 @@ namespace Supernova::Editor{
 
         static std::string getComponentName(ComponentType component);
 
-        static std::vector<PropertyData> getProperties(ComponentType component, void* compRef);
+        static std::map<std::string, PropertyData> getProperties(ComponentType component, void* compRef);
 
         static std::vector<ComponentType> findComponents(Scene* scene, Entity entity);
-        static std::vector<PropertyData> findProperties(Scene* scene, Entity entity, ComponentType component);
+        static std::map<std::string, PropertyData> findProperties(Scene* scene, Entity entity, ComponentType component);
 
 
         template<typename T>
         static T* getPropertyRef(Scene* scene, Entity entity, ComponentType component, std::string propertyName){
-            for (auto& property : Metadata::findProperties(scene, entity, component)) {
-                if (property.name == propertyName){
+            for (auto& [name, property] : Metadata::findProperties(scene, entity, component)){
+                if (name == propertyName){
                     return static_cast<T*>(property.ref);
-                }
-                for (auto& childConfig : property.childs){
-                    if (childConfig.name == propertyName){
-                        return static_cast<T*>(childConfig.ref);
-                    }
                 }
             }
 

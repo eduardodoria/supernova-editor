@@ -103,26 +103,26 @@ std::string Editor::Metadata::getComponentName(ComponentType component){
     return "";
 }
 
-std::vector<Editor::PropertyData> Editor::Metadata::getProperties(ComponentType component, void* compRef){
-    std::vector<PropertyData> ps;
+std::map<std::string, Editor::PropertyData> Editor::Metadata::getProperties(ComponentType component, void* compRef){
+    std::map<std::string, Editor::PropertyData> ps;
     if(component == ComponentType::Transform){
         Transform* comp = (Transform*)compRef;
 
-        ps.push_back({PropertyType::Float3, "Position", "position", UpdateFlags_Transform, (void*)&comp->position});
-        ps.push_back({PropertyType::Quat, "Rotation", "rotation", UpdateFlags_Transform, (void*)&comp->rotation});
-        ps.push_back({PropertyType::Float3, "Scale", "scale", UpdateFlags_Transform, (void*)&comp->scale});
-        ps.push_back({PropertyType::Bool, "Visible", "visible", UpdateFlags_None, (void*)&comp->visible});
-        std::vector<PropertyData> bilChilds;
-        bilChilds.push_back({PropertyType::Bool, "Fake", "fake_billboard", UpdateFlags_Transform, (void*)&comp->fakeBillboard});
-        bilChilds.push_back({PropertyType::Bool, "Cylindrical", "cylindrical_billboard", UpdateFlags_Transform, (void*)&comp->cylindricalBillboard});
-        bilChilds.push_back({PropertyType::Quat, "Rotation", "billboard_rotation", UpdateFlags_Transform, (void*)&comp->billboardBase});
-        ps.push_back({PropertyType::Bool, "Billboard", "billboard", UpdateFlags_Transform, (void*)&comp->billboard, bilChilds});
+        ps["position"] = {PropertyType::Float3, "Position", UpdateFlags_Transform, (void*)&comp->position};
+        ps["rotation"] = {PropertyType::Quat, "Rotation", UpdateFlags_Transform, (void*)&comp->rotation};
+        ps["scale"] = {PropertyType::Float3, "Scale", UpdateFlags_Transform, (void*)&comp->scale};
+        ps["visible"] = {PropertyType::Bool, "Visible", UpdateFlags_None, (void*)&comp->visible};
+        ps["billboard"] = {PropertyType::Bool, "Billboard", UpdateFlags_Transform, (void*)&comp->billboard};
+        ps["fake_billboard"] = {PropertyType::Bool, "Fake", UpdateFlags_Transform, (void*)&comp->fakeBillboard};
+        ps["cylindrical_billboard"] = {PropertyType::Bool, "Cylindrical", UpdateFlags_Transform, (void*)&comp->cylindricalBillboard};
+        ps["billboard_rotation"] = {PropertyType::Quat, "Rotation", UpdateFlags_Transform, (void*)&comp->billboardRotation};
 
     }else if (component == ComponentType::MeshComponent){
         MeshComponent* comp = (MeshComponent*)compRef;
 
-        ps.push_back({PropertyType::Bool, "Cast shadows", "castShadows", UpdateFlags_MeshReload, (void*)&comp->castShadows});
-        ps.push_back({PropertyType::Bool, "Receive shadows", "receiveShadows", UpdateFlags_MeshReload, (void*)&comp->receiveShadows});
+        ps["castShadows"] = {PropertyType::Bool, "Cast shadows", UpdateFlags_MeshReload, (void*)&comp->castShadows};
+        ps["receiveShadows"] = {PropertyType::Bool, "Receive shadows", UpdateFlags_MeshReload, (void*)&comp->receiveShadows};
+        //ps["submeshes"] = {PropertyType::Submeshes, "Submesh", UpdateFlags_None, (void*)&comp->numSubmeshes};
     }
 
     return ps;
@@ -267,7 +267,7 @@ std::vector<Editor::ComponentType> Editor::Metadata::findComponents(Scene* scene
     return ret;
 }
 
-std::vector<Editor::PropertyData> Editor::Metadata::findProperties(Scene* scene, Entity entity, ComponentType component){
+std::map<std::string, Editor::PropertyData> Editor::Metadata::findProperties(Scene* scene, Entity entity, ComponentType component){
     if(component == ComponentType::Transform){
         if (Transform* compRef = scene->findComponent<Transform>(entity)){
             return getProperties(component, compRef);
@@ -278,5 +278,5 @@ std::vector<Editor::PropertyData> Editor::Metadata::findProperties(Scene* scene,
         }
     }
 
-    return std::vector<PropertyData>();
+    return std::map<std::string, Editor::PropertyData>();
 }
