@@ -82,14 +82,6 @@ bool Editor::Project::createNewComponent(uint32_t sceneId, Entity entity, Compon
     return false;
 }
 
-void Editor::Project::createEmptyEntity(uint32_t sceneId){
-    CommandHandle::get(getSelectedSceneId())->addCommand(new CreateEntityCmd(this, sceneId, "Entity"));
-}
-
-void Editor::Project::createBoxShape(uint32_t sceneId, Entity parent){
-    CommandHandle::get(getSelectedSceneId())->addCommand(new CreateEntityCmd(this, sceneId, "Box", EntityCreationType::BOX, parent));
-}
-
 void Editor::Project::deleteEntity(uint32_t sceneId, Entity entity){
     deleteEntities(sceneId, {entity});
 }

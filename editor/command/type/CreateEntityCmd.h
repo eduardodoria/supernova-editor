@@ -10,7 +10,9 @@ namespace Supernova::Editor{
 
     enum class EntityCreationType{
         EMPTY,
-        BOX
+        OBJECT,
+        BOX,
+        PLANE
     };
 
     class CreateEntityCmd: public Command{

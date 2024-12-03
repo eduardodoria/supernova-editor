@@ -3,6 +3,7 @@
 #include "external/IconsFontAwesome6.h"
 #include "command/CommandHandle.h"
 #include "command/type/MoveEntityOrderCmd.h"
+#include "command/type/CreateEntityCmd.h"
 #include "command/type/EntityNameCmd.h"
 #include "command/type/SceneNameCmd.h"
 
@@ -17,28 +18,31 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent){
     if (isScene){
         parent = NULL_ENTITY;
 
-        if (ImGui::MenuItem(ICON_FA_CIRCLE_DOT"  Empty entity"))
-        {
-            project->createEmptyEntity(project->getSelectedSceneId());
+        if (ImGui::MenuItem(ICON_FA_CIRCLE_DOT"  Empty entity")){
+            CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Entity"));
         }
     }
 
-    if (ImGui::BeginMenu(ICON_FA_CUBE"  Basic shape"))
-    {
-        if (ImGui::MenuItem(ICON_FA_CUBE"  Box"))
-        {
-            project->createBoxShape(project->getSelectedSceneId(), parent);
+    ImGui::Separator();
+
+    if (ImGui::MenuItem(ICON_FA_SITEMAP"  Empty object")){
+        CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Object", EntityCreationType::OBJECT, parent));
+        openParent = parent;
+    }
+
+    if (ImGui::BeginMenu(ICON_FA_CUBE"  Basic shape")){
+        if (ImGui::MenuItem(ICON_FA_CUBE"  Box")){
+            CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Box", EntityCreationType::BOX, parent));
             openParent = parent;
         }
-        if (ImGui::MenuItem(ICON_FA_CUBE"  Plane"))
-        {
-            // Action for SubItem 2
+        if (ImGui::MenuItem(ICON_FA_CUBE"  Plane")){
+            CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Plane", EntityCreationType::PLANE, parent));
+            openParent = parent;
         }
         ImGui::EndMenu();
     }
 
-    if (ImGui::MenuItem(ICON_FA_PERSON_RUNNING"  Model"))
-    {
+    if (ImGui::MenuItem(ICON_FA_PERSON_RUNNING"  Model")){
         // Action for Item 2
     }
 

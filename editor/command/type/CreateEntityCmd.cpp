@@ -45,13 +45,28 @@ void Editor::CreateEntityCmd::execute(){
                 }
             }
 
-            if (type == EntityCreationType::BOX){
+            if (type == EntityCreationType::OBJECT){
+
+                scenes[i].scene->addComponent<Transform>(entity, {});
+
+            }else if (type == EntityCreationType::BOX){
+
                 scenes[i].scene->addComponent<Transform>(entity, {});
                 scenes[i].scene->addComponent<MeshComponent>(entity, {});
 
                 MeshComponent& mesh = scenes[i].scene->getComponent<MeshComponent>(entity);
 
                 scenes[i].scene->getSystem<MeshSystem>()->createBox(entity, 1, 1, 1);
+
+            }else if (type == EntityCreationType::PLANE){
+
+                scenes[i].scene->addComponent<Transform>(entity, {});
+                scenes[i].scene->addComponent<MeshComponent>(entity, {});
+
+                MeshComponent& mesh = scenes[i].scene->getComponent<MeshComponent>(entity);
+
+                scenes[i].scene->getSystem<MeshSystem>()->createPlane(entity, 10, 10);
+
             }
 
             scenes[i].scene->setEntityName(entity, entityName);

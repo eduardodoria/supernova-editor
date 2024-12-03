@@ -33,18 +33,13 @@ namespace Supernova::Editor{
         template<typename T>
         T* findScene(uint32_t sceneId) const;
 
+        Entity createNewEntity(uint32_t sceneId, std::string entityName);
+        bool createNewComponent(uint32_t sceneId, Entity entity, ComponentType component);
+
     public:
         Project();
 
-        // TODO: make this private
         uint32_t createNewScene(std::string sceneName);
-        Entity createNewEntity(uint32_t sceneId, std::string entityName);
-        bool createNewComponent(uint32_t sceneId, Entity entity, ComponentType component);
-        // ------
-
-
-        void createEmptyEntity(uint32_t sceneId);
-        void createBoxShape(uint32_t sceneId, Entity parent);
 
         void deleteEntity(uint32_t sceneId, Entity entity);
         void deleteEntities(uint32_t sceneId, std::vector<Entity> entities);

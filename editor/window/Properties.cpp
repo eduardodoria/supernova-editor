@@ -168,7 +168,20 @@ void Editor::Properties::show(){
 
     if (entities.size() > 0){
         entity = entities[0];
-        components = Catalog::findComponents(scene, entity);
+
+        std::vector<ComponentType> oldComponents = components;
+        std::vector<ComponentType> newComponents = Catalog::findComponents(scene, entity);
+
+        if (!components.empty()){
+            components.clear();
+            std::set_intersection(
+                oldComponents.begin(), oldComponents.end(),
+                newComponents.begin(), newComponents.end(),
+                std::back_inserter(components));
+        }else{
+            components = newComponents;
+        }
+
 
         ImGui::Text("Entity");
         ImGui::SameLine();

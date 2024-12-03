@@ -206,20 +206,26 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities){
 
         toolslayer.updateGizmo(camera, gizmoPosition, gizmoRotation, scale, mouseRay, mouseClicked);
 
-        selAABBLines->updateLine(0, selAABB.getCorner(AABB::FAR_LEFT_BOTTOM), selAABB.getCorner(AABB::FAR_LEFT_TOP));
-        selAABBLines->updateLine(1, selAABB.getCorner(AABB::FAR_LEFT_TOP), selAABB.getCorner(AABB::FAR_RIGHT_TOP));
-        selAABBLines->updateLine(2, selAABB.getCorner(AABB::FAR_RIGHT_TOP), selAABB.getCorner(AABB::FAR_RIGHT_BOTTOM));
-        selAABBLines->updateLine(3, selAABB.getCorner(AABB::FAR_RIGHT_BOTTOM), selAABB.getCorner(AABB::FAR_LEFT_BOTTOM));
+        if (selAABB.isNull() || selAABB.isInfinite()){
+            selAABBLines->setVisible(false);
+        }else{
+            selAABBLines->setVisible(true);
 
-        selAABBLines->updateLine(4, selAABB.getCorner(AABB::NEAR_LEFT_BOTTOM), selAABB.getCorner(AABB::NEAR_LEFT_TOP));
-        selAABBLines->updateLine(5, selAABB.getCorner(AABB::NEAR_LEFT_TOP), selAABB.getCorner(AABB::NEAR_RIGHT_TOP));
-        selAABBLines->updateLine(6, selAABB.getCorner(AABB::NEAR_RIGHT_TOP), selAABB.getCorner(AABB::NEAR_RIGHT_BOTTOM));
-        selAABBLines->updateLine(7, selAABB.getCorner(AABB::NEAR_RIGHT_BOTTOM), selAABB.getCorner(AABB::NEAR_LEFT_BOTTOM));
+            selAABBLines->updateLine(0, selAABB.getCorner(AABB::FAR_LEFT_BOTTOM), selAABB.getCorner(AABB::FAR_LEFT_TOP));
+            selAABBLines->updateLine(1, selAABB.getCorner(AABB::FAR_LEFT_TOP), selAABB.getCorner(AABB::FAR_RIGHT_TOP));
+            selAABBLines->updateLine(2, selAABB.getCorner(AABB::FAR_RIGHT_TOP), selAABB.getCorner(AABB::FAR_RIGHT_BOTTOM));
+            selAABBLines->updateLine(3, selAABB.getCorner(AABB::FAR_RIGHT_BOTTOM), selAABB.getCorner(AABB::FAR_LEFT_BOTTOM));
 
-        selAABBLines->updateLine(8, selAABB.getCorner(AABB::FAR_LEFT_BOTTOM), selAABB.getCorner(AABB::NEAR_LEFT_BOTTOM));
-        selAABBLines->updateLine(9, selAABB.getCorner(AABB::FAR_LEFT_TOP), selAABB.getCorner(AABB::NEAR_LEFT_TOP));
-        selAABBLines->updateLine(10, selAABB.getCorner(AABB::FAR_RIGHT_TOP), selAABB.getCorner(AABB::NEAR_RIGHT_TOP));
-        selAABBLines->updateLine(11, selAABB.getCorner(AABB::FAR_RIGHT_BOTTOM), selAABB.getCorner(AABB::NEAR_RIGHT_BOTTOM));
+            selAABBLines->updateLine(4, selAABB.getCorner(AABB::NEAR_LEFT_BOTTOM), selAABB.getCorner(AABB::NEAR_LEFT_TOP));
+            selAABBLines->updateLine(5, selAABB.getCorner(AABB::NEAR_LEFT_TOP), selAABB.getCorner(AABB::NEAR_RIGHT_TOP));
+            selAABBLines->updateLine(6, selAABB.getCorner(AABB::NEAR_RIGHT_TOP), selAABB.getCorner(AABB::NEAR_RIGHT_BOTTOM));
+            selAABBLines->updateLine(7, selAABB.getCorner(AABB::NEAR_RIGHT_BOTTOM), selAABB.getCorner(AABB::NEAR_LEFT_BOTTOM));
+
+            selAABBLines->updateLine(8, selAABB.getCorner(AABB::FAR_LEFT_BOTTOM), selAABB.getCorner(AABB::NEAR_LEFT_BOTTOM));
+            selAABBLines->updateLine(9, selAABB.getCorner(AABB::FAR_LEFT_TOP), selAABB.getCorner(AABB::NEAR_LEFT_TOP));
+            selAABBLines->updateLine(10, selAABB.getCorner(AABB::FAR_RIGHT_TOP), selAABB.getCorner(AABB::NEAR_RIGHT_TOP));
+            selAABBLines->updateLine(11, selAABB.getCorner(AABB::FAR_RIGHT_BOTTOM), selAABB.getCorner(AABB::NEAR_RIGHT_BOTTOM));
+        }
     }
     toolslayer.setGizmoVisible(gizmoVisibility);
     selAABBLines->setVisible(gizmoVisibility);
