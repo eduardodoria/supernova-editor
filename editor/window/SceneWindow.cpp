@@ -246,6 +246,20 @@ void Editor::SceneWindow::show(){
             ImGui::SetItemTooltip("Local transform (T)");
             ImGui::EndDisabled();
 
+            ImGui::SameLine(0, 10);
+            ImGui::Dummy(ImVec2(1, 20));
+            ImGui::SameLine(0, 10);
+
+            if (ImGui::Button(ICON_FA_GEAR)){
+                ImGui::OpenPopup("scenesettings");
+            }
+            if (ImGui::BeginPopup("scenesettings")){
+                ImGui::Text("Scene settings");
+                ImGui::Separator();
+
+                ImGui::EndPopup();
+            }
+
             ImGui::BeginChild(("Canvas" + std::to_string(sceneProject.id)).c_str());
             {
                 sceneEventHandler(project, sceneProject.id);

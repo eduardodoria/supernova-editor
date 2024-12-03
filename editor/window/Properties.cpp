@@ -150,6 +150,7 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
         beginTable(cpType, getMaxLabelSize(props, "submeshes", "num"), "submeshes");
 
         propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].primitive_type", scene, entity);
+        propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].face_culling", scene, entity);
         propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].texture_rect", scene, entity);
 
         endTable();

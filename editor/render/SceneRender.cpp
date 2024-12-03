@@ -62,6 +62,7 @@ Editor::SceneRender::SceneRender(Scene* scene){
     sun->setDirection(-0.2, -0.5, 0.3);
     sun->setIntensity(4.0);
     sun->setShadows(true);
+    sun->setRange(100);
 
     scene->setAmbientLight(0.4);
     scene->setCamera(camera);

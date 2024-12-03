@@ -125,6 +125,7 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["num_submeshes"] = {PropertyType::UInt, "Num submesh", UpdateFlags_None, (void*)&comp->numSubmeshes};
         for (int s = 0; s < comp->numSubmeshes; s++){
             ps["submeshes["+std::to_string(s)+"].primitive_type"] = {PropertyType::PrimitiveType, "Primitive", UpdateFlags_MeshReload, (void*)&comp->submeshes[s].primitiveType};
+            ps["submeshes["+std::to_string(s)+"].face_culling"] = {PropertyType::Bool, "Face culling", UpdateFlags_MeshReload, (void*)&comp->submeshes[s].faceCulling};
             ps["submeshes["+std::to_string(s)+"].texture_rect"] = {PropertyType::Float4, "Texture rect", UpdateFlags_None, (void*)&comp->submeshes[s].textureRect};
         }
     }
