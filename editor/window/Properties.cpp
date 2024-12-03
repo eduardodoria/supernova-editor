@@ -89,6 +89,15 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (ImGui::IsItemDeactivatedAfterEdit()) {
             CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new PropertyCmd<bool>(scene, entity, cpType, name, prop.updateFlags, newValue));
         }
+    }else if (prop.type == PropertyType::PrimitiveType){
+        PrimitiveType* value = Catalog::getPropertyRef<PrimitiveType>(scene, entity, cpType, name);
+        int item_current = Catalog::getPrimitiveTypeToIndex(*value);
+        if (ImGui::Combo(("##combo_"+name).c_str(), &item_current, Catalog::getPrimitiveTypeArray().data(), Catalog::getPrimitiveTypeArray().size())){
+            if (item_current != Catalog::getPrimitiveTypeToIndex(*value)){
+                PrimitiveType newValue = Catalog::getPrimitiveTypeFromIndex(item_current);
+                CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new PropertyCmd<PrimitiveType>(scene, entity, cpType, name, prop.updateFlags, newValue));
+            }
+        }
     }
 }
 
@@ -140,6 +149,7 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
 
         beginTable(cpType, getMaxLabelSize(props, "submeshes", "num"), "submeshes");
 
+        propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].primitive_type", scene, entity);
         propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].texture_rect", scene, entity);
 
         endTable();

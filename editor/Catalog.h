@@ -71,7 +71,7 @@ namespace Supernova::Editor{
         Quat,
         Int,
         UInt,
-        Array_Submesh
+        PrimitiveType
     };
 
     struct PropertyData{
@@ -106,6 +106,11 @@ namespace Supernova::Editor{
             printf("ERROR: Cannot find property %s\n", propertyName.c_str());
             return nullptr;
         }
+
+
+        static std::vector<const char*> getPrimitiveTypeArray();
+        static size_t getPrimitiveTypeToIndex(PrimitiveType pt);
+        static PrimitiveType getPrimitiveTypeFromIndex(size_t i);
     };
 
 }

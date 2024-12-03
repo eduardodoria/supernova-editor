@@ -124,6 +124,7 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["receive_shadows"] = {PropertyType::Bool, "Receive shadows", UpdateFlags_MeshReload, (void*)&comp->receiveShadows};
         ps["num_submeshes"] = {PropertyType::UInt, "Num submesh", UpdateFlags_None, (void*)&comp->numSubmeshes};
         for (int s = 0; s < comp->numSubmeshes; s++){
+            ps["submeshes["+std::to_string(s)+"].primitive_type"] = {PropertyType::PrimitiveType, "Primitive type", UpdateFlags_MeshReload, (void*)&comp->submeshes[s].primitiveType};
             ps["submeshes["+std::to_string(s)+"].texture_rect"] = {PropertyType::Float4, "Texture rect", UpdateFlags_None, (void*)&comp->submeshes[s].textureRect};
         }
     }
@@ -282,4 +283,36 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::findProperties(Scen
     }
 
     return std::map<std::string, Editor::PropertyData>();
+}
+
+std::vector<const char*> Editor::Catalog::getPrimitiveTypeArray(){
+    return {"Triangles", "Triangle Strip", "Points", "Lines"};
+}
+
+size_t Editor::Catalog::getPrimitiveTypeToIndex(PrimitiveType pt){
+    if (pt == PrimitiveType::TRIANGLES){
+        return 0;
+    }else if (pt == PrimitiveType::TRIANGLE_STRIP){
+        return 1;
+    }else if (pt == PrimitiveType::POINTS){
+        return 2;
+    }else if (pt == PrimitiveType::LINES){
+        return 3;
+    }
+
+    return 0;
+}
+
+PrimitiveType Editor::Catalog::getPrimitiveTypeFromIndex(size_t i){
+    if (i == 0){
+        return PrimitiveType::TRIANGLES;
+    }else if (i == 1){
+        return PrimitiveType::TRIANGLE_STRIP;
+    }else if (i == 2){
+        return PrimitiveType::POINTS;
+    }else if (i == 3){
+        return PrimitiveType::LINES;
+    }
+
+    return PrimitiveType::TRIANGLES;
 }
