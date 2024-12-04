@@ -53,51 +53,58 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
     ImGui::TableNextColumn();
     ImGui::SetNextItemWidth(secondColSize);
 
+    static Command* cmd = nullptr;
+
     if (prop.type == PropertyType::Float3){
         Vector3* value = Catalog::getPropertyRef<Vector3>(scene, entity, cpType, name);
         Vector3 newValue = *value;
-        ImGui::InputFloat3(("##input_"+name).c_str(), &(newValue.x), "%.2f");
-        ImGui::SetItemTooltip("%s (X, Y, Z)", prop.label.c_str());
-        if (ImGui::IsItemDeactivatedAfterEdit()) {
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new PropertyCmd<Vector3>(scene, entity, cpType, name, prop.updateFlags, newValue));
+        if (ImGui::DragFloat3(("##input_"+name).c_str(), &(newValue.x), 0.1f, 0.0f, 0.0f, "%.2f")){
+            cmd = new PropertyCmd<Vector3>(scene, entity, cpType, name, prop.updateFlags, newValue);
+            CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
         }
+        //ImGui::SetItemTooltip("%s (X, Y, Z)", prop.label.c_str());
 
     }else if (prop.type == PropertyType::Float4){
         Vector4* value = Catalog::getPropertyRef<Vector4>(scene, entity, cpType, name);
         Vector4 newValue = *value;
-        ImGui::InputFloat4(("##input_"+name).c_str(), &(newValue.x), "%.2f");
-        ImGui::SetItemTooltip("%s (X, Y, Z)", prop.label.c_str());
-        if (ImGui::IsItemDeactivatedAfterEdit()) {
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new PropertyCmd<Vector4>(scene, entity, cpType, name, prop.updateFlags, newValue));
+        if (ImGui::DragFloat4(("##input_"+name).c_str(), &(newValue.x), 1.0f, 0.0f, 0.0f, "%.2f")){
+            cmd = new PropertyCmd<Vector4>(scene, entity, cpType, name, prop.updateFlags, newValue);
+            CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
         }
+        //ImGui::SetItemTooltip("%s (X, Y, Z)", prop.label.c_str());
 
     }else if (prop.type == PropertyType::Quat){
         Quaternion* value = Catalog::getPropertyRef<Quaternion>(scene, entity, cpType, name);
         Vector3 newValueFmt = value->getEulerAngles();
-        ImGui::InputFloat3(("##input_"+name).c_str(), &(newValueFmt.x), "%.2f");
-        ImGui::SetItemTooltip("%s in degrees (X, Y, Z)", prop.label.c_str());
-        if (ImGui::IsItemDeactivatedAfterEdit()) {
+        if (ImGui::DragFloat3(("##input_"+name).c_str(), &(newValueFmt.x), 0.1f, 0.0f, 0.0f, "%.2f°")){
             Quaternion newValue(newValueFmt.x, newValueFmt.y, newValueFmt.z);
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new PropertyCmd<Quaternion>(scene, entity, cpType, name, prop.updateFlags, newValue));
+            cmd = new PropertyCmd<Quaternion>(scene, entity, cpType, name, prop.updateFlags, newValue);
+            CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
         }
+        //ImGui::SetItemTooltip("%s in degrees (X, Y, Z)", prop.label.c_str());
 
     }else if (prop.type == PropertyType::Bool){
         bool* value = Catalog::getPropertyRef<bool>(scene, entity, cpType, name);
         bool newValue = *value;
-        ImGui::Checkbox(("##checkbox_"+name).c_str(), &newValue);
-        ImGui::SetItemTooltip("%s", prop.label.c_str());
-        if (ImGui::IsItemDeactivatedAfterEdit()) {
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new PropertyCmd<bool>(scene, entity, cpType, name, prop.updateFlags, newValue));
+        if (ImGui::Checkbox(("##checkbox_"+name).c_str(), &newValue)){
+            cmd = new PropertyCmd<bool>(scene, entity, cpType, name, prop.updateFlags, newValue);
+            CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
         }
+        //ImGui::SetItemTooltip("%s", prop.label.c_str());
+
     }else if (prop.type == PropertyType::PrimitiveType){
         PrimitiveType* value = Catalog::getPropertyRef<PrimitiveType>(scene, entity, cpType, name);
         int item_current = Catalog::getPrimitiveTypeToIndex(*value);
         if (ImGui::Combo(("##combo_"+name).c_str(), &item_current, Catalog::getPrimitiveTypeArray().data(), Catalog::getPrimitiveTypeArray().size())){
-            if (item_current != Catalog::getPrimitiveTypeToIndex(*value)){
-                PrimitiveType newValue = Catalog::getPrimitiveTypeFromIndex(item_current);
-                CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new PropertyCmd<PrimitiveType>(scene, entity, cpType, name, prop.updateFlags, newValue));
-            }
+            PrimitiveType newValue = Catalog::getPrimitiveTypeFromIndex(item_current);
+            cmd = new PropertyCmd<PrimitiveType>(scene, entity, cpType, name, prop.updateFlags, newValue);
+            CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
         }
+    }
+
+    if (ImGui::IsItemDeactivatedAfterEdit()) {
+        cmd->setNoMerge();
+        cmd = nullptr;
     }
 }
 

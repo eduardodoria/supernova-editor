@@ -257,6 +257,9 @@ void Editor::SceneWindow::show(){
                 ImGui::Text("Scene settings");
                 ImGui::Separator();
 
+                static float test;
+                ImGui::DragFloat("Shadow distance", &test);
+
                 ImGui::EndPopup();
             }
 

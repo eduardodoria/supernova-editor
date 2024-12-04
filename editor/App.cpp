@@ -7,6 +7,10 @@
 #include "external/IconsFontAwesome6.h"
 #include "command/CommandHandle.h"
 
+#include "fonts/fa-solid-900_ttf.h"
+//#include "fonts/roboto-v20-latin-regular_ttf.h"
+#include "util/DefaultFont.h"
+
 using namespace Supernova;
 
 bool Editor::App::isInitialized = false;
@@ -107,6 +111,51 @@ void Editor::App::showStyleEditor(){
         ImGui::ShowStyleEditor();
     }
     ImGui::End();
+}
+
+void Editor::App::setup(){
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;      // Enable Docking
+
+    io.ConfigWindowsMoveFromTitleBarOnly = true;
+
+    #ifdef _DEBUG
+    io.IniFilename = nullptr;  // Disable saving to ini file
+    #endif
+
+    io.Fonts->AddFontDefault();
+
+    ImFontConfig config;
+    config.MergeMode = true;
+    config.GlyphMinAdvanceX = 16.0f;
+    config.FontDataOwnedByAtlas = false;
+    static const ImWchar icon_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
+    io.Fonts->AddFontFromMemoryTTF(fa_solid_900_ttf, fa_solid_900_ttf_len, 16.0f, &config, icon_ranges);
+
+    ImFontConfig config1;
+    strcpy(config1.Name, "roboto-v20-latin-regular (16 px)");
+    config1.FontDataOwnedByAtlas = false;
+    config1.OversampleH = 2;
+    config1.OversampleV = 2;
+    config1.RasterizerMultiply = 1.5f;
+    ImFont* font1 = io.Fonts->AddFontFromMemoryTTF(roboto_v20_latin_regular_ttf, roboto_v20_latin_regular_ttf_len, 16.0f, &config1);
+
+    ImFontConfig config2;
+    config2.MergeMode = true;
+    config2.GlyphMinAdvanceX = 16.0f; // Use if you want to make the icon monospaced
+    config2.FontDataOwnedByAtlas = false;
+    static const ImWchar icon_ranges2[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
+    io.Fonts->AddFontFromMemoryTTF(fa_solid_900_ttf, fa_solid_900_ttf_len, 16.0f, &config2, icon_ranges2);
+
+    io.FontDefault = font1;
+
+    io.ConfigDragClickToInputText = true;
+
+    //io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;
+
+    //ImGui::StyleColorsDark();
+    kewtStyleTheme();
 }
 
 void Editor::App::show(){

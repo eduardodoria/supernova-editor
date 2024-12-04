@@ -31,10 +31,13 @@ namespace Supernova::Editor{
         void showMenu();
         void showStyleEditor();
         void buildDockspace();
+        void kewtStyleTheme();
 
     public:
 
         App();
+
+        void setup();
 
         void show();
 
@@ -45,8 +48,6 @@ namespace Supernova::Editor{
         void engineShutdown();
 
         void addNewSceneToDock(uint32_t sceneId);
-
-        void kewtStyleTheme();
     };
 
 }
