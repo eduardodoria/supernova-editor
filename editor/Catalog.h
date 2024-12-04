@@ -92,12 +92,12 @@ namespace Supernova::Editor{
         static std::map<std::string, PropertyData> getProperties(ComponentType component, void* compRef);
 
         static std::vector<ComponentType> findComponents(Scene* scene, Entity entity);
-        static std::map<std::string, PropertyData> findProperties(Scene* scene, Entity entity, ComponentType component);
+        static std::map<std::string, PropertyData> findEntityProperties(Scene* scene, Entity entity, ComponentType component);
 
 
         template<typename T>
         static T* getPropertyRef(Scene* scene, Entity entity, ComponentType component, std::string propertyName){
-            for (auto& [name, property] : Catalog::findProperties(scene, entity, component)){
+            for (auto& [name, property] : Catalog::findEntityProperties(scene, entity, component)){
                 if (name == propertyName){
                     return static_cast<T*>(property.ref);
                 }

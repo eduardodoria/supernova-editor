@@ -1,6 +1,7 @@
 #include "Properties.h"
 
 #include "imgui.h"
+#include "imgui_internal.h"
 
 #include "external/IconsFontAwesome6.h"
 #include "command/CommandHandle.h"
@@ -11,6 +12,23 @@ using namespace Supernova;
 
 Editor::Properties::Properties(Project* project){
     this->project = project;
+}
+
+std::string Editor::Properties::replaceNumberedBrackets(const std::string& input) {
+    std::string result = input;
+    size_t pos = 0;
+
+    while ((pos = result.find('[', pos)) != std::string::npos) {
+        size_t end_pos = result.find(']', pos);
+        if (end_pos != std::string::npos && std::isdigit(result[pos + 1])) {
+            result.replace(pos, end_pos - pos + 1, "[]");
+            pos += 2;
+        } else {
+            ++pos;
+        }
+    }
+
+    return result;
 }
 
 float Editor::Properties::getMaxLabelSize(std::map<std::string, PropertyData> props, const std::string& include, const std::string& exclude){
@@ -44,8 +62,10 @@ void Editor::Properties::endTable(){
     ImGui::EndTable();
 }
 
-void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string, PropertyData> props, std::string name, Scene* scene, Entity entity, float secondColSize){
-    PropertyData prop = props[name];
+void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string, PropertyData> props, std::string name, Scene* scene, std::vector<Entity> entities, float secondColSize){
+    PropertyData prop = props[replaceNumberedBrackets(name)];
+
+    Entity entity = entities[0];
 
     ImGui::TableNextRow();
     ImGui::TableNextColumn();
@@ -56,12 +76,62 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
     static Command* cmd = nullptr;
 
     if (prop.type == PropertyType::Float3){
-        Vector3* value = Catalog::getPropertyRef<Vector3>(scene, entity, cpType, name);
-        Vector3 newValue = *value;
-        if (ImGui::DragFloat3(("##input_"+name).c_str(), &(newValue.x), 0.1f, 0.0f, 0.0f, "%.2f")){
-            cmd = new PropertyCmd<Vector3>(scene, entity, cpType, name, prop.updateFlags, newValue);
-            CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+        Vector3* value = nullptr;
+        bool difX = false;
+        bool difY = false;
+        bool difZ = false;
+        std::map<Entity, Vector3*> eValue;
+
+        for (Entity& entity : entities){
+            eValue[entity] = Catalog::getPropertyRef<Vector3>(scene, entity, cpType, name);
+            if (value){
+                if (value->x != eValue[entity]->x)
+                    difX = true;
+                if (value->y != eValue[entity]->y)
+                    difY = true;
+                if (value->z != eValue[entity]->z)
+                    difZ = true;
+            }
+            value = eValue[entity];
         }
+
+        Vector3 newValue = *value;
+
+        ImGui::BeginGroup();
+        ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
+        if (difX)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        if (ImGui::DragFloat(("##input_x_"+name).c_str(), &(newValue.x), 0.1f, 0.0f, 0.0f, "%.2f")){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<Vector3>(scene, entity, cpType, name, prop.updateFlags, Vector3(newValue.x, eValue[entity]->y, eValue[entity]->z));
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            }
+        }
+        if (difX)
+            ImGui::PopStyleColor();
+        ImGui::SameLine();
+        if (difY)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        if (ImGui::DragFloat(("##input_y_"+name).c_str(), &(newValue.y), 0.1f, 0.0f, 0.0f, "%.2f")){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<Vector3>(scene, entity, cpType, name, prop.updateFlags, Vector3(eValue[entity]->x, newValue.y, eValue[entity]->z));
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            }
+        }
+        if (difY)
+            ImGui::PopStyleColor();
+        ImGui::SameLine();
+        if (difZ)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        if (ImGui::DragFloat(("##input_z_"+name).c_str(), &(newValue.z), 0.1f, 0.0f, 0.0f, "%.2f")){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<Vector3>(scene, entity, cpType, name, prop.updateFlags, Vector3(eValue[entity]->x, eValue[entity]->y, newValue.z));
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            }
+        }
+        if (difZ)
+            ImGui::PopStyleColor();
+        ImGui::EndGroup();
         //ImGui::SetItemTooltip("%s (X, Y, Z)", prop.label.c_str());
 
     }else if (prop.type == PropertyType::Float4){
@@ -108,14 +178,14 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
     }
 }
 
-void Editor::Properties::drawTransform(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, Entity entity){
+void Editor::Properties::drawTransform(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, std::vector<Entity> entities){
     beginTable(cpType, getMaxLabelSize(props));
 
-    propertyRow(cpType, props, "position", scene, entity);
-    propertyRow(cpType, props, "rotation", scene, entity);
-    propertyRow(cpType, props, "scale", scene, entity);
-    propertyRow(cpType, props, "visible", scene, entity);
-    propertyRow(cpType, props, "billboard", scene, entity);
+    propertyRow(cpType, props, "position", scene, entities);
+    propertyRow(cpType, props, "rotation", scene, entities);
+    propertyRow(cpType, props, "scale", scene, entities);
+    propertyRow(cpType, props, "visible", scene, entities);
+    propertyRow(cpType, props, "billboard", scene, entities);
 
     ImGui::SameLine();
     if (ImGui::Button(ICON_FA_GEAR)){
@@ -128,9 +198,9 @@ void Editor::Properties::drawTransform(ComponentType cpType, std::map<std::strin
 
         beginTable(cpType, getMaxLabelSize(props), "billboard");
 
-        propertyRow(cpType, props, "fake_billboard", scene, entity);
-        propertyRow(cpType, props, "cylindrical_billboard", scene, entity);
-        propertyRow(cpType, props, "billboard_rotation", scene, entity, 12 * ImGui::GetFontSize());
+        propertyRow(cpType, props, "fake_billboard", scene, entities);
+        propertyRow(cpType, props, "cylindrical_billboard", scene, entities);
+        propertyRow(cpType, props, "billboard_rotation", scene, entities, 12 * ImGui::GetFontSize());
 
         endTable();
 
@@ -140,25 +210,27 @@ void Editor::Properties::drawTransform(ComponentType cpType, std::map<std::strin
     endTable();
 }
 
-void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, Entity entity){
+void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, std::vector<Entity> entities){
     beginTable(cpType, getMaxLabelSize(props, "", "submeshes"));
 
-    propertyRow(cpType, props, "cast_shadows", scene, entity);
-    propertyRow(cpType, props, "receive_shadows", scene, entity);
+    propertyRow(cpType, props, "cast_shadows", scene, entities);
+    propertyRow(cpType, props, "receive_shadows", scene, entities);
 
     endTable();
 
-    unsigned int numSubmeshes = scene->getComponent<MeshComponent>(entity).numSubmeshes;
-    //Submesh* submeshes = Catalog::getPropertyRef<Submesh>(scene, entity, cpType, "submeshes");
+    unsigned int numSubmeshes = 1;
+    for (Entity& entity : entities){
+        numSubmeshes = std::min(numSubmeshes, scene->getComponent<MeshComponent>(entity).numSubmeshes);
+    }
 
     for (int s = 0; s < numSubmeshes; s++){
         ImGui::SeparatorText(("Submesh "+std::to_string(s+1)).c_str());
 
         beginTable(cpType, getMaxLabelSize(props, "submeshes", "num"), "submeshes");
 
-        propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].primitive_type", scene, entity);
-        propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].face_culling", scene, entity);
-        propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].texture_rect", scene, entity);
+        propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].primitive_type", scene, entities);
+        propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].face_culling", scene, entities);
+        propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].texture_rect", scene, entities);
 
         endTable();
     }
@@ -171,37 +243,42 @@ void Editor::Properties::show(){
     std::vector<Entity> entities = project->getSelectedEntities(sceneProject->id);
 
     std::vector<ComponentType> components;
-    Entity entity = NULL_ENTITY;
     Scene* scene = sceneProject->scene;
 
     if (entities.size() > 0){
-        entity = entities[0];
 
-        std::vector<ComponentType> oldComponents = components;
-        std::vector<ComponentType> newComponents = Catalog::findComponents(scene, entity);
+        for (Entity& entity : entities){
+            std::vector<ComponentType> oldComponents = components;
+            std::vector<ComponentType> newComponents = Catalog::findComponents(scene, entity);
 
-        if (!components.empty()){
-            components.clear();
-            std::set_intersection(
-                oldComponents.begin(), oldComponents.end(),
-                newComponents.begin(), newComponents.end(),
-                std::back_inserter(components));
-        }else{
-            components = newComponents;
+            if (!components.empty()){
+                components.clear();
+                std::set_intersection(
+                    oldComponents.begin(), oldComponents.end(),
+                    newComponents.begin(), newComponents.end(),
+                    std::back_inserter(components));
+            }else{
+                components = newComponents;
+            }
         }
 
+        if (entities.size() == 1){
+            Entity entity = entity = entities[0];
 
-        ImGui::Text("Entity");
-        ImGui::SameLine();
-        ImGui::SetNextItemWidth(-1);
-        static char nameBuffer[128];
-        strncpy(nameBuffer, scene->getEntityName(entity).c_str(), sizeof(nameBuffer) - 1);
-        nameBuffer[sizeof(nameBuffer) - 1] = '\0';
-        ImGui::InputText("##input_name", nameBuffer, IM_ARRAYSIZE(nameBuffer));
-        if (ImGui::IsItemDeactivatedAfterEdit()) {
-            if (nameBuffer[0] != '\0' && strcmp(nameBuffer, scene->getEntityName(entity).c_str()) != 0) {
-                CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new EntityNameCmd(scene, entity, nameBuffer));
+            ImGui::Text("Entity");
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(-1);
+            static char nameBuffer[128];
+            strncpy(nameBuffer, scene->getEntityName(entity).c_str(), sizeof(nameBuffer) - 1);
+            nameBuffer[sizeof(nameBuffer) - 1] = '\0';
+            ImGui::InputText("##input_name", nameBuffer, IM_ARRAYSIZE(nameBuffer));
+            if (ImGui::IsItemDeactivatedAfterEdit()) {
+                if (nameBuffer[0] != '\0' && strcmp(nameBuffer, scene->getEntityName(entity).c_str()) != 0) {
+                    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new EntityNameCmd(scene, entity, nameBuffer));
+                }
             }
+        }else{
+            ImGui::Text("Entity: %lu selected", entities.size());
         }
 
         ImGui::Separator();
@@ -218,9 +295,9 @@ void Editor::Properties::show(){
         if (ImGui::CollapsingHeader(Catalog::getComponentName(cpType).c_str())){
 
             if (cpType == ComponentType::Transform){
-                drawTransform(cpType, Catalog::findProperties(scene, entity, cpType), scene, entity);
+                drawTransform(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
             }else if (cpType == ComponentType::MeshComponent){
-                drawMeshComponent(cpType, Catalog::findProperties(scene, entity, cpType), scene, entity);
+                drawMeshComponent(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
             }
 
         }
