@@ -12,19 +12,23 @@
 namespace Supernova::Editor{
 
     template<typename T>
+    struct PropertyCmdValue{
+        T oldValue;
+        T newValue;
+    };
+
+    template<typename T>
     class PropertyCmd: public Command{
 
     private:
-        T oldValue;
-        T newValue;
-
         Scene* scene;
-        Entity entity;
         ComponentType type;
         std::string propertyName;
         int updateFlags;
 
-        void updateEntity(){
+        std::map<Entity,PropertyCmdValue<T>> values;
+
+        void updateEntity(Entity entity){
             if (updateFlags & UpdateFlags_Transform){
                 scene->getComponent<Transform>(entity).needUpdate = true;
             }
@@ -37,38 +41,46 @@ namespace Supernova::Editor{
 
         PropertyCmd(Scene* scene, Entity entity, ComponentType type, std::string propertyName, int updateFlags, T newValue){
             this->scene = scene;
-            this->entity = entity;
             this->type = type;
             this->propertyName = propertyName;
             this->updateFlags = updateFlags;
-            this->newValue = newValue;
+
+            this->values[entity].newValue = newValue;
         }
 
         void execute(){
-            T* valueRef = Catalog::getPropertyRef<T>(scene, entity, type, propertyName);
+            for (auto& [entity, value] : values){
+                T* valueRef = Catalog::getPropertyRef<T>(scene, entity, type, propertyName);
 
-            oldValue = T(*valueRef);
-            *valueRef = newValue;
+                value.oldValue = T(*valueRef);
+                *valueRef = value.newValue;
 
-            updateEntity();
+                updateEntity(entity);
+            }
         }
 
         void undo(){
-            T* valueRef = Catalog::getPropertyRef<T>(scene, entity, type, propertyName);
+            for (auto const& [entity, value] : values){
+                T* valueRef = Catalog::getPropertyRef<T>(scene, entity, type, propertyName);
 
-            *valueRef = oldValue;
+                *valueRef = value.oldValue;
 
-            updateEntity();
+                updateEntity(entity);
+            }
         }
 
         bool mergeWith(Editor::Command* otherCommand){
-            T* valueRef = Catalog::getPropertyRef<T>(scene, entity, type, propertyName);
             PropertyCmd* otherCmd = dynamic_cast<PropertyCmd*>(otherCommand);
             if (otherCmd != nullptr){
-                T* olderValueRef = Catalog::getPropertyRef<T>(otherCmd->scene, otherCmd->entity, otherCmd->type, otherCmd->propertyName);
-                if (valueRef == olderValueRef){
-                    this->oldValue = otherCmd->oldValue;
-                    this->updateFlags |= otherCmd->updateFlags;
+                if (scene == otherCmd->scene && propertyName == otherCmd->propertyName){
+                    for (auto const& [otherEntity, otherValue] : otherCmd->values){
+                        if (values.find(otherEntity) != values.end()) {
+                            values[otherEntity].oldValue = otherValue.oldValue;
+                        }else{
+                            values[otherEntity] = otherValue;
+                        }
+                    }
+                    updateFlags |= otherCmd->updateFlags;
                     return true;
                 }
             }

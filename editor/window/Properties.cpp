@@ -262,23 +262,35 @@ void Editor::Properties::show(){
             }
         }
 
+        std::string names;
+        bool firstEntity = true;
+        for (Entity& entity : entities){
+            if (!firstEntity){
+                names += ", ";
+            }
+            names += scene->getEntityName(entity);
+            firstEntity = false;
+        }
         if (entities.size() == 1){
-            Entity entity = entity = entities[0];
-
             ImGui::Text("Entity");
-            ImGui::SameLine();
-            ImGui::SetNextItemWidth(-1);
-            static char nameBuffer[128];
-            strncpy(nameBuffer, scene->getEntityName(entity).c_str(), sizeof(nameBuffer) - 1);
-            nameBuffer[sizeof(nameBuffer) - 1] = '\0';
-            ImGui::InputText("##input_name", nameBuffer, IM_ARRAYSIZE(nameBuffer));
-            if (ImGui::IsItemDeactivatedAfterEdit()) {
-                if (nameBuffer[0] != '\0' && strcmp(nameBuffer, scene->getEntityName(entity).c_str()) != 0) {
-                    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new EntityNameCmd(scene, entity, nameBuffer));
+        }else{
+            ImGui::Text("Entities (%lu)", entities.size());
+        }
+        ImGui::SetItemTooltip("%lu selected: %s", entities.size(), names.c_str());
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(-1);
+        static char nameBuffer[128];
+        strncpy(nameBuffer, names.c_str(), sizeof(nameBuffer) - 1);
+        nameBuffer[sizeof(nameBuffer) - 1] = '\0';
+        ImGui::BeginDisabled(entities.size() != 1);
+        ImGui::InputText("##input_name", nameBuffer, IM_ARRAYSIZE(nameBuffer));
+        ImGui::EndDisabled();
+        if (ImGui::IsItemDeactivatedAfterEdit()) {
+            if (entities.size() == 1){
+                if (nameBuffer[0] != '\0' && strcmp(nameBuffer, scene->getEntityName(entities[0]).c_str()) != 0) {
+                    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new EntityNameCmd(scene, entities[0], nameBuffer));
                 }
             }
-        }else{
-            ImGui::Text("Entity: %lu selected", entities.size());
         }
 
         ImGui::Separator();

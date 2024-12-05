@@ -8,7 +8,7 @@
 
 namespace Supernova::Editor{
 
-    struct CommandTransform{
+    struct TransformCmdValue{
         Vector3 newPosition;
         Quaternion newRotation;
         Vector3 newScale;
@@ -23,7 +23,7 @@ namespace Supernova::Editor{
     private:
         Scene* scene;
 
-        std::map<Entity, CommandTransform> props;
+        std::map<Entity, TransformCmdValue> props;
 
     public:
         ObjectTransformCmd(Scene* scene, Entity entity, Matrix4 localMatrix);
