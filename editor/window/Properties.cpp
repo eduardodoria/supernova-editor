@@ -31,15 +31,6 @@ std::string Editor::Properties::replaceNumberedBrackets(const std::string& input
     return result;
 }
 
-Vector3 Editor::Properties::eliminateSmallNumbers(Vector3 value, float threshold){
-    Vector3 ret;
-    ret.x = (std::fabs(value.x) < threshold) ? 0.0 : value.x;
-    ret.y = (std::fabs(value.y) < threshold) ? 0.0 : value.y;
-    ret.z = (std::fabs(value.z) < threshold) ? 0.0 : value.z;
-
-    return ret;
-}
-
 float Editor::Properties::getMaxLabelSize(std::map<std::string, PropertyData> props, const std::string& include, const std::string& exclude){
     float maxLabelSize = ImGui::GetFontSize();
 
@@ -83,6 +74,8 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
     ImGui::SetNextItemWidth(secondColSize);
 
     static Command* cmd = nullptr;
+
+    float threshold = 1e-5;
 
     if (prop.type == PropertyType::Float3){
         Vector3* value = nullptr;
@@ -152,20 +145,20 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         //ImGui::SetItemTooltip("%s (X, Y, Z)", prop.label.c_str());
 
     }else if (prop.type == PropertyType::Quat){
+        RotationOrder order = RotationOrder::ZYX;
         Vector3* value = nullptr;
         bool difX = false;
         bool difY = false;
         bool difZ = false;
         std::map<Entity, Vector3> eValue;
         for (Entity& entity : entities){
-            eValue[entity] = Catalog::getPropertyRef<Quaternion>(scene, entity, cpType, name)->getEulerAngles();
-            eValue[entity] = eliminateSmallNumbers(eValue[entity], 1e-6);
+            eValue[entity] = Catalog::getPropertyRef<Quaternion>(scene, entity, cpType, name)->getEulerAngles(order);
             if (value){
-                if (value->x != eValue[entity].x)
+                if (std::fabs(value->x - eValue[entity].x) > threshold)
                     difX = true;
-                if (value->y != eValue[entity].y)
+                if (std::fabs(value->y - eValue[entity].y) > threshold)
                     difY = true;
-                if (value->z != eValue[entity].z)
+                if (std::fabs(value->z - eValue[entity].z) > threshold)
                     difZ = true;
             }
             value = &eValue[entity];
@@ -179,7 +172,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         if (ImGui::DragFloat(("##input_x_"+name).c_str(), &(newValue.x), 0.1f, 0.0f, 0.0f, "%.2f")){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Quaternion>(scene, entity, cpType, name, prop.updateFlags, Quaternion(newValue.x, eValue[entity].y, eValue[entity].z));
+                cmd = new PropertyCmd<Quaternion>(scene, entity, cpType, name, prop.updateFlags, Quaternion(newValue.x, eValue[entity].y, eValue[entity].z, order));
                 CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
             }
         }
@@ -190,7 +183,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         if (ImGui::DragFloat(("##input_y_"+name).c_str(), &(newValue.y), 0.1f, 0.0f, 0.0f, "%.2f")){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Quaternion>(scene, entity, cpType, name, prop.updateFlags, Quaternion(eValue[entity].x, newValue.y, eValue[entity].z));
+                cmd = new PropertyCmd<Quaternion>(scene, entity, cpType, name, prop.updateFlags, Quaternion(eValue[entity].x, newValue.y, eValue[entity].z, order));
                 CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
             }
         }
@@ -201,7 +194,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         if (ImGui::DragFloat(("##input_z_"+name).c_str(), &(newValue.z), 0.1f, 0.0f, 0.0f, "%.2f")){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Quaternion>(scene, entity, cpType, name, prop.updateFlags, Quaternion(eValue[entity].x, eValue[entity].y, newValue.z));
+                cmd = new PropertyCmd<Quaternion>(scene, entity, cpType, name, prop.updateFlags, Quaternion(eValue[entity].x, eValue[entity].y, newValue.z, order));
                 CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
             }
         }

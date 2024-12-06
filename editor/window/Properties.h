@@ -11,7 +11,6 @@ namespace Supernova::Editor{
 
         // replace [number] with []
         std::string replaceNumberedBrackets(const std::string& input);
-        Vector3 eliminateSmallNumbers(Vector3 value, float threshold);
 
         float getMaxLabelSize(std::map<std::string, PropertyData> props, const std::string& include = "", const std::string& exclude = "");
 
