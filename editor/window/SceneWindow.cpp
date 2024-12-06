@@ -50,10 +50,10 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
         }
 
         if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)){
-            mouseLeftDown = false;
-            if (!mouseLeftDraggedInside){
+            if (!mouseLeftDraggedInside && mouseLeftDown){
                 project->findObjectByRay(sceneId, x, y, io.KeyShift);
             }
+            mouseLeftDown = false;
         }
     }
 
