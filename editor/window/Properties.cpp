@@ -31,6 +31,14 @@ std::string Editor::Properties::replaceNumberedBrackets(const std::string& input
     return result;
 }
 
+Vector3 Editor::Properties::roundZero(const Vector3& val, const float threshold){
+    return Vector3(
+        (fabs(val.x) < threshold) ? 0.0f : val.x,
+        (fabs(val.y) < threshold) ? 0.0f : val.y,
+        (fabs(val.z) < threshold) ? 0.0f : val.z
+    );
+}
+
 float Editor::Properties::getMaxLabelSize(std::map<std::string, PropertyData> props, const std::string& include, const std::string& exclude){
     float maxLabelSize = ImGui::GetFontSize();
 
@@ -75,7 +83,8 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
     static Command* cmd = nullptr;
 
-    float epsilon = 1e-5;
+    constexpr float compThreshold = 1e-4;
+    constexpr float zeroThreshold = 1e-4;
 
     if (prop.type == PropertyType::Float3){
         Vector3* value = nullptr;
@@ -86,11 +95,11 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         for (Entity& entity : entities){
             eValue[entity] = *Catalog::getPropertyRef<Vector3>(scene, entity, cpType, name);
             if (value){
-                if (std::fabs(value->x - eValue[entity].x) > epsilon)
+                if (std::fabs(value->x - eValue[entity].x) > compThreshold)
                     difX = true;
-                if (std::fabs(value->y - eValue[entity].y) > epsilon)
+                if (std::fabs(value->y - eValue[entity].y) > compThreshold)
                     difY = true;
-                if (std::fabs(value->z - eValue[entity].z) > epsilon)
+                if (std::fabs(value->z - eValue[entity].z) > compThreshold)
                     difZ = true;
             }
             value = &eValue[entity];
@@ -152,13 +161,13 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         bool difZ = false;
         std::map<Entity, Vector3> eValue;
         for (Entity& entity : entities){
-            eValue[entity] = Catalog::getPropertyRef<Quaternion>(scene, entity, cpType, name)->normalize().getEulerAngles(order);
+            eValue[entity] = roundZero(Catalog::getPropertyRef<Quaternion>(scene, entity, cpType, name)->normalize().getEulerAngles(order), zeroThreshold);
             if (value){
-                if (std::fabs(value->x - eValue[entity].x) > epsilon)
+                if (std::fabs(value->x - eValue[entity].x) > compThreshold)
                     difX = true;
-                if (std::fabs(value->y - eValue[entity].y) > epsilon)
+                if (std::fabs(value->y - eValue[entity].y) > compThreshold)
                     difY = true;
-                if (std::fabs(value->z - eValue[entity].z) > epsilon)
+                if (std::fabs(value->z - eValue[entity].z) > compThreshold)
                     difZ = true;
             }
             value = &eValue[entity];
