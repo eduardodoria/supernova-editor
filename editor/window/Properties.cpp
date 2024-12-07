@@ -152,7 +152,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         bool difZ = false;
         std::map<Entity, Vector3> eValue;
         for (Entity& entity : entities){
-            eValue[entity] = Catalog::getPropertyRef<Quaternion>(scene, entity, cpType, name)->getEulerAngles(order);
+            eValue[entity] = Catalog::getPropertyRef<Quaternion>(scene, entity, cpType, name)->normalize().getEulerAngles(order);
             if (value){
                 if (std::fabs(value->x - eValue[entity].x) > epsilon)
                     difX = true;
@@ -170,7 +170,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
         if (difX)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::DragFloat(("##input_x_"+name).c_str(), &(newValue.x), 0.1f, 0.0f, 0.0f, "%.2f")){
+        if (ImGui::DragFloat(("##input_x_"+name).c_str(), &(newValue.x), 0.1f, 0.0f, 0.0f, "%.2f°")){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Quaternion>(scene, entity, cpType, name, prop.updateFlags, Quaternion(newValue.x, eValue[entity].y, eValue[entity].z, order));
                 CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
@@ -181,7 +181,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         ImGui::SameLine();
         if (difY)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::DragFloat(("##input_y_"+name).c_str(), &(newValue.y), 0.1f, 0.0f, 0.0f, "%.2f")){
+        if (ImGui::DragFloat(("##input_y_"+name).c_str(), &(newValue.y), 0.1f, 0.0f, 0.0f, "%.2f°")){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Quaternion>(scene, entity, cpType, name, prop.updateFlags, Quaternion(eValue[entity].x, newValue.y, eValue[entity].z, order));
                 CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
@@ -192,7 +192,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         ImGui::SameLine();
         if (difZ)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::DragFloat(("##input_z_"+name).c_str(), &(newValue.z), 0.1f, 0.0f, 0.0f, "%.2f")){
+        if (ImGui::DragFloat(("##input_z_"+name).c_str(), &(newValue.z), 0.1f, 0.0f, 0.0f, "%.2f°")){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Quaternion>(scene, entity, cpType, name, prop.updateFlags, Quaternion(eValue[entity].x, eValue[entity].y, newValue.z, order));
                 CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
