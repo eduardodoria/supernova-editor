@@ -75,7 +75,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
     static Command* cmd = nullptr;
 
-    float threshold = 1e-5;
+    float epsilon = 1e-5;
 
     if (prop.type == PropertyType::Float3){
         Vector3* value = nullptr;
@@ -86,11 +86,11 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         for (Entity& entity : entities){
             eValue[entity] = *Catalog::getPropertyRef<Vector3>(scene, entity, cpType, name);
             if (value){
-                if (value->x != eValue[entity].x)
+                if (std::fabs(value->x - eValue[entity].x) > epsilon)
                     difX = true;
-                if (value->y != eValue[entity].y)
+                if (std::fabs(value->y - eValue[entity].y) > epsilon)
                     difY = true;
-                if (value->z != eValue[entity].z)
+                if (std::fabs(value->z - eValue[entity].z) > epsilon)
                     difZ = true;
             }
             value = &eValue[entity];
@@ -154,11 +154,11 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         for (Entity& entity : entities){
             eValue[entity] = Catalog::getPropertyRef<Quaternion>(scene, entity, cpType, name)->getEulerAngles(order);
             if (value){
-                if (std::fabs(value->x - eValue[entity].x) > threshold)
+                if (std::fabs(value->x - eValue[entity].x) > epsilon)
                     difX = true;
-                if (std::fabs(value->y - eValue[entity].y) > threshold)
+                if (std::fabs(value->y - eValue[entity].y) > epsilon)
                     difY = true;
-                if (std::fabs(value->z - eValue[entity].z) > threshold)
+                if (std::fabs(value->z - eValue[entity].z) > epsilon)
                     difZ = true;
             }
             value = &eValue[entity];
