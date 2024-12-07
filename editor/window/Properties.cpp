@@ -109,6 +109,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         ImGui::BeginGroup();
         ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
+
         if (difX)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         if (ImGui::DragFloat(("##input_x_"+name).c_str(), &(newValue.x), 0.1f, 0.0f, 0.0f, "%.2f")){
@@ -119,6 +120,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         }
         if (difX)
             ImGui::PopStyleColor();
+
         ImGui::SameLine();
         if (difY)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
@@ -130,6 +132,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         }
         if (difY)
             ImGui::PopStyleColor();
+
         ImGui::SameLine();
         if (difZ)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
@@ -141,16 +144,85 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         }
         if (difZ)
             ImGui::PopStyleColor();
+
         ImGui::EndGroup();
         //ImGui::SetItemTooltip("%s (X, Y, Z)", prop.label.c_str());
 
     }else if (prop.type == PropertyType::Float4){
-        Vector4* value = Catalog::getPropertyRef<Vector4>(scene, entity, cpType, name);
-        Vector4 newValue = *value;
-        if (ImGui::DragFloat4(("##input_"+name).c_str(), &(newValue.x), 1.0f, 0.0f, 0.0f, "%.2f")){
-            cmd = new PropertyCmd<Vector4>(scene, entity, cpType, name, prop.updateFlags, newValue);
-            CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+        Vector4* value = nullptr;
+        bool difX = false;
+        bool difY = false;
+        bool difZ = false;
+        bool difW = false;
+        std::map<Entity, Vector4> eValue;
+        for (Entity& entity : entities){
+            eValue[entity] = *Catalog::getPropertyRef<Vector4>(scene, entity, cpType, name);
+            if (value){
+                if (std::fabs(value->x - eValue[entity].x) > compThreshold)
+                    difX = true;
+                if (std::fabs(value->y - eValue[entity].y) > compThreshold)
+                    difY = true;
+                if (std::fabs(value->z - eValue[entity].z) > compThreshold)
+                    difZ = true;
+                if (std::fabs(value->w - eValue[entity].w) > compThreshold)
+                    difW = true;
+            }
+            value = &eValue[entity];
         }
+
+        Vector4 newValue = *value;
+
+        ImGui::BeginGroup();
+        ImGui::PushMultiItemsWidths(4, ImGui::CalcItemWidth());
+
+        if (difX)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        if (ImGui::DragFloat(("##input_x_"+name).c_str(), &(newValue.x), 0.1f, 0.0f, 0.0f, "%.2f")){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<Vector4>(scene, entity, cpType, name, prop.updateFlags, Vector4(newValue.x, eValue[entity].y, eValue[entity].z, eValue[entity].w));
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            }
+        }
+        if (difX)
+            ImGui::PopStyleColor();
+
+        ImGui::SameLine();
+        if (difY)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        if (ImGui::DragFloat(("##input_y_"+name).c_str(), &(newValue.y), 0.1f, 0.0f, 0.0f, "%.2f")){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<Vector4>(scene, entity, cpType, name, prop.updateFlags, Vector4(eValue[entity].x, newValue.y, eValue[entity].z, eValue[entity].w));
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            }
+        }
+        if (difY)
+            ImGui::PopStyleColor();
+
+        ImGui::SameLine();
+        if (difZ)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        if (ImGui::DragFloat(("##input_z_"+name).c_str(), &(newValue.z), 0.1f, 0.0f, 0.0f, "%.2f")){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<Vector4>(scene, entity, cpType, name, prop.updateFlags, Vector4(eValue[entity].x, eValue[entity].y, newValue.z, eValue[entity].w));
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            }
+        }
+        if (difZ)
+            ImGui::PopStyleColor();
+
+        ImGui::SameLine();
+        if (difW)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        if (ImGui::DragFloat(("##input_w_"+name).c_str(), &(newValue.w), 0.1f, 0.0f, 0.0f, "%.2f")){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<Vector4>(scene, entity, cpType, name, prop.updateFlags, Vector4(eValue[entity].x, eValue[entity].y, eValue[entity].z, newValue.w));
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            }
+        }
+        if (difW)
+            ImGui::PopStyleColor();
+
+        ImGui::EndGroup();
         //ImGui::SetItemTooltip("%s (X, Y, Z)", prop.label.c_str());
 
     }else if (prop.type == PropertyType::Quat){
@@ -177,6 +249,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         ImGui::BeginGroup();
         ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
+
         if (difX)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         if (ImGui::DragFloat(("##input_x_"+name).c_str(), &(newValue.x), 0.1f, 0.0f, 0.0f, "%.2f°")){
@@ -187,6 +260,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         }
         if (difX)
             ImGui::PopStyleColor();
+
         ImGui::SameLine();
         if (difY)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
@@ -198,6 +272,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         }
         if (difY)
             ImGui::PopStyleColor();
+
         ImGui::SameLine();
         if (difZ)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
@@ -209,16 +284,35 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         }
         if (difZ)
             ImGui::PopStyleColor();
+
         ImGui::EndGroup();
         //ImGui::SetItemTooltip("%s in degrees (X, Y, Z)", prop.label.c_str());
 
     }else if (prop.type == PropertyType::Bool){
-        bool* value = Catalog::getPropertyRef<bool>(scene, entity, cpType, name);
-        bool newValue = *value;
-        if (ImGui::Checkbox(("##checkbox_"+name).c_str(), &newValue)){
-            cmd = new PropertyCmd<bool>(scene, entity, cpType, name, prop.updateFlags, newValue);
-            CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+        bool* value = nullptr;
+        std::map<Entity, bool> eValue;
+        bool dif = false;
+        for (Entity& entity : entities){
+            eValue[entity] = *Catalog::getPropertyRef<bool>(scene, entity, cpType, name);
+            if (value){
+                if (*value != eValue[entity])
+                    dif = true;
+            }
+            value = &eValue[entity];
         }
+
+        bool newValue = *value;
+
+        if (dif)
+            ImGui::PushStyleColor(ImGuiCol_CheckMark, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        if (ImGui::Checkbox(("##checkbox_"+name).c_str(), &newValue)){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<bool>(scene, entity, cpType, name, prop.updateFlags, newValue);
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            }
+        }
+        if (dif)
+            ImGui::PopStyleColor();
         //ImGui::SetItemTooltip("%s", prop.label.c_str());
 
     }else if (prop.type == PropertyType::PrimitiveType){
