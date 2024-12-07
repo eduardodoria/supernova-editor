@@ -316,13 +316,31 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         //ImGui::SetItemTooltip("%s", prop.label.c_str());
 
     }else if (prop.type == PropertyType::PrimitiveType){
-        PrimitiveType* value = Catalog::getPropertyRef<PrimitiveType>(scene, entity, cpType, name);
+        PrimitiveType* value = nullptr;
+        std::map<Entity, PrimitiveType> eValue;
+        bool dif = false;
+        for (Entity& entity : entities){
+            eValue[entity] = *Catalog::getPropertyRef<PrimitiveType>(scene, entity, cpType, name);
+            if (value){
+                if (*value != eValue[entity])
+                    dif = true;
+            }
+            value = &eValue[entity];
+        }
+
         int item_current = Catalog::getPrimitiveTypeToIndex(*value);
+
+        if (dif)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         if (ImGui::Combo(("##combo_"+name).c_str(), &item_current, Catalog::getPrimitiveTypeArray().data(), Catalog::getPrimitiveTypeArray().size())){
             PrimitiveType newValue = Catalog::getPrimitiveTypeFromIndex(item_current);
-            cmd = new PropertyCmd<PrimitiveType>(scene, entity, cpType, name, prop.updateFlags, newValue);
-            CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<PrimitiveType>(scene, entity, cpType, name, prop.updateFlags, newValue);
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            }
         }
+        if (dif)
+            ImGui::PopStyleColor();
     }
 
     if (ImGui::IsItemDeactivatedAfterEdit()) {
