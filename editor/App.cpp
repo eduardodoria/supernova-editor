@@ -169,25 +169,7 @@ void Editor::App::show(){
     #endif
 
     if (!ImGui::IsAnyItemActive() && !ImGui::IsAnyItemFocused()){
-        if (ImGui::IsKeyPressed(ImGuiKey_W)) {
-            project.getSelectedScene()->sceneRender->getToolsLayer()->enableTranslateGizmo();
-        }
-
-        if (ImGui::IsKeyPressed(ImGuiKey_E)) {
-            project.getSelectedScene()->sceneRender->getToolsLayer()->enableRotateGizmo();
-        }
-
-        if (ImGui::IsKeyPressed(ImGuiKey_R)) {
-            project.getSelectedScene()->sceneRender->getToolsLayer()->enableScaleGizmo();
-        }
-
-        if (ImGui::IsKeyPressed(ImGuiKey_T)){
-            project.getSelectedScene()->sceneRender->changeUseGlobalTransform();
-        }
-
-        if (ImGui::IsKeyPressed(ImGuiKey_Delete)){
-            project.deleteEntities(project.getSelectedSceneId(), project.getSelectedEntities(project.getSelectedSceneId()));
-        }
+        // space to keys events
     }
 
     // Update the Undo and Redo button logic:

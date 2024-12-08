@@ -87,10 +87,14 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
 
     Camera* camera = project->getScene(sceneId)->sceneRender->getCamera();
 
+    bool walkingMode = false;
+
     // Check for mouse clicks
     if (draggingMouse[sceneId] && (ImGui::IsMouseDown(ImGuiMouseButton_Middle) || ImGui::IsMouseDown(ImGuiMouseButton_Right))) {
 
         if (ImGui::IsMouseDown(ImGuiMouseButton_Right)){
+
+            walkingMode = true;
 
             camera->rotateView(-0.1 * mouseDelta.x);
             camera->elevateView(-0.1 * mouseDelta.y);
@@ -150,6 +154,32 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
             camera->zoom(2.0 * mouseWheel);
         }
     }
+
+    if (project->getSelectedSceneId() == sceneId){
+        if (!walkingMode){
+            if (ImGui::IsKeyPressed(ImGuiKey_W)) {
+                project->getScene(sceneId)->sceneRender->getToolsLayer()->enableTranslateGizmo();
+            }
+
+            if (ImGui::IsKeyPressed(ImGuiKey_E)) {
+                project->getScene(sceneId)->sceneRender->getToolsLayer()->enableRotateGizmo();
+            }
+
+            if (ImGui::IsKeyPressed(ImGuiKey_R)) {
+                project->getScene(sceneId)->sceneRender->getToolsLayer()->enableScaleGizmo();
+            }
+
+            if (ImGui::IsKeyPressed(ImGuiKey_T)){
+                project->getScene(sceneId)->sceneRender->changeUseGlobalTransform();
+            }
+        }
+
+        if (ImGui::IsKeyPressed(ImGuiKey_Delete)){
+            project->deleteEntities(sceneId, project->getSelectedEntities(sceneId));
+        }
+    }
+
+
 }
 
 void Editor::SceneWindow::show(){
