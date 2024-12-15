@@ -115,7 +115,7 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["billboard"] = {PropertyType::Bool, "Billboard", UpdateFlags_Transform, (compRef) ? (void*)&comp->billboard : nullptr};
         ps["fake_billboard"] = {PropertyType::Bool, "Fake", UpdateFlags_Transform, (compRef) ? (void*)&comp->fakeBillboard : nullptr};
         ps["cylindrical_billboard"] = {PropertyType::Bool, "Cylindrical", UpdateFlags_Transform, (compRef) ? (void*)&comp->cylindricalBillboard : nullptr};
-        ps["billboard_rotation"] = {PropertyType::Quat, "Rotation", UpdateFlags_Transform, (compRef) ? (void*)&comp->billboardRotation : nullptr};
+        ps["rotation_billboard"] = {PropertyType::Quat, "Rotation", UpdateFlags_Transform, (compRef) ? (void*)&comp->billboardRotation : nullptr};
 
     }else if (component == ComponentType::MeshComponent){
         MeshComponent* comp = (MeshComponent*)compRef;

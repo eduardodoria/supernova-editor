@@ -48,7 +48,7 @@ float Editor::Properties::getMaxLabelSize(std::map<std::string, PropertyData> pr
         bool containsExclude = name.find(exclude) != std::string::npos;
 
         if ((include.empty() || containsInclude) && (exclude.empty() || !containsExclude)){
-            maxLabelSize = std::max(maxLabelSize, ImGui::CalcTextSize(prop.label.c_str()).x);
+            maxLabelSize = std::max(maxLabelSize, ImGui::CalcTextSize((prop.label + ICON_FA_ROTATE_LEFT).c_str()).x);
         }
     }
 
@@ -75,9 +75,21 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
     Entity entity = entities[0];
 
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2, ImGui::GetStyle().ItemSpacing.y));
     ImGui::TableNextRow();
     ImGui::TableNextColumn();
     ImGui::Text("%s", prop.label.c_str());
+    ImGui::SameLine();
+
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, ImGui::GetStyle().FramePadding.y));
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+
+    ImGui::Button((ICON_FA_ROTATE_LEFT"##"+name).c_str());
+
+    ImGui::PopStyleColor(1);
+    ImGui::PopStyleVar(3);
+
     ImGui::TableNextColumn();
     ImGui::SetNextItemWidth(secondColSize);
 
@@ -350,7 +362,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 }
 
 void Editor::Properties::drawTransform(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, std::vector<Entity> entities){
-    beginTable(cpType, getMaxLabelSize(props));
+    beginTable(cpType, getMaxLabelSize(props, "", "_billboard"));
 
     propertyRow(cpType, props, "position", scene, entities);
     propertyRow(cpType, props, "rotation", scene, entities);
@@ -362,16 +374,16 @@ void Editor::Properties::drawTransform(ComponentType cpType, std::map<std::strin
     if (ImGui::Button(ICON_FA_GEAR)){
         ImGui::OpenPopup("menusettings_billboard");
     }
-    ImGui::SetNextWindowSizeConstraints(ImVec2(18 * ImGui::GetFontSize(), 0), ImVec2(FLT_MAX, FLT_MAX));
+    ImGui::SetNextWindowSizeConstraints(ImVec2(19 * ImGui::GetFontSize(), 0), ImVec2(FLT_MAX, FLT_MAX));
     if (ImGui::BeginPopup("menusettings_billboard")){
         ImGui::Text("Billboard settings");
         ImGui::Separator();
 
-        beginTable(cpType, getMaxLabelSize(props), "billboard");
+        beginTable(cpType, getMaxLabelSize(props), "_billboard");
 
         propertyRow(cpType, props, "fake_billboard", scene, entities);
         propertyRow(cpType, props, "cylindrical_billboard", scene, entities);
-        propertyRow(cpType, props, "billboard_rotation", scene, entities, 12 * ImGui::GetFontSize());
+        propertyRow(cpType, props, "rotation_billboard", scene, entities, 12 * ImGui::GetFontSize());
 
         endTable();
 
