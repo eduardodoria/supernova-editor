@@ -107,27 +107,29 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
     std::map<std::string, Editor::PropertyData> ps;
     if(component == ComponentType::Transform){
         Transform* comp = (Transform*)compRef;
+        static Transform* def = new Transform;
 
-        ps["position"] = {PropertyType::Float3, "Position", UpdateFlags_Transform, (compRef) ? (void*)&comp->position : nullptr};
-        ps["rotation"] = {PropertyType::Quat, "Rotation", UpdateFlags_Transform, (compRef) ? (void*)&comp->rotation : nullptr};
-        ps["scale"] = {PropertyType::Float3, "Scale", UpdateFlags_Transform, (compRef) ? (void*)&comp->scale : nullptr};
-        ps["visible"] = {PropertyType::Bool, "Visible", UpdateFlags_None, (compRef) ? (void*)&comp->visible : nullptr};
-        ps["billboard"] = {PropertyType::Bool, "Billboard", UpdateFlags_Transform, (compRef) ? (void*)&comp->billboard : nullptr};
-        ps["fake_billboard"] = {PropertyType::Bool, "Fake", UpdateFlags_Transform, (compRef) ? (void*)&comp->fakeBillboard : nullptr};
-        ps["cylindrical_billboard"] = {PropertyType::Bool, "Cylindrical", UpdateFlags_Transform, (compRef) ? (void*)&comp->cylindricalBillboard : nullptr};
-        ps["rotation_billboard"] = {PropertyType::Quat, "Rotation", UpdateFlags_Transform, (compRef) ? (void*)&comp->billboardRotation : nullptr};
+        ps["position"] = {PropertyType::Float3, "Position", UpdateFlags_Transform, (void*)&def->position, (compRef) ? (void*)&comp->position : nullptr};
+        ps["rotation"] = {PropertyType::Quat, "Rotation", UpdateFlags_Transform, (void*)&def->rotation, (compRef) ? (void*)&comp->rotation : nullptr};
+        ps["scale"] = {PropertyType::Float3, "Scale", UpdateFlags_Transform, (void*)&def->scale, (compRef) ? (void*)&comp->scale : nullptr};
+        ps["visible"] = {PropertyType::Bool, "Visible", UpdateFlags_None, (void*)&def->visible, (compRef) ? (void*)&comp->visible : nullptr};
+        ps["billboard"] = {PropertyType::Bool, "Billboard", UpdateFlags_Transform, (void*)&def->billboard, (compRef) ? (void*)&comp->billboard : nullptr};
+        ps["fake_billboard"] = {PropertyType::Bool, "Fake", UpdateFlags_Transform, (void*)&def->fakeBillboard, (compRef) ? (void*)&comp->fakeBillboard : nullptr};
+        ps["cylindrical_billboard"] = {PropertyType::Bool, "Cylindrical", UpdateFlags_Transform, (void*)&def->cylindricalBillboard, (compRef) ? (void*)&comp->cylindricalBillboard : nullptr};
+        ps["rotation_billboard"] = {PropertyType::Quat, "Rotation", UpdateFlags_Transform, (void*)&def->billboardRotation, (compRef) ? (void*)&comp->billboardRotation : nullptr};
 
     }else if (component == ComponentType::MeshComponent){
         MeshComponent* comp = (MeshComponent*)compRef;
+        static MeshComponent* def = new MeshComponent;
 
-        ps["cast_shadows"] = {PropertyType::Bool, "Cast shadows", UpdateFlags_MeshReload, (compRef) ? (void*)&comp->castShadows : nullptr};
-        ps["receive_shadows"] = {PropertyType::Bool, "Receive shadows", UpdateFlags_MeshReload, (compRef) ? (void*)&comp->receiveShadows : nullptr};
-        ps["num_submeshes"] = {PropertyType::UInt, "Num submesh", UpdateFlags_None, (compRef) ? (void*)&comp->numSubmeshes : nullptr};
+        ps["cast_shadows"] = {PropertyType::Bool, "Cast shadows", UpdateFlags_MeshReload, (void*)&def->castShadows, (compRef) ? (void*)&comp->castShadows : nullptr};
+        ps["receive_shadows"] = {PropertyType::Bool, "Receive shadows", UpdateFlags_MeshReload, (void*)&def->receiveShadows, (compRef) ? (void*)&comp->receiveShadows : nullptr};
+        ps["num_submeshes"] = {PropertyType::UInt, "Num submesh", UpdateFlags_None, (void*)&def->numSubmeshes, (compRef) ? (void*)&comp->numSubmeshes : nullptr};
         for (int s = 0; s < ((compRef) ? comp->numSubmeshes : 1); s++){
             std::string idx = (compRef) ? std::to_string(s) : "";
-            ps["submeshes["+idx+"].primitive_type"] = {PropertyType::PrimitiveType, "Primitive", UpdateFlags_MeshReload, (compRef) ? (void*)&comp->submeshes[s].primitiveType : nullptr};
-            ps["submeshes["+idx+"].face_culling"] = {PropertyType::Bool, "Face culling", UpdateFlags_MeshReload, (compRef) ? (void*)&comp->submeshes[s].faceCulling : nullptr};
-            ps["submeshes["+idx+"].texture_rect"] = {PropertyType::Float4, "Texture rect", UpdateFlags_None, (compRef) ? (void*)&comp->submeshes[s].textureRect : nullptr};
+            ps["submeshes["+idx+"].primitive_type"] = {PropertyType::PrimitiveType, "Primitive", UpdateFlags_MeshReload, (void*)&def->submeshes[0].primitiveType, (compRef) ? (void*)&comp->submeshes[s].primitiveType : nullptr};
+            ps["submeshes["+idx+"].face_culling"] = {PropertyType::Bool, "Face culling", UpdateFlags_MeshReload, (void*)&def->submeshes[0].faceCulling, (compRef) ? (void*)&comp->submeshes[s].faceCulling : nullptr};
+            ps["submeshes["+idx+"].texture_rect"] = {PropertyType::Float4, "Texture rect", UpdateFlags_None, (void*)&def->submeshes[0].textureRect, (compRef) ? (void*)&comp->submeshes[s].textureRect : nullptr};
         }
     }
 

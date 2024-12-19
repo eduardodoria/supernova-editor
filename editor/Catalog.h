@@ -78,6 +78,7 @@ namespace Supernova::Editor{
         PropertyType type;
         std::string label;
         int updateFlags;
+        void* def;
         void* ref;
     };
 

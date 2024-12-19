@@ -17,6 +17,7 @@ namespace Supernova::Editor{
 
         void beginTable(ComponentType cpType, float firstColSize, std::string nameAddon = "");
         void endTable();
+        bool propertyHeader(std::string label, float secondColSize, bool defChanged);
         void propertyRow(ComponentType cpType, std::map<std::string, PropertyData> props, std::string name, Scene* scene, std::vector<Entity> entities, float secondColSize = -1);
 
         void drawTransform(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, std::vector<Entity> entities);
