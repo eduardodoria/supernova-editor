@@ -70,9 +70,12 @@ void Editor::Properties::endTable(){
     ImGui::EndTable();
 }
 
-bool Editor::Properties::propertyHeader(std::string label, float secondColSize, bool defChanged){
+bool Editor::Properties::propertyHeader(std::string label, float secondColSize, bool defChanged, bool child){
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2, ImGui::GetStyle().ItemSpacing.y));
     ImGui::TableNextRow();
+    if (child){
+        ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::ColorConvertFloat4ToU32(ImGui::GetStyle().Colors[ImGuiCol_PopupBg]));
+    }
     ImGui::TableNextColumn();
     ImGui::Text("%s", label.c_str());
     ImGui::SameLine();
@@ -95,10 +98,8 @@ bool Editor::Properties::propertyHeader(std::string label, float secondColSize, 
     return button;
 }
 
-void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string, PropertyData> props, std::string name, Scene* scene, std::vector<Entity> entities, float secondColSize){
+void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string, PropertyData> props, std::string name, Scene* scene, std::vector<Entity> entities, float secondColSize, bool child){
     PropertyData prop = props[replaceNumberedBrackets(name)];
-
-    Entity entity = entities[0];
 
     static Command* cmd = nullptr;
 
@@ -126,9 +127,11 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         Vector3 newValue = *value;
 
-        if (propertyHeader(prop.label, secondColSize, (newValue != *static_cast<Vector3*>(prop.def)))){
-            cmd = new PropertyCmd<Vector3>(scene, entity, cpType, name, prop.updateFlags, *static_cast<Vector3*>(prop.def));
-            CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+        if (propertyHeader(prop.label, secondColSize, (newValue != *static_cast<Vector3*>(prop.def)), child)){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<Vector3>(scene, entity, cpType, name, prop.updateFlags, *static_cast<Vector3*>(prop.def));
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            }
         }
 
         ImGui::BeginGroup();
@@ -196,9 +199,11 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         Vector4 newValue = *value;
 
-        if (propertyHeader(prop.label, secondColSize, (newValue != *static_cast<Vector4*>(prop.def)))){
-            cmd = new PropertyCmd<Vector4>(scene, entity, cpType, name, prop.updateFlags, *static_cast<Vector4*>(prop.def));
-            CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+        if (propertyHeader(prop.label, secondColSize, (newValue != *static_cast<Vector4*>(prop.def)), child)){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<Vector4>(scene, entity, cpType, name, prop.updateFlags, *static_cast<Vector4*>(prop.def));
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            }
         }
 
         ImGui::BeginGroup();
@@ -278,9 +283,11 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         Vector3 newValue = *value;
 
-        if (propertyHeader(prop.label, secondColSize, (qValue != *static_cast<Quaternion*>(prop.def)))){
-            cmd = new PropertyCmd<Quaternion>(scene, entity, cpType, name, prop.updateFlags, *static_cast<Quaternion*>(prop.def));
-            CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+        if (propertyHeader(prop.label, secondColSize, (qValue != *static_cast<Quaternion*>(prop.def)), child)){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<Quaternion>(scene, entity, cpType, name, prop.updateFlags, *static_cast<Quaternion*>(prop.def));
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            }
         }
 
         ImGui::BeginGroup();
@@ -339,9 +346,11 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         bool newValue = *value;
 
-        if (propertyHeader(prop.label, secondColSize, (newValue != *static_cast<bool*>(prop.def)))){
-            cmd = new PropertyCmd<bool>(scene, entity, cpType, name, prop.updateFlags, *static_cast<bool*>(prop.def));
-            CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+        if (propertyHeader(prop.label, secondColSize, (newValue != *static_cast<bool*>(prop.def)), child)){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<bool>(scene, entity, cpType, name, prop.updateFlags, *static_cast<bool*>(prop.def));
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            }
         }
 
         if (dif)
@@ -349,6 +358,40 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (ImGui::Checkbox(("##checkbox_"+name).c_str(), &newValue)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<bool>(scene, entity, cpType, name, prop.updateFlags, newValue);
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            }
+        }
+        if (dif)
+            ImGui::PopStyleColor();
+        //ImGui::SetItemTooltip("%s", prop.label.c_str());
+
+    }else if (prop.type == PropertyType::Color4){
+        Vector4* value = nullptr;
+        std::map<Entity, Vector4> eValue;
+        bool dif = false;
+        for (Entity& entity : entities){
+            eValue[entity] = *Catalog::getPropertyRef<Vector4>(scene, entity, cpType, name);
+            if (value){
+                if (*value != eValue[entity])
+                    dif = true;
+            }
+            value = &eValue[entity];
+        }
+
+        Vector4 newValue = *value;
+
+        if (propertyHeader(prop.label, secondColSize, (newValue != *static_cast<Vector4*>(prop.def)), child)){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<Vector4>(scene, entity, cpType, name, prop.updateFlags, *static_cast<Vector4*>(prop.def));
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            }
+        }
+
+        if (dif)
+            ImGui::PushStyleColor(ImGuiCol_FrameBg, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        if (ImGui::ColorEdit4((prop.label+"##checkbox_"+name).c_str(), (float*)&newValue.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_AlphaBar)){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<Vector4>(scene, entity, cpType, name, prop.updateFlags, newValue);
                 CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
             }
         }
@@ -372,9 +415,11 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         int item_current = Catalog::getPrimitiveTypeToIndex(*value);
         int item_default = Catalog::getPrimitiveTypeToIndex(*static_cast<PrimitiveType*>(prop.def));
 
-        if (propertyHeader(prop.label, secondColSize, (item_current != item_default))){
-            cmd = new PropertyCmd<PrimitiveType>(scene, entity, cpType, name, prop.updateFlags, Catalog::getPrimitiveTypeFromIndex(item_default));
-            CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+        if (propertyHeader(prop.label, secondColSize, (item_current != item_default), child)){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<PrimitiveType>(scene, entity, cpType, name, prop.updateFlags, Catalog::getPrimitiveTypeFromIndex(item_default));
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            }
         }
 
         if (dif)
@@ -445,6 +490,19 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
         ImGui::SeparatorText(("Submesh "+std::to_string(s+1)).c_str());
 
         beginTable(cpType, getMaxLabelSize(props, "submeshes", "num"), "submeshes");
+
+        propertyHeader("Material");
+        ImGui::Button("Load");
+        ImGui::SameLine();
+
+        static bool show_button_group = false;
+        if (ImGui::ArrowButton("##toggle", show_button_group ? ImGuiDir_Down : ImGuiDir_Right)){
+            show_button_group = !show_button_group;
+        }
+
+        if (show_button_group){
+            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material_basecolor", scene, entities, -1, true);
+        }
 
         propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].primitive_type", scene, entities);
         propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].face_culling", scene, entities);

@@ -127,6 +127,8 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["num_submeshes"] = {PropertyType::UInt, "Num submesh", UpdateFlags_None, (void*)&def->numSubmeshes, (compRef) ? (void*)&comp->numSubmeshes : nullptr};
         for (int s = 0; s < ((compRef) ? comp->numSubmeshes : 1); s++){
             std::string idx = (compRef) ? std::to_string(s) : "";
+            ps["submeshes["+idx+"].material_name"] = {PropertyType::String, "Name", UpdateFlags_None, (void*)&def->submeshes[0].material.name, (compRef) ? (void*)&comp->submeshes[s].material.name : nullptr};
+            ps["submeshes["+idx+"].material_basecolor"] = {PropertyType::Color4, "Base Color", UpdateFlags_None, (void*)&def->submeshes[0].material.baseColorFactor, (compRef) ? (void*)&comp->submeshes[s].material.baseColorFactor : nullptr};
             ps["submeshes["+idx+"].primitive_type"] = {PropertyType::PrimitiveType, "Primitive", UpdateFlags_MeshReload, (void*)&def->submeshes[0].primitiveType, (compRef) ? (void*)&comp->submeshes[s].primitiveType : nullptr};
             ps["submeshes["+idx+"].face_culling"] = {PropertyType::Bool, "Face culling", UpdateFlags_MeshReload, (void*)&def->submeshes[0].faceCulling, (compRef) ? (void*)&comp->submeshes[s].faceCulling : nullptr};
             ps["submeshes["+idx+"].texture_rect"] = {PropertyType::Float4, "Texture rect", UpdateFlags_None, (void*)&def->submeshes[0].textureRect, (compRef) ? (void*)&comp->submeshes[s].textureRect : nullptr};

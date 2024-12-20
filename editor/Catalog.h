@@ -69,6 +69,8 @@ namespace Supernova::Editor{
         Float3,
         Float4,
         Quat,
+        Color3,
+        Color4,
         Int,
         UInt,
         PrimitiveType
