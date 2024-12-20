@@ -109,9 +109,9 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         Transform* comp = (Transform*)compRef;
         static Transform* def = new Transform;
 
-        ps["position"] = {PropertyType::Float3, "Position", UpdateFlags_Transform, (void*)&def->position, (compRef) ? (void*)&comp->position : nullptr};
+        ps["position"] = {PropertyType::Vector3, "Position", UpdateFlags_Transform, (void*)&def->position, (compRef) ? (void*)&comp->position : nullptr};
         ps["rotation"] = {PropertyType::Quat, "Rotation", UpdateFlags_Transform, (void*)&def->rotation, (compRef) ? (void*)&comp->rotation : nullptr};
-        ps["scale"] = {PropertyType::Float3, "Scale", UpdateFlags_Transform, (void*)&def->scale, (compRef) ? (void*)&comp->scale : nullptr};
+        ps["scale"] = {PropertyType::Vector3, "Scale", UpdateFlags_Transform, (void*)&def->scale, (compRef) ? (void*)&comp->scale : nullptr};
         ps["visible"] = {PropertyType::Bool, "Visible", UpdateFlags_None, (void*)&def->visible, (compRef) ? (void*)&comp->visible : nullptr};
         ps["billboard"] = {PropertyType::Bool, "Billboard", UpdateFlags_Transform, (void*)&def->billboard, (compRef) ? (void*)&comp->billboard : nullptr};
         ps["fake_billboard"] = {PropertyType::Bool, "Fake", UpdateFlags_Transform, (void*)&def->fakeBillboard, (compRef) ? (void*)&comp->fakeBillboard : nullptr};
@@ -129,9 +129,12 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
             std::string idx = (compRef) ? std::to_string(s) : "";
             ps["submeshes["+idx+"].material_name"] = {PropertyType::String, "Name", UpdateFlags_None, (void*)&def->submeshes[0].material.name, (compRef) ? (void*)&comp->submeshes[s].material.name : nullptr};
             ps["submeshes["+idx+"].material_basecolor"] = {PropertyType::Color4, "Base Color", UpdateFlags_None, (void*)&def->submeshes[0].material.baseColorFactor, (compRef) ? (void*)&comp->submeshes[s].material.baseColorFactor : nullptr};
+            ps["submeshes["+idx+"].material_metallicfactor"] = {PropertyType::Float_0_1, "Metallic Factor", UpdateFlags_None, (void*)&def->submeshes[0].material.metallicFactor, (compRef) ? (void*)&comp->submeshes[s].material.metallicFactor : nullptr};
+            ps["submeshes["+idx+"].material_roughnessfactor"] = {PropertyType::Float_0_1, "Roughness Factor", UpdateFlags_None, (void*)&def->submeshes[0].material.roughnessFactor, (compRef) ? (void*)&comp->submeshes[s].material.roughnessFactor : nullptr};
+
             ps["submeshes["+idx+"].primitive_type"] = {PropertyType::PrimitiveType, "Primitive", UpdateFlags_MeshReload, (void*)&def->submeshes[0].primitiveType, (compRef) ? (void*)&comp->submeshes[s].primitiveType : nullptr};
             ps["submeshes["+idx+"].face_culling"] = {PropertyType::Bool, "Face culling", UpdateFlags_MeshReload, (void*)&def->submeshes[0].faceCulling, (compRef) ? (void*)&comp->submeshes[s].faceCulling : nullptr};
-            ps["submeshes["+idx+"].texture_rect"] = {PropertyType::Float4, "Texture rect", UpdateFlags_None, (void*)&def->submeshes[0].textureRect, (compRef) ? (void*)&comp->submeshes[s].textureRect : nullptr};
+            ps["submeshes["+idx+"].texture_rect"] = {PropertyType::Vector4, "Texture rect", UpdateFlags_None, (void*)&def->submeshes[0].textureRect, (compRef) ? (void*)&comp->submeshes[s].textureRect : nullptr};
         }
     }
 

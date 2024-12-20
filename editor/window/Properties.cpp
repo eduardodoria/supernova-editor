@@ -106,7 +106,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
     constexpr float compThreshold = 1e-4;
     constexpr float zeroThreshold = 1e-4;
 
-    if (prop.type == PropertyType::Float3){
+    if (prop.type == PropertyType::Vector3){
         Vector3* value = nullptr;
         bool difX = false;
         bool difY = false;
@@ -175,7 +175,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         ImGui::EndGroup();
         //ImGui::SetItemTooltip("%s (X, Y, Z)", prop.label.c_str());
 
-    }else if (prop.type == PropertyType::Float4){
+    }else if (prop.type == PropertyType::Vector4){
         Vector4* value = nullptr;
         bool difX = false;
         bool difY = false;
@@ -365,6 +365,40 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             ImGui::PopStyleColor();
         //ImGui::SetItemTooltip("%s", prop.label.c_str());
 
+    }else if (prop.type == PropertyType::Float_0_1){
+        float* value = nullptr;
+        std::map<Entity, float> eValue;
+        bool dif = false;
+        for (Entity& entity : entities){
+            eValue[entity] = *Catalog::getPropertyRef<float>(scene, entity, cpType, name);
+            if (value){
+                if (*value != eValue[entity])
+                    dif = true;
+            }
+            value = &eValue[entity];
+        }
+
+        float newValue = *value;
+
+        if (propertyHeader(prop.label, secondColSize, (newValue != *static_cast<float*>(prop.def)), child)){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<float>(scene, entity, cpType, name, prop.updateFlags, *static_cast<float*>(prop.def));
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            }
+        }
+
+        if (dif)
+            ImGui::PushStyleColor(ImGuiCol_CheckMark, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        if (ImGui::DragFloat(("##input_float_"+name).c_str(), &newValue, 0.01f, 0.0f, 1.0f, "%.2f")){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<float>(scene, entity, cpType, name, prop.updateFlags, newValue);
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            }
+        }
+        if (dif)
+            ImGui::PopStyleColor();
+        //ImGui::SetItemTooltip("%s", prop.label.c_str());
+
     }else if (prop.type == PropertyType::Color4){
         Vector4* value = nullptr;
         std::map<Entity, Vector4> eValue;
@@ -502,6 +536,8 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
 
         if (show_button_group){
             propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material_basecolor", scene, entities, -1, true);
+            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material_metallicfactor", scene, entities, 4 * ImGui::GetFontSize(), true);
+            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material_roughnessfactor", scene, entities, 4 * ImGui::GetFontSize(), true);
         }
 
         propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].primitive_type", scene, entities);
