@@ -128,9 +128,12 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         for (int s = 0; s < ((compRef) ? comp->numSubmeshes : 1); s++){
             std::string idx = (compRef) ? std::to_string(s) : "";
             ps["submeshes["+idx+"].material_name"] = {PropertyType::String, "Name", UpdateFlags_None, (void*)&def->submeshes[0].material.name, (compRef) ? (void*)&comp->submeshes[s].material.name : nullptr};
-            ps["submeshes["+idx+"].material_basecolor"] = {PropertyType::Color4, "Base Color", UpdateFlags_None, (void*)&def->submeshes[0].material.baseColorFactor, (compRef) ? (void*)&comp->submeshes[s].material.baseColorFactor : nullptr};
+            ps["submeshes["+idx+"].material_basecolor"] = {PropertyType::Color4L, "Base Color", UpdateFlags_None, (void*)&def->submeshes[0].material.baseColorFactor, (compRef) ? (void*)&comp->submeshes[s].material.baseColorFactor : nullptr};
             ps["submeshes["+idx+"].material_metallicfactor"] = {PropertyType::Float_0_1, "Metallic Factor", UpdateFlags_None, (void*)&def->submeshes[0].material.metallicFactor, (compRef) ? (void*)&comp->submeshes[s].material.metallicFactor : nullptr};
             ps["submeshes["+idx+"].material_roughnessfactor"] = {PropertyType::Float_0_1, "Roughness Factor", UpdateFlags_None, (void*)&def->submeshes[0].material.roughnessFactor, (compRef) ? (void*)&comp->submeshes[s].material.roughnessFactor : nullptr};
+            ps["submeshes["+idx+"].material_emissivefactor"] = {PropertyType::Color3L, "Emissive Factor", UpdateFlags_None, (void*)&def->submeshes[0].material.emissiveFactor, (compRef) ? (void*)&comp->submeshes[s].material.emissiveFactor : nullptr};
+            ps["submeshes["+idx+"].material_ambientlight"] = {PropertyType::Color3L, "Ambient Light", UpdateFlags_None, (void*)&def->submeshes[0].material.ambientLight, (compRef) ? (void*)&comp->submeshes[s].material.ambientLight : nullptr};
+            ps["submeshes["+idx+"].material_ambientintensity"] = {PropertyType::Float_0_1, "Ambient Intensity", UpdateFlags_None, (void*)&def->submeshes[0].material.ambientIntensity, (compRef) ? (void*)&comp->submeshes[s].material.ambientIntensity : nullptr};
 
             ps["submeshes["+idx+"].primitive_type"] = {PropertyType::PrimitiveType, "Primitive", UpdateFlags_MeshReload, (void*)&def->submeshes[0].primitiveType, (compRef) ? (void*)&comp->submeshes[s].primitiveType : nullptr};
             ps["submeshes["+idx+"].face_culling"] = {PropertyType::Bool, "Face culling", UpdateFlags_MeshReload, (void*)&def->submeshes[0].faceCulling, (compRef) ? (void*)&comp->submeshes[s].faceCulling : nullptr};

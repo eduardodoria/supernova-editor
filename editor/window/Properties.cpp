@@ -399,7 +399,41 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             ImGui::PopStyleColor();
         //ImGui::SetItemTooltip("%s", prop.label.c_str());
 
-    }else if (prop.type == PropertyType::Color4){
+    }else if (prop.type == PropertyType::Color3L){
+        Vector3* value = nullptr;
+        std::map<Entity, Vector3> eValue;
+        bool dif = false;
+        for (Entity& entity : entities){
+            eValue[entity] = *Catalog::getPropertyRef<Vector3>(scene, entity, cpType, name);
+            if (value){
+                if (*value != eValue[entity])
+                    dif = true;
+            }
+            value = &eValue[entity];
+        }
+
+        Vector3 newValue = Color::linearTosRGB(*value);
+
+        if (propertyHeader(prop.label, secondColSize, (newValue != Color::linearTosRGB(*static_cast<Vector3*>(prop.def))), child)){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<Vector3>(scene, entity, cpType, name, prop.updateFlags, *static_cast<Vector3*>(prop.def));
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            }
+        }
+
+        if (dif)
+            ImGui::PushStyleColor(ImGuiCol_FrameBg, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        if (ImGui::ColorEdit3((prop.label+"##checkbox_"+name).c_str(), (float*)&newValue.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<Vector3>(scene, entity, cpType, name, prop.updateFlags, Color::sRGBToLinear(newValue));
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            }
+        }
+        if (dif)
+            ImGui::PopStyleColor();
+        //ImGui::SetItemTooltip("%s", prop.label.c_str());
+
+    }else if (prop.type == PropertyType::Color4L){
         Vector4* value = nullptr;
         std::map<Entity, Vector4> eValue;
         bool dif = false;
@@ -412,9 +446,9 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             value = &eValue[entity];
         }
 
-        Vector4 newValue = *value;
+        Vector4 newValue = Color::linearTosRGB(*value);
 
-        if (propertyHeader(prop.label, secondColSize, (newValue != *static_cast<Vector4*>(prop.def)), child)){
+        if (propertyHeader(prop.label, secondColSize, (newValue != Color::linearTosRGB(*static_cast<Vector4*>(prop.def))), child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector4>(scene, entity, cpType, name, prop.updateFlags, *static_cast<Vector4*>(prop.def));
                 CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
@@ -423,9 +457,9 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         if (dif)
             ImGui::PushStyleColor(ImGuiCol_FrameBg, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::ColorEdit4((prop.label+"##checkbox_"+name).c_str(), (float*)&newValue.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_AlphaBar)){
+        if (ImGui::ColorEdit4((prop.label+"##checkbox_"+name).c_str(), (float*)&newValue.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Vector4>(scene, entity, cpType, name, prop.updateFlags, newValue);
+                cmd = new PropertyCmd<Vector4>(scene, entity, cpType, name, prop.updateFlags, Color::sRGBToLinear(newValue));
                 CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
             }
         }
@@ -538,6 +572,11 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
             propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material_basecolor", scene, entities, -1, true);
             propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material_metallicfactor", scene, entities, 4 * ImGui::GetFontSize(), true);
             propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material_roughnessfactor", scene, entities, 4 * ImGui::GetFontSize(), true);
+            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material_emissivefactor", scene, entities, -1, true);
+            if (!scene->isSceneAmbientLightEnabled()){
+                propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material_ambientlight", scene, entities, -1, true);
+                propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material_ambientintensity", scene, entities, 4 * ImGui::GetFontSize(), true);
+            }
         }
 
         propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].primitive_type", scene, entities);

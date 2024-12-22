@@ -64,7 +64,8 @@ Editor::SceneRender::SceneRender(Scene* scene){
     sun->setShadows(true);
     sun->setRange(100);
 
-    scene->setAmbientLight(0.4);
+    scene->setAmbientLight(0.2);
+    //scene->setSceneAmbientLightEnabled(false);
     scene->setCamera(camera);
     scene->setBackgroundColor(Vector4(0.25, 0.45, 0.65, 1.0));
 
