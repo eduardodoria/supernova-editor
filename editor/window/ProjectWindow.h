@@ -20,6 +20,12 @@ namespace Supernova::Editor{
         bool firstOpen;
         std::string currentPath;
         std::vector<Editor::FileEntry> entries;
+        void* folderIcon;
+        void* fileIcon;
+
+        std::unordered_set<std::string> selectedFiles; // To track selected files
+        bool ctrlPressed; // To handle multi-selection using CTRL key
+        bool shiftPressed; // To handle range selection using SHIFT key
 
         void* LoadTexture(const char* filePath, int& outWidth, int& outHeight);
         void FreeTexture(void* textureID);

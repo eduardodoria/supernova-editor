@@ -47,7 +47,7 @@ void Editor::ProjectWindow::FreeTexture(void* textureID) {
 // Function to scan a directory and populate file entries
 std::vector<Editor::FileEntry> Editor::ProjectWindow::ScanDirectory(const std::string& path, void* folderIcon, void* fileIcon) {
     currentPath = path;
-    
+
     std::vector<Editor::FileEntry> entries;
 
     for (const auto& entry : fs::directory_iterator(path)) {
@@ -61,16 +61,20 @@ std::vector<Editor::FileEntry> Editor::ProjectWindow::ScanDirectory(const std::s
     return entries;
 }
 
-void Editor::ProjectWindow::show(){
-    if (firstOpen){
+void Editor::ProjectWindow::show() {
+    if (firstOpen) {
         int iconWidth, iconHeight;
-        void* folderIcon = LoadTexture("folder_icon.png", iconWidth, iconHeight); // Replace with your folder icon path
-        void* fileIcon = LoadTexture("file_icon.png", iconWidth, iconHeight); 
+        folderIcon = LoadTexture("folder_icon.png", iconWidth, iconHeight); // Replace with your folder icon path
+        fileIcon = LoadTexture("file_icon.png", iconWidth, iconHeight);
 
         entries = ScanDirectory(".", folderIcon, fileIcon);
 
         firstOpen = false;
     }
+
+    // Check if CTRL or SHIFT is pressed
+    ctrlPressed = ImGui::GetIO().KeyCtrl;
+    shiftPressed = ImGui::GetIO().KeyShift;
 
     ImGui::Begin("Project");
 
@@ -87,6 +91,8 @@ void Editor::ProjectWindow::show(){
     ImGui::Text("Current Path: %s", currentPath.c_str());
     ImGui::Separator();
 
+    ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(8.0f, 8.0f));
+
     // Begin table for dynamic columns
     if (ImGui::BeginTable("FileTable", columns, ImGuiTableFlags_SizingStretchSame)) {
         for (const auto& entry : entries) {
@@ -96,37 +102,64 @@ void Editor::ProjectWindow::show(){
             // Push a unique ID for each item
             ImGui::PushID(entry.name.c_str());
 
+            float itemSpacingY = ImGui::GetStyle().ItemSpacing.y;
             float cellWidth = ImGui::GetContentRegionAvail().x;
             ImVec2 textSize = ImGui::CalcTextSize(entry.name.c_str(), nullptr, true, cellWidth);
-            float padding = ImGui::GetStyle().ItemSpacing.y;
-            float selectableHeight = iconSize + textSize.y + padding;
+            float celHeight = iconSize + itemSpacingY + textSize.y; // Fixed height for the selectable area
+
+            ImVec2 selectableSize(cellWidth, celHeight);
 
             ImGui::BeginGroup(); // Group the icon and text
-            if (ImGui::Selectable("", false, 0, ImVec2(cellWidth, selectableHeight))) {
-                if (entry.isDirectory) {
+            bool isSelected = selectedFiles.find(entry.name) != selectedFiles.end();
+
+            if (ImGui::Selectable("", isSelected, ImGuiSelectableFlags_AllowDoubleClick, selectableSize)) {
+                if (ctrlPressed) {
+                    // Toggle selection for this file
+                    if (isSelected) {
+                        selectedFiles.erase(entry.name);
+                    } else {
+                        selectedFiles.insert(entry.name);
+                    }
+                } else if (shiftPressed) {
+                    // Handle range selection (not implemented in this example, but could be added)
+                    // Example: Select all files between the last selected file and this one
+                } else {
+                    // Clear previous selections and select this file
+                    selectedFiles.clear();
+                    selectedFiles.insert(entry.name);
+                }
+
+                if (ImGui::IsMouseDoubleClicked(0) && entry.isDirectory) {
                     // Navigate into the directory
-                    //entries = ScanDirectory(path + "/" + entry.name, entries[0].icon, entries[1].icon);
-                    //break; // Exit loop to update the UI
+                    entries = ScanDirectory(currentPath + "/" + entry.name, folderIcon, fileIcon);
+                    selectedFiles.clear();
+                    ImGui::EndGroup();
+                    ImGui::PopID();
+                    break; // Exit loop to update the UI
                 } else {
                     // Handle file selection
                     printf("Selected file: %s\n", entry.name.c_str());
                 }
             }
 
-            float iconX = (cellWidth - iconSize) / 2;
-            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + iconX);
-            ImGui::SetCursorPosY(ImGui::GetCursorPosY() - selectableHeight - padding);
+            float iconOffsetX = (cellWidth - iconSize) / 2;
+            float iconOffsetY = selectableSize.y + itemSpacingY;
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + iconOffsetX);
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() - iconOffsetY);
             ImGui::Image((ImTextureID)(intptr_t)entry.icon, ImVec2(iconSize, iconSize));
+
             float textOffsetX = (cellWidth / 2) - (textSize.x / 2);
             if (textOffsetX < 0) textOffsetX = 0;
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() + textOffsetX);
             ImGui::TextWrapped("%s", entry.name.c_str());
+
             ImGui::EndGroup();
 
             // Pop the unique ID for this item
             ImGui::PopID();
         }
         ImGui::EndTable();
+        ImGui::PopStyleVar();
     }
 
     ImGui::End();
