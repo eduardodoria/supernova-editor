@@ -1,5 +1,5 @@
-#ifndef LAYOUTPROPERTIES_H
-#define LAYOUTPROPERTIES_H
+#ifndef PROPERTIES_H
+#define PROPERTIES_H
 
 #include "Project.h"
 
@@ -31,4 +31,4 @@ namespace Supernova::Editor{
 
 }
 
-#endif /* LAYOUTPROPERTIES_H */
+#endif /* PROPERTIES_H */

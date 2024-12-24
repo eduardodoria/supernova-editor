@@ -9,6 +9,7 @@
 #include "window/Structure.h"
 #include "window/Console.h"
 #include "window/SceneWindow.h"
+#include "window/ProjectWindow.h"
 
 #include "render/SceneRender.h"
 
@@ -25,6 +26,7 @@ namespace Supernova::Editor{
         Properties* propertiesWindow;
         Console* consoleWindow;
         SceneWindow* sceneWindow;
+        ProjectWindow* projectWindow;
 
         static bool isInitialized;
 

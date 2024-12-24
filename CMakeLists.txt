@@ -44,6 +44,7 @@ include_directories (${SUPERNOVA_ROOT}/engine/libs/sokol)
 include_directories (${SUPERNOVA_ROOT}/engine/libs/lua)
 include_directories (${SUPERNOVA_ROOT}/engine/libs/box2d/include)
 include_directories (${SUPERNOVA_ROOT}/engine/libs/joltphysics)
+include_directories (${SUPERNOVA_ROOT}/engine/libs/stb) #TODO: remove
 
 include_directories (${SUPERNOVA_ROOT}/engine/core)
 include_directories (${SUPERNOVA_ROOT}/engine/core/action)
@@ -99,6 +100,7 @@ add_executable(
     ${EDITOR_DIR}/window/Console.cpp
     ${EDITOR_DIR}/window/SceneWindow.cpp
     ${EDITOR_DIR}/window/Structure.cpp
+    ${EDITOR_DIR}/window/ProjectWindow.cpp
 
     ${EDITOR_DIR}/render/ViewportGizmo.cpp
     ${EDITOR_DIR}/render/ToolsLayer.cpp

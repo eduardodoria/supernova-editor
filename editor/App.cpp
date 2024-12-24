@@ -20,6 +20,7 @@ Editor::App::App(){
     propertiesWindow = new Properties(&project);
     consoleWindow = new Console();
     sceneWindow = new SceneWindow(&project);
+    projectWindow = new ProjectWindow(&project);
 }
 
 void Editor::App::showMenu(){
@@ -61,7 +62,7 @@ void Editor::App::showMenu(){
 }
 
 void Editor::App::buildDockspace(){
-    ImGuiID dock_id_left, dock_id_right, dock_id_middle, dock_id_middle_bottom;
+    ImGuiID dock_id_left, dock_id_left_top, dock_id_left_bottom, dock_id_right, dock_id_middle, dock_id_middle_bottom;
     float size;
 
     ImGui::DockBuilderRemoveNode(dockspace_id);
@@ -73,6 +74,11 @@ void Editor::App::buildDockspace(){
     ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.0f, &dock_id_left, &dock_id_middle);
     ImGui::DockBuilderSetNodeSize(dock_id_left, ImVec2(size, ImGui::GetMainViewport()->Size.y)); // Set left node size
     ImGui::DockBuilderDockWindow("Structure", dock_id_left);
+
+    size = 50*ImGui::GetFontSize();
+    ImGui::DockBuilderSplitNode(dock_id_left, ImGuiDir_Down, 0.0f, &dock_id_left_bottom, &dock_id_left_top);
+    ImGui::DockBuilderSetNodeSize(dock_id_left_bottom, ImVec2(ImGui::GetMainViewport()->Size.x, size));
+    ImGui::DockBuilderDockWindow("Project", dock_id_left_bottom);
 
     // Split the middle into right and remaining middle
     size = 19*ImGui::GetFontSize();
@@ -201,6 +207,7 @@ void Editor::App::show(){
     consoleWindow->show();
     propertiesWindow->show();
     sceneWindow->show();
+    projectWindow->show();
 }
 
 void Editor::App::engineInit(int argc, char** argv){
