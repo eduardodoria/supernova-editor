@@ -10,7 +10,7 @@ namespace Supernova::Editor{
     struct FileEntry {
         std::string name;
         bool isDirectory;
-        void* icon; // Texture ID for the icon
+        intptr_t icon;
     };
 
     class ProjectWindow{
@@ -20,16 +20,15 @@ namespace Supernova::Editor{
         bool firstOpen;
         std::string currentPath;
         std::vector<Editor::FileEntry> entries;
-        void* folderIcon;
-        void* fileIcon;
+
+        Texture folderIcon;
+        Texture fileIcon;
 
         std::unordered_set<std::string> selectedFiles; // To track selected files
         bool ctrlPressed; // To handle multi-selection using CTRL key
         bool shiftPressed; // To handle range selection using SHIFT key
 
-        void* LoadTexture(const char* filePath, int& outWidth, int& outHeight);
-        void FreeTexture(void* textureID);
-        std::vector<FileEntry> ScanDirectory(const std::string& path, void* folderIcon, void* fileIcon);
+        std::vector<FileEntry> ScanDirectory(const std::string& path, intptr_t folderIcon, intptr_t fileIcon);
 
     public:
         ProjectWindow(Project* project);

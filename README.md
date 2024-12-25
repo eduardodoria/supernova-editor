@@ -34,3 +34,5 @@ sudo make install
 ## Assets
 
  - https://opengameart.org/content/sky-box-sunny-day
+ - https://www.freepik.com/icon/file_2521594
+ - https://www.freepik.com/icon/folder_12003793

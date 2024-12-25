@@ -1,15 +1,14 @@
 #include "ProjectWindow.h"
 
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
-#include <GLFW/glfw3.h>
 #include <vector>
 #include <string>
-#include <filesystem> // C++17 filesystem library
-#include "stb_image.h" // For loading icons
+#include <filesystem>
 
 #include "imgui.h"
 #include "imgui_internal.h"
+
+#include "resources/icons/folder-icon_png.h"
+#include "resources/icons/file-icon_png.h"
 
 using namespace Supernova;
 
@@ -20,32 +19,8 @@ Editor::ProjectWindow::ProjectWindow(Project* project){
     this->firstOpen = true;
 }
 
-void* Editor::ProjectWindow::LoadTexture(const char* filePath, int& outWidth, int& outHeight) {
-    int channels;
-    unsigned char* data = stbi_load(filePath, &outWidth, &outHeight, &channels, 4);
-    if (!data) {
-        return nullptr;
-    }
-
-    GLuint texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, outWidth, outHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    stbi_image_free(data);
-    return reinterpret_cast<void*>(static_cast<intptr_t>(texture));
-}
-
-// Function to release textures
-void Editor::ProjectWindow::FreeTexture(void* textureID) {
-    GLuint texture = static_cast<GLuint>(reinterpret_cast<intptr_t>(textureID));
-    glDeleteTextures(1, &texture);
-}
-
 // Function to scan a directory and populate file entries
-std::vector<Editor::FileEntry> Editor::ProjectWindow::ScanDirectory(const std::string& path, void* folderIcon, void* fileIcon) {
+std::vector<Editor::FileEntry> Editor::ProjectWindow::ScanDirectory(const std::string& path, intptr_t folderIcon, intptr_t fileIcon) {
     currentPath = path;
 
     std::vector<Editor::FileEntry> entries;
@@ -64,10 +39,18 @@ std::vector<Editor::FileEntry> Editor::ProjectWindow::ScanDirectory(const std::s
 void Editor::ProjectWindow::show() {
     if (firstOpen) {
         int iconWidth, iconHeight;
-        folderIcon = LoadTexture("folder_icon.png", iconWidth, iconHeight); // Replace with your folder icon path
-        fileIcon = LoadTexture("file_icon.png", iconWidth, iconHeight);
 
-        entries = ScanDirectory(".", folderIcon, fileIcon);
+        TextureData data;
+
+        data.loadTextureFromMemory(folder_12003793_png, folder_12003793_png_len);
+        folderIcon.setData("editor:resources:folder_icon", data);
+        folderIcon.load();
+
+        data.loadTextureFromMemory(file_2521594_png, file_2521594_png_len);
+        fileIcon.setData("editor:resources:file_icon", data);
+        fileIcon.load();
+
+        entries = ScanDirectory(".", (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
 
         firstOpen = false;
     }
@@ -131,7 +114,7 @@ void Editor::ProjectWindow::show() {
 
                 if (ImGui::IsMouseDoubleClicked(0) && entry.isDirectory) {
                     // Navigate into the directory
-                    entries = ScanDirectory(currentPath + "/" + entry.name, folderIcon, fileIcon);
+                    entries = ScanDirectory(currentPath + "/" + entry.name, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
                     selectedFiles.clear();
                     ImGui::EndGroup();
                     ImGui::PopID();
@@ -146,7 +129,7 @@ void Editor::ProjectWindow::show() {
             float iconOffsetY = selectableSize.y + itemSpacingY;
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() + iconOffsetX);
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() - iconOffsetY);
-            ImGui::Image((ImTextureID)(intptr_t)entry.icon, ImVec2(iconSize, iconSize));
+            ImGui::Image((ImTextureID)entry.icon, ImVec2(iconSize, iconSize));
 
             float textOffsetX = (cellWidth / 2) - (textSize.x / 2);
             if (textOffsetX < 0) textOffsetX = 0;
