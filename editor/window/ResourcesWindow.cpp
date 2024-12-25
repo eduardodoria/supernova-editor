@@ -1,4 +1,4 @@
-#include "ProjectWindow.h"
+#include "ResourcesWindow.h"
 
 #include <vector>
 #include <string>
@@ -14,13 +14,13 @@ using namespace Supernova;
 
 namespace fs = std::filesystem;
 
-Editor::ProjectWindow::ProjectWindow(Project* project){
+Editor::ResourcesWindow::ResourcesWindow(Project* project){
     this->project = project;
     this->firstOpen = true;
 }
 
 // Function to scan a directory and populate file entries
-std::vector<Editor::FileEntry> Editor::ProjectWindow::ScanDirectory(const std::string& path, intptr_t folderIcon, intptr_t fileIcon) {
+std::vector<Editor::FileEntry> Editor::ResourcesWindow::ScanDirectory(const std::string& path, intptr_t folderIcon, intptr_t fileIcon) {
     currentPath = path;
 
     std::vector<Editor::FileEntry> entries;
@@ -36,7 +36,7 @@ std::vector<Editor::FileEntry> Editor::ProjectWindow::ScanDirectory(const std::s
     return entries;
 }
 
-void Editor::ProjectWindow::show() {
+void Editor::ResourcesWindow::show() {
     if (firstOpen) {
         int iconWidth, iconHeight;
 
@@ -59,7 +59,7 @@ void Editor::ProjectWindow::show() {
     ctrlPressed = ImGui::GetIO().KeyCtrl;
     shiftPressed = ImGui::GetIO().KeyShift;
 
-    ImGui::Begin("Project");
+    ImGui::Begin("Resources");
 
     // Calculate the number of columns based on the window width
     float windowWidth = ImGui::GetContentRegionAvail().x;

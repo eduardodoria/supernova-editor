@@ -1,5 +1,5 @@
-#ifndef PROJECTWINDOW_H
-#define PROJECTWINDOW_H
+#ifndef RESOURCESWINDOW_H
+#define RESOURCESWINDOW_H
 
 
 #include "Project.h"
@@ -13,7 +13,7 @@ namespace Supernova::Editor{
         intptr_t icon;
     };
 
-    class ProjectWindow{
+    class ResourcesWindow{
     private:
         Project* project;
 
@@ -31,11 +31,11 @@ namespace Supernova::Editor{
         std::vector<FileEntry> ScanDirectory(const std::string& path, intptr_t folderIcon, intptr_t fileIcon);
 
     public:
-        ProjectWindow(Project* project);
+        ResourcesWindow(Project* project);
 
         void show();
     };
 
 }
 
-#endif /* PROJECTWINDOW_H */
+#endif /* RESOURCESWINDOW_H */

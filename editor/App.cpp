@@ -20,7 +20,7 @@ Editor::App::App(){
     propertiesWindow = new Properties(&project);
     consoleWindow = new Console();
     sceneWindow = new SceneWindow(&project);
-    projectWindow = new ProjectWindow(&project);
+    resourcesWindow = new ResourcesWindow(&project);
 }
 
 void Editor::App::showMenu(){
@@ -78,7 +78,7 @@ void Editor::App::buildDockspace(){
     size = 50*ImGui::GetFontSize();
     ImGui::DockBuilderSplitNode(dock_id_left, ImGuiDir_Down, 0.0f, &dock_id_left_bottom, &dock_id_left_top);
     ImGui::DockBuilderSetNodeSize(dock_id_left_bottom, ImVec2(ImGui::GetMainViewport()->Size.x, size));
-    ImGui::DockBuilderDockWindow("Project", dock_id_left_bottom);
+    ImGui::DockBuilderDockWindow("Resources", dock_id_left_bottom);
 
     // Split the middle into right and remaining middle
     size = 19*ImGui::GetFontSize();
@@ -207,7 +207,7 @@ void Editor::App::show(){
     consoleWindow->show();
     propertiesWindow->show();
     sceneWindow->show();
-    projectWindow->show();
+    resourcesWindow->show();
 }
 
 void Editor::App::engineInit(int argc, char** argv){
