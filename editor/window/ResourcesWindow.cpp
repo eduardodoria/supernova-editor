@@ -84,28 +84,44 @@ void Editor::ResourcesWindow::sortWithSortSpecs(ImGuiTableSortSpecs* sortSpecs, 
     std::sort(files.begin(), files.end(), comparator);
 }
 
-std::string Editor::ResourcesWindow::shortenPath(const std::filesystem::path& path, size_t maxLength) {
+std::string Editor::ResourcesWindow::shortenPath(const std::filesystem::path& path, float maxWidth) {
     std::string fullPath = path.string();
 
-    if (fullPath.length() <= maxLength) {
+    // Calculate the size of the full path
+    ImVec2 fullPathSize = ImGui::CalcTextSize(fullPath.c_str());
+    if (fullPathSize.x <= maxWidth) {
         return fullPath;
     }
 
-    auto filename = path.filename().string();
-    size_t remainingLength = maxLength - 3;
-
-    if (filename.length() > remainingLength) {
-        return filename.substr(0, remainingLength) + "...";
-    }
-
+    // Get the filename and parent path
+    std::string filename = path.filename().string();
     std::string parentPath = path.parent_path().string();
-    size_t prefixLength = remainingLength - filename.length();
 
-    if (prefixLength > 0 && parentPath.length() > prefixLength) {
-        parentPath = parentPath.substr(0, prefixLength) + "...";
+    // Calculate the size of the filename
+    ImVec2 filenameSize = ImGui::CalcTextSize(filename.c_str());
+    if (filenameSize.x > maxWidth) {
+        // Truncate filename if it alone exceeds maxWidth
+        std::string truncatedFilename = filename;
+        while (!truncatedFilename.empty() && ImGui::CalcTextSize((truncatedFilename + "...").c_str()).x > maxWidth) {
+            truncatedFilename.pop_back();
+        }
+        return truncatedFilename + "...";
     }
 
-    return parentPath + "/" + filename;
+    // Determine how much space remains for the parent path
+    float remainingWidth = maxWidth - filenameSize.x - ImGui::CalcTextSize("/").x; // Space for '/' separator
+
+    // Truncate the parent path if necessary
+    if (parentPath != "."){
+        std::string truncatedParentPath = parentPath;
+        while (!truncatedParentPath.empty() && ImGui::CalcTextSize((truncatedParentPath + ".../").c_str()).x > remainingWidth) {
+            truncatedParentPath.pop_back();
+        }
+
+        return truncatedParentPath + ".../" + filename;
+    }else{
+        return filename;
+    }
 }
 
 void Editor::ResourcesWindow::show() {
@@ -142,11 +158,13 @@ void Editor::ResourcesWindow::show() {
     int columns = static_cast<int>(windowWidth / columnWidth);
     if (columns < 1) columns = 1; // Ensure at least one column
 
+    ImGui::BeginDisabled(currentPath == ".");
+
     if (ImGui::Button(ICON_FA_HOUSE)){
         files = scanDirectory(".", (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
     }
     ImGui::SameLine();
-    ImGui::BeginDisabled(currentPath == ".");
+
     if (ImGui::Button(ICON_FA_ANGLE_LEFT)){
         if (!currentPath.empty() && currentPath != ".") {
             fs::path parentPath = fs::path(currentPath).parent_path();
@@ -154,23 +172,27 @@ void Editor::ResourcesWindow::show() {
             files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
         }
     }
+
     ImGui::EndDisabled();
 
-    float buttonWidth = ImGui::CalcTextSize(ICON_FA_GEAR).x + ImGui::GetStyle().FramePadding.x;
+    // ------- path part --------
+    ImGui::SameLine();
 
-    // Display current path
-    if (currentPath != "."){
-        int maxChars = static_cast<int>((ImGui::GetContentRegionAvail().x - buttonWidth) / ImGui::CalcTextSize("M").x);
-        if (maxChars < 16) maxChars = 16;
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(50, 50, 50, 255)); // Dark gray background
+    ImGui::BeginChild("PathFrame", ImVec2(-ImGui::CalcTextSize(ICON_FA_COPY).x - ImGui::GetStyle().ItemSpacing.x - ImGui::GetStyle().FramePadding.x * 2, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y*2), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
-        ImGui::SameLine();
-        ImGui::Text("%s", shortenPath(currentPath, maxChars).c_str());
-        ImGui::SetItemTooltip("%s", currentPath.c_str());
-    }
+    std::string shortenedPath = shortenPath(currentPath, ImGui::GetContentRegionAvail().x);
 
-    ImGui::SameLine(ImGui::GetContentRegionAvail().x - buttonWidth);
-    if (ImGui::Button(ICON_FA_GEAR)){
+    ImGui::SetCursorPosY(ImGui::GetStyle().FramePadding.y);
+    ImGui::Text("%s", ((shortenedPath==".")?"":shortenedPath).c_str());
 
+    ImGui::EndChild();
+    ImGui::PopStyleColor();
+    // ------- path part --------
+
+    ImGui::SameLine();
+    if (ImGui::Button(ICON_FA_GEAR)) {
+        ImGui::SetClipboardText(currentPath.c_str());
     }
 
     ImGui::Separator();

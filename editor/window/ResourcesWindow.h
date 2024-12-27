@@ -37,7 +37,7 @@ namespace Supernova::Editor{
 
         std::vector<FileEntry> scanDirectory(const std::string& path, intptr_t folderIcon, intptr_t fileIcon);
         void sortWithSortSpecs(ImGuiTableSortSpecs* sortSpecs, std::vector<FileEntry>& files);
-        std::string shortenPath(const std::filesystem::path& path, size_t maxLength);
+        std::string shortenPath(const std::filesystem::path& path, float maxWidth);
 
     public:
         ResourcesWindow(Project* project);
