@@ -142,10 +142,6 @@ void Editor::ResourcesWindow::show() {
     int columns = static_cast<int>(windowWidth / columnWidth);
     if (columns < 1) columns = 1; // Ensure at least one column
 
-    if (ImGui::Button(ICON_FA_GEAR)){
-
-    }
-    ImGui::SameLine();
     if (ImGui::Button(ICON_FA_HOUSE)){
         files = scanDirectory(".", (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
     }
@@ -160,12 +156,23 @@ void Editor::ResourcesWindow::show() {
     }
     ImGui::EndDisabled();
 
+    float buttonWidth = ImGui::CalcTextSize(ICON_FA_GEAR).x + ImGui::GetStyle().FramePadding.x;
+
     // Display current path
     if (currentPath != "."){
+        int maxChars = static_cast<int>((ImGui::GetContentRegionAvail().x - buttonWidth) / ImGui::CalcTextSize("M").x);
+        if (maxChars < 16) maxChars = 16;
+
         ImGui::SameLine();
-        ImGui::Text("%s", shortenPath(currentPath, 15).c_str());
+        ImGui::Text("%s", shortenPath(currentPath, maxChars).c_str());
         ImGui::SetItemTooltip("%s", currentPath.c_str());
     }
+
+    ImGui::SameLine(ImGui::GetContentRegionAvail().x - buttonWidth);
+    if (ImGui::Button(ICON_FA_GEAR)){
+
+    }
+
     ImGui::Separator();
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
