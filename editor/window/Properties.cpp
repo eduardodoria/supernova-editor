@@ -557,7 +557,7 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
     for (int s = 0; s < numSubmeshes; s++){
         ImGui::SeparatorText(("Submesh "+std::to_string(s+1)).c_str());
 
-        beginTable(cpType, getMaxLabelSize(props, "submeshes", "num"), "submeshes");
+        beginTable(cpType, getMaxLabelSize(props, "submeshes", "material"), "submeshes");
 
         propertyHeader("Material");
         ImGui::Button("Load");
@@ -569,6 +569,8 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
         }
 
         if (show_button_group){
+            endTable();
+            beginTable(cpType, getMaxLabelSize(props, "material", ""), "material_table");
             propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material_basecolor", scene, entities, -1, true);
             propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material_metallicfactor", scene, entities, 4 * ImGui::GetFontSize(), true);
             propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material_roughnessfactor", scene, entities, 4 * ImGui::GetFontSize(), true);
@@ -577,6 +579,8 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
                 propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material_ambientlight", scene, entities, -1, true);
                 propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material_ambientintensity", scene, entities, 4 * ImGui::GetFontSize(), true);
             }
+            endTable();
+            beginTable(cpType, getMaxLabelSize(props, "submeshes", "material"), "submeshes");
         }
 
         propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].primitive_type", scene, entities);

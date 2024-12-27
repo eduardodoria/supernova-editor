@@ -185,6 +185,7 @@ void Editor::ResourcesWindow::show() {
 
     ImGui::SetCursorPosY(ImGui::GetStyle().FramePadding.y);
     ImGui::Text("%s", ((shortenedPath==".")?"":shortenedPath).c_str());
+    ImGui::SetItemTooltip("%s", currentPath.c_str());
 
     ImGui::EndChild();
     ImGui::PopStyleColor();
