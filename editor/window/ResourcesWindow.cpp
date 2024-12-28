@@ -217,8 +217,10 @@ void Editor::ResourcesWindow::show() {
     }
     ImGui::PopStyleVar();
 
-    ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(8.0f, 8.0f));
+    // Add a scrollable region for the FileTable
+    ImGui::BeginChild("FileTableScrollRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
 
+    ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(8.0f, 8.0f));
     // Begin table for dynamic columns
     if (ImGui::BeginTable("FileTable", columns, ImGuiTableFlags_SizingStretchSame)){
         for (const auto& file : files) {
@@ -302,12 +304,14 @@ void Editor::ResourcesWindow::show() {
             ImGui::PopID();
         }
         ImGui::EndTable();
-        ImGui::PopStyleVar();
     }
+    ImGui::PopStyleVar();
 
     if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered() && !clickedOutside){
         selectedFiles.clear();
     }
+
+    ImGui::EndChild(); // End the scrollable region
 
     ImGui::End();
 }
