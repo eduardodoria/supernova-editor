@@ -149,19 +149,21 @@ void Editor::ResourcesWindow::show() {
 
     ImGui::Begin("Resources");
 
-    // Calculate the number of columns based on the window width
+    bool clickedOutside = false;
+
     float windowWidth = ImGui::GetContentRegionAvail().x;
     float iconSize = 32.0f;       // Icon size
-    float padding = 48.0f;       // Padding between columns
+    float padding = 48.0f;        // Padding between columns
     float columnWidth = iconSize + padding;
 
     int columns = static_cast<int>(windowWidth / columnWidth);
-    if (columns < 1) columns = 1; // Ensure at least one column
+    if (columns < 1) columns = 1;
 
     ImGui::BeginDisabled(currentPath == ".");
 
     if (ImGui::Button(ICON_FA_HOUSE)){
         files = scanDirectory(".", (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
+        selectedFiles.clear();
     }
     ImGui::SameLine();
 
@@ -170,6 +172,7 @@ void Editor::ResourcesWindow::show() {
             fs::path parentPath = fs::path(currentPath).parent_path();
             currentPath = parentPath.string();
             files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
+            selectedFiles.clear();
         }
     }
 
@@ -179,12 +182,12 @@ void Editor::ResourcesWindow::show() {
     ImGui::SameLine();
 
     ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(50, 50, 50, 255)); // Dark gray background
-    ImGui::BeginChild("PathFrame", ImVec2(-ImGui::CalcTextSize(ICON_FA_COPY).x - ImGui::GetStyle().ItemSpacing.x - ImGui::GetStyle().FramePadding.x * 2, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y*2), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+    ImGui::BeginChild("PathFrame", ImVec2(-ImGui::CalcTextSize(ICON_FA_COPY).x - ImGui::GetStyle().ItemSpacing.x - ImGui::GetStyle().FramePadding.x * 2, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
     std::string shortenedPath = shortenPath(currentPath, ImGui::GetContentRegionAvail().x);
 
     ImGui::SetCursorPosY(ImGui::GetStyle().FramePadding.y);
-    ImGui::Text("%s", ((shortenedPath==".")?"":shortenedPath).c_str());
+    ImGui::Text("%s", ((shortenedPath == ".") ? "" : shortenedPath).c_str());
     ImGui::SetItemTooltip("%s", currentPath.c_str());
 
     ImGui::EndChild();
@@ -192,7 +195,7 @@ void Editor::ResourcesWindow::show() {
     // ------- path part --------
 
     ImGui::SameLine();
-    if (ImGui::Button(ICON_FA_GEAR)) {
+    if (ImGui::Button(ICON_FA_GEAR)){
         ImGui::SetClipboardText(currentPath.c_str());
     }
 
@@ -200,13 +203,12 @@ void Editor::ResourcesWindow::show() {
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
     ImGuiTableFlags table_flags_for_sort_specs = ImGuiTableFlags_Sortable | ImGuiTableFlags_SortMulti | ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Borders;
-    if (ImGui::BeginTable("for_sort_specs_only", 2, table_flags_for_sort_specs, ImVec2(0.0f, ImGui::GetFrameHeight())))
-    {
+    if (ImGui::BeginTable("for_sort_specs_only", 2, table_flags_for_sort_specs, ImVec2(0.0f, ImGui::GetFrameHeight()))) {
         ImGui::TableSetupColumn("Name");
         ImGui::TableSetupColumn("Type");
         ImGui::TableHeadersRow();
         if (ImGuiTableSortSpecs* sort_specs = ImGui::TableGetSortSpecs()){
-            if (sort_specs->SpecsDirty || requestSort){
+            if (sort_specs->SpecsDirty || requestSort) {
                 sortWithSortSpecs(sort_specs, files);
                 sort_specs->SpecsDirty = requestSort = false;
             }
@@ -218,7 +220,7 @@ void Editor::ResourcesWindow::show() {
     ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(8.0f, 8.0f));
 
     // Begin table for dynamic columns
-    if (ImGui::BeginTable("FileTable", columns, ImGuiTableFlags_SizingStretchSame)) {
+    if (ImGui::BeginTable("FileTable", columns, ImGuiTableFlags_SizingStretchSame)){
         for (const auto& file : files) {
             // Begin a new table cell
             ImGui::TableNextColumn();
@@ -229,7 +231,7 @@ void Editor::ResourcesWindow::show() {
             float itemSpacingY = ImGui::GetStyle().ItemSpacing.y;
             float cellWidth = ImGui::GetContentRegionAvail().x;
             ImVec2 textSize = ImGui::CalcTextSize(file.name.c_str(), nullptr, true, cellWidth);
-            float celHeight = iconSize + itemSpacingY + textSize.y; // Fixed height for the selectable area
+            float celHeight = iconSize + itemSpacingY + textSize.y;
 
             ImVec2 selectableSize(cellWidth, celHeight);
 
@@ -237,6 +239,8 @@ void Editor::ResourcesWindow::show() {
             bool isSelected = selectedFiles.find(file.name) != selectedFiles.end();
 
             if (ImGui::Selectable("", isSelected, ImGuiSelectableFlags_AllowDoubleClick, selectableSize)) {
+                clickedOutside = true; // Mark that a file was clicked
+
                 if (ctrlPressed) {
                     // Toggle selection for this file
                     if (isSelected) {
@@ -244,24 +248,40 @@ void Editor::ResourcesWindow::show() {
                     } else {
                         selectedFiles.insert(file.name);
                     }
+                    lastSelectedFile = file.name;
                 } else if (shiftPressed) {
-                    // Handle range selection (not implemented in this example, but could be added)
-                    // Example: Select all files between the last selected file and this one
+                    if (!lastSelectedFile.empty()) {
+                        auto itStart = std::find_if(files.begin(), files.end(), [&](const FileEntry& entry){
+                            return entry.name == lastSelectedFile;
+                        });
+
+                        auto itEnd = std::find_if(files.begin(), files.end(), [&](const FileEntry& entry){
+                            return entry.name == file.name;
+                        });
+
+                        if (itStart != files.end() && itEnd != files.end()) {
+                            if (itStart > itEnd) std::swap(itStart, itEnd);
+
+                            for (auto it = itStart; it <= itEnd; ++it) {
+                                selectedFiles.insert(it->name);
+                            }
+                        }
+                    } else {
+                        selectedFiles.insert(file.name);
+                    }
                 } else {
-                    // Clear previous selections and select this file
                     selectedFiles.clear();
                     selectedFiles.insert(file.name);
+                    lastSelectedFile = file.name;
                 }
 
-                if (ImGui::IsMouseDoubleClicked(0) && file.isDirectory) {
-                    // Navigate into the directory
+                if (ImGui::IsMouseDoubleClicked(0) && file.isDirectory){
                     files = scanDirectory(currentPath + "/" + file.name, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
                     selectedFiles.clear();
                     ImGui::EndGroup();
                     ImGui::PopID();
-                    break; // Exit loop to update the UI
+                    break;
                 } else {
-                    // Handle file selection
                     printf("Selected file: %s\n", file.name.c_str());
                 }
             }
@@ -279,11 +299,14 @@ void Editor::ResourcesWindow::show() {
 
             ImGui::EndGroup();
 
-            // Pop the unique ID for this item
             ImGui::PopID();
         }
         ImGui::EndTable();
         ImGui::PopStyleVar();
+    }
+
+    if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered() && !clickedOutside){
+        selectedFiles.clear();
     }
 
     ImGui::End();
