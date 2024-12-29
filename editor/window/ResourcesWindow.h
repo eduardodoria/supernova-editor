@@ -31,6 +31,9 @@ namespace Supernova::Editor{
         Texture folderIcon;
         Texture fileIcon;
 
+        int iconSize;
+        float iconPadding;
+
         std::string lastSelectedFile;
         std::unordered_set<std::string> selectedFiles; // To track selected files
         bool ctrlPressed; // To handle multi-selection using CTRL key

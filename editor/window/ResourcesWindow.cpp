@@ -14,6 +14,8 @@ Editor::ResourcesWindow::ResourcesWindow(Project* project){
     this->project = project;
     this->firstOpen = true;
     this->requestSort = true;
+    this->iconSize = 32.0f;
+    this->iconPadding = 1.5 * this->iconSize;
 }
 
 std::vector<Editor::FileEntry> Editor::ResourcesWindow::scanDirectory(const std::string& path, intptr_t folderIcon, intptr_t fileIcon) {
@@ -152,9 +154,7 @@ void Editor::ResourcesWindow::show() {
     bool clickedOutside = false;
 
     float windowWidth = ImGui::GetContentRegionAvail().x;
-    float iconSize = 32.0f;       // Icon size
-    float padding = 48.0f;        // Padding between columns
-    float columnWidth = iconSize + padding;
+    float columnWidth = iconSize + iconPadding;
 
     int columns = static_cast<int>(windowWidth / columnWidth);
     if (columns < 1) columns = 1;
@@ -196,7 +196,20 @@ void Editor::ResourcesWindow::show() {
 
     ImGui::SameLine();
     if (ImGui::Button(ICON_FA_GEAR)){
-        ImGui::SetClipboardText(currentPath.c_str());
+        ImGui::OpenPopup("SettingsPopup");
+    }
+
+    if (ImGui::BeginPopup("SettingsPopup")) {
+
+        ImGui::Text("Settings");
+        ImGui::Separator();
+
+        // Add a slider to control the icon size
+        if (ImGui::SliderInt("Icon Size", &iconSize, 16.0f, 128.0f)){
+            iconPadding = 1.5 * iconSize;
+        }
+
+        ImGui::EndPopup();
     }
 
     ImGui::Separator();
