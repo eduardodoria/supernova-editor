@@ -6,6 +6,8 @@
 #include "render/SceneRender.h"
 #include "command/CommandHistory.h"
 
+#include <filesystem>
+
 #define NULL_PROJECT_SCENE 0
 
 namespace Supernova::Editor{
@@ -29,6 +31,9 @@ namespace Supernova::Editor{
         uint32_t selectedScene;
 
         uint32_t lastActivatedScene;
+
+        bool tempPath;
+        std::filesystem::path projectPath;
 
         template<typename T>
         T* findScene(uint32_t sceneId) const;
@@ -56,6 +61,9 @@ namespace Supernova::Editor{
 
         void setSelectedSceneId(uint32_t selectedScene);
         uint32_t getSelectedSceneId() const;
+
+        bool isTempPath() const;
+        std::filesystem::path getProjectPath() const;
 
         void setLastActivatedSceneId(uint32_t lastActivatedScene);
         uint32_t getLastActivatedSceneId() const;

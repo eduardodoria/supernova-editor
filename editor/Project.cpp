@@ -7,8 +7,6 @@
 #include "command/type/CreateEntityCmd.h"
 #include "command/type/DeleteEntityCmd.h"
 
-#include <filesystem>
-
 using namespace Supernova;
 
 uint32_t Editor::Project::nextSceneId = 0;
@@ -16,20 +14,23 @@ uint32_t Editor::Project::nextSceneId = 0;
 Editor::Project::Project(){
     selectedScene = NULL_PROJECT_SCENE;
     lastActivatedScene = NULL_PROJECT_SCENE;
+
+    tempPath = false;
 }
 
 bool Editor::Project::createNewProject(std::string projectName){
     try {
-        std::filesystem::path projectDir = std::filesystem::temp_directory_path() / projectName;
+        projectPath = std::filesystem::temp_directory_path() / projectName;
+        tempPath = true;
 
-        if (!std::filesystem::exists(projectDir)) {
-            std::filesystem::create_directory(projectDir);
-            printf("Created project directory: %s\n", projectDir.string().c_str());
+        if (!std::filesystem::exists(projectPath)) {
+            std::filesystem::create_directory(projectPath);
+            printf("Created project directory: %s\n", projectPath.string().c_str());
         } else {
-            printf("Project directory already exists: %s\n", projectDir.string().c_str());
+            printf("Project directory already exists: %s\n", projectPath.string().c_str());
         }
 
-        std::filesystem::path subDir = projectDir / "src";
+        std::filesystem::path subDir = projectPath / "assets";
         std::filesystem::create_directory(subDir);
         printf("Created subdirectory: %s\n", subDir.string().c_str());
 
@@ -251,6 +252,14 @@ void Editor::Project::setSelectedSceneId(uint32_t selectedScene){
 
 uint32_t Editor::Project::getSelectedSceneId() const{
     return selectedScene;
+}
+
+bool Editor::Project::isTempPath() const{
+    return tempPath;
+}
+
+std::filesystem::path Editor::Project::getProjectPath() const{
+    return projectPath;
 }
 
 void Editor::Project::setLastActivatedSceneId(uint32_t lastActivatedScene){

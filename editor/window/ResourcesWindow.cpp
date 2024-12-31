@@ -89,20 +89,24 @@ void Editor::ResourcesWindow::sortWithSortSpecs(ImGuiTableSortSpecs* sortSpecs, 
 std::string Editor::ResourcesWindow::shortenPath(const std::filesystem::path& path, float maxWidth) {
     std::string fullPath = path.string();
 
-    // Calculate the size of the full path
+    std::string projectPath = project->getProjectPath();
+    if (fullPath.find(projectPath) == 0) {
+        fullPath = fullPath.substr(projectPath.length());
+        if (fullPath.empty()){
+            fullPath = "/";
+        }
+    }
+
     ImVec2 fullPathSize = ImGui::CalcTextSize(fullPath.c_str());
     if (fullPathSize.x <= maxWidth) {
         return fullPath;
     }
 
-    // Get the filename and parent path
     std::string filename = path.filename().string();
     std::string parentPath = path.parent_path().string();
 
-    // Calculate the size of the filename
     ImVec2 filenameSize = ImGui::CalcTextSize(filename.c_str());
     if (filenameSize.x > maxWidth) {
-        // Truncate filename if it alone exceeds maxWidth
         std::string truncatedFilename = filename;
         while (!truncatedFilename.empty() && ImGui::CalcTextSize((truncatedFilename + "...").c_str()).x > maxWidth) {
             truncatedFilename.pop_back();
@@ -110,18 +114,16 @@ std::string Editor::ResourcesWindow::shortenPath(const std::filesystem::path& pa
         return truncatedFilename + "...";
     }
 
-    // Determine how much space remains for the parent path
     float remainingWidth = maxWidth - filenameSize.x - ImGui::CalcTextSize("/").x; // Space for '/' separator
 
-    // Truncate the parent path if necessary
-    if (parentPath != "."){
+    if (parentPath != ".") {
         std::string truncatedParentPath = parentPath;
         while (!truncatedParentPath.empty() && ImGui::CalcTextSize((truncatedParentPath + ".../").c_str()).x > remainingWidth) {
             truncatedParentPath.pop_back();
         }
 
         return truncatedParentPath + ".../" + filename;
-    }else{
+    } else {
         return filename;
     }
 }
@@ -140,7 +142,7 @@ void Editor::ResourcesWindow::show() {
         fileIcon.setData("editor:resources:file_icon", data);
         fileIcon.load();
 
-        files = scanDirectory(".", (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
+        files = scanDirectory(project->getProjectPath(), (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
 
         firstOpen = false;
     }
@@ -159,16 +161,16 @@ void Editor::ResourcesWindow::show() {
     int columns = static_cast<int>(windowWidth / columnWidth);
     if (columns < 1) columns = 1;
 
-    ImGui::BeginDisabled(currentPath == ".");
+    ImGui::BeginDisabled(currentPath == project->getProjectPath());
 
     if (ImGui::Button(ICON_FA_HOUSE)){
-        files = scanDirectory(".", (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
+        files = scanDirectory(project->getProjectPath(), (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
         selectedFiles.clear();
     }
     ImGui::SameLine();
 
     if (ImGui::Button(ICON_FA_ANGLE_LEFT)){
-        if (!currentPath.empty() && currentPath != ".") {
+        if (!currentPath.empty() && currentPath != project->getProjectPath()) {
             fs::path parentPath = fs::path(currentPath).parent_path();
             currentPath = parentPath.string();
             files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
