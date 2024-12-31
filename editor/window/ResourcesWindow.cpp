@@ -357,10 +357,26 @@ void Editor::ResourcesWindow::show() {
     }
 
     if (ImGui::BeginPopupModal("Delete Confirmation", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text("Are you sure you want to delete the selected files?");
+        ImGui::Text("Are you sure you want to delete the following files?");
         ImGui::Separator();
 
-        if (ImGui::Button("Yes", ImVec2(120, 0))) {
+        // Display the list of files selected for deletion
+        for (const auto& fileName : selectedFiles) {
+            ImGui::BulletText("%s", fileName.c_str());
+        }
+
+        ImGui::Separator();
+
+        // Calculate total width of the buttons
+        const float buttonWidth = 120.0f;
+        const float buttonSpacing = ImGui::GetStyle().ItemSpacing.x;
+        const float totalWidth = (buttonWidth * 2) + buttonSpacing;
+
+        // Center the buttons
+        float windowWidth = ImGui::GetWindowSize().x;
+        ImGui::SetCursorPosX((windowWidth - totalWidth) / 2.0f);
+
+        if (ImGui::Button("Yes", ImVec2(buttonWidth, 0))) {
             // Delete selected files
             for (const auto& fileName : selectedFiles) {
                 std::filesystem::remove(currentPath + "/" + fileName);
@@ -378,7 +394,7 @@ void Editor::ResourcesWindow::show() {
         }
         ImGui::SameLine();
 
-        if (ImGui::Button("No", ImVec2(120, 0))) {
+        if (ImGui::Button("No", ImVec2(buttonWidth, 0))) {
             // Close the modal without deleting
             showDeleteConfirmation = false;
             ImGui::CloseCurrentPopup();
