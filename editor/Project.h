@@ -39,6 +39,7 @@ namespace Supernova::Editor{
     public:
         Project();
 
+        bool createNewProject(std::string projectName);
         uint32_t createNewScene(std::string sceneName);
 
         void deleteEntity(uint32_t sceneId, Entity entity);
