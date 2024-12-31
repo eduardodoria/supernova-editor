@@ -39,16 +39,25 @@ Vector3 Editor::Properties::roundZero(const Vector3& val, const float threshold)
     );
 }
 
-float Editor::Properties::getMaxLabelSize(std::map<std::string, PropertyData> props, const std::string& include, const std::string& exclude){
+float Editor::Properties::getMaxLabelSize(std::map<std::string, PropertyData> props, const std::vector<std::string>& includes, const std::vector<std::string>& excludes){
     float maxLabelSize = ImGui::GetFontSize();
 
-    for (auto& [name, prop] : props){
+    for (auto& [name, prop] : props) {
+        bool containsInclude = includes.empty() || 
+            std::any_of(includes.begin(), includes.end(), [&name](const std::string& include) {
+                return name.find(include) != std::string::npos;
+            });
 
-        bool containsInclude = name.find(include) != std::string::npos;
-        bool containsExclude = name.find(exclude) != std::string::npos;
+        bool containsExclude = !excludes.empty() && 
+            std::any_of(excludes.begin(), excludes.end(), [&name](const std::string& exclude) {
+                return name.find(exclude) != std::string::npos;
+            });
 
-        if ((include.empty() || containsInclude) && (exclude.empty() || !containsExclude)){
-            maxLabelSize = std::max(maxLabelSize, ImGui::CalcTextSize((prop.label + ICON_FA_ROTATE_LEFT).c_str()).x);
+        if (containsInclude && !containsExclude) {
+            maxLabelSize = std::max(
+                maxLabelSize, 
+                ImGui::CalcTextSize((prop.label + ICON_FA_ROTATE_LEFT).c_str()).x
+            );
         }
     }
 
@@ -510,7 +519,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 }
 
 void Editor::Properties::drawTransform(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, std::vector<Entity> entities){
-    beginTable(cpType, getMaxLabelSize(props, "", "_billboard"));
+    beginTable(cpType, getMaxLabelSize(props, {}, {"_billboard"}));
 
     propertyRow(cpType, props, "position", scene, entities);
     propertyRow(cpType, props, "rotation", scene, entities);
@@ -527,7 +536,7 @@ void Editor::Properties::drawTransform(ComponentType cpType, std::map<std::strin
         ImGui::Text("Billboard settings");
         ImGui::Separator();
 
-        beginTable(cpType, getMaxLabelSize(props), "_billboard");
+        beginTable(cpType, getMaxLabelSize(props), {"_billboard"});
 
         propertyRow(cpType, props, "fake_billboard", scene, entities);
         propertyRow(cpType, props, "cylindrical_billboard", scene, entities);
@@ -542,7 +551,7 @@ void Editor::Properties::drawTransform(ComponentType cpType, std::map<std::strin
 }
 
 void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, std::vector<Entity> entities){
-    beginTable(cpType, getMaxLabelSize(props, "", "submeshes"));
+    beginTable(cpType, getMaxLabelSize(props, {}, {"submeshes"}));
 
     propertyRow(cpType, props, "cast_shadows", scene, entities);
     propertyRow(cpType, props, "receive_shadows", scene, entities);
@@ -557,7 +566,9 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
     for (int s = 0; s < numSubmeshes; s++){
         ImGui::SeparatorText(("Submesh "+std::to_string(s+1)).c_str());
 
-        beginTable(cpType, getMaxLabelSize(props, "submeshes", "material"), "submeshes");
+        float submeshesTableSize = getMaxLabelSize(props, {"submeshes"}, {"num", "material"});
+
+        beginTable(cpType, submeshesTableSize, "submeshes");
 
         propertyHeader("Material");
         ImGui::Button("Load");
@@ -570,7 +581,7 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
 
         if (show_button_group){
             endTable();
-            beginTable(cpType, getMaxLabelSize(props, "material", ""), "material_table");
+            beginTable(cpType, getMaxLabelSize(props, {"material"}), "material_table");
             propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material_basecolor", scene, entities, -1, true);
             propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material_metallicfactor", scene, entities, 4 * ImGui::GetFontSize(), true);
             propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material_roughnessfactor", scene, entities, 4 * ImGui::GetFontSize(), true);
@@ -580,7 +591,7 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
                 propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material_ambientintensity", scene, entities, 4 * ImGui::GetFontSize(), true);
             }
             endTable();
-            beginTable(cpType, getMaxLabelSize(props, "submeshes", "material"), "submeshes");
+            beginTable(cpType, submeshesTableSize, "submeshes");
         }
 
         propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].primitive_type", scene, entities);

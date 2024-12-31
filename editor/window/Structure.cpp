@@ -432,6 +432,9 @@ void Editor::Structure::show(){
     //    ImGui::EndPopup();
     //}
     showIconMenu();
+    ImGui::BeginChild("StructureScrollRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
     showTreeNode(root);
+    ImGui::EndChild();
+
     ImGui::End();
 }
