@@ -30,7 +30,13 @@ bool Editor::Project::createNewProject(std::string projectName){
             printf("Project directory already exists: %s\n", projectPath.string().c_str());
         }
 
-        std::filesystem::path subDir = projectPath / "assets";
+        std::filesystem::path subDir;
+
+        subDir = projectPath / "assets";
+        std::filesystem::create_directory(subDir);
+        printf("Created subdirectory: %s\n", subDir.string().c_str());
+
+        subDir = projectPath / "scripts";
         std::filesystem::create_directory(subDir);
         printf("Created subdirectory: %s\n", subDir.string().c_str());
 

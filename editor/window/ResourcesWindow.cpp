@@ -147,7 +147,6 @@ void Editor::ResourcesWindow::show() {
         firstOpen = false;
     }
 
-    // Check if CTRL or SHIFT is pressed
     ctrlPressed = ImGui::GetIO().KeyCtrl;
     shiftPressed = ImGui::GetIO().KeyShift;
 
@@ -163,13 +162,13 @@ void Editor::ResourcesWindow::show() {
 
     ImGui::BeginDisabled(currentPath == project->getProjectPath());
 
-    if (ImGui::Button(ICON_FA_HOUSE)){
+    if (ImGui::Button(ICON_FA_HOUSE)) {
         files = scanDirectory(project->getProjectPath(), (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
         selectedFiles.clear();
     }
     ImGui::SameLine();
 
-    if (ImGui::Button(ICON_FA_ANGLE_LEFT)){
+    if (ImGui::Button(ICON_FA_ANGLE_LEFT)) {
         if (!currentPath.empty() && currentPath != project->getProjectPath()) {
             fs::path parentPath = fs::path(currentPath).parent_path();
             currentPath = parentPath.string();
@@ -180,10 +179,9 @@ void Editor::ResourcesWindow::show() {
 
     ImGui::EndDisabled();
 
-    // ------- path part --------
     ImGui::SameLine();
 
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(50, 50, 50, 255)); // Dark gray background
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(50, 50, 50, 255));
     ImGui::BeginChild("PathFrame", ImVec2(-ImGui::CalcTextSize(ICON_FA_COPY).x - ImGui::GetStyle().ItemSpacing.x - ImGui::GetStyle().FramePadding.x * 2, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
     std::string shortenedPath = shortenPath(currentPath, ImGui::GetContentRegionAvail().x);
@@ -194,20 +192,17 @@ void Editor::ResourcesWindow::show() {
 
     ImGui::EndChild();
     ImGui::PopStyleColor();
-    // ------- path part --------
 
     ImGui::SameLine();
-    if (ImGui::Button(ICON_FA_GEAR)){
+    if (ImGui::Button(ICON_FA_GEAR)) {
         ImGui::OpenPopup("SettingsPopup");
     }
 
     if (ImGui::BeginPopup("SettingsPopup")) {
-
         ImGui::Text("Settings");
         ImGui::Separator();
 
-        // Add a slider to control the icon size
-        if (ImGui::SliderInt("Icon Size", &iconSize, 16.0f, 128.0f)){
+        if (ImGui::SliderInt("Icon Size", &iconSize, 16.0f, 128.0f)) {
             iconPadding = 1.5 * iconSize;
         }
 
@@ -222,7 +217,7 @@ void Editor::ResourcesWindow::show() {
         ImGui::TableSetupColumn("Name");
         ImGui::TableSetupColumn("Type");
         ImGui::TableHeadersRow();
-        if (ImGuiTableSortSpecs* sort_specs = ImGui::TableGetSortSpecs()){
+        if (ImGuiTableSortSpecs* sort_specs = ImGui::TableGetSortSpecs()) {
             if (sort_specs->SpecsDirty || requestSort) {
                 sortWithSortSpecs(sort_specs, files);
                 sort_specs->SpecsDirty = requestSort = false;
@@ -232,17 +227,17 @@ void Editor::ResourcesWindow::show() {
     }
     ImGui::PopStyleVar();
 
-    // Add a scrollable region for the FileTable
     ImGui::BeginChild("FileTableScrollRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
 
     ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(8.0f, 8.0f));
-    // Begin table for dynamic columns
-    if (ImGui::BeginTable("FileTable", columns, ImGuiTableFlags_SizingStretchSame)){
-        for (const auto& file : files) {
-            // Begin a new table cell
+
+    // Deferred deletion
+    static bool showDeleteConfirmation = false;
+
+    if (ImGui::BeginTable("FileTable", columns, ImGuiTableFlags_SizingStretchSame)) {
+        for (auto& file : files) {
             ImGui::TableNextColumn();
 
-            // Push a unique ID for each item
             ImGui::PushID(file.name.c_str());
 
             float itemSpacingY = ImGui::GetStyle().ItemSpacing.y;
@@ -252,14 +247,14 @@ void Editor::ResourcesWindow::show() {
 
             ImVec2 selectableSize(cellWidth, celHeight);
 
-            ImGui::BeginGroup(); // Group the icon and text
+            ImGui::BeginGroup();
             bool isSelected = selectedFiles.find(file.name) != selectedFiles.end();
 
+            // Handle left-click and right-click for selection
             if (ImGui::Selectable("", isSelected, ImGuiSelectableFlags_AllowDoubleClick, selectableSize)) {
-                clickedOutside = true; // Mark that a file was clicked
+                clickedOutside = true;
 
                 if (ctrlPressed) {
-                    // Toggle selection for this file
                     if (isSelected) {
                         selectedFiles.erase(file.name);
                     } else {
@@ -268,11 +263,11 @@ void Editor::ResourcesWindow::show() {
                     lastSelectedFile = file.name;
                 } else if (shiftPressed) {
                     if (!lastSelectedFile.empty()) {
-                        auto itStart = std::find_if(files.begin(), files.end(), [&](const FileEntry& entry){
+                        auto itStart = std::find_if(files.begin(), files.end(), [&](const FileEntry& entry) {
                             return entry.name == lastSelectedFile;
                         });
 
-                        auto itEnd = std::find_if(files.begin(), files.end(), [&](const FileEntry& entry){
+                        auto itEnd = std::find_if(files.begin(), files.end(), [&](const FileEntry& entry) {
                             return entry.name == file.name;
                         });
 
@@ -292,15 +287,41 @@ void Editor::ResourcesWindow::show() {
                     lastSelectedFile = file.name;
                 }
 
-                if (ImGui::IsMouseDoubleClicked(0) && file.isDirectory){
+                if (ImGui::IsMouseDoubleClicked(0) && file.isDirectory) {
                     files = scanDirectory(currentPath + "/" + file.name, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
                     selectedFiles.clear();
                     ImGui::EndGroup();
                     ImGui::PopID();
                     break;
-                } else {
-                    printf("Selected file: %s\n", file.name.c_str());
                 }
+            }
+
+            // Handle right-click for selection and open the context menu
+            if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+                // Right-click selects the file
+                if (!ctrlPressed && !isSelected) {
+                    selectedFiles.clear();
+                }
+                selectedFiles.insert(file.name);
+                lastSelectedFile = file.name;
+
+                // Open the context menu
+                ImGui::OpenPopup("FileContextMenu");
+            }
+
+            if (ImGui::BeginPopup("FileContextMenu")) {
+                if (ImGui::MenuItem("Delete")) {
+                    // Trigger the confirmation dialog
+                    showDeleteConfirmation = true;
+                }
+
+                if (ImGui::MenuItem("Rename")) {
+                    std::string newName = "new_name.txt";  // Replace with user input logic
+                    std::filesystem::rename(currentPath + "/" + file.name, currentPath + "/" + newName);
+                    files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
+                }
+
+                ImGui::EndPopup();
             }
 
             float iconOffsetX = (cellWidth - iconSize) / 2;
@@ -322,11 +343,47 @@ void Editor::ResourcesWindow::show() {
     }
     ImGui::PopStyleVar();
 
-    if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered() && !clickedOutside){
+    if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered() && !clickedOutside) {
         selectedFiles.clear();
     }
 
-    ImGui::EndChild(); // End the scrollable region
+    ImGui::EndChild();
 
     ImGui::End();
+
+    // Show confirmation dialog
+    if (showDeleteConfirmation) {
+        ImGui::OpenPopup("Delete Confirmation");
+    }
+
+    if (ImGui::BeginPopupModal("Delete Confirmation", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Are you sure you want to delete the selected files?");
+        ImGui::Separator();
+
+        if (ImGui::Button("Yes", ImVec2(120, 0))) {
+            // Delete selected files
+            for (const auto& fileName : selectedFiles) {
+                std::filesystem::remove(currentPath + "/" + fileName);
+            }
+
+            // Clear the selection set
+            selectedFiles.clear();
+
+            // Refresh the files list
+            files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
+
+            // Close the modal
+            showDeleteConfirmation = false;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+
+        if (ImGui::Button("No", ImVec2(120, 0))) {
+            // Close the modal without deleting
+            showDeleteConfirmation = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
 }
