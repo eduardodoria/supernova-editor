@@ -39,6 +39,12 @@ namespace Supernova::Editor{
         bool ctrlPressed; // To handle multi-selection using CTRL key
         bool shiftPressed; // To handle range selection using SHIFT key
 
+        bool isDragging;
+        ImVec2 dragStart;
+        ImVec2 dragEnd;
+        ImVec2 windowPos;        // Store window position for coordinate conversion
+        ImVec2 scrollOffset;     // Store scroll offset
+
         std::vector<FileEntry> scanDirectory(const std::string& path, intptr_t folderIcon, intptr_t fileIcon);
         void sortWithSortSpecs(ImGuiTableSortSpecs* sortSpecs, std::vector<FileEntry>& files);
         std::string shortenPath(const std::filesystem::path& path, float maxWidth);

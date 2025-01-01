@@ -150,6 +150,9 @@ void Editor::ResourcesWindow::show() {
     ctrlPressed = ImGui::GetIO().KeyCtrl;
     shiftPressed = ImGui::GetIO().KeyShift;
 
+    windowPos = ImGui::GetWindowPos();
+    scrollOffset = ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
+
     ImGui::Begin("Resources");
 
     bool clickedOutside = false;
@@ -234,6 +237,29 @@ void Editor::ResourcesWindow::show() {
     // Deferred deletion
     static bool showDeleteConfirmation = false;
 
+    if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(0) && !ImGui::IsAnyItemHovered()) {
+        isDragging = true;
+        dragStart = ImGui::GetMousePos();
+        dragStart.x -= windowPos.x;
+        dragStart.y -= windowPos.y;
+        dragStart.x += scrollOffset.x;
+        dragStart.y += scrollOffset.y;
+    }
+
+    if (isDragging) {
+        dragEnd = ImGui::GetMousePos();
+        dragEnd.x -= windowPos.x;
+        dragEnd.y -= windowPos.y;
+        dragEnd.x += scrollOffset.x;
+        dragEnd.y += scrollOffset.y;
+
+        if (!ImGui::IsMouseDown(0)) {
+            isDragging = false;
+        }else{
+            selectedFiles.clear();
+        }
+    }
+
     if (ImGui::BeginTable("FileTable", columns, ImGuiTableFlags_SizingStretchSame)) {
         for (auto& file : files) {
             ImGui::TableNextColumn();
@@ -248,6 +274,26 @@ void Editor::ResourcesWindow::show() {
             ImVec2 selectableSize(cellWidth, celHeight);
 
             ImGui::BeginGroup();
+
+            if (isDragging) {
+                ImVec2 itemPos = ImGui::GetCursorScreenPos();
+                itemPos.x -= windowPos.x;
+                itemPos.y -= windowPos.y;
+                itemPos.x += scrollOffset.x;
+                itemPos.y += scrollOffset.y;
+
+                ImVec2 itemSize = selectableSize;
+                ImRect itemRect(itemPos, ImVec2(itemPos.x + itemSize.x, itemPos.y + itemSize.y));
+                ImRect selectionRect(
+                    ImVec2(std::min(dragStart.x, dragEnd.x), std::min(dragStart.y, dragEnd.y)),
+                    ImVec2(std::max(dragStart.x, dragEnd.x), std::max(dragStart.y, dragEnd.y))
+                );
+
+                if (itemRect.Overlaps(selectionRect)) {
+                    selectedFiles.insert(file.name);
+                }
+            }
+
             bool isSelected = selectedFiles.find(file.name) != selectedFiles.end();
 
             // Handle left-click and right-click for selection
@@ -347,6 +393,21 @@ void Editor::ResourcesWindow::show() {
         selectedFiles.clear();
     }
 
+    if (isDragging) {
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+        ImVec2 rectMin(
+            windowPos.x + std::min(dragStart.x, dragEnd.x) - scrollOffset.x,
+            windowPos.y + std::min(dragStart.y, dragEnd.y) - scrollOffset.y
+        );
+        ImVec2 rectMax(
+            windowPos.x + std::max(dragStart.x, dragEnd.x) - scrollOffset.x,
+            windowPos.y + std::max(dragStart.y, dragEnd.y) - scrollOffset.y
+        );
+
+        drawList->AddRect(rectMin, rectMax, IM_COL32(100, 150, 255, 255));
+        drawList->AddRectFilled(rectMin, rectMax, IM_COL32(100, 150, 255, 50));
+    }
+
     ImGui::EndChild();
 
     ImGui::End();
@@ -357,7 +418,7 @@ void Editor::ResourcesWindow::show() {
     }
 
     if (ImGui::BeginPopupModal("Delete Confirmation", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text("Are you sure you want to delete the following files?");
+        ImGui::Text("Are you sure you want to delete the following items?");
         ImGui::Separator();
 
         // Display the list of files selected for deletion
