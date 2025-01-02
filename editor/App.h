@@ -50,6 +50,10 @@ namespace Supernova::Editor{
         void engineShutdown();
 
         void addNewSceneToDock(uint32_t sceneId);
+
+        void handleExternalDrop(const std::vector<std::string>& paths);
+        void handleExternalDragEnter();
+        void handleExternalDragLeave();
     };
 
 }

@@ -385,3 +385,15 @@ void Editor::App::kewtStyleTheme(){
     // docking
     style.DockingSeparatorSize = 6;
 }
+
+void Editor::App::handleExternalDrop(const std::vector<std::string>& paths) {
+     resourcesWindow->handleExternalDrop(paths);
+}
+
+void Editor::App::handleExternalDragEnter() {
+    resourcesWindow->handleExternalDragEnter();
+}
+
+void Editor::App::handleExternalDragLeave() {
+    resourcesWindow->handleExternalDragLeave();
+}

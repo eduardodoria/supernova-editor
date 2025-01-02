@@ -45,12 +45,23 @@ namespace Supernova::Editor{
         ImVec2 windowPos;        // Store window position for coordinate conversion
         ImVec2 scrollOffset;     // Store scroll offset
 
+        bool isDragDropTarget;
+        std::vector<std::string> droppedFiles;
+
+        bool isPendingDrop;
+        std::vector<std::string> pendingDroppedFiles;
+        bool isExternalDragHovering;
+
         std::vector<FileEntry> scanDirectory(const std::string& path, intptr_t folderIcon, intptr_t fileIcon);
         void sortWithSortSpecs(ImGuiTableSortSpecs* sortSpecs, std::vector<FileEntry>& files);
         std::string shortenPath(const std::filesystem::path& path, float maxWidth);
 
     public:
         ResourcesWindow(Project* project);
+
+        void handleExternalDrop(const std::vector<std::string>& paths);
+        void handleExternalDragEnter();
+        void handleExternalDragLeave();
 
         void show();
     };

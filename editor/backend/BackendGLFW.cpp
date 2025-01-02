@@ -58,6 +58,31 @@ int Editor::Backend::init(int argc, char **argv){
 
     app.engineViewLoaded();
 
+    glfwSetDropCallback(window, [](GLFWwindow* window, int count, const char** paths) {
+        std::vector<std::string> droppedPaths;
+        for (int i = 0; i < count; i++) {
+            droppedPaths.push_back(paths[i]);
+        }
+
+        app.handleExternalDrop(droppedPaths);
+        app.handleExternalDragLeave();
+
+        //if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceExtern)) {
+        //    ImGuiPayload payload;
+        //    payload.Data = &droppedPaths;
+        //    payload.DataSize = sizeof(droppedPaths);
+        //    ImGui::SetDragDropPayload("external_files", &payload, sizeof(ImGuiPayload));
+        //    ImGui::EndDragDropSource();
+        //}
+    });
+
+    //glfwSetCursorEnterCallback(window, [](GLFWwindow* window, int entered) {
+    //    if (entered && glfwGetDragDropQueue(window)) {
+    //        app.handleExternalDragEnter();
+    //    } else {
+    //        app.handleExternalDragLeave();
+    //    }
+    //});
 
     // Main loop
     while (!glfwWindowShouldClose(window)){
