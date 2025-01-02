@@ -7,6 +7,9 @@
 
 static GLFWwindow* window = nullptr;
 
+static std::vector<std::string> droppedPaths;
+static bool isDroppedPaths = false;
+
 using namespace Supernova;
 
 Editor::App Editor::Backend::app;
@@ -59,30 +62,12 @@ int Editor::Backend::init(int argc, char **argv){
     app.engineViewLoaded();
 
     glfwSetDropCallback(window, [](GLFWwindow* window, int count, const char** paths) {
-        std::vector<std::string> droppedPaths;
+        droppedPaths.clear();
         for (int i = 0; i < count; i++) {
             droppedPaths.push_back(paths[i]);
+            isDroppedPaths = true;
         }
-
-        app.handleExternalDrop(droppedPaths);
-        app.handleExternalDragLeave();
-
-        //if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceExtern)) {
-        //    ImGuiPayload payload;
-        //    payload.Data = &droppedPaths;
-        //    payload.DataSize = sizeof(droppedPaths);
-        //    ImGui::SetDragDropPayload("external_files", &payload, sizeof(ImGuiPayload));
-        //    ImGui::EndDragDropSource();
-        //}
     });
-
-    //glfwSetCursorEnterCallback(window, [](GLFWwindow* window, int entered) {
-    //    if (entered && glfwGetDragDropQueue(window)) {
-    //        app.handleExternalDragEnter();
-    //    } else {
-    //        app.handleExternalDragLeave();
-    //    }
-    //});
 
     // Main loop
     while (!glfwWindowShouldClose(window)){
@@ -93,6 +78,14 @@ int Editor::Backend::init(int argc, char **argv){
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+
+        if (isDroppedPaths) {
+            isDroppedPaths = false;
+            if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceExtern)) {
+                ImGui::SetDragDropPayload("external_files", &droppedPaths, sizeof(std::vector<std::string>));
+                ImGui::EndDragDropSource();
+            }
+        }
 
         app.engineRender();
 

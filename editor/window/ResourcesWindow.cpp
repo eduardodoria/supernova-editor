@@ -16,21 +16,6 @@ Editor::ResourcesWindow::ResourcesWindow(Project* project){
     this->requestSort = true;
     this->iconSize = 32.0f;
     this->iconPadding = 1.5 * this->iconSize;
-    this->isPendingDrop = false;
-    this->isExternalDragHovering = false;
-}
-
-void Editor::ResourcesWindow::handleExternalDrop(const std::vector<std::string>& paths) {
-    isPendingDrop = true;
-    pendingDroppedFiles = paths;
-}
-
-void Editor::ResourcesWindow::handleExternalDragEnter() {
-    isExternalDragHovering = true;
-}
-
-void Editor::ResourcesWindow::handleExternalDragLeave() {
-    isExternalDragHovering = false;
 }
 
 std::vector<Editor::FileEntry> Editor::ResourcesWindow::scanDirectory(const std::string& path, intptr_t folderIcon, intptr_t fileIcon) {
@@ -423,42 +408,7 @@ void Editor::ResourcesWindow::show() {
         drawList->AddRectFilled(rectMin, rectMax, IM_COL32(100, 150, 255, 50));
     }
 
-    // Handle external file drops
-    if (isPendingDrop) {
-        for (const auto& sourcePath : pendingDroppedFiles) {
-            fs::path sourceFs = fs::path(sourcePath);
-            fs::path destFs = fs::path(currentPath) / sourceFs.filename();
-
-            try {
-                if (fs::exists(sourceFs)) {
-                    if (fs::is_directory(sourceFs)) {
-                        fs::copy(sourceFs, destFs, fs::copy_options::recursive);
-                    } else {
-                        fs::copy(sourceFs, destFs, fs::copy_options::overwrite_existing);
-                    }
-                }
-            } catch (const fs::filesystem_error& e) {
-                // Handle error if needed
-            }
-        }
-
-        // Refresh the directory after files are copied
-        files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
-        isPendingDrop = false;
-        pendingDroppedFiles.clear();
-    }
-
-    if (isExternalDragHovering){
-        ImVec2 windowPos = ImGui::GetWindowPos();
-        ImVec2 windowSize = ImGui::GetWindowSize();
-        ImVec2 maxPos = ImVec2(windowPos.x + windowSize.x, windowPos.y + windowSize.y);
-
-        ImGui::GetWindowDrawList()->AddRect(
-            windowPos,
-            maxPos,
-            ImGui::GetColorU32(ImGuiCol_DragDropTarget),
-            0.0f, 0, 2.0f);
-    }
+    ImGui::EndChild();
 
     // Handle drag and drop from system
     if (ImGui::BeginDragDropTarget())
@@ -517,8 +467,6 @@ void Editor::ResourcesWindow::show() {
             }
         }
     }
-
-    ImGui::EndChild();
 
     ImGui::End();
 
