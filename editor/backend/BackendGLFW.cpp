@@ -11,7 +11,7 @@ using namespace Supernova;
 
 Editor::App Editor::Backend::app;
 
-int Editor::Backend::init(int argc, char **argv){
+int Editor::Backend::init(int argc, char* argv[]){
     // Initialize GLFW
     if (!glfwInit())
         return -1;
