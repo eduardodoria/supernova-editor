@@ -16,6 +16,15 @@ Editor::ResourcesWindow::ResourcesWindow(Project* project){
     this->requestSort = true;
     this->iconSize = 32.0f;
     this->iconPadding = 1.5 * this->iconSize;
+    this->isExternalDragHovering = false;
+}
+
+void Editor::ResourcesWindow::handleExternalDragEnter() {
+    isExternalDragHovering = true;
+}
+
+void Editor::ResourcesWindow::handleExternalDragLeave() {
+    isExternalDragHovering = false;
 }
 
 std::vector<Editor::FileEntry> Editor::ResourcesWindow::scanDirectory(const std::string& path, intptr_t folderIcon, intptr_t fileIcon) {
@@ -128,6 +137,18 @@ std::string Editor::ResourcesWindow::shortenPath(const std::filesystem::path& pa
     }
 }
 
+void Editor::ResourcesWindow::highlightDragAndDrop(){
+    ImVec2 windowPos = ImGui::GetWindowPos();
+    ImVec2 windowSize = ImGui::GetWindowSize();
+    ImVec2 maxPos = ImVec2(windowPos.x + windowSize.x, windowPos.y + windowSize.y);
+
+    ImGui::GetWindowDrawList()->AddRect(
+        windowPos,
+        maxPos,
+        ImGui::GetColorU32(ImGuiCol_DragDropTarget),
+        0.0f, 0, 2.0f);
+}
+
 void Editor::ResourcesWindow::show() {
     if (firstOpen) {
         int iconWidth, iconHeight;
@@ -142,7 +163,7 @@ void Editor::ResourcesWindow::show() {
         fileIcon.setData("editor:resources:file_icon", data);
         fileIcon.load();
 
-        files = scanDirectory(project->getProjectPath(), (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
+        files = scanDirectory(project->getProjectPath().string(), (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
 
         firstOpen = false;
     }
@@ -166,7 +187,7 @@ void Editor::ResourcesWindow::show() {
     ImGui::BeginDisabled(currentPath == project->getProjectPath());
 
     if (ImGui::Button(ICON_FA_HOUSE)) {
-        files = scanDirectory(project->getProjectPath(), (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
+        files = scanDirectory(project->getProjectPath().string(), (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
         selectedFiles.clear();
     }
     ImGui::SameLine();
@@ -446,26 +467,19 @@ void Editor::ResourcesWindow::show() {
     }
 
     // Visual feedback for drag and drop
-    if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup))
-    {
+    if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup)){
         ImGuiDragDropFlags target_flags = 0;
         target_flags |= ImGuiDragDropFlags_AcceptBeforeDelivery;
 
-        if (const ImGuiPayload* payload = ImGui::GetDragDropPayload())
-        {
-            if (payload->IsDataType("external_files"))
-            {
-                ImVec2 windowPos = ImGui::GetWindowPos();
-                ImVec2 windowSize = ImGui::GetWindowSize();
-                ImVec2 maxPos = ImVec2(windowPos.x + windowSize.x, windowPos.y + windowSize.y);
-
-                ImGui::GetWindowDrawList()->AddRect(
-                    windowPos,
-                    maxPos,
-                    ImGui::GetColorU32(ImGuiCol_DragDropTarget),
-                    0.0f, 0, 2.0f);
+        if (const ImGuiPayload* payload = ImGui::GetDragDropPayload()){
+            if (payload->IsDataType("external_files")){
+                highlightDragAndDrop();
             }
         }
+    }
+
+    if (isExternalDragHovering){
+        highlightDragAndDrop();
     }
 
     ImGui::End();

@@ -30,6 +30,9 @@ namespace Supernova::Editor{
 
         static bool isInitialized;
 
+        std::vector<std::string> droppedExternalPaths;
+        bool isDroppedExternalPaths;
+
         void showMenu();
         void showStyleEditor();
         void buildDockspace();
@@ -50,6 +53,10 @@ namespace Supernova::Editor{
         void engineShutdown();
 
         void addNewSceneToDock(uint32_t sceneId);
+
+        void handleExternalDrop(const std::vector<std::string>& paths);
+        void handleExternalDragEnter();
+        void handleExternalDragLeave();
     };
 
 }

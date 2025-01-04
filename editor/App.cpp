@@ -21,6 +21,8 @@ Editor::App::App(){
     consoleWindow = new Console();
     sceneWindow = new SceneWindow(&project);
     resourcesWindow = new ResourcesWindow(&project);
+
+    isDroppedExternalPaths = false;
 }
 
 void Editor::App::showMenu(){
@@ -173,6 +175,14 @@ void Editor::App::show(){
     bool isUndo = (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Z) && !io.KeyShift);
     bool isRedo = (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Y)) || (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Z) && io.KeyShift);
     #endif
+
+    if (isDroppedExternalPaths) {
+        isDroppedExternalPaths = false;
+        if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceExtern)) {
+            ImGui::SetDragDropPayload("external_files", &droppedExternalPaths, sizeof(std::vector<std::string>));
+            ImGui::EndDragDropSource();
+        }
+    }
 
     if (!ImGui::IsAnyItemActive() && !ImGui::IsAnyItemFocused()){
         // space to keys events
@@ -384,4 +394,17 @@ void Editor::App::kewtStyleTheme(){
 
     // docking
     style.DockingSeparatorSize = 6;
+}
+
+void Editor::App::handleExternalDrop(const std::vector<std::string>& paths) {
+    isDroppedExternalPaths = true;
+    droppedExternalPaths = paths;
+}
+
+void Editor::App::handleExternalDragEnter() {
+    resourcesWindow->handleExternalDragEnter();
+}
+
+void Editor::App::handleExternalDragLeave() {
+    resourcesWindow->handleExternalDragLeave();
 }

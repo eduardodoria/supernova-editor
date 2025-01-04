@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.20)
 project(supernova-editor)
 
+if(NOT API_BACKEND)
+    set(API_BACKEND "sdl2")
+endif()
+message(STATUS "API backend is set to ${API_BACKEND}")
+
 if(POLICY CMP0072)
   cmake_policy(SET CMP0072 NEW) # NEW for GLVND, OLD for legacy OpenGL
 endif()
@@ -21,13 +26,48 @@ if(WIN32)
     set(CMAKE_PREFIX_PATH "$ENV{ProgramFiles\(X86\)}/GLFW" ${CMAKE_PREFIX_PATH})
 endif()
 
+set(IMGUI_DIR libs/imgui)
+set(EDITOR_DIR editor)
+
 # Find OpenGL
 find_package(OpenGL REQUIRED)
 find_package(Threads REQUIRED)
-find_package(glfw3 REQUIRED)
 
-if(NOT DEFINED GLFW_LIBRARIES)
-    set(GLFW_LIBRARIES glfw)
+set(BACKEND_SOURCES)
+set(BACKEND_LIBS)
+
+if(API_BACKEND STREQUAL "glfw3")
+    find_package(glfw3 REQUIRED)
+
+    if(NOT DEFINED GLFW_LIBRARIES)
+        set(GLFW_LIBRARIES glfw)
+    endif()
+
+    list(APPEND
+        BACKEND_SOURCES
+        ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+        ${EDITOR_DIR}/backend/BackendGLFW.cpp
+    )
+
+    list(APPEND
+        BACKEND_LIBS
+        ${GLFW_LIBRARIES}
+    )
+endif()
+
+if(API_BACKEND STREQUAL "sdl2")
+    find_package(SDL2 REQUIRED)
+
+    list(APPEND
+        BACKEND_SOURCES
+        ${IMGUI_DIR}/backends/imgui_impl_sdl2.cpp
+        ${EDITOR_DIR}/backend/BackendSDL.cpp
+    )
+
+    list(APPEND
+        BACKEND_LIBS
+        ${SDL2_LIBRARIES}
+    )
 endif()
 
 set(SUPERNOVA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/supernova)
@@ -66,18 +106,14 @@ include_directories (${SUPERNOVA_ROOT}/engine/renders)
 add_subdirectory(${SUPERNOVA_ROOT}/engine)
 
 # Add ImGui source files
-set(IMGUI_DIR libs/imgui)
 set(IMGUI_SOURCES
     ${IMGUI_DIR}/imgui.cpp
     ${IMGUI_DIR}/imgui_demo.cpp
     ${IMGUI_DIR}/imgui_draw.cpp
     ${IMGUI_DIR}/imgui_tables.cpp
     ${IMGUI_DIR}/imgui_widgets.cpp
-    ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
     ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
 )
-
-set(EDITOR_DIR editor)
 
 include_directories (${EDITOR_DIR})
 
@@ -92,8 +128,6 @@ add_executable(
     ${EDITOR_DIR}/Platform.cpp
     ${EDITOR_DIR}/Project.cpp
     ${EDITOR_DIR}/Catalog.cpp
-
-    ${EDITOR_DIR}/backend/BackendGLFW.cpp
 
     ${EDITOR_DIR}/window/Properties.cpp
     ${EDITOR_DIR}/window/Console.cpp
@@ -119,6 +153,7 @@ add_executable(
     ${EDITOR_DIR}/command/type/SceneNameCmd.cpp
 
     ${IMGUI_SOURCES}
+    ${BACKEND_SOURCES}
 )
 
 # Include directories
@@ -134,7 +169,7 @@ target_link_libraries(
     
     PRIVATE
     
-    ${GLFW_LIBRARIES}
+    ${BACKEND_LIBS}
     ${OPENGL_LIBRARIES}
     ${MINGW_GCC_LIBS}
     Threads::Threads

@@ -11,6 +11,7 @@ env:
   BUILD_TYPE: Release
   TARGET: supernova-editor
   GLFW_VERSION: 3.4
+  SDL2_VERSION: 2.30.11
 
 jobs:
   build:
@@ -113,6 +114,30 @@ jobs:
             ${{ startsWith(matrix.config.artifact, 'windows_msvc') && '-A x64' || '' }}
           cmake --build glfw/build --config ${{env.BUILD_TYPE}}
           $SUDO_CMD cmake --install glfw/build --config ${{env.BUILD_TYPE}}
+
+      - name: Download and install SDL2
+        shell: bash
+        env:
+          CC: ${{ matrix.config.cc }}
+          CXX: ${{ matrix.config.cxx }}
+        run: |
+          sdlFile=SDL2-${{env.SDL2_VERSION}}
+          SUDO_CMD=$([ "$RUNNER_OS" != "Windows" ] && echo "sudo" || echo "")
+          curl -L https://github.com/libsdl-org/SDL/releases/download/release-${{env.SDL2_VERSION}}/$sdlFile.tar.gz -o $sdlFile.tar.gz
+          tar xzf $sdlFile.tar.gz
+          mv $sdlFile sdl2
+          mkdir -p sdl2/build
+          cmake \
+            -S sdl2 \
+            -B sdl2/build \
+            -G "${{ matrix.config.generators }}" \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
+            -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded" \
+            -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
+            ${{ startsWith(matrix.config.artifact, 'windows_msvc') && '-A x64' || '' }}
+          cmake --build sdl2/build --config ${{env.BUILD_TYPE}}
+          $SUDO_CMD cmake --install sdl2/build --config ${{env.BUILD_TYPE}}
 
       - name: Set version
         shell: bash
