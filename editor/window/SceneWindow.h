@@ -5,7 +5,6 @@
 #include "imgui_internal.h"
 #include "Project.h"
 #include "object/Camera.h"
-#include <GLFW/glfw3.h>
 
 namespace Supernova::Editor{
 
