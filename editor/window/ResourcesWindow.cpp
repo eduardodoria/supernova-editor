@@ -98,7 +98,7 @@ void Editor::ResourcesWindow::sortWithSortSpecs(ImGuiTableSortSpecs* sortSpecs, 
 std::string Editor::ResourcesWindow::shortenPath(const std::filesystem::path& path, float maxWidth) {
     std::string fullPath = path.string();
 
-    std::string projectPath = project->getProjectPath();
+    std::string projectPath = project->getProjectPath().string();
     if (fullPath.find(projectPath) == 0) {
         fullPath = fullPath.substr(projectPath.length());
         if (fullPath.empty()){
