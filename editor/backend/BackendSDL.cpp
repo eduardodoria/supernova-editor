@@ -14,6 +14,8 @@ using namespace Supernova;
 Editor::App Editor::Backend::app;
 
 int Editor::Backend::init(int argc, char **argv) {
+    SDL_SetMainReady();
+
     // Initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
         return -1;
