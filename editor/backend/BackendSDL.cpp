@@ -151,11 +151,13 @@ Editor::App& Editor::Backend::getApp() {
 }
 
 void Editor::Backend::disableMouseCursor() {
+    // TODO: cursor is not leaving the window
     SDL_ShowCursor(SDL_DISABLE);
     SDL_SetRelativeMouseMode(SDL_TRUE);
 }
 
 void Editor::Backend::enableMouseCursor() {
+    // TODO: cursor is not leaving the window
     SDL_ShowCursor(SDL_ENABLE);
     SDL_SetRelativeMouseMode(SDL_FALSE);
 }

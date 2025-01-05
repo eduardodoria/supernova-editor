@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 project(supernova-editor)
 
 if(NOT API_BACKEND)
-    set(API_BACKEND "sdl2")
+    set(API_BACKEND "glfw")
 endif()
 message(STATUS "API backend is set to ${API_BACKEND}")
 
@@ -36,36 +36,32 @@ find_package(Threads REQUIRED)
 set(BACKEND_SOURCES)
 set(BACKEND_LIBS)
 
-if(API_BACKEND STREQUAL "glfw3")
+if(API_BACKEND STREQUAL "glfw")
     find_package(glfw3 REQUIRED)
 
     if(NOT DEFINED GLFW_LIBRARIES)
         set(GLFW_LIBRARIES glfw)
     endif()
 
-    list(APPEND
-        BACKEND_SOURCES
+    list(APPEND BACKEND_SOURCES
         ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
         ${EDITOR_DIR}/backend/BackendGLFW.cpp
     )
 
-    list(APPEND
-        BACKEND_LIBS
+    list(APPEND BACKEND_LIBS
         ${GLFW_LIBRARIES}
     )
 endif()
 
-if(API_BACKEND STREQUAL "sdl2")
+if(API_BACKEND STREQUAL "sdl")
     find_package(SDL2 REQUIRED)
 
-    list(APPEND
-        BACKEND_SOURCES
+    list(APPEND BACKEND_SOURCES
         ${IMGUI_DIR}/backends/imgui_impl_sdl2.cpp
         ${EDITOR_DIR}/backend/BackendSDL.cpp
     )
 
-    list(APPEND
-        BACKEND_LIBS
+    list(APPEND BACKEND_LIBS
         ${SDL2_LIBRARIES}
     )
 endif()
