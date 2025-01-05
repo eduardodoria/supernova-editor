@@ -6,8 +6,7 @@
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl3.h"
 
-static SDL_Window* window = nullptr;
-static SDL_GLContext glContext = nullptr;
+static std::vector<std::string> droppedPaths;
 
 using namespace Supernova;
 
@@ -38,12 +37,16 @@ int Editor::Backend::init(int argc, char* argv[]) {
         SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, sampleCount);
     }
 
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+
     // Create window with OpenGL context
-    window = SDL_CreateWindow(
+    SDL_Window* window = SDL_CreateWindow(
         "Supernova Engine",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         1280, 720,
-        SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN
+        SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI
     );
 
     if (!window) {
@@ -51,13 +54,14 @@ int Editor::Backend::init(int argc, char* argv[]) {
         return -1;
     }
 
-    glContext = SDL_GL_CreateContext(window);
+    SDL_GLContext glContext = SDL_GL_CreateContext(window);
     if (!glContext) {
         SDL_DestroyWindow(window);
         SDL_Quit();
         return -1;
     }
 
+    SDL_GL_MakeCurrent(window, glContext);
     SDL_GL_SetSwapInterval(1); // Enable vsync
 
     // Initialize OpenGL loader
@@ -84,19 +88,21 @@ int Editor::Backend::init(int argc, char* argv[]) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             ImGui_ImplSDL2_ProcessEvent(&event);
-            if (event.type == SDL_QUIT)
+            if (event.type == SDL_QUIT){
                 done = true;
-            if (event.type == SDL_DROPBEGIN) {
-                app.handleExternalDragEnter();
             }
-            if (event.type == SDL_DROPFILE) {
-                std::vector<std::string> droppedPaths;
+            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window)){
+                done = true;
+            }
+            if (event.type == SDL_DROPBEGIN){
+                droppedPaths.clear();
+            }
+            if (event.type == SDL_DROPFILE){
                 droppedPaths.push_back(event.drop.file);
-                app.handleExternalDrop(droppedPaths);
                 SDL_free(event.drop.file);
             }
-            if (event.type == SDL_DROPCOMPLETE) {
-                app.handleExternalDragLeave();
+            if (event.type == SDL_DROPCOMPLETE){
+                app.handleExternalDrop(droppedPaths);
             }
         }
 
