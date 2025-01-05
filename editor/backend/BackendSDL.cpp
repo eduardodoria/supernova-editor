@@ -1,8 +1,6 @@
 #include "Backend.h"
 
-#define SDL_MAIN_HANDLED
 #include <SDL.h>
-#include <SDL_main.h>
 #include <SDL_opengl.h>
 
 #include "imgui_impl_sdl2.h"
@@ -16,8 +14,6 @@ using namespace Supernova;
 Editor::App Editor::Backend::app;
 
 int Editor::Backend::init(int argc, char* argv[]) {
-    SDL_SetMainReady();
-
     // Initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
         return -1;
