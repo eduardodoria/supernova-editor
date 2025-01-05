@@ -3,6 +3,11 @@
 #include <SDL.h>
 #include <SDL_opengl.h>
 
+// for work with mingw32
+int SDL_main(int argc, char* argv[]){
+    return Editor::Backend::init(argc, argv);
+}
+
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl3.h"
 
