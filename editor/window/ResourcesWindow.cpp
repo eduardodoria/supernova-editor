@@ -149,6 +149,32 @@ void Editor::ResourcesWindow::highlightDragAndDrop(){
         0.0f, 0, 2.0f);
 }
 
+void Editor::ResourcesWindow::handleInternalDragAndDrop(const std::string& targetDirectory) {
+    for (const auto& fileName : selectedFiles) {
+        fs::path sourcePath = fs::path(currentPath) / fileName;
+        fs::path destPath = fs::path(targetDirectory) / fileName;
+
+        try {
+            if (fs::exists(sourcePath)) {
+                if (sourcePath.parent_path() != fs::path(targetDirectory)) {  // Prevent copying to same directory
+                    if (fs::is_directory(sourcePath)) {
+                        fs::copy(sourcePath, destPath, fs::copy_options::recursive);
+                        fs::remove_all(sourcePath);
+                    } else {
+                        fs::copy(sourcePath, destPath, fs::copy_options::overwrite_existing);
+                        fs::remove(sourcePath);
+                    }
+                }
+            }
+        } catch (const fs::filesystem_error& e) {
+            // Handle error if needed
+        }
+    }
+
+    selectedFiles.clear();
+    files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
+}
+
 void Editor::ResourcesWindow::show() {
     if (firstOpen) {
         int iconWidth, iconHeight;
@@ -405,6 +431,34 @@ void Editor::ResourcesWindow::show() {
             ImGui::EndGroup();
 
             ImGui::PopID();
+
+            if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+                // If the dragged file isn't already selected, clear selection and select only this file
+                if (selectedFiles.find(file.name) == selectedFiles.end()) {
+                    selectedFiles.clear();
+                    selectedFiles.insert(file.name);
+                    lastSelectedFile = file.name;
+                }
+
+                // Create a dummy payload (we just need a non-null payload)
+                static int dummyPayload = 1;
+                ImGui::SetDragDropPayload("resource_files", &dummyPayload, sizeof(int));
+
+                // Preview of dragged items
+                ImGui::Text("Moving %zu file(s)", selectedFiles.size());
+
+                ImGui::EndDragDropSource();
+            }
+
+            if (ImGui::BeginDragDropTarget())
+            {
+
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
+                    std::string targetDirectory = currentPath + "/" + file.name;
+                    handleInternalDragAndDrop(targetDirectory);
+                }
+                ImGui::EndDragDropTarget();
+            }
         }
         ImGui::EndTable();
     }
@@ -480,6 +534,12 @@ void Editor::ResourcesWindow::show() {
 
     if (isExternalDragHovering){
         highlightDragAndDrop();
+    }
+
+    if (!selectedFiles.empty() && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)) {
+        if (ImGui::IsKeyPressed(ImGuiKey_Delete)) {
+            showDeleteConfirmation = true;
+        }
     }
 
     ImGui::End();
