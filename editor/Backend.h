@@ -4,7 +4,6 @@
 #include "App.h"
 
 namespace Supernova::Editor{
-
     class Backend{
     private:
         static App app;
@@ -16,6 +15,8 @@ namespace Supernova::Editor{
 
         static void disableMouseCursor();
         static void enableMouseCursor();
+
+        static void* getNFDWindowHandle();
     };
 
 }

@@ -5,7 +5,11 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
+#include "nfd.hpp"
+#include "nfd_glfw3.h"
+
 static GLFWwindow* window = nullptr;
+static nfdwindowhandle_t nativeWindow;
 
 using namespace Supernova;
 
@@ -15,6 +19,11 @@ int Editor::Backend::init(int argc, char* argv[]){
     // Initialize GLFW
     if (!glfwInit())
         return -1;
+
+    if (NFD_Init() != NFD_OKAY) {
+        printf("Error: NFD_Init failed: %s\n", NFD_GetError());
+        return -1;
+    }
 
     CameraRender render;
 
@@ -30,9 +39,12 @@ int Editor::Backend::init(int argc, char* argv[]){
     window = glfwCreateWindow(1280, 720, "Supernova Engine", NULL, NULL);
     if (!window)
     {
+        NFD_Quit();
         glfwTerminate();
         return -1;
     }
+
+    NFD_GetNativeWindowFromGLFWWindow(window, &nativeWindow);
 
     //glfwMaximizeWindow(window);
 
@@ -103,6 +115,7 @@ int Editor::Backend::init(int argc, char* argv[]){
     app.engineViewDestroyed();
 
     glfwDestroyWindow(window);
+    NFD_Quit();
     glfwTerminate();
 
     app.engineShutdown();
@@ -120,4 +133,8 @@ void Editor::Backend::disableMouseCursor(){
 
 void Editor::Backend::enableMouseCursor(){
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+}
+
+void* Editor::Backend::getNFDWindowHandle(){
+    return &nativeWindow;
 }

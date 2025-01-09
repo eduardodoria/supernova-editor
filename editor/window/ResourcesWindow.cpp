@@ -4,7 +4,10 @@
 #include "resources/icons/folder-icon_png.h"
 #include "resources/icons/file-icon_png.h"
 
+#include "Backend.h"
+
 #include "imgui_internal.h"
+#include "nfd.hpp"
 
 using namespace Supernova;
 
@@ -202,7 +205,7 @@ void Editor::ResourcesWindow::show() {
 
     ImGui::Begin("Resources");
 
-    bool clickedOutside = false;
+    bool clickedInFile = false;
 
     float windowWidth = ImGui::GetContentRegionAvail().x;
     float columnWidth = iconSize + iconPadding;
@@ -345,7 +348,7 @@ void Editor::ResourcesWindow::show() {
 
             // Handle left-click and right-click for selection
             if (ImGui::Selectable("", isSelected, ImGuiSelectableFlags_AllowDoubleClick, selectableSize)) {
-                clickedOutside = true;
+                clickedInFile = true;
 
                 if (ctrlPressed) {
                     if (isSelected) {
@@ -391,6 +394,7 @@ void Editor::ResourcesWindow::show() {
 
             // Handle right-click for selection and open the context menu
             if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+                clickedInFile = true;
                 // Right-click selects the file
                 if (!ctrlPressed && !isSelected) {
                     selectedFiles.clear();
@@ -464,8 +468,75 @@ void Editor::ResourcesWindow::show() {
     }
     ImGui::PopStyleVar();
 
-    if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered() && !clickedOutside) {
+    if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered() && !clickedInFile) {
         selectedFiles.clear();
+    }
+
+    // Handle right-click on empty space
+    if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsWindowHovered() && !clickedInFile) {
+        ImGui::OpenPopup("ResourcesContextMenu");
+    }
+
+    if (ImGui::BeginPopup("ResourcesContextMenu")) {
+        if (ImGui::MenuItem("Import Files...")) {
+
+            const nfdpathset_t* pathSet;
+            nfdopendialogu8args_t args = {0};
+
+            args.parentWindow = *static_cast<nfdwindowhandle_t*>(Backend::getNFDWindowHandle());
+
+            const nfdresult_t res = NFD_OpenDialogMultipleU8_With(&pathSet, &args);
+            switch (res) {
+                case NFD_OKAY:
+                    nfdpathsetsize_t num_paths;
+                    if (NFD_PathSet_GetCount(pathSet, &num_paths) != NFD_OKAY) {
+                        printf("Error: NFD_PathSet_GetCount failed: %s\n", NFD_GetError());
+                        break;
+                    }
+                    nfdpathsetsize_t i;
+                    for (i = 0; i != num_paths; ++i) {
+                        char* path;
+                        if (NFD_PathSet_GetPathU8(pathSet, i, &path) != NFD_OKAY) {
+                            printf("Error: NFD_PathSet_GetPathU8 failed: %s\n", NFD_GetError());
+                            break;
+                        }
+
+                        std::filesystem::path sourcePath = path;
+                        std::filesystem::path destPath = std::filesystem::path(currentPath) / sourcePath.filename();
+
+                        try {
+                            if (std::filesystem::exists(sourcePath)) {
+                                if (std::filesystem::is_directory(sourcePath)) {
+                                    std::filesystem::copy(sourcePath, destPath, 
+                                        std::filesystem::copy_options::recursive);
+                                } else {
+                                    std::filesystem::copy(sourcePath, destPath, 
+                                        std::filesystem::copy_options::overwrite_existing);
+                                }
+                            }
+                        } catch (const std::filesystem::filesystem_error& e) {
+                            // Handle error if needed
+                        }
+
+                        //num_chars += strlen(path) + 1;
+                        NFD_PathSet_FreePathU8(path);
+                    }
+
+                    NFD_PathSet_Free(pathSet);
+
+                    // Refresh directory after importing files
+                    files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), 
+                        (intptr_t)fileIcon.getRender()->getGLHandler());
+
+                    break;
+                case NFD_ERROR:
+                    printf("Error: %s", NFD_GetError());
+                    break;
+                default:
+                    break;
+            }
+        }
+        ImGui::EndPopup();
     }
 
     if (isDragging) {

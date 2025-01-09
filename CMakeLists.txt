@@ -101,6 +101,8 @@ include_directories (${SUPERNOVA_ROOT}/engine/renders)
 
 add_subdirectory(${SUPERNOVA_ROOT}/engine)
 
+add_subdirectory(libs/nfd)
+
 # Add ImGui source files
 set(IMGUI_SOURCES
     ${IMGUI_DIR}/imgui.cpp
@@ -170,6 +172,7 @@ target_link_libraries(
     ${MINGW_GCC_LIBS}
     Threads::Threads
     supernova
+    nfd
 )
 
 set_target_properties(

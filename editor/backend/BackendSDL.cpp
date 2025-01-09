@@ -6,7 +6,11 @@
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl3.h"
 
+#include "nfd.hpp"
+#include "nfd_sdl2.h"
+
 static std::vector<std::string> droppedPaths;
+static nfdwindowhandle_t nativeWindow;
 
 using namespace Supernova;
 
@@ -20,6 +24,11 @@ Editor::App Editor::Backend::app;
 int Editor::Backend::init(int argc, char* argv[]) {
     // Initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
+        return -1;
+    }
+
+    if (NFD_Init() != NFD_OKAY) {
+        printf("Error: NFD_Init failed: %s\n", NFD_GetError());
         return -1;
     }
 
@@ -50,13 +59,17 @@ int Editor::Backend::init(int argc, char* argv[]) {
     );
 
     if (!window) {
+        NFD_Quit();
         SDL_Quit();
         return -1;
     }
 
+    NFD_GetNativeWindowFromSDLWindow(window, &nativeWindow);
+
     SDL_GLContext glContext = SDL_GL_CreateContext(window);
     if (!glContext) {
         SDL_DestroyWindow(window);
+        NFD_Quit();
         SDL_Quit();
         return -1;
     }
@@ -139,6 +152,7 @@ int Editor::Backend::init(int argc, char* argv[]) {
 
     SDL_GL_DeleteContext(glContext);
     SDL_DestroyWindow(window);
+    NFD_Quit();
     SDL_Quit();
 
     app.engineShutdown();
@@ -160,4 +174,8 @@ void Editor::Backend::enableMouseCursor() {
     // TODO: cursor is not leaving the window
     SDL_ShowCursor(SDL_ENABLE);
     SDL_SetRelativeMouseMode(SDL_FALSE);
+}
+
+void* Editor::Backend::getNFDWindowHandle(){
+    return &nativeWindow;
 }
