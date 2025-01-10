@@ -72,6 +72,7 @@ add_definitions("-DNO_LUA_INIT")
 add_definitions("-DNO_CPP_INIT")
 add_definitions("-DSOKOL_GLCORE")
 add_definitions("-DWITH_MINIAUDIO") # For SoLoud
+set(NFD_PORTAL ON CACHE BOOL "Use xdg-desktop-portal instead of GTK") # For NFD
 add_definitions("-DSUPERNOVA_EDITOR")
 
 include_directories (${CMAKE_CURRENT_SOURCE_DIR})

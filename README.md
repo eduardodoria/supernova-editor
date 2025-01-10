@@ -13,9 +13,12 @@ Editor of Supernova Engine
 
 `sudo apt install cmake xorg-dev libsdl2-dev`
 
-#### GTK-3
+#### GTK-3 or Portal
+
+Depending of NFD_PORTAL config.
 
 `sudo apt install libgtk-3-dev`
+`sudo apt install libdbus-1-dev`
 
 ### macOS
 
