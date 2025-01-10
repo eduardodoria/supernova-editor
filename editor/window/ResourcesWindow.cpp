@@ -733,7 +733,17 @@ void Editor::ResourcesWindow::show() {
         if (ImGui::Button("Yes", ImVec2(buttonWidth, 0))) {
             // Delete selected files
             for (const auto& fileName : selectedFiles) {
-                std::filesystem::remove(currentPath + "/" + fileName);
+                std::filesystem::path pathToDelete = std::filesystem::path(currentPath) / fileName;
+                try {
+                    if (std::filesystem::is_directory(pathToDelete)) {
+                        std::filesystem::remove_all(pathToDelete);  // Use remove_all for directories
+                    } else {
+                        std::filesystem::remove(pathToDelete);      // Use remove for files
+                    }
+                } catch (const std::filesystem::filesystem_error& e) {
+                    // Optionally handle or log the error
+                    std::cerr << "Error deleting " << fileName << ": " << e.what() << std::endl;
+                }
             }
 
             // Clear the selection set
