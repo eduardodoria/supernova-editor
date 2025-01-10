@@ -812,9 +812,18 @@ void Editor::ResourcesWindow::show() {
         ImGui::Text("Are you sure you want to delete the following items?");
         ImGui::Separator();
 
-        // Display the list of files selected for deletion
+        // Display up to 10 files selected for deletion
+        int fileCount = 0;
         for (const auto& fileName : selectedFiles) {
-            ImGui::BulletText("%s", fileName.c_str());
+            if (fileCount < 10) {
+                ImGui::BulletText("%s", fileName.c_str());
+            }
+            fileCount++;
+        }
+
+        // If there are more files, show a message
+        if (fileCount > 10) {
+            ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "And %d more items...", fileCount - 10);
         }
 
         ImGui::Separator();
