@@ -49,11 +49,16 @@ namespace Supernova::Editor{
         std::vector<std::string> droppedFiles;
         bool isExternalDragHovering;
 
+        std::vector<std::string> clipboardFiles;
+        bool clipboardCut;
+
         std::vector<FileEntry> scanDirectory(const std::string& path, intptr_t folderIcon, intptr_t fileIcon);
         void sortWithSortSpecs(ImGuiTableSortSpecs* sortSpecs, std::vector<FileEntry>& files);
         std::string shortenPath(const std::filesystem::path& path, float maxWidth);
         void highlightDragAndDrop();
         void handleInternalDragAndDrop(const std::string& targetDirectory);
+        void copySelectedFiles(bool cut);
+        void pasteFiles(const std::string& targetDirectory);
 
     public:
         ResourcesWindow(Project* project);

@@ -13,13 +13,14 @@ using namespace Supernova;
 
 namespace fs = std::filesystem;
 
-Editor::ResourcesWindow::ResourcesWindow(Project* project){
+Editor::ResourcesWindow::ResourcesWindow(Project* project) {
     this->project = project;
     this->firstOpen = true;
     this->requestSort = true;
     this->iconSize = 32.0f;
     this->iconPadding = 1.5 * this->iconSize;
     this->isExternalDragHovering = false;
+    this->clipboardCut = false;
 }
 
 void Editor::ResourcesWindow::handleExternalDragEnter() {
@@ -178,6 +179,47 @@ void Editor::ResourcesWindow::handleInternalDragAndDrop(const std::string& targe
     files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
 }
 
+void Editor::ResourcesWindow::copySelectedFiles(bool cut) {
+    clipboardFiles.clear();
+    clipboardCut = cut;
+
+    for (const auto& fileName : selectedFiles) {
+        clipboardFiles.push_back(currentPath + "/" + fileName);
+    }
+}
+
+void Editor::ResourcesWindow::pasteFiles(const std::string& targetDirectory) {
+    for (const auto& sourcePath : clipboardFiles) {
+        fs::path sourceFs = fs::path(sourcePath);
+        fs::path destFs = fs::path(targetDirectory) / sourceFs.filename();
+
+        try {
+            if (fs::exists(sourceFs)) {
+                if (fs::is_directory(sourceFs)) {
+                    fs::copy(sourceFs, destFs, fs::copy_options::recursive);
+                    if (clipboardCut) {
+                        fs::remove_all(sourceFs);
+                    }
+                } else {
+                    fs::copy(sourceFs, destFs, fs::copy_options::overwrite_existing);
+                    if (clipboardCut) {
+                        fs::remove(sourceFs);
+                    }
+                }
+            }
+        } catch (const fs::filesystem_error& e) {
+            // Handle error if needed
+        }
+    }
+
+    // Clear clipboard if it was a cut operation
+    if (clipboardCut) {
+        clipboardFiles.clear();
+    }
+
+    files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
+}
+
 void Editor::ResourcesWindow::show() {
     if (firstOpen) {
         int iconWidth, iconHeight;
@@ -219,6 +261,14 @@ void Editor::ResourcesWindow::show() {
         files = scanDirectory(project->getProjectPath().string(), (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
         selectedFiles.clear();
     }
+    if (currentPath != project->getProjectPath() && ImGui::BeginDragDropTarget()){
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
+            std::string targetDirectory = project->getProjectPath().string();
+            handleInternalDragAndDrop(targetDirectory);
+        }
+        ImGui::EndDragDropTarget();
+    }
+
     ImGui::SameLine();
 
     if (ImGui::Button(ICON_FA_ANGLE_LEFT)) {
@@ -228,6 +278,13 @@ void Editor::ResourcesWindow::show() {
             files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
             selectedFiles.clear();
         }
+    }
+    if (currentPath != project->getProjectPath() && ImGui::BeginDragDropTarget()){
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
+            std::string targetDirectory = fs::path(currentPath).parent_path().string();
+            handleInternalDragAndDrop(targetDirectory);
+        }
+        ImGui::EndDragDropTarget();
     }
 
     ImGui::EndDisabled();
@@ -407,8 +464,22 @@ void Editor::ResourcesWindow::show() {
             }
 
             if (ImGui::BeginPopup("FileContextMenu")) {
+                if (ImGui::MenuItem("Copy")) {
+                    copySelectedFiles(false);
+                }
+
+                if (ImGui::MenuItem("Cut")) {
+                    copySelectedFiles(true);
+                }
+
+                if (ImGui::MenuItem("Paste", nullptr, false, !clipboardFiles.empty())) {
+                    std::string targetDirectory = currentPath + "/" + lastSelectedFile;
+                    pasteFiles(targetDirectory);
+                }
+
+                ImGui::Separator();
+
                 if (ImGui::MenuItem("Delete")) {
-                    // Trigger the confirmation dialog
                     showDeleteConfirmation = true;
                 }
 
@@ -454,9 +525,7 @@ void Editor::ResourcesWindow::show() {
                 ImGui::EndDragDropSource();
             }
 
-            if (ImGui::BeginDragDropTarget())
-            {
-
+            if (ImGui::BeginDragDropTarget()){
                 if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
                     std::string targetDirectory = currentPath + "/" + file.name;
                     handleInternalDragAndDrop(targetDirectory);
@@ -478,8 +547,13 @@ void Editor::ResourcesWindow::show() {
     }
 
     if (ImGui::BeginPopup("ResourcesContextMenu")) {
-        if (ImGui::MenuItem("Import Files...")) {
+        if (ImGui::MenuItem("Paste", nullptr, false, !clipboardFiles.empty())) {
+            pasteFiles(currentPath);
+        }
 
+        ImGui::Separator();
+
+        if (ImGui::MenuItem("Import Files...")) {
             const nfdpathset_t* pathSet;
             nfdopendialogu8args_t args = {0};
 
@@ -518,7 +592,6 @@ void Editor::ResourcesWindow::show() {
                             // Handle error if needed
                         }
 
-                        //num_chars += strlen(path) + 1;
                         NFD_PathSet_FreePathU8(path);
                     }
 
@@ -607,9 +680,26 @@ void Editor::ResourcesWindow::show() {
         highlightDragAndDrop();
     }
 
-    if (!selectedFiles.empty() && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)) {
-        if (ImGui::IsKeyPressed(ImGuiKey_Delete)) {
-            showDeleteConfirmation = true;
+    if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)) {
+        if (!selectedFiles.empty()){
+            if (ImGui::IsKeyPressed(ImGuiKey_Delete)) {
+                showDeleteConfirmation = true;
+            }
+        }
+
+        // Add keyboard shortcuts for copy/cut/paste
+        if (ctrlPressed) {
+            if (ImGui::IsKeyPressed(ImGuiKey_C)) {
+                copySelectedFiles(false);
+            }
+            else if (ImGui::IsKeyPressed(ImGuiKey_X)) {
+                copySelectedFiles(true);
+            }
+            else if (ImGui::IsKeyPressed(ImGuiKey_V)) {
+                if (!clipboardFiles.empty()) {
+                    pasteFiles(currentPath);
+                }
+            }
         }
     }
 
