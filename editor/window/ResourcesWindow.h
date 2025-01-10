@@ -52,6 +52,10 @@ namespace Supernova::Editor{
         std::vector<std::string> clipboardFiles;
         bool clipboardCut;
 
+        bool isRenaming;
+        std::string fileBeingRenamed;
+        char renameBuffer[256];
+
         std::vector<FileEntry> scanDirectory(const std::string& path, intptr_t folderIcon, intptr_t fileIcon);
         void sortWithSortSpecs(ImGuiTableSortSpecs* sortSpecs, std::vector<FileEntry>& files);
         std::string shortenPath(const std::filesystem::path& path, float maxWidth);

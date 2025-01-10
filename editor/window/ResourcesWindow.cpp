@@ -21,6 +21,8 @@ Editor::ResourcesWindow::ResourcesWindow(Project* project) {
     this->iconPadding = 1.5 * this->iconSize;
     this->isExternalDragHovering = false;
     this->clipboardCut = false;
+    this->isRenaming = false;
+    memset(this->renameBuffer, 0, sizeof(this->renameBuffer));
 }
 
 void Editor::ResourcesWindow::handleExternalDragEnter() {
@@ -484,9 +486,11 @@ void Editor::ResourcesWindow::show() {
                 }
 
                 if (ImGui::MenuItem("Rename")) {
-                    std::string newName = "new_name.txt";  // Replace with user input logic
-                    std::filesystem::rename(currentPath + "/" + file.name, currentPath + "/" + newName);
-                    files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
+                    isRenaming = true;
+                    fileBeingRenamed = file.name;
+                    strncpy(renameBuffer, file.name.c_str(), sizeof(renameBuffer) - 1);
+                    renameBuffer[sizeof(renameBuffer) - 1] = '\0';
+                    ImGui::CloseCurrentPopup();
                 }
 
                 ImGui::EndPopup();
@@ -701,6 +705,100 @@ void Editor::ResourcesWindow::show() {
                 }
             }
         }
+    }
+
+    // Handle rename popup
+    if (isRenaming) {
+        ImGui::OpenPopup("Rename File");
+        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    }
+
+    if (ImGui::BeginPopupModal("Rename File", &isRenaming, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Rename '%s' to:", fileBeingRenamed.c_str());
+
+        // Auto-focus the input field when the popup opens
+        if (ImGui::IsWindowAppearing()) {
+            ImGui::SetKeyboardFocusHere();
+        }
+
+        bool enterPressed = ImGui::InputText("##rename", renameBuffer, sizeof(renameBuffer), ImGuiInputTextFlags_EnterReturnsTrue);
+
+        // Calculate total width of the buttons
+        float buttonWidth = 120.0f;
+        float buttonSpacing = ImGui::GetStyle().ItemSpacing.x;
+        float totalWidth = (buttonWidth * 2) + buttonSpacing;
+
+        // Center the buttons
+        float windowWidth = ImGui::GetWindowSize().x;
+        ImGui::SetCursorPosX((windowWidth - totalWidth) * 0.5f);
+
+        bool confirmed = ImGui::Button("OK", ImVec2(buttonWidth, 0)) || enterPressed;
+        if (confirmed) {
+            std::string newName = renameBuffer;
+            if (!newName.empty() && newName != fileBeingRenamed) {
+                try {
+                    fs::path oldPath = fs::path(currentPath) / fileBeingRenamed;
+                    fs::path newPath = fs::path(currentPath) / newName;
+
+                    // Check if the target file already exists
+                    if (fs::exists(newPath)) {
+                        ImGui::OpenPopup("File Already Exists");
+                    } else {
+                        fs::rename(oldPath, newPath);
+                        files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
+                        isRenaming = false;
+                        ImGui::CloseCurrentPopup();
+                    }
+                } catch (const fs::filesystem_error& e) {
+                    ImGui::OpenPopup("Rename Error");
+                }
+            }
+            if (newName.empty()) {
+                ImGui::OpenPopup("Invalid Name");
+            }
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0))) {
+            isRenaming = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        // Error popup for existing file
+        if (ImGui::BeginPopupModal("File Already Exists", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("A file with this name already exists.");
+            ImGui::Separator();
+
+            if (ImGui::Button("OK", ImVec2(120, 0))) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+
+        // Error popup for rename failure
+        if (ImGui::BeginPopupModal("Rename Error", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("Failed to rename the file.");
+            ImGui::Separator();
+
+            if (ImGui::Button("OK", ImVec2(120, 0))) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+
+        // Error popup for invalid name
+        if (ImGui::BeginPopupModal("Invalid Name", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("Please enter a valid file name.");
+            ImGui::Separator();
+
+            if (ImGui::Button("OK", ImVec2(120, 0))) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+
+        ImGui::EndPopup();
     }
 
     ImGui::End();
