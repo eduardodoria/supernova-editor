@@ -616,6 +616,10 @@ void Editor::ResourcesWindow::show() {
 
     ImGui::BeginChild("FileTableScrollRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
 
+    ImVec2 scrollRegionMin = ImGui::GetWindowPos();
+    ImVec2 scrollRegionMax = ImVec2(scrollRegionMin.x + ImGui::GetWindowSize().x,
+                        scrollRegionMin.y + ImGui::GetWindowSize().y);
+
     ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(8.0f, 8.0f));
 
     // Deferred deletion
@@ -624,23 +628,42 @@ void Editor::ResourcesWindow::show() {
     if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(0) && !ImGui::IsAnyItemHovered()) {
         isDragging = true;
         dragStart = ImGui::GetMousePos();
-        dragStart.x -= windowPos.x;
-        dragStart.y -= windowPos.y;
-        dragStart.x += scrollOffset.x;
-        dragStart.y += scrollOffset.y;
+        // Convert to window-relative coordinates
+        dragStart.x -= scrollRegionMin.x;
+        dragStart.y -= scrollRegionMin.y;
+        // Add current scroll offset
+        dragStart.x += ImGui::GetScrollX();
+        dragStart.y += ImGui::GetScrollY();
+        selectedFiles.clear();
     }
 
     if (isDragging) {
-        dragEnd = ImGui::GetMousePos();
-        dragEnd.x -= windowPos.x;
-        dragEnd.y -= windowPos.y;
-        dragEnd.x += scrollOffset.x;
-        dragEnd.y += scrollOffset.y;
+        ImVec2 mousePos = ImGui::GetMousePos();
+
+        // Handle auto-scrolling
+        float scrollMargin = 20.0f;
+        float currentScroll = ImGui::GetScrollY();
+
+        if (mousePos.y > scrollRegionMax.y - scrollMargin) {
+            float scrollDelta = (mousePos.y - (scrollRegionMax.y - scrollMargin)) * 0.5f;
+            ImGui::SetScrollY(currentScroll + scrollDelta);
+        }
+        else if (mousePos.y < scrollRegionMin.y + scrollMargin) {
+            float scrollDelta = (mousePos.y - (scrollRegionMin.y + scrollMargin)) * 0.5f;
+            ImGui::SetScrollY(currentScroll + scrollDelta);
+        }
+
+        // Update drag end position
+        dragEnd = mousePos;
+        // Convert to window-relative coordinates
+        dragEnd.x -= scrollRegionMin.x;
+        dragEnd.y -= scrollRegionMin.y;
+        // Add current scroll offset
+        dragEnd.x += ImGui::GetScrollX();
+        dragEnd.y += ImGui::GetScrollY();
 
         if (!ImGui::IsMouseDown(0)) {
             isDragging = false;
-        }else{
-            selectedFiles.clear();
         }
     }
 
@@ -661,20 +684,35 @@ void Editor::ResourcesWindow::show() {
 
             if (isDragging) {
                 ImVec2 itemPos = ImGui::GetCursorScreenPos();
-                itemPos.x -= windowPos.x;
-                itemPos.y -= windowPos.y;
-                itemPos.x += scrollOffset.x;
-                itemPos.y += scrollOffset.y;
+                // Convert item position to the same coordinate space as drag coordinates
+                itemPos.x -= scrollRegionMin.x;
+                itemPos.y -= scrollRegionMin.y;
+                itemPos.x += ImGui::GetScrollX();
+                itemPos.y += ImGui::GetScrollY();
 
                 ImVec2 itemSize = selectableSize;
                 ImRect itemRect(itemPos, ImVec2(itemPos.x + itemSize.x, itemPos.y + itemSize.y));
+
                 ImRect selectionRect(
                     ImVec2(std::min(dragStart.x, dragEnd.x), std::min(dragStart.y, dragEnd.y)),
                     ImVec2(std::max(dragStart.x, dragEnd.x), std::max(dragStart.y, dragEnd.y))
                 );
 
-                if (itemRect.Overlaps(selectionRect)) {
-                    selectedFiles.insert(file.name);
+                // Check if item overlaps with selection rectangle
+                bool isOverlapping = itemRect.Overlaps(selectionRect);
+
+                // If CTRL is not pressed, we need to handle unselection
+                if (!ctrlPressed) {
+                    if (isOverlapping) {
+                        selectedFiles.insert(file.name);
+                    } else {
+                        selectedFiles.erase(file.name);
+                    }
+                } else {
+                    // With CTRL pressed, we only add to selection, never remove
+                    if (isOverlapping) {
+                        selectedFiles.insert(file.name);
+                    }
                 }
             }
 
@@ -844,16 +882,26 @@ void Editor::ResourcesWindow::show() {
         ImGui::EndPopup();
     }
 
+    // drawing the selection rectangle
     if (isDragging) {
         ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+        // Convert drag coordinates back to screen space for drawing
         ImVec2 rectMin(
-            windowPos.x + std::min(dragStart.x, dragEnd.x) - scrollOffset.x,
-            windowPos.y + std::min(dragStart.y, dragEnd.y) - scrollOffset.y
+            scrollRegionMin.x + std::min(dragStart.x, dragEnd.x) - ImGui::GetScrollX(),
+            scrollRegionMin.y + std::min(dragStart.y, dragEnd.y) - ImGui::GetScrollY()
         );
+
         ImVec2 rectMax(
-            windowPos.x + std::max(dragStart.x, dragEnd.x) - scrollOffset.x,
-            windowPos.y + std::max(dragStart.y, dragEnd.y) - scrollOffset.y
+            scrollRegionMin.x + std::max(dragStart.x, dragEnd.x) - ImGui::GetScrollX(),
+            scrollRegionMin.y + std::max(dragStart.y, dragEnd.y) - ImGui::GetScrollY()
         );
+
+        // Clip rectangle to scroll region
+        rectMin.x = ImClamp(rectMin.x, scrollRegionMin.x, scrollRegionMax.x);
+        rectMin.y = ImClamp(rectMin.y, scrollRegionMin.y, scrollRegionMax.y);
+        rectMax.x = ImClamp(rectMax.x, scrollRegionMin.x, scrollRegionMax.x);
+        rectMax.y = ImClamp(rectMax.y, scrollRegionMin.y, scrollRegionMax.y);
 
         drawList->AddRect(rectMin, rectMax, IM_COL32(100, 150, 255, 255));
         drawList->AddRectFilled(rectMin, rectMax, IM_COL32(100, 150, 255, 50));
