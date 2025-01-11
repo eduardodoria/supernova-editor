@@ -23,6 +23,8 @@ Editor::ResourcesWindow::ResourcesWindow(Project* project) {
     this->clipboardCut = false;
     this->isRenaming = false;
     memset(this->renameBuffer, 0, sizeof(this->renameBuffer));
+    this->isCreatingNewDirectory = false;
+    memset(this->newDirectoryBuffer, 0, sizeof(this->newDirectoryBuffer));
 }
 
 void Editor::ResourcesWindow::handleExternalDragEnter() {
@@ -179,6 +181,101 @@ void Editor::ResourcesWindow::handleInternalDragAndDrop(const std::string& targe
 
     selectedFiles.clear();
     files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
+}
+
+void Editor::ResourcesWindow::handleNewDirectory(){
+    // Handle new directory creation popup
+    if (isCreatingNewDirectory) {
+        ImGui::OpenPopup("Create New Directory");
+        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    }
+
+    if (ImGui::BeginPopupModal("Create New Directory", &isCreatingNewDirectory, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Enter directory name:");
+
+        // Auto-focus the input field when the popup opens
+        if (ImGui::IsWindowAppearing()) {
+            ImGui::SetKeyboardFocusHere();
+        }
+
+        bool enterPressed = ImGui::InputText("##newdir", newDirectoryBuffer, sizeof(newDirectoryBuffer), ImGuiInputTextFlags_EnterReturnsTrue);
+
+        // Calculate total width of the buttons
+        float buttonWidth = 120.0f;
+        float buttonSpacing = ImGui::GetStyle().ItemSpacing.x;
+        float totalWidth = (buttonWidth * 2) + buttonSpacing;
+
+        // Center the buttons
+        float windowWidth = ImGui::GetWindowSize().x;
+        ImGui::SetCursorPosX((windowWidth - totalWidth) * 0.5f);
+
+        bool confirmed = ImGui::Button("Create", ImVec2(buttonWidth, 0)) || enterPressed;
+        if (confirmed) {
+            std::string dirName = newDirectoryBuffer;
+            if (!dirName.empty()) {
+                try {
+                    fs::path newDirPath = fs::path(currentPath) / dirName;
+
+                    // Check if directory already exists
+                    if (fs::exists(newDirPath)) {
+                        ImGui::OpenPopup("Directory Already Exists");
+                    } else {
+                        fs::create_directory(newDirPath);
+                        files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
+                        isCreatingNewDirectory = false;
+                        ImGui::CloseCurrentPopup();
+                    }
+                } catch (const fs::filesystem_error& e) {
+                    ImGui::OpenPopup("Creation Error");
+                }
+            }
+            if (dirName.empty()) {
+                ImGui::OpenPopup("Invalid Name");
+            }
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0))) {
+            isCreatingNewDirectory = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        // Error popup for existing directory
+        if (ImGui::BeginPopupModal("Directory Already Exists", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("A directory with this name already exists.");
+            ImGui::Separator();
+
+            if (ImGui::Button("OK", ImVec2(120, 0))) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+
+        // Error popup for creation failure
+        if (ImGui::BeginPopupModal("Creation Error", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("Failed to create the directory.");
+            ImGui::Separator();
+
+            if (ImGui::Button("OK", ImVec2(120, 0))) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+
+        // Error popup for invalid name
+        if (ImGui::BeginPopupModal("Invalid Name", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("Please enter a valid directory name.");
+            ImGui::Separator();
+
+            if (ImGui::Button("OK", ImVec2(120, 0))) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+
+        ImGui::EndPopup();
+    }
 }
 
 void Editor::ResourcesWindow::copySelectedFiles(bool cut) {
@@ -551,6 +648,11 @@ void Editor::ResourcesWindow::show() {
     }
 
     if (ImGui::BeginPopup("ResourcesContextMenu")) {
+        if (ImGui::MenuItem("New Folder")) {
+            isCreatingNewDirectory = true;
+            memset(newDirectoryBuffer, 0, sizeof(newDirectoryBuffer));
+            ImGui::CloseCurrentPopup();
+        }
         if (ImGui::MenuItem("Paste", nullptr, false, !clipboardFiles.empty())) {
             pasteFiles(currentPath);
         }
@@ -873,4 +975,6 @@ void Editor::ResourcesWindow::show() {
 
         ImGui::EndPopup();
     }
+
+    handleNewDirectory();
 }
