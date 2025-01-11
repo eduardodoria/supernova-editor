@@ -980,6 +980,16 @@ void Editor::ResourcesWindow::show() {
                     pasteFiles(currentPath);
                 }
             }
+            else if (ImGui::IsKeyPressed(ImGuiKey_A)) {
+                // Select all files in the current directory
+                selectedFiles.clear();
+                for (const auto& file : files) {
+                    selectedFiles.insert(file.name);
+                }
+                if (!files.empty()) {
+                    lastSelectedFile = files.back().name;
+                }
+            }
         }
     }
 
