@@ -52,12 +52,12 @@ namespace Supernova::Editor{
         std::vector<std::string> clipboardFiles;
         bool clipboardCut;
 
+        char nameBuffer[256];
+
         bool isRenaming;
         std::string fileBeingRenamed;
-        char renameBuffer[256];
 
         bool isCreatingNewDirectory;
-        char newDirectoryBuffer[256];
 
         std::vector<FileEntry> scanDirectory(const std::string& path, intptr_t folderIcon, intptr_t fileIcon);
         void sortWithSortSpecs(ImGuiTableSortSpecs* sortSpecs, std::vector<FileEntry>& files);
@@ -65,6 +65,8 @@ namespace Supernova::Editor{
         void highlightDragAndDrop();
         void handleInternalDragAndDrop(const std::string& targetDirectory);
         void handleNewDirectory();
+        void handleRename();
+        void openFileDialog();
         void copySelectedFiles(bool cut);
         void pasteFiles(const std::string& targetDirectory);
 

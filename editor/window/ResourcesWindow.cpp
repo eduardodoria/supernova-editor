@@ -22,9 +22,8 @@ Editor::ResourcesWindow::ResourcesWindow(Project* project) {
     this->isExternalDragHovering = false;
     this->clipboardCut = false;
     this->isRenaming = false;
-    memset(this->renameBuffer, 0, sizeof(this->renameBuffer));
     this->isCreatingNewDirectory = false;
-    memset(this->newDirectoryBuffer, 0, sizeof(this->newDirectoryBuffer));
+    memset(this->nameBuffer, 0, sizeof(this->nameBuffer));
 }
 
 void Editor::ResourcesWindow::handleExternalDragEnter() {
@@ -199,7 +198,7 @@ void Editor::ResourcesWindow::handleNewDirectory(){
             ImGui::SetKeyboardFocusHere();
         }
 
-        bool enterPressed = ImGui::InputText("##newdir", newDirectoryBuffer, sizeof(newDirectoryBuffer), ImGuiInputTextFlags_EnterReturnsTrue);
+        bool enterPressed = ImGui::InputText("##newdir", nameBuffer, sizeof(nameBuffer), ImGuiInputTextFlags_EnterReturnsTrue);
 
         // Calculate total width of the buttons
         float buttonWidth = 120.0f;
@@ -212,7 +211,7 @@ void Editor::ResourcesWindow::handleNewDirectory(){
 
         bool confirmed = ImGui::Button("Create", ImVec2(buttonWidth, 0)) || enterPressed;
         if (confirmed) {
-            std::string dirName = newDirectoryBuffer;
+            std::string dirName = nameBuffer;
             if (!dirName.empty()) {
                 try {
                     fs::path newDirPath = fs::path(currentPath) / dirName;
@@ -246,7 +245,11 @@ void Editor::ResourcesWindow::handleNewDirectory(){
             ImGui::Text("A directory with this name already exists.");
             ImGui::Separator();
 
-            if (ImGui::Button("OK", ImVec2(120, 0))) {
+            float popupWidth = ImGui::GetWindowSize().x;
+            float buttonWidth = 120.0f;
+            ImGui::SetCursorPosX((popupWidth - buttonWidth) * 0.5f);
+
+            if (ImGui::Button("OK", ImVec2(buttonWidth, 0))) {
                 ImGui::CloseCurrentPopup();
             }
             ImGui::EndPopup();
@@ -257,7 +260,11 @@ void Editor::ResourcesWindow::handleNewDirectory(){
             ImGui::Text("Failed to create the directory.");
             ImGui::Separator();
 
-            if (ImGui::Button("OK", ImVec2(120, 0))) {
+            float popupWidth = ImGui::GetWindowSize().x;
+            float buttonWidth = 120.0f;
+            ImGui::SetCursorPosX((popupWidth - buttonWidth) * 0.5f);
+
+            if (ImGui::Button("OK", ImVec2(buttonWidth, 0))) {
                 ImGui::CloseCurrentPopup();
             }
             ImGui::EndPopup();
@@ -268,13 +275,184 @@ void Editor::ResourcesWindow::handleNewDirectory(){
             ImGui::Text("Please enter a valid directory name.");
             ImGui::Separator();
 
-            if (ImGui::Button("OK", ImVec2(120, 0))) {
+            float popupWidth = ImGui::GetWindowSize().x;
+            float buttonWidth = 120.0f;
+            ImGui::SetCursorPosX((popupWidth - buttonWidth) * 0.5f);
+
+            if (ImGui::Button("OK", ImVec2(buttonWidth, 0))) {
                 ImGui::CloseCurrentPopup();
             }
             ImGui::EndPopup();
         }
 
         ImGui::EndPopup();
+    }
+}
+
+void Editor::ResourcesWindow::handleRename(){
+    // Handle rename popup
+    if (isRenaming) {
+        ImGui::OpenPopup("Rename File");
+        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    }
+
+    if (ImGui::BeginPopupModal("Rename File", &isRenaming, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Rename '%s' to:", fileBeingRenamed.c_str());
+
+        // Auto-focus the input field when the popup opens
+        if (ImGui::IsWindowAppearing()) {
+            ImGui::SetKeyboardFocusHere();
+        }
+
+        ImGui::SetNextItemWidth(-1);
+
+        bool enterPressed = ImGui::InputText("##rename", nameBuffer, sizeof(nameBuffer), ImGuiInputTextFlags_EnterReturnsTrue);
+
+        // Calculate total width of the buttons
+        float buttonWidth = 120.0f;
+        float buttonSpacing = ImGui::GetStyle().ItemSpacing.x;
+        float totalWidth = (buttonWidth * 2) + buttonSpacing;
+
+        // Center the buttons
+        float windowWidth = ImGui::GetWindowSize().x;
+        ImGui::SetCursorPosX((windowWidth - totalWidth) * 0.5f);
+
+        bool confirmed = ImGui::Button("OK", ImVec2(buttonWidth, 0)) || enterPressed;
+        if (confirmed) {
+            std::string newName = nameBuffer;
+            if (!newName.empty() && newName != fileBeingRenamed) {
+                try {
+                    fs::path oldPath = fs::path(currentPath) / fileBeingRenamed;
+                    fs::path newPath = fs::path(currentPath) / newName;
+
+                    // Check if the target file already exists
+                    if (fs::exists(newPath)) {
+                        ImGui::OpenPopup("File Already Exists");
+                    } else {
+                        fs::rename(oldPath, newPath);
+                        files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
+                        isRenaming = false;
+                        ImGui::CloseCurrentPopup();
+                    }
+                } catch (const fs::filesystem_error& e) {
+                    ImGui::OpenPopup("Rename Error");
+                }
+            }
+            if (newName.empty()) {
+                ImGui::OpenPopup("Invalid Name");
+            }
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0))) {
+            isRenaming = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        // Error popup for existing file
+        if (ImGui::BeginPopupModal("File Already Exists", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("A file with this name already exists.");
+            ImGui::Separator();
+
+            float popupWidth = ImGui::GetWindowSize().x;
+            float buttonWidth = 120.0f;
+            ImGui::SetCursorPosX((popupWidth - buttonWidth) * 0.5f);
+
+            if (ImGui::Button("OK", ImVec2(buttonWidth, 0))) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+
+        // Error popup for rename failure
+        if (ImGui::BeginPopupModal("Rename Error", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("Failed to rename the file.");
+            ImGui::Separator();
+
+            float popupWidth = ImGui::GetWindowSize().x;
+            float buttonWidth = 120.0f;
+            ImGui::SetCursorPosX((popupWidth - buttonWidth) * 0.5f);
+
+            if (ImGui::Button("OK", ImVec2(buttonWidth, 0))) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+
+        // Error popup for invalid name
+        if (ImGui::BeginPopupModal("Invalid Name", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("Please enter a valid file name.");
+            ImGui::Separator();
+
+            float popupWidth = ImGui::GetWindowSize().x;
+            float buttonWidth = 120.0f;
+            ImGui::SetCursorPosX((popupWidth - buttonWidth) * 0.5f);
+
+            if (ImGui::Button("OK", ImVec2(buttonWidth, 0))) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
+void Editor::ResourcesWindow::openFileDialog(){
+    const nfdpathset_t* pathSet;
+    nfdopendialogu8args_t args = {0};
+
+    args.parentWindow = *static_cast<nfdwindowhandle_t*>(Backend::getNFDWindowHandle());
+
+    const nfdresult_t res = NFD_OpenDialogMultipleU8_With(&pathSet, &args);
+    switch (res) {
+        case NFD_OKAY:
+            nfdpathsetsize_t num_paths;
+            if (NFD_PathSet_GetCount(pathSet, &num_paths) != NFD_OKAY) {
+                printf("Error: NFD_PathSet_GetCount failed: %s\n", NFD_GetError());
+                break;
+            }
+            nfdpathsetsize_t i;
+            for (i = 0; i != num_paths; ++i) {
+                char* path;
+                if (NFD_PathSet_GetPathU8(pathSet, i, &path) != NFD_OKAY) {
+                    printf("Error: NFD_PathSet_GetPathU8 failed: %s\n", NFD_GetError());
+                    break;
+                }
+
+                std::filesystem::path sourcePath = path;
+                std::filesystem::path destPath = std::filesystem::path(currentPath) / sourcePath.filename();
+
+                try {
+                    if (std::filesystem::exists(sourcePath)) {
+                        if (std::filesystem::is_directory(sourcePath)) {
+                            std::filesystem::copy(sourcePath, destPath, 
+                                std::filesystem::copy_options::recursive);
+                        } else {
+                            std::filesystem::copy(sourcePath, destPath, 
+                                std::filesystem::copy_options::overwrite_existing);
+                        }
+                    }
+                } catch (const std::filesystem::filesystem_error& e) {
+                    // Handle error if needed
+                }
+
+                NFD_PathSet_FreePathU8(path);
+            }
+
+            NFD_PathSet_Free(pathSet);
+
+            // Refresh directory after importing files
+            files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), 
+                (intptr_t)fileIcon.getRender()->getGLHandler());
+
+            break;
+        case NFD_ERROR:
+            printf("Error: %s", NFD_GetError());
+            break;
+        default:
+            break;
     }
 }
 
@@ -585,8 +763,8 @@ void Editor::ResourcesWindow::show() {
                 if (ImGui::MenuItem("Rename")) {
                     isRenaming = true;
                     fileBeingRenamed = file.name;
-                    strncpy(renameBuffer, file.name.c_str(), sizeof(renameBuffer) - 1);
-                    renameBuffer[sizeof(renameBuffer) - 1] = '\0';
+                    strncpy(nameBuffer, file.name.c_str(), sizeof(nameBuffer) - 1);
+                    nameBuffer[sizeof(nameBuffer) - 1] = '\0';
                     ImGui::CloseCurrentPopup();
                 }
 
@@ -648,73 +826,21 @@ void Editor::ResourcesWindow::show() {
     }
 
     if (ImGui::BeginPopup("ResourcesContextMenu")) {
+        if (ImGui::MenuItem("Import Files...")) {
+            openFileDialog();
+        }
+
+        ImGui::Separator();
+
         if (ImGui::MenuItem("New Folder")) {
             isCreatingNewDirectory = true;
-            memset(newDirectoryBuffer, 0, sizeof(newDirectoryBuffer));
+            memset(nameBuffer, 0, sizeof(nameBuffer));
             ImGui::CloseCurrentPopup();
         }
         if (ImGui::MenuItem("Paste", nullptr, false, !clipboardFiles.empty())) {
             pasteFiles(currentPath);
         }
 
-        ImGui::Separator();
-
-        if (ImGui::MenuItem("Import Files...")) {
-            const nfdpathset_t* pathSet;
-            nfdopendialogu8args_t args = {0};
-
-            args.parentWindow = *static_cast<nfdwindowhandle_t*>(Backend::getNFDWindowHandle());
-
-            const nfdresult_t res = NFD_OpenDialogMultipleU8_With(&pathSet, &args);
-            switch (res) {
-                case NFD_OKAY:
-                    nfdpathsetsize_t num_paths;
-                    if (NFD_PathSet_GetCount(pathSet, &num_paths) != NFD_OKAY) {
-                        printf("Error: NFD_PathSet_GetCount failed: %s\n", NFD_GetError());
-                        break;
-                    }
-                    nfdpathsetsize_t i;
-                    for (i = 0; i != num_paths; ++i) {
-                        char* path;
-                        if (NFD_PathSet_GetPathU8(pathSet, i, &path) != NFD_OKAY) {
-                            printf("Error: NFD_PathSet_GetPathU8 failed: %s\n", NFD_GetError());
-                            break;
-                        }
-
-                        std::filesystem::path sourcePath = path;
-                        std::filesystem::path destPath = std::filesystem::path(currentPath) / sourcePath.filename();
-
-                        try {
-                            if (std::filesystem::exists(sourcePath)) {
-                                if (std::filesystem::is_directory(sourcePath)) {
-                                    std::filesystem::copy(sourcePath, destPath, 
-                                        std::filesystem::copy_options::recursive);
-                                } else {
-                                    std::filesystem::copy(sourcePath, destPath, 
-                                        std::filesystem::copy_options::overwrite_existing);
-                                }
-                            }
-                        } catch (const std::filesystem::filesystem_error& e) {
-                            // Handle error if needed
-                        }
-
-                        NFD_PathSet_FreePathU8(path);
-                    }
-
-                    NFD_PathSet_Free(pathSet);
-
-                    // Refresh directory after importing files
-                    files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), 
-                        (intptr_t)fileIcon.getRender()->getGLHandler());
-
-                    break;
-                case NFD_ERROR:
-                    printf("Error: %s", NFD_GetError());
-                    break;
-                default:
-                    break;
-            }
-        }
         ImGui::EndPopup();
     }
 
@@ -809,100 +935,6 @@ void Editor::ResourcesWindow::show() {
         }
     }
 
-    // Handle rename popup
-    if (isRenaming) {
-        ImGui::OpenPopup("Rename File");
-        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-    }
-
-    if (ImGui::BeginPopupModal("Rename File", &isRenaming, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text("Rename '%s' to:", fileBeingRenamed.c_str());
-
-        // Auto-focus the input field when the popup opens
-        if (ImGui::IsWindowAppearing()) {
-            ImGui::SetKeyboardFocusHere();
-        }
-
-        bool enterPressed = ImGui::InputText("##rename", renameBuffer, sizeof(renameBuffer), ImGuiInputTextFlags_EnterReturnsTrue);
-
-        // Calculate total width of the buttons
-        float buttonWidth = 120.0f;
-        float buttonSpacing = ImGui::GetStyle().ItemSpacing.x;
-        float totalWidth = (buttonWidth * 2) + buttonSpacing;
-
-        // Center the buttons
-        float windowWidth = ImGui::GetWindowSize().x;
-        ImGui::SetCursorPosX((windowWidth - totalWidth) * 0.5f);
-
-        bool confirmed = ImGui::Button("OK", ImVec2(buttonWidth, 0)) || enterPressed;
-        if (confirmed) {
-            std::string newName = renameBuffer;
-            if (!newName.empty() && newName != fileBeingRenamed) {
-                try {
-                    fs::path oldPath = fs::path(currentPath) / fileBeingRenamed;
-                    fs::path newPath = fs::path(currentPath) / newName;
-
-                    // Check if the target file already exists
-                    if (fs::exists(newPath)) {
-                        ImGui::OpenPopup("File Already Exists");
-                    } else {
-                        fs::rename(oldPath, newPath);
-                        files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
-                        isRenaming = false;
-                        ImGui::CloseCurrentPopup();
-                    }
-                } catch (const fs::filesystem_error& e) {
-                    ImGui::OpenPopup("Rename Error");
-                }
-            }
-            if (newName.empty()) {
-                ImGui::OpenPopup("Invalid Name");
-            }
-        }
-
-        ImGui::SameLine();
-        if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0))) {
-            isRenaming = false;
-            ImGui::CloseCurrentPopup();
-        }
-
-        // Error popup for existing file
-        if (ImGui::BeginPopupModal("File Already Exists", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::Text("A file with this name already exists.");
-            ImGui::Separator();
-
-            if (ImGui::Button("OK", ImVec2(120, 0))) {
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::EndPopup();
-        }
-
-        // Error popup for rename failure
-        if (ImGui::BeginPopupModal("Rename Error", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::Text("Failed to rename the file.");
-            ImGui::Separator();
-
-            if (ImGui::Button("OK", ImVec2(120, 0))) {
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::EndPopup();
-        }
-
-        // Error popup for invalid name
-        if (ImGui::BeginPopupModal("Invalid Name", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::Text("Please enter a valid file name.");
-            ImGui::Separator();
-
-            if (ImGui::Button("OK", ImVec2(120, 0))) {
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::EndPopup();
-        }
-
-        ImGui::EndPopup();
-    }
-
     ImGui::End();
 
     // Show confirmation dialog
@@ -977,4 +1009,5 @@ void Editor::ResourcesWindow::show() {
     }
 
     handleNewDirectory();
+    handleRename();
 }
