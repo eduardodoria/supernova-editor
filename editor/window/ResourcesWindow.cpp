@@ -741,26 +741,26 @@ void Editor::ResourcesWindow::show() {
             }
 
             if (ImGui::BeginPopup("FileContextMenu")) {
-                if (ImGui::MenuItem("Copy")) {
+                if (ImGui::MenuItem(ICON_FA_COPY"  Copy")) {
                     copySelectedFiles(false);
                 }
 
-                if (ImGui::MenuItem("Cut")) {
+                if (ImGui::MenuItem(ICON_FA_SCISSORS"  Cut")) {
                     copySelectedFiles(true);
                 }
 
-                if (ImGui::MenuItem("Paste", nullptr, false, !clipboardFiles.empty())) {
+                if (ImGui::MenuItem(ICON_FA_PASTE"  Paste", nullptr, false, !clipboardFiles.empty())) {
                     std::string targetDirectory = currentPath + "/" + lastSelectedFile;
                     pasteFiles(targetDirectory);
                 }
 
                 ImGui::Separator();
 
-                if (ImGui::MenuItem("Delete")) {
+                if (ImGui::MenuItem(ICON_FA_TRASH"  Delete")) {
                     showDeleteConfirmation = true;
                 }
 
-                if (ImGui::MenuItem("Rename")) {
+                if (ImGui::MenuItem(ICON_FA_I_CURSOR"  Rename")) {
                     isRenaming = true;
                     fileBeingRenamed = file.name;
                     strncpy(nameBuffer, file.name.c_str(), sizeof(nameBuffer) - 1);
@@ -826,18 +826,18 @@ void Editor::ResourcesWindow::show() {
     }
 
     if (ImGui::BeginPopup("ResourcesContextMenu")) {
-        if (ImGui::MenuItem("Import Files...")) {
+        if (ImGui::MenuItem(ICON_FA_FILE_IMPORT"  Import Files...")) {
             openFileDialog();
         }
 
         ImGui::Separator();
 
-        if (ImGui::MenuItem("New Folder")) {
+        if (ImGui::MenuItem(ICON_FA_FOLDER"  New Folder")) {
             isCreatingNewDirectory = true;
             memset(nameBuffer, 0, sizeof(nameBuffer));
             ImGui::CloseCurrentPopup();
         }
-        if (ImGui::MenuItem("Paste", nullptr, false, !clipboardFiles.empty())) {
+        if (ImGui::MenuItem(ICON_FA_PASTE"  Paste", nullptr, false, !clipboardFiles.empty())) {
             pasteFiles(currentPath);
         }
 
