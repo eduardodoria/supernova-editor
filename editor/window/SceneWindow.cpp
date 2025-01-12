@@ -173,10 +173,6 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
                 project->getScene(sceneId)->sceneRender->changeUseGlobalTransform();
             }
         }
-
-        if (ImGui::IsKeyPressed(ImGuiKey_Delete)){
-            project->deleteEntities(sceneId, project->getSelectedEntities(sceneId));
-        }
     }
 
 

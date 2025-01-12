@@ -34,6 +34,7 @@ namespace Supernova::Editor{
 
         bool tempPath;
         std::filesystem::path projectPath;
+        bool resourcesFocused;
 
         template<typename T>
         T* findScene(uint32_t sceneId) const;
@@ -64,6 +65,9 @@ namespace Supernova::Editor{
 
         bool isTempPath() const;
         std::filesystem::path getProjectPath() const;
+
+        void setResourcesFocused(bool focused);
+        bool isRecourcesFocused() const;
 
         void setLastActivatedSceneId(uint32_t lastActivatedScene);
         uint32_t getLastActivatedSceneId() const;

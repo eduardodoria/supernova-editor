@@ -16,6 +16,7 @@ Editor::Project::Project(){
     lastActivatedScene = NULL_PROJECT_SCENE;
 
     tempPath = false;
+    resourcesFocused = false;
 }
 
 bool Editor::Project::createNewProject(std::string projectName){
@@ -266,6 +267,14 @@ bool Editor::Project::isTempPath() const{
 
 std::filesystem::path Editor::Project::getProjectPath() const{
     return projectPath;
+}
+
+void Editor::Project::setResourcesFocused(bool focused){
+    this->resourcesFocused = focused;
+}
+
+bool Editor::Project::isRecourcesFocused() const{
+    return this->resourcesFocused;
 }
 
 void Editor::Project::setLastActivatedSceneId(uint32_t lastActivatedScene){

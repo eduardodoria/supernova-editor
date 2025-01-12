@@ -5,6 +5,7 @@
 #include "resources/icons/file-icon_png.h"
 
 #include "Backend.h"
+#include "App.h"
 
 #include "imgui_internal.h"
 #include "nfd.hpp"
@@ -967,7 +968,11 @@ void Editor::ResourcesWindow::show() {
         highlightDragAndDrop();
     }
 
-    if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)) {
+    bool isWindowFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+
+    project->setResourcesFocused(isWindowFocused);
+
+    if (isWindowFocused) {
         if (!selectedFiles.empty()){
             if (ImGui::IsKeyPressed(ImGuiKey_Delete)) {
                 showDeleteConfirmation = true;

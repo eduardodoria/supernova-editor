@@ -188,13 +188,21 @@ void Editor::App::show(){
         // space to keys events
     }
 
-    // Update the Undo and Redo button logic:
-    if (isUndo) {
-        CommandHandle::get(project.getSelectedSceneId())->undo();
-    }
-    ImGui::SameLine();
-    if (isRedo) {
-        CommandHandle::get(project.getSelectedSceneId())->redo();
+    if (!project.isRecourcesFocused()){
+        uint32_t sceneId = project.getSelectedSceneId();
+
+        // Update the Undo and Redo button logic:
+        if (isUndo) {
+            CommandHandle::get(sceneId)->undo();
+        }
+        ImGui::SameLine();
+        if (isRedo) {
+            CommandHandle::get(sceneId)->redo();
+        }
+
+        if (ImGui::IsKeyPressed(ImGuiKey_Delete)){
+            project.deleteEntities(sceneId, project.getSelectedEntities(sceneId));
+        }
     }
 
     dockspace_id = ImGui::GetID("MyDockspace");
