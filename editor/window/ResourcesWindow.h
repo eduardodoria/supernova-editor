@@ -2,6 +2,7 @@
 #define RESOURCESWINDOW_H
 
 #include "Project.h"
+#include "command/CommandHistory.h"
 
 #include <iostream>
 #include <filesystem>
@@ -22,6 +23,8 @@ namespace Supernova::Editor{
     class ResourcesWindow{
     private:
         Project* project;
+
+        CommandHistory cmdHistory;
 
         bool firstOpen;
         bool requestSort;
@@ -46,7 +49,6 @@ namespace Supernova::Editor{
         ImVec2 scrollOffset;     // Store scroll offset
 
         bool isDragDropTarget;
-        std::vector<std::string> droppedFiles;
         bool isExternalDragHovering;
 
         std::vector<std::string> clipboardFiles;
@@ -59,7 +61,7 @@ namespace Supernova::Editor{
 
         bool isCreatingNewDirectory;
 
-        std::vector<FileEntry> scanDirectory(const std::string& path, intptr_t folderIcon, intptr_t fileIcon);
+        std::vector<FileEntry> scanDirectory(const std::string& path);
         void sortWithSortSpecs(ImGuiTableSortSpecs* sortSpecs, std::vector<FileEntry>& files);
         std::string shortenPath(const std::filesystem::path& path, float maxWidth);
         void highlightDragAndDrop();

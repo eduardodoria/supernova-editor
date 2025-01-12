@@ -4,6 +4,8 @@
 #include "resources/icons/folder-icon_png.h"
 #include "resources/icons/file-icon_png.h"
 
+#include "command/type/CopyFileCmd.h"
+
 #include "Backend.h"
 #include "App.h"
 
@@ -35,17 +37,20 @@ void Editor::ResourcesWindow::handleExternalDragLeave() {
     isExternalDragHovering = false;
 }
 
-std::vector<Editor::FileEntry> Editor::ResourcesWindow::scanDirectory(const std::string& path, intptr_t folderIcon, intptr_t fileIcon) {
+std::vector<Editor::FileEntry> Editor::ResourcesWindow::scanDirectory(const std::string& path) {
     currentPath = path;
     requestSort = true;
 
-    std::vector<Editor::FileEntry> files;
+    intptr_t folderIconH = (intptr_t)folderIcon.getRender()->getGLHandler();
+    intptr_t fileIconH = (intptr_t)fileIcon.getRender()->getGLHandler();
+
+    files.clear();
 
     for (const auto& entry : fs::directory_iterator(path)) {
         FileEntry fileEntry;
         fileEntry.name = entry.path().filename().string();
         fileEntry.isDirectory = entry.is_directory();
-        fileEntry.icon = entry.is_directory() ? folderIcon : fileIcon;
+        fileEntry.icon = entry.is_directory() ? folderIconH : fileIconH;
         if (!fileEntry.isDirectory) {
             fileEntry.type = entry.path().extension().string();
         } else {
@@ -158,29 +163,11 @@ void Editor::ResourcesWindow::highlightDragAndDrop(){
 }
 
 void Editor::ResourcesWindow::handleInternalDragAndDrop(const std::string& targetDirectory) {
-    for (const auto& fileName : selectedFiles) {
-        fs::path sourcePath = fs::path(currentPath) / fileName;
-        fs::path destPath = fs::path(targetDirectory) / fileName;
-
-        try {
-            if (fs::exists(sourcePath)) {
-                if (sourcePath.parent_path() != fs::path(targetDirectory)) {  // Prevent copying to same directory
-                    if (fs::is_directory(sourcePath)) {
-                        fs::copy(sourcePath, destPath, fs::copy_options::recursive);
-                        fs::remove_all(sourcePath);
-                    } else {
-                        fs::copy(sourcePath, destPath, fs::copy_options::overwrite_existing);
-                        fs::remove(sourcePath);
-                    }
-                }
-            }
-        } catch (const fs::filesystem_error& e) {
-            // Handle error if needed
-        }
-    }
+    std::vector<std::string> filesVector(selectedFiles.begin(), selectedFiles.end());
+    cmdHistory.addCommand(new CopyFileCmd(filesVector, currentPath, targetDirectory, true));
 
     selectedFiles.clear();
-    files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
+    scanDirectory(currentPath);
 }
 
 void Editor::ResourcesWindow::handleNewDirectory(){
@@ -222,7 +209,7 @@ void Editor::ResourcesWindow::handleNewDirectory(){
                         ImGui::OpenPopup("Directory Already Exists");
                     } else {
                         fs::create_directory(newDirPath);
-                        files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
+                        scanDirectory(currentPath);
                         isCreatingNewDirectory = false;
                         ImGui::CloseCurrentPopup();
                     }
@@ -332,7 +319,7 @@ void Editor::ResourcesWindow::handleRename(){
                         ImGui::OpenPopup("File Already Exists");
                     } else {
                         fs::rename(oldPath, newPath);
-                        files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
+                        scanDirectory(currentPath);
                         isRenaming = false;
                         ImGui::CloseCurrentPopup();
                     }
@@ -401,6 +388,7 @@ void Editor::ResourcesWindow::handleRename(){
 }
 
 void Editor::ResourcesWindow::openFileDialog(){
+    std::vector<std::string> filePaths;
     const nfdpathset_t* pathSet;
     nfdopendialogu8args_t args = {0};
 
@@ -421,32 +409,14 @@ void Editor::ResourcesWindow::openFileDialog(){
                     printf("Error: NFD_PathSet_GetPathU8 failed: %s\n", NFD_GetError());
                     break;
                 }
-
-                std::filesystem::path sourcePath = path;
-                std::filesystem::path destPath = std::filesystem::path(currentPath) / sourcePath.filename();
-
-                try {
-                    if (std::filesystem::exists(sourcePath)) {
-                        if (std::filesystem::is_directory(sourcePath)) {
-                            std::filesystem::copy(sourcePath, destPath, 
-                                std::filesystem::copy_options::recursive);
-                        } else {
-                            std::filesystem::copy(sourcePath, destPath, 
-                                std::filesystem::copy_options::overwrite_existing);
-                        }
-                    }
-                } catch (const std::filesystem::filesystem_error& e) {
-                    // Handle error if needed
-                }
-
+                filePaths.push_back(path);
                 NFD_PathSet_FreePathU8(path);
             }
-
+            cmdHistory.addCommand(new CopyFileCmd(filePaths, currentPath, false));
             NFD_PathSet_Free(pathSet);
 
             // Refresh directory after importing files
-            files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), 
-                (intptr_t)fileIcon.getRender()->getGLHandler());
+            scanDirectory(currentPath);
 
             break;
         case NFD_ERROR:
@@ -467,35 +437,14 @@ void Editor::ResourcesWindow::copySelectedFiles(bool cut) {
 }
 
 void Editor::ResourcesWindow::pasteFiles(const std::string& targetDirectory) {
-    for (const auto& sourcePath : clipboardFiles) {
-        fs::path sourceFs = fs::path(sourcePath);
-        fs::path destFs = fs::path(targetDirectory) / sourceFs.filename();
-
-        try {
-            if (fs::exists(sourceFs)) {
-                if (fs::is_directory(sourceFs)) {
-                    fs::copy(sourceFs, destFs, fs::copy_options::recursive);
-                    if (clipboardCut) {
-                        fs::remove_all(sourceFs);
-                    }
-                } else {
-                    fs::copy(sourceFs, destFs, fs::copy_options::overwrite_existing);
-                    if (clipboardCut) {
-                        fs::remove(sourceFs);
-                    }
-                }
-            }
-        } catch (const fs::filesystem_error& e) {
-            // Handle error if needed
-        }
-    }
+    cmdHistory.addCommand(new CopyFileCmd(clipboardFiles, targetDirectory, clipboardCut));
 
     // Clear clipboard if it was a cut operation
     if (clipboardCut) {
         clipboardFiles.clear();
     }
 
-    files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
+    scanDirectory(currentPath);
 }
 
 void Editor::ResourcesWindow::show() {
@@ -512,7 +461,7 @@ void Editor::ResourcesWindow::show() {
         fileIcon.setData("editor:resources:file_icon", data);
         fileIcon.load();
 
-        files = scanDirectory(project->getProjectPath().string(), (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
+        scanDirectory(project->getProjectPath().string());
 
         firstOpen = false;
     }
@@ -536,7 +485,7 @@ void Editor::ResourcesWindow::show() {
     ImGui::BeginDisabled(currentPath == project->getProjectPath());
 
     if (ImGui::Button(ICON_FA_HOUSE)) {
-        files = scanDirectory(project->getProjectPath().string(), (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
+        scanDirectory(project->getProjectPath().string());
         selectedFiles.clear();
     }
     if (currentPath != project->getProjectPath() && ImGui::BeginDragDropTarget()){
@@ -553,7 +502,7 @@ void Editor::ResourcesWindow::show() {
         if (!currentPath.empty() && currentPath != project->getProjectPath()) {
             fs::path parentPath = fs::path(currentPath).parent_path();
             currentPath = parentPath.string();
-            files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
+            scanDirectory(currentPath);
             selectedFiles.clear();
         }
     }
@@ -757,7 +706,7 @@ void Editor::ResourcesWindow::show() {
                 }
 
                 if (ImGui::IsMouseDoubleClicked(0) && file.isDirectory) {
-                    files = scanDirectory(currentPath + "/" + file.name, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
+                    scanDirectory(currentPath + "/" + file.name);
                     selectedFiles.clear();
                     ImGui::EndGroup();
                     ImGui::PopID();
@@ -918,35 +867,16 @@ void Editor::ResourcesWindow::show() {
     ImGui::EndChild();
 
     // Handle drag and drop from system
-    if (ImGui::BeginDragDropTarget())
-    {
+    if (ImGui::BeginDragDropTarget()){
         isDragDropTarget = true;
 
         // Accept dropped files from external applications
-        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("external_files"))
-        {
-            droppedFiles = *(std::vector<std::string>*)payload->Data;
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("external_files")){
+            std::vector<std::string> droppedPaths = *(std::vector<std::string>*)payload->Data;
 
-            for (const auto& sourcePath : droppedFiles)
-            {
-                fs::path sourceFs = fs::path(sourcePath);
-                fs::path destFs = fs::path(currentPath) / sourceFs.filename();
+            cmdHistory.addCommand(new CopyFileCmd(droppedPaths, currentPath, false));
 
-                try {
-                    if (fs::exists(sourceFs)) {
-                        if (fs::is_directory(sourceFs)) {
-                            fs::copy(sourceFs, destFs, fs::copy_options::recursive);
-                        } else {
-                            fs::copy(sourceFs, destFs, fs::copy_options::overwrite_existing);
-                        }
-                    }
-                } catch (const fs::filesystem_error& e) {
-                    // Handle error if needed
-                }
-            }
-
-            // Refresh the directory after files are copied
-            files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
+            scanDirectory(currentPath);
         }
 
         ImGui::EndDragDropTarget();
@@ -983,16 +913,13 @@ void Editor::ResourcesWindow::show() {
         if (ctrlPressed) {
             if (ImGui::IsKeyPressed(ImGuiKey_C)) {
                 copySelectedFiles(false);
-            }
-            else if (ImGui::IsKeyPressed(ImGuiKey_X)) {
+            }else if (ImGui::IsKeyPressed(ImGuiKey_X)) {
                 copySelectedFiles(true);
-            }
-            else if (ImGui::IsKeyPressed(ImGuiKey_V)) {
+            }else if (ImGui::IsKeyPressed(ImGuiKey_V)) {
                 if (!clipboardFiles.empty()) {
                     pasteFiles(currentPath);
                 }
-            }
-            else if (ImGui::IsKeyPressed(ImGuiKey_A)) {
+            }else if (ImGui::IsKeyPressed(ImGuiKey_A)) {
                 // Select all files in the current directory
                 selectedFiles.clear();
                 for (const auto& file : files) {
@@ -1001,6 +928,15 @@ void Editor::ResourcesWindow::show() {
                 if (!files.empty()) {
                     lastSelectedFile = files.back().name;
                 }
+            }else if (!shiftPressed && ImGui::IsKeyPressed(ImGuiKey_Z)) {
+                cmdHistory.undo();
+                scanDirectory(currentPath);
+            }else if (shiftPressed && ImGui::IsKeyPressed(ImGuiKey_Z)) {
+                cmdHistory.redo();
+                scanDirectory(currentPath);
+            }else if (ImGui::IsKeyPressed(ImGuiKey_Y)) {
+                cmdHistory.redo();
+                scanDirectory(currentPath);
             }
         }
     }
@@ -1061,7 +997,7 @@ void Editor::ResourcesWindow::show() {
             selectedFiles.clear();
 
             // Refresh the files list
-            files = scanDirectory(currentPath, (intptr_t)folderIcon.getRender()->getGLHandler(), (intptr_t)fileIcon.getRender()->getGLHandler());
+            scanDirectory(currentPath);
 
             // Close the modal
             showDeleteConfirmation = false;
