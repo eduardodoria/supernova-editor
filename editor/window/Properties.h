@@ -18,6 +18,7 @@ namespace Supernova::Editor{
         Vector3 roundZero(const Vector3& val, const float threshold);
 
         float getMaxLabelSize(std::map<std::string, PropertyData> props, const std::vector<std::string>& includes = {}, const std::vector<std::string>& excludes = {});
+        std::vector<std::string> getStringsFromPayload(const ImGuiPayload* payload);
 
         void beginTable(ComponentType cpType, float firstColSize, std::string nameAddon = "");
         void endTable();

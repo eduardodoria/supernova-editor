@@ -63,6 +63,23 @@ float Editor::Properties::getMaxLabelSize(std::map<std::string, PropertyData> pr
     return maxLabelSize;
 }
 
+std::vector<std::string> Editor::Properties::getStringsFromPayload(const ImGuiPayload* payload){
+    const char* data = static_cast<const char*>(payload->Data);
+    size_t dataSize = payload->DataSize;
+
+    std::vector<std::string> receivedStrings;
+    size_t offset = 0;
+
+    while (offset < dataSize) {
+        // Read null-terminated strings from the payload
+        const char* str = &data[offset];
+        receivedStrings.push_back(std::string(str));
+        offset += strlen(str) + 1; // Move past the string and null terminator
+    }
+
+    return receivedStrings;
+}
+
 void Editor::Properties::beginTable(ComponentType cpType, float firstColSize, std::string nameAddon){
     ImGui::PushItemWidth(-1);
     if (!nameAddon.empty()){
@@ -526,6 +543,15 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         ImGui::Text("Teste");
 
         ImGui::EndChild();
+        if (ImGui::BeginDragDropTarget()){
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
+                std::vector<std::string> receivedStrings = getStringsFromPayload(payload);
+                for (const auto& str : receivedStrings) {
+                    printf("%s\n", str.c_str());
+                }
+            }
+            ImGui::EndDragDropTarget();
+        }
         //ImGui::SetItemTooltip("%s", currentPath.c_str());
         ImGui::PopStyleColor();
 

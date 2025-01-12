@@ -832,9 +832,16 @@ void Editor::ResourcesWindow::show() {
                     lastSelectedFile = file.name;
                 }
 
-                // Create a dummy payload (we just need a non-null payload)
-                static int dummyPayload = 1;
-                ImGui::SetDragDropPayload("resource_files", &dummyPayload, sizeof(int));
+                // serialize vector of strings into a single buffer
+                std::vector<char> buffer;
+                for (const auto& selectedFile : selectedFiles) {
+                    std::string fullPath = (fs::path(currentPath) / selectedFile).string();
+                    buffer.insert(buffer.end(), fullPath.begin(), fullPath.end());
+                    buffer.push_back('\0'); // Add null terminator for each string
+                }
+
+                // Set the payload with the vector of paths
+                ImGui::SetDragDropPayload("resource_files", buffer.data(), buffer.size());
 
                 // Preview of dragged items
                 ImGui::Text("Moving %zu file(s)", selectedFiles.size());
