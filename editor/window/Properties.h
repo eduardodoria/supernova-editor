@@ -3,11 +3,15 @@
 
 #include "Project.h"
 
+#include "imgui.h"
+
 namespace Supernova::Editor{
 
     class Properties{
     private:
         Project* project;
+
+        const ImU32 textureLabel = IM_COL32(50, 50, 50, 255);
 
         // replace [number] with []
         std::string replaceNumberedBrackets(const std::string& input);

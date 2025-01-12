@@ -73,6 +73,7 @@ namespace Supernova::Editor{
         Color4L,
         Int,
         UInt,
+        Texture,
         PrimitiveType
     };
 

@@ -1,6 +1,5 @@
 #include "Properties.h"
 
-#include "imgui.h"
 #include "imgui_internal.h"
 
 #include "external/IconsFontAwesome6.h"
@@ -86,6 +85,7 @@ bool Editor::Properties::propertyHeader(std::string label, float secondColSize, 
         ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::ColorConvertFloat4ToU32(ImGui::GetStyle().Colors[ImGuiCol_PopupBg]));
     }
     ImGui::TableNextColumn();
+    //ImGui::Dummy(ImVec2(0, 10));
     ImGui::Text("%s", label.c_str());
     ImGui::SameLine();
 
@@ -510,6 +510,30 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         }
         if (dif)
             ImGui::PopStyleColor();
+
+    }else if (prop.type == PropertyType::Texture){
+        propertyHeader(prop.label, secondColSize, false, child);
+
+        ImGui::PushID(("texture_"+name).c_str());
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, textureLabel);
+
+        // Use calculated width for the frame
+        ImGui::BeginChild("textureframe", ImVec2(- ImGui::CalcTextSize(ICON_FA_GEAR).x - ImGui::GetStyle().ItemSpacing.x * 2 - ImGui::GetStyle().FramePadding.x * 2, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2), 
+            false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+
+        ImGui::SetCursorPosX(2);
+        ImGui::SetCursorPosY(ImGui::GetStyle().FramePadding.y);
+        ImGui::Text("Teste");
+
+        ImGui::EndChild();
+        //ImGui::SetItemTooltip("%s", currentPath.c_str());
+        ImGui::PopStyleColor();
+
+        ImGui::SameLine();
+        if (ImGui::Button(ICON_FA_FILE_IMPORT)) {
+        }
+        ImGui::PopID();
+
     }
 
     if (ImGui::IsItemDeactivatedAfterEdit()) {
@@ -582,13 +606,18 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
         if (show_button_group){
             endTable();
             beginTable(cpType, getMaxLabelSize(props, {"material"}), "material_table");
-            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material_basecolor", scene, entities, -1, true);
-            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material_metallicfactor", scene, entities, 4 * ImGui::GetFontSize(), true);
-            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material_roughnessfactor", scene, entities, 4 * ImGui::GetFontSize(), true);
-            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material_emissivefactor", scene, entities, -1, true);
+            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.basecolor", scene, entities, -1, true);
+            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.basecolortexture", scene, entities, -1, true);
+            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.metallicfactor", scene, entities, 4 * ImGui::GetFontSize(), true);
+            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.roughnessfactor", scene, entities, 4 * ImGui::GetFontSize(), true);
+            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.metallicroughnesstexture", scene, entities, -1, true);
+            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.emissivefactor", scene, entities, -1, true);
+            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.emissivetexture", scene, entities, -1, true);
+            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.occlusiontexture", scene, entities, -1, true);
+            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.normalTexture", scene, entities, -1, true);
             if (!scene->isSceneAmbientLightEnabled()){
-                propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material_ambientlight", scene, entities, -1, true);
-                propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material_ambientintensity", scene, entities, 4 * ImGui::GetFontSize(), true);
+                propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.ambientlight", scene, entities, -1, true);
+                propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.ambientintensity", scene, entities, 4 * ImGui::GetFontSize(), true);
             }
             endTable();
             beginTable(cpType, submeshesTableSize, "submeshes");
