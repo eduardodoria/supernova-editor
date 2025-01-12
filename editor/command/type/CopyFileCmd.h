@@ -8,7 +8,6 @@
 
 namespace fs = std::filesystem;
 
-
 namespace Supernova::Editor{
 
     struct FileCopyData{
@@ -36,4 +35,4 @@ namespace Supernova::Editor{
 
 }
 
-#endif /* CREATEENTITYCMD_H */
+#endif /* COPYFILECMD_H */
