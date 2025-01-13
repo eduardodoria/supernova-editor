@@ -2,7 +2,7 @@
 
 using namespace Supernova;
 
-Editor::CopyFileCmd::CopyFileCmd(std::vector<std::string> sourceFiles, std::string currentDirectory, std::string targetDirectory, bool remove){
+Editor::CopyFileCmd::CopyFileCmd(std::vector<std::string> sourceFiles, std::string currentDirectory, std::string targetDirectory, bool copy){
     for (const auto& sourceFile : sourceFiles) {
         FileCopyData fdata;
         fdata.filename = fs::path(sourceFile).filename();
@@ -11,10 +11,10 @@ Editor::CopyFileCmd::CopyFileCmd(std::vector<std::string> sourceFiles, std::stri
 
         this->files.push_back(fdata);
     }
-    this->remove = remove;
+    this->copy = copy;
 }
 
-Editor::CopyFileCmd::CopyFileCmd(std::vector<std::string> sourcePaths, std::string targetDirectory, bool remove){
+Editor::CopyFileCmd::CopyFileCmd(std::vector<std::string> sourcePaths, std::string targetDirectory, bool copy){
     for (const auto& sourcePath : sourcePaths) {
         FileCopyData fdata;
         fdata.filename = fs::path(sourcePath).filename();
@@ -23,7 +23,7 @@ Editor::CopyFileCmd::CopyFileCmd(std::vector<std::string> sourcePaths, std::stri
 
         this->files.push_back(fdata);
     }
-    this->remove = remove;
+    this->copy = copy;
 }
 
 void Editor::CopyFileCmd::execute(){
@@ -33,19 +33,21 @@ void Editor::CopyFileCmd::execute(){
         try {
             if (fs::exists(sourceFs)) {
                 if (fs::is_directory(sourceFs)) {
-                    fs::copy(sourceFs, destFs, fs::copy_options::recursive);
-                    if (remove) {
-                        fs::remove_all(sourceFs);
+                    if (copy){
+                        fs::copy(sourceFs, destFs, fs::copy_options::recursive);
+                    }else{
+                        fs::rename(sourceFs, destFs);
                     }
                 } else {
-                    fs::copy(sourceFs, destFs, fs::copy_options::overwrite_existing);
-                    if (remove) {
-                        fs::remove(sourceFs);
+                    if (copy){
+                        fs::copy(sourceFs, destFs, fs::copy_options::overwrite_existing);
+                    }else{
+                        fs::rename(sourceFs, destFs);
                     }
                 }
             }
         } catch (const fs::filesystem_error& e) {
-            // Handle error if needed
+            printf("Error: %s: %s\n", sourceFs.c_str(), e.what());
         }
     }
 }
@@ -57,19 +59,21 @@ void Editor::CopyFileCmd::undo(){
         try {
             if (fs::exists(sourceFs)) {
                 if (fs::is_directory(sourceFs)) {
-                    if (remove) {
-                        fs::copy(sourceFs, destFs, fs::copy_options::recursive);
+                    if (copy) {
+                        fs::remove_all(sourceFs);
+                    }else{
+                        fs::rename(sourceFs, destFs);
                     }
-                    fs::remove_all(sourceFs);
                 } else {
-                    if (remove) {
-                        fs::copy(sourceFs, destFs, fs::copy_options::overwrite_existing);
+                    if (copy) {
+                        fs::remove(sourceFs);
+                    }else{
+                        fs::rename(sourceFs, destFs);
                     }
-                    fs::remove(sourceFs);
                 }
             }
         } catch (const fs::filesystem_error& e) {
-            // Handle error if needed
+            printf("Error: %s: %s\n", sourceFs.c_str(), e.what());
         }
     }
 }

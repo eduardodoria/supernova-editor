@@ -164,7 +164,7 @@ void Editor::ResourcesWindow::highlightDragAndDrop(){
 
 void Editor::ResourcesWindow::handleInternalDragAndDrop(const std::string& targetDirectory) {
     std::vector<std::string> filesVector(selectedFiles.begin(), selectedFiles.end());
-    cmdHistory.addCommand(new CopyFileCmd(filesVector, currentPath, targetDirectory, true));
+    cmdHistory.addCommand(new CopyFileCmd(filesVector, currentPath, targetDirectory, false));
 
     selectedFiles.clear();
     scanDirectory(currentPath);
@@ -412,7 +412,7 @@ void Editor::ResourcesWindow::openFileDialog(){
                 filePaths.push_back(path);
                 NFD_PathSet_FreePathU8(path);
             }
-            cmdHistory.addCommand(new CopyFileCmd(filePaths, currentPath, false));
+            cmdHistory.addCommand(new CopyFileCmd(filePaths, currentPath, true));
             NFD_PathSet_Free(pathSet);
 
             // Refresh directory after importing files
@@ -437,7 +437,7 @@ void Editor::ResourcesWindow::copySelectedFiles(bool cut) {
 }
 
 void Editor::ResourcesWindow::pasteFiles(const std::string& targetDirectory) {
-    cmdHistory.addCommand(new CopyFileCmd(clipboardFiles, targetDirectory, clipboardCut));
+    cmdHistory.addCommand(new CopyFileCmd(clipboardFiles, targetDirectory, !clipboardCut));
 
     // Clear clipboard if it was a cut operation
     if (clipboardCut) {
@@ -874,7 +874,7 @@ void Editor::ResourcesWindow::show() {
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("external_files")){
             std::vector<std::string> droppedPaths = *(std::vector<std::string>*)payload->Data;
 
-            cmdHistory.addCommand(new CopyFileCmd(droppedPaths, currentPath, false));
+            cmdHistory.addCommand(new CopyFileCmd(droppedPaths, currentPath, true));
 
             scanDirectory(currentPath);
         }
@@ -979,6 +979,8 @@ void Editor::ResourcesWindow::show() {
 
         if (ImGui::Button("Yes", ImVec2(buttonWidth, 0))) {
             // Delete selected files
+            //std::vector<std::string> filesVector(selectedFiles.begin(), selectedFiles.end());
+            //cmdHistory.addCommand(new CopyFileCmd(filesVector, currentPath, "./trash", false));
             for (const auto& fileName : selectedFiles) {
                 std::filesystem::path pathToDelete = std::filesystem::path(currentPath) / fileName;
                 try {

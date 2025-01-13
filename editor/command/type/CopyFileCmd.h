@@ -21,7 +21,7 @@ namespace Supernova::Editor{
     private:
 
         std::vector<FileCopyData> files;
-        bool remove;
+        bool copy;
 
     public:
         CopyFileCmd(std::vector<std::string> sourceFiles, std::string currentDirectory, std::string targetDirectory, bool remove);
