@@ -151,6 +151,8 @@ add_executable(
     ${EDITOR_DIR}/command/type/EntityNameCmd.cpp
     ${EDITOR_DIR}/command/type/SceneNameCmd.cpp
     ${EDITOR_DIR}/command/type/CopyFileCmd.cpp
+    ${EDITOR_DIR}/command/type/RenameFileCmd.cpp
+    ${EDITOR_DIR}/command/type/CreateDirCmd.cpp
 
     ${IMGUI_SOURCES}
     ${BACKEND_SOURCES}

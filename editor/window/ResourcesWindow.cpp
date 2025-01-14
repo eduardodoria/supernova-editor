@@ -5,6 +5,8 @@
 #include "resources/icons/file-icon_png.h"
 
 #include "command/type/CopyFileCmd.h"
+#include "command/type/RenameFileCmd.h"
+#include "command/type/CreateDirCmd.h"
 
 #include "Backend.h"
 #include "App.h"
@@ -39,6 +41,11 @@ void Editor::ResourcesWindow::handleExternalDragLeave() {
 
 std::vector<Editor::FileEntry> Editor::ResourcesWindow::scanDirectory(const std::string& path) {
     currentPath = path;
+
+    if (!std::filesystem::is_directory(path)) {
+        currentPath = project->getProjectPath();
+    }
+
     requestSort = true;
 
     intptr_t folderIconH = (intptr_t)folderIcon.getRender()->getGLHandler();
@@ -197,6 +204,13 @@ void Editor::ResourcesWindow::handleNewDirectory(){
         float windowWidth = ImGui::GetWindowSize().x;
         ImGui::SetCursorPosX((windowWidth - totalWidth) * 0.5f);
 
+        if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0))) {
+            isCreatingNewDirectory = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::SameLine();
+
         bool confirmed = ImGui::Button("Create", ImVec2(buttonWidth, 0)) || enterPressed;
         if (confirmed) {
             std::string dirName = nameBuffer;
@@ -208,7 +222,7 @@ void Editor::ResourcesWindow::handleNewDirectory(){
                     if (fs::exists(newDirPath)) {
                         ImGui::OpenPopup("Directory Already Exists");
                     } else {
-                        fs::create_directory(newDirPath);
+                        cmdHistory.addCommand(new CreateDirCmd(dirName, currentPath));
                         scanDirectory(currentPath);
                         isCreatingNewDirectory = false;
                         ImGui::CloseCurrentPopup();
@@ -220,12 +234,6 @@ void Editor::ResourcesWindow::handleNewDirectory(){
             if (dirName.empty()) {
                 ImGui::OpenPopup("Invalid Name");
             }
-        }
-
-        ImGui::SameLine();
-        if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0))) {
-            isCreatingNewDirectory = false;
-            ImGui::CloseCurrentPopup();
         }
 
         // Error popup for existing directory
@@ -306,6 +314,13 @@ void Editor::ResourcesWindow::handleRename(){
         float windowWidth = ImGui::GetWindowSize().x;
         ImGui::SetCursorPosX((windowWidth - totalWidth) * 0.5f);
 
+        if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0))) {
+            isRenaming = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::SameLine();
+
         bool confirmed = ImGui::Button("OK", ImVec2(buttonWidth, 0)) || enterPressed;
         if (confirmed) {
             std::string newName = nameBuffer;
@@ -318,7 +333,7 @@ void Editor::ResourcesWindow::handleRename(){
                     if (fs::exists(newPath)) {
                         ImGui::OpenPopup("File Already Exists");
                     } else {
-                        fs::rename(oldPath, newPath);
+                        cmdHistory.addCommand(new RenameFileCmd(fileBeingRenamed, newName, currentPath));
                         scanDirectory(currentPath);
                         isRenaming = false;
                         ImGui::CloseCurrentPopup();
@@ -330,12 +345,6 @@ void Editor::ResourcesWindow::handleRename(){
             if (newName.empty()) {
                 ImGui::OpenPopup("Invalid Name");
             }
-        }
-
-        ImGui::SameLine();
-        if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0))) {
-            isRenaming = false;
-            ImGui::CloseCurrentPopup();
         }
 
         // Error popup for existing file
