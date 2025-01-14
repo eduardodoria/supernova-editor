@@ -7,6 +7,7 @@
 #include "command/type/CopyFileCmd.h"
 #include "command/type/RenameFileCmd.h"
 #include "command/type/CreateDirCmd.h"
+#include "command/type/DeleteFileCmd.h"
 
 #include "Backend.h"
 #include "App.h"
@@ -830,8 +831,12 @@ void Editor::ResourcesWindow::show() {
     }
 
     if (ImGui::BeginPopup("ResourcesContextMenu")) {
-        if (ImGui::MenuItem(ICON_FA_FILE_IMPORT"  Import Files...")) {
+        if (ImGui::MenuItem(ICON_FA_FILE_IMPORT"  Import Files")) {
             openFileDialog();
+        }
+
+        if (ImGui::MenuItem(ICON_FA_RETWEET"  Refresh")) {
+            scanDirectory(currentPath);
         }
 
         ImGui::Separator();
@@ -988,21 +993,11 @@ void Editor::ResourcesWindow::show() {
 
         if (ImGui::Button("Yes", ImVec2(buttonWidth, 0))) {
             // Delete selected files
-            //std::vector<std::string> filesVector(selectedFiles.begin(), selectedFiles.end());
-            //cmdHistory.addCommand(new CopyFileCmd(filesVector, currentPath, "./trash", false));
+            std::vector<fs::path> pathsToDelete;
             for (const auto& fileName : selectedFiles) {
-                std::filesystem::path pathToDelete = std::filesystem::path(currentPath) / fileName;
-                try {
-                    if (std::filesystem::is_directory(pathToDelete)) {
-                        std::filesystem::remove_all(pathToDelete);  // Use remove_all for directories
-                    } else {
-                        std::filesystem::remove(pathToDelete);      // Use remove for files
-                    }
-                } catch (const std::filesystem::filesystem_error& e) {
-                    // Optionally handle or log the error
-                    std::cerr << "Error deleting " << fileName << ": " << e.what() << std::endl;
-                }
+                pathsToDelete.push_back(std::filesystem::path(currentPath) / fileName);
             }
+            cmdHistory.addCommand(new DeleteFileCmd(pathsToDelete));
 
             // Clear the selection set
             selectedFiles.clear();
