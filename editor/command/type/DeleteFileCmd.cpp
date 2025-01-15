@@ -413,24 +413,21 @@ bool Editor::DeleteFileCmd::restoreFromTrash(const fs::path& path) {
             pos += 2;
         }
 
-        // Get original path using POSIX path
-        std::string getOrigPathCmd = "osascript -e 'tell application \"Finder\" to set origItem to (first item of (items of trash whose name is \"" 
-                                + escapedFileName + "\"))' -e 'return POSIX path of (original item of origItem)'";
+        // Get original path using proper path traversal
+        std::string getOrigPathCmd = "osascript -e 'tell application \"Finder\" to return POSIX path of (original item of (first item of (items of trash whose name is \"" 
+                                + escapedFileName + "\"))) as text'";
         
         std::string originalPath = executeCommand(getOrigPathCmd.c_str());
         if (!originalPath.empty()) {
-            // Remove trailing newline if present
             if (originalPath.back() == '\n') {
                 originalPath.pop_back();
             }
 
-            // Create parent directories if they don't exist
             fs::path destPath(originalPath);
             fs::create_directories(destPath.parent_path(), ec);
 
-            // Perform the restore operation
             std::string restoreCmd = "osascript -e 'tell application \"Finder\" to restore (first item of (items of trash whose name is \"" 
-                                + escapedFileName + "\"))' 2>/dev/null";
+                                + escapedFileName + "\"))'";
 
             success = (std::system(restoreCmd.c_str()) == 0);
         }
