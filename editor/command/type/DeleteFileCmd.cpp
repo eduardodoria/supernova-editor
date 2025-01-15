@@ -9,7 +9,6 @@
 #include <array>
 #include <fstream>
 #include <chrono>
-#include <thread>
 
 #ifdef _WIN32
     #include <windows.h>
@@ -414,19 +413,9 @@ bool Editor::DeleteFileCmd::restoreFromTrash(const fs::path& path) {
             pos += 2;
         }
 
-        // First, verify the file exists in trash
-        std::string checkCmd = "osascript -e 'tell application \"Finder\" to return exists (first item of (items of trash whose name is \"" 
-                            + escapedFileName + "\")) as string'";
-        
-        std::string checkResult = executeCommand(checkCmd.c_str());
-        if (checkResult.find("true") == std::string::npos) {
-            std::cerr << "File not found in trash: " << fileName << std::endl;
-            return false;
-        }
-
-        // Get the original path before restoration
-        std::string getOrigPathCmd = "osascript -e 'tell application \"Finder\" to return (original item of (first item of (items of trash whose name is \"" 
-                                + escapedFileName + "\"))) as text'";
+        // Get original path using POSIX path
+        std::string getOrigPathCmd = "osascript -e 'tell application \"Finder\" to set origItem to (first item of (items of trash whose name is \"" 
+                                + escapedFileName + "\"))' -e 'return POSIX path of (original item of origItem)'";
         
         std::string originalPath = executeCommand(getOrigPathCmd.c_str());
         if (!originalPath.empty()) {
@@ -435,50 +424,15 @@ bool Editor::DeleteFileCmd::restoreFromTrash(const fs::path& path) {
                 originalPath.pop_back();
             }
 
-            // Convert the path to POSIX format if it's in Mac format
-            if (originalPath.find(":") != std::string::npos) {
-                std::string macPathToUnixCmd = "osascript -e 'tell application \"System Events\" to return POSIX path of \"" 
-                                        + originalPath + "\"'";
-                originalPath = executeCommand(macPathToUnixCmd.c_str());
-                if (originalPath.back() == '\n') {
-                    originalPath.pop_back();
-                }
-            }
-
             // Create parent directories if they don't exist
             fs::path destPath(originalPath);
             fs::create_directories(destPath.parent_path(), ec);
-
-            // If file already exists at destination, create a unique name
-            if (fs::exists(destPath)) {
-                int counter = 1;
-                fs::path newPath = destPath;
-                while (fs::exists(newPath)) {
-                    newPath = destPath.parent_path() / (destPath.stem().string() + "_" + 
-                            std::to_string(counter++) + destPath.extension().string());
-                }
-                destPath = newPath;
-            }
 
             // Perform the restore operation
             std::string restoreCmd = "osascript -e 'tell application \"Finder\" to restore (first item of (items of trash whose name is \"" 
                                 + escapedFileName + "\"))' 2>/dev/null";
 
-            if (std::system(restoreCmd.c_str()) == 0) {
-                // Wait a brief moment for the file system to update
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-                // If the file was restored to a different location than intended, move it
-                fs::path restoredPath = fs::path(originalPath);
-                if (fs::exists(restoredPath) && restoredPath != destPath) {
-                    fs::rename(restoredPath, destPath, ec);
-                    if (!ec) {
-                        success = true;
-                    }
-                } else {
-                    success = true;
-                }
-            }
+            success = (std::system(restoreCmd.c_str()) == 0);
         }
 
     #else
