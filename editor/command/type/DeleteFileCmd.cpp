@@ -405,21 +405,79 @@ bool Editor::DeleteFileCmd::restoreFromTrash(const fs::path& path) {
         CoUninitialize();
 
     #elif defined(__APPLE__)
-        // Create a unique temporary file to store the original path
-        fs::path tempFile = fs::temp_directory_path() / ("temp_" + std::to_string(std::hash<std::string>{}(fileName.string())));
+        // Escape special characters for AppleScript
+        std::string escapedFileName = fileName.string();
+        size_t pos = 0;
+        while ((pos = escapedFileName.find("\"", pos)) != std::string::npos) {
+            escapedFileName.replace(pos, 1, "\\\"");
+            pos += 2;
+        }
+
+        // First, verify the file exists in trash
+        std::string checkCmd = "osascript -e 'tell application \"Finder\" to return exists (first item of (items of trash whose name is \"" 
+                            + escapedFileName + "\")) as string'";
         
-        std::string getPathCmd = "osascript -e 'tell app \"Finder\" to set origPath to (original item of (first item of (items of trash whose name is \"" 
-                               + fileName.string() + "\"))) as text' > \"" + tempFile.string() + "\"";
+        std::string checkResult = executeCommand(checkCmd.c_str());
+        if (checkResult.find("true") == std::string::npos) {
+            std::cerr << "File not found in trash: " << fileName << std::endl;
+            return false;
+        }
+
+        // Get the original path before restoration
+        std::string getOrigPathCmd = "osascript -e 'tell application \"Finder\" to return (original item of (first item of (items of trash whose name is \"" 
+                                + escapedFileName + "\"))) as text'";
         
-        if (std::system(getPathCmd.c_str()) == 0) {
-            std::ifstream tempFileStream(tempFile);
-            std::string originalPath;
-            if (std::getline(tempFileStream, originalPath)) {
-                std::string restoreCmd = "osascript -e 'tell app \"Finder\" to restore (first item of (items of trash whose name is \"" 
-                                      + fileName.string() + "\"))'";
-                success = (std::system(restoreCmd.c_str()) == 0);
+        std::string originalPath = executeCommand(getOrigPathCmd.c_str());
+        if (!originalPath.empty()) {
+            // Remove trailing newline if present
+            if (originalPath.back() == '\n') {
+                originalPath.pop_back();
             }
-            fs::remove(tempFile, ec);
+
+            // Convert the path to POSIX format if it's in Mac format
+            if (originalPath.find(":") != std::string::npos) {
+                std::string macPathToUnixCmd = "osascript -e 'tell application \"System Events\" to return POSIX path of \"" 
+                                        + originalPath + "\"'";
+                originalPath = executeCommand(macPathToUnixCmd.c_str());
+                if (originalPath.back() == '\n') {
+                    originalPath.pop_back();
+                }
+            }
+
+            // Create parent directories if they don't exist
+            fs::path destPath(originalPath);
+            fs::create_directories(destPath.parent_path(), ec);
+
+            // If file already exists at destination, create a unique name
+            if (fs::exists(destPath)) {
+                int counter = 1;
+                fs::path newPath = destPath;
+                while (fs::exists(newPath)) {
+                    newPath = destPath.parent_path() / (destPath.stem().string() + "_" + 
+                            std::to_string(counter++) + destPath.extension().string());
+                }
+                destPath = newPath;
+            }
+
+            // Perform the restore operation
+            std::string restoreCmd = "osascript -e 'tell application \"Finder\" to restore (first item of (items of trash whose name is \"" 
+                                + escapedFileName + "\"))' 2>/dev/null";
+
+            if (std::system(restoreCmd.c_str()) == 0) {
+                // Wait a brief moment for the file system to update
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+                // If the file was restored to a different location than intended, move it
+                fs::path restoredPath = fs::path(originalPath);
+                if (fs::exists(restoredPath) && restoredPath != destPath) {
+                    fs::rename(restoredPath, destPath, ec);
+                    if (!ec) {
+                        success = true;
+                    }
+                } else {
+                    success = true;
+                }
+            }
         }
 
     #else
