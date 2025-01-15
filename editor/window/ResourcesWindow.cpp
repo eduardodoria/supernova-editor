@@ -44,7 +44,7 @@ std::vector<Editor::FileEntry> Editor::ResourcesWindow::scanDirectory(const std:
     currentPath = path;
 
     if (!std::filesystem::is_directory(path)) {
-        currentPath = project->getProjectPath();
+        currentPath = project->getProjectPath().string();
     }
 
     requestSort = true;
