@@ -373,36 +373,34 @@ bool Editor::DeleteFileCmd::restoreFromTrash(const fs::path& path) {
         CoInitialize(nullptr);
         IFileOperation* fileOp = nullptr;
         if (SUCCEEDED(CoCreateInstance(CLSID_FileOperation, nullptr, CLSCTX_ALL, IID_PPV_ARGS(&fileOp)))) {
-            std::unique_ptr<IFileOperation, decltype(&IUnknown::Release)> fileOpPtr(fileOp, &IUnknown::Release);
-            
-            fileOpPtr->SetOperationFlags(FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_NOERRORUI | FOF_SILENT);
+            // Use raw pointers and manual cleanup instead of unique_ptr
+            fileOp->SetOperationFlags(FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_NOERRORUI | FOF_SILENT);
             
             IShellItem* recyclerItem = nullptr;
             if (SUCCEEDED(SHGetKnownFolderItem(FOLDERID_RecycleBinFolder, KF_FLAG_DEFAULT, nullptr, IID_PPV_ARGS(&recyclerItem)))) {
-                std::unique_ptr<IShellItem, decltype(&IUnknown::Release)> recyclerPtr(recyclerItem, &IUnknown::Release);
-                
                 IEnumShellItems* enumItems = nullptr;
-                if (SUCCEEDED(recyclerPtr->BindToHandler(nullptr, BHID_EnumItems, IID_PPV_ARGS(&enumItems)))) {
-                    std::unique_ptr<IEnumShellItems, decltype(&IUnknown::Release)> enumPtr(enumItems, &IUnknown::Release);
-                    
+                if (SUCCEEDED(recyclerItem->BindToHandler(nullptr, BHID_EnumItems, IID_PPV_ARGS(&enumItems)))) {
                     IShellItem* item;
-                    while (enumPtr->Next(1, &item, nullptr) == S_OK && !success) {
-                        std::unique_ptr<IShellItem, decltype(&IUnknown::Release)> itemPtr(item, &IUnknown::Release);
-                        
+                    while (enumItems->Next(1, &item, nullptr) == S_OK && !success) {
                         PWSTR displayName = nullptr;
-                        if (SUCCEEDED(itemPtr->GetDisplayName(SIGDN_NORMALDISPLAY, &displayName))) {
-                            std::unique_ptr<WCHAR, decltype(&CoTaskMemFree)> displayNamePtr(displayName, &CoTaskMemFree);
-                            
+                        if (SUCCEEDED(item->GetDisplayName(SIGDN_NORMALDISPLAY, &displayName))) {
                             if (fileName == displayName) {
-                                if (SUCCEEDED(fileOpPtr->CopyItem(itemPtr.get(), nullptr, nullptr, nullptr))) {
-                                    success = SUCCEEDED(fileOpPtr->PerformOperations());
+                                if (SUCCEEDED(fileOp->CopyItem(item, nullptr, nullptr, nullptr))) {
+                                    success = SUCCEEDED(fileOp->PerformOperations());
                                 }
+                                CoTaskMemFree(displayName);
+                                item->Release();
                                 break;
                             }
+                            CoTaskMemFree(displayName);
                         }
+                        item->Release();
                     }
+                    enumItems->Release();
                 }
+                recyclerItem->Release();
             }
+            fileOp->Release();
         }
         CoUninitialize();
 
