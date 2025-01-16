@@ -491,6 +491,7 @@ void Editor::ResourcesWindow::show() {
 
     int columns = static_cast<int>(windowWidth / columnWidth);
     if (columns < 1) columns = 1;
+    if (files.size() < columns) columns = files.size();
 
     ImGui::BeginDisabled(currentPath == project->getProjectPath());
 
@@ -627,7 +628,9 @@ void Editor::ResourcesWindow::show() {
         }
     }
 
-    if (ImGui::BeginTable("FileTable", columns, ImGuiTableFlags_SizingStretchSame)) {
+    float totalTableWidth = std::min(ImGui::GetContentRegionAvail().x, (columnWidth * (files.size() + 1)));
+
+    if (ImGui::BeginTable("FileTable", columns, ImGuiTableFlags_SizingStretchSame, ImVec2(totalTableWidth, 0))) {
         for (auto& file : files) {
             ImGui::TableNextColumn();
 
