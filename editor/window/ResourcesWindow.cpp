@@ -997,7 +997,7 @@ void Editor::ResourcesWindow::show() {
             for (const auto& fileName : selectedFiles) {
                 pathsToDelete.push_back(std::filesystem::path(currentPath) / fileName);
             }
-            cmdHistory.addCommand(new DeleteFileCmd(pathsToDelete));
+            cmdHistory.addCommand(new DeleteFileCmd(pathsToDelete, project->getProjectPath()));
 
             // Clear the selection set
             selectedFiles.clear();

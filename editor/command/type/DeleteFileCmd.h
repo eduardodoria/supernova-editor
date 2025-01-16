@@ -12,18 +12,20 @@ namespace Supernova::Editor{
 
     class DeleteFileCmd: public Command{
 
+        struct DeleteFilesData{
+            fs::path originalFile;
+            fs::path trashFile;
+        };
+
     private:
 
-        std::vector<fs::path> files;
+        std::vector<DeleteFilesData> files;
+        fs::path trash;
 
-        std::string executeCommand(const char* cmd);
-        bool isCommandAvailable(const std::string& command);
-        fs::path getTrashPath();
-        bool moveToTrash(const fs::path& path);
-        bool restoreFromTrash(const fs::path& fileName);
+        fs::path generateUniqueTrashPath(const fs::path& trashDir, const fs::path& originalFile);
 
     public:
-        DeleteFileCmd(std::vector<fs::path> files);
+        DeleteFileCmd(std::vector<fs::path> filePaths, fs::path rootPath);
 
         virtual void execute();
         virtual void undo();

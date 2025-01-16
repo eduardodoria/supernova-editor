@@ -168,13 +168,8 @@ void Editor::App::setup(){
 
 void Editor::App::show(){
     ImGuiIO& io = ImGui::GetIO();
-    #ifdef __APPLE__
-    bool isUndo = (io.KeySuper && ImGui::IsKeyPressed(ImGuiKey_Z) && !io.KeyShift);
-    bool isRedo = (io.KeySuper && ImGui::IsKeyPressed(ImGuiKey_Z) && io.KeyShift);
-    #else
     bool isUndo = (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Z) && !io.KeyShift);
     bool isRedo = (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Y)) || (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Z) && io.KeyShift);
-    #endif
 
     if (isDroppedExternalPaths) {
         isDroppedExternalPaths = false;
