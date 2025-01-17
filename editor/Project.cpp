@@ -145,7 +145,7 @@ void Editor::Project::deleteEntities(uint32_t sceneId, std::vector<Entity> entit
      }
 }
 
-bool Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y, bool shiftPressed){
+Entity Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
     SceneProject* scenedata = getScene(sceneId);
     Ray ray = scenedata->sceneRender->getCamera()->screenToRay(x, y);
 
@@ -164,6 +164,13 @@ bool Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y, bool s
         }
     }
 
+    return selEntity;
+}
+
+bool Editor::Project::selectObjectByRay(uint32_t sceneId, float x, float y, bool shiftPressed){
+    SceneProject* scenedata = getScene(sceneId);
+    Entity selEntity = findObjectByRay(sceneId, x, y);
+
     if (!scenedata->sceneRender->isGizmoSideSelected()){
         if (selEntity != NULL_ENTITY){
             if (!shiftPressed){
@@ -179,7 +186,7 @@ bool Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y, bool s
     return false;
 }
 
-bool Editor::Project::findObjectsByRect(uint32_t sceneId, Vector2 start, Vector2 end){
+bool Editor::Project::selectObjectsByRect(uint32_t sceneId, Vector2 start, Vector2 end){
     SceneProject* scenedata = getScene(sceneId);
     Camera* camera = scenedata->sceneRender->getCamera();
 

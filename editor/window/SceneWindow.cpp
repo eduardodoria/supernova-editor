@@ -2,6 +2,7 @@
 
 #include "external/IconsFontAwesome6.h"
 #include "Backend.h"
+#include "Util.h"
 
 #include "math/Vector2.h"
 
@@ -51,7 +52,7 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
 
         if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)){
             if (!mouseLeftDraggedInside && mouseLeftDown){
-                project->findObjectByRay(sceneId, x, y, io.KeyShift);
+                project->selectObjectByRay(sceneId, x, y, io.KeyShift);
             }
             mouseLeftDown = false;
         }
@@ -64,7 +65,7 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
         if (mouseLeftDraggedInside && !project->getScene(sceneId)->sceneRender->isGizmoSideSelected()){
             Vector2 clickStartPos = Vector2((2 * mouseLeftStartPos.x / width[sceneId]) - 1, -((2 * mouseLeftStartPos.y / height[sceneId]) - 1));
             Vector2 clickEndPos = Vector2((2 * mouseLeftDragPos.x / width[sceneId]) - 1, -((2 * mouseLeftDragPos.y / height[sceneId]) - 1));
-            project->findObjectsByRect(sceneId, clickStartPos, clickEndPos);
+            project->selectObjectsByRect(sceneId, clickStartPos, clickEndPos);
         }
 
         project->getScene(sceneId)->sceneRender->mouseReleaseEvent(x, y);
@@ -304,6 +305,18 @@ void Editor::SceneWindow::show(){
                 }
 
                 ImGui::Image((ImTextureID)(intptr_t)sceneProject.sceneRender->getTexture().getGLHandler(), ImGui::GetContentRegionAvail(), ImVec2(0, 1), ImVec2(1, 0));
+                if (ImGui::BeginDragDropTarget()){
+                    Entity selEntity = project->findObjectByRay(sceneProject.id, 0, 0);
+                    if (selEntity != NULL_ENTITY){
+                        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
+                            std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
+                            for (const auto& str : receivedStrings) {
+                                printf("%s\n", str.c_str());
+                            }
+                        }
+                    }
+                    ImGui::EndDragDropTarget();
+                }
             }
             ImGui::EndChild();
         }
