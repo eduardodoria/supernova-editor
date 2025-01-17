@@ -529,7 +529,26 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             ImGui::PopStyleColor();
 
     }else if (prop.type == PropertyType::Texture){
-        propertyHeader(prop.label, secondColSize, false, child);
+        Texture* value = nullptr;
+        std::map<Entity, Texture> eValue;
+        bool dif = false;
+        for (Entity& entity : entities){
+            eValue[entity] = *Catalog::getPropertyRef<Texture>(scene, entity, cpType, name);
+            if (value){
+                if (*value != eValue[entity])
+                    dif = true;
+            }
+            value = &eValue[entity];
+        }
+
+        Texture newValue = *value;
+
+        if (propertyHeader(prop.label, secondColSize, (newValue != *static_cast<Texture*>(prop.def)), child)){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<Texture>(scene, entity, cpType, name, prop.updateFlags, *static_cast<Texture*>(prop.def));
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            }
+        }
 
         ImGui::PushID(("texture_"+name).c_str());
         ImGui::PushStyleColor(ImGuiCol_ChildBg, textureLabel);
@@ -547,6 +566,11 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
                 std::vector<std::string> receivedStrings = getStringsFromPayload(payload);
                 for (const auto& str : receivedStrings) {
+                    Texture texture(str);
+                    for (Entity& entity : entities){
+                        cmd = new PropertyCmd<Texture>(scene, entity, cpType, name, prop.updateFlags, texture);
+                        CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                    }
                     printf("%s\n", str.c_str());
                 }
             }
