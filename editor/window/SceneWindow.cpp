@@ -3,6 +3,8 @@
 #include "external/IconsFontAwesome6.h"
 #include "Backend.h"
 #include "Util.h"
+#include "command/CommandHandle.h"
+#include "command/type/PropertyCmd.h"
 
 #include "math/Vector2.h"
 
@@ -306,13 +308,48 @@ void Editor::SceneWindow::show(){
 
                 ImGui::Image((ImTextureID)(intptr_t)sceneProject.sceneRender->getTexture().getGLHandler(), ImGui::GetContentRegionAvail(), ImVec2(0, 1), ImVec2(1, 0));
                 if (ImGui::BeginDragDropTarget()){
-                    Entity selEntity = project->findObjectByRay(sceneProject.id, 0, 0);
+                    ImVec2 windowPos = ImGui::GetWindowPos();
+                    ImGuiIO& io = ImGui::GetIO();
+                    ImVec2 mousePos = io.MousePos;
+                    float x = mousePos.x - windowPos.x;
+                    float y = mousePos.y - windowPos.y;
+                    Entity selEntity = project->findObjectByRay(sceneProject.id, x, y);
+
+                    static MeshComponent* usedMesh = nullptr;
+                    static Texture originalTex;
+
                     if (selEntity != NULL_ENTITY){
-                        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
+                        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
                             std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
-                            for (const auto& str : receivedStrings) {
-                                printf("%s\n", str.c_str());
+                            MeshComponent *mesh = sceneProject.scene->findComponent<MeshComponent>(selEntity);
+                            if (mesh && receivedStrings.size() > 0){
+                                if (!usedMesh){
+                                    usedMesh = mesh;
+                                    originalTex = mesh->submeshes[0].material.baseColorTexture;
+                                }
+                                Texture actualTex = mesh->submeshes[0].material.baseColorTexture;
+                                Texture newTex(receivedStrings[0]);
+                                if (actualTex != newTex){
+                                    mesh->submeshes[0].material.baseColorTexture = Texture(newTex);
+                                    mesh->needReload = true;
+                                    //printf("reload\n");
+                                }
+                                if (payload->IsDelivery()){
+                                    std::string propName = "submeshes[0].material.basecolortexture";
+                                    usedMesh->submeshes[0].material.baseColorTexture = originalTex;
+                                    PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(sceneProject.scene, selEntity, ComponentType::MeshComponent, propName, UpdateFlags_MeshReload, newTex);
+                                    CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+
+                                    usedMesh = nullptr;
+                                }
                             }
+                        }
+                    }else{
+                        if (usedMesh){
+                            usedMesh->submeshes[0].material.baseColorTexture = originalTex;
+                            usedMesh->needReload = true;
+                            //printf("reload\n");
+                            usedMesh = nullptr;
                         }
                     }
                     ImGui::EndDragDropTarget();

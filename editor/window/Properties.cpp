@@ -549,8 +549,8 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (ImGui::BeginDragDropTarget()){
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
                 std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
-                for (const auto& str : receivedStrings) {
-                    Texture texture(str);
+                if (receivedStrings.size() > 0) {
+                    Texture texture(receivedStrings[0]);
                     for (Entity& entity : entities){
                         cmd = new PropertyCmd<Texture>(scene, entity, cpType, name, prop.updateFlags, texture);
                         CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
