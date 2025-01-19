@@ -330,16 +330,19 @@ void Editor::SceneWindow::show(){
                                 Texture actualTex = mesh->submeshes[0].material.baseColorTexture;
                                 Texture newTex(receivedStrings[0]);
                                 if (actualTex != newTex){
-                                    mesh->submeshes[0].material.baseColorTexture = Texture(newTex);
+                                    mesh->submeshes[0].material.baseColorTexture = newTex;
                                     mesh->needReload = true;
                                     //printf("reload\n");
                                 }
                                 if (payload->IsDelivery()){
                                     std::string propName = "submeshes[0].material.basecolortexture";
                                     usedMesh->submeshes[0].material.baseColorTexture = originalTex;
+
                                     PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(sceneProject.scene, selEntity, ComponentType::MeshComponent, propName, UpdateFlags_MeshReload, newTex);
+                                    cmd->setNoMerge();
                                     CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
 
+                                    ImGui::SetWindowFocus();
                                     usedMesh = nullptr;
                                 }
                             }
@@ -348,8 +351,9 @@ void Editor::SceneWindow::show(){
                         if (usedMesh){
                             usedMesh->submeshes[0].material.baseColorTexture = originalTex;
                             usedMesh->needReload = true;
-                            //printf("reload\n");
+
                             usedMesh = nullptr;
+                            //printf("reload\n");
                         }
                     }
                     ImGui::EndDragDropTarget();

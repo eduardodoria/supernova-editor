@@ -8,6 +8,8 @@
 #include "command/type/PropertyCmd.h"
 #include "command/type/EntityNameCmd.h"
 
+#include <map>
+
 using namespace Supernova;
 
 Editor::Properties::Properties(Project* project){
@@ -546,19 +548,54 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         ImGui::Text("Teste");
 
         ImGui::EndChild();
+
+        static std::map<std::string, bool> hasTextureDrag;
+        static std::map<std::string, std::map<Entity, Texture>> originalTex;
+
         if (ImGui::BeginDragDropTarget()){
-            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
+
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
                 std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
-                if (receivedStrings.size() > 0) {
-                    Texture texture(receivedStrings[0]);
-                    for (Entity& entity : entities){
-                        cmd = new PropertyCmd<Texture>(scene, entity, cpType, name, prop.updateFlags, texture);
-                        CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                if (receivedStrings.size() > 0){
+                    if (!hasTextureDrag.count(name)){
+                        hasTextureDrag[name] = true;
+                        for (Entity& entity : entities){
+                            Texture* valueRef = Catalog::getPropertyRef<Texture>(scene, entity, cpType, name);
+                            originalTex[name][entity] = Texture(*valueRef);
+                            *valueRef = Texture(receivedStrings[0]);
+                            scene->getComponent<MeshComponent>(entity).needReload = true;
+                        }
+                        //printf("reload %s\n", name.c_str());
                     }
-                    //printf("%s\n", str.c_str());
+                    if (payload->IsDelivery()){
+                        Texture texture(receivedStrings[0]);
+                        for (Entity& entity : entities){
+                            Texture* valueRef = Catalog::getPropertyRef<Texture>(scene, entity, cpType, name);
+                            *valueRef = originalTex[name][entity];
+                            cmd = new PropertyCmd<Texture>(scene, entity, cpType, name, prop.updateFlags, texture);
+                            cmd->setNoMerge();
+                            CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                        }
+
+                        ImGui::SetWindowFocus();
+                        hasTextureDrag.erase(name);
+                        originalTex.erase(name);
+                    }
                 }
             }
             ImGui::EndDragDropTarget();
+        }else{
+            if (hasTextureDrag.count(name) && hasTextureDrag[name]){
+                for (Entity& entity : entities){
+                    Texture* valueRef = Catalog::getPropertyRef<Texture>(scene, entity, cpType, name);
+                    *valueRef = originalTex[name][entity];
+                    scene->getComponent<MeshComponent>(entity).needReload = true;
+                }
+
+                hasTextureDrag.erase(name);
+                originalTex.erase(name);
+                //printf("reload %s\n", name.c_str());
+            }
         }
         //ImGui::SetItemTooltip("%s", currentPath.c_str());
         ImGui::PopStyleColor();
