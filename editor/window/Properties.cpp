@@ -545,7 +545,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         ImGui::SetCursorPosX(2);
         ImGui::SetCursorPosY(ImGui::GetStyle().FramePadding.y);
-        ImGui::Text("Teste");
+        ImGui::Text("%s", newValue.getId().c_str());
 
         ImGui::EndChild();
 
