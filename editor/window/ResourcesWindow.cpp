@@ -11,9 +11,9 @@
 
 #include "Backend.h"
 #include "App.h"
+#include "Util.h"
 
 #include "imgui_internal.h"
-#include "nfd.hpp"
 
 using namespace Supernova;
 
@@ -394,46 +394,6 @@ void Editor::ResourcesWindow::handleRename(){
         }
 
         ImGui::EndPopup();
-    }
-}
-
-void Editor::ResourcesWindow::openFileDialog(){
-    std::vector<std::string> filePaths;
-    const nfdpathset_t* pathSet;
-    nfdopendialogu8args_t args = {0};
-
-    args.parentWindow = *static_cast<nfdwindowhandle_t*>(Backend::getNFDWindowHandle());
-
-    const nfdresult_t res = NFD_OpenDialogMultipleU8_With(&pathSet, &args);
-    switch (res) {
-        case NFD_OKAY:
-            nfdpathsetsize_t num_paths;
-            if (NFD_PathSet_GetCount(pathSet, &num_paths) != NFD_OKAY) {
-                printf("Error: NFD_PathSet_GetCount failed: %s\n", NFD_GetError());
-                break;
-            }
-            nfdpathsetsize_t i;
-            for (i = 0; i != num_paths; ++i) {
-                char* path;
-                if (NFD_PathSet_GetPathU8(pathSet, i, &path) != NFD_OKAY) {
-                    printf("Error: NFD_PathSet_GetPathU8 failed: %s\n", NFD_GetError());
-                    break;
-                }
-                filePaths.push_back(path);
-                NFD_PathSet_FreePathU8(path);
-            }
-            cmdHistory.addCommand(new CopyFileCmd(filePaths, currentPath, true));
-            NFD_PathSet_Free(pathSet);
-
-            // Refresh directory after importing files
-            scanDirectory(currentPath);
-
-            break;
-        case NFD_ERROR:
-            printf("Error: %s", NFD_GetError());
-            break;
-        default:
-            break;
     }
 }
 
@@ -835,7 +795,12 @@ void Editor::ResourcesWindow::show() {
 
     if (ImGui::BeginPopup("ResourcesContextMenu")) {
         if (ImGui::MenuItem(ICON_FA_FILE_IMPORT"  Import Files")) {
-            openFileDialog();
+            std::vector<std::string> filePaths = Editor::Util::openFileDialogMultiple();
+
+            if (!filePaths.empty()){
+                cmdHistory.addCommand(new CopyFileCmd(filePaths, currentPath, true));
+                scanDirectory(currentPath);
+            }
         }
 
         if (ImGui::MenuItem(ICON_FA_RETWEET"  Refresh")) {

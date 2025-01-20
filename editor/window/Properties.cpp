@@ -543,7 +543,9 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         ImGui::BeginChild("textureframe", ImVec2(- ImGui::CalcTextSize(ICON_FA_GEAR).x - ImGui::GetStyle().ItemSpacing.x * 2 - ImGui::GetStyle().FramePadding.x * 2, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2), 
             false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
-        ImGui::SetCursorPosX(2);
+        float textWidth = ImGui::CalcTextSize(newValue.getId().c_str()).x;
+        float availWidth = ImGui::GetContentRegionAvail().x;
+        ImGui::SetCursorPosX(availWidth - textWidth - 2);
         ImGui::SetCursorPosY(ImGui::GetStyle().FramePadding.y);
         ImGui::Text("%s", newValue.getId().c_str());
 
@@ -602,6 +604,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         ImGui::SameLine();
         if (ImGui::Button(ICON_FA_FILE_IMPORT)) {
+            std::string path  = Editor::Util::openFileDialog();
         }
         ImGui::PopID();
 

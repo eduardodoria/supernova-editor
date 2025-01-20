@@ -68,7 +68,6 @@ namespace Supernova::Editor{
         void handleInternalDragAndDrop(const std::string& targetDirectory);
         void handleNewDirectory();
         void handleRename();
-        void openFileDialog();
         void copySelectedFiles(bool cut);
         void pasteFiles(const std::string& targetDirectory);
 
