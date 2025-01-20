@@ -543,13 +543,19 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         ImGui::BeginChild("textureframe", ImVec2(- ImGui::CalcTextSize(ICON_FA_GEAR).x - ImGui::GetStyle().ItemSpacing.x * 2 - ImGui::GetStyle().FramePadding.x * 2, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2), 
             false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
-        float textWidth = ImGui::CalcTextSize(newValue.getId().c_str()).x;
+        std::string texName = newValue.getId();
+        if (std::filesystem::exists(texName)) {
+            texName = std::filesystem::path(texName).filename().string();
+        }
+
+        float textWidth = ImGui::CalcTextSize(texName.c_str()).x;
         float availWidth = ImGui::GetContentRegionAvail().x;
         ImGui::SetCursorPosX(availWidth - textWidth - 2);
         ImGui::SetCursorPosY(ImGui::GetStyle().FramePadding.y);
-        ImGui::Text("%s", newValue.getId().c_str());
+        ImGui::Text("%s", texName.c_str());
 
         ImGui::EndChild();
+        ImGui::SetItemTooltip("%s", newValue.getId().c_str());
 
         static std::map<std::string, bool> hasTextureDrag;
         static std::map<std::string, std::map<Entity, Texture>> originalTex;
@@ -604,7 +610,39 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         ImGui::SameLine();
         if (ImGui::Button(ICON_FA_FILE_IMPORT)) {
-            std::string path  = Editor::Util::openFileDialog();
+            std::string path = Editor::Util::openFileDialog(project->getProjectPath(), true);
+            if (!path.empty()) {
+                std::filesystem::path projectPath = project->getProjectPath();
+                std::filesystem::path filePath = std::filesystem::absolute(path);
+
+                // Check if file path is within project directory
+                std::error_code ec;
+                auto relative = std::filesystem::relative(filePath, projectPath, ec);
+                if (ec || relative.string().find("..") != std::string::npos) {
+                    ImGui::OpenPopup("File Import Error");
+                }else{
+                    Texture texture(filePath);
+                    for (Entity& entity : entities){
+                        cmd = new PropertyCmd<Texture>(scene, entity, cpType, name, prop.updateFlags, texture);
+                        cmd->setNoMerge();
+                        CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                    }
+                }
+            }
+        }
+
+        // Error popup modal
+        if (ImGui::BeginPopupModal("File Import Error", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("Selected file must be within the project directory.");
+            ImGui::Separator();
+
+            float buttonWidth = 120;
+            float windowWidth = ImGui::GetWindowSize().x;
+            ImGui::SetCursorPosX((windowWidth - buttonWidth) * 0.5f);
+            if (ImGui::Button("OK", ImVec2(120, 0))) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
         }
         ImGui::PopID();
 

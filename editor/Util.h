@@ -28,17 +28,19 @@ namespace Supernova::Editor{
             return receivedStrings;
         }
 
-        inline static std::string openFileDialog(){
+        inline static std::string openFileDialog(std::string defaultPath = "", bool onlyImages = false){
             std::string retPath;
             char* path;
             nfdopendialogu8args_t args = {0};
 
-            // Set up file filters for formats supported by stb_image.h
-            nfdfilteritem_t filterItem[1] = {
-                { "Image files", "jpeg,jpg,png,bmp,psd,tga,gif,hdr,pic,pnm" }
-            };
-            args.filterCount = 1;
-            args.filterList = filterItem;
+            if (onlyImages){
+                nfdfilteritem_t filterItem[1] = {
+                    { "Image files", "jpeg,jpg,png,bmp,psd,tga,gif,hdr,pic,pnm" }
+                };
+                args.filterCount = 1;
+                args.filterList = filterItem;
+            }
+            args.defaultPath = defaultPath.c_str();
 
             args.parentWindow = *static_cast<nfdwindowhandle_t*>(Backend::getNFDWindowHandle());
 
