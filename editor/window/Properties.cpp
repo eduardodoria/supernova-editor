@@ -570,10 +570,12 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
                         for (Entity& entity : entities){
                             Texture* valueRef = Catalog::getPropertyRef<Texture>(scene, entity, cpType, name);
                             originalTex[name][entity] = Texture(*valueRef);
-                            *valueRef = Texture(receivedStrings[0]);
-                            scene->getComponent<MeshComponent>(entity).needReload = true;
+                            if (*valueRef != Texture(receivedStrings[0])){
+                                *valueRef = Texture(receivedStrings[0]);
+                                scene->getComponent<MeshComponent>(entity).needReload = true;
+                                //printf("reload %s\n", name.c_str());
+                            }
                         }
-                        //printf("reload %s\n", name.c_str());
                     }
                     if (payload->IsDelivery()){
                         Texture texture(receivedStrings[0]);
@@ -596,13 +598,15 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             if (hasTextureDrag.count(name) && hasTextureDrag[name]){
                 for (Entity& entity : entities){
                     Texture* valueRef = Catalog::getPropertyRef<Texture>(scene, entity, cpType, name);
-                    *valueRef = originalTex[name][entity];
-                    scene->getComponent<MeshComponent>(entity).needReload = true;
+                    if (*valueRef != originalTex[name][entity]){
+                        *valueRef = originalTex[name][entity];
+                        scene->getComponent<MeshComponent>(entity).needReload = true;
+                        //printf("reload %s\n", name.c_str());
+                    }
                 }
 
                 hasTextureDrag.erase(name);
                 originalTex.erase(name);
-                //printf("reload %s\n", name.c_str());
             }
         }
         //ImGui::SetItemTooltip("%s", currentPath.c_str());
