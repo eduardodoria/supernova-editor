@@ -552,7 +552,11 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         float availWidth = ImGui::GetContentRegionAvail().x;
         ImGui::SetCursorPosX(availWidth - textWidth - 2);
         ImGui::SetCursorPosY(ImGui::GetStyle().FramePadding.y);
+        if (dif)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         ImGui::Text("%s", texName.c_str());
+        if (dif)
+            ImGui::PopStyleColor();
 
         ImGui::EndChild();
         ImGui::SetItemTooltip("%s", newValue.getId().c_str());
