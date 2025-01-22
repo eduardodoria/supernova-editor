@@ -21,11 +21,14 @@ namespace Supernova::Editor {
 
     class Console {
     private:
-        ImGuiTextBuffer     buf;
-        ImGuiTextFilter     filter;
-        ImVector<int>       lineOffsets;    // Index to lines offset
+        ImGuiTextBuffer buf;
+        ImGuiTextFilter filter;
+        ImVector<int> lineOffsets;    // Index to lines offset
         std::vector<LogData> logs;          // Store logs with their types
-        bool                autoScroll;      // Keep scrolling if already at the bottom
+        bool autoScroll;      // Keep scrolling if already at the bottom
+
+        // Helper method to rebuild the colored buffer
+        void rebuildBuffer();
 
     public:
         Console();

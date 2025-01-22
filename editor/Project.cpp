@@ -27,22 +27,20 @@ bool Editor::Project::createNewProject(std::string projectName){
 
         if (!std::filesystem::exists(projectPath)) {
             std::filesystem::create_directory(projectPath);
-            Log::info("Created project directory: %s\n", projectPath.string().c_str());
-            printf("Created project directory: %s\n", projectPath.string().c_str());
+            Log::info("Created project directory: %s", projectPath.string().c_str());
         } else {
-            Log::info("Project directory already exists: %s\n", projectPath.string().c_str());
-            printf("Project directory already exists: %s\n", projectPath.string().c_str());
+            Log::info("Project directory already exists: %s", projectPath.string().c_str());
         }
 
         std::filesystem::path subDir;
 
         subDir = projectPath / "assets";
         std::filesystem::create_directory(subDir);
-        printf("Created subdirectory: %s\n", subDir.string().c_str());
+        Log::info("Created subdirectory: %s", subDir.string().c_str());
 
         subDir = projectPath / "scripts";
         std::filesystem::create_directory(subDir);
-        printf("Created subdirectory: %s\n", subDir.string().c_str());
+        Log::info("Created subdirectory: %s", subDir.string().c_str());
 
     } catch (const std::exception& e) {
         printf("Error: %s\n", e.what());
