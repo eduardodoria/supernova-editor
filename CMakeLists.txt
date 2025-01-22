@@ -124,6 +124,7 @@ add_executable(
     ${EDITOR_DIR}/main.cpp
     ${EDITOR_DIR}/App.cpp
     ${EDITOR_DIR}/Factory.cpp
+    ${EDITOR_DIR}/Log.cpp
     ${EDITOR_DIR}/Platform.cpp
     ${EDITOR_DIR}/Project.cpp
     ${EDITOR_DIR}/Catalog.cpp

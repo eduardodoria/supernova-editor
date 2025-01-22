@@ -2,6 +2,7 @@
 
 #include "Backend.h"
 
+#include "Log.h"
 #include "subsystem/MeshSystem.h"
 #include "command/CommandHandle.h"
 #include "command/type/CreateEntityCmd.h"
@@ -26,8 +27,10 @@ bool Editor::Project::createNewProject(std::string projectName){
 
         if (!std::filesystem::exists(projectPath)) {
             std::filesystem::create_directory(projectPath);
+            Log::info("Created project directory: %s\n", projectPath.string().c_str());
             printf("Created project directory: %s\n", projectPath.string().c_str());
         } else {
+            Log::info("Project directory already exists: %s\n", projectPath.string().c_str());
             printf("Project directory already exists: %s\n", projectPath.string().c_str());
         }
 

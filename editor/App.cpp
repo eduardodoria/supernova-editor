@@ -7,6 +7,7 @@
 #include "external/IconsFontAwesome6.h"
 #include "command/CommandHandle.h"
 
+#include "Log.h"
 #include "resources/fonts/fa-solid-900_ttf.h"
 //#include "recources/fonts/roboto-v20-latin-regular_ttf.h"
 #include "util/DefaultFont.h"
@@ -21,6 +22,8 @@ Editor::App::App(){
     consoleWindow = new Console();
     sceneWindow = new SceneWindow(&project);
     resourcesWindow = new ResourcesWindow(&project);
+
+    Log::setConsoleWindow(consoleWindow);
 
     isDroppedExternalPaths = false;
 }

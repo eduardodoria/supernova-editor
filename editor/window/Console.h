@@ -1,15 +1,41 @@
 #ifndef LAYOUTCONSOLE_H
 #define LAYOUTCONSOLE_H
 
-namespace Supernova::Editor{
+#include <vector>
+#include <string>
+#include "imgui.h"
 
-    class Console{
-    public:
-        Console();
-
-        void show();
+namespace Supernova::Editor {
+    enum class LogType {
+        Error,
+        Success,
+        Info,
+        Warning
     };
 
+    struct LogData {
+        LogType type;
+        std::string message;
+        float time;
+    };
+
+    class Console {
+    private:
+        ImGuiTextBuffer     buf;
+        ImGuiTextFilter     filter;
+        ImVector<int>       lineOffsets;    // Index to lines offset
+        std::vector<LogData> logs;          // Store logs with their types
+        bool                autoScroll;      // Keep scrolling if already at the bottom
+
+    public:
+        Console();
+        ~Console() = default;
+
+        void show();
+        void clear();
+        void addLog(LogType type, const char* fmt, ...) IM_FMTARGS(3);
+        void addLog(LogType type, const std::string& message);
+    };
 }
 
 #endif /* LAYOUTCONSOLE_H */
