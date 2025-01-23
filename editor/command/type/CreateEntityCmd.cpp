@@ -82,7 +82,7 @@ void Editor::CreateEntityCmd::execute(){
             lastSelected = project->getSelectedEntities(sceneId);
             project->setSelectedEntity(sceneId, entity);
 
-            Editor::Log::info("Created entity %s at scene %s", entityName.c_str(), scenes[i].name.c_str());
+            Editor::Log::info("Created entity '%s' at scene '%s'", entityName.c_str(), scenes[i].name.c_str());
         }
     }
 }

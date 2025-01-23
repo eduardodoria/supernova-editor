@@ -157,27 +157,27 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
             camera->zoom(2.0 * mouseWheel);
         }
     }
+    if (!ImGui::IsAnyItemActive() && !ImGui::IsAnyItemFocused()){
+        if (project->getSelectedSceneId() == sceneId){
+            if (!walkingMode){
+                if (ImGui::IsKeyPressed(ImGuiKey_W)) {
+                    project->getScene(sceneId)->sceneRender->getToolsLayer()->enableTranslateGizmo();
+                }
 
-    if (project->getSelectedSceneId() == sceneId){
-        if (!walkingMode){
-            if (ImGui::IsKeyPressed(ImGuiKey_W)) {
-                project->getScene(sceneId)->sceneRender->getToolsLayer()->enableTranslateGizmo();
-            }
+                if (ImGui::IsKeyPressed(ImGuiKey_E)) {
+                    project->getScene(sceneId)->sceneRender->getToolsLayer()->enableRotateGizmo();
+                }
 
-            if (ImGui::IsKeyPressed(ImGuiKey_E)) {
-                project->getScene(sceneId)->sceneRender->getToolsLayer()->enableRotateGizmo();
-            }
+                if (ImGui::IsKeyPressed(ImGuiKey_R)) {
+                    project->getScene(sceneId)->sceneRender->getToolsLayer()->enableScaleGizmo();
+                }
 
-            if (ImGui::IsKeyPressed(ImGuiKey_R)) {
-                project->getScene(sceneId)->sceneRender->getToolsLayer()->enableScaleGizmo();
-            }
-
-            if (ImGui::IsKeyPressed(ImGuiKey_T)){
-                project->getScene(sceneId)->sceneRender->changeUseGlobalTransform();
+                if (ImGui::IsKeyPressed(ImGuiKey_T)){
+                    project->getScene(sceneId)->sceneRender->changeUseGlobalTransform();
+                }
             }
         }
     }
-
 
 }
 
