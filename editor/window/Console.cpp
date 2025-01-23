@@ -10,6 +10,7 @@ using namespace Supernova::Editor;
 
 Console::Console() {
     autoScroll = true;
+    autoScrollLocked = true;
     clear();
 }
 
@@ -32,10 +33,10 @@ void Console::addLog(LogType type, const char* fmt, ...) {
 
 void Console::addLog(LogType type, const std::string& message) {
     // Get current time
-    auto now = std::time(nullptr);
-    auto tm = *std::localtime(&now);
-    std::ostringstream timeStr;
-    timeStr << std::put_time(&tm, "%H:%M:%S");
+    //auto now = std::time(nullptr);
+    //auto tm = *std::localtime(&now);
+    //std::ostringstream timeStr;
+    //timeStr << std::put_time(&tm, "%H:%M:%S");
 
     // Create the log entry
     LogData logEntry{type, message, static_cast<float>(ImGui::GetTime())};
@@ -93,7 +94,7 @@ void Console::show() {
     }
 
     // Calculate dimensions for the vertical menu and main content
-    const float menuWidth = ImGui::CalcTextSize(ICON_FA_LOCK_OPEN).x + ImGui::GetStyle().ItemSpacing.x * 2 + ImGui::GetStyle().FramePadding.x * 2;  // Width of the vertical menu
+    const float menuWidth = ImGui::CalcTextSize(ICON_FA_LOCK).x + ImGui::GetStyle().ItemSpacing.x * 2 + ImGui::GetStyle().FramePadding.x * 2;  // Width of the vertical menu
     //const float spacing = 8.0f;     // Spacing between menu and content
     const ImVec2 windowSize = ImGui::GetContentRegionAvail();
 
@@ -101,11 +102,11 @@ void Console::show() {
     ImGui::BeginChild("VerticalMenu", ImVec2(menuWidth, windowSize.y), true);
 
     // Lock button (lock/unlock icon) controlling autoScroll
-    if (ImGui::Button(autoScroll ? ICON_FA_LOCK : ICON_FA_LOCK_OPEN)) {
-        autoScroll = !autoScroll;
+    if (ImGui::Button(autoScrollLocked ? ICON_FA_LOCK : ICON_FA_LOCK_OPEN, ImVec2(ImGui::CalcTextSize(ICON_FA_LOCK).x + ImGui::GetStyle().FramePadding.x * 2, 0.0f))) {
+        autoScrollLocked = !autoScrollLocked;
     }
     if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip(autoScroll ? "Disable Auto-scroll" : "Enable Auto-scroll");
+        ImGui::SetTooltip(autoScrollLocked ? "Disable Auto-scroll" : "Enable Auto-scroll");
     }
 
     // Filter button (filter icon)
@@ -156,17 +157,18 @@ void Console::show() {
     ImFormatStringToTempBuffer(&child_window_name, NULL, "%s/%s_%08X", g.CurrentWindow->Name, "##console", ImGui::GetID("##console"));
     ImGuiWindow* child_window = ImGui::FindWindowByName(child_window_name);
 
-    // Re-enable auto-scroll if user scrolls to bottom manually
-    if (child_window->ScrollMax.y > 0.0f && child_window->Scroll.y >= child_window->ScrollMax.y) {
-        autoScroll = true;
+    if (child_window->ScrollMax.y > 0.0f){
+        if (child_window->Scroll.y < (child_window->ScrollMax.y-ImGui::GetTextLineHeight())) {
+            autoScroll = false;
+        }
+        // Re-enable auto-scroll if user scrolls to bottom manually
+        if (child_window->Scroll.y >= child_window->ScrollMax.y) {
+            autoScroll = true;
+        }
     }
 
-    if (autoScroll) {
+    if (autoScrollLocked && autoScroll) {
         ImGui::SetScrollY(child_window, child_window->ScrollMax.y);
-    }
-
-    if (child_window->ScrollMax.y > 0.0f && child_window->Scroll.y < child_window->ScrollMax.y) {
-        autoScroll = false;
     }
 
     ImGui::End();
