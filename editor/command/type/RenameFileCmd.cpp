@@ -16,7 +16,7 @@ void Editor::RenameFileCmd::execute(){
             fs::rename(sourceFs, destFs);
         }
     } catch (const fs::filesystem_error& e) {
-        printf("Error: Renaming %s: %s\n", sourceFs.c_str(), e.what());
+        printf("Error: Renaming %s: %s\n", sourceFs.string().c_str(), e.what());
     }
 }
 
@@ -28,7 +28,7 @@ void Editor::RenameFileCmd::undo(){
             fs::rename(sourceFs, destFs);
         }
     } catch (const fs::filesystem_error& e) {
-        printf("Error: Undo renaming %s: %s\n", sourceFs.c_str(), e.what());
+        printf("Error: Undo renaming %s: %s\n", sourceFs.string().c_str(), e.what());
     }
 }
 

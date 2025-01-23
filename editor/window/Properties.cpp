@@ -618,7 +618,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         ImGui::SameLine();
         if (ImGui::Button(ICON_FA_FILE_IMPORT)) {
-            std::string path = Editor::Util::openFileDialog(project->getProjectPath(), true);
+            std::string path = Editor::Util::openFileDialog(project->getProjectPath().string(), true);
             if (!path.empty()) {
                 std::filesystem::path projectPath = project->getProjectPath();
                 std::filesystem::path filePath = std::filesystem::absolute(path);
@@ -629,7 +629,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
                 if (ec || relative.string().find("..") != std::string::npos) {
                     ImGui::OpenPopup("File Import Error");
                 }else{
-                    Texture texture(filePath);
+                    Texture texture(filePath.string());
                     for (Entity& entity : entities){
                         cmd = new PropertyCmd<Texture>(scene, entity, cpType, name, prop.updateFlags, texture);
                         cmd->setNoMerge();

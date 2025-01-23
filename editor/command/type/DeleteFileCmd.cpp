@@ -56,7 +56,7 @@ void Editor::DeleteFileCmd::execute(){
                 }
             }
         } catch (const fs::filesystem_error& e) {
-            printf("Error: Deleting %s: %s\n", file.originalFile.c_str(), e.what());
+            printf("Error: Deleting %s: %s\n", file.originalFile.string().c_str(), e.what());
         }
     }
 }
@@ -69,7 +69,7 @@ void Editor::DeleteFileCmd::undo(){
                 fs::rename(file.trashFile, file.originalFile);
             }
         } catch (const fs::filesystem_error& e) {
-            printf("Error: Restoring %s: %s\n", file.originalFile.c_str(), e.what());
+            printf("Error: Restoring %s: %s\n", file.originalFile.string().c_str(), e.what());
         }
     }
 }
