@@ -40,7 +40,7 @@ void Editor::DeleteFileCmd::execute(){
             if (fs::exists(file.originalFile)) {
                 // Check if file is inside .trash directory or is .trash directory
                 if (file.originalFile == trash || 
-                    fs::relative(file.originalFile, trash).native().find("..") == std::string::npos) {
+                    fs::relative(file.originalFile, trash).string().find("..") == std::string::npos) {
                     if (fs::is_directory(file.originalFile)) {
                         fs::remove_all(file.originalFile);
                     } else {

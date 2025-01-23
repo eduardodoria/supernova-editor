@@ -451,7 +451,7 @@ void Editor::ResourcesWindow::show() {
 
     int columns = static_cast<int>(windowWidth / columnWidth);
     if (columns < 1) columns = 1;
-    if (files.size() < columns) columns = files.size();
+    if (files.size() > 0 && files.size() < columns) columns = files.size();
 
     ImGui::BeginDisabled(currentPath == project->getProjectPath());
 

@@ -47,7 +47,7 @@ void Editor::CopyFileCmd::execute(){
                 }
             }
         } catch (const fs::filesystem_error& e) {
-            printf("Error: Moving/Copying %s: %s\n", sourceFs.c_str(), e.what());
+            printf("Error: Moving/Copying %s: %s\n", sourceFs.string().c_str(), e.what());
         }
     }
 }
@@ -73,7 +73,7 @@ void Editor::CopyFileCmd::undo(){
                 }
             }
         } catch (const fs::filesystem_error& e) {
-            printf("Error: Undo moving/Copying %s: %s\n", sourceFs.c_str(), e.what());
+            printf("Error: Undo moving/Copying %s: %s\n", sourceFs.string().c_str(), e.what());
         }
     }
 }
