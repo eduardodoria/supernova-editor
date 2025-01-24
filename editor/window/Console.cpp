@@ -11,6 +11,7 @@ using namespace Supernova::Editor;
 Console::Console() {
     autoScroll = true;
     autoScrollLocked = true;
+    scrollStartCount = 0;
     clear();
 }
 
@@ -167,8 +168,13 @@ void Console::show() {
         }
     }
 
-    if (autoScrollLocked && autoScroll) {
-        ImGui::SetScrollY(child_window, child_window->ScrollMax.y);
+    if (autoScrollLocked){
+        if (autoScroll) {
+            ImGui::SetScrollY(child_window, child_window->ScrollMax.y);
+        }else if (scrollStartCount < 3){ // keep scroll at window start
+            scrollStartCount++;
+            ImGui::SetScrollY(child_window, child_window->ScrollMax.y);
+        }
     }
 
     ImGui::End();

@@ -28,6 +28,7 @@ namespace Supernova::Editor {
         std::vector<LogData> logs;
         bool autoScrollLocked;
         bool autoScroll;
+        unsigned int scrollStartCount;
 
         void rebuildBuffer();
 
