@@ -128,6 +128,8 @@ add_executable(
     ${EDITOR_DIR}/Platform.cpp
     ${EDITOR_DIR}/Project.cpp
     ${EDITOR_DIR}/Catalog.cpp
+    ${EDITOR_DIR}/Conector.cpp
+    ${EDITOR_DIR}/Generator.cpp
 
     ${EDITOR_DIR}/window/Properties.cpp
     ${EDITOR_DIR}/window/Console.cpp

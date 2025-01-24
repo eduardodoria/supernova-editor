@@ -167,6 +167,11 @@ void Editor::App::setup(){
 
     //ImGui::StyleColorsDark();
     kewtStyleTheme();
+
+    generator.build();
+    if (conector.connect()){
+        conector.execute();
+    }
 }
 
 void Editor::App::show(){
