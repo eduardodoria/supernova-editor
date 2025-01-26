@@ -167,11 +167,6 @@ void Editor::App::setup(){
 
     //ImGui::StyleColorsDark();
     kewtStyleTheme();
-
-    generator.build();
-    if (conector.connect()){
-        conector.execute();
-    }
 }
 
 void Editor::App::show(){
@@ -233,6 +228,12 @@ void Editor::App::show(){
 
 void Editor::App::engineInit(int argc, char** argv){
     project.createNewProject("MySupernovaProject");
+
+    generator.build(project.getProjectPath());
+    if (conector.connect()){
+        conector.execute();
+    }
+
     uint32_t sceneid = project.createNewScene("New Scene");
 
     Engine::systemInit(argc, argv);

@@ -6,7 +6,6 @@
 #include <cstdlib>
 #include <fstream>
 #include <stdexcept>
-#include <filesystem>
 #include <thread>
 #include <array>
 #include <memory>
@@ -66,9 +65,38 @@ std::string Editor::Generator::getOperatingSystem() {
 // Function to get compiler version
 std::string Editor::Generator::getCompilerVersion(const std::string& compiler) {
     try {
-        return executeCommand(compiler + " --version");
+        std::string fullOutput = executeCommand(compiler + " --version");
+
+        // Check if it's MSVC
+        if (compiler.find("cl") != std::string::npos) {
+            // MSVC format: "Microsoft (R) C/C++ Optimizing Compiler Version 19.29.30147 for x64"
+            size_t pos = fullOutput.find("Version");
+            if (pos != std::string::npos) {
+                size_t end = fullOutput.find(" for", pos);
+                return fullOutput.substr(pos + 8, end - (pos + 8));
+            }
+        }
+        // Check if it's Clang
+        else if (fullOutput.find("clang version") != std::string::npos) {
+            // Clang format: "clang version 16.0.0"
+            size_t pos = fullOutput.find("clang version");
+            if (pos != std::string::npos) {
+                size_t start = pos + 13; // Length of "clang version "
+                size_t end = fullOutput.find('\n', start);
+                return fullOutput.substr(start, end - start);
+            }
+        }
+        // GCC format
+        else {
+            size_t pos = fullOutput.find(')');
+            if (pos != std::string::npos) {
+                return fullOutput.substr(pos + 2, fullOutput.find('\n') - pos - 2);
+            }
+            return fullOutput.substr(0, fullOutput.find('\n'));
+        }
+        return "Unknown";
     } catch (...) {
-        return "Version information unavailable";
+        return "Version unavailable";
     }
 }
 
@@ -116,6 +144,7 @@ void Editor::Generator::buildSharedLibrary(
     const std::string& compiler,
     const std::vector<std::string>& sourceFiles,
     const std::string& outputFile,
+    const std::vector<std::string>& includeDirs,
     bool debug,
     const std::vector<std::string>& additionalFlags) {
 
@@ -129,10 +158,22 @@ void Editor::Generator::buildSharedLibrary(
     std::string os = getOperatingSystem();
     std::string command;
     std::string optimizationFlags = debug ? "-O0 -g" : "-O3";
+    std::string includeFlags;
+
+    // Build include directory flags
+    if (compiler == "cl") {
+        for (const auto& dir : includeDirs) {
+            includeFlags += "/I\"" + dir + "\" ";
+        }
+    } else {
+        for (const auto& dir : includeDirs) {
+            includeFlags += "-I\"" + dir + "\" ";
+        }
+    }
 
     if (compiler == "cl") {
         // MSVC compilation command
-        command = "cl /LD /EHsc /O2 ";
+        command = "cl /LD /EHsc /O2 " + includeFlags;
         for (const auto& sourceFile : sourceFiles) {
             command += sourceFile + " ";
         }
@@ -140,9 +181,9 @@ void Editor::Generator::buildSharedLibrary(
     } else {
         // GCC/Clang compilation command
         if (os == "Linux" || os == "MacOS") {
-            command = compiler + " -std=c++17 -fPIC -shared " + optimizationFlags;
+            command = compiler + " -std=c++17 -fPIC -shared " + optimizationFlags + " " + includeFlags;
         } else if (os == "Windows") {
-            command = compiler + " -std=c++17 -shared " + optimizationFlags;
+            command = compiler + " -std=c++17 -shared " + optimizationFlags + " " + includeFlags;
         } else {
             throw std::runtime_error("Unsupported operating system: " + os);
         }
@@ -169,21 +210,27 @@ void Editor::Generator::buildSharedLibrary(
     }
 }
 
-void Editor::Generator::build() {
+void Editor::Generator::build(fs::path projectPath) {
     try {
-        std::string code = R"(#include <iostream>
+        std::string code = R"(
+            #include <iostream>
+            #include "Cube.h"
             // A sample function to be called from the shared library
             extern "C" void sayHello() {
-                std::cout << "Hello from the shared library again!" << std::endl;
-            })";
+                Cube* cube = new Cube();
+                std::cout << "Hello from the shared library!" << std::endl;
+            }
+        )";
 
-        std::string sourceFile = "project_lib.cpp";
+        std::string sourceFile = (projectPath / "project_lib.cpp").string();
         std::ofstream ofs(sourceFile);
         ofs << code;
         ofs.close();
 
         std::vector<std::string> sourceFiles;
         sourceFiles.push_back(sourceFile);
+        //sourceFiles.push_back((projectPath / "Cube.h").string());
+        sourceFiles.push_back((projectPath / "Cube.cpp").string());
 
         std::string outputFile = "project_lib";
         #ifdef _WIN32
@@ -191,6 +238,13 @@ void Editor::Generator::build() {
         #else
             outputFile = outputFile + ".so";
         #endif
+
+        std::vector<std::string> includeDirs;
+
+        includeDirs.push_back((projectPath / "supernova" / "engine" / "libs" /  "sokol").string());
+        includeDirs.push_back((projectPath / "supernova" / "engine" / "core" /  "ecs").string());
+        includeDirs.push_back((projectPath / "supernova" / "engine" / "core").string());
+        includeDirs.push_back((projectPath / "supernova" / "engine" / "core" / "object").string());
 
         bool debug = true;
 
@@ -203,14 +257,15 @@ void Editor::Generator::build() {
         Log::info("Found compiler: %s", compiler.c_str());
 
         std::string version = getCompilerVersion(compiler);
-        Log::info("Compiler version:\n %s", version.c_str());
+        Log::info("Compiler version: %s", version.c_str());
 
         Log::info("Building shared library...");
         std::vector<std::string> additionalFlags;
-        buildSharedLibrary(compiler, sourceFiles, outputFile, debug, additionalFlags);
+        buildSharedLibrary(compiler, sourceFiles, outputFile, includeDirs, debug, additionalFlags);
 
         Log::info("Shared library built successfully: %s", outputFile.c_str());
     } catch (const std::exception& ex) {
         Log::error("%s", ex.what());
+        //std::cerr << ex.what() << "\n";
     }
 }
