@@ -214,10 +214,12 @@ void Editor::Generator::build(fs::path projectPath) {
     try {
         std::string code = R"(
             #include <iostream>
-            #include "Cube.h"
+            #include "Scene.h"
+            #include "CubeScript.h"
             // A sample function to be called from the shared library
             extern "C" void sayHello() {
-                Cube* cube = new Cube();
+                Supernova::Scene scene;
+                //CubeScript* cube = new CubeScript(NULL, 0);
                 std::cout << "Hello from the shared library!" << std::endl;
             }
         )";
@@ -229,8 +231,8 @@ void Editor::Generator::build(fs::path projectPath) {
 
         std::vector<std::string> sourceFiles;
         sourceFiles.push_back(sourceFile);
-        //sourceFiles.push_back((projectPath / "Cube.h").string());
-        sourceFiles.push_back((projectPath / "Cube.cpp").string());
+        //sourceFiles.push_back((projectPath / "CubeScript.h").string());
+        sourceFiles.push_back((projectPath / "CubeScript.cpp").string());
 
         std::string outputFile = "project_lib";
         #ifdef _WIN32
@@ -242,9 +244,15 @@ void Editor::Generator::build(fs::path projectPath) {
         std::vector<std::string> includeDirs;
 
         includeDirs.push_back((projectPath / "supernova" / "engine" / "libs" /  "sokol").string());
-        includeDirs.push_back((projectPath / "supernova" / "engine" / "core" /  "ecs").string());
+        includeDirs.push_back((projectPath / "supernova" / "engine" / "libs" /  "box2d" / "include").string());
+        includeDirs.push_back((projectPath / "supernova" / "engine" / "libs" /  "joltphysics").string());
+        includeDirs.push_back((projectPath / "supernova" / "engine" / "renders").string());
         includeDirs.push_back((projectPath / "supernova" / "engine" / "core").string());
+        includeDirs.push_back((projectPath / "supernova" / "engine" / "core" /  "ecs").string());
         includeDirs.push_back((projectPath / "supernova" / "engine" / "core" / "object").string());
+        includeDirs.push_back((projectPath / "supernova" / "engine" / "core" / "object" / "physics").string());
+        includeDirs.push_back((projectPath / "supernova" / "engine" / "core" / "script").string());
+        includeDirs.push_back((projectPath / "supernova" / "engine" / "core" / "math").string());
 
         bool debug = true;
 
