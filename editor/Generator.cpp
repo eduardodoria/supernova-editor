@@ -146,6 +146,7 @@ void Editor::Generator::buildSharedLibrary(
     const std::string& outputFile,
     const std::vector<std::string>& includeDirs,
     bool debug,
+    const fs::path& libPath,
     const std::vector<std::string>& additionalFlags) {
 
     // Verify all source files exist
@@ -171,13 +172,20 @@ void Editor::Generator::buildSharedLibrary(
         }
     }
 
+    fs::path staticLibPath = libPath;
+    if (os == "Windows") {
+        staticLibPath /= "supernova.lib";
+    } else {
+        staticLibPath /= "libsupernova.a";
+    }
+
     if (compiler == "cl") {
         // MSVC compilation command
         command = "cl /LD /EHsc /O2 " + includeFlags;
         for (const auto& sourceFile : sourceFiles) {
             command += sourceFile + " ";
         }
-        command += "/Fe:" + outputFile;
+        command += "/Fe:" + outputFile + " \"" + staticLibPath.string() + "\"";
     } else {
         // GCC/Clang compilation command
         if (os == "Linux" || os == "MacOS") {
@@ -195,6 +203,9 @@ void Editor::Generator::buildSharedLibrary(
 
         // Add output file
         command += " -o " + outputFile;
+
+        // Add static library with project path
+        command += " -L\"" + libPath.string() + "\" -lsupernova";
     }
 
     // Add additional flags
@@ -217,9 +228,9 @@ void Editor::Generator::build(fs::path projectPath) {
             #include "Scene.h"
             #include "CubeScript.h"
             // A sample function to be called from the shared library
-            extern "C" void sayHello() {
-                Supernova::Scene scene;
-                //CubeScript* cube = new CubeScript(NULL, 0);
+            extern "C" void sayHello(Supernova::Scene* scene) {
+                //Supernova::Scene scene;
+                CubeScript* cube = new CubeScript(scene);
                 std::cout << "Hello from the shared library!" << std::endl;
             }
         )";
@@ -269,7 +280,7 @@ void Editor::Generator::build(fs::path projectPath) {
 
         Log::info("Building shared library...");
         std::vector<std::string> additionalFlags;
-        buildSharedLibrary(compiler, sourceFiles, outputFile, includeDirs, debug, additionalFlags);
+        buildSharedLibrary(compiler, sourceFiles, outputFile, includeDirs, debug, projectPath, additionalFlags);
 
         Log::info("Shared library built successfully: %s", outputFile.c_str());
     } catch (const std::exception& ex) {
