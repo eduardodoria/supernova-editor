@@ -172,11 +172,13 @@ void Editor::Generator::buildSharedLibrary(
         }
     }
 
-    fs::path staticLibPath = libPath;
+    fs::path sharedLibPath = libPath;
     if (os == "Windows") {
-        staticLibPath /= "supernova.lib";
-    } else {
-        staticLibPath /= "libsupernova.a";
+        sharedLibPath /= "supernova.dll";
+    } else if (os == "Linux") {
+        sharedLibPath /= "libsupernova.so";
+    } else if (os == "MacOS") {
+        sharedLibPath /= "libsupernova.dylib";
     }
 
     if (compiler == "cl") {
@@ -185,7 +187,7 @@ void Editor::Generator::buildSharedLibrary(
         for (const auto& sourceFile : sourceFiles) {
             command += sourceFile + " ";
         }
-        command += "/Fe:" + outputFile + " \"" + staticLibPath.string() + "\"";
+        command += "/Fe:" + outputFile + " /link \"" + sharedLibPath.string() + "\"";
     } else {
         // GCC/Clang compilation command
         if (os == "Linux" || os == "MacOS") {
@@ -204,8 +206,15 @@ void Editor::Generator::buildSharedLibrary(
         // Add output file
         command += " -o " + outputFile;
 
-        // Add static library with project path
-        command += " -L\"" + libPath.string() + "\" -lsupernova";
+        // Add shared library with project path
+        // Use rpath to ensure the library can be found at runtime
+        if (os == "Linux") {
+            command += " -L\"" + libPath.string() + "\" -lsupernova -Wl,-rpath,\"" + libPath.string() + "\"";
+        } else if (os == "MacOS") {
+            command += " -L\"" + libPath.string() + "\" -lsupernova -Wl,-rpath,@loader_path/\"" + libPath.string() + "\"";
+        } else if (os == "Windows") {
+            command += " -L\"" + libPath.string() + "\" -lsupernova";
+        }
     }
 
     // Add additional flags

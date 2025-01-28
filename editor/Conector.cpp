@@ -1,6 +1,7 @@
 #include "Conector.h"
 
 #include "editor/Log.h"
+#include "Scene.h"
 
 #include <iostream>
 #include <thread>
@@ -88,7 +89,7 @@ bool Editor::Conector::connect(){
 
 void Editor::Conector::execute(){
     // Dynamically load and call the `sayHello` function
-    using SayHelloFunc = void (*)();
+    using SayHelloFunc = void (*)(Scene*);
     #ifdef _WIN32
         SayHelloFunc sayHello = reinterpret_cast<SayHelloFunc>(GetProcAddress(static_cast<HMODULE>(libHandle), "sayHello"));
         if (!sayHello) {
@@ -103,6 +104,7 @@ void Editor::Conector::execute(){
 
     if (sayHello) {
         std::cout << "Calling 'sayHello' function from the library...\n";
-        sayHello(); // Call the function
+        Scene scene;
+        sayHello(&scene); // Call the function
     }
 }
