@@ -30,6 +30,7 @@ namespace Supernova::Editor{
             const std::vector<std::string>& includeDirs = {},
             bool debug = false,
             const fs::path& libPath = "",
+            const std::vector<std::string>& libraries = {},
             const std::vector<std::string>& additionalFlags = {});
 
         void build(fs::path projectPath);

@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
 project(supernova-editor)
 
+set(SUPERNOVA_SHARED ON)
+
 if(NOT API_BACKEND)
     set(API_BACKEND "glfw")
 endif()

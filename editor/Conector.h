@@ -21,7 +21,7 @@ namespace Supernova::Editor{
         Conector();
         virtual ~Conector();
 
-        bool connect();
+        bool connect(fs::path projectPath);
         void execute();
     };
 

@@ -62,7 +62,7 @@ void Editor::Conector::unloadSharedLibrary(void* libHandle) {
     #endif
     }
 
-bool Editor::Conector::connect(){
+bool Editor::Conector::connect(fs::path projectPath){
     unloadSharedLibrary(libHandle);
 
     #ifdef _WIN32
@@ -75,7 +75,7 @@ bool Editor::Conector::connect(){
 
     if (fileExists(libFile)) {
         std::cout << "Library file found!\n";
-        fs::path fullPath = fs::current_path() / fs::path(libFile);
+        fs::path fullPath = projectPath / fs::path(libFile);
         libHandle = loadSharedLibrary(fullPath.string());
         if (libHandle) {
             return true;

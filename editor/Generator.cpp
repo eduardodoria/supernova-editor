@@ -147,6 +147,7 @@ void Editor::Generator::buildSharedLibrary(
     const std::vector<std::string>& includeDirs,
     bool debug,
     const fs::path& libPath,
+    const std::vector<std::string>& libraries,
     const std::vector<std::string>& additionalFlags) {
 
     // Verify all source files exist
@@ -172,22 +173,18 @@ void Editor::Generator::buildSharedLibrary(
         }
     }
 
-    fs::path sharedLibPath = libPath;
-    if (os == "Windows") {
-        sharedLibPath /= "supernova.dll";
-    } else if (os == "Linux") {
-        sharedLibPath /= "libsupernova.so";
-    } else if (os == "MacOS") {
-        sharedLibPath /= "libsupernova.dylib";
-    }
-
     if (compiler == "cl") {
         // MSVC compilation command
         command = "cl /LD /EHsc /O2 " + includeFlags;
         for (const auto& sourceFile : sourceFiles) {
             command += sourceFile + " ";
         }
-        command += "/Fe:" + outputFile + " /link \"" + sharedLibPath.string() + "\"";
+        command += "/Fe:" + outputFile + " /link";
+        // Add library path and libraries
+        command += " /LIBPATH:\"" + libPath.string() + "\"";
+        for (const auto& lib : libraries) {
+            command += " " + lib + ".lib";
+        }
     } else {
         // GCC/Clang compilation command
         if (os == "Linux" || os == "MacOS") {
@@ -206,14 +203,19 @@ void Editor::Generator::buildSharedLibrary(
         // Add output file
         command += " -o " + outputFile;
 
-        // Add shared library with project path
-        // Use rpath to ensure the library can be found at runtime
+        // Add library path
+        command += " -L\"" + libPath.string() + "\"";
+
+        // Add libraries
+        for (const auto& lib : libraries) {
+            command += " -l" + lib;
+        }
+
+        // Add rpath to ensure the libraries can be found at runtime
         if (os == "Linux") {
-            command += " -L\"" + libPath.string() + "\" -lsupernova -Wl,-rpath,\"" + libPath.string() + "\"";
+            command += " -Wl,-rpath,\"" + libPath.string() + "\"";
         } else if (os == "MacOS") {
-            command += " -L\"" + libPath.string() + "\" -lsupernova -Wl,-rpath,@loader_path/\"" + libPath.string() + "\"";
-        } else if (os == "Windows") {
-            command += " -L\"" + libPath.string() + "\" -lsupernova";
+            command += " -Wl,-rpath,@loader_path/\"" + libPath.string() + "\"";
         }
     }
 
@@ -289,7 +291,7 @@ void Editor::Generator::build(fs::path projectPath) {
 
         Log::info("Building shared library...");
         std::vector<std::string> additionalFlags;
-        buildSharedLibrary(compiler, sourceFiles, outputFile, includeDirs, debug, projectPath, additionalFlags);
+        buildSharedLibrary(compiler, sourceFiles, projectPath / outputFile, includeDirs, debug, "", {"supernova"}, additionalFlags);
 
         Log::info("Shared library built successfully: %s", outputFile.c_str());
     } catch (const std::exception& ex) {

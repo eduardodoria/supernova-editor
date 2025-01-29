@@ -230,7 +230,7 @@ void Editor::App::engineInit(int argc, char** argv){
     project.createNewProject("MySupernovaProject");
 
     generator.build(project.getProjectPath());
-    if (conector.connect()){
+    if (conector.connect(project.getProjectPath())){
         conector.execute();
     }
 
