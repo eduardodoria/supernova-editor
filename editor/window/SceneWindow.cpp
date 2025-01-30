@@ -191,7 +191,7 @@ void Editor::SceneWindow::show(){
             }
 
             if (ImGui::Button(ICON_FA_PLAY " Play")) {
-                sceneProject.name = "Testing";
+                project->build();
                 // Handle play button click
             }
 

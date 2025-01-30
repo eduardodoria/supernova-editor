@@ -4,8 +4,6 @@
 #include "imgui.h"
 
 #include "Project.h"
-#include "Conector.h"
-#include "Generator.h"
 
 #include "window/Properties.h"
 #include "window/Structure.h"
@@ -20,8 +18,6 @@ namespace Supernova::Editor{
     class App{
     private:
         Project project;
-        Conector conector;
-        Generator generator;
 
         ImGuiID dockspace_id;
         ImGuiID dock_id_middle_top;

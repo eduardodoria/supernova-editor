@@ -363,3 +363,10 @@ std::vector<Entity> Editor::Project::getSelectedEntities(uint32_t sceneId) const
 bool Editor::Project::hasSelectedEntities(uint32_t sceneId) const{
     return (getScene(sceneId)->selectedEntities.size() > 0);
 }
+
+void Editor::Project::build(){
+    generator.build(getProjectPath());
+    if (conector.connect(getProjectPath())){
+        conector.execute();
+    }
+}

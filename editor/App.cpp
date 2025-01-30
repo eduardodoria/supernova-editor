@@ -229,10 +229,7 @@ void Editor::App::show(){
 void Editor::App::engineInit(int argc, char** argv){
     project.createNewProject("MySupernovaProject");
 
-    generator.build(project.getProjectPath());
-    if (conector.connect(project.getProjectPath())){
-        conector.execute();
-    }
+    project.build();
 
     uint32_t sceneid = project.createNewScene("New Scene");
 

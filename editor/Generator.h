@@ -5,15 +5,16 @@
 #include <unordered_map>
 #include <vector>
 #include <filesystem>
+#include <future>
 
 namespace fs = std::filesystem;
 
-namespace Supernova::Editor{
+namespace Supernova::Editor {
 
-    class Generator{
+    class Generator {
     private:
-
         std::unordered_map<std::string, std::string> compilerCache;
+        std::future<void> buildFuture;
 
         std::string executeCommand(const std::string& command);
         std::string getOperatingSystem();
@@ -22,6 +23,7 @@ namespace Supernova::Editor{
 
     public:
         Generator();
+        ~Generator();
 
         void buildSharedLibrary(
             const std::string& compiler,
@@ -34,7 +36,8 @@ namespace Supernova::Editor{
             const std::vector<std::string>& additionalFlags = {});
 
         void build(fs::path projectPath);
-
+        bool isBuildInProgress() const;
+        void waitForBuildToComplete();
     };
 
 }

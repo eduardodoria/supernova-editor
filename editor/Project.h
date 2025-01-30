@@ -5,6 +5,8 @@
 #include "Catalog.h"
 #include "render/SceneRender.h"
 #include "command/CommandHistory.h"
+#include "Conector.h"
+#include "Generator.h"
 
 #include <filesystem>
 
@@ -24,6 +26,9 @@ namespace Supernova::Editor{
 
     class Project{
     private:
+
+        Conector conector;
+        Generator generator;
 
         static uint32_t nextSceneId;
 
@@ -81,6 +86,8 @@ namespace Supernova::Editor{
         void clearSelectedEntities(uint32_t sceneId);
         std::vector<Entity> getSelectedEntities(uint32_t sceneId) const;
         bool hasSelectedEntities(uint32_t sceneId) const;
+
+        void build();
     };
 
 }

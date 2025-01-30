@@ -14,9 +14,15 @@
 #include <iomanip>
 #include <regex>
 
+#include <future>
+
 using namespace Supernova;
 
 Editor::Generator::Generator(){
+}
+
+Editor::Generator::~Generator() {
+    waitForBuildToComplete();
 }
 
 // Helper function to execute a command and capture its output
@@ -294,7 +300,6 @@ void Editor::Generator::build(fs::path projectPath) {
 
         std::vector<std::string> sourceFiles;
         sourceFiles.push_back(sourceFile);
-        //sourceFiles.push_back((projectPath / "CubeScript.h").string());
         sourceFiles.push_back((projectPath / "CubeScript.cpp").string());
 
         std::string outputFile = "project_lib";
@@ -332,11 +337,33 @@ void Editor::Generator::build(fs::path projectPath) {
 
         Log::info("Building shared library...");
         std::vector<std::string> additionalFlags;
-        buildSharedLibrary(compiler, sourceFiles, projectPath / outputFile, includeDirs, debug, "", {"supernova"}, additionalFlags);
 
-        Log::info("Shared library built successfully: %s", outputFile.c_str());
+        // Wait for any existing build to complete
+        waitForBuildToComplete();
+
+        // Launch buildSharedLibrary in a separate thread
+        buildFuture = std::async(std::launch::async, 
+            [this, compiler, sourceFiles, outputFile, includeDirs, debug, projectPath]() {
+                try {
+                    buildSharedLibrary(compiler, sourceFiles, projectPath / outputFile, includeDirs, debug, "", {"supernova"}, {});
+                    Log::info("Shared library built successfully: %s", outputFile.c_str());
+                } catch (const std::exception& ex) {
+                    Log::error("%s", ex.what());
+                }
+            });
+
     } catch (const std::exception& ex) {
         Log::error("%s", ex.what());
-        //std::cerr << ex.what() << "\n";
+    }
+}
+
+bool Editor::Generator::isBuildInProgress() const {
+    return buildFuture.valid() && 
+           buildFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready;
+}
+
+void Editor::Generator::waitForBuildToComplete() {
+    if (buildFuture.valid()) {
+        buildFuture.wait();
     }
 }
