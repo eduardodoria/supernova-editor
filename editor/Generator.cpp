@@ -10,6 +10,10 @@
 #include <array>
 #include <memory>
 
+#include <chrono>
+#include <iomanip>
+#include <regex>
+
 using namespace Supernova;
 
 Editor::Generator::Generator(){
@@ -158,9 +162,9 @@ void Editor::Generator::buildSharedLibrary(
     }
 
     std::string os = getOperatingSystem();
-    std::string command;
     std::string optimizationFlags = debug ? "-O0 -g" : "-O3";
     std::string includeFlags;
+    std::vector<std::string> objectFiles;
 
     // Build include directory flags
     if (compiler == "cl") {
@@ -173,63 +177,100 @@ void Editor::Generator::buildSharedLibrary(
         }
     }
 
-    if (compiler == "cl") {
-        // MSVC compilation command
-        command = "cl /LD /EHsc /O2 " + includeFlags;
-        for (const auto& sourceFile : sourceFiles) {
-            command += sourceFile + " ";
+    auto startTime = std::chrono::steady_clock::now();
+    size_t fileCount = 0;
+    const size_t totalFiles = sourceFiles.size();
+
+    // First compile each source file to object files
+    for (const auto& sourceFile : sourceFiles) {
+        fileCount++;
+        auto currentTime = std::chrono::steady_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+            currentTime - startTime).count() / 1000.0;
+
+        // Calculate percentage
+        int percentage = static_cast<int>((fileCount * 100) / totalFiles);
+
+        // Create object file name
+        std::string objFile = sourceFile;
+        size_t lastDot = objFile.find_last_of('.');
+        if (lastDot != std::string::npos) {
+            objFile = objFile.substr(0, lastDot);
         }
-        command += "/Fe:" + outputFile + " /link";
-        // Add library path and libraries
-        command += " /LIBPATH:\"" + libPath.string() + "\"";
+        objFile += ".o";
+        objectFiles.push_back(objFile);
+
+        std::string compileCommand;
+        if (compiler == "cl") {
+            compileCommand = "cl /c /EHsc /O2 " + includeFlags + " " + sourceFile + 
+                           " /Fo:" + objFile;
+        } else {
+            compileCommand = compiler + " -std=c++17 -fPIC -c " + optimizationFlags + 
+                           " " + includeFlags + " " + sourceFile + " -o " + objFile;
+        }
+
+        Log::build("[%zu/%zu %3d%% :: %.3f] Building %s", 
+               fileCount, totalFiles, percentage, duration, 
+               sourceFile.c_str());
+
+        int retCode = std::system(compileCommand.c_str());
+        if (retCode != 0) {
+            // Cleanup object files
+            for (const auto& obj : objectFiles) {
+                std::filesystem::remove(obj);
+            }
+            throw std::runtime_error("Failed to compile: " + sourceFile);
+        }
+    }
+
+    // Now link all object files
+    std::string linkCommand;
+    if (compiler == "cl") {
+        linkCommand = "cl /LD ";
+        for (const auto& obj : objectFiles) {
+            linkCommand += obj + " ";
+        }
+        linkCommand += "/Fe:" + outputFile + " /link /LIBPATH:\"" + libPath.string() + "\"";
         for (const auto& lib : libraries) {
-            command += " " + lib + ".lib";
+            linkCommand += " " + lib + ".lib";
         }
     } else {
-        // GCC/Clang compilation command
-        if (os == "Linux" || os == "MacOS") {
-            command = compiler + " -std=c++17 -fPIC -shared " + optimizationFlags + " " + includeFlags;
-        } else if (os == "Windows") {
-            command = compiler + " -std=c++17 -shared " + optimizationFlags + " " + includeFlags;
-        } else {
-            throw std::runtime_error("Unsupported operating system: " + os);
+        linkCommand = compiler + " -shared ";
+        for (const auto& obj : objectFiles) {
+            linkCommand += obj + " ";
         }
-
-        // Add source files
-        for (const auto& sourceFile : sourceFiles) {
-            command += " " + sourceFile;
-        }
-
-        // Add output file
-        command += " -o " + outputFile;
-
-        // Add library path
-        command += " -L\"" + libPath.string() + "\"";
-
-        // Add libraries
+        linkCommand += " -o " + outputFile;
+        linkCommand += " -L\"" + libPath.string() + "\"";
         for (const auto& lib : libraries) {
-            command += " -l" + lib;
+            linkCommand += " -l" + lib;
         }
-
-        // Add rpath to ensure the libraries can be found at runtime
         if (os == "Linux") {
-            command += " -Wl,-rpath,\"" + libPath.string() + "\"";
+            linkCommand += " -Wl,-rpath,\"" + libPath.string() + "\"";
         } else if (os == "MacOS") {
-            command += " -Wl,-rpath,@loader_path/\"" + libPath.string() + "\"";
+            linkCommand += " -Wl,-rpath,@loader_path/\"" + libPath.string() + "\"";
         }
     }
 
-    // Add additional flags
+    // Add additional flags to link command
     for (const auto& flag : additionalFlags) {
-        command += " " + flag;
+        linkCommand += " " + flag;
     }
 
-    std::cout << "Building shared library with command: " << command << std::endl;
+    Log::build("Linking shared library...");
+    int linkRetCode = std::system(linkCommand.c_str());
 
-    int retCode = std::system(command.c_str());
-    if (retCode != 0) {
-        throw std::runtime_error("Failed to build shared library!");
+    // Cleanup object files
+    for (const auto& obj : objectFiles) {
+        std::filesystem::remove(obj);
     }
+
+    if (linkRetCode != 0) {
+        throw std::runtime_error("Failed to link shared library!");
+    }
+
+    auto endTime = std::chrono::steady_clock::now();
+    auto totalDuration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() / 1000.0;
+    Log::build("Build completed in %.3f seconds", totalDuration);
 }
 
 void Editor::Generator::build(fs::path projectPath) {

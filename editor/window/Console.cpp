@@ -50,6 +50,7 @@ void Console::addLog(LogType type, const std::string& message) {
         case LogType::Success: typeStr = "Success"; break;
         case LogType::Info: typeStr = "Info"; break;
         case LogType::Warning: typeStr = "Warning"; break;
+        case LogType::Build: typeStr = "Build"; break;
     }
 
     std::string formattedMessage = "[" + typeStr + "] " + message + "\n";
@@ -74,6 +75,7 @@ void Console::rebuildBuffer() {
             case LogType::Success: typeStr = "Success"; break;
             case LogType::Info: typeStr = "Info"; break;
             case LogType::Warning: typeStr = "Warning"; break;
+            case LogType::Build: typeStr = "Build"; break;
         }
 
         std::string formattedMessage = "[" + typeStr + "] " + log.message + "\n";

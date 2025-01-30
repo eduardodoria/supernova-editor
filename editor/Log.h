@@ -45,12 +45,14 @@ namespace Supernova::Editor {
         static void success(const std::string& message);
         static void warning(const std::string& message);
         static void error(const std::string& message);
+        static void build(const std::string& message);
 
         // Overloads for const char* without formatting
         static void info(const char* message) { info(std::string(message)); }
         static void success(const char* message) { success(std::string(message)); }
         static void warning(const char* message) { warning(std::string(message)); }
         static void error(const char* message) { error(std::string(message)); }
+        static void build(const char* message) { build(std::string(message)); }
 
         // Formatted logging methods with variable arguments
         template<typename... Args>
@@ -82,6 +84,14 @@ namespace Supernova::Editor {
             if (console) {
                 std::string message = formatMessage(fmt, args...);
                 console->addLog(LogType::Error, message);
+            }
+        }
+
+        template<typename... Args>
+        static void build(const char* fmt, Args... args) {
+            if (console) {
+                std::string message = formatMessage(fmt, args...);
+                console->addLog(LogType::Build, message);
             }
         }
 

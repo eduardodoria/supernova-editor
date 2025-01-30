@@ -73,10 +73,10 @@ bool Editor::Conector::connect(fs::path projectPath){
 
     Log::info("Checking for library file: %s", libFile.c_str());
 
-    if (fileExists(libFile)) {
+    fs::path fullLibPath = projectPath / fs::path(libFile);
+    if (fileExists(fullLibPath)) {
         std::cout << "Library file found!\n";
-        fs::path fullPath = projectPath / fs::path(libFile);
-        libHandle = loadSharedLibrary(fullPath.string());
+        libHandle = loadSharedLibrary(fullLibPath.string());
         if (libHandle) {
             return true;
         }

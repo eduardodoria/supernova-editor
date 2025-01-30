@@ -10,7 +10,8 @@ namespace Supernova::Editor {
         Error,
         Success,
         Info,
-        Warning
+        Warning,
+        Build
     };
 
     struct LogData {

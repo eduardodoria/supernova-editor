@@ -46,6 +46,14 @@ void Log::error(const std::string& message) {
     }
 }
 
+void Log::build(const std::string& message) {
+    if (console) {
+        console->addLog(LogType::Build, message);
+    } else {
+        std::cerr << "[BUILD] " << message << std::endl;
+    }
+}
+
 void Log::editor_assert(bool condition, const std::string& message) {
     if (!condition) {
         error("Assertion failed: " + message);
