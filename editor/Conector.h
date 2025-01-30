@@ -11,7 +11,7 @@ namespace Supernova::Editor{
     class Conector{
     private:
         void* libHandle;
-        std::string libFile;
+        std::string libName;
 
         bool fileExists(const std::string& path);
         void* loadSharedLibrary(const std::string& libPath);

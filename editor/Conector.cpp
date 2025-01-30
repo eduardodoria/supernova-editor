@@ -17,7 +17,7 @@ using namespace Supernova;
 
 Editor::Conector::Conector(){
     libHandle = nullptr;
-    libFile = "project_lib";
+    libName = "project_lib";
 }
 
 Editor::Conector::~Conector(){
@@ -65,15 +65,16 @@ void Editor::Conector::unloadSharedLibrary(void* libHandle) {
 bool Editor::Conector::connect(fs::path projectPath){
     unloadSharedLibrary(libHandle);
 
+    std::string libPath = libName;
     #ifdef _WIN32
-        libFile = libFile + ".dll";
+        libPath = libPath + ".dll";
     #else
-        libFile = libFile + ".so";
+        libPath = libPath + ".so";
     #endif
 
-    Log::info("Checking for library file: %s", libFile.c_str());
+    Log::info("Checking for library file: %s", libPath.c_str());
 
-    fs::path fullLibPath = projectPath / fs::path(libFile);
+    fs::path fullLibPath = projectPath / fs::path(libPath);
     if (fileExists(fullLibPath)) {
         std::cout << "Library file found!\n";
         libHandle = loadSharedLibrary(fullLibPath.string());
@@ -81,7 +82,7 @@ bool Editor::Conector::connect(fs::path projectPath){
             return true;
         }
     } else {
-        Log::error("Library file not found: %s", libFile.c_str());
+        Log::error("Library file not found: %s", libPath.c_str());
     }
 
     return false;

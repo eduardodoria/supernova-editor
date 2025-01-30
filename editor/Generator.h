@@ -13,6 +13,8 @@ namespace Supernova::Editor {
 
     class Generator {
     private:
+        std::string compiler;
+
         std::unordered_map<std::string, std::string> compilerCache;
         std::future<void> buildFuture;
 
@@ -24,6 +26,8 @@ namespace Supernova::Editor {
     public:
         Generator();
         ~Generator();
+
+        void setup();
 
         void buildSharedLibrary(
             const std::string& compiler,

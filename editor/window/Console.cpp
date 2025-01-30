@@ -61,6 +61,10 @@ void Console::addLog(LogType type, const std::string& message) {
     for (int newSize = buf.size(); oldSize < newSize; oldSize++)
         if (buf[oldSize] == '\n')
             lineOffsets.push_back(oldSize + 1);
+
+    if (autoScrollLocked && autoScroll){
+        scrollStartCount = 0;
+    }
 }
 
 void Console::rebuildBuffer() {
@@ -161,19 +165,15 @@ void Console::show() {
     ImGuiWindow* child_window = ImGui::FindWindowByName(child_window_name);
 
     if (child_window->ScrollMax.y > 0.0f){
-        if (child_window->Scroll.y < (child_window->ScrollMax.y-ImGui::GetTextLineHeight())) {
+        if (child_window->Scroll.y < child_window->ScrollMax.y) {
             autoScroll = false;
-        }
-        // Re-enable auto-scroll if user scrolls to bottom manually
-        if (child_window->Scroll.y >= child_window->ScrollMax.y) {
+        }else{
             autoScroll = true;
         }
     }
 
     if (autoScrollLocked){
-        if (autoScroll) {
-            ImGui::SetScrollY(child_window, child_window->ScrollMax.y);
-        }else if (scrollStartCount < 3){ // keep scroll at window start
+        if (scrollStartCount < 3){ // keep scroll in 3 frames
             scrollStartCount++;
             ImGui::SetScrollY(child_window, child_window->ScrollMax.y);
         }

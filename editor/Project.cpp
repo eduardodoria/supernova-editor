@@ -21,6 +21,9 @@ Editor::Project::Project(){
 }
 
 bool Editor::Project::createNewProject(std::string projectName){
+
+    generator.setup();
+
     try {
         projectPath = std::filesystem::temp_directory_path() / projectName;
         tempPath = true;
@@ -366,7 +369,7 @@ bool Editor::Project::hasSelectedEntities(uint32_t sceneId) const{
 
 void Editor::Project::build(){
     generator.build(getProjectPath());
-    if (conector.connect(getProjectPath())){
-        conector.execute();
-    }
+    //if (conector.connect(getProjectPath())){
+    //    conector.execute();
+    //}
 }

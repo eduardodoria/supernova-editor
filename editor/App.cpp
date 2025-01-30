@@ -229,8 +229,6 @@ void Editor::App::show(){
 void Editor::App::engineInit(int argc, char** argv){
     project.createNewProject("MySupernovaProject");
 
-    project.build();
-
     uint32_t sceneid = project.createNewScene("New Scene");
 
     Engine::systemInit(argc, argv);

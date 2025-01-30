@@ -149,6 +149,22 @@ std::string Editor::Generator::findCompiler() {
     throw std::runtime_error("No compiler found on the system!");
 }
 
+void Editor::Generator::setup(){
+    //std::cout << "Detecting operating system..." << std::endl;
+    std::string os = getOperatingSystem();
+    Log::info("Operating System: %s", os.c_str());
+
+    //std::cout << "Locating a compiler..." << std::endl;
+    compiler = findCompiler();
+    Log::info("Found compiler: %s", compiler.c_str());
+
+    std::string version = getCompilerVersion(compiler);
+    Log::info("Compiler version: %s", version.c_str());
+
+    Log::info("Building shared library...");
+    std::vector<std::string> additionalFlags;
+}
+
 // Function to build a shared library
 void Editor::Generator::buildSharedLibrary(
     const std::string& compiler,
@@ -324,26 +340,12 @@ void Editor::Generator::build(fs::path projectPath) {
 
         bool debug = true;
 
-        std::cout << "Detecting operating system..." << std::endl;
-        std::string os = getOperatingSystem();
-        Log::info("Operating System: %s", os.c_str());
-
-        std::cout << "Locating a compiler..." << std::endl;
-        std::string compiler = findCompiler();
-        Log::info("Found compiler: %s", compiler.c_str());
-
-        std::string version = getCompilerVersion(compiler);
-        Log::info("Compiler version: %s", version.c_str());
-
-        Log::info("Building shared library...");
-        std::vector<std::string> additionalFlags;
-
         // Wait for any existing build to complete
         waitForBuildToComplete();
 
         // Launch buildSharedLibrary in a separate thread
         buildFuture = std::async(std::launch::async, 
-            [this, compiler, sourceFiles, outputFile, includeDirs, debug, projectPath]() {
+            [this, sourceFiles, outputFile, includeDirs, debug, projectPath]() {
                 try {
                     buildSharedLibrary(compiler, sourceFiles, projectPath / outputFile, includeDirs, debug, "", {"supernova"}, {});
                     Log::info("Shared library built successfully: %s", outputFile.c_str());
