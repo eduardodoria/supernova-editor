@@ -367,9 +367,14 @@ bool Editor::Project::hasSelectedEntities(uint32_t sceneId) const{
     return (getScene(sceneId)->selectedEntities.size() > 0);
 }
 
-void Editor::Project::build(){
+void Editor::Project::build() {
     generator.build(getProjectPath());
-    //if (conector.connect(getProjectPath())){
-    //    conector.execute();
-    //}
+
+    std::thread connectThread([this]() {
+        generator.waitForBuildToComplete();
+        if (conector.connect(getProjectPath())) {
+            conector.execute();
+        }
+    });
+    connectThread.detach();
 }
