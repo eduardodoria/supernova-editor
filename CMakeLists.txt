@@ -75,7 +75,7 @@ add_definitions("-DNO_CPP_INIT")
 add_definitions("-DSOKOL_GLCORE")
 add_definitions("-DWITH_MINIAUDIO") # For SoLoud
 set(NFD_PORTAL ON CACHE BOOL "Use xdg-desktop-portal instead of GTK") # For NFD
-add_definitions("-DSUPERNOVA_EDITOR")
+#add_definitions("-DSUPERNOVA_EDITOR")
 
 include_directories (${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -193,6 +193,11 @@ set_target_properties(
     ${PLATFORM_PROPERTIES_FLAGS}
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
+)
+
+target_compile_definitions(supernova-editor 
+    PRIVATE 
+    SUPERNOVA_EDITOR
 )
 
 install(TARGETS supernova-editor 

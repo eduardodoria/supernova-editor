@@ -24,7 +24,7 @@ Editor::Conector::~Conector(){
     unloadSharedLibrary(libHandle);
 }
 
-bool Editor::Conector::fileExists(const std::string& path) {
+bool Editor::Conector::fileExists(const fs::path& path) {
     return std::filesystem::exists(path);
 }
 

@@ -347,7 +347,7 @@ void Editor::Generator::build(fs::path projectPath) {
         buildFuture = std::async(std::launch::async, 
             [this, sourceFiles, outputFile, includeDirs, debug, projectPath]() {
                 try {
-                    buildSharedLibrary(compiler, sourceFiles, projectPath / outputFile, includeDirs, debug, "", {"supernova"}, {});
+                    buildSharedLibrary(compiler, sourceFiles, (projectPath / outputFile).string(), includeDirs, debug, "", {"supernova"}, {});
                     Log::info("Shared library built successfully: %s", outputFile.c_str());
                 } catch (const std::exception& ex) {
                     Log::error("%s", ex.what());

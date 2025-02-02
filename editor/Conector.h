@@ -13,7 +13,7 @@ namespace Supernova::Editor{
         void* libHandle;
         std::string libName;
 
-        bool fileExists(const std::string& path);
+        bool fileExists(const fs::path& path);
         void* loadSharedLibrary(const std::string& libPath);
         void unloadSharedLibrary(void* libHandle);
 

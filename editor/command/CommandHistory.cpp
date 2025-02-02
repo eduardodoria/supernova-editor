@@ -41,7 +41,7 @@ void Editor::CommandHistory::undo(){
         index--;
 
         #ifdef _DEBUG
-        printf("DEBUG: undo (%lu from %lu)\n", index, list.size());
+        printf("DEBUG: undo (%zu from %zu)\n", index, list.size());
         #endif
     }
 }
@@ -52,7 +52,7 @@ void Editor::CommandHistory::redo(){
         list[index-1]->execute();
 
         #ifdef _DEBUG
-        printf("DEBUG: redo (%lu from %lu)\n", index, list.size());
+        printf("DEBUG: redo (%zu from %zu)\n", index, list.size());
         #endif
     }
 }
