@@ -1,4 +1,4 @@
-#ifndef EDITORUITL_H
+#ifndef EDITORUTIL_H
 #define EDITORUTIL_H
 
 #include <vector>
