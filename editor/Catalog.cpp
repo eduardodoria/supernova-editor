@@ -152,9 +152,6 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
 std::vector<Editor::ComponentType> Editor::Catalog::findComponents(Scene* scene, Entity entity){
     std::vector<Editor::ComponentType> ret;
 
-    if (scene->findComponent<Transform>(entity)){
-        ret.push_back(ComponentType::Transform);
-    }
     if (scene->findComponent<ActionComponent>(entity)){
         ret.push_back(ComponentType::ActionComponent);
     }
@@ -194,8 +191,8 @@ std::vector<Editor::ComponentType> Editor::Catalog::findComponents(Scene* scene,
     if (scene->findComponent<Joint2DComponent>(entity)){
         ret.push_back(ComponentType::Joint2DComponent);
     }
-    if (scene->findComponent<Joint2DComponent>(entity)){
-        ret.push_back(ComponentType::Joint2DComponent);
+    if (scene->findComponent<Joint3DComponent>(entity)){
+        ret.push_back(ComponentType::Joint3DComponent);
     }
     if (scene->findComponent<KeyframeTracksComponent>(entity)){
         ret.push_back(ComponentType::KeyframeTracksComponent);
@@ -271,6 +268,9 @@ std::vector<Editor::ComponentType> Editor::Catalog::findComponents(Scene* scene,
     }
     if (scene->findComponent<TimedActionComponent>(entity)){
         ret.push_back(ComponentType::TimedActionComponent);
+    }
+    if (scene->findComponent<Transform>(entity)){
+        ret.push_back(ComponentType::Transform);
     }
     if (scene->findComponent<TranslateTracksComponent>(entity)){
         ret.push_back(ComponentType::TranslateTracksComponent);

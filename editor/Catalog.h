@@ -14,6 +14,7 @@ namespace Supernova::Editor{
     };
 
     enum class ComponentType : int {
+        Transform,
         ActionComponent,
         AlphaActionComponent,
         AnimationComponent,
@@ -54,7 +55,6 @@ namespace Supernova::Editor{
         TextEditComponent,
         TilemapComponent,
         TimedActionComponent,
-        Transform,
         TranslateTracksComponent,
         UIComponent,
         UIContainerComponent,
