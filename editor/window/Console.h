@@ -7,17 +7,17 @@
 
 namespace Supernova::Editor {
     enum class LogType {
-        Error,
-        Success,
         Info,
         Warning,
+        Error,
+        Success,
         Build
     };
 
     struct LogData {
         LogType type;
         std::string message;
-        float time;
+        float timestamp;
     };
 
     class Console {
@@ -25,22 +25,20 @@ namespace Supernova::Editor {
         ImGuiTextBuffer buf;
         ImGuiTextFilter filter;
         ImVector<int> lineOffsets;
-
         std::vector<LogData> logs;
         bool autoScrollLocked;
         bool autoScroll;
+        bool needsRebuild;
         unsigned int scrollStartCount;
 
         void rebuildBuffer();
 
     public:
         Console();
-        ~Console() = default;
-
-        void show();
         void clear();
-        void addLog(LogType type, const char* fmt, ...) IM_FMTARGS(3);
+        void addLog(LogType type, const char* fmt, ...);
         void addLog(LogType type, const std::string& message);
+        void show();
     };
 }
 

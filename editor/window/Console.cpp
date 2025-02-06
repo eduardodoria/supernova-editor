@@ -1,8 +1,10 @@
+// Console.cpp
 #include "Console.h"
 #include "external/IconsFontAwesome6.h"
 #include <ctime>
 #include <iomanip>
 #include <sstream>
+#include <cmath>
 
 #include "imgui_internal.h"
 
@@ -12,6 +14,7 @@ Console::Console() {
     autoScroll = true;
     autoScrollLocked = true;
     scrollStartCount = 0;
+    needsRebuild = false;
     clear();
 }
 
@@ -20,6 +23,7 @@ void Console::clear() {
     logs.clear();
     lineOffsets.clear();
     lineOffsets.push_back(0);
+    needsRebuild = false;
 }
 
 void Console::addLog(LogType type, const char* fmt, ...) {
@@ -33,17 +37,14 @@ void Console::addLog(LogType type, const char* fmt, ...) {
 }
 
 void Console::addLog(LogType type, const std::string& message) {
-    // Get current time
-    //auto now = std::time(nullptr);
-    //auto tm = *std::localtime(&now);
-    //std::ostringstream timeStr;
-    //timeStr << std::put_time(&tm, "%H:%M:%S");
-
-    // Create the log entry
+    // Store the raw log entry
     LogData logEntry{type, message, static_cast<float>(ImGui::GetTime())};
     logs.push_back(logEntry);
 
-    // Format the message with timestamp and type
+    // Mark that we need to rebuild
+    needsRebuild = true;
+
+    // Basic formatting for initial display
     std::string typeStr;
     switch(type) {
         case LogType::Error: typeStr = "Error"; break;
@@ -62,34 +63,101 @@ void Console::addLog(LogType type, const std::string& message) {
         if (buf[oldSize] == '\n')
             lineOffsets.push_back(oldSize + 1);
 
-    if (autoScrollLocked && autoScroll){
+    if (autoScrollLocked && autoScroll) {
         scrollStartCount = 0;
     }
 }
 
+std::string getTypePrefix(LogType type) {
+    switch(type) {
+        case LogType::Error: return "[Error] ";
+        case LogType::Success: return "[Success] ";
+        case LogType::Info: return "[Info] ";
+        case LogType::Warning: return "[Warning] ";
+        case LogType::Build: return "[Build] ";
+        default: return "[Unknown] ";
+    }
+}
+
 void Console::rebuildBuffer() {
+    // If no ImGui context or window, return early
+    if (!ImGui::GetCurrentContext() || !ImGui::GetCurrentWindow()) {
+        return;
+    }
+
+    float wrapWidth = ImGui::GetContentRegionAvail().x;
+    if (wrapWidth <= 0) return; // Skip if width is invalid
+
     buf.clear();
     lineOffsets.clear();
     lineOffsets.push_back(0);
 
+    ImFont* font = ImGui::GetFont();
+
     for (const auto& log : logs) {
-        std::string typeStr;
-        switch(log.type) {
-            case LogType::Error: typeStr = "Error"; break;
-            case LogType::Success: typeStr = "Success"; break;
-            case LogType::Info: typeStr = "Info"; break;
-            case LogType::Warning: typeStr = "Warning"; break;
-            case LogType::Build: typeStr = "Build"; break;
+        std::string prefix = getTypePrefix(log.type);
+        float prefixWidth = font->CalcTextSizeA(font->FontSize, FLT_MAX, 0.0f, prefix.c_str()).x;
+
+        // Split message into words
+        std::istringstream iss(log.message);
+        std::vector<std::string> words;
+        std::string word;
+        while (iss >> word) {
+            words.push_back(word);
         }
 
-        std::string formattedMessage = "[" + typeStr + "] " + log.message + "\n";
+        // Handle empty message case
+        if (words.empty()) {
+            if (!filter.IsActive() || filter.PassFilter((prefix + "\n").c_str())) {
+                buf.append((prefix + "\n").c_str());
+                lineOffsets.push_back(buf.size());
+            }
+            continue;
+        }
 
-        if (!filter.IsActive() || filter.PassFilter(formattedMessage.c_str())) {
-            int oldSize = buf.size();
-            buf.append(formattedMessage.c_str());
-            for (int newSize = buf.size(); oldSize < newSize; oldSize++)
-                if (buf[oldSize] == '\n')
-                    lineOffsets.push_back(oldSize + 1);
+        std::string currentLine = prefix;
+        float currentLineWidth = prefixWidth;
+        std::string indentation(prefix.length(), ' ');
+        bool firstLine = true;
+
+        for (size_t i = 0; i < words.size(); ++i) {
+            const std::string& word = words[i];
+            float wordWidth = font->CalcTextSizeA(font->FontSize, FLT_MAX, 0.0f, (word + " ").c_str()).x;
+
+            bool isLastWord = (i == words.size() - 1);
+
+            if (!firstLine && currentLineWidth == prefixWidth) {
+                // Start of a new line after wrapping
+                currentLine += indentation;
+                currentLineWidth += font->CalcTextSizeA(font->FontSize, FLT_MAX, 0.0f, indentation.c_str()).x;
+            }
+
+            if (currentLineWidth + wordWidth > wrapWidth && !firstLine) {
+                // Wrap to new line
+                if (!filter.IsActive() || filter.PassFilter(currentLine.c_str())) {
+                    buf.append((currentLine + "\n").c_str());
+                    lineOffsets.push_back(buf.size());
+                }
+                currentLine = indentation + word;
+                currentLineWidth = prefixWidth + wordWidth;
+            } else {
+                // Add word to current line
+                if (!firstLine || !currentLine.empty()) {
+                    currentLine += " ";
+                    currentLineWidth += font->CalcTextSizeA(font->FontSize, FLT_MAX, 0.0f, " ").x;
+                }
+                currentLine += word;
+                currentLineWidth += wordWidth;
+            }
+
+            if (isLastWord) {
+                if (!filter.IsActive() || filter.PassFilter(currentLine.c_str())) {
+                    buf.append((currentLine + "\n").c_str());
+                    lineOffsets.push_back(buf.size());
+                }
+            }
+
+            firstLine = false;
         }
     }
 }
@@ -101,9 +169,20 @@ void Console::show() {
     }
 
     // Calculate dimensions for the vertical menu and main content
-    const float menuWidth = ImGui::CalcTextSize(ICON_FA_LOCK).x + ImGui::GetStyle().ItemSpacing.x * 2 + ImGui::GetStyle().FramePadding.x * 2;  // Width of the vertical menu
-    //const float spacing = 8.0f;     // Spacing between menu and content
+    const float menuWidth = ImGui::CalcTextSize(ICON_FA_LOCK).x + ImGui::GetStyle().ItemSpacing.x * 2 + ImGui::GetStyle().FramePadding.x * 2;
     const ImVec2 windowSize = ImGui::GetContentRegionAvail();
+
+    static float lastContentWidth = 0.0f;
+    float currentContentWidth = ImGui::GetContentRegionAvail().x;
+
+    // Check if we need to rebuild the buffer
+    if (needsRebuild || std::abs(lastContentWidth - currentContentWidth) > 1.0f) {
+        lastContentWidth = currentContentWidth;
+        if (currentContentWidth > 0) {  // Only rebuild if we have a valid width
+            rebuildBuffer();
+            needsRebuild = false;
+        }
+    }
 
     // Begin vertical menu
     ImGui::BeginChild("VerticalMenu", ImVec2(menuWidth, windowSize.y), true);
@@ -129,7 +208,7 @@ void Console::show() {
     }
     if (ImGui::BeginPopup("FilterPopup")) {
         if (filter.Draw("##filter", 200.0f)) {
-            rebuildBuffer();
+            needsRebuild = true;  // Need to rebuild when filter changes
         }
         ImGui::EndPopup();
     }
@@ -159,23 +238,24 @@ void Console::show() {
     ImGui::PopStyleVar();
     ImGui::PopStyleColor();
 
+    // Handle auto-scrolling
     ImGuiContext& g = *GImGui;
     const char* child_window_name = NULL;
     ImFormatStringToTempBuffer(&child_window_name, NULL, "%s/%s_%08X", g.CurrentWindow->Name, "##console", ImGui::GetID("##console"));
     ImGuiWindow* child_window = ImGui::FindWindowByName(child_window_name);
 
-    if (child_window->ScrollMax.y > 0.0f){
+    if (child_window && child_window->ScrollMax.y > 0.0f) {
         if (child_window->Scroll.y < child_window->ScrollMax.y) {
             autoScroll = false;
-        }else{
+        } else {
             autoScroll = true;
         }
-    }
 
-    if (autoScrollLocked){
-        if (scrollStartCount < 3){ // keep scroll in 3 frames
-            scrollStartCount++;
-            ImGui::SetScrollY(child_window, child_window->ScrollMax.y);
+        if (autoScrollLocked) {
+            if (scrollStartCount < 3) { // keep scroll in 3 frames
+                scrollStartCount++;
+                ImGui::SetScrollY(child_window, child_window->ScrollMax.y);
+            }
         }
     }
 
