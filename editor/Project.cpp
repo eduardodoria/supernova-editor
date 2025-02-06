@@ -21,9 +21,6 @@ Editor::Project::Project(){
 }
 
 bool Editor::Project::createNewProject(std::string projectName){
-
-    generator.setup();
-
     try {
         projectPath = std::filesystem::temp_directory_path() / projectName;
         tempPath = true;

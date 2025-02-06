@@ -65,6 +65,8 @@ void Editor::Conector::unloadSharedLibrary(void* libHandle) {
 bool Editor::Conector::connect(fs::path projectPath){
     unloadSharedLibrary(libHandle);
 
+    fs::path buildPath = projectPath / "build";
+
     std::string libPath = libName;
     #ifdef _WIN32
         libPath = libPath + ".dll";
@@ -74,7 +76,7 @@ bool Editor::Conector::connect(fs::path projectPath){
 
     Log::info("Checking for library file: %s", libPath.c_str());
 
-    fs::path fullLibPath = projectPath / fs::path(libPath);
+    fs::path fullLibPath = buildPath / fs::path(libPath);
     if (fileExists(fullLibPath)) {
         std::cout << "Library file found!\n";
         libHandle = loadSharedLibrary(fullLibPath.string());
