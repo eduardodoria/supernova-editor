@@ -17,8 +17,8 @@ Editor::Generator::~Generator() {
 
 
 bool Editor::Generator::configureCMake(const fs::path& projectPath) {
-
     fs::path buildPath = projectPath / "build";
+    fs::path currentPath = fs::current_path();
 
     std::string cmakeCommand = "cmake ";
 
@@ -29,19 +29,75 @@ bool Editor::Generator::configureCMake(const fs::path& projectPath) {
     cmakeCommand += "-DCMAKE_BUILD_TYPE=Debug ";
     cmakeCommand += projectPath.string() + " ";
     cmakeCommand += "-B " + buildPath.string() + " ";
-    cmakeCommand += "-DSUPERNOVA_LIB_DIR=''";
+    cmakeCommand += "-DSUPERNOVA_LIB_DIR=\"" + currentPath.string() + "\"";
 
     Log::info("Configuring CMake project...");
-    return std::system(cmakeCommand.c_str()) == 0;
+
+    #ifdef _WIN32
+        FILE* pipe = _popen((cmakeCommand + " 2>&1").c_str(), "r");
+    #else
+        FILE* pipe = popen((cmakeCommand + " 2>&1").c_str(), "r");
+    #endif
+
+    if (!pipe) {
+        return false;
+    }
+
+    char buffer[128];
+    std::string result;
+
+    while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+        std::string line(buffer);
+        if (!line.empty() && line.back() == '\n') {
+            line.pop_back(); // Remove trailing newline
+        }
+        Log::build("%s", line.c_str());
+    }
+
+    #ifdef _WIN32
+        int returnCode = _pclose(pipe);
+    #else
+        int returnCode = pclose(pipe);
+    #endif
+
+    return returnCode == 0;
 }
 
 bool Editor::Generator::buildProject(const fs::path& projectPath) {
     fs::path buildPath = projectPath / "build";
 
-    std::string buildCommand = "cmake --build "+ buildPath.string() +" --config Debug";
+    std::string buildCommand = "cmake --build " + buildPath.string() + " --config Debug";
 
     Log::info("Building project...");
-    return std::system(buildCommand.c_str()) == 0;
+
+    #ifdef _WIN32
+        FILE* pipe = _popen((buildCommand + " 2>&1").c_str(), "r");
+    #else
+        FILE* pipe = popen((buildCommand + " 2>&1").c_str(), "r");
+    #endif
+
+    if (!pipe) {
+        return false;
+    }
+
+    char buffer[128];
+    std::string result;
+
+    while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+        std::string line(buffer);
+        if (!line.empty() && line.back() == '\n') {
+            line.pop_back(); // Remove trailing newline
+        }
+        Log::build("%s", line.c_str());
+    }
+
+    #ifdef _WIN32
+        int returnCode = _pclose(pipe);
+    #else
+        int returnCode = pclose(pipe);
+    #endif
+
+    return returnCode == 0;
 }
 
 bool Editor::Generator::writeIfChanged(const fs::path& filePath, const std::string& newContent) {
@@ -113,8 +169,8 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath){
 
         # Set properties for the shared library
         set_target_properties(project_lib PROPERTIES
-            OUTPUT_NAME 'project_lib'
-            PREFIX ''
+            OUTPUT_NAME "project_lib"
+            PREFIX ""
         )
     )";
 
