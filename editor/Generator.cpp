@@ -19,11 +19,46 @@ Editor::Generator::~Generator() {
 bool Editor::Generator::configureCMake(const fs::path& projectPath) {
     fs::path buildPath = projectPath / "build";
     fs::path currentPath = fs::current_path();
-
     std::string cmakeCommand = "cmake ";
+    char buffer[256];
+    FILE* pipe = nullptr;
 
     #ifdef _WIN32
-        cmakeCommand += "-G \"Visual Studio 16 2019\" ";
+        // First, query available generators
+        pipe = _popen("cmake --help", "r");
+        if (!pipe) {
+            Log::error("Failed to query CMake generators");
+            return false;
+        }
+
+        std::string result;
+        bool inGeneratorsList = false;
+        std::string generator;
+
+        while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+            std::string line(buffer);
+            if (line.find("Generators") != std::string::npos) {
+                inGeneratorsList = true;
+                continue;
+            }
+            if (inGeneratorsList && line.find("Visual Studio") != std::string::npos) {
+                // Pick the first Visual Studio generator found (newest version)
+                size_t start = line.find('=') != std::string::npos ? line.find('=') + 2 : 2;
+                generator = line.substr(start);
+                if (!generator.empty() && generator.back() == '\n') {
+                    generator.pop_back();
+                }
+                break;
+            }
+        }
+        _pclose(pipe);
+
+        if (!generator.empty()) {
+            cmakeCommand += "-G \"" + generator + "\" ";
+        } else {
+            // Fallback to default generator if no Visual Studio found
+            Log::warning("No Visual Studio generator found, using default generator");
+        }
     #endif
 
     cmakeCommand += "-DCMAKE_BUILD_TYPE=Debug ";
@@ -31,25 +66,22 @@ bool Editor::Generator::configureCMake(const fs::path& projectPath) {
     cmakeCommand += "-B " + buildPath.string() + " ";
     cmakeCommand += "-DSUPERNOVA_LIB_DIR=\"" + currentPath.string() + "\"";
 
-    Log::info("Configuring CMake project...");
+    Log::info("Configuring CMake project with command: %s", cmakeCommand.c_str());
 
     #ifdef _WIN32
-        FILE* pipe = _popen((cmakeCommand + " 2>&1").c_str(), "r");
+        pipe = _popen((cmakeCommand + " 2>&1").c_str(), "r");
     #else
-        FILE* pipe = popen((cmakeCommand + " 2>&1").c_str(), "r");
+        pipe = popen((cmakeCommand + " 2>&1").c_str(), "r");
     #endif
 
     if (!pipe) {
         return false;
     }
 
-    char buffer[128];
-    std::string result;
-
     while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
         std::string line(buffer);
         if (!line.empty() && line.back() == '\n') {
-            line.pop_back(); // Remove trailing newline
+            line.pop_back();
         }
         Log::build("%s", line.c_str());
     }
