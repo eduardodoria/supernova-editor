@@ -1,5 +1,5 @@
-// Console.cpp
-#include "Console.h"
+// Output.cpp
+#include "Output.h"
 #include "external/IconsFontAwesome6.h"
 #include <ctime>
 #include <iomanip>
@@ -10,7 +10,7 @@
 
 using namespace Supernova::Editor;
 
-Console::Console() {
+Output::Output() {
     autoScroll = true;
     autoScrollLocked = true;
     scrollStartCount = 0;
@@ -20,7 +20,7 @@ Console::Console() {
     clear();
 }
 
-void Console::clear() {
+void Output::clear() {
     buf.clear();
     logs.clear();
     lineOffsets.clear();
@@ -28,7 +28,7 @@ void Console::clear() {
     needsRebuild = false;
 }
 
-void Console::addLog(LogType type, const char* fmt, ...) {
+void Output::addLog(LogType type, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
     char temp[4096];
@@ -38,7 +38,7 @@ void Console::addLog(LogType type, const char* fmt, ...) {
     addLog(type, std::string(temp));
 }
 
-void Console::addLog(LogType type, const std::string& message) {
+void Output::addLog(LogType type, const std::string& message) {
     // Store the raw log entry
     LogData logEntry{type, message, static_cast<float>(ImGui::GetTime())};
     logs.push_back(logEntry);
@@ -81,7 +81,7 @@ std::string getTypePrefix(LogType type) {
     }
 }
 
-void Console::rebuildBuffer() {
+void Output::rebuildBuffer() {
     if (!ImGui::GetCurrentContext() || !ImGui::GetCurrentWindow()) {
         return;
     }
@@ -172,8 +172,8 @@ void Console::rebuildBuffer() {
     }
 }
 
-void Console::show() {
-    if (!ImGui::Begin("Console")) {
+void Output::show() {
+    if (!ImGui::Begin("Output")) {
         ImGui::End();
         return;
     }
@@ -238,7 +238,7 @@ void Console::show() {
         clear();
     }
     if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("Clear Console");
+        ImGui::SetTooltip("Clear output");
     }
 
     ImGui::EndChild();
@@ -249,7 +249,7 @@ void Console::show() {
     // Create a read-only InputTextMultiline
     ImGui::PushStyleColor(ImGuiCol_FrameBg, ImGui::GetStyle().Colors[ImGuiCol_WindowBg]);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-    ImGui::InputTextMultiline("##console", (char*)buf.begin(), buf.size(), 
+    ImGui::InputTextMultiline("##output", (char*)buf.begin(), buf.size(), 
         ImVec2(-FLT_MIN, -FLT_MIN), 
         ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
     ImGui::PopStyleVar();
@@ -258,7 +258,7 @@ void Console::show() {
     // Handle auto-scrolling
     ImGuiContext& g = *GImGui;
     const char* child_window_name = NULL;
-    ImFormatStringToTempBuffer(&child_window_name, NULL, "%s/%s_%08X", g.CurrentWindow->Name, "##console", ImGui::GetID("##console"));
+    ImFormatStringToTempBuffer(&child_window_name, NULL, "%s/%s_%08X", g.CurrentWindow->Name, "##output", ImGui::GetID("##output"));
     if (ImGuiWindow* child_window = ImGui::FindWindowByName(child_window_name)){
         hasScrollbar = child_window->ScrollbarY;
         if (child_window->ScrollMax.y > 0.0f) {

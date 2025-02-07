@@ -1,5 +1,5 @@
-#ifndef LAYOUTCONSOLE_H
-#define LAYOUTCONSOLE_H
+#ifndef LAYOUTOUTPUT_H
+#define LAYOUTOUTPUT_H
 
 #include <vector>
 #include <string>
@@ -20,7 +20,7 @@ namespace Supernova::Editor {
         float timestamp;
     };
 
-    class Console {
+    class Output {
     private:
         ImGuiTextBuffer buf;
         ImGuiTextFilter filter;
@@ -36,7 +36,7 @@ namespace Supernova::Editor {
         void rebuildBuffer();
 
     public:
-        Console();
+        Output();
         void clear();
         void addLog(LogType type, const char* fmt, ...);
         void addLog(LogType type, const std::string& message);
@@ -44,4 +44,4 @@ namespace Supernova::Editor {
     };
 }
 
-#endif /* LAYOUTCONSOLE_H */
+#endif /* LAYOUTOUTPUT_H */

@@ -4,51 +4,51 @@
 
 using namespace Supernova::Editor;
 
-Console* Log::console = nullptr;
+Output* Log::output = nullptr;
 
-void Log::setConsoleWindow(Console* console) {
-    Log::console = console;
+void Log::setOutputWindow(Output* output) {
+    Log::output = output;
 }
 
-Console* Log::getConsoleWindow() {
-    return console;
+Output* Log::getOutputWindow() {
+    return output;
 }
 
 void Log::info(const std::string& message) {
-    if (console) {
-        console->addLog(LogType::Info, message);
+    if (output) {
+        output->addLog(LogType::Info, message);
     } else {
         std::cout << "[INFO] " << message << std::endl;
     }
 }
 
 void Log::success(const std::string& message) {
-    if (console) {
-        console->addLog(LogType::Success, message);
+    if (output) {
+        output->addLog(LogType::Success, message);
     } else {
         std::cout << "[SUCCESS] " << message << std::endl;
     }
 }
 
 void Log::warning(const std::string& message) {
-    if (console) {
-        console->addLog(LogType::Warning, message);
+    if (output) {
+        output->addLog(LogType::Warning, message);
     } else {
         std::cout << "[WARNING] " << message << std::endl;
     }
 }
 
 void Log::error(const std::string& message) {
-    if (console) {
-        console->addLog(LogType::Error, message);
+    if (output) {
+        output->addLog(LogType::Error, message);
     } else {
         std::cerr << "[ERROR] " << message << std::endl;
     }
 }
 
 void Log::build(const std::string& message) {
-    if (console) {
-        console->addLog(LogType::Build, message);
+    if (output) {
+        output->addLog(LogType::Build, message);
     } else {
         std::cerr << "[BUILD] " << message << std::endl;
     }

@@ -1,14 +1,14 @@
 #ifndef LOG_H
 #define LOG_H
 
-#include "window/Console.h"
+#include "window/Output.h"
 #include <string>
 #include <memory>
 
 namespace Supernova::Editor {
     class Log {
     private:
-        static Console* console;
+        static Output* output;
 
         // Helper method for formatting with no arguments
         static std::string formatMessage(const char* fmt) {
@@ -37,8 +37,8 @@ namespace Supernova::Editor {
         }
 
     public:
-        static void setConsoleWindow(Console* console);
-        static Console* getConsoleWindow();
+        static void setOutputWindow(Output* output);
+        static Output* getOutputWindow();
 
         // Basic logging methods
         static void info(const std::string& message);
@@ -57,41 +57,41 @@ namespace Supernova::Editor {
         // Formatted logging methods with variable arguments
         template<typename... Args>
         static void info(const char* fmt, Args... args) {
-            if (console) {
+            if (output) {
                 std::string message = formatMessage(fmt, args...);
-                console->addLog(LogType::Info, message);
+                output->addLog(LogType::Info, message);
             }
         }
 
         template<typename... Args>
         static void success(const char* fmt, Args... args) {
-            if (console) {
+            if (output) {
                 std::string message = formatMessage(fmt, args...);
-                console->addLog(LogType::Success, message);
+                output->addLog(LogType::Success, message);
             }
         }
 
         template<typename... Args>
         static void warning(const char* fmt, Args... args) {
-            if (console) {
+            if (output) {
                 std::string message = formatMessage(fmt, args...);
-                console->addLog(LogType::Warning, message);
+                output->addLog(LogType::Warning, message);
             }
         }
 
         template<typename... Args>
         static void error(const char* fmt, Args... args) {
-            if (console) {
+            if (output) {
                 std::string message = formatMessage(fmt, args...);
-                console->addLog(LogType::Error, message);
+                output->addLog(LogType::Error, message);
             }
         }
 
         template<typename... Args>
         static void build(const char* fmt, Args... args) {
-            if (console) {
+            if (output) {
                 std::string message = formatMessage(fmt, args...);
-                console->addLog(LogType::Build, message);
+                output->addLog(LogType::Build, message);
             }
         }
 

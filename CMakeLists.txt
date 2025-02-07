@@ -139,7 +139,7 @@ add_executable(
     ${EDITOR_DIR}/Generator.cpp
 
     ${EDITOR_DIR}/window/Properties.cpp
-    ${EDITOR_DIR}/window/Console.cpp
+    ${EDITOR_DIR}/window/Output.cpp
     ${EDITOR_DIR}/window/SceneWindow.cpp
     ${EDITOR_DIR}/window/Structure.cpp
     ${EDITOR_DIR}/window/ResourcesWindow.cpp

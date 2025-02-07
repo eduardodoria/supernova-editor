@@ -7,7 +7,7 @@
 
 #include "window/Properties.h"
 #include "window/Structure.h"
-#include "window/Console.h"
+#include "window/Output.h"
 #include "window/SceneWindow.h"
 #include "window/ResourcesWindow.h"
 
@@ -24,7 +24,7 @@ namespace Supernova::Editor{
 
         Structure* structureWindow;
         Properties* propertiesWindow;
-        Console* consoleWindow;
+        Output* outputWindow;
         SceneWindow* sceneWindow;
         ResourcesWindow* resourcesWindow;
 

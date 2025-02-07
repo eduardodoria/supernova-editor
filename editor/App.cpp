@@ -19,11 +19,11 @@ bool Editor::App::isInitialized = false;
 Editor::App::App(){
     structureWindow = new Structure(&project);
     propertiesWindow = new Properties(&project);
-    consoleWindow = new Console();
+    outputWindow = new Output();
     sceneWindow = new SceneWindow(&project);
     resourcesWindow = new ResourcesWindow(&project);
 
-    Log::setConsoleWindow(consoleWindow);
+    Log::setOutputWindow(outputWindow);
 
     isDroppedExternalPaths = false;
 }
@@ -95,7 +95,7 @@ void Editor::App::buildDockspace(){
     size = 10*ImGui::GetFontSize();
     ImGui::DockBuilderSplitNode(dock_id_middle, ImGuiDir_Down, 0.0f, &dock_id_middle_bottom, &dock_id_middle_top);
     ImGui::DockBuilderSetNodeSize(dock_id_middle_bottom, ImVec2(ImGui::GetMainViewport()->Size.x, size)); // Set bottom node size
-    ImGui::DockBuilderDockWindow("Console", dock_id_middle_bottom);
+    ImGui::DockBuilderDockWindow("Output", dock_id_middle_bottom);
 
     for (auto& sceneProject : project.getScenes()) {
         addNewSceneToDock(sceneProject.id);
@@ -220,7 +220,7 @@ void Editor::App::show(){
     #endif
 
     structureWindow->show();
-    consoleWindow->show();
+    outputWindow->show();
     propertiesWindow->show();
     sceneWindow->show();
     resourcesWindow->show();
