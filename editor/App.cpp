@@ -231,8 +231,7 @@ void Editor::App::engineInit(int argc, char** argv){
 
     uint32_t sceneid = project.createNewScene("New Scene");
 
-    System::external = new Editor::Platform();
-
+    System::setExternalSystem(new Editor::Platform());
     Engine::systemInit(argc, argv);
 }
 
