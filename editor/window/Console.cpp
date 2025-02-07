@@ -15,6 +15,8 @@ Console::Console() {
     autoScrollLocked = true;
     scrollStartCount = 0;
     needsRebuild = false;
+    menuWidth = 0;
+    hasScrollbar = false;
     clear();
 }
 
@@ -85,8 +87,15 @@ void Console::rebuildBuffer() {
         return;
     }
 
+    // Get the available width for text
     float wrapWidth = ImGui::GetContentRegionAvail().x;
     if (wrapWidth <= 0) return; // Skip if width is invalid
+
+    if (hasScrollbar) {
+        // Always subtract scrollbar width to ensure consistent wrapping
+        wrapWidth -= ImGui::GetStyle().ScrollbarSize;
+    }
+    wrapWidth -= menuWidth - ImGui::GetStyle().ItemSpacing.x;
 
     buf.clear();
     lineOffsets.clear();
@@ -98,16 +107,8 @@ void Console::rebuildBuffer() {
         std::string prefix = getTypePrefix(log.type);
         float prefixWidth = font->CalcTextSizeA(font->FontSize, FLT_MAX, 0.0f, prefix.c_str()).x;
 
-        // Split message into words
-        std::istringstream iss(log.message);
-        std::vector<std::string> words;
-        std::string word;
-        while (iss >> word) {
-            words.push_back(word);
-        }
-
         // Handle empty message case
-        if (words.empty()) {
+        if (log.message.empty()) {
             if (!filter.IsActive() || filter.PassFilter((prefix + "\n").c_str())) {
                 buf.append((prefix + "\n").c_str());
                 lineOffsets.push_back(buf.size());
@@ -120,11 +121,10 @@ void Console::rebuildBuffer() {
         std::string indentation(prefix.length(), ' ');
         bool firstLine = true;
 
-        for (size_t i = 0; i < words.size(); ++i) {
-            const std::string& word = words[i];
-            float wordWidth = font->CalcTextSizeA(font->FontSize, FLT_MAX, 0.0f, (word + " ").c_str()).x;
-
-            bool isLastWord = (i == words.size() - 1);
+        // Process character by character
+        for (size_t i = 0; i < log.message.length(); ++i) {
+            char currentChar = log.message[i];
+            float charWidth = font->CalcTextSizeA(font->FontSize, FLT_MAX, 0.0f, std::string(1, currentChar).c_str()).x;
 
             if (!firstLine && currentLineWidth == prefixWidth) {
                 // Start of a new line after wrapping
@@ -132,32 +132,40 @@ void Console::rebuildBuffer() {
                 currentLineWidth += font->CalcTextSizeA(font->FontSize, FLT_MAX, 0.0f, indentation.c_str()).x;
             }
 
-            if (currentLineWidth + wordWidth > wrapWidth && !firstLine) {
+            // Check if adding this character would exceed the wrap width
+            if (currentLineWidth + charWidth > wrapWidth && !firstLine) {
                 // Wrap to new line
                 if (!filter.IsActive() || filter.PassFilter(currentLine.c_str())) {
                     buf.append((currentLine + "\n").c_str());
                     lineOffsets.push_back(buf.size());
                 }
-                currentLine = indentation + word;
-                currentLineWidth = prefixWidth + wordWidth;
+                currentLine = indentation + currentChar;
+                currentLineWidth = prefixWidth + charWidth;
             } else {
-                // Add word to current line
-                if (!firstLine || !currentLine.empty()) {
-                    currentLine += " ";
-                    currentLineWidth += font->CalcTextSizeA(font->FontSize, FLT_MAX, 0.0f, " ").x;
-                }
-                currentLine += word;
-                currentLineWidth += wordWidth;
+                currentLine += currentChar;
+                currentLineWidth += charWidth;
             }
 
-            if (isLastWord) {
+            // Handle line breaks in the original text
+            if (currentChar == '\n' || i == log.message.length() - 1) {
                 if (!filter.IsActive() || filter.PassFilter(currentLine.c_str())) {
                     buf.append((currentLine + "\n").c_str());
                     lineOffsets.push_back(buf.size());
                 }
+                currentLine = "";
+                currentLineWidth = prefixWidth;
+                firstLine = false;
             }
 
             firstLine = false;
+        }
+
+        // Append any remaining text
+        if (!currentLine.empty()) {
+            if (!filter.IsActive() || filter.PassFilter(currentLine.c_str())) {
+                buf.append((currentLine + "\n").c_str());
+                lineOffsets.push_back(buf.size());
+            }
         }
     }
 }
@@ -169,16 +177,20 @@ void Console::show() {
     }
 
     // Calculate dimensions for the vertical menu and main content
-    const float menuWidth = ImGui::CalcTextSize(ICON_FA_LOCK).x + ImGui::GetStyle().ItemSpacing.x * 2 + ImGui::GetStyle().FramePadding.x * 2;
+    menuWidth = ImGui::CalcTextSize(ICON_FA_LOCK).x + ImGui::GetStyle().ItemSpacing.x * 2 + ImGui::GetStyle().FramePadding.x * 2;
     const ImVec2 windowSize = ImGui::GetContentRegionAvail();
 
     static float lastContentWidth = 0.0f;
     float currentContentWidth = ImGui::GetContentRegionAvail().x;
 
+    static bool lastHasScrollbar = false;
+    float currentlastScrollbar = hasScrollbar;
+
     // Check if we need to rebuild the buffer
-    if (needsRebuild || std::abs(lastContentWidth - currentContentWidth) > 1.0f) {
+    if (needsRebuild || std::abs(lastContentWidth - currentContentWidth) > 1.0f || lastHasScrollbar != currentlastScrollbar) {
         lastContentWidth = currentContentWidth;
-        if (currentContentWidth > 0) {  // Only rebuild if we have a valid width
+        lastHasScrollbar = currentlastScrollbar;
+        if (currentContentWidth > 0) {  // Only rebuild if we have a valid size
             rebuildBuffer();
             needsRebuild = false;
         }
@@ -242,19 +254,20 @@ void Console::show() {
     ImGuiContext& g = *GImGui;
     const char* child_window_name = NULL;
     ImFormatStringToTempBuffer(&child_window_name, NULL, "%s/%s_%08X", g.CurrentWindow->Name, "##console", ImGui::GetID("##console"));
-    ImGuiWindow* child_window = ImGui::FindWindowByName(child_window_name);
+    if (ImGuiWindow* child_window = ImGui::FindWindowByName(child_window_name)){
+        hasScrollbar = child_window->ScrollbarY;
+        if (child_window->ScrollMax.y > 0.0f) {
+            if (child_window->Scroll.y < child_window->ScrollMax.y) {
+                autoScroll = false;
+            } else {
+                autoScroll = true;
+            }
 
-    if (child_window && child_window->ScrollMax.y > 0.0f) {
-        if (child_window->Scroll.y < child_window->ScrollMax.y) {
-            autoScroll = false;
-        } else {
-            autoScroll = true;
-        }
-
-        if (autoScrollLocked) {
-            if (scrollStartCount < 3) { // keep scroll in 3 frames
-                scrollStartCount++;
-                ImGui::SetScrollY(child_window, child_window->ScrollMax.y);
+            if (autoScrollLocked) {
+                if (scrollStartCount < 3) { // keep scroll in 3 frames
+                    scrollStartCount++;
+                    ImGui::SetScrollY(child_window, child_window->ScrollMax.y);
+                }
             }
         }
     }

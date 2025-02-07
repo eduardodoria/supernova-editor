@@ -30,6 +30,8 @@ namespace Supernova::Editor {
         bool autoScroll;
         bool needsRebuild;
         unsigned int scrollStartCount;
+        float menuWidth;
+        bool hasScrollbar;
 
         void rebuildBuffer();
 
