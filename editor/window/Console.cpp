@@ -82,17 +82,14 @@ std::string getTypePrefix(LogType type) {
 }
 
 void Console::rebuildBuffer() {
-    // If no ImGui context or window, return early
     if (!ImGui::GetCurrentContext() || !ImGui::GetCurrentWindow()) {
         return;
     }
 
-    // Get the available width for text
     float wrapWidth = ImGui::GetContentRegionAvail().x;
-    if (wrapWidth <= 0) return; // Skip if width is invalid
+    if (wrapWidth <= 0) return;
 
     if (hasScrollbar) {
-        // Always subtract scrollbar width to ensure consistent wrapping
         wrapWidth -= ImGui::GetStyle().ScrollbarSize;
     }
     wrapWidth -= menuWidth - ImGui::GetStyle().ItemSpacing.x;
@@ -107,7 +104,6 @@ void Console::rebuildBuffer() {
         std::string prefix = getTypePrefix(log.type);
         float prefixWidth = font->CalcTextSizeA(font->FontSize, FLT_MAX, 0.0f, prefix.c_str()).x;
 
-        // Handle empty message case
         if (log.message.empty()) {
             if (!filter.IsActive() || filter.PassFilter((prefix + "\n").c_str())) {
                 buf.append((prefix + "\n").c_str());
@@ -116,48 +112,48 @@ void Console::rebuildBuffer() {
             continue;
         }
 
+        std::string indentation(prefix.length(), ' ');
+        float indentWidth = font->CalcTextSizeA(font->FontSize, FLT_MAX, 0.0f, indentation.c_str()).x;
+
         std::string currentLine = prefix;
         float currentLineWidth = prefixWidth;
-        std::string indentation(prefix.length(), ' ');
-        bool firstLine = true;
+        bool isFirstLine = true;
 
-        // Process character by character
         for (size_t i = 0; i < log.message.length(); ++i) {
             char currentChar = log.message[i];
             float charWidth = font->CalcTextSizeA(font->FontSize, FLT_MAX, 0.0f, std::string(1, currentChar).c_str()).x;
 
-            if (!firstLine && currentLineWidth == prefixWidth) {
-                // Start of a new line after wrapping
-                currentLine += indentation;
-                currentLineWidth += font->CalcTextSizeA(font->FontSize, FLT_MAX, 0.0f, indentation.c_str()).x;
+            // If we're starting a new line after a wrap, add indentation
+            if (!isFirstLine && currentLine.empty()) {
+                currentLine = indentation;
+                currentLineWidth = indentWidth;
             }
 
             // Check if adding this character would exceed the wrap width
-            if (currentLineWidth + charWidth > wrapWidth && !firstLine) {
+            if (currentLineWidth + charWidth > wrapWidth && !currentLine.empty() && currentChar != '\n') {
                 // Wrap to new line
                 if (!filter.IsActive() || filter.PassFilter(currentLine.c_str())) {
                     buf.append((currentLine + "\n").c_str());
                     lineOffsets.push_back(buf.size());
                 }
                 currentLine = indentation + currentChar;
-                currentLineWidth = prefixWidth + charWidth;
+                currentLineWidth = indentWidth + charWidth;
+                isFirstLine = false;
             } else {
                 currentLine += currentChar;
                 currentLineWidth += charWidth;
             }
 
-            // Handle line breaks in the original text
-            if (currentChar == '\n' || i == log.message.length() - 1) {
+            // Handle explicit line breaks
+            if (currentChar == '\n') {
                 if (!filter.IsActive() || filter.PassFilter(currentLine.c_str())) {
                     buf.append((currentLine + "\n").c_str());
                     lineOffsets.push_back(buf.size());
                 }
-                currentLine = "";
-                currentLineWidth = prefixWidth;
-                firstLine = false;
+                currentLine.clear();
+                currentLineWidth = 0;
+                isFirstLine = false;
             }
-
-            firstLine = false;
         }
 
         // Append any remaining text
@@ -202,6 +198,9 @@ void Console::show() {
     // Lock button (lock/unlock icon) controlling autoScroll
     if (ImGui::Button(autoScrollLocked ? ICON_FA_LOCK : ICON_FA_LOCK_OPEN, ImVec2(ImGui::CalcTextSize(ICON_FA_LOCK).x + ImGui::GetStyle().FramePadding.x * 2, 0.0f))) {
         autoScrollLocked = !autoScrollLocked;
+        if (autoScrollLocked) {
+            scrollStartCount = 0;
+        }
     }
     if (ImGui::IsItemHovered()) {
         ImGui::SetTooltip(autoScrollLocked ? "Disable Auto-scroll" : "Enable Auto-scroll");
