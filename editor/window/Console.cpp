@@ -100,13 +100,17 @@ void Console::rebuildBuffer() {
 
     ImFont* font = ImGui::GetFont();
 
-    for (const auto& log : logs) {
+    for (size_t logIndex = 0; logIndex < logs.size(); ++logIndex) {
+        const auto& log = logs[logIndex];
         std::string prefix = getTypePrefix(log.type);
         float prefixWidth = font->CalcTextSizeA(font->FontSize, FLT_MAX, 0.0f, prefix.c_str()).x;
 
         if (log.message.empty()) {
             if (!filter.IsActive() || filter.PassFilter((prefix + "\n").c_str())) {
-                buf.append((prefix + "\n").c_str());
+                buf.append(prefix.c_str());
+                if (logIndex < logs.size() - 1) {
+                    buf.append("\n");
+                }
                 lineOffsets.push_back(buf.size());
             }
             continue;
@@ -123,17 +127,15 @@ void Console::rebuildBuffer() {
             char currentChar = log.message[i];
             float charWidth = font->CalcTextSizeA(font->FontSize, FLT_MAX, 0.0f, std::string(1, currentChar).c_str()).x;
 
-            // If we're starting a new line after a wrap, add indentation
             if (!isFirstLine && currentLine.empty()) {
                 currentLine = indentation;
                 currentLineWidth = indentWidth;
             }
 
-            // Check if adding this character would exceed the wrap width
             if (currentLineWidth + charWidth > wrapWidth && !currentLine.empty() && currentChar != '\n') {
-                // Wrap to new line
                 if (!filter.IsActive() || filter.PassFilter(currentLine.c_str())) {
-                    buf.append((currentLine + "\n").c_str());
+                    buf.append(currentLine.c_str());
+                    buf.append("\n");
                     lineOffsets.push_back(buf.size());
                 }
                 currentLine = indentation + currentChar;
@@ -144,10 +146,12 @@ void Console::rebuildBuffer() {
                 currentLineWidth += charWidth;
             }
 
-            // Handle explicit line breaks
             if (currentChar == '\n') {
                 if (!filter.IsActive() || filter.PassFilter(currentLine.c_str())) {
-                    buf.append((currentLine + "\n").c_str());
+                    buf.append(currentLine.c_str());
+                    if (i < log.message.length() - 1 || logIndex < logs.size() - 1) {
+                        buf.append("\n");
+                    }
                     lineOffsets.push_back(buf.size());
                 }
                 currentLine.clear();
@@ -156,10 +160,12 @@ void Console::rebuildBuffer() {
             }
         }
 
-        // Append any remaining text
         if (!currentLine.empty()) {
             if (!filter.IsActive() || filter.PassFilter(currentLine.c_str())) {
-                buf.append((currentLine + "\n").c_str());
+                buf.append(currentLine.c_str());
+                if (logIndex < logs.size() - 1) {
+                    buf.append("\n");
+                }
                 lineOffsets.push_back(buf.size());
             }
         }
