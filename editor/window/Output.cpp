@@ -17,6 +17,9 @@ Output::Output() {
     needsRebuild = false;
     menuWidth = 0;
     hasScrollbar = false;
+    selectionStart = -1;
+    selectionEnd = -1;
+    hasStoredSelection = false;
     clear();
 }
 
@@ -246,12 +249,45 @@ void Output::show() {
     // Main content area
     ImGui::SameLine(menuWidth);
 
-    // Create a read-only InputTextMultiline
     ImGui::PushStyleColor(ImGuiCol_FrameBg, ImGui::GetStyle().Colors[ImGuiCol_WindowBg]);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+
     ImGui::InputTextMultiline("##output", (char*)buf.begin(), buf.size(), 
         ImVec2(-FLT_MIN, -FLT_MIN), 
         ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
+
+    // Store selection before context menu opens
+    if (ImGui::IsItemFocused()) {
+        ImGuiInputTextState* state = ImGui::GetInputTextState(ImGui::GetID("##output"));
+        if (state && state->HasSelection()) {
+            selectionStart = state->GetSelectionStart();
+            selectionEnd = state->GetSelectionEnd();
+            hasStoredSelection = true;
+        }
+    }
+
+    // Context menu for copying selected text
+    if (ImGui::BeginPopupContextItem("##output_context")) {
+        if (ImGui::MenuItem(ICON_FA_COPY"  Copy", NULL, false, hasStoredSelection)) {
+            if (hasStoredSelection) {
+                int select_start = selectionStart;
+                int select_end = selectionEnd;
+                if (select_start > select_end)
+                    std::swap(select_start, select_end);
+
+                std::string selected_text(buf.begin() + select_start, buf.begin() + select_end);
+                ImGui::SetClipboardText(selected_text.c_str());
+            }
+        }
+        ImGui::EndPopup();
+    }
+    else {
+        // Reset stored selection when context menu is closed
+        if (!ImGui::IsPopupOpen("##output_context")) {
+            hasStoredSelection = false;
+        }
+    }
+
     ImGui::PopStyleVar();
     ImGui::PopStyleColor();
 

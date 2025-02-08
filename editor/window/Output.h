@@ -32,6 +32,9 @@ namespace Supernova::Editor {
         unsigned int scrollStartCount;
         float menuWidth;
         bool hasScrollbar;
+        int selectionStart;
+        int selectionEnd;
+        bool hasStoredSelection;
 
         void rebuildBuffer();
 
