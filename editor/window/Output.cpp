@@ -20,6 +20,9 @@ Output::Output() {
     selectionStart = -1;
     selectionEnd = -1;
     hasStoredSelection = false;
+    for (int i = 0; i < 5; i++) {
+        typeFilters[i] = true;
+    }
     clear();
 }
 
@@ -108,8 +111,17 @@ void Output::rebuildBuffer() {
         std::string prefix = getTypePrefix(log.type);
         float prefixWidth = font->CalcTextSizeA(font->FontSize, FLT_MAX, 0.0f, prefix.c_str()).x;
 
+        bool typeAllowed = false;
+        switch(log.type) {
+            case LogType::Info: typeAllowed = typeFilters[0]; break;
+            case LogType::Warning: typeAllowed = typeFilters[1]; break;
+            case LogType::Error: typeAllowed = typeFilters[2]; break;
+            case LogType::Success: typeAllowed = typeFilters[3]; break;
+            case LogType::Build: typeAllowed = typeFilters[4]; break;
+        }
+
         if (log.message.empty()) {
-            if (!filter.IsActive() || filter.PassFilter((prefix + "\n").c_str())) {
+            if (typeAllowed && (!filter.IsActive() || filter.PassFilter((prefix + "\n").c_str()))) {
                 buf.append(prefix.c_str());
                 if (logIndex < logs.size() - 1) {
                     buf.append("\n");
@@ -136,7 +148,7 @@ void Output::rebuildBuffer() {
             }
 
             if (currentLineWidth + charWidth > wrapWidth && !currentLine.empty() && currentChar != '\n') {
-                if (!filter.IsActive() || filter.PassFilter(currentLine.c_str())) {
+                if (typeAllowed && (!filter.IsActive() || filter.PassFilter(currentLine.c_str()))) {
                     buf.append(currentLine.c_str());
                     buf.append("\n");
                     lineOffsets.push_back(buf.size());
@@ -150,7 +162,7 @@ void Output::rebuildBuffer() {
             }
 
             if (currentChar == '\n') {
-                if (!filter.IsActive() || filter.PassFilter(currentLine.c_str())) {
+                if (typeAllowed && (!filter.IsActive() || filter.PassFilter(currentLine.c_str()))) {
                     buf.append(currentLine.c_str());
                     if (i < log.message.length() - 1 || logIndex < logs.size() - 1) {
                         buf.append("\n");
@@ -164,7 +176,7 @@ void Output::rebuildBuffer() {
         }
 
         if (!currentLine.empty()) {
-            if (!filter.IsActive() || filter.PassFilter(currentLine.c_str())) {
+            if (typeAllowed && (!filter.IsActive() || filter.PassFilter(currentLine.c_str()))) {
                 buf.append(currentLine.c_str());
                 if (logIndex < logs.size() - 1) {
                     buf.append("\n");
@@ -216,20 +228,44 @@ void Output::show() {
     }
 
     // Filter button (filter icon)
-    bool filterActive = filter.IsActive();
-    if (filterActive) {
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.3f, 0.5f, 1.0f));
+    bool anyFilterDisabled = false;
+    for (int i = 0; i < 5; i++) {
+        if (!typeFilters[i]) {
+            anyFilterDisabled = true;
+            break;
+        }
+    }
+    if (anyFilterDisabled || filter.IsActive()) {
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.5f, 0.5f, 1.0f));
     }
     if (ImGui::Button(ICON_FA_FILTER)) {
         ImGui::OpenPopup("FilterPopup");
     }
-    if (filterActive) {
+    if (anyFilterDisabled || filter.IsActive()) {
         ImGui::PopStyleColor();
     }
     if (ImGui::BeginPopup("FilterPopup")) {
-        if (filter.Draw("##filter", 200.0f)) {
-            needsRebuild = true;  // Need to rebuild when filter changes
+        bool filterChanged = false;
+
+        // Type filters
+        const char* filterNames[] = {"Info", "Warning", "Error", "Success", "Build"};
+        for (int i = 0; i < 5; i++) {
+            if (ImGui::Checkbox(filterNames[i], &typeFilters[i])) {
+                filterChanged = true;
+            }
         }
+
+        ImGui::Separator();
+
+        // Text filter
+        if (filter.Draw("##filter", 200.0f)) {
+            needsRebuild = true;
+        }
+
+        if (filterChanged) {
+            needsRebuild = true;
+        }
+
         ImGui::EndPopup();
     }
     if (ImGui::IsItemHovered()) {

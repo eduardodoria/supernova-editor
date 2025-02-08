@@ -35,6 +35,7 @@ namespace Supernova::Editor {
         int selectionStart;
         int selectionEnd;
         bool hasStoredSelection;
+        bool typeFilters[5];
 
         void rebuildBuffer();
 
