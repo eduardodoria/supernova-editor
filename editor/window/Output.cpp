@@ -201,7 +201,7 @@ void Output::show() {
     float currentContentWidth = ImGui::GetContentRegionAvail().x;
 
     static bool lastHasScrollbar = false;
-    float currentlastScrollbar = hasScrollbar;
+    bool currentlastScrollbar = hasScrollbar;
 
     // Check if we need to rebuild the buffer
     if (needsRebuild || std::abs(lastContentWidth - currentContentWidth) > 1.0f || lastHasScrollbar != currentlastScrollbar) {
