@@ -5,6 +5,9 @@
 #include <stdexcept>
 #include <chrono>
 #include <fstream>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 using namespace Supernova;
 
@@ -15,121 +18,282 @@ Editor::Generator::~Generator() {
     waitForBuildToComplete();
 }
 
-
 bool Editor::Generator::configureCMake(const fs::path& projectPath) {
     fs::path buildPath = projectPath / "build";
     fs::path currentPath = fs::current_path();
     std::string cmakeCommand = "cmake ";
-    char buffer[256];
-    FILE* pipe = nullptr;
+    char buffer[4096];
 
     #ifdef _WIN32
-        // First, query available generators
-        pipe = _popen("cmake --help", "r");
-        if (!pipe) {
-            Log::error("Failed to query CMake generators");
-            return false;
-        }
-
-        std::string result;
-        bool inGeneratorsList = false;
-        std::string generator;
-
-        while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-            std::string line(buffer);
-            if (line.find("Generators") != std::string::npos) {
-                inGeneratorsList = true;
-                continue;
-            }
-            if (inGeneratorsList && line.find("Visual Studio") != std::string::npos) {
-                // Pick the first Visual Studio generator found (newest version)
-                size_t start = line.find('=') != std::string::npos ? line.find('=') + 2 : 2;
-                generator = line.substr(start);
-                if (!generator.empty() && generator.back() == '\n') {
-                    generator.pop_back();
-                }
-                break;
-            }
-        }
-        _pclose(pipe);
-
-        if (!generator.empty()) {
-            cmakeCommand += "-G \"" + generator + "\" ";
-        } else {
-            // Fallback to default generator if no Visual Studio found
-            Log::warning("No Visual Studio generator found, using default generator");
-        }
+        cmakeCommand += "-G \"Visual Studio 17 2022\" ";
     #endif
 
     cmakeCommand += "-DCMAKE_BUILD_TYPE=Debug ";
-    cmakeCommand += projectPath.string() + " ";
-    cmakeCommand += "-B " + buildPath.string() + " ";
+    cmakeCommand += "\"" + projectPath.string() + "\" ";
+    cmakeCommand += "-B \"" + buildPath.string() + "\" ";
     cmakeCommand += "-DSUPERNOVA_LIB_DIR=\"" + currentPath.string() + "\"";
 
     Log::info("Configuring CMake project with command: %s", cmakeCommand.c_str());
 
     #ifdef _WIN32
-        pipe = _popen((cmakeCommand + " 2>&1").c_str(), "r");
-    #else
-        pipe = popen((cmakeCommand + " 2>&1").c_str(), "r");
-    #endif
+        STARTUPINFO si = { sizeof(STARTUPINFO) };
+        PROCESS_INFORMATION pi;
+        SECURITY_ATTRIBUTES sa = { sizeof(SECURITY_ATTRIBUTES), NULL, TRUE };
+        HANDLE hReadPipe, hWritePipe;
 
-    if (!pipe) {
-        return false;
-    }
-
-    while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-        std::string line(buffer);
-        if (!line.empty() && line.back() == '\n') {
-            line.pop_back();
+        // Create pipe for redirecting output
+        if (!CreatePipe(&hReadPipe, &hWritePipe, &sa, 0)) {
+            return false;
         }
-        Log::build("%s", line.c_str());
-    }
 
-    #ifdef _WIN32
-        int returnCode = _pclose(pipe);
+        // Set up startup info for the process
+        si.cb = sizeof(STARTUPINFO);
+        si.dwFlags = STARTF_USESTDHANDLES;
+        si.hStdOutput = hWritePipe;
+        si.hStdError = hWritePipe;
+        si.hStdInput = NULL;
+
+        // Create the process
+        std::string cmdLine = "cmd.exe /c " + cmakeCommand;
+        BOOL success = CreateProcessA(
+            NULL,                           // No module name (use command line)
+            (LPSTR)cmdLine.c_str(),        // Command line
+            NULL,                           // Process handle not inheritable
+            NULL,                           // Thread handle not inheritable
+            TRUE,                           // Handle inheritance required for pipes
+            CREATE_NO_WINDOW,               // Creation flags
+            NULL,                           // Use parent's environment block
+            projectPath.string().c_str(),   // Set working directory
+            &si,                            // Startup info
+            &pi                             // Process information
+        );
+
+        if (!success) {
+            DWORD error = GetLastError();
+            CloseHandle(hReadPipe);
+            CloseHandle(hWritePipe);
+            Log::error("Failed to create process. Error code: %lu", error);
+            return false;
+        }
+
+        // Close the write end of the pipe as we don't need it
+        CloseHandle(hWritePipe);
+
+        // Read output from the pipe
+        DWORD bytesRead;
+        std::string accumulator;
+        bool processFinished = false;
+        DWORD exitCode = 0;
+
+        while (!processFinished) {
+            // Check if the process has finished
+            if (WaitForSingleObject(pi.hProcess, 0) == WAIT_OBJECT_0) {
+                if (GetExitCodeProcess(pi.hProcess, &exitCode)) {
+                    processFinished = true;
+                }
+            }
+
+            // Read any available output
+            while (true) {
+                DWORD bytesAvailable = 0;
+                if (!PeekNamedPipe(hReadPipe, NULL, 0, NULL, &bytesAvailable, NULL) || bytesAvailable == 0) {
+                    break;
+                }
+
+                if (!ReadFile(hReadPipe, buffer, sizeof(buffer) - 1, &bytesRead, NULL) || bytesRead == 0) {
+                    break;
+                }
+
+                buffer[bytesRead] = '\0';
+                accumulator += buffer;
+
+                // Process complete lines
+                size_t pos = 0;
+                size_t nextPos;
+                while ((nextPos = accumulator.find('\n', pos)) != std::string::npos) {
+                    std::string line = accumulator.substr(pos, nextPos - pos);
+                    if (!line.empty() && line.back() == '\r') {
+                        line.pop_back();  // Remove trailing \r if present
+                    }
+                    if (!line.empty()) {
+                        Log::build("%s", line.c_str());
+                    }
+                    pos = nextPos + 1;
+                }
+
+                // Keep any remaining partial line in the accumulator
+                if (pos < accumulator.length()) {
+                    accumulator = accumulator.substr(pos);
+                } else {
+                    accumulator.clear();
+                }
+            }
+
+            // Small delay to prevent high CPU usage
+            Sleep(10);
+        }
+
+        // Process any remaining output
+        if (!accumulator.empty()) {
+            Log::build("%s", accumulator.c_str());
+        }
+
+        // Clean up handles
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+        CloseHandle(hReadPipe);
+
+        return exitCode == 0;
     #else
-        int returnCode = pclose(pipe);
-    #endif
+        FILE* pipe = popen((cmakeCommand + " 2>&1").c_str(), "r");
+        if (!pipe) {
+            return false;
+        }
 
-    return returnCode == 0;
+        while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+            std::string line(buffer);
+            if (!line.empty() && line.back() == '\n') {
+                line.pop_back();
+            }
+            Log::build("%s", line.c_str());
+        }
+
+        return pclose(pipe) == 0;
+    #endif
 }
 
 bool Editor::Generator::buildProject(const fs::path& projectPath) {
     fs::path buildPath = projectPath / "build";
-
-    std::string buildCommand = "cmake --build " + buildPath.string() + " --config Debug";
+    std::string buildCommand = "cmake --build \"" + buildPath.string() + "\" --config Debug";
+    char buffer[4096];
 
     Log::info("Building project...");
 
     #ifdef _WIN32
-        FILE* pipe = _popen((buildCommand + " 2>&1").c_str(), "r");
+        STARTUPINFO si = { sizeof(STARTUPINFO) };
+        PROCESS_INFORMATION pi;
+        SECURITY_ATTRIBUTES sa = { sizeof(SECURITY_ATTRIBUTES), NULL, TRUE };
+        HANDLE hReadPipe, hWritePipe;
+
+        // Create pipe for redirecting output
+        if (!CreatePipe(&hReadPipe, &hWritePipe, &sa, 0)) {
+            return false;
+        }
+
+        // Set up startup info for the process
+        si.cb = sizeof(STARTUPINFO);
+        si.dwFlags = STARTF_USESTDHANDLES;
+        si.hStdOutput = hWritePipe;
+        si.hStdError = hWritePipe;
+        si.hStdInput = NULL;
+
+        // Create the process
+        std::string cmdLine = "cmd.exe /c " + buildCommand;
+        BOOL success = CreateProcessA(
+            NULL,                           // No module name (use command line)
+            (LPSTR)cmdLine.c_str(),        // Command line
+            NULL,                           // Process handle not inheritable
+            NULL,                           // Thread handle not inheritable
+            TRUE,                           // Handle inheritance required for pipes
+            CREATE_NO_WINDOW,               // Creation flags
+            NULL,                           // Use parent's environment block
+            buildPath.string().c_str(),     // Set working directory to build path
+            &si,                            // Startup info
+            &pi                             // Process information
+        );
+
+        if (!success) {
+            DWORD error = GetLastError();
+            CloseHandle(hReadPipe);
+            CloseHandle(hWritePipe);
+            Log::error("Failed to create process. Error code: %lu", error);
+            return false;
+        }
+
+        // Close the write end of the pipe as we don't need it
+        CloseHandle(hWritePipe);
+
+        // Read output from the pipe
+        DWORD bytesRead;
+        std::string accumulator;
+        bool processFinished = false;
+        DWORD exitCode = 0;
+
+        while (!processFinished) {
+            // Check if the process has finished
+            if (WaitForSingleObject(pi.hProcess, 0) == WAIT_OBJECT_0) {
+                if (GetExitCodeProcess(pi.hProcess, &exitCode)) {
+                    processFinished = true;
+                }
+            }
+
+            // Read any available output
+            while (true) {
+                DWORD bytesAvailable = 0;
+                if (!PeekNamedPipe(hReadPipe, NULL, 0, NULL, &bytesAvailable, NULL) || bytesAvailable == 0) {
+                    break;
+                }
+
+                if (!ReadFile(hReadPipe, buffer, sizeof(buffer) - 1, &bytesRead, NULL) || bytesRead == 0) {
+                    break;
+                }
+
+                buffer[bytesRead] = '\0';
+                accumulator += buffer;
+
+                // Process complete lines
+                size_t pos = 0;
+                size_t nextPos;
+                while ((nextPos = accumulator.find('\n', pos)) != std::string::npos) {
+                    std::string line = accumulator.substr(pos, nextPos - pos);
+                    if (!line.empty() && line.back() == '\r') {
+                        line.pop_back();  // Remove trailing \r if present
+                    }
+                    if (!line.empty()) {
+                        Log::build("%s", line.c_str());
+                    }
+                    pos = nextPos + 1;
+                }
+
+                // Keep any remaining partial line in the accumulator
+                if (pos < accumulator.length()) {
+                    accumulator = accumulator.substr(pos);
+                } else {
+                    accumulator.clear();
+                }
+            }
+
+            // Small delay to prevent high CPU usage
+            Sleep(10);
+        }
+
+        // Process any remaining output
+        if (!accumulator.empty()) {
+            Log::build("%s", accumulator.c_str());
+        }
+
+        // Clean up handles
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+        CloseHandle(hReadPipe);
+
+        return exitCode == 0;
     #else
         FILE* pipe = popen((buildCommand + " 2>&1").c_str(), "r");
-    #endif
-
-    if (!pipe) {
-        return false;
-    }
-
-    char buffer[128];
-    std::string result;
-
-    while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-        std::string line(buffer);
-        if (!line.empty() && line.back() == '\n') {
-            line.pop_back(); // Remove trailing newline
+        if (!pipe) {
+            return false;
         }
-        Log::build("%s", line.c_str());
-    }
 
-    #ifdef _WIN32
-        int returnCode = _pclose(pipe);
-    #else
-        int returnCode = pclose(pipe);
+        while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+            std::string line(buffer);
+            if (!line.empty() && line.back() == '\n') {
+                line.pop_back();
+            }
+            Log::build("%s", line.c_str());
+        }
+
+        return pclose(pipe) == 0;
     #endif
-
-    return returnCode == 0;
 }
 
 bool Editor::Generator::writeIfChanged(const fs::path& filePath, const std::string& newContent) {

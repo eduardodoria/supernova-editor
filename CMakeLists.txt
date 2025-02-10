@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 project(supernova-editor)
 
-set(SUPERNOVA_SHARED ON)
+set(SUPERNOVA_SHARED OFF)
 set(GRAPHIC_BACKEND "glcore")
 
 if(NOT API_BACKEND)
