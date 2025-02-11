@@ -18,8 +18,7 @@ Editor::Generator::~Generator() {
     waitForBuildToComplete();
 }
 
-bool Editor::Generator::configureCMake(const fs::path& projectPath) {
-    fs::path buildPath = projectPath / "build";
+bool Editor::Generator::configureCMake(const fs::path& projectPath, const fs::path& buildPath, const std::string& configType) {
     fs::path currentPath = fs::current_path();
     std::string cmakeCommand = "cmake ";
     char buffer[4096];
@@ -28,7 +27,7 @@ bool Editor::Generator::configureCMake(const fs::path& projectPath) {
         cmakeCommand += "-G \"Visual Studio 17 2022\" ";
     #endif
 
-    cmakeCommand += "-DCMAKE_BUILD_TYPE=Debug ";
+    cmakeCommand += "-DCMAKE_BUILD_TYPE=" + configType  + " ";
     cmakeCommand += "\"" + projectPath.string() + "\" ";
     cmakeCommand += "-B \"" + buildPath.string() + "\" ";
     cmakeCommand += "-DSUPERNOVA_LIB_DIR=\"" + currentPath.string() + "\"";
@@ -162,14 +161,16 @@ bool Editor::Generator::configureCMake(const fs::path& projectPath) {
     #endif
 }
 
-bool Editor::Generator::buildProject(const fs::path& projectPath) {
-    fs::path buildPath = projectPath / "build";
-    std::string buildCommand = "cmake --build \"" + buildPath.string() + "\" --config Debug";
+bool Editor::Generator::buildProject(const fs::path& projectPath, const fs::path& buildPath, const std::string& configType) {
+    std::string buildCommand = "cmake --build \"" + buildPath.string() + "\" --config " + configType;
     char buffer[4096];
 
     Log::info("Building project...");
 
     #ifdef _WIN32
+        // avoid warning to building in a temporary directory
+        SetEnvironmentVariableA("MSBuildWarningsAsMessages", "MSB8029");
+
         STARTUPINFO si = { sizeof(STARTUPINFO) };
         PROCESS_INFORMATION pi;
         SECURITY_ATTRIBUTES sa = { sizeof(SECURITY_ATTRIBUTES), NULL, TRUE };
@@ -335,7 +336,13 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath){
             ${CMAKE_CURRENT_SOURCE_DIR}/CubeScript.cpp
         )
 
-        target_include_directories(project_lib PRIVATE
+        # To suppress warnings if not Debug
+        if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+            set(SUPERNOVA_LIB_SYSTEM SYSTEM)
+        endif()
+
+        target_include_directories(project_lib ${SUPERNOVA_LIB_SYSTEM} PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine
             ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/libs/sokol
             ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/libs/box2d/include
             ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/libs/joltphysics
@@ -365,6 +372,14 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath){
 
         # Set properties for the shared library
         set_target_properties(project_lib PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}
+            RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}
+            RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}
+            RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}
+            LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}
+            LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}
+            LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}
+            LIBRARY_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}
             OUTPUT_NAME "project_lib"
             PREFIX ""
         )
@@ -374,8 +389,15 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath){
         #include <iostream>
         #include "Scene.h"
         #include "CubeScript.h"
+
+        #if defined(_MSC_VER)
+            #define PROJECT_API __declspec(dllexport)
+        #else
+            #define PROJECT_API
+        #endif
+
         // A sample function to be called from the shared library
-        extern "C" void sayHello(Supernova::Scene* scene) {
+        extern "C" void PROJECT_API sayHello(Supernova::Scene* scene) {
             //Supernova::Scene scene;
             CubeScript* cube = new CubeScript(scene);
             std::cout << "Hello from the shared library!" << std::endl;
@@ -399,11 +421,19 @@ void Editor::Generator::build(fs::path projectPath) {
         try {
             auto startTime = std::chrono::steady_clock::now();
 
-            if (!configureCMake(projectPath)) {
+            fs::path buildPath = projectPath / "build";
+
+            #ifdef _DEBUG
+                std::string configType = "Debug";
+            #else
+                std::string configType = "Release";
+            #endif
+
+            if (!configureCMake(projectPath, buildPath, configType)) {
                 throw std::runtime_error("CMake configuration failed");
             }
 
-            if (!buildProject(projectPath)) {
+            if (!buildProject(projectPath, buildPath, configType)) {
                 throw std::runtime_error("Build failed");
             }
 

@@ -96,17 +96,17 @@ void Editor::Conector::execute(){
     #ifdef _WIN32
         SayHelloFunc sayHello = reinterpret_cast<SayHelloFunc>(GetProcAddress(static_cast<HMODULE>(libHandle), "sayHello"));
         if (!sayHello) {
-            std::cerr << "Failed to find function 'sayHello' in the library (Error code: " << GetLastError() << ")\n";
+            Log::error("Failed to find function 'sayHello' in the library (Error code: %i)", GetLastError());
         }
     #else
         SayHelloFunc sayHello = reinterpret_cast<SayHelloFunc>(dlsym(libHandle, "sayHello"));
         if (!sayHello) {
-            std::cerr << "Failed to find function 'sayHello' in the library (Error: " << dlerror() << ")\n";
+            Log::error("Failed to find function 'sayHello' in the library (Error: %s)", dlerror());
         }
     #endif
 
     if (sayHello) {
-        std::cout << "Calling 'sayHello' function from the library...\n";
+        Log::info("Calling 'sayHello' function from the library...");
         Scene scene;
         sayHello(&scene); // Call the function
     }

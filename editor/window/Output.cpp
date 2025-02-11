@@ -341,7 +341,7 @@ void Output::show() {
             }
 
             if (autoScrollLocked) {
-                if (scrollStartCount < 3) { // keep scroll in 3 frames
+                if (scrollStartCount < 8) { // keep scroll in 8 frames
                     scrollStartCount++;
                     ImGui::SetScrollY(child_window, child_window->ScrollMax.y);
                 }

@@ -14,8 +14,8 @@ namespace Supernova::Editor {
     private:
         std::future<void> buildFuture;
 
-        bool configureCMake(const fs::path& projectPath);
-        bool buildProject(const fs::path& projectPath);
+        bool configureCMake(const fs::path& projectPath, const fs::path& buildPath, const std::string& configType);
+        bool buildProject(const fs::path& projectPath, const fs::path& buildPath, const std::string& configType);
         bool writeIfChanged(const fs::path& filePath, const std::string& newContent);
 
         void writeSourceFiles(const fs::path& projectPath);
