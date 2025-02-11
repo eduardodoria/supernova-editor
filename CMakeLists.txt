@@ -34,6 +34,7 @@ if(WIN32)
 endif()
 
 set(IMGUI_DIR libs/imgui)
+set(IMGUICOLORTEXTEDIT_DIR libs/ImGuiColorTextEdit)
 set(EDITOR_DIR editor)
 
 # Find OpenGL
@@ -120,6 +121,11 @@ set(IMGUI_SOURCES
     ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
 )
 
+set(IMGUICOLORTEXTEDIT_SOURCES
+    ${IMGUICOLORTEXTEDIT_DIR}/TextEditor.cpp
+    ${IMGUICOLORTEXTEDIT_DIR}/LanguageDefinitions.cpp
+)
+
 include_directories (${EDITOR_DIR})
 
 add_executable(
@@ -142,6 +148,7 @@ add_executable(
     ${EDITOR_DIR}/window/SceneWindow.cpp
     ${EDITOR_DIR}/window/Structure.cpp
     ${EDITOR_DIR}/window/ResourcesWindow.cpp
+    ${EDITOR_DIR}/window/CodeEditor.cpp
 
     ${EDITOR_DIR}/render/ViewportGizmo.cpp
     ${EDITOR_DIR}/render/ToolsLayer.cpp
@@ -165,6 +172,7 @@ add_executable(
     ${EDITOR_DIR}/command/type/DeleteFileCmd.cpp
 
     ${IMGUI_SOURCES}
+    ${IMGUICOLORTEXTEDIT_SOURCES}
     ${BACKEND_SOURCES}
 )
 
@@ -172,6 +180,8 @@ add_executable(
 target_include_directories(supernova-editor PRIVATE
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
+    ${IMGUICOLORTEXTEDIT_DIR}
+    ${IMGUICOLORTEXTEDIT_DIR}/vendor/regex/include
     ${OPENGL_INCLUDE_DIR}
 )
 

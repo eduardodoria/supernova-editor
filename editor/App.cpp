@@ -22,6 +22,7 @@ Editor::App::App(){
     outputWindow = new Output();
     sceneWindow = new SceneWindow(&project);
     resourcesWindow = new ResourcesWindow(&project);
+    codeEditor = new CodeEditor();
 
     Log::setOutputWindow(outputWindow);
 
@@ -167,6 +168,8 @@ void Editor::App::setup(){
 
     //ImGui::StyleColorsDark();
     kewtStyleTheme();
+
+    codeEditor->setup();
 }
 
 void Editor::App::show(){
@@ -224,6 +227,7 @@ void Editor::App::show(){
     propertiesWindow->show();
     sceneWindow->show();
     resourcesWindow->show();
+    codeEditor->show();
 }
 
 void Editor::App::engineInit(int argc, char** argv){

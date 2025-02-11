@@ -82,3 +82,4 @@ sudo make install
 
 * imgui - https://github.com/ocornut/imgui - MIT license
 * nativefiledialog-extended (nfd) - https://github.com/btzy/nativefiledialog-extended - Zlib license
+* ImGuiColorTextEdit - https://github.com/santaclose/ImGuiColorTextEdit - MIT license
