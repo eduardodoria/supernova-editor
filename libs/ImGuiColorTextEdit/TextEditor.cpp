@@ -1972,10 +1972,19 @@ ImU32 TextEditor::GetGlyphColor(const Glyph& aGlyph) const
 
 void TextEditor::HandleKeyboardInputs(bool aParentIsFocused)
 {
-	if (ImGui::IsWindowFocused() || aParentIsFocused)
-	{
-		if (ImGui::IsWindowHovered())
-			ImGui::SetMouseCursor(ImGuiMouseCursor_TextInput);
+    if (ImGui::IsWindowFocused() || aParentIsFocused)
+    {
+        // Get mouse position relative to window
+        ImVec2 mousePos = ImGui::GetMousePos();
+        ImVec2 windowPos = ImGui::GetWindowPos();
+        ImVec2 contentSize = ImGui::GetWindowSize();
+
+        // Check if mouse is in scrollbar area
+        bool inHorizontalScrollbar = mousePos.y >= (windowPos.y + contentSize.y - IMGUI_SCROLLBAR_WIDTH);
+        bool inVerticalScrollbar = mousePos.x >= (windowPos.x + contentSize.x - IMGUI_SCROLLBAR_WIDTH);
+
+        if (ImGui::IsWindowHovered() && !inHorizontalScrollbar && !inVerticalScrollbar)
+            ImGui::SetMouseCursor(ImGuiMouseCursor_TextInput);
 		//ImGui::CaptureKeyboardFromApp(true);
 
 		ImGuiIO& io = ImGui::GetIO();
@@ -2395,8 +2404,13 @@ void TextEditor::Render(bool aParentIsFocused)
 			}
 		}
 	}
-	mCurrentSpaceHeight = (mLines.size() + Min(mVisibleLineCount - 1, (int)mLines.size())) * mCharAdvance.y;
-	mCurrentSpaceWidth = Max((maxColumnLimited + Min(mVisibleColumnCount - 1, maxColumnLimited)) * mCharAdvance.x, mCurrentSpaceWidth);
+
+	int maxLineLength = 0;
+	for (const auto& line : mLines) {
+		maxLineLength = Max(maxLineLength, GetLineMaxColumn((&line - &mLines[0])));
+	}
+	mCurrentSpaceHeight = mLines.size() * mCharAdvance.y;
+	mCurrentSpaceWidth = mTextStart + ((maxLineLength + 1) * mCharAdvance.x);
 
 	ImGui::SetCursorPos(ImVec2(0, 0));
 	ImGui::Dummy(ImVec2(mCurrentSpaceWidth, mCurrentSpaceHeight));

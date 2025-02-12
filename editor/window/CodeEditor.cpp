@@ -32,15 +32,15 @@ void CodeEditor::show() {
 
     ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Code Editor", &showEditor)) {
-        //int line, column;
-        //editor->GetCursorPosition(line, column);
+        int line, column;
+        editor->GetCursorPosition(line, column);
         
-        //ImGui::Text("%6d/%-6d %6d lines  | %s | %s", 
-        //    line + 1, 
-        //    column + 1,
-        //    (int)editor->GetTextLines().size(),
-        //    editor->IsOverwriteEnabled() ? "Ovr" : "Ins",
-        //    editor->CanUndo() ? "*" : " ");
+        ImGui::Text("%6d/%-6d %6d lines  | %s | %s", 
+            line + 1, 
+            column + 1,
+            (int)editor->GetTextLines().size(),
+            editor->GetLanguageDefinitionName(),
+            editor->CanUndo() ? "*" : " ");
 
         ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]); // font need to be monospace
         editor->Render("TextEditor");

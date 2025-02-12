@@ -124,6 +124,8 @@ set(IMGUI_SOURCES
 set(IMGUICOLORTEXTEDIT_SOURCES
     ${IMGUICOLORTEXTEDIT_DIR}/TextEditor.cpp
     ${IMGUICOLORTEXTEDIT_DIR}/LanguageDefinitions.cpp
+    #${IMGUICOLORTEXTEDIT_DIR}/ImGuiDebugPanel.cpp
+    #${IMGUICOLORTEXTEDIT_DIR}/UnitTests.cpp
 )
 
 include_directories (${EDITOR_DIR})
