@@ -1032,23 +1032,6 @@ void TextEditor::EnterCharacter(ImWchar aChar, bool aShift)
 				auto& line = mLines[coord.mLine];
 				auto cindex = GetCharacterIndexR(coord);
 
-				if (mOverwrite && cindex < (int)line.size())
-				{
-					auto d = UTF8CharLength(line[cindex].mChar);
-
-					UndoOperation removed;
-					removed.mType = UndoOperationType::Delete;
-					removed.mStart = mState.mCursors[c].mInteractiveEnd;
-					removed.mEnd = Coordinates(coord.mLine, GetCharacterColumn(coord.mLine, cindex + d));
-
-					while (d-- > 0 && cindex < (int)line.size())
-					{
-						removed.mText += line[cindex].mChar;
-						RemoveGlyphsFromLine(coord.mLine, cindex, cindex + 1);
-					}
-					u.mOperations.push_back(removed);
-				}
-
 				for (auto p = buf; *p != '\0'; p++, ++cindex)
 					AddGlyphToLine(coord.mLine, cindex, Glyph(*p, PaletteIndex::Default));
 				added.mText = buf;
@@ -1602,8 +1585,10 @@ void TextEditor::EnsureCursorVisible(int aCursor, bool aStartToo)
 
 TextEditor::Coordinates TextEditor::SanitizeCoordinates(const Coordinates& aValue) const
 {
-	auto line = aValue.mLine;
-	auto column = aValue.mColumn;
+	// Clamp in document and line limits
+	auto line = Max(aValue.mLine, 0);
+	auto column = Max(aValue.mColumn, 0);
+	Coordinates out;
 	if (line >= (int) mLines.size())
 	{
 		if (mLines.empty())
@@ -1616,13 +1601,26 @@ TextEditor::Coordinates TextEditor::SanitizeCoordinates(const Coordinates& aValu
 			line = (int) mLines.size() - 1;
 			column = GetLineMaxColumn(line);
 		}
-		return Coordinates(line, column);
+		out = Coordinates(line, column);
 	}
 	else
 	{
 		column = mLines.empty() ? 0 : GetLineMaxColumn(line, column);
-		return Coordinates(line, column);
+		out = Coordinates(line, column);
 	}
+
+	// Move if inside a tab character
+	int charIndex = GetCharacterIndexL(out);
+	if (charIndex > -1 && charIndex < mLines[out.mLine].size() && mLines[out.mLine][charIndex].mChar == '\t')
+	{
+		int columnToLeft = GetCharacterColumn(out.mLine, charIndex);
+		int columnToRight = GetCharacterColumn(out.mLine, GetCharacterIndexR(out));
+		if (out.mColumn - columnToLeft <= columnToRight - out.mColumn)
+			out.mColumn = columnToLeft;
+		else
+			out.mColumn = columnToRight;
+	}
+	return out;
 }
 
 TextEditor::Coordinates TextEditor::GetActualCursorCoordinates(int aCursor, bool aStart) const
@@ -1633,7 +1631,7 @@ TextEditor::Coordinates TextEditor::GetActualCursorCoordinates(int aCursor, bool
 		return SanitizeCoordinates(aStart ? mState.mCursors[aCursor].mInteractiveStart : mState.mCursors[aCursor].mInteractiveEnd);
 }
 
-TextEditor::Coordinates TextEditor::ScreenPosToCoordinates(const ImVec2& aPosition, bool aInsertionMode, bool* isOverLineNumber) const
+TextEditor::Coordinates TextEditor::ScreenPosToCoordinates(const ImVec2& aPosition, bool* isOverLineNumber) const
 {
 	ImVec2 origin = ImGui::GetCursorScreenPos();
 	ImVec2 local(aPosition.x - origin.x + 3.0f, aPosition.y - origin.y);
@@ -1645,18 +1643,8 @@ TextEditor::Coordinates TextEditor::ScreenPosToCoordinates(const ImVec2& aPositi
 		Max(0, (int)floor(local.y / mCharAdvance.y)),
 		Max(0, (int)floor((local.x - mTextStart) / mCharAdvance.x))
 	};
-	int charIndex = GetCharacterIndexL(out);
-	if (charIndex > -1 && charIndex < mLines[out.mLine].size() && mLines[out.mLine][charIndex].mChar == '\t')
-	{
-		int columnToLeft = GetCharacterColumn(out.mLine, charIndex);
-		int columnToRight = GetCharacterColumn(out.mLine, GetCharacterIndexR(out));
-		if (out.mColumn - columnToLeft < columnToRight - out.mColumn)
-			out.mColumn = columnToLeft;
-		else
-			out.mColumn = columnToRight;
-	}
-	else
-		out.mColumn = Max(0, (int)floor((local.x - mTextStart + POS_TO_COORDS_COLUMN_OFFSET * mCharAdvance.x) / mCharAdvance.x));
+	out.mColumn = Max(0, (int)floor((local.x - mTextStart + POS_TO_COORDS_COLUMN_OFFSET * mCharAdvance.x) / mCharAdvance.x));
+
 	return SanitizeCoordinates(out);
 }
 
@@ -2051,8 +2039,6 @@ void TextEditor::HandleKeyboardInputs(bool aParentIsFocused)
 			MoveDownCurrentLines();
 		else if (!mReadOnly && !alt && ctrl && !shift && !super && ImGui::IsKeyPressed(ImGuiKey_Slash))
 			ToggleLineComment();
-		else if (!alt && !ctrl && !shift && !super && ImGui::IsKeyPressed(ImGuiKey_Insert))
-			mOverwrite ^= true;
 		else if (isCtrlOnly && ImGui::IsKeyPressed(ImGuiKey_Insert))
 			Copy();
 		else if (isShortcut && ImGui::IsKeyPressed(ImGuiKey_C))
@@ -2115,7 +2101,7 @@ void TextEditor::HandleMouseInputs()
 	if (mDraggingSelection && ImGui::IsMouseDragging(0))
 	{
 		io.WantCaptureMouse = true;
-		Coordinates cursorCoords = ScreenPosToCoordinates(ImGui::GetMousePos(), !mOverwrite);
+		Coordinates cursorCoords = ScreenPosToCoordinates(ImGui::GetMousePos());
 		SetCursorPosition(cursorCoords, mState.GetLastAddedCursorIndex(), false);
 	}
 
@@ -2192,7 +2178,7 @@ void TextEditor::HandleMouseInputs()
 					mState.mCurrentCursor = 0;
 
 				bool isOverLineNumber;
-				Coordinates cursorCoords = ScreenPosToCoordinates(ImGui::GetMousePos(), !mOverwrite, &isOverLineNumber);
+				Coordinates cursorCoords = ScreenPosToCoordinates(ImGui::GetMousePos(), &isOverLineNumber);
 				if (isOverLineNumber)
 				{
 					Coordinates targetCursorPos = cursorCoords.mLine < mLines.size() - 1 ?
@@ -2216,7 +2202,7 @@ void TextEditor::HandleMouseInputs()
 		{
 			if (click)
 			{
-				Coordinates newSelection = ScreenPosToCoordinates(ImGui::GetMousePos(), !mOverwrite);
+				Coordinates newSelection = ScreenPosToCoordinates(ImGui::GetMousePos());
 				SetCursorPosition(newSelection, mState.mCurrentCursor, false);
 			}
 		}
@@ -2325,16 +2311,6 @@ void TextEditor::Render(bool aParentIsFocused)
 						auto cindex = GetCharacterIndexR(cursorCoords);
 						float cx = TextDistanceToLineStart(cursorCoords);
 
-						if (mOverwrite && cindex < (int)line.size())
-						{
-							if (line[cindex].mChar == '\t')
-							{
-								auto x = (1.0f + std::floor((1.0f + cx) / (float(mTabSize) * spaceSize))) * (float(mTabSize) * spaceSize);
-								width = x - cx;
-							}
-							else
-								width = mCharAdvance.x;
-						}
 						ImVec2 cstart(textScreenPos.x + cx, lineStartScreenPos.y);
 						ImVec2 cend(textScreenPos.x + cx + width, lineStartScreenPos.y + mCharAdvance.y);
 						drawList->AddRectFilled(cstart, cend, mPalette[(int)PaletteIndex::Cursor]);
