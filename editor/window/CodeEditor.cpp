@@ -2,11 +2,12 @@
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 
 using namespace Supernova::Editor;
 namespace fs = std::filesystem;
 
-CodeEditor::CodeEditor() {
+CodeEditor::CodeEditor() : isFileChangePopupOpen(false) {
 }
 
 CodeEditor::~CodeEditor() {
@@ -36,8 +37,16 @@ void CodeEditor::checkFileChanges(EditorInstance& instance) {
         auto currentWriteTime = fs::last_write_time(instance.filepath);
         if (currentWriteTime != instance.lastWriteTime) {
             if (instance.isModified) {
-                // Only set hasExternalChanges if there are unsaved changes
-                instance.hasExternalChanges = true;
+                // Check if this file is already in the queue
+                auto it = std::find_if(changedFilesQueue.begin(), changedFilesQueue.end(),
+                    [&](const PendingFileChange& change) {
+                        return change.filepath == instance.filepath;
+                    });
+
+                // Only add to queue if not already present
+                if (it == changedFilesQueue.end()) {
+                    changedFilesQueue.push_back({instance.filepath, currentWriteTime});
+                }
             } else {
                 // If no unsaved changes, silently reload the file
                 loadFileContent(instance);
@@ -45,6 +54,82 @@ void CodeEditor::checkFileChanges(EditorInstance& instance) {
         }
     } catch (const std::exception& e) {
         // Handle file access errors
+    }
+}
+
+void CodeEditor::handleFileChangePopup() {
+    if (changedFilesQueue.empty()) {
+        return;
+    }
+
+    if (!isFileChangePopupOpen) {
+        ImGui::OpenPopup("Files Changed###FilesChanged");
+        isFileChangePopupOpen = true;
+    }
+
+    // Center popup
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+    if (ImGui::BeginPopupModal("Files Changed###FilesChanged", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+        if (changedFilesQueue.size() == 1) {
+            ImGui::Text("The file '%s' has been modified externally.", 
+                std::filesystem::path(changedFilesQueue[0].filepath).filename().string().c_str());
+        } else {
+            ImGui::Text("%zu files have been modified externally:", changedFilesQueue.size());
+
+            // Display up to 10 files
+            int fileCount = 0;
+            for (const auto& change : changedFilesQueue) {
+                if (fileCount < 10) {
+                    ImGui::BulletText("%s", std::filesystem::path(change.filepath).filename().string().c_str());
+                }
+                fileCount++;
+            }
+
+            // If there are more files, show a message
+            if (fileCount > 10) {
+                ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "And %zu more files...", changedFilesQueue.size() - 10);
+            }
+        }
+
+        ImGui::Text("Do you want to reload the modified files?");
+        ImGui::Text("Warning: You have unsaved changes that will be lost.");
+        ImGui::Separator();
+
+        float buttonWidth = 120.0f;
+        float windowWidth = ImGui::GetWindowSize().x;
+
+        ImGui::SetCursorPosX((windowWidth - buttonWidth * 2 - ImGui::GetStyle().ItemSpacing.x) * 0.5f);
+
+        if (ImGui::Button("Yes", ImVec2(buttonWidth, 0))) {
+            // Reload all files in the queue
+            for (const auto& change : changedFilesQueue) {
+                auto it = editors.find(change.filepath);
+                if (it != editors.end()) {
+                    loadFileContent(it->second);
+                }
+            }
+            changedFilesQueue.clear();
+            isFileChangePopupOpen = false;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("No", ImVec2(buttonWidth, 0))) {
+            // Update timestamps without reloading
+            for (const auto& change : changedFilesQueue) {
+                auto it = editors.find(change.filepath);
+                if (it != editors.end()) {
+                    it->second.lastWriteTime = change.newWriteTime;
+                }
+            }
+            changedFilesQueue.clear();
+            isFileChangePopupOpen = false;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    } else {
+        isFileChangePopupOpen = false;
     }
 }
 
@@ -126,46 +211,6 @@ void CodeEditor::show() {
                 instance.isModified = true;
             }
 
-            // Handle file change popup only if there are unsaved changes
-            if (instance.hasExternalChanges && instance.isModified) {
-                ImGui::OpenPopup("File Changed###FileChanged");
-            }
-
-            // Center popup
-            ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-
-            if (ImGui::BeginPopupModal("File Changed###FileChanged", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-                ImGui::Text("The file '%s' has been modified externally.", 
-                    std::filesystem::path(instance.filepath).filename().string().c_str());
-                ImGui::Text("Do you want to reload it?");
-                ImGui::Text("Warning: You have unsaved changes that will be lost.");
-                ImGui::Separator();
-
-                float buttonWidth = 120.0f;
-                float windowWidth = ImGui::GetWindowSize().x;
-
-                ImGui::SetCursorPosX((windowWidth - buttonWidth * 2 - ImGui::GetStyle().ItemSpacing.x) * 0.5f);
-
-                if (ImGui::Button("Yes", ImVec2(buttonWidth, 0))) {
-                    loadFileContent(instance);
-                    instance.hasExternalChanges = false;
-                    ImGui::CloseCurrentPopup();
-                }
-                ImGui::SameLine();
-                if (ImGui::Button("No", ImVec2(buttonWidth, 0))) {
-                    // Update the timestamp without reloading to prevent further popups
-                    try {
-                        instance.lastWriteTime = std::filesystem::last_write_time(instance.filepath);
-                    } catch (const std::exception& e) {
-                        // Handle file access errors
-                    }
-                    instance.hasExternalChanges = false;
-                    ImGui::CloseCurrentPopup();
-                }
-                ImGui::EndPopup();
-            }
-
             int line, column;
             instance.editor->GetCursorPosition(line, column);
 
@@ -189,4 +234,7 @@ void CodeEditor::show() {
             ++it;
         }
     }
+
+    // Handle file change popup after all windows are rendered
+    handleFileChangePopup();
 }

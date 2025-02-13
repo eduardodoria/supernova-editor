@@ -22,9 +22,16 @@ namespace Supernova::Editor {
     class CodeEditor {
     private:
         std::unordered_map<std::string, EditorInstance> editors;
+        struct PendingFileChange {
+            std::string filepath;
+            std::filesystem::file_time_type newWriteTime;
+        };
+        std::vector<PendingFileChange> changedFilesQueue;
+        bool isFileChangePopupOpen;
 
         void checkFileChanges(EditorInstance& instance);
         bool loadFileContent(EditorInstance& instance);
+        void handleFileChangePopup();
 
     public:
         CodeEditor();
