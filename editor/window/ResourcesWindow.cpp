@@ -15,12 +15,16 @@
 
 #include "imgui_internal.h"
 
+#include <fstream>
+#include <sstream>
+
 using namespace Supernova;
 
 namespace fs = std::filesystem;
 
-Editor::ResourcesWindow::ResourcesWindow(Project* project) {
+Editor::ResourcesWindow::ResourcesWindow(Project* project, CodeEditor* codeEditor) {
     this->project = project;
+    this->codeEditor = codeEditor;
     this->firstOpen = true;
     this->requestSort = true;
     this->iconSize = 32.0f;
@@ -678,12 +682,31 @@ void Editor::ResourcesWindow::show() {
                     lastSelectedFile = file.name;
                 }
 
-                if (ImGui::IsMouseDoubleClicked(0) && file.isDirectory) {
-                    scanDirectory(currentPath + "/" + file.name);
-                    selectedFiles.clear();
-                    ImGui::EndGroup();
-                    ImGui::PopID();
-                    break;
+                if (ImGui::IsMouseDoubleClicked(0)) {
+                    if (file.isDirectory) {
+                        scanDirectory(currentPath + "/" + file.name);
+                        selectedFiles.clear();
+                        ImGui::EndGroup();
+                        ImGui::PopID();
+                        break;
+                    } else {
+                        // Check if the file is a C/C++ source or header file
+                        std::string extension = file.type;
+                        if (extension == ".c" || extension == ".cpp" || extension == ".h" || extension == ".hpp") {
+                            std::string filePath = currentPath + "/" + file.name;
+
+                            // Read the file content
+                            std::ifstream fileStream(filePath);
+                            if (fileStream.is_open()) {
+                                std::stringstream buffer;
+                                buffer << fileStream.rdbuf();
+                                fileStream.close();
+
+                                // Open the file in code editor
+                                codeEditor->openFile(filePath, buffer.str());
+                            }
+                        }
+                    }
                 }
             }
 

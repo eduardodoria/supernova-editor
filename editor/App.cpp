@@ -21,8 +21,8 @@ Editor::App::App(){
     propertiesWindow = new Properties(&project);
     outputWindow = new Output();
     sceneWindow = new SceneWindow(&project);
-    resourcesWindow = new ResourcesWindow(&project);
     codeEditor = new CodeEditor();
+    resourcesWindow = new ResourcesWindow(&project, codeEditor);
 
     Log::setOutputWindow(outputWindow);
 

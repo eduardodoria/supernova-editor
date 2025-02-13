@@ -27,8 +27,8 @@ namespace Supernova::Editor{
         Properties* propertiesWindow;
         Output* outputWindow;
         SceneWindow* sceneWindow;
-        ResourcesWindow* resourcesWindow;
         CodeEditor* codeEditor;
+        ResourcesWindow* resourcesWindow;
 
         static bool isInitialized;
 

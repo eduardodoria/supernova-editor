@@ -3,6 +3,7 @@
 
 #include "Project.h"
 #include "command/CommandHistory.h"
+#include "window/CodeEditor.h"
 
 #include <iostream>
 #include <filesystem>
@@ -23,6 +24,7 @@ namespace Supernova::Editor{
     class ResourcesWindow{
     private:
         Project* project;
+        CodeEditor* codeEditor;
 
         CommandHistory cmdHistory;
 
@@ -72,7 +74,7 @@ namespace Supernova::Editor{
         void pasteFiles(const std::string& targetDirectory);
 
     public:
-        ResourcesWindow(Project* project);
+        ResourcesWindow(Project* project, CodeEditor* codeEditor);
 
         void handleExternalDragEnter();
         void handleExternalDragLeave();
