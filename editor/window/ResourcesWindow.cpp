@@ -33,6 +33,7 @@ Editor::ResourcesWindow::ResourcesWindow(Project* project, CodeEditor* codeEdito
     this->clipboardCut = false;
     this->isRenaming = false;
     this->isCreatingNewDirectory = false;
+    this->timeSinceLastCheck = 0.0f;
     memset(this->nameBuffer, 0, sizeof(this->nameBuffer));
 }
 
@@ -52,6 +53,9 @@ std::vector<Editor::FileEntry> Editor::ResourcesWindow::scanDirectory(const std:
     }
 
     requestSort = true;
+
+    // Update last write time
+    lastWriteTime = fs::last_write_time(currentPath);
 
     intptr_t folderIconH = (intptr_t)folderIcon.getRender()->getGLHandler();
     intptr_t fileIconH = (intptr_t)fileIcon.getRender()->getGLHandler();
@@ -440,6 +444,20 @@ void Editor::ResourcesWindow::show() {
         firstOpen = false;
     }
 
+    // Check directory for changes every second
+    timeSinceLastCheck += ImGui::GetIO().DeltaTime;
+    if (timeSinceLastCheck >= 1.0f) {
+        try {
+            auto currentWriteTime = fs::last_write_time(currentPath);
+            if (currentWriteTime != lastWriteTime) {
+                scanDirectory(currentPath);
+            }
+        } catch (const fs::filesystem_error& e) {
+            // Handle potential filesystem errors silently
+        }
+        timeSinceLastCheck = 0.0f;
+    }
+
     ctrlPressed = ImGui::GetIO().KeyCtrl;
     shiftPressed = ImGui::GetIO().KeyShift;
 
@@ -814,10 +832,6 @@ void Editor::ResourcesWindow::show() {
                 cmdHistory.addCommand(new CopyFileCmd(filePaths, currentPath, true));
                 scanDirectory(currentPath);
             }
-        }
-
-        if (ImGui::MenuItem(ICON_FA_RETWEET"  Refresh")) {
-            scanDirectory(currentPath);
         }
 
         ImGui::Separator();

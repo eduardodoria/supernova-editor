@@ -182,10 +182,6 @@ std::string CodeEditor::getText(const std::string& filepath) const {
     return "";
 }
 
-void CodeEditor::setup() {
-    // Global setup if needed
-}
-
 void CodeEditor::show() {
     // Get current time
     double currentTime = ImGui::GetTime();

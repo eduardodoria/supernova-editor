@@ -168,8 +168,6 @@ void Editor::App::setup(){
 
     //ImGui::StyleColorsDark();
     kewtStyleTheme();
-
-    codeEditor->setup();
 }
 
 void Editor::App::show(){

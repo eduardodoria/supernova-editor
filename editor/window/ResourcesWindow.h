@@ -63,6 +63,9 @@ namespace Supernova::Editor{
 
         bool isCreatingNewDirectory;
 
+        std::filesystem::file_time_type lastWriteTime;
+        float timeSinceLastCheck;
+
         std::vector<FileEntry> scanDirectory(const std::string& path);
         void sortWithSortSpecs(ImGuiTableSortSpecs* sortSpecs, std::vector<FileEntry>& files);
         std::string shortenPath(const std::filesystem::path& path, float maxWidth);

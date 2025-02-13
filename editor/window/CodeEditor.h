@@ -43,7 +43,6 @@ namespace Supernova::Editor {
         void setText(const std::string& filepath, const std::string& text);
         std::string getText(const std::string& filepath) const;
 
-        void setup();
         void show();
     };
 }
