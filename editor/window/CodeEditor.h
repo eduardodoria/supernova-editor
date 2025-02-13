@@ -13,8 +13,10 @@ namespace Supernova::Editor {
         std::string filepath;
         std::filesystem::file_time_type lastWriteTime;
         bool isModified;
+        double lastCheckTime;
+        bool hasExternalChanges;
 
-        EditorInstance() : isOpen(true), isModified(false) {}
+        EditorInstance() : isOpen(true), isModified(false), lastCheckTime(0.0), hasExternalChanges(false) {}
     };
 
     class CodeEditor {

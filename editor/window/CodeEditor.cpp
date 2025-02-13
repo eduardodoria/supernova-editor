@@ -34,37 +34,13 @@ bool CodeEditor::loadFileContent(EditorInstance& instance) {
 void CodeEditor::checkFileChanges(EditorInstance& instance) {
     try {
         auto currentWriteTime = fs::last_write_time(instance.filepath);
-
         if (currentWriteTime != instance.lastWriteTime) {
-            // File has been modified externally
-            ImGui::OpenPopup("File Changed");
-
-            // Center popup
-            ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-
-            if (ImGui::BeginPopupModal("File Changed", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-                ImGui::Text("The file '%s' has been modified externally.", 
-                    fs::path(instance.filepath).filename().string().c_str());
-                ImGui::Text("Do you want to reload it?");
-                ImGui::Separator();
-
-                float buttonWidth = 120.0f;
-                float windowWidth = ImGui::GetWindowSize().x;
-
-                ImGui::SetCursorPosX((windowWidth - buttonWidth * 2 - ImGui::GetStyle().ItemSpacing.x) * 0.5f);
-
-                if (ImGui::Button("Yes", ImVec2(buttonWidth, 0))) {
-                    loadFileContent(instance);
-                    ImGui::CloseCurrentPopup();
-                }
-                ImGui::SameLine();
-                if (ImGui::Button("No", ImVec2(buttonWidth, 0))) {
-                    // Update the timestamp without reloading to prevent further popups
-                    instance.lastWriteTime = currentWriteTime;
-                    ImGui::CloseCurrentPopup();
-                }
-                ImGui::EndPopup();
+            if (instance.isModified) {
+                // Only set hasExternalChanges if there are unsaved changes
+                instance.hasExternalChanges = true;
+            } else {
+                // If no unsaved changes, silently reload the file
+                loadFileContent(instance);
             }
         }
     } catch (const std::exception& e) {
@@ -126,12 +102,18 @@ void CodeEditor::setup() {
 }
 
 void CodeEditor::show() {
+    // Get current time
+    double currentTime = ImGui::GetTime();
+
     // Iterate through all open editors
     for (auto it = editors.begin(); it != editors.end();) {
         auto& instance = it->second;
 
-        // Check for external file changes
-        checkFileChanges(instance);
+        // Check for external file changes every second
+        if (currentTime - instance.lastCheckTime >= 1.0) {
+            checkFileChanges(instance);
+            instance.lastCheckTime = currentTime;
+        }
 
         // Create window title using filename
         std::string filename = std::filesystem::path(instance.filepath).filename().string();
@@ -142,6 +124,46 @@ void CodeEditor::show() {
             // Track modifications by checking if undo is available
             if (instance.editor->CanUndo() && !instance.isModified) {
                 instance.isModified = true;
+            }
+
+            // Handle file change popup only if there are unsaved changes
+            if (instance.hasExternalChanges && instance.isModified) {
+                ImGui::OpenPopup("File Changed###FileChanged");
+            }
+
+            // Center popup
+            ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+            if (ImGui::BeginPopupModal("File Changed###FileChanged", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+                ImGui::Text("The file '%s' has been modified externally.", 
+                    std::filesystem::path(instance.filepath).filename().string().c_str());
+                ImGui::Text("Do you want to reload it?");
+                ImGui::Text("Warning: You have unsaved changes that will be lost.");
+                ImGui::Separator();
+
+                float buttonWidth = 120.0f;
+                float windowWidth = ImGui::GetWindowSize().x;
+
+                ImGui::SetCursorPosX((windowWidth - buttonWidth * 2 - ImGui::GetStyle().ItemSpacing.x) * 0.5f);
+
+                if (ImGui::Button("Yes", ImVec2(buttonWidth, 0))) {
+                    loadFileContent(instance);
+                    instance.hasExternalChanges = false;
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("No", ImVec2(buttonWidth, 0))) {
+                    // Update the timestamp without reloading to prevent further popups
+                    try {
+                        instance.lastWriteTime = std::filesystem::last_write_time(instance.filepath);
+                    } catch (const std::exception& e) {
+                        // Handle file access errors
+                    }
+                    instance.hasExternalChanges = false;
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
             }
 
             int line, column;
