@@ -694,17 +694,7 @@ void Editor::ResourcesWindow::show() {
                         std::string extension = file.type;
                         if (extension == ".c" || extension == ".cpp" || extension == ".h" || extension == ".hpp") {
                             std::string filePath = currentPath + "/" + file.name;
-
-                            // Read the file content
-                            std::ifstream fileStream(filePath);
-                            if (fileStream.is_open()) {
-                                std::stringstream buffer;
-                                buffer << fileStream.rdbuf();
-                                fileStream.close();
-
-                                // Open the file in code editor
-                                codeEditor->openFile(filePath, buffer.str());
-                            }
+                            codeEditor->openFile(filePath);
                         }
                     }
                 }
