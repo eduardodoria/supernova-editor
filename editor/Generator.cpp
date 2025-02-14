@@ -400,6 +400,7 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath){
         extern "C" void PROJECT_API sayHello(Supernova::Scene* scene) {
             //Supernova::Scene scene;
             CubeScript* cube = new CubeScript(scene);
+            cube->init();
             std::cout << "Hello from the shared library!" << std::endl;
         }
     )";

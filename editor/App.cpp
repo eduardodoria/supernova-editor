@@ -40,9 +40,16 @@ void Editor::App::showMenu(){
             if (ImGui::MenuItem("Open")) {
                 // Handle open action
             }
+            ImGui::BeginDisabled(!codeEditor->hasLastFocusedUnsavedChanges());
             if (ImGui::MenuItem("Save")) {
-                // Handle save action
+                codeEditor->saveLastFocused();
             }
+            ImGui::EndDisabled();
+            ImGui::BeginDisabled(!codeEditor->hasUnsavedChanges());
+            if (ImGui::MenuItem("Save All")) {
+                codeEditor->saveAll();
+            }
+            ImGui::EndDisabled();
             if (ImGui::MenuItem("Exit")) {
                 // Handle exit action
             }

@@ -33,6 +33,7 @@ namespace Supernova::Editor {
         std::vector<PendingFileChange> changedFilesQueue;
         bool isFileChangePopupOpen;
         bool windowFocused;
+        EditorInstance* lastFocused;
 
         void checkFileChanges(EditorInstance& instance);
         bool loadFileContent(EditorInstance& instance);
@@ -48,7 +49,11 @@ namespace Supernova::Editor {
 
         bool save(const std::string& filepath);
         bool save(EditorInstance& instance);
+        void saveLastFocused();
         void saveAll();
+
+        bool hasUnsavedChanges() const;
+        bool hasLastFocusedUnsavedChanges() const;
 
         void openFile(const std::string& filepath);
         void closeFile(const std::string& filepath);

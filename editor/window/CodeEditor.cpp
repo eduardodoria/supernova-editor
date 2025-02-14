@@ -8,7 +8,7 @@
 
 using namespace Supernova;
 
-Editor::CodeEditor::CodeEditor() : isFileChangePopupOpen(false), windowFocused(false) {
+Editor::CodeEditor::CodeEditor() : isFileChangePopupOpen(false), windowFocused(false), lastFocused(nullptr) {
 }
 
 Editor::CodeEditor::~CodeEditor() {
@@ -177,6 +177,12 @@ bool Editor::CodeEditor::save(EditorInstance& instance) {
     }
 }
 
+void Editor::CodeEditor::saveLastFocused(){
+    if (lastFocused){
+        save(*lastFocused);
+    }
+}
+
 bool Editor::CodeEditor::save(const std::string& filepath) {
     auto it = editors.find(filepath);
     if (it == editors.end()) {
@@ -192,6 +198,22 @@ void Editor::CodeEditor::saveAll() {
             save(instance);
         }
     }
+}
+
+bool Editor::CodeEditor::hasUnsavedChanges() const {
+    for (const auto& [filepath, instance] : editors) {
+        if (instance.isModified) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Editor::CodeEditor::hasLastFocusedUnsavedChanges() const {
+    if (lastFocused){
+        return lastFocused->isModified;
+    }
+    return false;
 }
 
 void Editor::CodeEditor::openFile(const std::string& filepath) {
@@ -212,6 +234,9 @@ void Editor::CodeEditor::openFile(const std::string& filepath) {
     // Load the file content
     if (!loadFileContent(instance)) {
         // If loading fails, remove the instance
+        if (lastFocused == &instance) {
+            lastFocused = nullptr;
+        }
         editors.erase(filepath);
     }
 
@@ -219,7 +244,12 @@ void Editor::CodeEditor::openFile(const std::string& filepath) {
 }
 
 void Editor::CodeEditor::closeFile(const std::string& filepath) {
-    editors.erase(filepath);
+    if (auto it = editors.find(filepath); it != editors.end()) {
+        if (lastFocused == &it->second) {
+            lastFocused = nullptr;
+        }
+        editors.erase(it);
+    }
 }
 
 bool Editor::CodeEditor::isFileOpen(const std::string& filepath) const {
@@ -267,8 +297,13 @@ void Editor::CodeEditor::show() {
 
         ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_FirstUseEver);
         if (ImGui::Begin(windowTitle.c_str(), &instance.isOpen)) {
+
+            instance.isModified = instance.editor->GetUndoIndex() != instance.savedUndoIndex;
+
             if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)) {
                 windowFocused = true;
+
+                lastFocused = &instance;
 
                 // Add CTRL+S save functionality
                 if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S)) {
@@ -281,8 +316,6 @@ void Editor::CodeEditor::show() {
                     }
                 }
             }
-
-            instance.isModified = instance.editor->GetUndoIndex() != instance.savedUndoIndex;
 
             int line, column;
             instance.editor->GetCursorPosition(line, column);
@@ -302,6 +335,9 @@ void Editor::CodeEditor::show() {
 
         // If the window was closed, remove it from our editors map
         if (!instance.isOpen) {
+            if (lastFocused == &instance) {
+                lastFocused = nullptr;
+            }
             it = editors.erase(it);
         } else {
             ++it;
