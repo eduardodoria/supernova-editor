@@ -9,7 +9,7 @@
 using namespace Supernova::Editor;
 namespace fs = std::filesystem;
 
-CodeEditor::CodeEditor() : isFileChangePopupOpen(false) {
+CodeEditor::CodeEditor() : isFileChangePopupOpen(false), windowFocused(false) {
 }
 
 CodeEditor::~CodeEditor() {
@@ -151,6 +151,10 @@ std::vector<fs::path> CodeEditor::getOpenPaths() const{
     return openPaths;
 }
 
+bool CodeEditor::isFocused() const {
+    return windowFocused;
+}
+
 void CodeEditor::openFile(const std::string& filepath) {
     if (editors.find(filepath) != editors.end()) {
         // File already open
@@ -206,6 +210,8 @@ void CodeEditor::show() {
     // Get current time
     double currentTime = ImGui::GetTime();
 
+    windowFocused = false;
+
     // Iterate through all open editors
     for (auto it = editors.begin(); it != editors.end();) {
         auto& instance = it->second;
@@ -221,6 +227,10 @@ void CodeEditor::show() {
 
         ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_FirstUseEver);
         if (ImGui::Begin(windowTitle.c_str(), &instance.isOpen)) {
+            if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)) {
+                windowFocused = true;
+            }
+
             // Track modifications by checking if undo is available
             if (instance.editor->CanUndo() && !instance.isModified) {
                 instance.isModified = true;

@@ -191,7 +191,7 @@ void Editor::App::show(){
         // space to keys events
     }
 
-    if (!project.isRecourcesFocused()){
+    if (!resourcesWindow->isFocused() && !codeEditor->isFocused()){
         uint32_t sceneId = project.getSelectedSceneId();
 
         // Update the Undo and Redo button logic:

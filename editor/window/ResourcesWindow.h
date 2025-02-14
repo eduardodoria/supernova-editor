@@ -66,6 +66,8 @@ namespace Supernova::Editor{
         std::filesystem::file_time_type lastWriteTime;
         float timeSinceLastCheck;
 
+        bool windowFocused;
+
         std::vector<FileEntry> scanDirectory(const std::string& path);
         void sortWithSortSpecs(ImGuiTableSortSpecs* sortSpecs, std::vector<FileEntry>& files);
         std::string shortenPath(const std::filesystem::path& path, float maxWidth);
@@ -78,6 +80,8 @@ namespace Supernova::Editor{
 
     public:
         ResourcesWindow(Project* project, CodeEditor* codeEditor);
+
+        bool isFocused() const;
 
         void handleExternalDragEnter();
         void handleExternalDragLeave();

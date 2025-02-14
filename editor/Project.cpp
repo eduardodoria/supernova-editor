@@ -277,14 +277,6 @@ std::filesystem::path Editor::Project::getProjectPath() const{
     return projectPath;
 }
 
-void Editor::Project::setResourcesFocused(bool focused){
-    this->resourcesFocused = focused;
-}
-
-bool Editor::Project::isRecourcesFocused() const{
-    return this->resourcesFocused;
-}
-
 void Editor::Project::setLastActivatedSceneId(uint32_t lastActivatedScene){
     this->lastActivatedScene = lastActivatedScene;
 }

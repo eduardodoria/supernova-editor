@@ -34,7 +34,12 @@ Editor::ResourcesWindow::ResourcesWindow(Project* project, CodeEditor* codeEdito
     this->isRenaming = false;
     this->isCreatingNewDirectory = false;
     this->timeSinceLastCheck = 0.0f;
+    this->windowFocused = false;
     memset(this->nameBuffer, 0, sizeof(this->nameBuffer));
+}
+
+bool Editor::ResourcesWindow::isFocused() const{
+    return windowFocused;
 }
 
 void Editor::ResourcesWindow::handleExternalDragEnter() {
@@ -907,11 +912,9 @@ void Editor::ResourcesWindow::show() {
         highlightDragAndDrop();
     }
 
-    bool isWindowFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+    windowFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
 
-    project->setResourcesFocused(isWindowFocused);
-
-    if (isWindowFocused) {
+    if (windowFocused) {
         if (!selectedFiles.empty()){
             if (ImGui::IsKeyPressed(ImGuiKey_Delete)) {
                 showDeleteConfirmation = true;
