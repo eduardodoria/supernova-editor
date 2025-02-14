@@ -6,16 +6,15 @@
 #include <sstream>
 #include <algorithm>
 
-using namespace Supernova::Editor;
-namespace fs = std::filesystem;
+using namespace Supernova;
 
-CodeEditor::CodeEditor() : isFileChangePopupOpen(false), windowFocused(false) {
+Editor::CodeEditor::CodeEditor() : isFileChangePopupOpen(false), windowFocused(false) {
 }
 
-CodeEditor::~CodeEditor() {
+Editor::CodeEditor::~CodeEditor() {
 }
 
-bool CodeEditor::loadFileContent(EditorInstance& instance) {
+bool Editor::CodeEditor::loadFileContent(EditorInstance& instance) {
     try {
         std::ifstream file(instance.filepath);
         if (file.is_open()) {
@@ -24,6 +23,7 @@ bool CodeEditor::loadFileContent(EditorInstance& instance) {
             file.close();
 
             instance.editor->SetText(buffer.str());
+            instance.savedUndoIndex = instance.editor->GetUndoIndex();
             instance.lastWriteTime = fs::last_write_time(instance.filepath);
             instance.isModified = false;
             return true;
@@ -34,7 +34,7 @@ bool CodeEditor::loadFileContent(EditorInstance& instance) {
     return false;
 }
 
-void CodeEditor::checkFileChanges(EditorInstance& instance) {
+void Editor::CodeEditor::checkFileChanges(EditorInstance& instance) {
     try {
         auto currentWriteTime = fs::last_write_time(instance.filepath);
         if (currentWriteTime != instance.lastWriteTime) {
@@ -59,7 +59,7 @@ void CodeEditor::checkFileChanges(EditorInstance& instance) {
     }
 }
 
-void CodeEditor::handleFileChangePopup() {
+void Editor::CodeEditor::handleFileChangePopup() {
     if (changedFilesQueue.empty()) {
         return;
     }
@@ -135,12 +135,13 @@ void CodeEditor::handleFileChangePopup() {
     }
 }
 
-std::string CodeEditor::getWindowTitle(const EditorInstance& instance) const{
+std::string Editor::CodeEditor::getWindowTitle(const EditorInstance& instance) const {
     std::string filename = instance.filepath.filename().string();
-    return filename + "###" + instance.filepath.string();
+    return filename + (instance.isModified ? "*" : "") + "###" + instance.filepath.string();
 }
 
-std::vector<fs::path> CodeEditor::getOpenPaths() const{
+
+std::vector<fs::path> Editor::CodeEditor::getOpenPaths() const{
     std::vector<fs::path> openPaths;
     for (auto it = editors.begin(); it != editors.end();) {
         const auto& instance = it->second;
@@ -151,11 +152,49 @@ std::vector<fs::path> CodeEditor::getOpenPaths() const{
     return openPaths;
 }
 
-bool CodeEditor::isFocused() const {
+bool Editor::CodeEditor::isFocused() const {
     return windowFocused;
 }
 
-void CodeEditor::openFile(const std::string& filepath) {
+bool Editor::CodeEditor::save(EditorInstance& instance) {
+    try {
+        std::ofstream file(instance.filepath);
+        if (!file.is_open()) {
+            return false;
+        }
+
+        std::string text = instance.editor->GetText();
+        file << text;
+        file.close();
+
+        instance.savedUndoIndex = instance.editor->GetUndoIndex();
+        instance.isModified = false;
+        instance.lastWriteTime = fs::last_write_time(instance.filepath);
+        return true;
+    } catch (const std::exception& e) {
+        // Handle file save errors
+        return false;
+    }
+}
+
+bool Editor::CodeEditor::save(const std::string& filepath) {
+    auto it = editors.find(filepath);
+    if (it == editors.end()) {
+        return false;
+    }
+
+    return save(it->second);
+}
+
+void Editor::CodeEditor::saveAll() {
+    for (auto& [filepath, instance] : editors) {
+        if (instance.isModified) {
+            save(instance);
+        }
+    }
+}
+
+void Editor::CodeEditor::openFile(const std::string& filepath) {
     if (editors.find(filepath) != editors.end()) {
         // File already open
         return;
@@ -179,17 +218,18 @@ void CodeEditor::openFile(const std::string& filepath) {
     Backend::getApp().addNewCodeWindowToDock(instance.filepath);
 }
 
-void CodeEditor::closeFile(const std::string& filepath) {
+void Editor::CodeEditor::closeFile(const std::string& filepath) {
     editors.erase(filepath);
 }
 
-bool CodeEditor::isFileOpen(const std::string& filepath) const {
+bool Editor::CodeEditor::isFileOpen(const std::string& filepath) const {
     return editors.find(filepath) != editors.end();
 }
 
-void CodeEditor::setText(const std::string& filepath, const std::string& text) {
+void Editor::CodeEditor::setText(const std::string& filepath, const std::string& text) {
     if (auto it = editors.find(filepath); it != editors.end()) {
         it->second.editor->SetText(text);
+        it->second.savedUndoIndex = it->second.editor->GetUndoIndex();
         it->second.isModified = false;
         try {
             it->second.lastWriteTime = fs::last_write_time(filepath);
@@ -199,14 +239,14 @@ void CodeEditor::setText(const std::string& filepath, const std::string& text) {
     }
 }
 
-std::string CodeEditor::getText(const std::string& filepath) const {
+std::string Editor::CodeEditor::getText(const std::string& filepath) const {
     if (auto it = editors.find(filepath); it != editors.end()) {
         return it->second.editor->GetText();
     }
     return "";
 }
 
-void CodeEditor::show() {
+void Editor::CodeEditor::show() {
     // Get current time
     double currentTime = ImGui::GetTime();
 
@@ -229,12 +269,20 @@ void CodeEditor::show() {
         if (ImGui::Begin(windowTitle.c_str(), &instance.isOpen)) {
             if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)) {
                 windowFocused = true;
+
+                // Add CTRL+S save functionality
+                if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S)) {
+                    if (ImGui::GetIO().KeyShift) {
+                        // CTRL+SHIFT+S saves all files
+                        saveAll();
+                    } else {
+                        // CTRL+S saves current file
+                        save(instance);
+                    }
+                }
             }
 
-            // Track modifications by checking if undo is available
-            if (instance.editor->CanUndo() && !instance.isModified) {
-                instance.isModified = true;
-            }
+            instance.isModified = instance.editor->GetUndoIndex() != instance.savedUndoIndex;
 
             int line, column;
             instance.editor->GetCursorPosition(line, column);

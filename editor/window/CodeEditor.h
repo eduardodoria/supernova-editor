@@ -18,8 +18,9 @@ namespace Supernova::Editor {
         bool isModified;
         double lastCheckTime;
         bool hasExternalChanges;
+        int savedUndoIndex;
 
-        EditorInstance() : isOpen(true), isModified(false), lastCheckTime(0.0), hasExternalChanges(false) {}
+        EditorInstance() : isOpen(true), isModified(false), lastCheckTime(0.0), hasExternalChanges(false), savedUndoIndex(0) {}
     };
 
     class CodeEditor {
@@ -44,6 +45,10 @@ namespace Supernova::Editor {
 
         std::vector<fs::path> getOpenPaths() const;
         bool isFocused() const;
+
+        bool save(const std::string& filepath);
+        bool save(EditorInstance& instance);
+        void saveAll();
 
         void openFile(const std::string& filepath);
         void closeFile(const std::string& filepath);
