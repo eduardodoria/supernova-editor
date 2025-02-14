@@ -1,4 +1,6 @@
 #include "CodeEditor.h"
+
+#include "Backend.h"
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -74,7 +76,7 @@ void CodeEditor::handleFileChangePopup() {
     if (ImGui::BeginPopupModal("Files Changed###FilesChanged", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
         if (changedFilesQueue.size() == 1) {
             ImGui::Text("The file '%s' has been modified externally.", 
-                std::filesystem::path(changedFilesQueue[0].filepath).filename().string().c_str());
+                changedFilesQueue[0].filepath.filename().string().c_str());
         } else {
             ImGui::Text("%zu files have been modified externally:", changedFilesQueue.size());
 
@@ -82,7 +84,7 @@ void CodeEditor::handleFileChangePopup() {
             int fileCount = 0;
             for (const auto& change : changedFilesQueue) {
                 if (fileCount < 10) {
-                    ImGui::BulletText("%s", std::filesystem::path(change.filepath).filename().string().c_str());
+                    ImGui::BulletText("%s", change.filepath.filename().string().c_str());
                 }
                 fileCount++;
             }
@@ -133,6 +135,22 @@ void CodeEditor::handleFileChangePopup() {
     }
 }
 
+std::string CodeEditor::getWindowTitle(const EditorInstance& instance) const{
+    std::string filename = instance.filepath.filename().string();
+    return filename + "###" + instance.filepath.string();
+}
+
+std::vector<fs::path> CodeEditor::getOpenPaths() const{
+    std::vector<fs::path> openPaths;
+    for (auto it = editors.begin(); it != editors.end();) {
+        const auto& instance = it->second;
+
+        openPaths.push_back(instance.filepath);
+    }
+
+    return openPaths;
+}
+
 void CodeEditor::openFile(const std::string& filepath) {
     if (editors.find(filepath) != editors.end()) {
         // File already open
@@ -153,6 +171,8 @@ void CodeEditor::openFile(const std::string& filepath) {
         // If loading fails, remove the instance
         editors.erase(filepath);
     }
+
+    Backend::getApp().addNewCodeWindowToDock(instance.filepath);
 }
 
 void CodeEditor::closeFile(const std::string& filepath) {
@@ -197,8 +217,7 @@ void CodeEditor::show() {
         }
 
         // Create window title using filename
-        std::string filename = std::filesystem::path(instance.filepath).filename().string();
-        std::string windowTitle = filename + "###" + instance.filepath;
+        std::string windowTitle = getWindowTitle(instance);
 
         ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_FirstUseEver);
         if (ImGui::Begin(windowTitle.c_str(), &instance.isOpen)) {

@@ -102,6 +102,10 @@ void Editor::App::buildDockspace(){
         addNewSceneToDock(sceneProject.id);
     }
 
+    for (auto& codePath : codeEditor->getOpenPaths()) {
+        addNewCodeWindowToDock(codePath);
+    }
+
     ImGui::DockBuilderFinish(dockspace_id);
 }
 
@@ -292,6 +296,12 @@ void Editor::App::engineShutdown(){
 void Editor::App::addNewSceneToDock(uint32_t sceneId){
     if (isInitialized){
         ImGui::DockBuilderDockWindow(("###Scene" + std::to_string(sceneId)).c_str(), dock_id_middle_top);
+    }
+}
+
+void Editor::App::addNewCodeWindowToDock(fs::path path){
+    if (isInitialized){
+        ImGui::DockBuilderDockWindow(("###" + path.string()).c_str(), dock_id_middle_top);
     }
 }
 
