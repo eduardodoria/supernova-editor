@@ -217,8 +217,10 @@ bool Editor::CodeEditor::hasLastFocusedUnsavedChanges() const {
 }
 
 void Editor::CodeEditor::openFile(const std::string& filepath) {
-    if (editors.find(filepath) != editors.end()) {
-        // File already open
+    auto it = editors.find(filepath);
+    if (it != editors.end()) {
+        // File already open - set this window as focused for the next frame
+        ImGui::SetWindowFocus(getWindowTitle(it->second).c_str());
         return;
     }
 
