@@ -211,6 +211,8 @@ set_target_properties(
     CXX_STANDARD_REQUIRED ON
 )
 
-install(TARGETS supernova-editor 
+install(TARGETS supernova-editor supernova
         CONFIGURATIONS Release MinSizeRel 
-        RUNTIME DESTINATION bin)
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib)

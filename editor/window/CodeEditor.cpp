@@ -307,7 +307,7 @@ bool Editor::CodeEditor::handleFileRename(const fs::path& oldPath, const fs::pat
         editors.erase(it);
     } else {
         editors.erase(it);
-        editors[newPath] = std::move(newInstance);
+        editors[newPath.string()] = std::move(newInstance);
     }
 
     // Update any pending file changes
