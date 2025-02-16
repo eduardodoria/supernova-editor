@@ -220,4 +220,5 @@ install(TARGETS supernova-editor supernova
         CONFIGURATIONS Release MinSizeRel 
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION bin
-        ARCHIVE DESTINATION bin)
+        ARCHIVE DESTINATION bin
+)
