@@ -130,6 +130,11 @@ set(IMGUICOLORTEXTEDIT_SOURCES
 
 include_directories (${EDITOR_DIR})
 
+if(UNIX AND NOT APPLE)
+    set(CMAKE_INSTALL_RPATH "$ORIGIN")
+    set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+endif()
+
 add_executable(
     supernova-editor
 
@@ -214,5 +219,5 @@ set_target_properties(
 install(TARGETS supernova-editor supernova
         CONFIGURATIONS Release MinSizeRel 
         RUNTIME DESTINATION bin
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib)
+        LIBRARY DESTINATION bin
+        ARCHIVE DESTINATION bin)
