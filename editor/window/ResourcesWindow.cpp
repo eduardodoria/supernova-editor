@@ -348,6 +348,7 @@ void Editor::ResourcesWindow::handleRename(){
                         ImGui::OpenPopup("File Already Exists");
                     } else {
                         cmdHistory.addCommand(new RenameFileCmd(fileBeingRenamed, newName, currentPath));
+                        codeEditor->handleFileRename(oldPath, newPath);
                         scanDirectory(currentPath);
                         isRenaming = false;
                         ImGui::CloseCurrentPopup();

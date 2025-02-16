@@ -276,6 +276,50 @@ std::string Editor::CodeEditor::getText(const std::string& filepath) const {
     return "";
 }
 
+bool Editor::CodeEditor::handleFileRename(const fs::path& oldPath, const fs::path& newPath) {
+    auto it = editors.find(oldPath);
+    if (it == editors.end()) {
+        return false;
+    }
+
+    // Create new instance with the same editor content
+    EditorInstance newInstance;
+    newInstance.editor = std::move(it->second.editor);
+    newInstance.isOpen = it->second.isOpen;
+    newInstance.filepath = newPath;
+    newInstance.isModified = it->second.isModified;
+    newInstance.lastCheckTime = it->second.lastCheckTime;
+    newInstance.hasExternalChanges = it->second.hasExternalChanges;
+    newInstance.savedUndoIndex = it->second.savedUndoIndex;
+
+    try {
+        newInstance.lastWriteTime = fs::last_write_time(newPath);
+    } catch (const std::exception& e) {
+        return false;
+    }
+
+    // Update lastFocused pointer if it was pointing to the old instance
+    if (lastFocused == &it->second) {
+        editors[newPath] = std::move(newInstance);
+        lastFocused = &editors[newPath];
+        editors.erase(it);
+    } else {
+        editors.erase(it);
+        editors[newPath] = std::move(newInstance);
+    }
+
+    // Update any pending file changes
+    auto changeIt = std::remove_if(changedFilesQueue.begin(), changedFilesQueue.end(),
+        [&](const PendingFileChange& change) {
+            return change.filepath == oldPath;
+        });
+    changedFilesQueue.erase(changeIt, changedFilesQueue.end());
+
+    Backend::getApp().addNewCodeWindowToDock(newPath);
+
+    return true;
+}
+
 void Editor::CodeEditor::show() {
     // Get current time
     double currentTime = ImGui::GetTime();
