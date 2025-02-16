@@ -120,7 +120,7 @@ void Editor::CodeEditor::handleFileChangePopup() {
         if (ImGui::Button("No", ImVec2(buttonWidth, 0))) {
             // Update timestamps without reloading
             for (const auto& change : changedFilesQueue) {
-                auto it = editors.find(change.filepath);
+                auto it = editors.find(change.filepath.string());
                 if (it != editors.end()) {
                     it->second.lastWriteTime = change.newWriteTime;
                 }
