@@ -107,7 +107,7 @@ void Editor::CodeEditor::handleFileChangePopup() {
         if (ImGui::Button("Yes", ImVec2(buttonWidth, 0))) {
             // Reload all files in the queue
             for (const auto& change : changedFilesQueue) {
-                auto it = editors.find(change.filepath);
+                auto it = editors.find(change.filepath.string());
                 if (it != editors.end()) {
                     loadFileContent(it->second);
                 }
@@ -279,7 +279,7 @@ std::string Editor::CodeEditor::getText(const std::string& filepath) const {
 }
 
 bool Editor::CodeEditor::handleFileRename(const fs::path& oldPath, const fs::path& newPath) {
-    auto it = editors.find(oldPath);
+    auto it = editors.find(oldPath.string());
     if (it == editors.end()) {
         return false;
     }
@@ -302,8 +302,8 @@ bool Editor::CodeEditor::handleFileRename(const fs::path& oldPath, const fs::pat
 
     // Update lastFocused pointer if it was pointing to the old instance
     if (lastFocused == &it->second) {
-        editors[newPath] = std::move(newInstance);
-        lastFocused = &editors[newPath];
+        editors[newPath.string()] = std::move(newInstance);
+        lastFocused = &editors[newPath.string()];
         editors.erase(it);
     } else {
         editors.erase(it);

@@ -994,7 +994,10 @@ void Editor::ResourcesWindow::show() {
             // Delete selected files
             std::vector<fs::path> pathsToDelete;
             for (const auto& fileName : selectedFiles) {
-                pathsToDelete.push_back(std::filesystem::path(currentPath) / fileName);
+                fs::path filePath = std::filesystem::path(currentPath) / fileName;
+                pathsToDelete.push_back(filePath);
+
+                codeEditor->closeFile(filePath.string());
             }
             cmdHistory.addCommand(new DeleteFileCmd(pathsToDelete, project->getProjectPath()));
 

@@ -5,7 +5,7 @@
 #include "Log.h"
 #include "subsystem/MeshSystem.h"
 #include "command/CommandHandle.h"
-#include "command/type/CreateEntityCmd.h"
+//#include "command/type/CreateEntityCmd.h"
 #include "command/type/DeleteEntityCmd.h"
 
 using namespace Supernova;
