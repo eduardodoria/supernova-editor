@@ -1,5 +1,4 @@
-#ifndef FACTORY_H
-#define FACTORY_H
+#pragma once
 
 namespace Supernova::Editor{
 
@@ -12,5 +11,3 @@ namespace Supernova::Editor{
     };
 
 }
-
-#endif /* FACTORY_H */

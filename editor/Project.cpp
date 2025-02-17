@@ -2,11 +2,14 @@
 
 #include "Backend.h"
 
+#include "yaml-cpp/yaml.h"
+#include <fstream>
+
 #include "Log.h"
 #include "subsystem/MeshSystem.h"
 #include "command/CommandHandle.h"
-//#include "command/type/CreateEntityCmd.h"
 #include "command/type/DeleteEntityCmd.h"
+#include "Stream.h"
 
 using namespace Supernova;
 
@@ -80,6 +83,8 @@ uint32_t Editor::Project::createNewScene(std::string sceneName){
 
     Backend::getApp().addNewSceneToDock(scenes.back().id);
 
+    saveProject();
+
     return scenes.back().id;
 }
 
@@ -116,6 +121,37 @@ bool Editor::Project::createNewComponent(uint32_t sceneId, Entity entity, Compon
     return false;
 }
 
+void Editor::Project::saveProject(){
+    YAML::Emitter out;
+    out << YAML::BeginMap;
+
+    // Save scenes data
+    out << YAML::Key << "scenes" << YAML::Value;
+    out << YAML::BeginSeq;
+    for (const auto& scene : scenes) {
+        out << YAML::BeginMap;
+        out << YAML::Key << "id" << YAML::Value << scene.id;
+        out << YAML::Key << "name" << YAML::Value << scene.name;
+        out << YAML::Key << "entities" << YAML::Value;
+        out << YAML::BeginSeq;
+        for (const auto& entity : scene.entities) {
+            Stream::serializeEntity(out, entity, scene.scene);
+        }
+        out << YAML::EndMap;
+    }
+    out << YAML::EndSeq;
+
+    // Save selected scene and last activated scene
+    out << YAML::Key << "selectedScene" << YAML::Value << selectedScene;
+    out << YAML::Key << "lastActivatedScene" << YAML::Value << lastActivatedScene;
+
+    out << YAML::EndMap;
+
+    std::filesystem::path projectFile = projectPath / "project.yaml";
+    std::ofstream fout(projectFile.string());
+    fout << out.c_str();
+    fout.close();
+}
 void Editor::Project::deleteEntity(uint32_t sceneId, Entity entity){
     deleteEntities(sceneId, {entity});
 }

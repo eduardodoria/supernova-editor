@@ -50,6 +50,8 @@ namespace Supernova::Editor{
     public:
         Project();
 
+        void saveProject();
+
         bool createNewProject(std::string projectName);
         uint32_t createNewScene(std::string sceneName);
 

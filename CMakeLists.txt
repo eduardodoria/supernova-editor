@@ -110,6 +110,7 @@ include_directories (${SUPERNOVA_ROOT}/engine/renders)
 add_subdirectory(${SUPERNOVA_ROOT}/engine)
 
 add_subdirectory(libs/nfd)
+add_subdirectory(libs/yaml-cpp)
 
 # Add ImGui source files
 set(IMGUI_SOURCES
@@ -149,6 +150,7 @@ add_executable(
     ${EDITOR_DIR}/Catalog.cpp
     ${EDITOR_DIR}/Conector.cpp
     ${EDITOR_DIR}/Generator.cpp
+    ${EDITOR_DIR}/Stream.cpp
 
     ${EDITOR_DIR}/window/Properties.cpp
     ${EDITOR_DIR}/window/Output.cpp
@@ -204,6 +206,7 @@ target_link_libraries(
     Threads::Threads
     supernova
     nfd
+    yaml-cpp
 )
 
 set_target_properties(
