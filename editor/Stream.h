@@ -10,7 +10,7 @@
 
 namespace Supernova::Editor {
     class Stream {
-        private:
+    private:
         static YAML::Node encodeVector3(const Vector3& vec);
         static YAML::Node encodeQuaternion(const Quaternion& quat);
         static YAML::Node encodeRect(const Rect& rect);
