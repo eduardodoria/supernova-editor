@@ -121,37 +121,15 @@ bool Editor::Project::createNewComponent(uint32_t sceneId, Entity entity, Compon
     return false;
 }
 
-void Editor::Project::saveProject(){
-    YAML::Emitter out;
-    out << YAML::BeginMap;
-
-    // Save scenes data
-    out << YAML::Key << "scenes" << YAML::Value;
-    out << YAML::BeginSeq;
-    for (const auto& scene : scenes) {
-        out << YAML::BeginMap;
-        out << YAML::Key << "id" << YAML::Value << scene.id;
-        out << YAML::Key << "name" << YAML::Value << scene.name;
-        out << YAML::Key << "entities" << YAML::Value;
-        out << YAML::BeginSeq;
-        for (const auto& entity : scene.entities) {
-            Stream::serializeEntity(out, entity, scene.scene);
-        }
-        out << YAML::EndMap;
-    }
-    out << YAML::EndSeq;
-
-    // Save selected scene and last activated scene
-    out << YAML::Key << "selectedScene" << YAML::Value << selectedScene;
-    out << YAML::Key << "lastActivatedScene" << YAML::Value << lastActivatedScene;
-
-    out << YAML::EndMap;
+void Editor::Project::saveProject() {
+    YAML::Node root = Stream::encodeProject(this);
 
     std::filesystem::path projectFile = projectPath / "project.yaml";
     std::ofstream fout(projectFile.string());
-    fout << out.c_str();
+    fout << YAML::Dump(root);
     fout.close();
 }
+
 void Editor::Project::deleteEntity(uint32_t sceneId, Entity entity){
     deleteEntities(sceneId, {entity});
 }
