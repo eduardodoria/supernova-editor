@@ -21,7 +21,10 @@ namespace Supernova::Editor{
         std::vector<Entity> entities;
         SceneRender* sceneRender;
         std::vector<Entity> selectedEntities;
+        fs::path filepath;
         bool needUpdateRender;
+        bool isOpen;
+        bool isModified;
     };
 
     class Project{

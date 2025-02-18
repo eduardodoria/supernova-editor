@@ -10,9 +10,55 @@
 
 using namespace Supernova;
 
-Editor::SceneWindow::SceneWindow(Project* project){
+Editor::SceneWindow::SceneWindow(Project* project) {
     this->project = project;
     this->mouseLeftDraggedInside = false;
+    this->windowFocused = false;
+}
+
+void Editor::SceneWindow::handleCloseScene(uint32_t sceneId) {
+    SceneProject* sceneProject = project->getScene(sceneId);
+    if (sceneProject) {
+        // If we're closing the currently selected scene
+        if (project->getSelectedSceneId() == sceneId) {
+            // Find another scene to select
+            for (const auto& otherScene : project->getScenes()) {
+                if (otherScene.id != sceneId && otherScene.isOpen) {
+                    project->setSelectedSceneId(otherScene.id);
+                    break;
+                }
+            }
+        }
+
+        sceneProject->isOpen = false;
+    }
+}
+
+bool Editor::SceneWindow::isFocused() const {
+    return windowFocused;
+}
+
+std::string Editor::SceneWindow::getWindowTitle(const SceneProject& sceneProject) const {
+    return sceneProject.name + "###Scene" + std::to_string(sceneProject.id);
+}
+
+void Editor::SceneWindow::openScene(uint32_t sceneId) {
+    SceneProject* sceneProject = project->getScene(sceneId);
+    if (sceneProject) {
+        sceneProject->isOpen = true;
+    }
+}
+
+void Editor::SceneWindow::closeScene(uint32_t sceneId) {
+    // Don't allow closing if it's the last open scene
+    int openScenesCount = std::count_if(project->getScenes().begin(), project->getScenes().end(),
+        [](const SceneProject& sp) { return sp.isOpen; });
+
+    if (openScenesCount <= 1) {
+        return;
+    }
+
+    handleCloseScene(sceneId);
 }
 
 void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
@@ -181,51 +227,40 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
 
 }
 
-void Editor::SceneWindow::show(){
+void Editor::SceneWindow::show() {
+    windowFocused = false;
+
+    // Iterate through all scenes in the project
     for (auto& sceneProject : project->getScenes()) {
+        // Disable close button if this is the only open scene
+        bool canClose = std::count_if(project->getScenes().begin(), project->getScenes().end(),
+            [](const SceneProject& sp) { return sp.isOpen; }) > 1;
+
+        if (!sceneProject.isOpen) {
+            continue;
+        }
+
         ImGui::SetNextWindowSizeConstraints(ImVec2(200, 200), ImVec2(FLT_MAX, FLT_MAX));
-        ImGui::Begin((sceneProject.name + "###Scene" + std::to_string(sceneProject.id)).c_str());
-        {
-            if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)){
+        if (ImGui::Begin(getWindowTitle(sceneProject).c_str(), canClose ? &sceneProject.isOpen : nullptr)) {
+            if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
+                windowFocused = true;
                 project->setSelectedSceneId(sceneProject.id);
             }
 
             if (ImGui::Button(ICON_FA_PLAY " Play")) {
                 project->build();
-                // Handle play button click
             }
 
             ImGui::BeginDisabled();
             ImGui::SameLine();
             if (ImGui::Button(ICON_FA_STOP " Stop")) {
-                // Handle play button click
+                // Handle stop button click
             }
             ImGui::EndDisabled();
 
             ImGui::SameLine(0, 10);
             ImGui::Dummy(ImVec2(1, 20));
             ImGui::SameLine(0, 10);
-            /*
-            CursorSelected cursorSelected = sceneProject.sceneRender->getUILayer()->getCursorSelected();
-
-            ImGui::BeginDisabled(cursorSelected == CursorSelected::POINTER);
-            ImGui::SameLine();
-            if (ImGui::Button(ICON_FA_ARROW_POINTER)) {
-                sceneProject.sceneRender->getUILayer()->enableCursorPointer();
-            }
-            ImGui::EndDisabled();
-
-            ImGui::BeginDisabled(cursorSelected == CursorSelected::HAND);
-            ImGui::SameLine();
-            if (ImGui::Button(ICON_FA_HAND)) {
-                sceneProject.sceneRender->getUILayer()->enableCursorHand();
-            }
-            ImGui::EndDisabled();
-
-            ImGui::SameLine(0, 10);
-            ImGui::Dummy(ImVec2(1, 20));
-            ImGui::SameLine(0, 10);
-            */
 
             GizmoSelected gizmoSelected = sceneProject.sceneRender->getToolsLayer()->getGizmoSelected();
 
@@ -279,10 +314,10 @@ void Editor::SceneWindow::show(){
             ImGui::Dummy(ImVec2(1, 20));
             ImGui::SameLine(0, 10);
 
-            if (ImGui::Button(ICON_FA_GEAR)){
+            if (ImGui::Button(ICON_FA_GEAR)) {
                 ImGui::OpenPopup("scenesettings");
             }
-            if (ImGui::BeginPopup("scenesettings")){
+            if (ImGui::BeginPopup("scenesettings")) {
                 ImGui::Text("Scene settings");
                 ImGui::Separator();
 
@@ -299,7 +334,7 @@ void Editor::SceneWindow::show(){
                 int widthNew = ImGui::GetContentRegionAvail().x;
                 int heightNew = ImGui::GetContentRegionAvail().y;
 
-                if (widthNew != width[sceneProject.id] || heightNew != height[sceneProject.id]){
+                if (widthNew != width[sceneProject.id] || heightNew != height[sceneProject.id]) {
                     width[sceneProject.id] = ImGui::GetContentRegionAvail().x;
                     height[sceneProject.id] = ImGui::GetContentRegionAvail().y;
 
@@ -307,7 +342,8 @@ void Editor::SceneWindow::show(){
                 }
 
                 ImGui::Image((ImTextureID)(intptr_t)sceneProject.sceneRender->getTexture().getGLHandler(), ImGui::GetContentRegionAvail(), ImVec2(0, 1), ImVec2(1, 0));
-                if (ImGui::BeginDragDropTarget()){
+                
+                if (ImGui::BeginDragDropTarget()) {
                     ImVec2 windowPos = ImGui::GetWindowPos();
                     ImGuiIO& io = ImGui::GetIO();
                     ImVec2 mousePos = io.MousePos;
@@ -319,35 +355,32 @@ void Editor::SceneWindow::show(){
                     static Texture originalTex;
                     static Entity lastSelEntity = NULL_ENTITY;
 
-                    if (selEntity == NULL_ENTITY || lastSelEntity != selEntity){
-                        if (selMesh){
-                            if (selMesh->submeshes[0].material.baseColorTexture != originalTex){
+                    if (selEntity == NULL_ENTITY || lastSelEntity != selEntity) {
+                        if (selMesh) {
+                            if (selMesh->submeshes[0].material.baseColorTexture != originalTex) {
                                 selMesh->submeshes[0].material.baseColorTexture = originalTex;
                                 selMesh->needReload = true;
-                                //printf("reload\n");
                             }
-
                             selMesh = nullptr;
                         }
                     }
 
-                    if (selEntity != NULL_ENTITY){
+                    if (selEntity != NULL_ENTITY) {
                         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
                             lastSelEntity = selEntity;
                             std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
-                            MeshComponent *mesh = sceneProject.scene->findComponent<MeshComponent>(selEntity);
-                            if (mesh && receivedStrings.size() > 0){
-                                if (!selMesh){
+                            MeshComponent* mesh = sceneProject.scene->findComponent<MeshComponent>(selEntity);
+                            if (mesh && receivedStrings.size() > 0) {
+                                if (!selMesh) {
                                     selMesh = mesh;
                                     originalTex = mesh->submeshes[0].material.baseColorTexture;
                                 }
                                 Texture newTex(receivedStrings[0]);
-                                if (mesh->submeshes[0].material.baseColorTexture != newTex){
+                                if (mesh->submeshes[0].material.baseColorTexture != newTex) {
                                     mesh->submeshes[0].material.baseColorTexture = newTex;
                                     mesh->needReload = true;
-                                    //printf("reload\n");
                                 }
-                                if (payload->IsDelivery()){
+                                if (payload->IsDelivery()) {
                                     std::string propName = "submeshes[0].material.basecolortexture";
                                     selMesh->submeshes[0].material.baseColorTexture = originalTex;
 
@@ -367,6 +400,11 @@ void Editor::SceneWindow::show(){
             ImGui::EndChild();
         }
         ImGui::End();
+
+        // Handle window closing
+        if (!sceneProject.isOpen) {
+            handleCloseScene(sceneProject.id);
+        }
     }
 }
 

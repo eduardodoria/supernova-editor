@@ -76,6 +76,8 @@ uint32_t Editor::Project::createNewScene(std::string sceneName){
     data.sceneRender = new SceneRender(data.scene);
     data.selectedEntities.clear();
     data.needUpdateRender = true;
+    data.isOpen = true;
+    data.isModified = false;
 
     scenes.push_back(data);
 

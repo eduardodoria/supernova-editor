@@ -5,13 +5,14 @@
 #include "imgui_internal.h"
 #include "Project.h"
 #include "object/Camera.h"
+#include <unordered_map>
 
-namespace Supernova::Editor{
+namespace Supernova::Editor {
 
-    class SceneWindow{
-
+    class SceneWindow {
     private:
         Project* project;
+        bool windowFocused;
 
         bool mouseLeftDown = false;
         Vector2 mouseLeftStartPos;
@@ -24,17 +25,22 @@ namespace Supernova::Editor{
         std::map<uint32_t, int> width;
         std::map<uint32_t, int> height;
 
+        void handleCloseScene(uint32_t sceneId);
         void sceneEventHandler(Project* project, uint32_t sceneId);
+        std::string getWindowTitle(const SceneProject& sceneProject) const;
         
     public:
         SceneWindow(Project* project);
 
         void show();
+        bool isFocused() const;
+
+        void openScene(uint32_t sceneId);
+        void closeScene(uint32_t sceneId);
 
         int getWidth(uint32_t sceneId) const;
         int getHeight(uint32_t sceneId) const;
     };
-
 }
 
 #endif /* SCENEWINDOW_H */

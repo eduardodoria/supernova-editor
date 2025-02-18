@@ -9,8 +9,9 @@
 
 using namespace Supernova;
 
-Editor::Structure::Structure(Project* project){
+Editor::Structure::Structure(Project* project, SceneWindow* sceneWindow){
     this->project = project;
+    this->sceneWindow = sceneWindow;
     this->openParent = NULL_ENTITY;
 }
 
@@ -88,7 +89,8 @@ void Editor::Structure::showIconMenu(){
         ImGui::Text("New scene:");
         ImVec2 buttonSize = ImVec2(ImGui::GetFontSize() * 8, ImGui::GetFontSize() * 2);
         if (ImGui::Button(ICON_FA_CUBES "  3D Scene", buttonSize)) {
-            project->createNewScene("New Scene");
+            uint32_t sceneid = project->createNewScene("New Scene");
+            sceneWindow->openScene(sceneid);
         }
         //ImGui::SameLine();
         if (ImGui::Button(ICON_FA_CUBES_STACKED "  2D Scene", buttonSize)) {

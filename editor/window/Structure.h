@@ -2,6 +2,7 @@
 #define STRUCTURE_H
 
 #include "Project.h"
+#include "SceneWindow.h"
 #include "imgui.h"
 #include <string>
 #include <vector>
@@ -24,6 +25,7 @@ namespace Supernova::Editor{
     private:
 
         Project* project;
+        SceneWindow* sceneWindow;
 
         char nameBuffer[256];
         char searchBuffer[256] = "";
@@ -41,7 +43,7 @@ namespace Supernova::Editor{
         TreeNode* findNode(Editor::TreeNode* root, Entity entity);
 
     public:
-        Structure(Project* project);
+        Structure(Project* project, SceneWindow* sceneWindow);
 
         void show();
     };
