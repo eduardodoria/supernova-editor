@@ -11,11 +11,14 @@
 namespace Supernova::Editor {
     class Stream {
     private:
+        static YAML::Node encodeVector2(const Vector2& vec);
         static YAML::Node encodeVector3(const Vector3& vec);
+        static YAML::Node encodeVector4(const Vector4& vec);
         static YAML::Node encodeQuaternion(const Quaternion& quat);
         static YAML::Node encodeRect(const Rect& rect);
         static YAML::Node encodeMatrix4(const Matrix4& mat);
         static YAML::Node encodeTransform(const Transform& transform);
+        static YAML::Node encodeTexture(const Texture& texture);
         static YAML::Node encodeMaterial(const Material& material);
         static YAML::Node encodeSubmesh(const Submesh& submesh);
         static YAML::Node encodeAABB(const AABB& aabb);

@@ -81,12 +81,30 @@ YAML::Node Editor::Stream::encodeEntity(Entity entity, Scene* scene) {
     return entityNode;
 }
 
+YAML::Node Editor::Stream::encodeVector2(const Vector2& vec){
+    YAML::Node node;
+    node.SetStyle(YAML::EmitterStyle::Flow);
+    node.push_back(vec.x);
+    node.push_back(vec.y);
+    return node;
+}
+
 YAML::Node Editor::Stream::encodeVector3(const Vector3& vec) {
     YAML::Node node;
     node.SetStyle(YAML::EmitterStyle::Flow);
     node.push_back(vec.x);
     node.push_back(vec.y);
     node.push_back(vec.z);
+    return node;
+}
+
+YAML::Node Editor::Stream::encodeVector4(const Vector4& vec){
+    YAML::Node node;
+    node.SetStyle(YAML::EmitterStyle::Flow);
+    node.push_back(vec.x);
+    node.push_back(vec.y);
+    node.push_back(vec.z);
+    node.push_back(vec.w);
     return node;
 }
 
@@ -124,9 +142,67 @@ YAML::Node Editor::Stream::encodeMatrix4(const Matrix4& mat) {
     return node;
 }
 
+YAML::Node Editor::Stream::encodeTexture(const Texture& texture) {
+    YAML::Node node;
+    if (!texture.empty()) {
+        node["id"] = texture.getId();
+        node["path"] = texture.getPath();
+        node["minFilter"] = static_cast<int>(texture.getMinFilter());
+        node["magFilter"] = static_cast<int>(texture.getMagFilter());
+        node["wrapU"] = static_cast<int>(texture.getWrapU());
+        node["wrapV"] = static_cast<int>(texture.getWrapV());
+
+        if (texture.isFramebuffer()) {
+            node["isFramebuffer"] = true;
+        }
+
+        // Add texture dimensions if available
+        if (texture.getWidth() > 0 && texture.getHeight() > 0) {
+            node["width"] = texture.getWidth();
+            node["height"] = texture.getHeight();
+        }
+
+        node["transparent"] = texture.isTransparent();
+        node["releaseDataAfterLoad"] = texture.isReleaseDataAfterLoad();
+    }
+    return node;
+}
+
 YAML::Node Editor::Stream::encodeMaterial(const Material& material) {
     YAML::Node node;
-    // TODO: Implement material serialization
+
+    // Encode shader part properties
+    node["baseColorFactor"] = encodeVector4(material.baseColorFactor);
+    node["metallicFactor"] = material.metallicFactor;
+    node["roughnessFactor"] = material.roughnessFactor;
+    node["emissiveFactor"] = encodeVector3(material.emissiveFactor);
+    node["ambientLight"] = encodeVector3(material.ambientLight);
+    node["ambientIntensity"] = material.ambientIntensity;
+
+    // Encode textures using the helper method
+    if (!material.baseColorTexture.empty()) {
+        node["baseColorTexture"] = encodeTexture(material.baseColorTexture);
+    }
+
+    if (!material.emissiveTexture.empty()) {
+        node["emissiveTexture"] = encodeTexture(material.emissiveTexture);
+    }
+
+    if (!material.metallicRoughnessTexture.empty()) {
+        node["metallicRoughnessTexture"] = encodeTexture(material.metallicRoughnessTexture);
+    }
+
+    if (!material.occlusionTexture.empty()) {
+        node["occlusionTexture"] = encodeTexture(material.occlusionTexture);
+    }
+
+    if (!material.normalTexture.empty()) {
+        node["normalTexture"] = encodeTexture(material.normalTexture);
+    }
+
+    // Encode material name
+    node["name"] = material.name;
+
     return node;
 }
 
@@ -134,7 +210,6 @@ YAML::Node Editor::Stream::encodeSubmesh(const Submesh& submesh) {
     YAML::Node node;
 
     node["material"] = encodeMaterial(submesh.material);
-    // TODO: Implement attributes map serialization
 
     node["textureRect"] = encodeRect(submesh.textureRect);
 
