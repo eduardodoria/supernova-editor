@@ -90,6 +90,35 @@ uint32_t Editor::Project::createNewScene(std::string sceneName){
     return scenes.back().id;
 }
 
+void Editor::Project::closeScene(uint32_t sceneId) {
+    auto it = std::find_if(scenes.begin(), scenes.end(),
+        [sceneId](const SceneProject& scene) { return scene.id == sceneId; });
+    
+    if (it != scenes.end()) {
+        delete it->sceneRender;
+        delete it->scene;
+
+        if (selectedScene == sceneId) {
+            for (const auto& otherScene : scenes) {
+                if (otherScene.id != sceneId) {
+                    selectedScene = otherScene.id;
+                    break;
+                }
+            }
+        }
+
+        // If this was the last activated scene, clear it
+        if (lastActivatedScene == sceneId) {
+            lastActivatedScene = NULL_PROJECT_SCENE;
+        }
+
+        // Remove the scene from the vector
+        scenes.erase(it);
+
+        saveProject();
+    }
+}
+
 Entity Editor::Project::createNewEntity(uint32_t sceneId, std::string entityName){
     for (int i = 0; i < scenes.size(); i++){
         if (scenes[i].id == sceneId){

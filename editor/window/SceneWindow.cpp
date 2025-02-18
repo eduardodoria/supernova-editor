@@ -32,6 +32,7 @@ void Editor::SceneWindow::handleCloseScene(uint32_t sceneId) {
 
         sceneProject->isOpen = false;
     }
+    project->closeScene(sceneId);
 }
 
 bool Editor::SceneWindow::isFocused() const {
