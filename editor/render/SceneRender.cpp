@@ -77,6 +77,12 @@ Editor::SceneRender::SceneRender(Scene* scene){
 
 Editor::SceneRender::~SceneRender(){
     framebuffer.destroy();
+
+    delete camera;
+    delete lines;
+    delete sun;
+    delete sky;
+    delete selAABBLines;
 }
 
 AABB Editor::SceneRender::getFamilyAABB(Entity entity){

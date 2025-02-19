@@ -27,6 +27,7 @@ namespace Supernova::Editor{
         GizmoSideSelected gizmoSideSelected;
     public:
         ToolsLayer();
+        virtual ~ToolsLayer();
 
         void updateCamera(CameraComponent& extCamera, Transform& extCameraTransform);
         void updateGizmo(Camera* sceneCam, Vector3& position, Quaternion& rotation, float scale, Ray& mouseRay, bool mouseClicked);

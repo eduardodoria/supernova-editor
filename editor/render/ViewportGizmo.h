@@ -24,6 +24,7 @@ namespace Supernova::Editor{
         Shape* zarrow;
     public:
         ViewportGizmo();
+        virtual ~ViewportGizmo();
 
         void applyRotation(Camera* sceneCam);
 

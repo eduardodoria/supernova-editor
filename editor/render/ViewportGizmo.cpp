@@ -60,6 +60,20 @@ Editor::ViewportGizmo::ViewportGizmo(){
     camera->setRenderToTexture(true);
 }
 
+Editor::ViewportGizmo::~ViewportGizmo(){
+    delete camera;
+    delete mainObject;
+    delete cube;
+    delete xaxis;
+    delete yaxis;
+    delete zaxis;
+    delete xarrow;
+    delete yarrow;
+    delete zarrow;
+
+    delete scene;
+}
+
 void Editor::ViewportGizmo::applyRotation(Camera* sceneCam){
     Vector3 direction = sceneCam->getWorldDirection();
     Vector3 right = sceneCam->getWorldRight();

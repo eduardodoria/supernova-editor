@@ -20,6 +20,15 @@ Editor::ToolsLayer::ToolsLayer(){
     scene->setCamera(camera);
 }
 
+Editor::ToolsLayer::~ToolsLayer(){
+    delete camera;
+    delete tGizmo;
+    delete rGizmo;
+    delete sGizmo;
+
+    delete scene;
+}
+
 void Editor::ToolsLayer::updateCamera(CameraComponent& extCamera, Transform& extCameraTransform){
     Entity entity = camera->getEntity();
     CameraComponent& cameracomp = scene->getComponent<CameraComponent>(entity);

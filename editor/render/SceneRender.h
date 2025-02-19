@@ -11,8 +11,9 @@ namespace Supernova::Editor{
 
     class SceneRender{
     private:
-        Camera* camera;
         Scene* scene;
+
+        Camera* camera;
 
         Lines* lines;
         Light* sun;

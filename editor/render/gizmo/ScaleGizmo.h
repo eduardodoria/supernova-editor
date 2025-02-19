@@ -35,6 +35,7 @@ namespace Supernova::Editor{
 
     public:
         ScaleGizmo(Scene* scene);
+        virtual ~ScaleGizmo();
 
         GizmoSideSelected checkHoverHighlight(Ray& ray);
     };

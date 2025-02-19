@@ -86,6 +86,19 @@ Editor::ScaleGizmo::ScaleGizmo(Scene* scene): Object(scene){
     this->addChild(yzrect);
 }
 
+Editor::ScaleGizmo::~ScaleGizmo(){
+    delete centerbox;
+    delete xaxis;
+    delete yaxis;
+    delete zaxis;
+    delete xbox;
+    delete ybox;
+    delete zbox;
+    delete xyrect;
+    delete xzrect;
+    delete yzrect;
+}
+
 Editor::GizmoSideSelected Editor::ScaleGizmo::checkHoverHighlight(Ray& ray){
 
     Editor::GizmoSideSelected gizmoSideSelected = GizmoSideSelected::NONE;

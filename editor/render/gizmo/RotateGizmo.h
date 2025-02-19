@@ -39,6 +39,7 @@ namespace Supernova::Editor{
 
     public:
         RotateGizmo(Scene* scene);
+        virtual ~RotateGizmo();
 
         void updateRotations(Camera* camera);
         void drawLine(Vector3 point);

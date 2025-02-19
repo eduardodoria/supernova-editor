@@ -51,6 +51,14 @@ Editor::RotateGizmo::RotateGizmo(Scene* scene): Object(scene){
     this->addChild(zcircle);
 }
 
+Editor::RotateGizmo::~RotateGizmo(){
+    delete maincircle;
+    delete xcircle;
+    delete ycircle;
+    delete zcircle;
+    delete lines;
+}
+
 std::vector<AABB> Editor::RotateGizmo::createHalfTorus(Entity entity, float radius, float ringRadius, unsigned int sides, unsigned int rings) {
     std::vector<AABB> aabbs;
     aabbs.resize(rings);

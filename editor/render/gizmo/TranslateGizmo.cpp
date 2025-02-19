@@ -87,6 +87,19 @@ Editor::TranslateGizmo::TranslateGizmo(Scene* scene): Object(scene){
     this->addChild(yzrect);
 }
 
+Editor::TranslateGizmo::~TranslateGizmo(){
+    delete sphere;
+    delete xaxis;
+    delete yaxis;
+    delete zaxis;
+    delete xarrow;
+    delete yarrow;
+    delete zarrow;
+    delete xyrect;
+    delete xzrect;
+    delete yzrect;
+}
+
 Editor::GizmoSideSelected Editor::TranslateGizmo::checkHoverHighlight(Ray& ray){
 
     Editor::GizmoSideSelected gizmoSideSelected = GizmoSideSelected::NONE;

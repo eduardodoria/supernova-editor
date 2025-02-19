@@ -29,6 +29,7 @@ namespace Supernova::Editor{
         CursorSelected cursorSelected;
     public:
         UILayer();
+        virtual ~UILayer();
 
         void setViewportGizmoTexture(Framebuffer* framebuffer);
 

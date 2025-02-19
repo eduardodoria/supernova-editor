@@ -41,6 +41,19 @@ Editor::UILayer::UILayer(){
     scene->setCamera(camera);
 }
 
+Editor::UILayer::~UILayer(){
+    delete camera;
+    delete rect;
+    delete upRect;
+    delete bottomRect;
+    delete leftRect;
+    delete rightRect;
+    delete centralRect;
+    delete viewGizmoImage;
+
+    delete scene;
+}
+
 void Editor::UILayer::setViewportGizmoTexture(Framebuffer* framebuffer){
     viewGizmoImage->setTexture(framebuffer);
 }
