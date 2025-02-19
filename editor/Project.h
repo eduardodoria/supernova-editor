@@ -23,7 +23,7 @@ namespace Supernova::Editor{
         std::vector<Entity> selectedEntities;
         fs::path filepath;
         bool needUpdateRender;
-        bool isOpen;
+        bool needClose;
         bool isModified;
     };
 

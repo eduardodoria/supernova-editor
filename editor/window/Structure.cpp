@@ -90,7 +90,6 @@ void Editor::Structure::showIconMenu(){
         ImVec2 buttonSize = ImVec2(ImGui::GetFontSize() * 8, ImGui::GetFontSize() * 2);
         if (ImGui::Button(ICON_FA_CUBES "  3D Scene", buttonSize)) {
             uint32_t sceneid = project->createNewScene("New Scene");
-            sceneWindow->openScene(sceneid);
         }
         //ImGui::SameLine();
         if (ImGui::Button(ICON_FA_CUBES_STACKED "  2D Scene", buttonSize)) {

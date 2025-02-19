@@ -75,7 +75,7 @@ uint32_t Editor::Project::createNewScene(std::string sceneName){
     data.sceneRender = new SceneRender(data.scene);
     data.selectedEntities.clear();
     data.needUpdateRender = true;
-    data.isOpen = true;
+    data.needClose = true;
     data.isModified = false;
 
     scenes.push_back(data);
@@ -90,26 +90,26 @@ uint32_t Editor::Project::createNewScene(std::string sceneName){
 }
 
 void Editor::Project::closeScene(uint32_t sceneId) {
+    if (scenes.size() == 1) {
+        Log::error("Cannot close last scene");
+        return;
+    }
+
     auto it = std::find_if(scenes.begin(), scenes.end(),
         [sceneId](const SceneProject& scene) { return scene.id == sceneId; });
     
     if (it != scenes.end()) {
         if (selectedScene == sceneId) {
-            for (const auto& otherScene : scenes) {
-                if (otherScene.id != sceneId) {
-                    selectedScene = otherScene.id;
-                    otherScene.sceneRender->activate();
-                    break;
-                }
-            }
+            Log::error("Scene is selected, cannot close it");
+            return;
         }
+
+        it->needClose = true;
 
         delete it->sceneRender;
         delete it->scene;
 
         scenes.erase(it);
-
-        saveProject();
     }
 }
 

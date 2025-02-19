@@ -17,21 +17,21 @@ Editor::SceneWindow::SceneWindow(Project* project) {
 }
 
 void Editor::SceneWindow::handleCloseScene(uint32_t sceneId) {
-    //SceneProject* sceneProject = project->getScene(sceneId);
-    //if (sceneProject) {
-    //    // If we're closing the currently selected scene
-    //    if (project->getSelectedSceneId() == sceneId) {
-    //        // Find another scene to select
-    //        for (const auto& otherScene : project->getScenes()) {
-    //            if (otherScene.id != sceneId && otherScene.isOpen) {
-    //                project->setSelectedSceneId(otherScene.id);
-    //                break;
-    //            }
-    //        }
-    //    }
-    //    sceneProject->isOpen = false;
-    //}
-    project->closeScene(sceneId);
+    SceneProject* sceneProject = project->getScene(sceneId);
+    if (sceneProject) {
+        // If we're closing the currently selected scene
+        if (project->getSelectedSceneId() == sceneId) {
+            // Find another scene to select
+            for (const auto& otherScene : project->getScenes()) {
+                if (otherScene.id != sceneId) {
+                    project->setSelectedSceneId(otherScene.id);
+                    ImGui::SetWindowFocus(("###Scene" + std::to_string(otherScene.id)).c_str());
+                    break;
+                }
+            }
+        }
+        closeSceneQueue.push_back(sceneId);
+    }
 }
 
 bool Editor::SceneWindow::isFocused() const {
@@ -40,25 +40,6 @@ bool Editor::SceneWindow::isFocused() const {
 
 std::string Editor::SceneWindow::getWindowTitle(const SceneProject& sceneProject) const {
     return sceneProject.name + "###Scene" + std::to_string(sceneProject.id);
-}
-
-void Editor::SceneWindow::openScene(uint32_t sceneId) {
-    SceneProject* sceneProject = project->getScene(sceneId);
-    if (sceneProject) {
-        sceneProject->isOpen = true;
-    }
-}
-
-void Editor::SceneWindow::closeScene(uint32_t sceneId) {
-    // Don't allow closing if it's the last open scene
-    int openScenesCount = std::count_if(project->getScenes().begin(), project->getScenes().end(),
-        [](const SceneProject& sp) { return sp.isOpen; });
-
-    if (openScenesCount <= 1) {
-        return;
-    }
-
-    handleCloseScene(sceneId);
 }
 
 void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
@@ -228,20 +209,21 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
 }
 
 void Editor::SceneWindow::show() {
+    for (uint32_t sceneId: closeSceneQueue){
+        project->closeScene(sceneId);
+    }
+    closeSceneQueue.clear();
+
     windowFocused = false;
 
     // Iterate through all scenes in the project
     for (auto& sceneProject : project->getScenes()) {
         // Disable close button if this is the only open scene
-        bool canClose = std::count_if(project->getScenes().begin(), project->getScenes().end(),
-            [](const SceneProject& sp) { return sp.isOpen; }) > 1;
-
-        if (!sceneProject.isOpen) {
-            continue;
-        }
+        bool canClose = project->getScenes().size() > 1;
+        bool isOpen = true;
 
         ImGui::SetNextWindowSizeConstraints(ImVec2(200, 200), ImVec2(FLT_MAX, FLT_MAX));
-        if (ImGui::Begin(getWindowTitle(sceneProject).c_str(), canClose ? &sceneProject.isOpen : nullptr)) {
+        if (ImGui::Begin(getWindowTitle(sceneProject).c_str(), canClose ? &isOpen : nullptr)) {
             if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
                 windowFocused = true;
                 project->setSelectedSceneId(sceneProject.id);
@@ -402,7 +384,7 @@ void Editor::SceneWindow::show() {
         ImGui::End();
 
         // Handle window closing
-        if (!sceneProject.isOpen) {
+        if (!isOpen) {
             handleCloseScene(sceneProject.id);
         }
     }

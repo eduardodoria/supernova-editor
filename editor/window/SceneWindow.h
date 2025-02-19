@@ -25,6 +25,8 @@ namespace Supernova::Editor {
         std::map<uint32_t, int> width;
         std::map<uint32_t, int> height;
 
+        std::vector<uint32_t> closeSceneQueue;
+
         void handleCloseScene(uint32_t sceneId);
         void sceneEventHandler(Project* project, uint32_t sceneId);
         std::string getWindowTitle(const SceneProject& sceneProject) const;
@@ -34,9 +36,6 @@ namespace Supernova::Editor {
 
         void show();
         bool isFocused() const;
-
-        void openScene(uint32_t sceneId);
-        void closeScene(uint32_t sceneId);
 
         int getWidth(uint32_t sceneId) const;
         int getHeight(uint32_t sceneId) const;
