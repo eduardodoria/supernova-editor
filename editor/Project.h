@@ -38,8 +38,6 @@ namespace Supernova::Editor{
         std::vector<SceneProject> scenes;
         uint32_t selectedScene;
 
-        uint32_t lastActivatedScene;
-
         bool tempPath;
         std::filesystem::path projectPath;
         bool resourcesFocused;
@@ -79,9 +77,6 @@ namespace Supernova::Editor{
 
         bool isTempPath() const;
         std::filesystem::path getProjectPath() const;
-
-        void setLastActivatedSceneId(uint32_t lastActivatedScene);
-        uint32_t getLastActivatedSceneId() const;
 
         void replaceSelectedEntities(uint32_t sceneId, std::vector<Entity> selectedEntities);
         void setSelectedEntity(uint32_t sceneId, Entity selectedEntity);

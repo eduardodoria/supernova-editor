@@ -17,21 +17,20 @@ Editor::SceneWindow::SceneWindow(Project* project) {
 }
 
 void Editor::SceneWindow::handleCloseScene(uint32_t sceneId) {
-    SceneProject* sceneProject = project->getScene(sceneId);
-    if (sceneProject) {
-        // If we're closing the currently selected scene
-        if (project->getSelectedSceneId() == sceneId) {
-            // Find another scene to select
-            for (const auto& otherScene : project->getScenes()) {
-                if (otherScene.id != sceneId && otherScene.isOpen) {
-                    project->setSelectedSceneId(otherScene.id);
-                    break;
-                }
-            }
-        }
-
-        sceneProject->isOpen = false;
-    }
+    //SceneProject* sceneProject = project->getScene(sceneId);
+    //if (sceneProject) {
+    //    // If we're closing the currently selected scene
+    //    if (project->getSelectedSceneId() == sceneId) {
+    //        // Find another scene to select
+    //        for (const auto& otherScene : project->getScenes()) {
+    //            if (otherScene.id != sceneId && otherScene.isOpen) {
+    //                project->setSelectedSceneId(otherScene.id);
+    //                break;
+    //            }
+    //        }
+    //    }
+    //    sceneProject->isOpen = false;
+    //}
     project->closeScene(sceneId);
 }
 

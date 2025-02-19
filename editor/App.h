@@ -35,6 +35,8 @@ namespace Supernova::Editor{
         std::vector<std::string> droppedExternalPaths;
         bool isDroppedExternalPaths;
 
+        uint32_t lastActivatedScene;
+
         void showMenu();
         void showStyleEditor();
         void buildDockspace();

@@ -27,6 +27,8 @@ Editor::App::App(){
     Log::setOutputWindow(outputWindow);
 
     isDroppedExternalPaths = false;
+
+    lastActivatedScene = NULL_PROJECT_SCENE;
 }
 
 void Editor::App::showMenu(){
@@ -263,12 +265,12 @@ void Editor::App::engineRender(){
 
             bool sceneChanged = false;
 
-            if (project.getLastActivatedSceneId() != sceneProject.id){
+            if (lastActivatedScene != sceneProject.id){
                 sceneProject.sceneRender->activate();
-                project.setLastActivatedSceneId(sceneProject.id);
+                lastActivatedScene = sceneProject.id;
                 sceneChanged = true;
                 #ifdef _DEBUG
-                printf("DEBUG: Activated scene %u\n", project.getLastActivatedSceneId());
+                printf("DEBUG: Activated scene %u\n", lastActivatedScene);
                 #endif
             }
 

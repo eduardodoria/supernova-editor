@@ -24,7 +24,6 @@ YAML::Node Editor::Stream::encodeProject(Project* project) {
 
     // Save selected scene and last activated scene
     root["selectedScene"] = project->getSelectedSceneId();
-    root["lastActivatedScene"] = project->getLastActivatedSceneId();
 
     return root;
 }

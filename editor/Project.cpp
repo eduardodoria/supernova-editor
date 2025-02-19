@@ -17,7 +17,6 @@ uint32_t Editor::Project::nextSceneId = 0;
 
 Editor::Project::Project(){
     selectedScene = NULL_PROJECT_SCENE;
-    lastActivatedScene = NULL_PROJECT_SCENE;
 
     tempPath = false;
     resourcesFocused = false;
@@ -95,24 +94,19 @@ void Editor::Project::closeScene(uint32_t sceneId) {
         [sceneId](const SceneProject& scene) { return scene.id == sceneId; });
     
     if (it != scenes.end()) {
-        delete it->sceneRender;
-        delete it->scene;
-
         if (selectedScene == sceneId) {
             for (const auto& otherScene : scenes) {
                 if (otherScene.id != sceneId) {
                     selectedScene = otherScene.id;
+                    otherScene.sceneRender->activate();
                     break;
                 }
             }
         }
 
-        // If this was the last activated scene, clear it
-        if (lastActivatedScene == sceneId) {
-            lastActivatedScene = NULL_PROJECT_SCENE;
-        }
+        delete it->sceneRender;
+        delete it->scene;
 
-        // Remove the scene from the vector
         scenes.erase(it);
 
         saveProject();
@@ -320,14 +314,6 @@ bool Editor::Project::isTempPath() const{
 
 std::filesystem::path Editor::Project::getProjectPath() const{
     return projectPath;
-}
-
-void Editor::Project::setLastActivatedSceneId(uint32_t lastActivatedScene){
-    this->lastActivatedScene = lastActivatedScene;
-}
-
-uint32_t Editor::Project::getLastActivatedSceneId() const{
-    return lastActivatedScene;
 }
 
 void Editor::Project::replaceSelectedEntities(uint32_t sceneId, std::vector<Entity> selectedEntities){

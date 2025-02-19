@@ -48,6 +48,7 @@ namespace Supernova::Editor{
 
     public:
         SceneRender(Scene* scene);
+        virtual ~SceneRender();
 
         void activate();
         void updateRenderSystem();

@@ -75,6 +75,10 @@ Editor::SceneRender::SceneRender(Scene* scene){
     Engine::setFixedTimeSceneUpdate(false);
 }
 
+Editor::SceneRender::~SceneRender(){
+    framebuffer.destroy();
+}
+
 AABB Editor::SceneRender::getFamilyAABB(Entity entity){
     auto transforms = scene->getComponentArray<Transform>();
     size_t index = transforms->getIndex(entity);
