@@ -10,6 +10,7 @@
 #include "command/CommandHandle.h"
 #include "command/type/DeleteEntityCmd.h"
 #include "Stream.h"
+#include "Util.h"
 
 using namespace Supernova;
 
@@ -153,6 +154,41 @@ void Editor::Project::saveProject() {
     std::ofstream fout(projectFile.string());
     fout << YAML::Dump(root);
     fout.close();
+}
+
+void Editor::Project::saveScene(uint32_t sceneId) {
+    SceneProject* sceneProject = getScene(sceneId);
+    YAML::Node root = Stream::encodeScene(sceneProject->scene);
+
+    if (sceneProject->filepath.empty()) {
+        std::string suggestedName = sceneProject->name + ".yaml";
+        std::string savePath = Util::saveFileDialog(projectPath.string(), suggestedName, true);
+
+        if (!savePath.empty()) {
+            std::filesystem::path saveFilePath = std::filesystem::path(savePath);
+            std::error_code ec;
+            auto relPath = std::filesystem::relative(saveFilePath, projectPath, ec);
+
+            if (ec || relPath.string().find("..") != std::string::npos) {
+                Backend::getApp().registerAlert("Error", "Files must be saved within the project directory!");
+                return;
+            }
+
+            sceneProject->filepath = savePath;
+        } else {
+            return; // User cancelled save dialog
+        }
+    }
+
+    std::ofstream fout(sceneProject->filepath.string());
+    fout << YAML::Dump(root);
+    fout.close();
+
+    sceneProject->isModified = false;
+}
+
+void Editor::Project::saveLastSelectedScene(){
+    saveScene(selectedScene);
 }
 
 void Editor::Project::deleteEntity(uint32_t sceneId, Entity entity){
@@ -385,6 +421,10 @@ std::vector<Entity> Editor::Project::getSelectedEntities(uint32_t sceneId) const
 
 bool Editor::Project::hasSelectedEntities(uint32_t sceneId) const{
     return (getScene(sceneId)->selectedEntities.size() > 0);
+}
+
+bool Editor::Project::hasSelectedSceneUnsavedChanges() const{
+    return getScene(selectedScene)->isModified;
 }
 
 void Editor::Project::build() {

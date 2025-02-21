@@ -52,6 +52,8 @@ namespace Supernova::Editor{
         Project();
 
         void saveProject();
+        void saveScene(uint32_t sceneId);
+        void saveLastSelectedScene();
 
         bool createNewProject(std::string projectName);
         uint32_t createNewScene(std::string sceneName);
@@ -85,6 +87,8 @@ namespace Supernova::Editor{
         void clearSelectedEntities(uint32_t sceneId);
         std::vector<Entity> getSelectedEntities(uint32_t sceneId) const;
         bool hasSelectedEntities(uint32_t sceneId) const;
+
+        bool hasSelectedSceneUnsavedChanges() const;
 
         void build();
     };

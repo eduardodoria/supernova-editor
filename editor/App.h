@@ -16,6 +16,12 @@
 
 namespace Supernova::Editor{
 
+    struct AlertData{
+        bool needShow = false;
+        std::string title;
+        std::string message;
+    };
+
     class App{
     private:
         Project project;
@@ -30,14 +36,23 @@ namespace Supernova::Editor{
         CodeEditor* codeEditor;
         ResourcesWindow* resourcesWindow;
 
-        static bool isInitialized;
+        bool isInitialized;
+
+        AlertData alert;
 
         std::vector<std::string> droppedExternalPaths;
         bool isDroppedExternalPaths;
 
         uint32_t lastActivatedScene;
 
+        enum class LastFocusedWindow {
+            None,
+            Scene,
+            Code
+        } lastFocusedWindow;
+
         void showMenu();
+        void showAlert();
         void showStyleEditor();
         void buildDockspace();
         void kewtStyleTheme();
@@ -62,6 +77,8 @@ namespace Supernova::Editor{
         void handleExternalDrop(const std::vector<std::string>& paths);
         void handleExternalDragEnter();
         void handleExternalDragLeave();
+
+        void registerAlert(std::string title, std::string message);
     };
 
 }

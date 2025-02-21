@@ -39,7 +39,7 @@ bool Editor::SceneWindow::isFocused() const {
 }
 
 std::string Editor::SceneWindow::getWindowTitle(const SceneProject& sceneProject) const {
-    return sceneProject.name + "###Scene" + std::to_string(sceneProject.id);
+    return sceneProject.name + (sceneProject.isModified ? " *" : "") + "###Scene" + std::to_string(sceneProject.id);
 }
 
 void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){

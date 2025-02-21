@@ -97,6 +97,38 @@ namespace Supernova::Editor{
 
             return filePaths;
         }
+
+        inline static std::string saveFileDialog(std::string defaultPath = "", std::string defaultName = "", bool yamlOnly = false) {
+            std::string retPath;
+            char* path;
+            nfdsavedialogu8args_t args = {0};
+
+            if (yamlOnly) {
+                nfdfilteritem_t filterItem[1] = {
+                    { "YAML files", "yaml,yml" }
+                };
+                args.filterCount = 1;
+                args.filterList = filterItem;
+            }
+            args.defaultPath = defaultPath.c_str();
+            args.defaultName = defaultName.c_str();  // Set the default filename
+            args.parentWindow = *static_cast<nfdwindowhandle_t*>(Backend::getNFDWindowHandle());
+
+            const nfdresult_t res = NFD_SaveDialogU8_With(&path, &args);
+            switch (res) {
+                case NFD_OKAY:
+                    retPath = path;
+                    NFD_FreePathU8(path);
+                    break;
+                case NFD_ERROR:
+                    printf("Error: %s", NFD_GetError());
+                    break;
+                default:
+                    break;
+            }
+
+            return retPath;
+        }
     };
 
 }

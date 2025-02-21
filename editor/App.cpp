@@ -14,8 +14,6 @@
 
 using namespace Supernova;
 
-bool Editor::App::isInitialized = false;
-
 Editor::App::App(){
     propertiesWindow = new Properties(&project);
     outputWindow = new Output();
@@ -23,6 +21,10 @@ Editor::App::App(){
     structureWindow = new Structure(&project, sceneWindow);
     codeEditor = new CodeEditor();
     resourcesWindow = new ResourcesWindow(&project, codeEditor);
+
+    isInitialized = false;
+
+    lastFocusedWindow = LastFocusedWindow::None;
 
     Log::setOutputWindow(outputWindow);
 
@@ -36,15 +38,31 @@ void Editor::App::showMenu(){
     //ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
     //ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
+    if (sceneWindow->isFocused()) {
+        lastFocusedWindow = LastFocusedWindow::Scene;
+    } else if (codeEditor->isFocused()) {
+        lastFocusedWindow = LastFocusedWindow::Code;
+    }
+
     // Create the main menu bar
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Open")) {
                 // Handle open action
             }
-            ImGui::BeginDisabled(!codeEditor->hasLastFocusedUnsavedChanges());
+            bool canSave = false;
+            if (lastFocusedWindow == LastFocusedWindow::Scene) {
+                canSave = project.hasSelectedSceneUnsavedChanges();
+            } else if (lastFocusedWindow == LastFocusedWindow::Code) {
+                canSave = codeEditor->hasLastFocusedUnsavedChanges();
+            }
+            ImGui::BeginDisabled(!canSave);
             if (ImGui::MenuItem("Save")) {
-                codeEditor->saveLastFocused();
+                if (lastFocusedWindow == LastFocusedWindow::Scene) {
+                    project.saveLastSelectedScene();
+                } else if (lastFocusedWindow == LastFocusedWindow::Code) {
+                    codeEditor->saveLastFocused();
+                }
             }
             ImGui::EndDisabled();
             ImGui::BeginDisabled(!codeEditor->hasUnsavedChanges());
@@ -74,6 +92,33 @@ void Editor::App::showMenu(){
 
     // Restore previous style
     //ImGui::PopStyleVar(2);
+}
+
+void Editor::App::showAlert(){
+    if (alert.needShow) {
+        ImGui::OpenPopup((alert.title + "##AlertModal").c_str());
+
+        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+        // Make sure we're using the correct flags
+        ImGuiWindowFlags flags = ImGuiWindowFlags_AlwaysAutoResize |
+                                ImGuiWindowFlags_NoMove |
+                                ImGuiWindowFlags_NoSavedSettings |
+                                ImGuiWindowFlags_Modal;
+
+        if (ImGui::BeginPopupModal((alert.title + "##AlertModal").c_str(), nullptr, flags)) {
+            ImGui::Text("%s", alert.message.c_str());
+            ImGui::Separator();
+
+            ImGui::SetCursorPosX((ImGui::GetWindowSize().x - 120) * 0.5f);
+            if (ImGui::Button("OK", ImVec2(120, 0))) {
+                alert.needShow = false;
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+    }
 }
 
 void Editor::App::buildDockspace(){
@@ -239,6 +284,8 @@ void Editor::App::show(){
     sceneWindow->show();
     resourcesWindow->show();
     codeEditor->show();
+
+    showAlert();
 }
 
 void Editor::App::engineInit(int argc, char** argv){
@@ -436,4 +483,10 @@ void Editor::App::handleExternalDragEnter() {
 
 void Editor::App::handleExternalDragLeave() {
     resourcesWindow->handleExternalDragLeave();
+}
+
+void Editor::App::registerAlert(std::string title, std::string message){
+    alert.needShow = true;
+    alert.title = title;
+    alert.message = message;
 }

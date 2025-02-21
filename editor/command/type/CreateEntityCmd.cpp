@@ -82,7 +82,7 @@ void Editor::CreateEntityCmd::execute(){
             lastSelected = project->getSelectedEntities(sceneId);
             project->setSelectedEntity(sceneId, entity);
 
-            project->saveProject();
+            scenes[i].isModified = true;
 
             ImGui::SetWindowFocus(("###Scene" + std::to_string(sceneId)).c_str());
 
@@ -105,6 +105,8 @@ void Editor::CreateEntityCmd::undo(){
             if (project->isSelectedEntity(sceneId, entity)){
                 project->replaceSelectedEntities(sceneId, lastSelected);
             }
+
+            scenes[i].isModified = true;
         }
     }
 }

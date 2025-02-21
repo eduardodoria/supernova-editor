@@ -9,12 +9,18 @@ Editor::SceneNameCmd::SceneNameCmd(Project* project, uint32_t sceneId, std::stri
 }
 
 void Editor::SceneNameCmd::execute(){
-    oldName = project->getScene(sceneId)->name;
-    project->getScene(sceneId)->name = newName;
+    SceneProject* sceneProject = project->getScene(sceneId);
+
+    oldName = sceneProject->name;
+    sceneProject->name = newName;
+    sceneProject->isModified = true;
 }
 
 void Editor::SceneNameCmd::undo(){
-    project->getScene(sceneId)->name = oldName;
+    SceneProject* sceneProject = project->getScene(sceneId);
+
+    sceneProject->name = oldName;
+    sceneProject->isModified = true;
 }
 
 bool Editor::SceneNameCmd::mergeWith(Editor::Command* otherCommand){
