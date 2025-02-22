@@ -26,7 +26,8 @@ namespace Supernova::Editor {
 
     public:
         static YAML::Node encodeProject(Project* project);
+        static YAML::Node encodeSceneProject(const SceneProject* sceneProject);
         static YAML::Node encodeScene(Scene* scene);
-        static YAML::Node encodeEntity(Entity entity, Scene* scene);
+        static YAML::Node encodeEntity(const Entity entity, const Scene* scene);
     };
 }

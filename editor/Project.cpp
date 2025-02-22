@@ -158,7 +158,7 @@ void Editor::Project::saveProject() {
 
 void Editor::Project::saveScene(uint32_t sceneId) {
     SceneProject* sceneProject = getScene(sceneId);
-    YAML::Node root = Stream::encodeScene(sceneProject->scene);
+    YAML::Node root = Stream::encodeSceneProject(sceneProject);
 
     if (sceneProject->filepath.empty()) {
         std::string suggestedName = sceneProject->name + ".yaml";
@@ -176,7 +176,7 @@ void Editor::Project::saveScene(uint32_t sceneId) {
 
             sceneProject->filepath = savePath;
         } else {
-            return; // User cancelled save dialog
+            return;
         }
     }
 

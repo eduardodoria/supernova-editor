@@ -5,25 +5,23 @@ using namespace Supernova;
 YAML::Node Editor::Stream::encodeProject(Project* project) {
     YAML::Node root;
 
-    // Save scenes data
-    YAML::Node scenesNode;
-    for (const auto& scene : project->getScenes()) {
-        YAML::Node sceneNode;
-        sceneNode["id"] = scene.id;
-        sceneNode["name"] = scene.name;
-
-        YAML::Node entitiesNode;
-        for (const auto& entity : scene.entities) {
-            entitiesNode.push_back(encodeEntity(entity, scene.scene));
-        }
-        sceneNode["entities"] = entitiesNode;
-
-        scenesNode.push_back(sceneNode);
-    }
-    root["scenes"] = scenesNode;
-
-    // Save selected scene and last activated scene
+    root["name"] = "Supernova Project";
     root["selectedScene"] = project->getSelectedSceneId();
+
+    return root;
+}
+
+YAML::Node Editor::Stream::encodeSceneProject(const SceneProject* sceneProject) {
+    YAML::Node root;
+
+    root["id"] = sceneProject->id;
+    root["name"] = sceneProject->name;
+
+    YAML::Node entitiesNode;
+    for (const auto& entity : sceneProject->entities) {
+        entitiesNode.push_back(encodeEntity(entity, sceneProject->scene));
+    }
+    root["entities"] = entitiesNode;
 
     return root;
 }
@@ -60,7 +58,7 @@ YAML::Node Editor::Stream::encodeTransform(const Transform& transform) {
     return transformNode;
 }
 
-YAML::Node Editor::Stream::encodeEntity(Entity entity, Scene* scene) {
+YAML::Node Editor::Stream::encodeEntity(const Entity entity, const Scene* scene) {
     YAML::Node entityNode;
     entityNode["entity"] = entity;
     entityNode["name"] = scene->getEntityName(entity);
