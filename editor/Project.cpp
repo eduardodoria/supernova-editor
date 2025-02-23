@@ -463,6 +463,15 @@ bool Editor::Project::hasSelectedSceneUnsavedChanges() const{
     return getScene(selectedScene)->isModified;
 }
 
+bool Editor::Project::hasScenesUnsavedChanges() const{
+    for (auto& scene: scenes){
+        if (scene.isModified){
+            return true;
+        }
+    }
+    return false;
+}
+
 void Editor::Project::build() {
     generator.build(getProjectPath());
 

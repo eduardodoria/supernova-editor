@@ -350,16 +350,6 @@ void Editor::CodeEditor::show() {
                 windowFocused = true;
 
                 lastFocused = &instance;
-
-                if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S)) {
-                    if (ImGui::GetIO().KeyShift) {
-                        // CTRL+SHIFT+S saves all files
-                        saveAll();
-                    } else {
-                        // CTRL+S saves current file
-                        save(instance);
-                    }
-                }
             }
 
             int line, column;

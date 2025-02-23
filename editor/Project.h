@@ -89,6 +89,7 @@ namespace Supernova::Editor{
         bool hasSelectedEntities(uint32_t sceneId) const;
 
         bool hasSelectedSceneUnsavedChanges() const;
+        bool hasScenesUnsavedChanges() const;
 
         void build();
     };

@@ -33,16 +33,23 @@ Editor::App::App(){
     lastActivatedScene = NULL_PROJECT_SCENE;
 }
 
+void Editor::App::saveMenu(){
+    if (lastFocusedWindow == LastFocusedWindow::Scene) {
+        project.saveLastSelectedScene();
+    } else if (lastFocusedWindow == LastFocusedWindow::Code) {
+        codeEditor->saveLastFocused();
+    }
+}
+
+void Editor::App::saveAllMenu(){
+    project.saveAllScenes();
+    codeEditor->saveAll();
+}
+
 void Editor::App::showMenu(){
     // Remove menu bar border
     //ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
     //ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-
-    if (sceneWindow->isFocused()) {
-        lastFocusedWindow = LastFocusedWindow::Scene;
-    } else if (codeEditor->isFocused()) {
-        lastFocusedWindow = LastFocusedWindow::Code;
-    }
 
     // Create the main menu bar
     if (ImGui::BeginMainMenuBar()) {
@@ -56,22 +63,16 @@ void Editor::App::showMenu(){
             } else if (lastFocusedWindow == LastFocusedWindow::Code) {
                 canSave = codeEditor->hasLastFocusedUnsavedChanges();
             }
+            bool canSaveAll = project.hasScenesUnsavedChanges() || codeEditor->hasUnsavedChanges();
+
             ImGui::BeginDisabled(!canSave);
             if (ImGui::MenuItem("Save")) {
-                if (lastFocusedWindow == LastFocusedWindow::Scene) {
-                    project.saveLastSelectedScene();
-                } else if (lastFocusedWindow == LastFocusedWindow::Code) {
-                    codeEditor->saveLastFocused();
-                }
+                saveMenu();
             }
             ImGui::EndDisabled();
-            ImGui::BeginDisabled(!codeEditor->hasUnsavedChanges());
+            ImGui::BeginDisabled(!canSaveAll);
             if (ImGui::MenuItem("Save All")) {
-                if (lastFocusedWindow == LastFocusedWindow::Scene) {
-                    project.saveAllScenes();
-                } else if (lastFocusedWindow == LastFocusedWindow::Code) {
-                    codeEditor->saveAll();
-                }
+                saveAllMenu();
             }
             ImGui::EndDisabled();
             if (ImGui::MenuItem("Exit")) {
@@ -233,9 +234,24 @@ void Editor::App::setup(){
 }
 
 void Editor::App::show(){
+    if (sceneWindow->isFocused()) {
+        lastFocusedWindow = LastFocusedWindow::Scene;
+    } else if (codeEditor->isFocused()) {
+        lastFocusedWindow = LastFocusedWindow::Code;
+    }
+
     ImGuiIO& io = ImGui::GetIO();
     bool isUndo = (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Z) && !io.KeyShift);
     bool isRedo = (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Y)) || (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Z) && io.KeyShift);
+
+    if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S)) {
+        if (ImGui::GetIO().KeyShift) {
+            // CTRL+SHIFT+S saves all files
+            saveAllMenu();
+        } else {
+            saveMenu();
+        }
+    }
 
     if (isDroppedExternalPaths) {
         isDroppedExternalPaths = false;
