@@ -67,7 +67,11 @@ void Editor::App::showMenu(){
             ImGui::EndDisabled();
             ImGui::BeginDisabled(!codeEditor->hasUnsavedChanges());
             if (ImGui::MenuItem("Save All")) {
-                codeEditor->saveAll();
+                if (lastFocusedWindow == LastFocusedWindow::Scene) {
+                    project.saveAllScenes();
+                } else if (lastFocusedWindow == LastFocusedWindow::Code) {
+                    codeEditor->saveAll();
+                }
             }
             ImGui::EndDisabled();
             if (ImGui::MenuItem("Exit")) {

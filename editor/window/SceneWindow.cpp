@@ -205,6 +205,16 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
                     project->getScene(sceneId)->sceneRender->changeUseGlobalTransform();
                 }
             }
+            if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S)) {
+                if (ImGui::GetIO().KeyShift) {
+                    // CTRL+SHIFT+S saves all files
+                    //saveAll();
+                    project->saveAllScenes();
+                } else {
+                    // CTRL+S saves current file
+                    project->saveScene(sceneId);
+                }
+            }
         }
     }
 

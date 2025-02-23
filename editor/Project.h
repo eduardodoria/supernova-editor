@@ -52,6 +52,7 @@ namespace Supernova::Editor{
 
         void saveProject();
         void saveScene(uint32_t sceneId);
+        void saveAllScenes();
         void saveLastSelectedScene();
 
         bool createNewProject(std::string projectName);

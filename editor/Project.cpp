@@ -215,6 +215,14 @@ void Editor::Project::saveScene(uint32_t sceneId) {
     sceneProject->isModified = false;
 }
 
+void Editor::Project::saveAllScenes() {
+    for (auto& sceneProject : scenes) {
+        if (sceneProject.isModified) {
+            saveScene(sceneProject.id);
+        }
+    }
+}
+
 void Editor::Project::saveLastSelectedScene(){
     saveScene(selectedScene);
 }

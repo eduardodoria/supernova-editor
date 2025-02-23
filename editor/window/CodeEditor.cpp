@@ -351,7 +351,6 @@ void Editor::CodeEditor::show() {
 
                 lastFocused = &instance;
 
-                // Add CTRL+S save functionality
                 if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S)) {
                     if (ImGui::GetIO().KeyShift) {
                         // CTRL+SHIFT+S saves all files
