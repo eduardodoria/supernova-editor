@@ -279,11 +279,11 @@ void Editor::App::show(){
     #endif
 
     structureWindow->show();
+    resourcesWindow->show();
     outputWindow->show();
     propertiesWindow->show();
-    sceneWindow->show();
-    resourcesWindow->show();
     codeEditor->show();
+    sceneWindow->show();
 
     showAlert();
 }

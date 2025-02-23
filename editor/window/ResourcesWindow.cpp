@@ -714,9 +714,11 @@ void Editor::ResourcesWindow::show() {
                         ImGui::PopID();
                         break;
                     } else {
-                        // Check if the file is a C/C++ source or header file
                         std::string extension = file.type;
-                        if (extension == ".c" || extension == ".cpp" || extension == ".h" || extension == ".hpp") {
+                        if (extension == ".scene") {
+                            std::filesystem::path filePath = std::filesystem::path(currentPath) / file.name;
+                            project->openScene(filePath);
+                        } else if (extension == ".c" || extension == ".cpp" || extension == ".h" || extension == ".hpp") {
                             std::string filePath = currentPath + "/" + file.name;
                             codeEditor->openFile(filePath);
                         }

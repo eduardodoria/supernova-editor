@@ -294,3 +294,226 @@ YAML::Node Editor::Stream::encodeMeshComponent(const MeshComponent& mesh) {
 
     return node;
 }
+
+Vector2 Editor::Stream::decodeVector2(const YAML::Node& node) {
+    return Vector2(node[0].as<float>(), node[1].as<float>());
+}
+
+Vector3 Editor::Stream::decodeVector3(const YAML::Node& node) {
+    return Vector3(node[0].as<float>(), node[1].as<float>(), node[2].as<float>());
+}
+
+Vector4 Editor::Stream::decodeVector4(const YAML::Node& node) {
+    return Vector4(node[0].as<float>(), node[1].as<float>(), node[2].as<float>(), node[3].as<float>());
+}
+
+Quaternion Editor::Stream::decodeQuaternion(const YAML::Node& node) {
+    return Quaternion(node[0].as<float>(), node[1].as<float>(), node[2].as<float>(), node[3].as<float>());
+}
+
+Rect Editor::Stream::decodeRect(const YAML::Node& node) {
+    return Rect(node[0].as<float>(), node[1].as<float>(), node[2].as<float>(), node[3].as<float>());
+}
+
+Matrix4 Editor::Stream::decodeMatrix4(const YAML::Node& node) {
+    Matrix4 mat;
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            mat[i][j] = node[i][j].as<float>();
+        }
+    }
+    return mat;
+}
+
+Transform Editor::Stream::decodeTransform(const YAML::Node& node) {
+    Transform transform;
+
+    transform.position = decodeVector3(node["position"]);
+    transform.rotation = decodeQuaternion(node["rotation"]);
+    transform.scale = decodeVector3(node["scale"]);
+    transform.worldPosition = decodeVector3(node["worldPosition"]);
+    transform.worldRotation = decodeQuaternion(node["worldRotation"]);
+    transform.worldScale = decodeVector3(node["worldScale"]);
+    transform.localMatrix = decodeMatrix4(node["localMatrix"]);
+    transform.modelMatrix = decodeMatrix4(node["modelMatrix"]);
+    transform.normalMatrix = decodeMatrix4(node["normalMatrix"]);
+    transform.modelViewProjectionMatrix = decodeMatrix4(node["modelViewProjectionMatrix"]);
+    transform.visible = node["visible"].as<bool>();
+    transform.parent = node["parent"].as<Entity>();
+    transform.distanceToCamera = node["distanceToCamera"].as<float>();
+    transform.billboardRotation = decodeQuaternion(node["billboardRotation"]);
+    transform.billboard = node["billboard"].as<bool>();
+    transform.fakeBillboard = node["fakeBillboard"].as<bool>();
+    transform.cylindricalBillboard = node["cylindricalBillboard"].as<bool>();
+    transform.needUpdateChildVisibility = node["needUpdateChildVisibility"].as<bool>();
+    transform.needUpdate = node["needUpdate"].as<bool>();
+
+    return transform;
+}
+
+Texture Editor::Stream::decodeTexture(const YAML::Node& node) {
+    Texture texture;
+    if (node.IsMap()) { // Check if node has data
+        texture.setId(node["id"].as<std::string>());
+        texture.setPath(node["path"].as<std::string>());
+        texture.setMinFilter(static_cast<TextureFilter>(node["minFilter"].as<int>()));
+        texture.setMagFilter(static_cast<TextureFilter>(node["magFilter"].as<int>()));
+        texture.setWrapU(static_cast<TextureWrap>(node["wrapU"].as<int>()));
+        texture.setWrapV(static_cast<TextureWrap>(node["wrapV"].as<int>()));
+
+        //if (node["isFramebuffer"] && node["isFramebuffer"].as<bool>()) {
+        //    texture.setIsFramebuffer(true);
+        //}
+
+        //if (node["width"] && node["height"]) {
+        //    texture.setWidth(node["width"].as<int>());
+        //    texture.setHeight(node["height"].as<int>());
+        //}
+
+        //texture.setTransparent(node["transparent"].as<bool>());
+        texture.setReleaseDataAfterLoad(node["releaseDataAfterLoad"].as<bool>());
+    }
+    return texture;
+}
+
+Material Editor::Stream::decodeMaterial(const YAML::Node& node) {
+    Material material;
+
+    material.baseColorFactor = decodeVector4(node["baseColorFactor"]);
+    material.metallicFactor = node["metallicFactor"].as<float>();
+    material.roughnessFactor = node["roughnessFactor"].as<float>();
+    material.emissiveFactor = decodeVector3(node["emissiveFactor"]);
+    material.ambientLight = decodeVector3(node["ambientLight"]);
+    material.ambientIntensity = node["ambientIntensity"].as<float>();
+
+    if (node["baseColorTexture"]) {
+        material.baseColorTexture = decodeTexture(node["baseColorTexture"]);
+    }
+
+    if (node["emissiveTexture"]) {
+        material.emissiveTexture = decodeTexture(node["emissiveTexture"]);
+    }
+
+    if (node["metallicRoughnessTexture"]) {
+        material.metallicRoughnessTexture = decodeTexture(node["metallicRoughnessTexture"]);
+    }
+
+    if (node["occlusionTexture"]) {
+        material.occlusionTexture = decodeTexture(node["occlusionTexture"]);
+    }
+
+    if (node["normalTexture"]) {
+        material.normalTexture = decodeTexture(node["normalTexture"]);
+    }
+
+    material.name = node["name"].as<std::string>();
+
+    return material;
+}
+
+Submesh Editor::Stream::decodeSubmesh(const YAML::Node& node) {
+    Submesh submesh;
+
+    submesh.material = decodeMaterial(node["material"]);
+    submesh.textureRect = decodeRect(node["textureRect"]);
+    submesh.primitiveType = static_cast<PrimitiveType>(node["primitiveType"].as<int>());
+    submesh.vertexCount = node["vertexCount"].as<uint32_t>();
+    submesh.faceCulling = node["faceCulling"].as<bool>();
+
+    // Flags
+    submesh.hasTexCoord1 = node["hasTexCoord1"].as<bool>();
+    submesh.hasNormalMap = node["hasNormalMap"].as<bool>();
+    submesh.hasTangent = node["hasTangent"].as<bool>();
+    submesh.hasVertexColor4 = node["hasVertexColor4"].as<bool>();
+    submesh.hasTextureRect = node["hasTextureRect"].as<bool>();
+    submesh.hasSkinning = node["hasSkinning"].as<bool>();
+    submesh.hasMorphTarget = node["hasMorphTarget"].as<bool>();
+    submesh.hasMorphNormal = node["hasMorphNormal"].as<bool>();
+    submesh.hasMorphTangent = node["hasMorphTangent"].as<bool>();
+    submesh.hasDepthTexture = node["hasDepthTexture"].as<bool>();
+
+    return submesh;
+}
+
+AABB Editor::Stream::decodeAABB(const YAML::Node& node) {
+    Vector3 min = decodeVector3(node["min"]);
+    Vector3 max = decodeVector3(node["max"]);
+    return AABB(min, max);
+}
+
+MeshComponent Editor::Stream::decodeMeshComponent(const YAML::Node& node) {
+    MeshComponent mesh;
+
+    //mesh.loaded = node["loaded"].as<bool>();
+    //mesh.loadCalled = node["loadCalled"].as<bool>();
+    mesh.vertexCount = node["vertexCount"].as<uint32_t>();
+    mesh.numExternalBuffers = node["numExternalBuffers"].as<uint32_t>();
+    mesh.numSubmeshes = node["numSubmeshes"].as<uint32_t>();
+
+    // Decode submeshes
+    auto submeshesNode = node["submeshes"];
+    for(unsigned int i = 0; i < mesh.numSubmeshes; i++) {
+        mesh.submeshes[i] = decodeSubmesh(submeshesNode[i]);
+    }
+
+    // Decode bones matrix
+    auto bonesNode = node["bonesMatrix"];
+    for(int i = 0; i < MAX_BONES; i++) {
+        mesh.bonesMatrix[i] = decodeMatrix4(bonesNode[i]);
+    }
+
+    mesh.normAdjustJoint = node["normAdjustJoint"].as<int>();
+    mesh.normAdjustWeight = node["normAdjustWeight"].as<float>();
+
+    // Decode morph weights
+    auto morphWeightsNode = node["morphWeights"];
+    for(int i = 0; i < MAX_MORPHTARGETS; i++) {
+        mesh.morphWeights[i] = morphWeightsNode[i].as<float>();
+    }
+
+    mesh.aabb = decodeAABB(node["aabb"]);
+    mesh.verticesAABB = decodeAABB(node["verticesAABB"]);
+    mesh.worldAABB = decodeAABB(node["worldAABB"]);
+
+    mesh.castShadows = node["castShadows"].as<bool>();
+    mesh.receiveShadows = node["receiveShadows"].as<bool>();
+    mesh.shadowsBillboard = node["shadowsBillboard"].as<bool>();
+    mesh.transparent = node["transparent"].as<bool>();
+
+    mesh.cullingMode = static_cast<CullingMode>(node["cullingMode"].as<int>());
+    mesh.windingOrder = static_cast<WindingOrder>(node["windingOrder"].as<int>());
+
+    //mesh.needUpdateBuffer = node["needUpdateBuffer"].as<bool>();
+    //mesh.needReload = node["needReload"].as<bool>();
+
+    return mesh;
+}
+
+void Editor::Stream::decodeEntity(Scene* scene, Entity entity, const YAML::Node& entityNode) {
+    //Entity entity = entityNode["entity"].as<Entity>();
+    std::string name = entityNode["name"].as<std::string>();
+
+    scene->setEntityName(entity, name);
+
+    if (entityNode["transform"]) {
+        Transform transform = decodeTransform(entityNode["transform"]);
+        scene->addComponent<Transform>(entity, transform);
+    }
+
+    if (entityNode["mesh"]) {
+        MeshComponent mesh = decodeMeshComponent(entityNode["mesh"]);
+        scene->addComponent<MeshComponent>(entity, mesh);
+    }
+}
+
+void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::Node& node) {
+    //sceneProject->id = node["id"].as<uint32_t>();
+    sceneProject->name = node["name"].as<std::string>();
+
+    auto entitiesNode = node["entities"];
+    for (const auto& entityNode : entitiesNode) {
+        Entity entity = sceneProject->scene->createEntity();
+        sceneProject->entities.push_back(entity);
+        decodeEntity(sceneProject->scene, entity, entityNode);
+    }
+}

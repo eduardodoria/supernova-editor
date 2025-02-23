@@ -29,5 +29,20 @@ namespace Supernova::Editor {
         static YAML::Node encodeSceneProject(const SceneProject* sceneProject);
         static YAML::Node encodeScene(Scene* scene);
         static YAML::Node encodeEntity(const Entity entity, const Scene* scene);
+
+        static Vector2 decodeVector2(const YAML::Node& node);
+        static Vector3 decodeVector3(const YAML::Node& node);
+        static Vector4 decodeVector4(const YAML::Node& node);
+        static Quaternion decodeQuaternion(const YAML::Node& node);
+        static Rect decodeRect(const YAML::Node& node);
+        static Matrix4 decodeMatrix4(const YAML::Node& node);
+        static Transform decodeTransform(const YAML::Node& node);
+        static Texture decodeTexture(const YAML::Node& node);
+        static Material decodeMaterial(const YAML::Node& node);
+        static Submesh decodeSubmesh(const YAML::Node& node);
+        static AABB decodeAABB(const YAML::Node& node);
+        static MeshComponent decodeMeshComponent(const YAML::Node& node);
+        static void decodeEntity(Scene* scene, Entity entity, const YAML::Node& entityNode);
+        static void decodeSceneProject(SceneProject* sceneProject, const YAML::Node& node);
     };
 }

@@ -98,14 +98,14 @@ namespace Supernova::Editor{
             return filePaths;
         }
 
-        inline static std::string saveFileDialog(std::string defaultPath = "", std::string defaultName = "", bool yamlOnly = false) {
+        inline static std::string saveFileDialog(std::string defaultPath = "", std::string defaultName = "", bool sceneOnly = false) {
             std::string retPath;
             char* path;
             nfdsavedialogu8args_t args = {0};
 
-            if (yamlOnly) {
+            if (sceneOnly) {
                 nfdfilteritem_t filterItem[1] = {
-                    { "YAML files", "yaml,yml" }
+                    { "Scene files", "scene" }
                 };
                 args.filterCount = 1;
                 args.filterList = filterItem;

@@ -23,7 +23,6 @@ namespace Supernova::Editor{
         std::vector<Entity> selectedEntities;
         fs::path filepath;
         bool needUpdateRender;
-        bool needClose;
         bool isModified;
     };
 
@@ -57,7 +56,7 @@ namespace Supernova::Editor{
 
         bool createNewProject(std::string projectName);
         uint32_t createNewScene(std::string sceneName);
-
+        void openScene(fs::path filepath);
         void closeScene(uint32_t sceneId);
 
         void deleteEntity(uint32_t sceneId, Entity entity);

@@ -76,7 +76,6 @@ uint32_t Editor::Project::createNewScene(std::string sceneName){
     data.sceneRender = new SceneRender(data.scene);
     data.selectedEntities.clear();
     data.needUpdateRender = true;
-    data.needClose = true;
     data.isModified = false;
 
     scenes.push_back(data);
@@ -88,6 +87,37 @@ uint32_t Editor::Project::createNewScene(std::string sceneName){
     saveProject();
 
     return scenes.back().id;
+}
+
+void Editor::Project::openScene(fs::path filepath){
+    try {
+        YAML::Node sceneNode = YAML::LoadFile(filepath.string());
+
+        SceneProject data;
+        data.id = ++nextSceneId;
+        data.name = "Unknown";
+        data.scene = new Scene();
+        data.sceneRender = new SceneRender(data.scene);
+        data.selectedEntities.clear();
+        data.needUpdateRender = true;
+        data.isModified = false;
+        data.filepath = filepath;
+
+        Stream::decodeSceneProject(&data, sceneNode);
+
+        scenes.push_back(data);
+
+        setSelectedSceneId(scenes.back().id);
+
+        Backend::getApp().addNewSceneToDock(scenes.back().id);
+
+    } catch (const YAML::Exception& e) {
+        Log::error("Failed to open scene: %s", e.what());
+        Backend::getApp().registerAlert("Error", "Failed to open scene file!");
+    } catch (const std::exception& e) {
+        Log::error("Failed to open scene: %s", e.what());
+        Backend::getApp().registerAlert("Error", "Failed to open scene file!");
+    }
 }
 
 void Editor::Project::closeScene(uint32_t sceneId) {
@@ -104,8 +134,6 @@ void Editor::Project::closeScene(uint32_t sceneId) {
             Log::error("Scene is selected, cannot close it");
             return;
         }
-
-        it->needClose = true;
 
         delete it->sceneRender;
         delete it->scene;
@@ -161,7 +189,7 @@ void Editor::Project::saveScene(uint32_t sceneId) {
     YAML::Node root = Stream::encodeSceneProject(sceneProject);
 
     if (sceneProject->filepath.empty()) {
-        std::string suggestedName = sceneProject->name + ".yaml";
+        std::string suggestedName = sceneProject->name + ".scene";
         std::string savePath = Util::saveFileDialog(projectPath.string(), suggestedName, true);
 
         if (!savePath.empty()) {
