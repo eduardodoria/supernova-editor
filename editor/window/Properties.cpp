@@ -815,7 +815,7 @@ void Editor::Properties::show(){
         if (ImGui::IsItemDeactivatedAfterEdit()) {
             if (entities.size() == 1){
                 if (nameBuffer[0] != '\0' && strcmp(nameBuffer, scene->getEntityName(entities[0]).c_str()) != 0) {
-                    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new EntityNameCmd(scene, entities[0], nameBuffer));
+                    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new EntityNameCmd(sceneProject, entities[0], nameBuffer));
                 }
             }
         }

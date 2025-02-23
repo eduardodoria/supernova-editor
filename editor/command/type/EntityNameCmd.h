@@ -14,11 +14,11 @@ namespace Supernova::Editor{
         std::string oldName;
         std::string newName;
 
-        Scene* scene;
+        SceneProject* sceneProject;
         Entity entity;
 
     public:
-        EntityNameCmd(Scene* scene, Entity entity, std::string name);
+        EntityNameCmd(SceneProject* sceneProject, Entity entity, std::string name);
 
         virtual void execute();
         virtual void undo();

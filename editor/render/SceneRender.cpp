@@ -7,6 +7,7 @@
 #include "sky/Daylight_Box_Right_png.h"
 #include "sky/Daylight_Box_Top_png.h"
 
+#include "Project.h"
 #include "command/CommandHandle.h"
 #include "command/type/ObjectTransformCmd.h"
 
@@ -323,7 +324,7 @@ void Editor::SceneRender::mouseReleaseEvent(float x, float y){
     }
 }
 
-void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float origY, size_t sceneId, std::vector<Entity> selEntities){
+void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float origY, size_t sceneId, SceneProject* sceneProject, std::vector<Entity> selEntities){
     if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::NONE){
         uilayer.setRectVisible(true);
         uilayer.updateRect(Vector2(origX, origY), Vector2(x, y) - Vector2(origX, origY));
@@ -369,7 +370,7 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                     }
 
                     if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
-                        lastCommand = new ObjectTransformCmd(scene, entity, objMatrix);
+                        lastCommand = new ObjectTransformCmd(sceneProject, entity, objMatrix);
                     }
                 }
 
@@ -397,7 +398,7 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                     }
 
                     if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
-                        lastCommand = new ObjectTransformCmd(scene, entity, objMatrix);
+                        lastCommand = new ObjectTransformCmd(sceneProject, entity, objMatrix);
                     }
                 }
 
@@ -439,7 +440,7 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                     }
 
                     if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
-                        lastCommand = new ObjectTransformCmd(scene, entity, objMatrix);
+                        lastCommand = new ObjectTransformCmd(sceneProject, entity, objMatrix);
                     }
 
                 }

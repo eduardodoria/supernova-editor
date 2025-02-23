@@ -41,6 +41,8 @@ void Editor::DeleteEntityCmd::execute(){
         if (project->isSelectedEntity(sceneId, entityData.entity)){
             project->clearSelectedEntities(sceneId);
         }
+
+        sceneProject->isModified = true;
     }
 }
 
@@ -70,6 +72,8 @@ void Editor::DeleteEntityCmd::undo(){
     if (lastSelected.size() > 0){
         project->replaceSelectedEntities(sceneId, lastSelected);
     }
+
+    sceneProject->isModified = true;
 }
 
 bool Editor::DeleteEntityCmd::mergeWith(Editor::Command* otherCommand){

@@ -2,25 +2,29 @@
 
 using namespace Supernova;
 
-Editor::EntityNameCmd::EntityNameCmd(Scene* scene, Entity entity, std::string name){
-    this->scene = scene;
+Editor::EntityNameCmd::EntityNameCmd(SceneProject* sceneProject, Entity entity, std::string name){
+    this->sceneProject = sceneProject;
     this->entity = entity;
     this->newName = name;
 }
 
 void Editor::EntityNameCmd::execute(){
-    oldName = scene->getEntityName(entity);
-    scene->setEntityName(entity, newName);
+    oldName = sceneProject->scene->getEntityName(entity);
+    sceneProject->scene->setEntityName(entity, newName);
+
+    sceneProject->isModified = true;
 }
 
 void Editor::EntityNameCmd::undo(){
-    scene->setEntityName(entity, oldName);
+    sceneProject->scene->setEntityName(entity, oldName);
+
+    sceneProject->isModified = true;
 }
 
 bool Editor::EntityNameCmd::mergeWith(Editor::Command* otherCommand){
     EntityNameCmd* otherCmd = dynamic_cast<EntityNameCmd*>(otherCommand);
     if (otherCmd != nullptr){
-        if (scene == otherCmd->scene && entity == otherCmd->entity){
+        if (sceneProject == otherCmd->sceneProject && entity == otherCmd->entity){
             this->oldName = otherCmd->oldName;
             return true;
         }

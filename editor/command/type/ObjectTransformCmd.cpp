@@ -2,14 +2,14 @@
 
 using namespace Supernova;
 
-Editor::ObjectTransformCmd::ObjectTransformCmd(Scene* scene, Entity entity, Matrix4 localMatrix){
-    this->scene = scene;
+Editor::ObjectTransformCmd::ObjectTransformCmd(SceneProject* sceneProject, Entity entity, Matrix4 localMatrix){
+    this->sceneProject = sceneProject;
     
     localMatrix.decomposeStandard(props[entity].newPosition, props[entity].newScale, props[entity].newRotation);
 }
 
-Editor::ObjectTransformCmd::ObjectTransformCmd(Scene* scene, Entity entity, Vector3 position, Quaternion rotation, Vector3 scale){
-    this->scene = scene;
+Editor::ObjectTransformCmd::ObjectTransformCmd(SceneProject* sceneProject, Entity entity, Vector3 position, Quaternion rotation, Vector3 scale){
+    this->sceneProject = sceneProject;
 
     props[entity].newPosition = position;
     props[entity].newRotation = rotation;
@@ -18,7 +18,7 @@ Editor::ObjectTransformCmd::ObjectTransformCmd(Scene* scene, Entity entity, Vect
 
 void Editor::ObjectTransformCmd::execute(){
     for (auto& [entity, property] : props){
-        if (Transform* transform = scene->findComponent<Transform>(entity)){
+        if (Transform* transform = sceneProject->scene->findComponent<Transform>(entity)){
             property.oldPosition = transform->position;
             property.oldRotation = transform->rotation;
             property.oldScale = transform->scale;
@@ -30,11 +30,13 @@ void Editor::ObjectTransformCmd::execute(){
             transform->needUpdate = true;
         }
     }
+
+    sceneProject->isModified = true;
 }
 
 void Editor::ObjectTransformCmd::undo(){
     for (auto const& [entity, property] : props){
-        if (Transform* transform = scene->findComponent<Transform>(entity)){
+        if (Transform* transform = sceneProject->scene->findComponent<Transform>(entity)){
             transform->position = property.oldPosition;
             transform->rotation = property.oldRotation;
             transform->scale = property.oldScale;
@@ -42,12 +44,14 @@ void Editor::ObjectTransformCmd::undo(){
             transform->needUpdate = true;
         }
     }
+
+    sceneProject->isModified = true;
 }
 
 bool Editor::ObjectTransformCmd::mergeWith(Editor::Command* otherCommand){
     ObjectTransformCmd* otherCmd = dynamic_cast<ObjectTransformCmd*>(otherCommand);
     if (otherCmd != nullptr){
-        if (scene == otherCmd->scene){
+        if (sceneProject == otherCmd->sceneProject){
 
             for (auto const& [otherEntity, otherProperty] : otherCmd->props){
                 if (props.find(otherEntity) != props.end()) {

@@ -56,15 +56,17 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
                             mousePos.y >= windowPos.y && mousePos.y <= windowPos.y + windowSize.y);
 
     if (isMouseInWindow){
+        SceneProject* sceneProject = project->getScene(sceneId);
+
         float x = mousePos.x - windowPos.x;
         float y = mousePos.y - windowPos.y;
 
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)){
-            project->getScene(sceneId)->sceneRender->mouseClickEvent(x, y, project->getSelectedEntities(sceneId));
+            sceneProject->sceneRender->mouseClickEvent(x, y, project->getSelectedEntities(sceneId));
         }
 
         if (!(ImGui::IsMouseDown(ImGuiMouseButton_Middle) || ImGui::IsMouseDown(ImGuiMouseButton_Right))){
-            project->getScene(sceneId)->sceneRender->mouseHoverEvent(x, y);
+            sceneProject->sceneRender->mouseHoverEvent(x, y);
         }
 
         if (ImGui::IsMouseDown(ImGuiMouseButton_Left)){
@@ -75,7 +77,7 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
             mouseLeftDragPos = Vector2(x, y);
             if (mouseLeftStartPos.distance(mouseLeftDragPos) > 5){
                 mouseLeftDraggedInside = true;
-                project->getScene(sceneId)->sceneRender->mouseDragEvent(x, y, mouseLeftStartPos.x, mouseLeftStartPos.y, sceneId, project->getSelectedEntities(sceneId));
+                sceneProject->sceneRender->mouseDragEvent(x, y, mouseLeftStartPos.x, mouseLeftStartPos.y, sceneId, sceneProject, project->getSelectedEntities(sceneId));
             }
         }
 
