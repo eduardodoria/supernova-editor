@@ -51,8 +51,8 @@ namespace Supernova::Editor{
             Code
         } lastFocusedWindow;
 
-        void saveMenu();
-        void saveAllMenu();
+        void saveFunc();
+        void saveAllFunc();
 
         void showMenu();
         void showAlert();

@@ -35,6 +35,12 @@ namespace Supernova::Editor {
         static YAML::Node encodeTexture(const Texture& texture);
         static Texture decodeTexture(const YAML::Node& node);
 
+        static YAML::Node encodeBuffer(const Buffer& buffer);
+        static void decodeBuffer(Buffer& buffer, const YAML::Node& node);
+
+        static YAML::Node encodeExternalBuffer(const ExternalBuffer& buffer);
+        static void decodeExternalBuffer(ExternalBuffer& buffer, const YAML::Node& node);
+
         static YAML::Node encodeMaterial(const Material& material);
         static Material decodeMaterial(const YAML::Node& node);
 

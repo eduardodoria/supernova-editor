@@ -1,5 +1,7 @@
 #include "Stream.h"
 
+#include "Base64.h"
+
 using namespace Supernova;
 
 YAML::Node Editor::Stream::encodeVector2(const Vector2& vec){
@@ -196,6 +198,91 @@ Texture Editor::Stream::decodeTexture(const YAML::Node& node) {
     return texture;
 }
 
+YAML::Node Editor::Stream::encodeBuffer(const Buffer& buffer) {
+    YAML::Node node;
+
+    // Encode buffer properties
+    node["type"] = static_cast<int>(buffer.getType());
+    node["usage"] = static_cast<int>(buffer.getUsage());
+    node["stride"] = buffer.getStride();
+    node["size"] = buffer.getSize();
+    node["count"] = buffer.getCount();
+    node["renderAttributes"] = buffer.isRenderAttributes();
+    node["instanceBuffer"] = buffer.isInstanceBuffer();
+
+    // Encode attributes
+    YAML::Node attributesNode;
+    for (const auto& [type, attr] : buffer.getAttributes()) {
+        YAML::Node attrNode;
+        attrNode["type"] = static_cast<int>(type);
+        attrNode["dataType"] = static_cast<int>(attr.getDataType());
+        attrNode["bufferName"] = attr.getBufferName();
+        attrNode["elements"] = attr.getElements();
+        attrNode["offset"] = attr.getOffset();
+        attrNode["count"] = attr.getCount();
+        attrNode["normalized"] = attr.getNormalized();
+        attrNode["perInstance"] = attr.getPerInstance();
+        attributesNode.push_back(attrNode);
+    }
+    node["attributes"] = attributesNode;
+
+    // Encode buffer data if it exists
+    if (buffer.getData() && buffer.getSize() > 0) {
+        std::string base64Data = Base64::encode(buffer.getData(), buffer.getSize());
+        node["data"] = base64Data;
+    }
+
+    return node;
+}
+
+void Editor::Stream::decodeBuffer(Buffer& buffer, const YAML::Node& node) {
+    if (!node.IsMap()) return;
+
+    // Decode buffer properties
+    buffer.setType(static_cast<BufferType>(node["type"].as<int>()));
+    buffer.setUsage(static_cast<BufferUsage>(node["usage"].as<int>()));
+    buffer.setStride(node["stride"].as<unsigned int>());
+    buffer.setCount(node["count"].as<unsigned int>());
+    buffer.setRenderAttributes(node["renderAttributes"].as<bool>());
+    buffer.setInstanceBuffer(node["instanceBuffer"].as<bool>());
+
+    // Decode attributes
+    if (node["attributes"]) {
+        for (const auto& attrNode : node["attributes"]) {
+            AttributeType type = static_cast<AttributeType>(attrNode["type"].as<int>());
+            AttributeDataType dataType = static_cast<AttributeDataType>(attrNode["dataType"].as<int>());
+            std::string bufferName = attrNode["bufferName"].as<std::string>();
+            unsigned int elements = attrNode["elements"].as<unsigned int>();
+            size_t offset = attrNode["offset"].as<size_t>();
+            bool normalized = attrNode["normalized"].as<bool>();
+            bool perInstance = attrNode["perInstance"].as<bool>();
+
+            Attribute attr(dataType, bufferName, elements, offset, normalized, perInstance);
+            attr.setCount(attrNode["count"].as<unsigned int>());
+            buffer.addAttribute(type, attr);
+        }
+    }
+
+    // Decode buffer data if it exists
+    if (node["data"]) {
+        std::string base64Data = node["data"].as<std::string>();
+        std::vector<unsigned char> decodedData = Base64::decode(base64Data);
+
+        buffer.importData(decodedData.data(), decodedData.size());
+    }
+}
+
+YAML::Node Editor::Stream::encodeExternalBuffer(const ExternalBuffer& buffer) {
+    YAML::Node node = encodeBuffer(buffer); // Use base Buffer encoding
+    node["name"] = buffer.getName(); // Add ExternalBuffer specific property
+    return node;
+}
+
+void Editor::Stream::decodeExternalBuffer(ExternalBuffer& buffer, const YAML::Node& node) {
+    decodeBuffer(buffer, node); // Use base Buffer decoding
+    buffer.setName(node["name"].as<std::string>()); // Set ExternalBuffer specific property
+}
+
 YAML::Node Editor::Stream::encodeMaterial(const Material& material) {
     YAML::Node node;
 
@@ -333,16 +420,20 @@ AABB Editor::Stream::decodeAABB(const YAML::Node& node) {
 YAML::Node Editor::Stream::encodeMeshComponent(const MeshComponent& mesh) {
     YAML::Node node;
 
-    node["loaded"] = mesh.loaded;
-    node["loadCalled"] = mesh.loadCalled;
+    //node["loaded"] = mesh.loaded;
+    //node["loadCalled"] = mesh.loadCalled;
 
-    // Buffer data might need special handling or might not need to be serialized
-    // node["buffer"] = ...
-    // node["indices"] = ...
-    // node["eBuffers"] = ...
+    node["buffer"] = encodeBuffer(mesh.buffer);
+    node["indices"] = encodeBuffer(mesh.indices);
+
+    // Encode external buffers
+    YAML::Node eBuffersNode;
+    for (unsigned int i = 0; i < mesh.numExternalBuffers; i++) {
+        eBuffersNode.push_back(encodeExternalBuffer(mesh.eBuffers[i]));
+    }
+    node["eBuffers"] = eBuffersNode;
 
     node["vertexCount"] = mesh.vertexCount;
-    node["numExternalBuffers"] = mesh.numExternalBuffers;
 
     // Encode submeshes
     YAML::Node submeshesNode;
@@ -350,7 +441,7 @@ YAML::Node Editor::Stream::encodeMeshComponent(const MeshComponent& mesh) {
         submeshesNode.push_back(encodeSubmesh(mesh.submeshes[i]));
     }
     node["submeshes"] = submeshesNode;
-    node["numSubmeshes"] = mesh.numSubmeshes;
+    //node["numSubmeshes"] = mesh.numSubmeshes;
 
     // Encode bones matrix array
     YAML::Node bonesNode;
@@ -383,8 +474,8 @@ YAML::Node Editor::Stream::encodeMeshComponent(const MeshComponent& mesh) {
     node["cullingMode"] = static_cast<int>(mesh.cullingMode);
     node["windingOrder"] = static_cast<int>(mesh.windingOrder);
 
-    node["needUpdateBuffer"] = mesh.needUpdateBuffer;
-    node["needReload"] = mesh.needReload;
+    //node["needUpdateBuffer"] = mesh.needUpdateBuffer;
+    //node["needReload"] = mesh.needReload;
 
     return node;
 }
@@ -394,15 +485,33 @@ MeshComponent Editor::Stream::decodeMeshComponent(const YAML::Node& node) {
 
     //mesh.loaded = node["loaded"].as<bool>();
     //mesh.loadCalled = node["loadCalled"].as<bool>();
+
+    // Decode buffers using generic methods
+    if (node["buffer"]) {
+        decodeBuffer(mesh.buffer, node["buffer"]);
+    }
+
+    if (node["indices"]) {
+        decodeBuffer(mesh.indices, node["indices"]);
+    }
+
+    // Decode external buffers
+    if (node["eBuffers"]) {
+        auto eBuffersNode = node["eBuffers"];
+        for (unsigned int i = 0; i < eBuffersNode.size() && i < MAX_EXTERNAL_BUFFERS; i++) {
+            decodeExternalBuffer(mesh.eBuffers[i], eBuffersNode[i]);
+        }
+        mesh.numExternalBuffers = eBuffersNode.size();
+    }
+
     mesh.vertexCount = node["vertexCount"].as<uint32_t>();
-    mesh.numExternalBuffers = node["numExternalBuffers"].as<uint32_t>();
-    mesh.numSubmeshes = node["numSubmeshes"].as<uint32_t>();
 
     // Decode submeshes
     auto submeshesNode = node["submeshes"];
-    for(unsigned int i = 0; i < mesh.numSubmeshes; i++) {
+    for(unsigned int i = 0; i < submeshesNode.size() && i < MAX_SUBMESHES; i++) {
         mesh.submeshes[i] = decodeSubmesh(submeshesNode[i]);
     }
+    mesh.numSubmeshes = submeshesNode.size();
 
     // Decode bones matrix
     auto bonesNode = node["bonesMatrix"];

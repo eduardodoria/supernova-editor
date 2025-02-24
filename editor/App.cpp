@@ -33,7 +33,7 @@ Editor::App::App(){
     lastActivatedScene = NULL_PROJECT_SCENE;
 }
 
-void Editor::App::saveMenu(){
+void Editor::App::saveFunc(){
     if (lastFocusedWindow == LastFocusedWindow::Scene) {
         project.saveLastSelectedScene();
     } else if (lastFocusedWindow == LastFocusedWindow::Code) {
@@ -41,7 +41,7 @@ void Editor::App::saveMenu(){
     }
 }
 
-void Editor::App::saveAllMenu(){
+void Editor::App::saveAllFunc(){
     project.saveAllScenes();
     codeEditor->saveAll();
 }
@@ -67,12 +67,12 @@ void Editor::App::showMenu(){
 
             ImGui::BeginDisabled(!canSave);
             if (ImGui::MenuItem("Save")) {
-                saveMenu();
+                saveFunc();
             }
             ImGui::EndDisabled();
             ImGui::BeginDisabled(!canSaveAll);
             if (ImGui::MenuItem("Save All")) {
-                saveAllMenu();
+                saveAllFunc();
             }
             ImGui::EndDisabled();
             if (ImGui::MenuItem("Exit")) {
@@ -247,9 +247,9 @@ void Editor::App::show(){
     if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S)) {
         if (ImGui::GetIO().KeyShift) {
             // CTRL+SHIFT+S saves all files
-            saveAllMenu();
+            saveAllFunc();
         } else {
-            saveMenu();
+            saveFunc();
         }
     }
 
