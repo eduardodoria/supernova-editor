@@ -1,6 +1,6 @@
 // Generator.cpp
 #include "Generator.h"
-#include "editor/Log.h"
+#include "editor/Out.h"
 #include <cstdlib>
 #include <stdexcept>
 #include <chrono>
@@ -32,7 +32,7 @@ bool Editor::Generator::configureCMake(const fs::path& projectPath, const fs::pa
     cmakeCommand += "-B \"" + buildPath.string() + "\" ";
     cmakeCommand += "-DSUPERNOVA_LIB_DIR=\"" + currentPath.string() + "\"";
 
-    Log::info("Configuring CMake project with command: %s", cmakeCommand.c_str());
+    Out::info("Configuring CMake project with command: %s", cmakeCommand.c_str());
 
     #ifdef _WIN32
         STARTUPINFO si = { sizeof(STARTUPINFO) };
@@ -154,7 +154,7 @@ bool Editor::Generator::configureCMake(const fs::path& projectPath, const fs::pa
             if (!line.empty() && line.back() == '\n') {
                 line.pop_back();
             }
-            Log::build("%s", line.c_str());
+            Out::build("%s", line.c_str());
         }
 
         return pclose(pipe) == 0;
@@ -165,7 +165,7 @@ bool Editor::Generator::buildProject(const fs::path& projectPath, const fs::path
     std::string buildCommand = "cmake --build \"" + buildPath.string() + "\" --config " + configType;
     char buffer[4096];
 
-    Log::info("Building project...");
+    Out::info("Building project...");
 
     #ifdef _WIN32
         // avoid warning to building in a temporary directory
@@ -290,7 +290,7 @@ bool Editor::Generator::buildProject(const fs::path& projectPath, const fs::path
             if (!line.empty() && line.back() == '\n') {
                 line.pop_back();
             }
-            Log::build("%s", line.c_str());
+            Out::build("%s", line.c_str());
         }
 
         return pclose(pipe) == 0;
@@ -442,9 +442,9 @@ void Editor::Generator::build(fs::path projectPath) {
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>
                 (endTime - startTime).count() / 1000.0;
 
-            Log::build("Build completed in %.3f seconds", duration);
+            Out::build("Build completed in %.3f seconds", duration);
         } catch (const std::exception& ex) {
-            Log::error("%s", ex.what());
+            Out::error("%s", ex.what());
         }
     });
 }

@@ -5,7 +5,7 @@
 #include "yaml-cpp/yaml.h"
 #include <fstream>
 
-#include "Log.h"
+#include "Out.h"
 #include "subsystem/MeshSystem.h"
 #include "command/CommandHandle.h"
 #include "command/type/DeleteEntityCmd.h"
@@ -30,20 +30,20 @@ bool Editor::Project::createNewProject(std::string projectName){
 
         if (!std::filesystem::exists(projectPath)) {
             std::filesystem::create_directory(projectPath);
-            Log::info("Created project directory: %s", projectPath.string().c_str());
+            Out::info("Created project directory: %s", projectPath.string().c_str());
         } else {
-            Log::info("Project directory already exists: %s", projectPath.string().c_str());
+            Out::info("Project directory already exists: %s", projectPath.string().c_str());
         }
 
         std::filesystem::path subDir;
 
         subDir = projectPath / "assets";
         std::filesystem::create_directory(subDir);
-        Log::info("Created subdirectory: %s", subDir.string().c_str());
+        Out::info("Created subdirectory: %s", subDir.string().c_str());
 
         subDir = projectPath / "scripts";
         std::filesystem::create_directory(subDir);
-        Log::info("Created subdirectory: %s", subDir.string().c_str());
+        Out::info("Created subdirectory: %s", subDir.string().c_str());
 
     } catch (const std::exception& e) {
         printf("Error: %s\n", e.what());
@@ -77,6 +77,8 @@ uint32_t Editor::Project::createNewScene(std::string sceneName){
     data.selectedEntities.clear();
     data.needUpdateRender = true;
     data.isModified = false;
+
+    data.scene->setLastEntityInternal(99);
 
     scenes.push_back(data);
 

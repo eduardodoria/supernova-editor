@@ -7,7 +7,7 @@
 #include "external/IconsFontAwesome6.h"
 #include "command/CommandHandle.h"
 
-#include "Log.h"
+#include "Out.h"
 #include "resources/fonts/fa-solid-900_ttf.h"
 //#include "recources/fonts/roboto-v20-latin-regular_ttf.h"
 #include "util/DefaultFont.h"
@@ -16,7 +16,7 @@ using namespace Supernova;
 
 Editor::App::App(){
     propertiesWindow = new Properties(&project);
-    outputWindow = new Output();
+    outputWindow = new OutputWindow();
     sceneWindow = new SceneWindow(&project);
     structureWindow = new Structure(&project, sceneWindow);
     codeEditor = new CodeEditor();
@@ -26,7 +26,7 @@ Editor::App::App(){
 
     lastFocusedWindow = LastFocusedWindow::None;
 
-    Log::setOutputWindow(outputWindow);
+    Out::setOutputWindow(outputWindow);
 
     isDroppedExternalPaths = false;
 

@@ -1,6 +1,7 @@
 #include "Stream.h"
 
 #include "Base64.h"
+#include "Out.h"
 
 using namespace Supernova;
 
@@ -254,11 +255,11 @@ void Editor::Stream::decodeBuffer(Buffer& buffer, const YAML::Node& node) {
             std::string bufferName = attrNode["bufferName"].as<std::string>();
             unsigned int elements = attrNode["elements"].as<unsigned int>();
             size_t offset = attrNode["offset"].as<size_t>();
+            unsigned int count = attrNode["count"].as<unsigned int>();
             bool normalized = attrNode["normalized"].as<bool>();
             bool perInstance = attrNode["perInstance"].as<bool>();
 
-            Attribute attr(dataType, bufferName, elements, offset, normalized, perInstance);
-            attr.setCount(attrNode["count"].as<unsigned int>());
+            Attribute attr(dataType, bufferName, elements, offset, count, normalized, perInstance);
             buffer.addAttribute(type, attr);
         }
     }
@@ -576,9 +577,8 @@ void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::
 
     auto entitiesNode = node["entities"];
     for (const auto& entityNode : entitiesNode) {
-        Entity entity = sceneProject->scene->createEntity();
+        Entity entity = decodeEntity(sceneProject->scene, entityNode);
         sceneProject->entities.push_back(entity);
-        decodeEntity(sceneProject->scene, entity, entityNode);
     }
 }
 
@@ -608,8 +608,17 @@ YAML::Node Editor::Stream::encodeEntity(const Entity entity, const Scene* scene)
     return entityNode;
 }
 
-void Editor::Stream::decodeEntity(Scene* scene, Entity entity, const YAML::Node& entityNode) {
-    //Entity entity = entityNode["entity"].as<Entity>();
+Entity Editor::Stream::decodeEntity(Scene* scene, const YAML::Node& entityNode) {
+    Entity entity = entityNode["entity"].as<Entity>();
+
+    if (!scene->isEntityCreated(entity)){
+        scene->createEntityInternal(entity);
+    }else{
+        Entity oldEntity = entity;
+        entity = scene->createEntity();
+        Editor::Out::warning("Entity '%u' already exist, creating a new one: %u", oldEntity, entity);
+    }
+
     std::string name = entityNode["name"].as<std::string>();
 
     scene->setEntityName(entity, name);
@@ -623,4 +632,6 @@ void Editor::Stream::decodeEntity(Scene* scene, Entity entity, const YAML::Node&
         MeshComponent mesh = decodeMeshComponent(entityNode["mesh"]);
         scene->addComponent<MeshComponent>(entity, mesh);
     }
+
+    return entity;
 }

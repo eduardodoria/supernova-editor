@@ -1,5 +1,4 @@
-// Output.cpp
-#include "Output.h"
+#include "OutputWindow.h"
 #include "external/IconsFontAwesome6.h"
 #include <ctime>
 #include <iomanip>
@@ -10,7 +9,7 @@
 
 using namespace Supernova::Editor;
 
-Output::Output() {
+OutputWindow::OutputWindow() {
     autoScroll = true;
     autoScrollLocked = true;
     scrollStartCount = 0;
@@ -26,7 +25,7 @@ Output::Output() {
     clear();
 }
 
-void Output::clear() {
+void OutputWindow::clear() {
     buf.clear();
     logs.clear();
     lineOffsets.clear();
@@ -34,7 +33,7 @@ void Output::clear() {
     needsRebuild = false;
 }
 
-void Output::addLog(LogType type, const char* fmt, ...) {
+void OutputWindow::addLog(LogType type, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
     char temp[4096];
@@ -44,7 +43,7 @@ void Output::addLog(LogType type, const char* fmt, ...) {
     addLog(type, std::string(temp));
 }
 
-void Output::addLog(LogType type, const std::string& message) {
+void OutputWindow::addLog(LogType type, const std::string& message) {
     // Store the raw log entry
     LogData logEntry{type, message, static_cast<float>(ImGui::GetTime())};
     logs.push_back(logEntry);
@@ -87,7 +86,7 @@ std::string getTypePrefix(LogType type) {
     }
 }
 
-void Output::rebuildBuffer() {
+void OutputWindow::rebuildBuffer() {
     if (!ImGui::GetCurrentContext() || !ImGui::GetCurrentWindow()) {
         return;
     }
@@ -187,7 +186,7 @@ void Output::rebuildBuffer() {
     }
 }
 
-void Output::show() {
+void OutputWindow::show() {
     if (!ImGui::Begin("Output")) {
         ImGui::End();
         return;

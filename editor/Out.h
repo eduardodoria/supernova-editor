@@ -1,14 +1,14 @@
-#ifndef LOG_H
-#define LOG_H
+#ifndef OUT_H
+#define OUT_H
 
-#include "window/Output.h"
+#include "window/OutputWindow.h"
 #include <string>
 #include <memory>
 
 namespace Supernova::Editor {
-    class Log {
+    class Out {
     private:
-        static Output* output;
+        static OutputWindow* outputWindow;
 
         // Helper method for formatting with no arguments
         static std::string formatMessage(const char* fmt) {
@@ -37,8 +37,8 @@ namespace Supernova::Editor {
         }
 
     public:
-        static void setOutputWindow(Output* output);
-        static Output* getOutputWindow();
+        static void setOutputWindow(OutputWindow* outputWindow);
+        static OutputWindow* getOutputWindow();
 
         // Basic logging methods
         static void info(const std::string& message);
@@ -57,41 +57,41 @@ namespace Supernova::Editor {
         // Formatted logging methods with variable arguments
         template<typename... Args>
         static void info(const char* fmt, Args... args) {
-            if (output) {
+            if (outputWindow) {
                 std::string message = formatMessage(fmt, args...);
-                output->addLog(LogType::Info, message);
+                outputWindow->addLog(LogType::Info, message);
             }
         }
 
         template<typename... Args>
         static void success(const char* fmt, Args... args) {
-            if (output) {
+            if (outputWindow) {
                 std::string message = formatMessage(fmt, args...);
-                output->addLog(LogType::Success, message);
+                outputWindow->addLog(LogType::Success, message);
             }
         }
 
         template<typename... Args>
         static void warning(const char* fmt, Args... args) {
-            if (output) {
+            if (outputWindow) {
                 std::string message = formatMessage(fmt, args...);
-                output->addLog(LogType::Warning, message);
+                outputWindow->addLog(LogType::Warning, message);
             }
         }
 
         template<typename... Args>
         static void error(const char* fmt, Args... args) {
-            if (output) {
+            if (outputWindow) {
                 std::string message = formatMessage(fmt, args...);
-                output->addLog(LogType::Error, message);
+                outputWindow->addLog(LogType::Error, message);
             }
         }
 
         template<typename... Args>
         static void build(const char* fmt, Args... args) {
-            if (output) {
+            if (outputWindow) {
                 std::string message = formatMessage(fmt, args...);
-                output->addLog(LogType::Build, message);
+                outputWindow->addLog(LogType::Build, message);
             }
         }
 
@@ -100,4 +100,4 @@ namespace Supernova::Editor {
     };
 }
 
-#endif /* LOG_H */
+#endif /* OUT_H */

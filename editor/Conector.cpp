@@ -1,6 +1,6 @@
 #include "Conector.h"
 
-#include "editor/Log.h"
+#include "editor/Out.h"
 #include "Scene.h"
 
 #include <iostream>
@@ -74,7 +74,7 @@ bool Editor::Conector::connect(fs::path projectPath){
         libPath = libPath + ".so";
     #endif
 
-    Log::info("Checking for library file: %s", libPath.c_str());
+    Out::info("Checking for library file: %s", libPath.c_str());
 
     fs::path fullLibPath = buildPath / fs::path(libPath);
     if (fileExists(fullLibPath)) {
@@ -84,7 +84,7 @@ bool Editor::Conector::connect(fs::path projectPath){
             return true;
         }
     } else {
-        Log::error("Library file not found: %s", libPath.c_str());
+        Out::error("Library file not found: %s", libPath.c_str());
     }
 
     return false;
@@ -96,17 +96,17 @@ void Editor::Conector::execute(){
     #ifdef _WIN32
         SayHelloFunc sayHello = reinterpret_cast<SayHelloFunc>(GetProcAddress(static_cast<HMODULE>(libHandle), "sayHello"));
         if (!sayHello) {
-            Log::error("Failed to find function 'sayHello' in the library (Error code: %i)", GetLastError());
+            Out::error("Failed to find function 'sayHello' in the library (Error code: %i)", GetLastError());
         }
     #else
         SayHelloFunc sayHello = reinterpret_cast<SayHelloFunc>(dlsym(libHandle, "sayHello"));
         if (!sayHello) {
-            Log::error("Failed to find function 'sayHello' in the library (Error: %s)", dlerror());
+            Out::error("Failed to find function 'sayHello' in the library (Error: %s)", dlerror());
         }
     #endif
 
     if (sayHello) {
-        Log::info("Calling 'sayHello' function from the library...");
+        Out::info("Calling 'sayHello' function from the library...");
         Scene scene;
         sayHello(&scene); // Call the function
     }

@@ -1,6 +1,6 @@
 #include "CreateEntityCmd.h"
 
-#include "editor/Log.h"
+#include "editor/Out.h"
 
 using namespace Supernova;
 
@@ -86,7 +86,7 @@ void Editor::CreateEntityCmd::execute(){
 
             ImGui::SetWindowFocus(("###Scene" + std::to_string(sceneId)).c_str());
 
-            Editor::Log::info("Created entity '%s' at scene '%s'", entityName.c_str(), scenes[i].name.c_str());
+            Editor::Out::info("Created entity '%s' at scene '%s'", entityName.c_str(), scenes[i].name.c_str());
         }
     }
 }
