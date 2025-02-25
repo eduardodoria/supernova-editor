@@ -32,7 +32,7 @@ namespace Supernova::Editor{
         Conector conector;
         Generator generator;
 
-        static uint32_t nextSceneId;
+        uint32_t nextSceneId;
 
         std::vector<SceneProject> scenes;
         uint32_t selectedScene;
@@ -51,6 +51,8 @@ namespace Supernova::Editor{
         Project();
 
         void saveProject();
+        bool loadProject(const std::filesystem::path& projectPath);
+
         void saveScene(uint32_t sceneId);
         void saveAllScenes();
         void saveLastSelectedScene();
@@ -73,6 +75,9 @@ namespace Supernova::Editor{
         const SceneProject* getScene(uint32_t sceneId) const;
         SceneProject* getSelectedScene();
         const SceneProject* getSelectedScene() const;
+
+        void setNextSceneId(uint32_t nextSceneId);
+        uint32_t getNextSceneId() const;
 
         void setSelectedSceneId(uint32_t selectedScene);
         uint32_t getSelectedSceneId() const;

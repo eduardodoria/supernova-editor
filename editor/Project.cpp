@@ -14,13 +14,13 @@
 
 using namespace Supernova;
 
-uint32_t Editor::Project::nextSceneId = 0;
-
 Editor::Project::Project(){
     selectedScene = NULL_PROJECT_SCENE;
 
     tempPath = false;
     resourcesFocused = false;
+
+    nextSceneId = 0;
 }
 
 bool Editor::Project::createNewProject(std::string projectName){
@@ -31,19 +31,11 @@ bool Editor::Project::createNewProject(std::string projectName){
         if (!std::filesystem::exists(projectPath)) {
             std::filesystem::create_directory(projectPath);
             Out::info("Created project directory: %s", projectPath.string().c_str());
+            createNewScene("New Scene");
         } else {
             Out::info("Project directory already exists: %s", projectPath.string().c_str());
+            loadProject(projectPath);
         }
-
-        std::filesystem::path subDir;
-
-        subDir = projectPath / "assets";
-        std::filesystem::create_directory(subDir);
-        Out::info("Created subdirectory: %s", subDir.string().c_str());
-
-        subDir = projectPath / "scripts";
-        std::filesystem::create_directory(subDir);
-        Out::info("Created subdirectory: %s", subDir.string().c_str());
 
     } catch (const std::exception& e) {
         printf("Error: %s\n", e.what());
@@ -85,8 +77,6 @@ uint32_t Editor::Project::createNewScene(std::string sceneName){
     setSelectedSceneId(scenes.back().id);
 
     Backend::getApp().addNewSceneToDock(scenes.back().id);
-
-    saveProject();
 
     return scenes.back().id;
 }
@@ -186,6 +176,56 @@ void Editor::Project::saveProject() {
     fout.close();
 }
 
+bool Editor::Project::loadProject(const std::filesystem::path& projectPath) {
+    try {
+        if (!std::filesystem::exists(projectPath)) {
+            Out::error("Project directory does not exist: %s", projectPath.string().c_str());
+            return false;
+        }
+
+        std::filesystem::path projectFile = projectPath / "project.yaml";
+        if (!std::filesystem::exists(projectFile)) {
+            Out::error("Project file does not exist: %s", projectFile.string().c_str());
+            return false;
+        }
+
+        // Load and parse project file
+        YAML::Node projectNode = YAML::LoadFile(projectFile.string());
+        Stream::decodeProject(this, projectNode);
+
+        // Set project path
+        this->projectPath = projectPath;
+        this->tempPath = false;
+
+        // Load any existing scenes in the project directory
+        std::filesystem::path scenesDir = projectPath;
+        if (std::filesystem::exists(scenesDir)) {
+            for (const auto& entry : std::filesystem::directory_iterator(scenesDir)) {
+                if (entry.path().extension() == ".scene") {
+                    openScene(entry.path());
+                }
+            }
+        }
+
+        // Create a default scene if no scenes were loaded
+        if (scenes.empty()) {
+            createNewScene("Main Scene");
+        }
+
+        Out::info("Project loaded successfully: %s", projectPath.string().c_str());
+        return true;
+
+    } catch (const YAML::Exception& e) {
+        Out::error("Failed to load project YAML: %s", e.what());
+        Backend::getApp().registerAlert("Error", "Failed to load project file!");
+        return false;
+    } catch (const std::exception& e) {
+        Out::error("Failed to load project: %s", e.what());
+        Backend::getApp().registerAlert("Error", "Failed to load project!");
+        return false;
+    }
+}
+
 void Editor::Project::saveScene(uint32_t sceneId) {
     SceneProject* sceneProject = getScene(sceneId);
     YAML::Node root = Stream::encodeSceneProject(sceneProject);
@@ -215,6 +255,8 @@ void Editor::Project::saveScene(uint32_t sceneId) {
     fout.close();
 
     sceneProject->isModified = false;
+
+    saveProject();
 }
 
 void Editor::Project::saveAllScenes() {
@@ -370,6 +412,14 @@ Editor::SceneProject* Editor::Project::getSelectedScene(){
 
 const Editor::SceneProject* Editor::Project::getSelectedScene() const{
     return getScene(selectedScene);
+}
+
+void Editor::Project::setNextSceneId(uint32_t nextSceneId){
+    this->nextSceneId = nextSceneId;
+}
+
+uint32_t Editor::Project::getNextSceneId() const{
+    return nextSceneId;
 }
 
 void Editor::Project::setSelectedSceneId(uint32_t selectedScene){

@@ -167,6 +167,8 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
 
     bool nodeOpen = ImGui::TreeNodeEx((node.icon + "  " + node.name + "###" + getNodeImGuiId(node)).c_str(), flags);
 
+    ImGui::SetItemTooltip("Id: %u", node.id);
+
     std::string dragDropName = "ENTITY";
     if (node.hasTransform){
         dragDropName = dragDropName + "_T";

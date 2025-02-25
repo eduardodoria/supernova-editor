@@ -551,9 +551,27 @@ YAML::Node Editor::Stream::encodeProject(Project* project) {
     YAML::Node root;
 
     root["name"] = "Supernova Project";
+    root["nextSceneId"] = project->getNextSceneId();
     root["selectedScene"] = project->getSelectedSceneId();
 
     return root;
+}
+
+void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
+    if (!node.IsMap()) return;
+
+    // Only set nextSceneId if it exists in the node and is greater than current
+    if (node["nextSceneId"]) {
+        uint32_t nextId = node["nextSceneId"].as<uint32_t>();
+        if (nextId > project->getNextSceneId()) {
+            project->setNextSceneId(nextId);
+        }
+    }
+
+    // Set selected scene if it exists
+    if (node["selectedScene"]) {
+        project->setSelectedSceneId(node["selectedScene"].as<uint32_t>());
+    }
 }
 
 YAML::Node Editor::Stream::encodeSceneProject(const SceneProject* sceneProject) {
