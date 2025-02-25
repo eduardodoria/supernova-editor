@@ -54,6 +54,9 @@ void Editor::App::showMenu(){
     // Create the main menu bar
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
+            if (ImGui::MenuItem("New")) {
+                //project.reset();
+            }
             if (ImGui::MenuItem("Open")) {
                 // Handle open action
             }

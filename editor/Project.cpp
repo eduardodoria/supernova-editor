@@ -166,7 +166,25 @@ bool Editor::Project::createNewComponent(uint32_t sceneId, Entity entity, Compon
 
     return false;
 }
+/*
+void Editor::Project::reset() {
+    // Clear existing scenes
+    for (auto& sceneProject : scenes) {
+        delete sceneProject.sceneRender;
+        delete sceneProject.scene;
+    }
+    scenes.clear();
 
+    // Reset state
+    selectedScene = NULL_PROJECT_SCENE;
+    nextSceneId = 0;
+    tempPath = true;
+    projectPath.clear();
+
+    // Create new project
+    createNewProject("NewProject");
+}
+*/
 void Editor::Project::saveProject() {
     YAML::Node root = Stream::encodeProject(this);
 
@@ -193,23 +211,9 @@ bool Editor::Project::loadProject(const std::filesystem::path& projectPath) {
         YAML::Node projectNode = YAML::LoadFile(projectFile.string());
         Stream::decodeProject(this, projectNode);
 
-        // Set project path
-        this->projectPath = projectPath;
-        this->tempPath = false;
-
-        // Load any existing scenes in the project directory
-        std::filesystem::path scenesDir = projectPath;
-        if (std::filesystem::exists(scenesDir)) {
-            for (const auto& entry : std::filesystem::directory_iterator(scenesDir)) {
-                if (entry.path().extension() == ".scene") {
-                    openScene(entry.path());
-                }
-            }
-        }
-
         // Create a default scene if no scenes were loaded
         if (scenes.empty()) {
-            createNewScene("Main Scene");
+            createNewScene("New Scene");
         }
 
         Out::info("Project loaded successfully: %s", projectPath.string().c_str());

@@ -554,13 +554,24 @@ YAML::Node Editor::Stream::encodeProject(Project* project) {
     root["nextSceneId"] = project->getNextSceneId();
     root["selectedScene"] = project->getSelectedSceneId();
 
+    // Add scenes array
+    YAML::Node scenesNode;
+    for (const auto& sceneProject : project->getScenes()) {
+        YAML::Node sceneNode;
+        if (!sceneProject.filepath.empty()) {
+            sceneNode["filepath"] = sceneProject.filepath.string();
+            scenesNode.push_back(sceneNode);
+        }
+    }
+    root["scenes"] = scenesNode;
+
     return root;
 }
 
 void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
     if (!node.IsMap()) return;
 
-    // Only set nextSceneId if it exists in the node and is greater than current
+    // Set nextSceneId if it exists in the node and is greater than current
     if (node["nextSceneId"]) {
         uint32_t nextId = node["nextSceneId"].as<uint32_t>();
         if (nextId > project->getNextSceneId()) {
@@ -571,6 +582,18 @@ void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
     // Set selected scene if it exists
     if (node["selectedScene"]) {
         project->setSelectedSceneId(node["selectedScene"].as<uint32_t>());
+    }
+
+    // Load scenes information
+    if (node["scenes"]) {
+        for (const auto& sceneNode : node["scenes"]) {
+            if (sceneNode["filepath"]) {
+                fs::path scenePath = sceneNode["filepath"].as<std::string>();
+                if (fs::exists(scenePath)) {
+                    project->openScene(scenePath);
+                }
+            }
+        }
     }
 }
 

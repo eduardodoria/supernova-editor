@@ -50,6 +50,8 @@ namespace Supernova::Editor{
     public:
         Project();
 
+        //void reset();
+
         void saveProject();
         bool loadProject(const std::filesystem::path& projectPath);
 
