@@ -23,32 +23,6 @@ Editor::Project::Project(){
     nextSceneId = 0;
 }
 
-bool Editor::Project::createNewProject(std::string projectName){
-    try {
-        projectPath = std::filesystem::temp_directory_path() / projectName;
-        fs::path projectFile = projectPath / "project.yaml";
-        tempPath = true;
-
-        if (!std::filesystem::exists(projectFile)) {
-            if (!std::filesystem::exists(projectPath)) {
-                std::filesystem::create_directory(projectPath);
-                Out::info("Created project directory: %s", projectPath.string().c_str());
-            }
-            createNewScene("New Scene");
-            saveProject();
-        } else {
-            Out::info("Project directory already exists: %s", projectPath.string().c_str());
-            loadProject(projectPath);
-        }
-
-    } catch (const std::exception& e) {
-        printf("Error: %s\n", e.what());
-        return false;
-    }
-
-    return true;
-}
-
 uint32_t Editor::Project::createNewScene(std::string sceneName){
     unsigned int nameCount = 2;
     std::string baseName = sceneName;
@@ -90,7 +64,7 @@ void Editor::Project::openScene(fs::path filepath){
         YAML::Node sceneNode = YAML::LoadFile(filepath.string());
 
         SceneProject data;
-        data.id = ++nextSceneId;
+        data.id = NULL_PROJECT_SCENE;
         data.name = "Unknown";
         data.scene = new Scene();
         data.sceneRender = new SceneRender(data.scene);
@@ -100,6 +74,12 @@ void Editor::Project::openScene(fs::path filepath){
         data.filepath = filepath;
 
         Stream::decodeSceneProject(&data, sceneNode);
+
+        if (getScene(data.id) != nullptr) {
+            uint32_t old = data.id;
+            data.id = ++nextSceneId;
+            Out::warning("Scene with ID '%u' already exists, usind ID %u", old, data.id);
+        }
 
         scenes.push_back(data);
 
@@ -175,31 +155,29 @@ void Editor::Project::deleteSceneProject(SceneProject* sceneProject){
     delete sceneProject->scene;
 }
 
-void Editor::Project::reset() {
-    if (hasScenesUnsavedChanges()) {
+void Editor::Project::createEmptyProject(std::string projectName) {
+    if (hasScenesUnsavedChanges() || isTempPath()) {
         Backend::getApp().registerConfirmAlert(
             "Unsaved Changes",
             "There are unsaved changes. Do you want to save them before creating a new project?",
-            [this]() {
+            [this, projectName]() {
                 // Yes callback - save all and then reset
+                saveProject(true);
                 saveAllScenes();
-                performReset();
-                createNewProject("MySupernovaProject");
+                createTempProject(projectName, true);
             },
-            [this]() {
+            [this, projectName]() {
                 // No callback - just reset without saving
-                performReset();
-                createNewProject("MySupernovaProject");
+                createTempProject(projectName, true);
             }
         );
     } else {
         // No unsaved changes, just reset
-        performReset();
-        createNewProject("MySupernovaProject");
+        createTempProject(projectName, true);
     }
 }
 
-void Editor::Project::performReset() {
+void Editor::Project::resetConfigs() {
     // Clear existing scenes
     for (auto& sceneProject : scenes) {
         deleteSceneProject(&sceneProject);
@@ -214,6 +192,37 @@ void Editor::Project::performReset() {
     projectPath.clear();
 
     //createNewScene("New Scene");
+}
+
+bool Editor::Project::createTempProject(std::string projectName, bool deleteIfExists) {
+    try {
+        resetConfigs();
+        projectPath = std::filesystem::temp_directory_path() / projectName;
+        fs::path projectFile = projectPath / "project.yaml";
+        tempPath = true;
+
+        if (deleteIfExists && fs::exists(projectPath)) {
+            fs::remove_all(projectPath);
+        }
+
+        if (!std::filesystem::exists(projectFile)) {
+            if (!std::filesystem::exists(projectPath)) {
+                std::filesystem::create_directory(projectPath);
+            }
+            Out::info("Created project directory: %s", projectPath.string().c_str());
+            saveProject();
+            createNewScene("New Scene");
+        } else {
+            Out::info("Project directory already exists: %s", projectPath.string().c_str());
+            loadProject(projectPath);
+        }
+
+    } catch (const std::exception& e) {
+        printf("Error: %s\n", e.what());
+        return false;
+    }
+
+    return true;
 }
 
 void Editor::Project::saveProject(bool userCalled) {
@@ -295,10 +304,13 @@ void Editor::Project::saveProject(bool userCalled) {
     fout << YAML::Dump(root);
     fout.close();
 
-    Out::info("Project saved to: %s", projectFile.string().c_str());
+    if (userCalled){
+        Out::info("Project saved to: %s", projectPath.string().c_str());
+    }
 }
 
-bool Editor::Project::loadProject(const std::filesystem::path& projectPath) {
+bool Editor::Project::loadProject(const std::filesystem::path projectPath) {
+    resetConfigs();
     this->projectPath = projectPath;
 
     try {
@@ -362,27 +374,23 @@ bool Editor::Project::openProject() {
     }
 
     // Check if there are unsaved changes before loading the new project
-    if (hasScenesUnsavedChanges()) {
+    if (hasScenesUnsavedChanges() || isTempPath()) {
         Backend::getApp().registerConfirmAlert(
             "Unsaved Changes",
             "There are unsaved changes. Do you want to save them before opening another project?",
             [this, projectDir]() {
                 // Yes callback - save all and then open
+                saveProject(true);
                 saveAllScenes();
-                performReset();
                 loadProject(projectDir);
             },
             [this, projectDir]() {
                 // No callback - just open without saving
-                performReset();
                 loadProject(projectDir);
             }
         );
     } else {
-        // No unsaved changes, just open the project
-        performReset();
         if (loadProject(projectDir)) {
-            Out::info("Project opened successfully: %s", projectDir.string().c_str());
             return true;
         } else {
             Out::error("Failed to open project: %s", projectDir.string().c_str());
@@ -560,7 +568,7 @@ T* Editor::Project::findScene(uint32_t sceneId) const {
             return const_cast<T*>(&scenes[i]);
         }
     }
-    throw std::out_of_range("cannot find selected scene");
+    return nullptr;
 }
 
 

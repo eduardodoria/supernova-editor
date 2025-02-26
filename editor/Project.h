@@ -47,22 +47,22 @@ namespace Supernova::Editor{
         Entity createNewEntity(uint32_t sceneId, std::string entityName);
         bool createNewComponent(uint32_t sceneId, Entity entity, ComponentType component);
         void deleteSceneProject(SceneProject* sceneProject);
-        void performReset();
+        void resetConfigs();
 
     public:
         Project();
 
-        void reset();
-
+        void createEmptyProject(std::string projectName);
+        bool createTempProject(std::string projectName, bool deleteIfExists = false);
         void saveProject(bool userCalled = false);
-        bool loadProject(const std::filesystem::path& projectPath);
         bool openProject();
+
+        bool loadProject(const std::filesystem::path projectPath);
 
         void saveScene(uint32_t sceneId);
         void saveAllScenes();
         void saveLastSelectedScene();
 
-        bool createNewProject(std::string projectName);
         uint32_t createNewScene(std::string sceneName);
         void openScene(fs::path filepath);
         void closeScene(uint32_t sceneId);

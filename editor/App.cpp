@@ -55,7 +55,7 @@ void Editor::App::showMenu(){
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("New")) {
-                project.reset();
+                project.createEmptyProject("MySupernovaProject");
             }
             ImGui::Separator();
             if (ImGui::MenuItem("Open Project", "Ctrl+O")) {
@@ -349,7 +349,7 @@ void Editor::App::show(){
 }
 
 void Editor::App::engineInit(int argc, char** argv){
-    project.createNewProject("MySupernovaProject");
+    project.createTempProject("MySupernovaProject");
 
     System::setExternalSystem(new Editor::Platform());
     Engine::systemInit(argc, argv);

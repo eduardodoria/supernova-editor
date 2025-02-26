@@ -613,7 +613,7 @@ YAML::Node Editor::Stream::encodeSceneProject(const SceneProject* sceneProject) 
 }
 
 void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::Node& node) {
-    //sceneProject->id = node["id"].as<uint32_t>();
+    sceneProject->id = node["id"].as<uint32_t>();
     sceneProject->name = node["name"].as<std::string>();
 
     auto entitiesNode = node["entities"];
