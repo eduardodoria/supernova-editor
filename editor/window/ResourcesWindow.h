@@ -68,7 +68,7 @@ namespace Supernova::Editor{
 
         bool windowFocused;
 
-        std::vector<FileEntry> scanDirectory(const std::string& path);
+        void scanDirectory(const std::string& path);
         void sortWithSortSpecs(ImGuiTableSortSpecs* sortSpecs, std::vector<FileEntry>& files);
         std::string shortenPath(const std::filesystem::path& path, float maxWidth);
         void highlightDragAndDrop();
@@ -82,6 +82,8 @@ namespace Supernova::Editor{
         ResourcesWindow(Project* project, CodeEditor* codeEditor);
 
         bool isFocused() const;
+
+        void notifyProjectPathChange();
 
         void handleExternalDragEnter();
         void handleExternalDragLeave();

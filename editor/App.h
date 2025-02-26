@@ -90,6 +90,7 @@ namespace Supernova::Editor{
         void handleExternalDragLeave();
 
         void resetLastActivatedScene();
+        void updateResourcesPath();
 
         void registerAlert(std::string title, std::string message);
         void registerConfirmAlert(std::string title, std::string message, std::function<void()> onYes, std::function<void()> onNo = nullptr);

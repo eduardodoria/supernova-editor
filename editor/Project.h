@@ -37,7 +37,6 @@ namespace Supernova::Editor{
         std::vector<SceneProject> scenes;
         uint32_t selectedScene;
 
-        bool tempPath;
         std::filesystem::path projectPath;
         bool resourcesFocused;
 
@@ -48,6 +47,7 @@ namespace Supernova::Editor{
         bool createNewComponent(uint32_t sceneId, Entity entity, ComponentType component);
         void deleteSceneProject(SceneProject* sceneProject);
         void resetConfigs();
+        bool openProjectFileDialog();
 
     public:
         Project();
@@ -57,7 +57,7 @@ namespace Supernova::Editor{
         void saveProject(bool userCalled = false);
         bool openProject();
 
-        bool loadProject(const std::filesystem::path projectPath);
+        bool loadProject(const std::filesystem::path path);
 
         void saveScene(uint32_t sceneId);
         void saveAllScenes();
@@ -87,7 +87,8 @@ namespace Supernova::Editor{
         void setSelectedSceneId(uint32_t selectedScene);
         uint32_t getSelectedSceneId() const;
 
-        bool isTempPath() const;
+        bool isTempProject() const;
+        bool isTempUnsavedProject() const;
         std::filesystem::path getProjectPath() const;
 
         void replaceSelectedEntities(uint32_t sceneId, std::vector<Entity> selectedEntities);

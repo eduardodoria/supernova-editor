@@ -42,6 +42,10 @@ bool Editor::ResourcesWindow::isFocused() const{
     return windowFocused;
 }
 
+void Editor::ResourcesWindow::notifyProjectPathChange(){
+    scanDirectory(project->getProjectPath());
+}
+
 void Editor::ResourcesWindow::handleExternalDragEnter() {
     isExternalDragHovering = true;
 }
@@ -50,7 +54,7 @@ void Editor::ResourcesWindow::handleExternalDragLeave() {
     isExternalDragHovering = false;
 }
 
-std::vector<Editor::FileEntry> Editor::ResourcesWindow::scanDirectory(const std::string& path) {
+void Editor::ResourcesWindow::scanDirectory(const std::string& path) {
     currentPath = path;
 
     if (!std::filesystem::is_directory(path)) {
@@ -79,8 +83,6 @@ std::vector<Editor::FileEntry> Editor::ResourcesWindow::scanDirectory(const std:
         }
         files.push_back(fileEntry);
     }
-
-    return files;
 }
 
 void Editor::ResourcesWindow::sortWithSortSpecs(ImGuiTableSortSpecs* sortSpecs, std::vector<FileEntry>& files) {

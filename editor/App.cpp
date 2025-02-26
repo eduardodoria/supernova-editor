@@ -61,7 +61,7 @@ void Editor::App::showMenu(){
             if (ImGui::MenuItem("Open Project", "Ctrl+O")) {
                 project.openProject();
             }
-            ImGui::BeginDisabled(!project.isTempPath());
+            ImGui::BeginDisabled(!project.isTempUnsavedProject());
             if (ImGui::MenuItem("Save Project")) {
                 project.saveProject(true);
             }
@@ -545,6 +545,12 @@ void Editor::App::handleExternalDragLeave() {
 
 void Editor::App::resetLastActivatedScene(){
     lastActivatedScene = NULL_PROJECT_SCENE;
+}
+
+void Editor::App::updateResourcesPath(){
+    if (isInitialized){
+        resourcesWindow->notifyProjectPathChange();
+    }
 }
 
 void Editor::App::registerConfirmAlert(std::string title, std::string message, std::function<void()> onYes, std::function<void()> onNo) {
