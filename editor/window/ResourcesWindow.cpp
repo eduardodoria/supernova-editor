@@ -616,7 +616,7 @@ void Editor::ResourcesWindow::show() {
         }
     }
 
-    float totalTableWidth = std::min(ImGui::GetContentRegionAvail().x, (columnWidth * (files.size() + 1)));
+    float totalTableWidth = std::min(ImGui::GetContentRegionAvail().x, ((columnWidth * files.size()) + (columnWidth * files.size() / 2.0f)));
 
     if (ImGui::BeginTable("FileTable", columns, ImGuiTableFlags_SizingStretchSame, ImVec2(totalTableWidth, 0))) {
         for (auto& file : files) {
