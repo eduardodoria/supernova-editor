@@ -28,33 +28,52 @@ namespace Supernova::Editor{
             return receivedStrings;
         }
 
-        inline static std::string openFileDialog(std::string defaultPath = "", bool onlyImages = false){
+        inline static std::string openFileDialog(std::string defaultPath = "", bool onlyImages = false, bool selectDirectory = false) {
             std::string retPath;
-            char* path;
-            nfdopendialogu8args_t args = {0};
 
-            if (onlyImages){
-                nfdfilteritem_t filterItem[1] = {
-                    { "Image files", "jpeg,jpg,png,bmp,psd,tga,gif,hdr,pic,pnm" }
-                };
-                args.filterCount = 1;
-                args.filterList = filterItem;
-            }
-            args.defaultPath = defaultPath.c_str();
+            if (selectDirectory) {
+                // Directory selection
+                nfdu8char_t* outPath;
+                nfdpickfolderu8args_t args = {0};
+                args.defaultPath = defaultPath.c_str();
+                args.parentWindow = *static_cast<nfdwindowhandle_t*>(Backend::getNFDWindowHandle());
 
-            args.parentWindow = *static_cast<nfdwindowhandle_t*>(Backend::getNFDWindowHandle());
+                // Use NFD_PickFolderU8_With for consistency with other functions
+                nfdresult_t result = NFD_PickFolderU8_With(&outPath, &args);
 
-            const nfdresult_t res = NFD_OpenDialogU8_With(&path, &args);
-            switch (res) {
-                case NFD_OKAY:
-                    retPath = path;
-                    NFD_FreePathU8(path);
-                    break;
-                case NFD_ERROR:
-                    printf("Error: %s", NFD_GetError());
-                    break;
-                default:
-                    break;
+                if (result == NFD_OKAY) {
+                    retPath = outPath;
+                    NFD_FreePathU8(outPath);
+                } else if (result == NFD_ERROR) {
+                    printf("Error: %s\n", NFD_GetError());
+                }
+            } else {
+                // File selection
+                nfdu8char_t* path;
+                nfdopendialogu8args_t args = {0};
+
+                if (onlyImages) {
+                    nfdfilteritem_t filterItem[1] = {
+                        { "Image files", "jpeg,jpg,png,bmp,psd,tga,gif,hdr,pic,pnm" }
+                    };
+                    args.filterCount = 1;
+                    args.filterList = filterItem;
+                }
+                args.defaultPath = defaultPath.c_str();
+                args.parentWindow = *static_cast<nfdwindowhandle_t*>(Backend::getNFDWindowHandle());
+
+                const nfdresult_t res = NFD_OpenDialogU8_With(&path, &args);
+                switch (res) {
+                    case NFD_OKAY:
+                        retPath = path;
+                        NFD_FreePathU8(path);
+                        break;
+                    case NFD_ERROR:
+                        printf("Error: %s", NFD_GetError());
+                        break;
+                    default:
+                        break;
+                }
             }
 
             return retPath;

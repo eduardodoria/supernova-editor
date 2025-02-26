@@ -26,12 +26,16 @@ Editor::Project::Project(){
 bool Editor::Project::createNewProject(std::string projectName){
     try {
         projectPath = std::filesystem::temp_directory_path() / projectName;
+        fs::path projectFile = projectPath / "project.yaml";
         tempPath = true;
 
-        if (!std::filesystem::exists(projectPath)) {
-            std::filesystem::create_directory(projectPath);
-            Out::info("Created project directory: %s", projectPath.string().c_str());
+        if (!std::filesystem::exists(projectFile)) {
+            if (!std::filesystem::exists(projectPath)) {
+                std::filesystem::create_directory(projectPath);
+                Out::info("Created project directory: %s", projectPath.string().c_str());
+            }
             createNewScene("New Scene");
+            saveProject();
         } else {
             Out::info("Project directory already exists: %s", projectPath.string().c_str());
             loadProject(projectPath);
@@ -180,15 +184,18 @@ void Editor::Project::reset() {
                 // Yes callback - save all and then reset
                 saveAllScenes();
                 performReset();
+                createNewProject("MySupernovaProject");
             },
             [this]() {
                 // No callback - just reset without saving
                 performReset();
+                createNewProject("MySupernovaProject");
             }
         );
     } else {
         // No unsaved changes, just reset
         performReset();
+        createNewProject("MySupernovaProject");
     }
 }
 
@@ -204,21 +211,96 @@ void Editor::Project::performReset() {
     selectedScene = NULL_PROJECT_SCENE;
     nextSceneId = 0;
     tempPath = true;
-    //projectPath.clear();
+    projectPath.clear();
 
-    createNewScene("New Scene");
+    //createNewScene("New Scene");
 }
 
-void Editor::Project::saveProject() {
+void Editor::Project::saveProject(bool userCalled) {
+    // Check if the project is currently in a temporary directory
+    if (tempPath && userCalled) {
+        std::string homeDirPath;
+#ifdef _WIN32
+        homeDirPath = std::filesystem::path(getenv("USERPROFILE")).string();
+#else
+        homeDirPath = std::filesystem::path(getenv("HOME")).string();
+#endif
+        // Open a dialog to choose an empty folder to save the project
+        std::string saveDirPath = Util::saveFileDialog(homeDirPath, "MyProject", false);
+
+        if (saveDirPath.empty()) {
+            return; // User canceled the dialog
+        }
+
+        std::filesystem::path newProjectPath = std::filesystem::path(saveDirPath);
+
+        // Check if the directory exists and is empty
+        if (std::filesystem::exists(newProjectPath)) {
+            if (!std::filesystem::is_empty(newProjectPath)) {
+                Backend::getApp().registerAlert("Error", "Please select an empty directory for the project!");
+                return;
+            }
+        } else {
+            // Create the directory if it doesn't exist
+            try {
+                std::filesystem::create_directory(newProjectPath);
+            } catch (const std::exception& e) {
+                Out::error("Failed to create project directory: %s", e.what());
+                Backend::getApp().registerAlert("Error", "Failed to create project directory!");
+                return;
+            }
+        }
+
+        // Save all scenes first to ensure they have proper filepaths
+        saveAllScenes();
+
+        // Move all project files from temp dir to the new location
+        try {
+            for (const auto& entry : std::filesystem::directory_iterator(projectPath)) {
+                std::filesystem::path destPath = newProjectPath / entry.path().filename();
+                std::filesystem::copy(entry.path(), destPath, 
+                                     std::filesystem::copy_options::recursive);
+            }
+
+            // Update all scene filepaths to the new location
+            for (auto& sceneProject : scenes) {
+                if (!sceneProject.filepath.empty()) {
+                    std::filesystem::path relativePath = std::filesystem::relative(
+                        sceneProject.filepath, projectPath);
+                    sceneProject.filepath = newProjectPath / relativePath;
+                }
+            }
+
+            // Delete the temp directory after moving all files
+            std::filesystem::remove_all(projectPath);
+
+            // Update the project path and set tempPath to false
+            projectPath = newProjectPath;
+            tempPath = false;
+
+            Out::info("Project moved from temporary directory to: %s", projectPath.string().c_str());
+
+        } catch (const std::exception& e) {
+            Out::error("Failed to move project files: %s", e.what());
+            Backend::getApp().registerAlert("Error", "Failed to move project files to the new location!");
+            return;
+        }
+    }
+
+    // Now save the project file
     YAML::Node root = Stream::encodeProject(this);
 
     std::filesystem::path projectFile = projectPath / "project.yaml";
     std::ofstream fout(projectFile.string());
     fout << YAML::Dump(root);
     fout.close();
+
+    Out::info("Project saved to: %s", projectFile.string().c_str());
 }
 
 bool Editor::Project::loadProject(const std::filesystem::path& projectPath) {
+    this->projectPath = projectPath;
+
     try {
         if (!std::filesystem::exists(projectPath)) {
             Out::error("Project directory does not exist: %s", projectPath.string().c_str());
@@ -252,6 +334,64 @@ bool Editor::Project::loadProject(const std::filesystem::path& projectPath) {
         Backend::getApp().registerAlert("Error", "Failed to load project!");
         return false;
     }
+}
+
+bool Editor::Project::openProject() {
+    // Get user's home directory as default path
+    std::string homeDirPath;
+#ifdef _WIN32
+    homeDirPath = std::filesystem::path(getenv("USERPROFILE")).string();
+#else
+    homeDirPath = std::filesystem::path(getenv("HOME")).string();
+#endif
+
+    // Open a folder selection dialog
+    std::string selectedDir = Util::openFileDialog(homeDirPath, false, true);
+
+    if (selectedDir.empty()) {
+        return false; // User canceled the dialog
+    }
+
+    std::filesystem::path projectDir = std::filesystem::path(selectedDir);
+    std::filesystem::path projectFile = projectDir / "project.yaml";
+
+    // Check if the selected directory contains a project.yaml file
+    if (!std::filesystem::exists(projectFile)) {
+        Backend::getApp().registerAlert("Error", "The selected directory is not a valid project. No project.yaml file found!");
+        return false;
+    }
+
+    // Check if there are unsaved changes before loading the new project
+    if (hasScenesUnsavedChanges()) {
+        Backend::getApp().registerConfirmAlert(
+            "Unsaved Changes",
+            "There are unsaved changes. Do you want to save them before opening another project?",
+            [this, projectDir]() {
+                // Yes callback - save all and then open
+                saveAllScenes();
+                performReset();
+                loadProject(projectDir);
+            },
+            [this, projectDir]() {
+                // No callback - just open without saving
+                performReset();
+                loadProject(projectDir);
+            }
+        );
+    } else {
+        // No unsaved changes, just open the project
+        performReset();
+        if (loadProject(projectDir)) {
+            Out::info("Project opened successfully: %s", projectDir.string().c_str());
+            return true;
+        } else {
+            Out::error("Failed to open project: %s", projectDir.string().c_str());
+            Backend::getApp().registerAlert("Error", "Failed to open project!");
+            return false;
+        }
+    }
+
+    return true;
 }
 
 void Editor::Project::saveScene(uint32_t sceneId) {

@@ -57,9 +57,16 @@ void Editor::App::showMenu(){
             if (ImGui::MenuItem("New")) {
                 project.reset();
             }
-            if (ImGui::MenuItem("Open")) {
-                // Handle open action
+            ImGui::Separator();
+            if (ImGui::MenuItem("Open Project", "Ctrl+O")) {
+                project.openProject();
             }
+            ImGui::BeginDisabled(!project.isTempPath());
+            if (ImGui::MenuItem("Save Project")) {
+                project.saveProject(true);
+            }
+            ImGui::EndDisabled();
+            ImGui::Separator();
             bool canSave = false;
             if (lastFocusedWindow == LastFocusedWindow::Scene) {
                 canSave = project.hasSelectedSceneUnsavedChanges();
@@ -78,6 +85,7 @@ void Editor::App::showMenu(){
                 saveAllFunc();
             }
             ImGui::EndDisabled();
+            ImGui::Separator();
             if (ImGui::MenuItem("Exit")) {
                 // Handle exit action
             }
@@ -278,6 +286,11 @@ void Editor::App::show(){
         } else {
             saveFunc();
         }
+    }
+
+    if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_O)) {
+        // CTRL+O opens a project
+        project.openProject();
     }
 
     if (isDroppedExternalPaths) {
