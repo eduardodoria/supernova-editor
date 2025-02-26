@@ -16,10 +16,18 @@
 
 namespace Supernova::Editor{
 
+    enum class AlertType {
+        Info,
+        Confirm
+    };
+
     struct AlertData{
         bool needShow = false;
         std::string title;
         std::string message;
+        AlertType type = AlertType::Info;
+        std::function<void()> onYes = nullptr;
+        std::function<void()> onNo = nullptr;
     };
 
     class App{
@@ -81,7 +89,10 @@ namespace Supernova::Editor{
         void handleExternalDragEnter();
         void handleExternalDragLeave();
 
+        void resetLastActivatedScene();
+
         void registerAlert(std::string title, std::string message);
+        void registerConfirmAlert(std::string title, std::string message, std::function<void()> onYes, std::function<void()> onNo = nullptr);
     };
 
 }

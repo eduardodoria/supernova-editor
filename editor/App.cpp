@@ -30,7 +30,7 @@ Editor::App::App(){
 
     isDroppedExternalPaths = false;
 
-    lastActivatedScene = NULL_PROJECT_SCENE;
+    resetLastActivatedScene();
 }
 
 void Editor::App::saveFunc(){
@@ -55,7 +55,7 @@ void Editor::App::showMenu(){
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("New")) {
-                //project.reset();
+                project.reset();
             }
             if (ImGui::MenuItem("Open")) {
                 // Handle open action
@@ -119,10 +119,34 @@ void Editor::App::showAlert(){
             ImGui::Text("%s", alert.message.c_str());
             ImGui::Separator();
 
-            ImGui::SetCursorPosX((ImGui::GetWindowSize().x - 120) * 0.5f);
-            if (ImGui::Button("OK", ImVec2(120, 0))) {
-                alert.needShow = false;
-                ImGui::CloseCurrentPopup();
+            if (alert.type == AlertType::Info) {
+                // For info alerts, just show OK button
+                ImGui::SetCursorPosX((ImGui::GetWindowSize().x - 120) * 0.5f);
+                if (ImGui::Button("OK", ImVec2(120, 0))) {
+                    alert.needShow = false;
+                    ImGui::CloseCurrentPopup();
+                }
+            } else if (alert.type == AlertType::Confirm) {
+                // For confirmation alerts, show Yes and No buttons
+                float windowWidth = ImGui::GetWindowSize().x;
+                float buttonsWidth = 250; // Total width for both buttons and spacing
+                ImGui::SetCursorPosX((windowWidth - buttonsWidth) * 0.5f);
+
+                if (ImGui::Button("Yes", ImVec2(120, 0))) {
+                    alert.needShow = false;
+                    ImGui::CloseCurrentPopup();
+                    if (alert.onYes) {
+                        alert.onYes();
+                    }
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("No", ImVec2(120, 0))) {
+                    alert.needShow = false;
+                    ImGui::CloseCurrentPopup();
+                    if (alert.onNo) {
+                        alert.onNo();
+                    }
+                }
             }
             ImGui::EndPopup();
         }
@@ -301,14 +325,14 @@ void Editor::App::show(){
     showStyleEditor();
     #endif
 
+    showAlert();
+
     structureWindow->show();
     resourcesWindow->show();
     outputWindow->show();
     propertiesWindow->show();
     codeEditor->show();
     sceneWindow->show();
-
-    showAlert();
 }
 
 void Editor::App::engineInit(int argc, char** argv){
@@ -506,8 +530,24 @@ void Editor::App::handleExternalDragLeave() {
     resourcesWindow->handleExternalDragLeave();
 }
 
-void Editor::App::registerAlert(std::string title, std::string message){
+void Editor::App::resetLastActivatedScene(){
+    lastActivatedScene = NULL_PROJECT_SCENE;
+}
+
+void Editor::App::registerConfirmAlert(std::string title, std::string message, std::function<void()> onYes, std::function<void()> onNo) {
     alert.needShow = true;
     alert.title = title;
     alert.message = message;
+    alert.type = AlertType::Confirm;
+    alert.onYes = onYes;
+    alert.onNo = onNo;
+}
+
+void Editor::App::registerAlert(std::string title, std::string message) {
+    alert.needShow = true;
+    alert.title = title;
+    alert.message = message;
+    alert.type = AlertType::Info;
+    alert.onYes = nullptr;
+    alert.onNo = nullptr;
 }

@@ -17,6 +17,9 @@ Editor::UILayer::UILayer(){
     rightRect = new Polygon(scene);
     centralRect = new Polygon(scene);
 
+    // to avoid try to load every frame (without vertices)
+    updateRect(Vector2::ZERO, Vector2::ZERO);
+
     viewGizmoImage = new Image(scene);
 
     viewGizmoImage->setAnchorPreset(AnchorPreset::TOP_RIGHT);

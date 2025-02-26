@@ -127,8 +127,7 @@ void Editor::Project::closeScene(uint32_t sceneId) {
             return;
         }
 
-        delete it->sceneRender;
-        delete it->scene;
+        deleteSceneProject(&(*it));
 
         scenes.erase(it);
     }
@@ -166,25 +165,50 @@ bool Editor::Project::createNewComponent(uint32_t sceneId, Entity entity, Compon
 
     return false;
 }
-/*
+
+void Editor::Project::deleteSceneProject(SceneProject* sceneProject){
+    delete sceneProject->sceneRender;
+    delete sceneProject->scene;
+}
+
 void Editor::Project::reset() {
+    if (hasScenesUnsavedChanges()) {
+        Backend::getApp().registerConfirmAlert(
+            "Unsaved Changes",
+            "There are unsaved changes. Do you want to save them before creating a new project?",
+            [this]() {
+                // Yes callback - save all and then reset
+                saveAllScenes();
+                performReset();
+            },
+            [this]() {
+                // No callback - just reset without saving
+                performReset();
+            }
+        );
+    } else {
+        // No unsaved changes, just reset
+        performReset();
+    }
+}
+
+void Editor::Project::performReset() {
     // Clear existing scenes
     for (auto& sceneProject : scenes) {
-        delete sceneProject.sceneRender;
-        delete sceneProject.scene;
+        deleteSceneProject(&sceneProject);
     }
     scenes.clear();
+    Backend::getApp().resetLastActivatedScene();
 
     // Reset state
     selectedScene = NULL_PROJECT_SCENE;
     nextSceneId = 0;
     tempPath = true;
-    projectPath.clear();
+    //projectPath.clear();
 
-    // Create new project
-    createNewProject("NewProject");
+    createNewScene("New Scene");
 }
-*/
+
 void Editor::Project::saveProject() {
     YAML::Node root = Stream::encodeProject(this);
 
