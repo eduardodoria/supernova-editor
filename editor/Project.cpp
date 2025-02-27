@@ -229,8 +229,8 @@ bool Editor::Project::openProjectFileDialog() {
 bool Editor::Project::createTempProject(std::string projectName, bool deleteIfExists) {
     try {
         resetConfigs();
+
         projectPath = std::filesystem::temp_directory_path() / projectName;
-        Backend::getApp().updateResourcesPath();
         fs::path projectFile = projectPath / "project.yaml";
 
         if (deleteIfExists && fs::exists(projectPath)) {
@@ -248,6 +248,8 @@ bool Editor::Project::createTempProject(std::string projectName, bool deleteIfEx
             Out::info("Project directory already exists: %s", projectPath.string().c_str());
             loadProject(projectPath);
         }
+
+        Backend::getApp().updateResourcesPath();
 
     } catch (const std::exception& e) {
         printf("Error: %s\n", e.what());
@@ -314,6 +316,7 @@ void Editor::Project::saveProject(bool userCalled) {
 
             // Update the project path and set tempPath to false
             projectPath = newProjectPath;
+
             Backend::getApp().updateResourcesPath();
 
             //saveAllScenes();
@@ -342,8 +345,8 @@ void Editor::Project::saveProject(bool userCalled) {
 
 bool Editor::Project::loadProject(const std::filesystem::path path) {
     resetConfigs();
+
     projectPath = path;
-    Backend::getApp().updateResourcesPath();
 
     try {
         if (!std::filesystem::exists(projectPath)) {
@@ -365,6 +368,8 @@ bool Editor::Project::loadProject(const std::filesystem::path path) {
         if (scenes.empty()) {
             createNewScene("New Scene");
         }
+
+        Backend::getApp().updateResourcesPath();
 
         Out::info("Project loaded successfully: %s", projectPath.string().c_str());
         return true;
