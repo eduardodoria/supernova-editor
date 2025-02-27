@@ -61,7 +61,7 @@ void Editor::App::showMenu(){
             if (ImGui::MenuItem("Open Project", "Ctrl+O")) {
                 project.openProject();
             }
-            ImGui::BeginDisabled(!project.isTempUnsavedProject());
+            ImGui::BeginDisabled(!project.isTempProject());
             if (ImGui::MenuItem("Save Project")) {
                 project.saveProject(true);
             }
