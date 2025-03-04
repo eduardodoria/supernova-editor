@@ -231,6 +231,9 @@ bool Editor::Project::createTempProject(std::string projectName, bool deleteIfEx
     try {
         resetConfigs();
 
+        // Clear the last project path in settings when creating a new temp project
+        AppSettings::setLastProjectPath(std::filesystem::path());
+
         projectPath = std::filesystem::temp_directory_path() / projectName;
         fs::path projectFile = projectPath / "project.yaml";
 
@@ -373,7 +376,9 @@ bool Editor::Project::loadProject(const std::filesystem::path path) {
         Backend::getApp().updateResourcesPath();
 
         // Save this as the last opened project
-        AppSettings::setLastProjectPath(projectPath);
+        if (!isTempProject()) {
+            AppSettings::setLastProjectPath(projectPath);
+        }
 
         Out::info("Project loaded successfully: %s", projectPath.string().c_str());
         return true;

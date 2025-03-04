@@ -87,7 +87,11 @@ bool AppSettings::saveSettings() {
         // Update settings data
         
         // Project settings
-        settingsData["last_project_path"] = lastProjectPath.string();
+        if (!lastProjectPath.empty() && std::filesystem::exists(lastProjectPath)) {
+            settingsData["last_project_path"] = lastProjectPath.string();
+        } else {
+            settingsData.remove("last_project_path");
+        }
         
         YAML::Node recentProjectsNode;
         for (const auto& path : recentProjects) {
@@ -119,18 +123,18 @@ std::filesystem::path AppSettings::getLastProjectPath() {
 }
 
 void AppSettings::setLastProjectPath(const std::filesystem::path& path) {
-    if (!path.empty() && std::filesystem::exists(path)) {
-        lastProjectPath = path;
-        // Also add to recent projects
-        addToRecentProjects(path);
-    }
+    lastProjectPath = path;
+    // Also add to recent projects
+    addToRecentProjects(path, false);
+
+    saveSettings();
 }
 
 std::vector<std::filesystem::path> AppSettings::getRecentProjects() {
     return recentProjects;
 }
 
-void AppSettings::addToRecentProjects(const std::filesystem::path& path) {
+void AppSettings::addToRecentProjects(const std::filesystem::path& path, bool needSave) {
     if (path.empty() || !std::filesystem::exists(path)) {
         return;
     }
@@ -155,7 +159,8 @@ void AppSettings::addToRecentProjects(const std::filesystem::path& path) {
     }
     
     // Save changes
-    saveSettings();
+    if (needSave)
+        saveSettings();
 }
 
 void AppSettings::clearRecentProjects() {

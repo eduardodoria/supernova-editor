@@ -33,7 +33,7 @@ public:
     static void setLastProjectPath(const std::filesystem::path& path);
     
     static std::vector<std::filesystem::path> getRecentProjects();
-    static void addToRecentProjects(const std::filesystem::path& path);
+    static void addToRecentProjects(const std::filesystem::path& path, bool needSave = true);
     static void clearRecentProjects();
     
     // Window settings
