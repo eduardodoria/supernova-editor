@@ -15,6 +15,7 @@ namespace Supernova::Editor{
 
         static void disableMouseCursor();
         static void enableMouseCursor();
+        static void closeWindow();
 
         static void* getNFDWindowHandle();
     };

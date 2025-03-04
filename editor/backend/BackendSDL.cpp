@@ -9,13 +9,15 @@
 #include "nfd.hpp"
 #include "nfd_sdl2.h"
 
+static SDL_Window* window = nullptr;
 static std::vector<std::string> droppedPaths;
 static nfdwindowhandle_t nativeWindow;
+static bool shouldClose = false;
 
 using namespace Supernova;
 
 // for work with mingw32
-int SDL_main(int argc, char* argv[]){
+int SDL_main(int argc, char* argv[]) {
     return Editor::Backend::init(argc, argv);
 }
 
@@ -50,11 +52,18 @@ int Editor::Backend::init(int argc, char* argv[]) {
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
+    // Initialize settings first (this doesn't need ImGui yet)
+    app.initializeSettings();
+
+    // Get saved window dimensions from app
+    int windowWidth = app.getInitialWindowWidth();
+    int windowHeight = app.getInitialWindowHeight();
+
     // Create window with OpenGL context
-    SDL_Window* window = SDL_CreateWindow(
+    window = SDL_CreateWindow(
         "Supernova Engine",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        1280, 720,
+        windowWidth, windowHeight,
         SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI
     );
 
@@ -62,6 +71,11 @@ int Editor::Backend::init(int argc, char* argv[]) {
         NFD_Quit();
         SDL_Quit();
         return -1;
+    }
+
+    // Apply saved window state
+    if (app.getInitialWindowMaximized()) {
+        SDL_MaximizeWindow(window);
     }
 
     NFD_GetNativeWindowFromSDLWindow(window, &nativeWindow);
@@ -77,19 +91,17 @@ int Editor::Backend::init(int argc, char* argv[]) {
     SDL_GL_MakeCurrent(window, glContext);
     SDL_GL_SetSwapInterval(1); // Enable vsync
 
-    // Initialize OpenGL loader
-    // Make sure you have a loader set up here, like glad or glew.
-
-    // Setup Dear ImGui context
+    // Setup Dear ImGui context - MUST BE DONE BEFORE app.setup()
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
 
-    app.setup();
-    app.engineInit(argc, argv);
-
-    // Setup Platform/Renderer bindings
+    // Setup Platform/Renderer bindings - MUST BE DONE AFTER ImGui::CreateContext()
     ImGui_ImplSDL2_InitForOpenGL(window, glContext);
     ImGui_ImplOpenGL3_Init("#version 410");
+
+    // Now we can safely call app.setup() which uses ImGui
+    app.setup();
+    app.engineInit(argc, argv);
 
     SDL_ShowCursor(SDL_DISABLE);
 
@@ -101,22 +113,30 @@ int Editor::Backend::init(int argc, char* argv[]) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             ImGui_ImplSDL2_ProcessEvent(&event);
-            if (event.type == SDL_QUIT){
-                done = true;
+            if (event.type == SDL_QUIT) {
+                // Handle quit event, but don't close immediately
+                app.exit();
             }
-            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window)){
-                done = true;
+            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window)) {
+                // Handle window close event, but don't close immediately
+                app.exit();
             }
-            if (event.type == SDL_DROPBEGIN){
+            if (event.type == SDL_DROPBEGIN) {
                 droppedPaths.clear();
             }
-            if (event.type == SDL_DROPFILE){
+            if (event.type == SDL_DROPFILE) {
                 droppedPaths.push_back(event.drop.file);
                 SDL_free(event.drop.file);
             }
-            if (event.type == SDL_DROPCOMPLETE){
+            if (event.type == SDL_DROPCOMPLETE) {
                 app.handleExternalDrop(droppedPaths);
             }
+        }
+
+        // Check if we should close the window now (after potential confirmation dialogs)
+        if (shouldClose) {
+            done = true;
+            continue;
         }
 
         // Start the Dear ImGui frame
@@ -142,6 +162,15 @@ int Editor::Backend::init(int argc, char* argv[]) {
 
         SDL_GL_SwapWindow(window);
     }
+
+    // Save window size and state before closing
+    int width, height;
+    SDL_GetWindowSize(window, &width, &height);
+    Uint32 flags = SDL_GetWindowFlags(window);
+    bool isMaximized = (flags & SDL_WINDOW_MAXIMIZED) != 0;
+
+    // Save settings through app
+    app.saveWindowSettings(width, height, isMaximized);
 
     // Cleanup
     ImGui_ImplOpenGL3_Shutdown();
@@ -176,6 +205,10 @@ void Editor::Backend::enableMouseCursor() {
     SDL_SetRelativeMouseMode(SDL_FALSE);
 }
 
-void* Editor::Backend::getNFDWindowHandle(){
+void* Editor::Backend::getNFDWindowHandle() {
     return &nativeWindow;
+}
+
+void Editor::Backend::closeWindow() {
+    shouldClose = true;
 }

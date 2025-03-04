@@ -3,11 +3,13 @@
 #include "imgui_internal.h"
 #include "Platform.h"
 #include "Supernova.h"
+#include "Backend.h"
 
 #include "external/IconsFontAwesome6.h"
 #include "command/CommandHandle.h"
 
 #include "Out.h"
+#include "AppSettings.h"
 #include "resources/fonts/fa-solid-900_ttf.h"
 //#include "recources/fonts/roboto-v20-latin-regular_ttf.h"
 #include "util/DefaultFont.h"
@@ -60,6 +62,41 @@ void Editor::App::showMenu(){
             ImGui::Separator();
             if (ImGui::MenuItem("Open Project", "Ctrl+O")) {
                 project.openProject();
+            }
+            if (ImGui::BeginMenu("Recent Projects")) {
+                std::vector<std::filesystem::path> recentProjects = AppSettings::getRecentProjects();
+                if (recentProjects.empty()) {
+                    ImGui::MenuItem("No Recent Projects", nullptr, false, false);
+                } else {
+                    for (const auto& path : recentProjects) {
+                        if (ImGui::MenuItem(path.filename().string().c_str())) {
+                            if (project.hasScenesUnsavedChanges() || project.isTempUnsavedProject()) {
+                                registerConfirmAlert(
+                                    "Unsaved Changes",
+                                    "There are unsaved changes. Do you want to save them before opening another project?",
+                                    [this, path]() {
+                                        // Yes callback - save all and then continue
+                                        project.saveProject(true);
+                                        project.saveAllScenes();
+                                        // Only after saving, load the selected project
+                                        this->project.loadProject(path);
+                                    },
+                                    [this, path]() {
+                                        // No callback - just continue without saving
+                                        this->project.loadProject(path);
+                                    }
+                                );
+                            } else {
+                                project.loadProject(path);
+                            }
+                        }
+                    }
+                    ImGui::Separator();
+                    if (ImGui::MenuItem("Clear Recent Projects")) {
+                        AppSettings::clearRecentProjects();
+                    }
+                }
+                ImGui::EndMenu();
             }
             ImGui::BeginDisabled(!project.isTempProject());
             if (ImGui::MenuItem("Save Project")) {
@@ -223,8 +260,12 @@ void Editor::App::showStyleEditor(){
     ImGui::End();
 }
 
-void Editor::App::setup(){
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
+void Editor::App::setup() {
+    // Initialize application settings
+    initializeSettings();
+
+    ImGuiIO& io = ImGui::GetIO();
+
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;      // Enable Docking
 
@@ -348,8 +389,22 @@ void Editor::App::show(){
     sceneWindow->show();
 }
 
-void Editor::App::engineInit(int argc, char** argv){
-    project.createTempProject("MySupernovaProject");
+void Editor::App::engineInit(int argc, char** argv) {
+    // Check if there's a last opened project
+    std::filesystem::path lastProjectPath = AppSettings::getLastProjectPath();
+
+    if (!lastProjectPath.empty() && std::filesystem::exists(lastProjectPath)) {
+        // Try to load the last project
+        if (project.loadProject(lastProjectPath)) {
+            Out::info("Loaded last opened project: %s", lastProjectPath.string().c_str());
+        } else {
+            // If loading fails, create a new temp project
+            project.createTempProject("MySupernovaProject");
+        }
+    } else {
+        // No last project, create a new temp project
+        project.createTempProject("MySupernovaProject");
+    }
 
     System::setExternalSystem(new Editor::Platform());
     Engine::systemInit(argc, argv);
@@ -569,4 +624,53 @@ void Editor::App::registerAlert(std::string title, std::string message) {
     alert.type = AlertType::Info;
     alert.onYes = nullptr;
     alert.onNo = nullptr;
+}
+
+// Add these implementations to App.cpp
+
+void Editor::App::initializeSettings() {
+    AppSettings::initialize();
+}
+
+int Editor::App::getInitialWindowWidth() const {
+    return AppSettings::getWindowWidth();
+}
+
+int Editor::App::getInitialWindowHeight() const {
+    return AppSettings::getWindowHeight();
+}
+
+bool Editor::App::getInitialWindowMaximized() const {
+    return AppSettings::getIsMaximized();
+}
+
+void Editor::App::saveWindowSettings(int width, int height, bool maximized) {
+    AppSettings::setWindowWidth(width);
+    AppSettings::setWindowHeight(height);
+    AppSettings::setIsMaximized(maximized);
+    AppSettings::saveSettings();
+}
+
+void Editor::App::exit() {
+    // Check for unsaved changes
+    if (project.hasScenesUnsavedChanges() || codeEditor->hasUnsavedChanges()) {
+        registerConfirmAlert(
+            "Unsaved Changes",
+            "There are unsaved changes. Do you want to save them before exiting?",
+            [this]() {
+                // Yes callback - save all and then exit
+                saveAllFunc();
+                project.saveProject(true);
+                // Close the application window
+                Backend::closeWindow();
+            },
+            [this]() {
+                // No callback - just exit without saving
+                Backend::closeWindow();
+            }
+        );
+    } else {
+        // No unsaved changes, proceed with exit
+        Backend::closeWindow();
+    }
 }

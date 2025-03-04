@@ -5,6 +5,7 @@
 #include "yaml-cpp/yaml.h"
 #include <fstream>
 
+#include "AppSettings.h"
 #include "Out.h"
 #include "subsystem/MeshSystem.h"
 #include "command/CommandHandle.h"
@@ -370,6 +371,9 @@ bool Editor::Project::loadProject(const std::filesystem::path path) {
         }
 
         Backend::getApp().updateResourcesPath();
+
+        // Save this as the last opened project
+        AppSettings::setLastProjectPath(projectPath);
 
         Out::info("Project loaded successfully: %s", projectPath.string().c_str());
         return true;

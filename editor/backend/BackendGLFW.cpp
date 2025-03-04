@@ -15,7 +15,7 @@ using namespace Supernova;
 
 Editor::App Editor::Backend::app;
 
-int Editor::Backend::init(int argc, char* argv[]){
+int Editor::Backend::init(int argc, char* argv[]) {
     // Initialize GLFW
     if (!glfwInit())
         return -1;
@@ -35,36 +35,43 @@ int Editor::Backend::init(int argc, char* argv[]){
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+    // Initialize settings first (this doesn't need ImGui yet)
+    app.initializeSettings();
+
+    // Get saved window dimensions from app
+    int windowWidth = app.getInitialWindowWidth();
+    int windowHeight = app.getInitialWindowHeight();
+
     // Create a windowed mode window and its OpenGL context
-    window = glfwCreateWindow(1280, 720, "Supernova Engine", NULL, NULL);
-    if (!window)
-    {
+    window = glfwCreateWindow(windowWidth, windowHeight, "Supernova Engine", NULL, NULL);
+    if (!window) {
         NFD_Quit();
         glfwTerminate();
         return -1;
     }
 
-    NFD_GetNativeWindowFromGLFWWindow(window, &nativeWindow);
+    // Apply saved window state
+    if (app.getInitialWindowMaximized()) {
+        glfwMaximizeWindow(window);
+    }
 
-    //glfwMaximizeWindow(window);
+    NFD_GetNativeWindowFromGLFWWindow(window, &nativeWindow);
 
     // Make the window's context current
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); // Enable vsync
 
-    // Initialize OpenGL loader
-    // Make sure you have a loader set up here, like glad or glew.
-
-    // Setup Dear ImGui context
+    // Setup Dear ImGui context - MUST BE DONE BEFORE app.setup()
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
 
-    app.setup();
-    app.engineInit(argc, argv);
-
-    // Setup Platform/Renderer bindings
+    // Setup Platform/Renderer bindings - MUST BE DONE AFTER ImGui::CreateContext()
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 410");
+
+    // Now we can safely call app.setup() which uses ImGui
+    app.setup();
+    app.engineInit(argc, argv);
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 
@@ -78,9 +85,18 @@ int Editor::Backend::init(int argc, char* argv[]){
         app.handleExternalDrop(droppedPaths);
     });
 
+    // Set window close callback to handle confirmation dialogs
+    glfwSetWindowCloseCallback(window, [](GLFWwindow* w) {
+        // Don't close window immediately - we'll handle this ourselves
+        glfwSetWindowShouldClose(w, GLFW_FALSE);
+
+        // Call the app's exit function which will handle unsaved changes
+        app.exit();
+    });
+
     // Main loop
-    while (!glfwWindowShouldClose(window)){
-        // Poll and handle events (inputs, window resize, etc.)
+    while (!glfwWindowShouldClose(window)) {
+        // Poll and handle events
         glfwPollEvents();
 
         // Start the Dear ImGui frame
@@ -107,6 +123,14 @@ int Editor::Backend::init(int argc, char* argv[]){
         glfwSwapBuffers(window);
     }
 
+    // Save window size and state before closing
+    int width, height;
+    glfwGetWindowSize(window, &width, &height);
+    bool maximized = glfwGetWindowAttrib(window, GLFW_MAXIMIZED);
+
+    // Save settings through app
+    app.saveWindowSettings(width, height, maximized);
+
     // Cleanup
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
@@ -123,18 +147,22 @@ int Editor::Backend::init(int argc, char* argv[]){
     return 0;
 }
 
-Editor::App& Editor::Backend::getApp(){
+Editor::App& Editor::Backend::getApp() {
     return app;
 }
 
-void Editor::Backend::disableMouseCursor(){
+void Editor::Backend::disableMouseCursor() {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
-void Editor::Backend::enableMouseCursor(){
+void Editor::Backend::enableMouseCursor() {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 }
 
-void* Editor::Backend::getNFDWindowHandle(){
+void* Editor::Backend::getNFDWindowHandle() {
     return &nativeWindow;
+}
+
+void Editor::Backend::closeWindow() {
+    glfwSetWindowShouldClose(window, GLFW_TRUE);
 }

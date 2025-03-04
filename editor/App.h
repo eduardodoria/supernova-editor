@@ -94,6 +94,14 @@ namespace Supernova::Editor{
 
         void registerAlert(std::string title, std::string message);
         void registerConfirmAlert(std::string title, std::string message, std::function<void()> onYes, std::function<void()> onNo = nullptr);
+
+        // Window settings methods
+        int getInitialWindowWidth() const;
+        int getInitialWindowHeight() const;
+        bool getInitialWindowMaximized() const;
+        void saveWindowSettings(int width, int height, bool maximized);
+        void initializeSettings();
+        void exit();
     };
 
 }
