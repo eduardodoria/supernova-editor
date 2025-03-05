@@ -40,8 +40,7 @@ void SceneSaveDialog::show() {
     if (ImGui::BeginPopupModal("Save Scene##SaveSceneModal", nullptr, flags)) {
         // Directory browser tree with icons
         if (ImGui::BeginChild("DirectoryBrowser", ImVec2(300, 100), true)) {
-            // Create a visual representation of the project directory tree
-            static ImGuiTableFlags tableFlags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_Resizable;
+            static ImGuiTableFlags tableFlags = ImGuiTableFlags_Resizable;
 
             if (ImGui::BeginTable("DirectoryTree", 1, tableFlags)) {
                 ImGui::TableNextRow();
@@ -53,9 +52,6 @@ void SceneSaveDialog::show() {
 
                 // Project root is always highlighted if selected
                 bool isRootSelected = (m_selectedPath == m_projectPath.string());
-                if (isRootSelected) {
-                    ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, IM_COL32(60, 80, 120, 64));
-                }
 
                 // Properly create a std::string first, then get its c_str()
                 std::string rootLabel = std::string(ICON_FA_FOLDER_OPEN) + " Project Root";
@@ -83,6 +79,7 @@ void SceneSaveDialog::show() {
 
         // File name input
         ImGui::Text("Scene File Name:");
+        ImGui::SetNextItemWidth(-1);
         ImGui::InputText("##fileName", m_fileNameBuffer, sizeof(m_fileNameBuffer));
 
         // Show current selected directory path
@@ -167,7 +164,6 @@ void SceneSaveDialog::displayDirectoryTree(const fs::path& rootPath, const fs::p
             // Highlight the selected directory
             bool isSelected = (m_selectedPath == dirPath.string());
             if (isSelected) {
-                ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, IM_COL32(60, 80, 120, 64));
                 nodeFlags |= ImGuiTreeNodeFlags_Selected;
             }
 
