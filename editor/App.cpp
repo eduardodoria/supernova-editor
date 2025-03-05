@@ -682,7 +682,13 @@ void Editor::App::saveWindowSettings(int width, int height, bool maximized) {
 }
 
 void Editor::App::exit() {
-    // Check for unsaved changes
+    // First check if the scene save dialog is open
+    if (sceneSaveDialog.isOpen()) {
+        // Close the dialog first
+        sceneSaveDialog.close();
+    }
+
+    // Rest of the existing exit logic for unsaved changes
     if (project.hasScenesUnsavedChanges() || codeEditor->hasUnsavedChanges()) {
         registerConfirmAlert(
             "Unsaved Changes",

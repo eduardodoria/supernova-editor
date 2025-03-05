@@ -39,7 +39,7 @@ void SceneSaveDialog::show() {
 
     if (ImGui::BeginPopupModal("Save Scene##SaveSceneModal", nullptr, flags)) {
         // Directory browser tree with icons
-        if (ImGui::BeginChild("DirectoryBrowser", ImVec2(300, 100), true)) {
+        if (ImGui::BeginChild("DirectoryBrowser", ImVec2(300, 200), true)) {
             static ImGuiTableFlags tableFlags = ImGuiTableFlags_Resizable;
 
             if (ImGui::BeginTable("DirectoryTree", 1, tableFlags)) {
@@ -53,16 +53,23 @@ void SceneSaveDialog::show() {
                 // Project root is always highlighted if selected
                 bool isRootSelected = (m_selectedPath == m_projectPath.string());
 
-                // Properly create a std::string first, then get its c_str()
-                std::string rootLabel = std::string(ICON_FA_FOLDER_OPEN) + " Project Root";
+                // Use empty label for the tree node itself
+                if (ImGui::TreeNodeEx("##root", 
+                                    ImGuiTreeNodeFlags_OpenOnArrow | 
+                                    ImGuiTreeNodeFlags_SpanFullWidth | 
+                                    (isRootSelected ? ImGuiTreeNodeFlags_Selected : 0))) {
 
-                if (ImGui::TreeNodeEx(rootLabel.c_str(), 
-                                     ImGuiTreeNodeFlags_OpenOnArrow | 
-                                     ImGuiTreeNodeFlags_SpanFullWidth | 
-                                     (isRootSelected ? ImGuiTreeNodeFlags_Selected : 0))) {
+                    // Display icon separately - always use open folder for root since it's always open
+                    ImGui::SameLine(0, 0);
+                    ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.0f, 1.0f), "%s", ICON_FA_FOLDER_OPEN);
+
+                    // Display text
+                    ImGui::SameLine();
+                    ImGui::Text("Project Root");
 
                     // If clicked, select the project root directory
-                    if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
+                    if (ImGui::IsItemClicked() || 
+                        (ImGui::IsMouseClicked(0) && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem))) {
                         m_selectedPath = m_projectPath.string();
                     }
 
@@ -158,6 +165,10 @@ void SceneSaveDialog::displayDirectoryTree(const fs::path& rootPath, const fs::p
                 continue;
             }
 
+            // We'll set the icon based on whether the node is open
+            // First, push ID to ensure uniqueness for TreeNodeEx
+            ImGui::PushID(dirPath.string().c_str());
+
             // Set tree node flags
             ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanFullWidth;
 
@@ -188,14 +199,26 @@ void SceneSaveDialog::displayDirectoryTree(const fs::path& rootPath, const fs::p
             // Get directory name relative to project path for display
             std::string displayName = dirPath.filename().string();
 
-            // Properly create a std::string first for the node label
-            std::string nodeLabel = std::string(ICON_FA_FOLDER) + " " + displayName;
+            // Create node label with empty name - we'll draw icon and text separately
+            bool nodeOpen = ImGui::TreeNodeEx("##dir", nodeFlags);
 
-            // Display node with appropriate icon
-            bool nodeOpen = ImGui::TreeNodeEx(nodeLabel.c_str(), nodeFlags);
+            // Draw icon, changing based on open state
+            ImGui::SameLine(0, 0); // Position right after the tree connector
+            if (nodeOpen) {
+                // Opened folder icon
+                ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.0f, 1.0f), "%s", ICON_FA_FOLDER_OPEN);
+            } else {
+                // Closed folder icon
+                ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.0f, 1.0f), "%s", ICON_FA_FOLDER);
+            }
 
-            // Handle directory selection on click
-            if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
+            // Display the folder name next to the icon
+            ImGui::SameLine();
+            ImGui::Text("%s", displayName.c_str());
+
+            // Handle directory selection on click (include the whole row)
+            if (ImGui::IsItemClicked() || 
+                (ImGui::IsMouseClicked(0) && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem))) {
                 m_selectedPath = dirPath.string();
             }
 
@@ -206,6 +229,8 @@ void SceneSaveDialog::displayDirectoryTree(const fs::path& rootPath, const fs::p
                 }
                 ImGui::TreePop();
             }
+
+            ImGui::PopID();
         }
     } catch (const std::exception& e) {
         ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Error: %s", e.what());
