@@ -11,6 +11,7 @@
 #include "window/SceneWindow.h"
 #include "window/ResourcesWindow.h"
 #include "window/CodeEditor.h"
+#include "window/SceneSaveDialog.h"
 
 #include "render/SceneRender.h"
 
@@ -47,6 +48,7 @@ namespace Supernova::Editor{
         bool isInitialized;
 
         AlertData alert;
+        SceneSaveDialog sceneSaveDialog;
 
         std::vector<std::string> droppedExternalPaths;
         bool isDroppedExternalPaths;
@@ -94,6 +96,7 @@ namespace Supernova::Editor{
 
         void registerAlert(std::string title, std::string message);
         void registerConfirmAlert(std::string title, std::string message, std::function<void()> onYes, std::function<void()> onNo = nullptr);
+        void registerSaveSceneDialog(uint32_t sceneId);
 
         // Window settings methods
         int getInitialWindowWidth() const;

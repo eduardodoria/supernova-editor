@@ -159,6 +159,7 @@ add_executable(
     ${EDITOR_DIR}/window/Structure.cpp
     ${EDITOR_DIR}/window/ResourcesWindow.cpp
     ${EDITOR_DIR}/window/CodeEditor.cpp
+    ${EDITOR_DIR}/window/SceneSaveDialog.cpp
 
     ${EDITOR_DIR}/render/ViewportGizmo.cpp
     ${EDITOR_DIR}/render/ToolsLayer.cpp

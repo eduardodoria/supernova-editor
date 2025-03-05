@@ -420,35 +420,37 @@ bool Editor::Project::openProject() {
 
 void Editor::Project::saveScene(uint32_t sceneId) {
     SceneProject* sceneProject = getScene(sceneId);
-    YAML::Node root = Stream::encodeSceneProject(sceneProject);
-
-    if (sceneProject->filepath.empty()) {
-        std::string suggestedName = sceneProject->name + ".scene";
-        std::string savePath = Util::saveFileDialog(projectPath.string(), suggestedName, true);
-
-        if (!savePath.empty()) {
-            std::filesystem::path saveFilePath = std::filesystem::path(savePath);
-            std::error_code ec;
-            auto relPath = std::filesystem::relative(saveFilePath, projectPath, ec);
-
-            if (ec || relPath.string().find("..") != std::string::npos) {
-                Backend::getApp().registerAlert("Error", "Files must be saved within the project directory!");
-                return;
-            }
-
-            sceneProject->filepath = savePath;
-        } else {
-            return;
-        }
+    if (!sceneProject) {
+        Out::error("Cannot save scene - invalid scene ID: %u", sceneId);
+        return;
     }
 
-    std::ofstream fout(sceneProject->filepath.string());
+    // If filepath is already set, just save to that path
+    if (!sceneProject->filepath.empty()) {
+        saveSceneToPath(sceneId, sceneProject->filepath);
+        return;
+    }
+
+    // Otherwise show save dialog through the App
+    Backend::getApp().registerSaveSceneDialog(sceneId);
+}
+
+void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::path& path) {
+    SceneProject* sceneProject = getScene(sceneId);
+    if (!sceneProject) {
+        return;
+    }
+
+    YAML::Node root = Stream::encodeSceneProject(sceneProject);
+    std::ofstream fout(path.string());
     fout << YAML::Dump(root);
     fout.close();
 
+    sceneProject->filepath = path;
     sceneProject->isModified = false;
-
     saveProject();
+
+    Out::info("Scene saved to: %s", path.string().c_str());
 }
 
 void Editor::Project::saveAllScenes() {

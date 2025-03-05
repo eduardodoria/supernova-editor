@@ -60,6 +60,7 @@ namespace Supernova::Editor{
         bool loadProject(const std::filesystem::path path);
 
         void saveScene(uint32_t sceneId);
+        void saveSceneToPath(uint32_t sceneId, const std::filesystem::path& path);
         void saveAllScenes();
         void saveLastSelectedScene();
 

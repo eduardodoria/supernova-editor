@@ -380,6 +380,7 @@ void Editor::App::show(){
     #endif
 
     showAlert();
+    sceneSaveDialog.show();
 
     structureWindow->show();
     resourcesWindow->show();
@@ -624,6 +625,35 @@ void Editor::App::registerAlert(std::string title, std::string message) {
     alert.type = AlertType::Info;
     alert.onYes = nullptr;
     alert.onNo = nullptr;
+}
+
+void Editor::App::registerSaveSceneDialog(uint32_t sceneId) {
+    SceneProject* sceneProject = project.getScene(sceneId);
+    if (!sceneProject) {
+        return;
+    }
+
+    // Set default filename
+    std::string defaultName = sceneProject->name + ".scene";
+
+    // Open the dialog with a callback for when Save is clicked
+    sceneSaveDialog.open(
+        project.getProjectPath(), 
+        defaultName,
+        [this, sceneId](const fs::path& fullPath) {
+            SceneProject* sceneProject = project.getScene(sceneId);
+            if (!sceneProject) {
+                return;
+            }
+
+            // Create directory if it doesn't exist
+            std::filesystem::create_directories(fullPath.parent_path());
+
+            // Save the scene
+            sceneProject->filepath = fullPath;
+            project.saveSceneToPath(sceneId, fullPath);
+        }
+    );
 }
 
 // Add these implementations to App.cpp
