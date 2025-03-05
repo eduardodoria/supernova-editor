@@ -656,7 +656,10 @@ void Editor::App::registerSaveSceneDialog(uint32_t sceneId) {
     );
 }
 
-// Add these implementations to App.cpp
+void Editor::App::finalizeExitAfterSave() {
+    project.saveProject(true);
+    Backend::closeWindow();
+}
 
 void Editor::App::initializeSettings() {
     AppSettings::initialize();
@@ -688,17 +691,24 @@ void Editor::App::exit() {
         sceneSaveDialog.close();
     }
 
-    // Rest of the existing exit logic for unsaved changes
     if (project.hasScenesUnsavedChanges() || codeEditor->hasUnsavedChanges()) {
         registerConfirmAlert(
             "Unsaved Changes",
             "There are unsaved changes. Do you want to save them before exiting?",
             [this]() {
-                // Yes callback - save all and then exit
+                // Yes callback - save all
                 saveAllFunc();
-                project.saveProject(true);
-                // Close the application window
-                Backend::closeWindow();
+
+                // We need to check if the save dialog opened during saveAllFunc
+                if (!sceneSaveDialog.isOpen()) {
+                    // Only save project and close window if no dialogs are open
+                    project.saveProject(true);
+                    Backend::closeWindow();
+                } else {
+                    // If dialog is open, we need to wait for it to complete
+                    // Set a flag to complete exit after dialog closes
+                    sceneSaveDialog.setExitAfterSave(true);
+                }
             },
             [this]() {
                 // No callback - just exit without saving

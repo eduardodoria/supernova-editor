@@ -1,6 +1,7 @@
 // SceneSaveDialog.cpp
 #include "SceneSaveDialog.h"
 #include "external/IconsFontAwesome6.h"
+#include "Backend.h"
 #include <algorithm>
 #include <vector>
 
@@ -126,6 +127,14 @@ void SceneSaveDialog::show() {
                 m_onSave(fullPath);
             }
             m_isOpen = false;
+
+            // Check if we should exit the application after saving
+            if (m_exitAfterSave) {
+                m_exitAfterSave = false; // Reset the flag
+                // Make sure to save the project and close the window
+                Editor::Backend::getApp().finalizeExitAfterSave();
+            }
+
             ImGui::CloseCurrentPopup();
         }
         ImGui::EndDisabled();
@@ -133,6 +142,14 @@ void SceneSaveDialog::show() {
         ImGui::SameLine();
         if (ImGui::Button("Cancel", ImVec2(120, 0))) {
             m_isOpen = false;
+
+            // Check if we should exit the application even if canceled
+            if (m_exitAfterSave) {
+                m_exitAfterSave = false; // Reset the flag
+                // Make sure to close the window without further saves
+                Editor::Backend::closeWindow();
+            }
+
             ImGui::CloseCurrentPopup();
         }
 
