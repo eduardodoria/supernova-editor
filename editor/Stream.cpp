@@ -550,7 +550,7 @@ MeshComponent Editor::Stream::decodeMeshComponent(const YAML::Node& node) {
 YAML::Node Editor::Stream::encodeProject(Project* project) {
     YAML::Node root;
 
-    root["name"] = "Supernova Project";
+    root["name"] = project->getName();
     root["nextSceneId"] = project->getNextSceneId();
     root["selectedScene"] = project->getSelectedSceneId();
 
@@ -570,6 +570,10 @@ YAML::Node Editor::Stream::encodeProject(Project* project) {
 
 void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
     if (!node.IsMap()) return;
+
+    if (node["name"]) {
+        project->setName(node["name"].as<std::string>());
+    }
 
     // Set nextSceneId if it exists in the node and is greater than current
     if (node["nextSceneId"]) {

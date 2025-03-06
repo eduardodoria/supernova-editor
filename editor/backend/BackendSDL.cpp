@@ -22,6 +22,7 @@ int SDL_main(int argc, char* argv[]) {
 }
 
 Editor::App Editor::Backend::app;
+std::string Editor::Backend::title;
 
 int Editor::Backend::init(int argc, char* argv[]) {
     // Initialize SDL
@@ -205,10 +206,21 @@ void Editor::Backend::enableMouseCursor() {
     SDL_SetRelativeMouseMode(SDL_FALSE);
 }
 
-void* Editor::Backend::getNFDWindowHandle() {
-    return &nativeWindow;
-}
-
 void Editor::Backend::closeWindow() {
     shouldClose = true;
+}
+
+void Editor::Backend::updateWindowTitle(const std::string& projectName) {
+    if (projectName.empty()) {
+        title = "Empty project - Supernova Engine";
+    } else {
+        title = projectName + " - Supernova Engine";
+    }
+    if (window){
+        SDL_SetWindowTitle(window, title.c_str());
+    }
+}
+
+void* Editor::Backend::getNFDWindowHandle() {
+    return &nativeWindow;
 }

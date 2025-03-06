@@ -32,6 +32,8 @@ namespace Supernova::Editor{
         Conector conector;
         Generator generator;
 
+        std::string name;
+
         uint32_t nextSceneId;
 
         std::vector<SceneProject> scenes;
@@ -50,6 +52,9 @@ namespace Supernova::Editor{
 
     public:
         Project();
+
+        std::string getName() const;
+        void setName(std::string name);
 
         bool createTempProject(std::string projectName, bool deleteIfExists = false);
         bool saveProject(bool userCalled = false);

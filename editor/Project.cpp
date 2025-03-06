@@ -16,11 +16,16 @@
 using namespace Supernova;
 
 Editor::Project::Project(){
-    selectedScene = NULL_PROJECT_SCENE;
+    resetConfigs();
+}
 
-    resourcesFocused = false;
+std::string Editor::Project::getName() const {
+    return name; 
+}
 
-    nextSceneId = 0;
+void Editor::Project::setName(std::string name){
+    this->name = name;
+    Backend::updateWindowTitle(name);
 }
 
 uint32_t Editor::Project::createNewScene(std::string sceneName){
@@ -164,9 +169,12 @@ void Editor::Project::resetConfigs() {
     Backend::getApp().resetLastActivatedScene();
 
     // Reset state
+    name = "";
     selectedScene = NULL_PROJECT_SCENE;
     nextSceneId = 0;
     projectPath.clear();
+
+    Backend::updateWindowTitle(name);
 
     //createNewScene("New Scene");
 }
@@ -225,8 +233,6 @@ bool Editor::Project::saveProject(bool userCalled) {
 
         std::filesystem::path newProjectPath = std::filesystem::path(saveDirPath);
 
-        AppSettings::setLastProjectPath(newProjectPath);
-
         // Check if the directory exists and is empty
         if (std::filesystem::exists(newProjectPath)) {
             if (!std::filesystem::is_empty(newProjectPath)) {
@@ -266,6 +272,11 @@ bool Editor::Project::saveProject(bool userCalled) {
 
             // Update the project path and set tempPath to false
             projectPath = newProjectPath;
+
+            AppSettings::setLastProjectPath(projectPath);
+            if (name.empty()) {
+                setName(projectPath.filename().string());
+            }
 
             Backend::getApp().updateResourcesPath();
 

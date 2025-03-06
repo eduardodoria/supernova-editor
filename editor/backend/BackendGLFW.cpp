@@ -14,6 +14,7 @@ static nfdwindowhandle_t nativeWindow;
 using namespace Supernova;
 
 Editor::App Editor::Backend::app;
+std::string Editor::Backend::title;
 
 int Editor::Backend::init(int argc, char* argv[]) {
     // Initialize GLFW
@@ -159,10 +160,21 @@ void Editor::Backend::enableMouseCursor() {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 }
 
-void* Editor::Backend::getNFDWindowHandle() {
-    return &nativeWindow;
-}
-
 void Editor::Backend::closeWindow() {
     glfwSetWindowShouldClose(window, GLFW_TRUE);
+}
+
+void Editor::Backend::updateWindowTitle(const std::string& projectName) {
+    if (projectName.empty()) {
+        title = "Empty project - Supernova Engine";
+    } else {
+        title = projectName + " - Supernova Engine";
+    }
+    if (window){
+        glfwSetWindowTitle(window, title.c_str());
+    }
+}
+
+void* Editor::Backend::getNFDWindowHandle() {
+    return &nativeWindow;
 }
