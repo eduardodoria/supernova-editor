@@ -66,6 +66,7 @@ namespace Supernova::Editor{
 
         void saveFunc();
         void saveAllFunc();
+        void openProjectFunc();
 
         void showMenu();
         void showAlert();
@@ -101,8 +102,6 @@ namespace Supernova::Editor{
         void registerAlert(std::string title, std::string message);
         void registerConfirmAlert(std::string title, std::string message, std::function<void()> onYes, std::function<void()> onNo = nullptr);
         void registerSaveSceneDialog(uint32_t sceneId);
-
-        void finalizeExitAfterSave();
 
         // Window settings methods
         int getInitialWindowWidth() const;

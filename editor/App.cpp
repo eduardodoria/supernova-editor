@@ -49,6 +49,29 @@ void Editor::App::saveAllFunc(){
     codeEditor->saveAll();
 }
 
+void Editor::App::openProjectFunc(){
+    if (project.hasScenesUnsavedChanges() || codeEditor->hasUnsavedChanges() || project.isTempUnsavedProject()) {
+        Backend::getApp().registerConfirmAlert(
+            "Unsaved Changes",
+            "There are unsaved changes. Do you want to save them before opening another project?",
+            [this]() {
+                // Yes callback - save all and then continue
+                if (project.saveProject(true)){
+                    saveAllFunc();
+                    project.openProject();
+                }
+            },
+            [this]() {
+                // No callback - just continue without saving
+                project.openProject();
+            }
+        );
+    } else {
+        // No unsaved changes, proceed directly
+        project.openProject();
+    }
+}
+
 void Editor::App::showMenu(){
     // Remove menu bar border
     //ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
@@ -58,11 +81,31 @@ void Editor::App::showMenu(){
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("New")) {
-                project.createEmptyProject("MySupernovaProject");
+                std::string projectName = "MySupernovaProject";
+                if (project.hasScenesUnsavedChanges() || codeEditor->hasUnsavedChanges() || project.isTempUnsavedProject()) {
+                    Backend::getApp().registerConfirmAlert(
+                        "Unsaved Changes",
+                        "There are unsaved changes. Do you want to save them before creating a new project?",
+                        [this, projectName]() {
+                            // Yes callback - save all and then reset
+                            if (project.saveProject(true)){
+                                saveAllFunc();
+                                project.createTempProject(projectName, true);
+                            }
+                        },
+                        [this, projectName]() {
+                            // No callback - just reset without saving
+                            project.createTempProject(projectName, true);
+                        }
+                    );
+                } else {
+                    // No unsaved changes, just reset
+                    project.createTempProject(projectName, true);
+                }
             }
             ImGui::Separator();
             if (ImGui::MenuItem("Open Project", "Ctrl+O")) {
-                project.openProject();
+                openProjectFunc();
             }
             if (ImGui::BeginMenu("Recent Projects")) {
                 std::vector<std::filesystem::path> recentProjects = AppSettings::getRecentProjects();
@@ -71,16 +114,16 @@ void Editor::App::showMenu(){
                 } else {
                     for (const auto& path : recentProjects) {
                         if (ImGui::MenuItem(path.filename().string().c_str())) {
-                            if (project.hasScenesUnsavedChanges() || project.isTempUnsavedProject()) {
+                            if (project.hasScenesUnsavedChanges() || codeEditor->hasUnsavedChanges() || project.isTempUnsavedProject()) {
                                 registerConfirmAlert(
                                     "Unsaved Changes",
                                     "There are unsaved changes. Do you want to save them before opening another project?",
                                     [this, path]() {
                                         // Yes callback - save all and then continue
-                                        project.saveProject(true);
-                                        project.saveAllScenes();
-                                        // Only after saving, load the selected project
-                                        this->project.loadProject(path);
+                                        if (project.saveProject(true)){
+                                            saveAllFunc();
+                                            this->project.loadProject(path);
+                                        }
                                     },
                                     [this, path]() {
                                         // No callback - just continue without saving
@@ -332,7 +375,7 @@ void Editor::App::show(){
 
     if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_O)) {
         // CTRL+O opens a project
-        project.openProject();
+        openProjectFunc();
     }
 
     if (isDroppedExternalPaths) {
@@ -387,10 +430,6 @@ void Editor::App::show(){
         // Process the next scene on the next frame
         processNextSceneSave();
     }
-    if (pendingExit && sceneSaveQueue.empty()) {
-        pendingExit = false;
-        finalizeExitAfterSave();
-    }
 
     structureWindow->show();
     resourcesWindow->show();
@@ -398,6 +437,11 @@ void Editor::App::show(){
     propertiesWindow->show();
     codeEditor->show();
     sceneWindow->show();
+
+    if (pendingExit && sceneSaveQueue.empty()) {
+        pendingExit = false;
+        Backend::closeWindow();
+    }
 }
 
 void Editor::App::engineInit(int argc, char** argv) {
@@ -692,11 +736,6 @@ void Editor::App::processNextSceneSave() {
     );
 }
 
-void Editor::App::finalizeExitAfterSave() {
-    project.saveProject(true);
-    Backend::closeWindow();
-}
-
 void Editor::App::initializeSettings() {
     AppSettings::initialize();
 }
@@ -727,21 +766,16 @@ void Editor::App::exit() {
         sceneSaveDialog.close();
     }
 
-    if (project.hasScenesUnsavedChanges() || codeEditor->hasUnsavedChanges()) {
+    if (project.hasScenesUnsavedChanges() || codeEditor->hasUnsavedChanges() || project.isTempUnsavedProject()) {
         registerConfirmAlert(
             "Unsaved Changes",
             "There are unsaved changes. Do you want to save them before exiting?",
             [this]() {
                 // Yes callback - save all and exit when done
-                pendingExit = true;
-                saveAllFunc();
-
-                // If no save dialogs opened during saveAllFunc, exit immediately
-                if (!sceneSaveDialog.isOpen() && sceneSaveQueue.empty()) {
-                    project.saveProject(true);
-                    Backend::closeWindow();
+                if (project.saveProject(true)){
+                    saveAllFunc();
+                    pendingExit = true;
                 }
-                // Otherwise, exit will happen after dialog queue is processed
             },
             [this]() {
                 // No callback - just exit without saving
