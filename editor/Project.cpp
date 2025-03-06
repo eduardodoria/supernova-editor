@@ -281,6 +281,8 @@ void Editor::Project::saveProject(bool userCalled) {
 
         std::filesystem::path newProjectPath = std::filesystem::path(saveDirPath);
 
+        AppSettings::setLastProjectPath(newProjectPath);
+
         // Check if the directory exists and is empty
         if (std::filesystem::exists(newProjectPath)) {
             if (!std::filesystem::is_empty(newProjectPath)) {

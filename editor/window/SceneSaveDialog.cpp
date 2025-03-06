@@ -9,11 +9,13 @@ namespace Supernova {
 namespace Editor {
 
 void SceneSaveDialog::open(const fs::path& projectPath, const std::string& defaultName,
-                          std::function<void(const fs::path&)> onSave) {
+        std::function<void(const fs::path&)> onSave,
+        std::function<void()> onCancel) {
     m_isOpen = true;
     m_projectPath = projectPath;
     m_selectedPath = projectPath.string();
     m_onSave = onSave;
+    m_onCancel = onCancel;
 
     // Set default filename
     strncpy(m_fileNameBuffer, defaultName.c_str(), sizeof(m_fileNameBuffer) - 1);
@@ -38,7 +40,9 @@ void SceneSaveDialog::show() {
                              ImGuiWindowFlags_NoSavedSettings |
                              ImGuiWindowFlags_Modal;
 
-    if (ImGui::BeginPopupModal("Save Scene##SaveSceneModal", nullptr, flags)) {
+    bool popupOpen = ImGui::BeginPopupModal("Save Scene##SaveSceneModal", nullptr, flags);
+
+    if (popupOpen) {
         // Directory browser tree with icons
         if (ImGui::BeginChild("DirectoryBrowser", ImVec2(300, 200), true)) {
             static ImGuiTableFlags tableFlags = ImGuiTableFlags_Resizable;
@@ -128,13 +132,6 @@ void SceneSaveDialog::show() {
             }
             m_isOpen = false;
 
-            // Check if we should exit the application after saving
-            if (m_exitAfterSave) {
-                m_exitAfterSave = false; // Reset the flag
-                // Make sure to save the project and close the window
-                Editor::Backend::getApp().finalizeExitAfterSave();
-            }
-
             ImGui::CloseCurrentPopup();
         }
         ImGui::EndDisabled();
@@ -143,11 +140,8 @@ void SceneSaveDialog::show() {
         if (ImGui::Button("Cancel", ImVec2(120, 0))) {
             m_isOpen = false;
 
-            // Check if we should exit the application even if canceled
-            if (m_exitAfterSave) {
-                m_exitAfterSave = false; // Reset the flag
-                // Make sure to close the window without further saves
-                Editor::Backend::closeWindow();
+            if (m_onCancel) {
+                m_onCancel();
             }
 
             ImGui::CloseCurrentPopup();
@@ -157,8 +151,17 @@ void SceneSaveDialog::show() {
     }
     else {
         // If the popup isn't open anymore but our state says it should be,
-        // update our state
-        m_isOpen = false;
+        // update our state and make sure to call the cancel callback
+        // This happens if user presses ESC or clicks outside the modal
+        if (m_isOpen) {
+            m_isOpen = false;
+
+            // If dialog was closed without explicit button press,
+            // we still need to call the cancel callback
+            if (m_onCancel) {
+                m_onCancel();
+            }
+        }
     }
 }
 

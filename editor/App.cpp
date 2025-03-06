@@ -25,6 +25,7 @@ Editor::App::App(){
     resourcesWindow = new ResourcesWindow(&project, codeEditor);
 
     isInitialized = false;
+    pendingExit = false;
 
     lastFocusedWindow = LastFocusedWindow::None;
 
@@ -380,7 +381,16 @@ void Editor::App::show(){
     #endif
 
     showAlert();
+
     sceneSaveDialog.show();
+    if (!sceneSaveDialog.isOpen() && !sceneSaveQueue.empty()) {
+        // Process the next scene on the next frame
+        processNextSceneSave();
+    }
+    if (pendingExit && sceneSaveQueue.empty()) {
+        pendingExit = false;
+        finalizeExitAfterSave();
+    }
 
     structureWindow->show();
     resourcesWindow->show();
@@ -628,30 +638,56 @@ void Editor::App::registerAlert(std::string title, std::string message) {
 }
 
 void Editor::App::registerSaveSceneDialog(uint32_t sceneId) {
+    // Add scene to the queue
+    sceneSaveQueue.push(sceneId);
+
+    // If this is the only scene in the queue, process it immediately
+    if (sceneSaveQueue.size() == 1) {
+        processNextSceneSave();
+    }
+    // If queue has more scenes, they'll be processed after this one completes
+}
+
+void Editor::App::processNextSceneSave() {
+    if (sceneSaveQueue.empty() || sceneSaveDialog.isOpen()) {
+        return; // No more scenes or dialog still open
+    }
+
+    uint32_t sceneId = sceneSaveQueue.front();
     SceneProject* sceneProject = project.getScene(sceneId);
     if (!sceneProject) {
+        // Invalid scene, remove from queue and try again
+        sceneSaveQueue.pop();
+        processNextSceneSave(); // This is safe since we're not in a callback
         return;
     }
 
     // Set default filename
     std::string defaultName = sceneProject->name + ".scene";
 
-    // Open the dialog with a callback for when Save is clicked
+    // Open dialog for the current scene
     sceneSaveDialog.open(
         project.getProjectPath(), 
         defaultName,
+        // Save callback - DON'T call processNextSceneSave() here
         [this, sceneId](const fs::path& fullPath) {
             SceneProject* sceneProject = project.getScene(sceneId);
-            if (!sceneProject) {
-                return;
+            if (sceneProject) {
+                // Create directory if it doesn't exist
+                std::filesystem::create_directories(fullPath.parent_path());
+
+                // Save the scene
+                sceneProject->filepath = fullPath;
+                project.saveSceneToPath(sceneId, fullPath);
             }
 
-            // Create directory if it doesn't exist
-            std::filesystem::create_directories(fullPath.parent_path());
-
-            // Save the scene
-            sceneProject->filepath = fullPath;
-            project.saveSceneToPath(sceneId, fullPath);
+            // Remove this scene from the queue
+            sceneSaveQueue.pop();
+        },
+        // Cancel callback - DON'T call processNextSceneSave() here
+        [this]() {
+            // Remove the current scene from the queue without saving it
+            sceneSaveQueue.pop();
         }
     );
 }
@@ -696,19 +732,16 @@ void Editor::App::exit() {
             "Unsaved Changes",
             "There are unsaved changes. Do you want to save them before exiting?",
             [this]() {
-                // Yes callback - save all
+                // Yes callback - save all and exit when done
+                pendingExit = true;
                 saveAllFunc();
 
-                // We need to check if the save dialog opened during saveAllFunc
-                if (!sceneSaveDialog.isOpen()) {
-                    // Only save project and close window if no dialogs are open
+                // If no save dialogs opened during saveAllFunc, exit immediately
+                if (!sceneSaveDialog.isOpen() && sceneSaveQueue.empty()) {
                     project.saveProject(true);
                     Backend::closeWindow();
-                } else {
-                    // If dialog is open, we need to wait for it to complete
-                    // Set a flag to complete exit after dialog closes
-                    sceneSaveDialog.setExitAfterSave(true);
                 }
+                // Otherwise, exit will happen after dialog queue is processed
             },
             [this]() {
                 // No callback - just exit without saving

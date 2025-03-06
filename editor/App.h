@@ -46,9 +46,12 @@ namespace Supernova::Editor{
         ResourcesWindow* resourcesWindow;
 
         bool isInitialized;
+        bool pendingExit;
 
         AlertData alert;
         SceneSaveDialog sceneSaveDialog;
+
+        std::queue<uint32_t> sceneSaveQueue;
 
         std::vector<std::string> droppedExternalPaths;
         bool isDroppedExternalPaths;
@@ -69,6 +72,7 @@ namespace Supernova::Editor{
         void showStyleEditor();
         void buildDockspace();
         void kewtStyleTheme();
+        void processNextSceneSave();
 
     public:
 
