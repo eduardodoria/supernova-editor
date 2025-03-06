@@ -216,44 +216,38 @@ bool Editor::Project::createTempProject(std::string projectName, bool deleteIfEx
 }
 
 bool Editor::Project::saveProject(bool userCalled) {
-    // Check if the project is currently in a temporary directory
     if (isTempProject() && userCalled) {
-        std::string homeDirPath;
-        #ifdef _WIN32
-        homeDirPath = std::filesystem::path(getenv("USERPROFILE")).string();
-        #else
-        homeDirPath = std::filesystem::path(getenv("HOME")).string();
-        #endif
-        // Open a dialog to choose an empty folder to save the project
-        std::string saveDirPath = Util::saveFileDialog(homeDirPath, "MyProject", false);
+        Backend::getApp().registerProjectSaveDialog();
+        return true;
+    }
 
-        if (saveDirPath.empty()) {
-            return false; // User canceled the dialog
-        }
+    return saveProjectToPath(projectPath);
+}
 
-        std::filesystem::path newProjectPath = std::filesystem::path(saveDirPath);
-
-        // Check if the directory exists and is empty
-        if (std::filesystem::exists(newProjectPath)) {
-            if (!std::filesystem::is_empty(newProjectPath)) {
-                Backend::getApp().registerAlert("Error", "Please select an empty directory for the project!");
-                return false;
-            }
-        } else {
-            // Create the directory if it doesn't exist
-            try {
-                std::filesystem::create_directory(newProjectPath);
-            } catch (const std::exception& e) {
-                Out::error("Failed to create project directory: %s", e.what());
-                Backend::getApp().registerAlert("Error", "Failed to create project directory!");
-                return false;
-            }
-        }
-
-        // Move all project files from temp dir to the new location
+bool Editor::Project::saveProjectToPath(const std::filesystem::path& path) {
+    // Try to create the directory if it doesn't exist
+    if (!std::filesystem::exists(path)) {
         try {
-            for (const auto& entry : std::filesystem::directory_iterator(projectPath)) {
-                std::filesystem::path destPath = newProjectPath / entry.path().filename();
+            std::filesystem::create_directory(path);
+        } catch (const std::exception& e) {
+            Out::error("Failed to create project directory: %s", e.what());
+            Backend::getApp().registerAlert("Error", "Failed to create project directory!");
+            return false;
+        }
+    }
+
+    // Check if we're moving from temp location
+    bool wasTemp = isTempProject();
+    std::filesystem::path oldPath = projectPath;
+
+    projectPath = path;
+
+    // If we're moving from a temp path, handle the file transfers
+    if (wasTemp && oldPath != path) {
+        try {
+            // Copy all project files from temp dir to the new location
+            for (const auto& entry : std::filesystem::directory_iterator(oldPath)) {
+                std::filesystem::path destPath = path / entry.path().filename();
                 std::filesystem::copy(entry.path(), destPath, 
                                      std::filesystem::copy_options::recursive);
             }
@@ -262,27 +256,15 @@ bool Editor::Project::saveProject(bool userCalled) {
             for (auto& sceneProject : scenes) {
                 if (!sceneProject.filepath.empty()) {
                     std::filesystem::path relativePath = std::filesystem::relative(
-                        sceneProject.filepath, projectPath);
-                    sceneProject.filepath = newProjectPath / relativePath;
+                        sceneProject.filepath, oldPath);
+                    sceneProject.filepath = path / relativePath;
                 }
             }
 
             // Delete the temp directory after moving all files
-            std::filesystem::remove_all(projectPath);
-
-            // Update the project path and set tempPath to false
-            projectPath = newProjectPath;
-
-            AppSettings::setLastProjectPath(projectPath);
-            if (name.empty()) {
-                setName(projectPath.filename().string());
+            if (!wasTemp){
+                std::filesystem::remove_all(oldPath);
             }
-
-            Backend::getApp().updateResourcesPath();
-
-            //saveAllScenes();
-
-            Out::info("Project moved from temporary directory to: %s", projectPath.string().c_str());
 
         } catch (const std::exception& e) {
             Out::error("Failed to move project files: %s", e.what());
@@ -295,7 +277,7 @@ bool Editor::Project::saveProject(bool userCalled) {
     try {
         YAML::Node root = Stream::encodeProject(this);
 
-        std::filesystem::path projectFile = projectPath / "project.yaml";
+        std::filesystem::path projectFile = path / "project.yaml";
         std::ofstream fout(projectFile.string());
         if (!fout) {
             Out::error("Failed to open project file for writing: %s", projectFile.string().c_str());
@@ -305,16 +287,16 @@ bool Editor::Project::saveProject(bool userCalled) {
         fout << YAML::Dump(root);
         fout.close();
 
-        if (userCalled){
-            Out::info("Project saved to: %s", projectPath.string().c_str());
-        }
+        Out::info("Project saved to: %s", path.string().c_str());
+
+        // Update the app settings
+        AppSettings::setLastProjectPath(path);
+        Backend::getApp().updateResourcesPath();
 
         return true;
     } catch (const std::exception& e) {
         Out::error("Failed to save project: %s", e.what());
-        if (userCalled) {
-            Backend::getApp().registerAlert("Error", "Failed to save project!");
-        }
+        Backend::getApp().registerAlert("Error", "Failed to save project!");
         return false;
     }
 }

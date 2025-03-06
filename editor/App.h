@@ -11,6 +11,8 @@
 #include "window/SceneWindow.h"
 #include "window/ResourcesWindow.h"
 #include "window/CodeEditor.h"
+
+#include "window/ProjectSaveDialog.h"
 #include "window/SceneSaveDialog.h"
 
 #include "render/SceneRender.h"
@@ -49,6 +51,7 @@ namespace Supernova::Editor{
         bool pendingExit;
 
         AlertData alert;
+        ProjectSaveDialog projectSaveDialog;
         SceneSaveDialog sceneSaveDialog;
 
         std::queue<uint32_t> sceneSaveQueue;
@@ -101,6 +104,7 @@ namespace Supernova::Editor{
 
         void registerAlert(std::string title, std::string message);
         void registerConfirmAlert(std::string title, std::string message, std::function<void()> onYes, std::function<void()> onNo = nullptr);
+        void registerProjectSaveDialog();
         void registerSaveSceneDialog(uint32_t sceneId);
 
         // Window settings methods

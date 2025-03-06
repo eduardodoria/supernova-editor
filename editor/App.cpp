@@ -425,6 +425,8 @@ void Editor::App::show(){
 
     showAlert();
 
+    projectSaveDialog.show();
+
     sceneSaveDialog.show();
     if (!sceneSaveDialog.isOpen() && !sceneSaveQueue.empty()) {
         // Process the next scene on the next frame
@@ -663,6 +665,15 @@ void Editor::App::updateResourcesPath(){
     }
 }
 
+void Editor::App::registerAlert(std::string title, std::string message) {
+    alert.needShow = true;
+    alert.title = title;
+    alert.message = message;
+    alert.type = AlertType::Info;
+    alert.onYes = nullptr;
+    alert.onNo = nullptr;
+}
+
 void Editor::App::registerConfirmAlert(std::string title, std::string message, std::function<void()> onYes, std::function<void()> onNo) {
     alert.needShow = true;
     alert.title = title;
@@ -672,13 +683,24 @@ void Editor::App::registerConfirmAlert(std::string title, std::string message, s
     alert.onNo = onNo;
 }
 
-void Editor::App::registerAlert(std::string title, std::string message) {
-    alert.needShow = true;
-    alert.title = title;
-    alert.message = message;
-    alert.type = AlertType::Info;
-    alert.onYes = nullptr;
-    alert.onNo = nullptr;
+void Editor::App::registerProjectSaveDialog() {
+    std::string defaultName = project.getName();
+    if (defaultName.empty()) {
+        defaultName = "MyProject";
+    }
+
+    projectSaveDialog.open(
+        defaultName,
+        [this](const std::string& projectName, const fs::path& projectPath) {
+            // Set the project name if provided
+            if (!projectName.empty()) {
+                project.setName(projectName);
+            }
+
+            // Save the project to the selected path
+            project.saveProjectToPath(projectPath);
+        }
+    );
 }
 
 void Editor::App::registerSaveSceneDialog(uint32_t sceneId) {
