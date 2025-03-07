@@ -33,6 +33,17 @@ namespace Supernova::Editor{
         std::function<void()> onNo = nullptr;
     };
 
+    enum class SaveDialogType {
+        Scene,
+        Project
+    };
+
+    struct SaveDialogQueueItem {
+        SaveDialogType type;
+        uint32_t sceneId;  // Only used for Scene dialogs
+        std::function<void()> callback = nullptr;
+    };
+
     class App{
     private:
         Project project;
@@ -48,13 +59,12 @@ namespace Supernova::Editor{
         ResourcesWindow* resourcesWindow;
 
         bool isInitialized;
-        bool pendingExit;
 
         AlertData alert;
         ProjectSaveDialog projectSaveDialog;
         SceneSaveDialog sceneSaveDialog;
 
-        std::queue<uint32_t> sceneSaveQueue;
+        std::queue<SaveDialogQueueItem> saveDialogQueue;
 
         std::vector<std::string> droppedExternalPaths;
         bool isDroppedExternalPaths;
@@ -76,7 +86,7 @@ namespace Supernova::Editor{
         void showStyleEditor();
         void buildDockspace();
         void kewtStyleTheme();
-        void processNextSceneSave();
+        void processNextSaveDialog();
 
     public:
 
@@ -104,8 +114,8 @@ namespace Supernova::Editor{
 
         void registerAlert(std::string title, std::string message);
         void registerConfirmAlert(std::string title, std::string message, std::function<void()> onYes, std::function<void()> onNo = nullptr);
-        void registerProjectSaveDialog();
-        void registerSaveSceneDialog(uint32_t sceneId);
+        void registerSaveSceneDialog(uint32_t sceneId, std::function<void()> callback = nullptr);
+        void registerProjectSaveDialog(std::function<void()> callback = nullptr);
 
         // Window settings methods
         int getInitialWindowWidth() const;

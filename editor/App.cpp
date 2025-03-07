@@ -25,7 +25,6 @@ Editor::App::App(){
     resourcesWindow = new ResourcesWindow(&project, codeEditor);
 
     isInitialized = false;
-    pendingExit = false;
 
     lastFocusedWindow = LastFocusedWindow::None;
 
@@ -56,10 +55,11 @@ void Editor::App::openProjectFunc(){
             "There are unsaved changes. Do you want to save them before opening another project?",
             [this]() {
                 // Yes callback - save all and then continue
-                if (project.saveProject(true)){
-                    saveAllFunc();
-                    project.openProject();
-                }
+                saveAllFunc();
+                project.saveProject(true,
+                    [this]() {
+                        this->project.openProject();
+                });
             },
             [this]() {
                 // No callback - just continue without saving
@@ -88,10 +88,11 @@ void Editor::App::showMenu(){
                         "There are unsaved changes. Do you want to save them before creating a new project?",
                         [this, projectName]() {
                             // Yes callback - save all and then reset
-                            if (project.saveProject(true)){
-                                saveAllFunc();
+                            saveAllFunc();
+                            project.saveProject(true,
+                                [this, projectName]() {
                                 project.createTempProject(projectName, true);
-                            }
+                            });
                         },
                         [this, projectName]() {
                             // No callback - just reset without saving
@@ -119,11 +120,12 @@ void Editor::App::showMenu(){
                                     "Unsaved Changes",
                                     "There are unsaved changes. Do you want to save them before opening another project?",
                                     [this, path]() {
-                                        // Yes callback - save all and then continue
-                                        if (project.saveProject(true)){
-                                            saveAllFunc();
-                                            this->project.loadProject(path);
-                                        }
+                                        // Yes callback - save all and then contin
+                                        saveAllFunc();
+                                        project.saveProject(true,
+                                            [this, path]() {
+                                                this->project.loadProject(path);
+                                        });
                                     },
                                     [this, path]() {
                                         // No callback - just continue without saving
@@ -425,12 +427,11 @@ void Editor::App::show(){
 
     showAlert();
 
+    sceneSaveDialog.show();
     projectSaveDialog.show();
 
-    sceneSaveDialog.show();
-    if (!sceneSaveDialog.isOpen() && !sceneSaveQueue.empty()) {
-        // Process the next scene on the next frame
-        processNextSceneSave();
+    if (!sceneSaveDialog.isOpen() && !projectSaveDialog.isOpen() && !saveDialogQueue.empty()) {
+        processNextSaveDialog();
     }
 
     structureWindow->show();
@@ -439,11 +440,6 @@ void Editor::App::show(){
     propertiesWindow->show();
     codeEditor->show();
     sceneWindow->show();
-
-    if (pendingExit && sceneSaveQueue.empty()) {
-        pendingExit = false;
-        Backend::closeWindow();
-    }
 }
 
 void Editor::App::engineInit(int argc, char** argv) {
@@ -683,79 +679,132 @@ void Editor::App::registerConfirmAlert(std::string title, std::string message, s
     alert.onNo = onNo;
 }
 
-void Editor::App::registerProjectSaveDialog() {
-    std::string defaultName = project.getName();
-    if (defaultName.empty()) {
-        defaultName = "MyProject";
+void Editor::App::registerSaveSceneDialog(uint32_t sceneId, std::function<void()> callback) {
+    // Add scene to the save dialog queue with callback
+    SaveDialogQueueItem item = {SaveDialogType::Scene, sceneId, callback};
+    saveDialogQueue.push(item);
+
+    // If this is the only item in the queue, process it immediately
+    if (saveDialogQueue.size() == 1 && !sceneSaveDialog.isOpen() && !projectSaveDialog.isOpen()) {
+        processNextSaveDialog();
     }
-
-    projectSaveDialog.open(
-        defaultName,
-        [this](const std::string& projectName, const fs::path& projectPath) {
-            // Set the project name if provided
-            if (!projectName.empty()) {
-                project.setName(projectName);
-            }
-
-            // Save the project to the selected path
-            project.saveProjectToPath(projectPath);
-        }
-    );
+    // If queue has more items or another dialog is open, they'll be processed later
 }
 
-void Editor::App::registerSaveSceneDialog(uint32_t sceneId) {
-    // Add scene to the queue
-    sceneSaveQueue.push(sceneId);
+void Editor::App::registerProjectSaveDialog(std::function<void()> callback) {
+    // Add project save to the dialog queue with callback
+    SaveDialogQueueItem item = {SaveDialogType::Project, 0, callback};  // sceneId is unused for Project saves
+    saveDialogQueue.push(item);
 
-    // If this is the only scene in the queue, process it immediately
-    if (sceneSaveQueue.size() == 1) {
-        processNextSceneSave();
+    // If this is the only item in the queue, process it immediately
+    if (saveDialogQueue.size() == 1 && !sceneSaveDialog.isOpen() && !projectSaveDialog.isOpen()) {
+        processNextSaveDialog();
     }
-    // If queue has more scenes, they'll be processed after this one completes
+    // If queue has more items or another dialog is open, they'll be processed later
 }
 
-void Editor::App::processNextSceneSave() {
-    if (sceneSaveQueue.empty() || sceneSaveDialog.isOpen()) {
-        return; // No more scenes or dialog still open
-    }
-
-    uint32_t sceneId = sceneSaveQueue.front();
-    SceneProject* sceneProject = project.getScene(sceneId);
-    if (!sceneProject) {
-        // Invalid scene, remove from queue and try again
-        sceneSaveQueue.pop();
-        processNextSceneSave(); // This is safe since we're not in a callback
+void Editor::App::processNextSaveDialog() {
+    // Check if there's anything to process and no dialogs are currently open
+    if (saveDialogQueue.empty() || sceneSaveDialog.isOpen() || projectSaveDialog.isOpen()) {
         return;
     }
 
-    // Set default filename
-    std::string defaultName = sceneProject->name + ".scene";
+    // Get the next item from the queue
+    SaveDialogQueueItem item = saveDialogQueue.front();
+    // Store the callback to use it later
+    std::function<void()> completionCallback = item.callback;
 
-    // Open dialog for the current scene
-    sceneSaveDialog.open(
-        project.getProjectPath(), 
-        defaultName,
-        // Save callback - DON'T call processNextSceneSave() here
-        [this, sceneId](const fs::path& fullPath) {
-            SceneProject* sceneProject = project.getScene(sceneId);
-            if (sceneProject) {
-                // Create directory if it doesn't exist
-                std::filesystem::create_directories(fullPath.parent_path());
-
-                // Save the scene
-                sceneProject->filepath = fullPath;
-                project.saveSceneToPath(sceneId, fullPath);
-            }
-
-            // Remove this scene from the queue
-            sceneSaveQueue.pop();
-        },
-        // Cancel callback - DON'T call processNextSceneSave() here
-        [this]() {
-            // Remove the current scene from the queue without saving it
-            sceneSaveQueue.pop();
+    if (item.type == SaveDialogType::Scene) {
+        // Process scene save dialog
+        uint32_t sceneId = item.sceneId;
+        SceneProject* sceneProject = project.getScene(sceneId);
+        if (!sceneProject) {
+            // Invalid scene, remove from queue and try next item
+            saveDialogQueue.pop();
+            processNextSaveDialog();
+            return;
         }
-    );
+
+        // Set default filename
+        std::string defaultName = sceneProject->name + ".scene";
+
+        // Open dialog for the current scene
+        sceneSaveDialog.open(
+            project.getProjectPath(), 
+            defaultName,
+            // Save callback
+            [this, sceneId, completionCallback](const fs::path& fullPath) {
+                SceneProject* sceneProject = project.getScene(sceneId);
+                if (sceneProject) {
+                    // Create directory if it doesn't exist
+                    std::filesystem::create_directories(fullPath.parent_path());
+
+                    // Save the scene
+                    sceneProject->filepath = fullPath;
+                    project.saveSceneToPath(sceneId, fullPath);
+                }
+
+                // Remove this item from the queue
+                saveDialogQueue.pop();
+
+                // Execute the completion callback if provided
+                if (completionCallback) {
+                    completionCallback();
+                }
+
+                // Process the next item if available
+                processNextSaveDialog();
+            },
+            // Cancel callback
+            [this, completionCallback]() {
+                // Remove the current item from the queue without saving
+                saveDialogQueue.pop();
+
+                // Process the next item if available
+                processNextSaveDialog();
+            }
+        );
+    }
+    else if (item.type == SaveDialogType::Project) {
+        // Process project save dialog
+        std::string defaultName = project.getName();
+        if (defaultName.empty()) {
+            defaultName = "MyProject";
+        }
+
+        projectSaveDialog.open(
+            defaultName,
+            // Save callback
+            [this, completionCallback](const std::string& projectName, const fs::path& projectPath) {
+                // Set the project name if provided
+                if (!projectName.empty()) {
+                    project.setName(projectName);
+                }
+
+                // Save the project to the selected path
+                project.saveProjectToPath(projectPath);
+
+                // Remove this item from the queue
+                saveDialogQueue.pop();
+
+                // Execute the completion callback if provided
+                if (completionCallback) {
+                    completionCallback();
+                }
+
+                // Process the next item if available
+                processNextSaveDialog();
+            },
+            // Cancel callback
+            [this, completionCallback]() {
+                // Remove the current item from the queue without saving
+                saveDialogQueue.pop();
+
+                // Process the next item if available
+                processNextSaveDialog();
+            }
+        );
+    }
 }
 
 void Editor::App::initializeSettings() {
@@ -794,10 +843,11 @@ void Editor::App::exit() {
             "There are unsaved changes. Do you want to save them before exiting?",
             [this]() {
                 // Yes callback - save all and exit when done
-                if (project.saveProject(true)){
-                    saveAllFunc();
-                    pendingExit = true;
-                }
+                saveAllFunc();
+                project.saveProject(true,
+                    [this]() {
+                        Backend::closeWindow();
+                });
             },
             [this]() {
                 // No callback - just exit without saving

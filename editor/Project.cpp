@@ -215,13 +215,19 @@ bool Editor::Project::createTempProject(std::string projectName, bool deleteIfEx
     return true;
 }
 
-bool Editor::Project::saveProject(bool userCalled) {
+bool Editor::Project::saveProject(bool userCalled, std::function<void()> callback) {
     if (isTempProject() && userCalled) {
-        Backend::getApp().registerProjectSaveDialog();
+        Backend::getApp().registerProjectSaveDialog(callback);
         return true;
     }
 
-    return saveProjectToPath(projectPath);
+    bool saveret = saveProjectToPath(projectPath);
+
+    if (callback) {
+        callback();
+    }
+
+    return saveret;
 }
 
 bool Editor::Project::saveProjectToPath(const std::filesystem::path& path) {
@@ -290,7 +296,9 @@ bool Editor::Project::saveProjectToPath(const std::filesystem::path& path) {
         Out::info("Project saved to: %s", path.string().c_str());
 
         // Update the app settings
-        AppSettings::setLastProjectPath(path);
+        if (!wasTemp) {
+            AppSettings::setLastProjectPath(path);
+        }
         Backend::getApp().updateResourcesPath();
 
         return true;
