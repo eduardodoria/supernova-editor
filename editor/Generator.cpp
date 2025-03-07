@@ -71,7 +71,7 @@ bool Editor::Generator::configureCMake(const fs::path& projectPath, const fs::pa
             DWORD error = GetLastError();
             CloseHandle(hReadPipe);
             CloseHandle(hWritePipe);
-            Log::error("Failed to create process. Error code: %lu", error);
+            Out::error("Failed to create process. Error code: %lu", error);
             return false;
         }
 
@@ -115,7 +115,7 @@ bool Editor::Generator::configureCMake(const fs::path& projectPath, const fs::pa
                         line.pop_back();  // Remove trailing \r if present
                     }
                     if (!line.empty()) {
-                        Log::build("%s", line.c_str());
+                        Out::build("%s", line.c_str());
                     }
                     pos = nextPos + 1;
                 }
@@ -134,7 +134,7 @@ bool Editor::Generator::configureCMake(const fs::path& projectPath, const fs::pa
 
         // Process any remaining output
         if (!accumulator.empty()) {
-            Log::build("%s", accumulator.c_str());
+            Out::build("%s", accumulator.c_str());
         }
 
         // Clean up handles
@@ -207,7 +207,7 @@ bool Editor::Generator::buildProject(const fs::path& projectPath, const fs::path
             DWORD error = GetLastError();
             CloseHandle(hReadPipe);
             CloseHandle(hWritePipe);
-            Log::error("Failed to create process. Error code: %lu", error);
+            Out::error("Failed to create process. Error code: %lu", error);
             return false;
         }
 
@@ -251,7 +251,7 @@ bool Editor::Generator::buildProject(const fs::path& projectPath, const fs::path
                         line.pop_back();  // Remove trailing \r if present
                     }
                     if (!line.empty()) {
-                        Log::build("%s", line.c_str());
+                        Out::build("%s", line.c_str());
                     }
                     pos = nextPos + 1;
                 }
@@ -270,7 +270,7 @@ bool Editor::Generator::buildProject(const fs::path& projectPath, const fs::path
 
         // Process any remaining output
         if (!accumulator.empty()) {
-            Log::build("%s", accumulator.c_str());
+            Out::build("%s", accumulator.c_str());
         }
 
         // Clean up handles
