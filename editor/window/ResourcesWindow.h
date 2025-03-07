@@ -12,6 +12,8 @@
 
 #include "imgui.h"
 
+namespace fs = std::filesystem;
+
 namespace Supernova::Editor{
 
     struct FileEntry {
@@ -30,7 +32,7 @@ namespace Supernova::Editor{
 
         bool firstOpen;
         bool requestSort;
-        std::string currentPath;
+        fs::path currentPath;
         std::vector<Editor::FileEntry> files;
 
         Texture folderIcon;
@@ -68,7 +70,7 @@ namespace Supernova::Editor{
 
         bool windowFocused;
 
-        void scanDirectory(const std::string& path);
+        void scanDirectory(const fs::path& path);
         void sortWithSortSpecs(ImGuiTableSortSpecs* sortSpecs, std::vector<FileEntry>& files);
         std::string shortenPath(const std::filesystem::path& path, float maxWidth);
         void highlightDragAndDrop();

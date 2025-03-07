@@ -20,8 +20,6 @@
 
 using namespace Supernova;
 
-namespace fs = std::filesystem;
-
 Editor::ResourcesWindow::ResourcesWindow(Project* project, CodeEditor* codeEditor) {
     this->project = project;
     this->codeEditor = codeEditor;
@@ -54,11 +52,11 @@ void Editor::ResourcesWindow::handleExternalDragLeave() {
     isExternalDragHovering = false;
 }
 
-void Editor::ResourcesWindow::scanDirectory(const std::string& path) {
+void Editor::ResourcesWindow::scanDirectory(const fs::path& path) {
     currentPath = path;
 
     if (!std::filesystem::is_directory(path)) {
-        currentPath = project->getProjectPath().string();
+        currentPath = project->getProjectPath();
     }
 
     requestSort = true;
@@ -187,7 +185,7 @@ void Editor::ResourcesWindow::highlightDragAndDrop(){
 
 void Editor::ResourcesWindow::handleInternalDragAndDrop(const std::string& targetDirectory) {
     std::vector<std::string> filesVector(selectedFiles.begin(), selectedFiles.end());
-    cmdHistory.addCommand(new CopyFileCmd(filesVector, currentPath, targetDirectory, false));
+    cmdHistory.addCommand(new CopyFileCmd(filesVector, currentPath.string(), targetDirectory, false));
 
     selectedFiles.clear();
     scanDirectory(currentPath);
@@ -232,13 +230,13 @@ void Editor::ResourcesWindow::handleNewDirectory(){
             std::string dirName = nameBuffer;
             if (!dirName.empty()) {
                 try {
-                    fs::path newDirPath = fs::path(currentPath) / dirName;
+                    fs::path newDirPath = currentPath / dirName;
 
                     // Check if directory already exists
                     if (fs::exists(newDirPath)) {
                         ImGui::OpenPopup("Directory Already Exists");
                     } else {
-                        cmdHistory.addCommand(new CreateDirCmd(dirName, currentPath));
+                        cmdHistory.addCommand(new CreateDirCmd(dirName, currentPath.string()));
                         scanDirectory(currentPath);
                         isCreatingNewDirectory = false;
                         ImGui::CloseCurrentPopup();
@@ -342,14 +340,14 @@ void Editor::ResourcesWindow::handleRename(){
             std::string newName = nameBuffer;
             if (!newName.empty() && newName != fileBeingRenamed) {
                 try {
-                    fs::path oldPath = fs::path(currentPath) / fileBeingRenamed;
-                    fs::path newPath = fs::path(currentPath) / newName;
+                    fs::path oldPath = currentPath / fileBeingRenamed;
+                    fs::path newPath = currentPath / newName;
 
                     // Check if the target file already exists
                     if (fs::exists(newPath)) {
                         ImGui::OpenPopup("File Already Exists");
                     } else {
-                        cmdHistory.addCommand(new RenameFileCmd(fileBeingRenamed, newName, currentPath));
+                        cmdHistory.addCommand(new RenameFileCmd(fileBeingRenamed, newName, currentPath.string()));
                         codeEditor->handleFileRename(oldPath, newPath);
                         scanDirectory(currentPath);
                         isRenaming = false;
@@ -418,7 +416,7 @@ void Editor::ResourcesWindow::copySelectedFiles(bool cut) {
     clipboardCut = cut;
 
     for (const auto& fileName : selectedFiles) {
-        clipboardFiles.push_back(currentPath + "/" + fileName);
+        clipboardFiles.push_back((currentPath / fileName).string());
     }
 }
 
@@ -501,15 +499,15 @@ void Editor::ResourcesWindow::show() {
 
     if (ImGui::Button(ICON_FA_ANGLE_LEFT)) {
         if (!currentPath.empty() && currentPath != project->getProjectPath()) {
-            fs::path parentPath = fs::path(currentPath).parent_path();
-            currentPath = parentPath.string();
+            fs::path parentPath = currentPath.parent_path();
+            currentPath = parentPath;
             scanDirectory(currentPath);
             selectedFiles.clear();
         }
     }
     if (currentPath != project->getProjectPath() && ImGui::BeginDragDropTarget()){
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
-            std::string targetDirectory = fs::path(currentPath).parent_path().string();
+            std::string targetDirectory = currentPath.parent_path().string();
             handleInternalDragAndDrop(targetDirectory);
         }
         ImGui::EndDragDropTarget();
@@ -528,7 +526,7 @@ void Editor::ResourcesWindow::show() {
     ImGui::Text("%s", ((shortenedPath == ".") ? "" : shortenedPath).c_str());
 
     ImGui::EndChild();
-    ImGui::SetItemTooltip("%s", currentPath.c_str());
+    ImGui::SetItemTooltip("%s", currentPath.string().c_str());
     ImGui::PopStyleColor();
 
     ImGui::SameLine();
@@ -710,7 +708,7 @@ void Editor::ResourcesWindow::show() {
 
                 if (ImGui::IsMouseDoubleClicked(0)) {
                     if (file.isDirectory) {
-                        scanDirectory(currentPath + "/" + file.name);
+                        scanDirectory(currentPath / file.name);
                         selectedFiles.clear();
                         ImGui::EndGroup();
                         ImGui::PopID();
@@ -718,11 +716,11 @@ void Editor::ResourcesWindow::show() {
                     } else {
                         std::string extension = file.type;
                         if (extension == ".scene") {
-                            std::filesystem::path filePath = std::filesystem::path(currentPath) / file.name;
+                            std::filesystem::path filePath = currentPath / file.name;
                             project->openScene(filePath);
                         } else if (extension == ".c" || extension == ".cpp" || extension == ".h" || extension == ".hpp") {
-                            std::string filePath = currentPath + "/" + file.name;
-                            codeEditor->openFile(filePath);
+                            fs::path filePath = currentPath / file.name;
+                            codeEditor->openFile(filePath.string());
                         }
                     }
                 }
@@ -752,7 +750,7 @@ void Editor::ResourcesWindow::show() {
                 }
 
                 if (ImGui::MenuItem(ICON_FA_PASTE"  Paste", nullptr, false, !clipboardFiles.empty())) {
-                    std::string targetDirectory = currentPath + "/" + lastSelectedFile;
+                    std::string targetDirectory = currentPath / lastSelectedFile;
                     pasteFiles(targetDirectory);
                 }
 
@@ -799,7 +797,7 @@ void Editor::ResourcesWindow::show() {
                 // serialize vector of strings into a single buffer
                 std::vector<char> buffer;
                 for (const auto& selectedFile : selectedFiles) {
-                    std::string fullPath = (fs::path(currentPath) / selectedFile).string();
+                    std::string fullPath = (currentPath / selectedFile).string();
                     buffer.insert(buffer.end(), fullPath.begin(), fullPath.end());
                     buffer.push_back('\0'); // Add null terminator for each string
                 }
@@ -815,7 +813,7 @@ void Editor::ResourcesWindow::show() {
 
             if (ImGui::BeginDragDropTarget()){
                 if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
-                    std::string targetDirectory = currentPath + "/" + file.name;
+                    std::string targetDirectory = currentPath / file.name;
                     handleInternalDragAndDrop(targetDirectory);
                 }
                 ImGui::EndDragDropTarget();
@@ -839,7 +837,7 @@ void Editor::ResourcesWindow::show() {
             std::vector<std::string> filePaths = Editor::Util::openFileDialogMultiple();
 
             if (!filePaths.empty()){
-                cmdHistory.addCommand(new CopyFileCmd(filePaths, currentPath, true));
+                cmdHistory.addCommand(new CopyFileCmd(filePaths, currentPath.string(), true));
                 scanDirectory(currentPath);
             }
         }
@@ -852,7 +850,7 @@ void Editor::ResourcesWindow::show() {
             ImGui::CloseCurrentPopup();
         }
         if (ImGui::MenuItem(ICON_FA_PASTE"  Paste", nullptr, false, !clipboardFiles.empty())) {
-            pasteFiles(currentPath);
+            pasteFiles(currentPath.string());
         }
 
         ImGui::EndPopup();
@@ -893,7 +891,7 @@ void Editor::ResourcesWindow::show() {
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("external_files")){
             std::vector<std::string> droppedPaths = *(std::vector<std::string>*)payload->Data;
 
-            cmdHistory.addCommand(new CopyFileCmd(droppedPaths, currentPath, true));
+            cmdHistory.addCommand(new CopyFileCmd(droppedPaths, currentPath.string(), true));
 
             scanDirectory(currentPath);
         }
@@ -934,7 +932,7 @@ void Editor::ResourcesWindow::show() {
                 copySelectedFiles(true);
             }else if (ImGui::IsKeyPressed(ImGuiKey_V)) {
                 if (!clipboardFiles.empty()) {
-                    pasteFiles(currentPath);
+                    pasteFiles(currentPath.string());
                 }
             }else if (ImGui::IsKeyPressed(ImGuiKey_A)) {
                 // Select all files in the current directory
@@ -998,7 +996,7 @@ void Editor::ResourcesWindow::show() {
             // Delete selected files
             std::vector<fs::path> pathsToDelete;
             for (const auto& fileName : selectedFiles) {
-                fs::path filePath = std::filesystem::path(currentPath) / fileName;
+                fs::path filePath = currentPath / fileName;
                 pathsToDelete.push_back(filePath);
 
                 codeEditor->closeFile(filePath.string());
