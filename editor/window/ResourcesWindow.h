@@ -72,7 +72,6 @@ namespace Supernova::Editor{
 
         void scanDirectory(const fs::path& path);
         void sortWithSortSpecs(ImGuiTableSortSpecs* sortSpecs, std::vector<FileEntry>& files);
-        std::string shortenPath(const std::filesystem::path& path, float maxWidth);
         void highlightDragAndDrop();
         void handleInternalDragAndDrop(const std::string& targetDirectory);
         void handleNewDirectory();

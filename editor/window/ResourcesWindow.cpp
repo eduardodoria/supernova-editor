@@ -9,6 +9,8 @@
 #include "command/type/CreateDirCmd.h"
 #include "command/type/DeleteFileCmd.h"
 
+#include "window/Widgets.h"
+
 #include "Backend.h"
 #include "App.h"
 #include "Util.h"
@@ -127,48 +129,6 @@ void Editor::ResourcesWindow::sortWithSortSpecs(ImGuiTableSortSpecs* sortSpecs, 
     };
 
     std::sort(files.begin(), files.end(), comparator);
-}
-
-std::string Editor::ResourcesWindow::shortenPath(const std::filesystem::path& path, float maxWidth) {
-    std::string fullPath = path.string();
-
-    std::string projectPath = project->getProjectPath().string();
-    if (fullPath.find(projectPath) == 0) {
-        fullPath = fullPath.substr(projectPath.length());
-        if (fullPath.empty()){
-            fullPath = "/";
-        }
-    }
-
-    ImVec2 fullPathSize = ImGui::CalcTextSize(fullPath.c_str());
-    if (fullPathSize.x <= maxWidth) {
-        return fullPath;
-    }
-
-    std::string filename = path.filename().string();
-    std::string parentPath = path.parent_path().string();
-
-    ImVec2 filenameSize = ImGui::CalcTextSize(filename.c_str());
-    if (filenameSize.x > maxWidth) {
-        std::string truncatedFilename = filename;
-        while (!truncatedFilename.empty() && ImGui::CalcTextSize((truncatedFilename + "...").c_str()).x > maxWidth) {
-            truncatedFilename.pop_back();
-        }
-        return truncatedFilename + "...";
-    }
-
-    float remainingWidth = maxWidth - filenameSize.x - ImGui::CalcTextSize("/").x; // Space for '/' separator
-
-    if (parentPath != ".") {
-        std::string truncatedParentPath = parentPath;
-        while (!truncatedParentPath.empty() && ImGui::CalcTextSize((truncatedParentPath + ".../").c_str()).x > remainingWidth) {
-            truncatedParentPath.pop_back();
-        }
-
-        return truncatedParentPath + ".../" + filename;
-    } else {
-        return filename;
-    }
 }
 
 void Editor::ResourcesWindow::highlightDragAndDrop(){
@@ -517,17 +477,7 @@ void Editor::ResourcesWindow::show() {
 
     ImGui::SameLine();
 
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(50, 50, 50, 255));
-    ImGui::BeginChild("PathFrame", ImVec2(- ImGui::CalcTextSize(ICON_FA_GEAR).x - ImGui::GetStyle().ItemSpacing.x - ImGui::GetStyle().FramePadding.x * 2, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-
-    std::string shortenedPath = shortenPath(currentPath, ImGui::GetContentRegionAvail().x);
-
-    ImGui::SetCursorPosY(ImGui::GetStyle().FramePadding.y);
-    ImGui::Text("%s", ((shortenedPath == ".") ? "" : shortenedPath).c_str());
-
-    ImGui::EndChild();
-    ImGui::SetItemTooltip("%s", currentPath.string().c_str());
-    ImGui::PopStyleColor();
+    Widgets::pathDisplay(currentPath, project->getProjectPath());
 
     ImGui::SameLine();
     if (ImGui::Button(ICON_FA_GEAR)) {
