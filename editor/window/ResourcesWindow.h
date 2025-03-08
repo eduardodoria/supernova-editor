@@ -73,11 +73,11 @@ namespace Supernova::Editor{
         void scanDirectory(const fs::path& path);
         void sortWithSortSpecs(ImGuiTableSortSpecs* sortSpecs, std::vector<FileEntry>& files);
         void highlightDragAndDrop();
-        void handleInternalDragAndDrop(const std::string& targetDirectory);
+        void handleInternalDragAndDrop(const fs::path& targetDirectory);
         void handleNewDirectory();
         void handleRename();
         void copySelectedFiles(bool cut);
-        void pasteFiles(const std::string& targetDirectory);
+        void pasteFiles(const fs::path& targetDirectory);
 
     public:
         ResourcesWindow(Project* project, CodeEditor* codeEditor);

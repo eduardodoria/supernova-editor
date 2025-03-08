@@ -2,6 +2,7 @@
 #include "ProjectSaveDialog.h"
 #include "Util.h"
 #include "Backend.h"
+#include "window/Widgets.h"
 #include "external/IconsFontAwesome6.h"
 
 namespace Supernova {
@@ -41,24 +42,22 @@ void ProjectSaveDialog::show() {
 
     bool popupOpen = ImGui::BeginPopupModal("Save Project##SaveProjectModal", nullptr, flags);
 
+    float popupWidth = 300;
+
     if (popupOpen) {
         // Project name input
         ImGui::Text("Project Name:");
-        ImGui::SetNextItemWidth(300);
+        ImGui::SetNextItemWidth(popupWidth);
         ImGui::InputText("##projectName", m_projectNameBuffer, sizeof(m_projectNameBuffer));
 
         // Project path display and button
         ImGui::Text("Path:");
-        
-        ImGui::SetNextItemWidth(300 - 80 - ImGui::GetStyle().ItemSpacing.x); // Width minus button width and spacing
-        
-        // Show path or placeholder if empty
-        std::string pathDisplay = m_projectPath.empty() ? "<No path selected>" : m_projectPath.string();
-        ImGui::InputText("##projectPath", const_cast<char*>(pathDisplay.c_str()), 
-                        pathDisplay.size(), ImGuiInputTextFlags_ReadOnly);
-        
+
+        Vector2 pathDisplaySize = Vector2(popupWidth - ImGui::CalcTextSize("Browse").x - ImGui::GetStyle().ItemSpacing.x - ImGui::GetStyle().FramePadding.x * 2, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2);
+        Widgets::pathDisplay(m_projectPath, pathDisplaySize);
+
         ImGui::SameLine();
-        if (ImGui::Button("Browse", ImVec2(80, 0))) {
+        if (ImGui::Button("Browse")) {
             // Get home directory as default path
             std::string homeDirPath;
             #ifdef _WIN32

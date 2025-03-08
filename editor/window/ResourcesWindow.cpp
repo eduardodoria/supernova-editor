@@ -143,9 +143,9 @@ void Editor::ResourcesWindow::highlightDragAndDrop(){
         0.0f, 0, 2.0f);
 }
 
-void Editor::ResourcesWindow::handleInternalDragAndDrop(const std::string& targetDirectory) {
+void Editor::ResourcesWindow::handleInternalDragAndDrop(const fs::path& targetDirectory) {
     std::vector<std::string> filesVector(selectedFiles.begin(), selectedFiles.end());
-    cmdHistory.addCommand(new CopyFileCmd(filesVector, currentPath.string(), targetDirectory, false));
+    cmdHistory.addCommand(new CopyFileCmd(filesVector, currentPath.string(), targetDirectory.string(), false));
 
     selectedFiles.clear();
     scanDirectory(currentPath);
@@ -380,8 +380,8 @@ void Editor::ResourcesWindow::copySelectedFiles(bool cut) {
     }
 }
 
-void Editor::ResourcesWindow::pasteFiles(const std::string& targetDirectory) {
-    cmdHistory.addCommand(new CopyFileCmd(clipboardFiles, targetDirectory, !clipboardCut));
+void Editor::ResourcesWindow::pasteFiles(const fs::path& targetDirectory) {
+    cmdHistory.addCommand(new CopyFileCmd(clipboardFiles, targetDirectory.string(), !clipboardCut));
 
     // Clear clipboard if it was a cut operation
     if (clipboardCut) {
@@ -449,8 +449,7 @@ void Editor::ResourcesWindow::show() {
     }
     if (currentPath != project->getProjectPath() && ImGui::BeginDragDropTarget()){
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
-            std::string targetDirectory = project->getProjectPath().string();
-            handleInternalDragAndDrop(targetDirectory);
+            handleInternalDragAndDrop(project->getProjectPath());
         }
         ImGui::EndDragDropTarget();
     }
@@ -467,8 +466,7 @@ void Editor::ResourcesWindow::show() {
     }
     if (currentPath != project->getProjectPath() && ImGui::BeginDragDropTarget()){
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
-            std::string targetDirectory = currentPath.parent_path().string();
-            handleInternalDragAndDrop(targetDirectory);
+            handleInternalDragAndDrop(currentPath.parent_path());
         }
         ImGui::EndDragDropTarget();
     }
@@ -477,7 +475,8 @@ void Editor::ResourcesWindow::show() {
 
     ImGui::SameLine();
 
-    Widgets::pathDisplay(currentPath, project->getProjectPath());
+    Vector2 pathDisplaySize = Vector2(- ImGui::CalcTextSize(ICON_FA_GEAR).x - ImGui::GetStyle().ItemSpacing.x - ImGui::GetStyle().FramePadding.x * 2, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2);
+    Widgets::pathDisplay(currentPath, pathDisplaySize, project->getProjectPath());
 
     ImGui::SameLine();
     if (ImGui::Button(ICON_FA_GEAR)) {
@@ -700,8 +699,7 @@ void Editor::ResourcesWindow::show() {
                 }
 
                 if (ImGui::MenuItem(ICON_FA_PASTE"  Paste", nullptr, false, !clipboardFiles.empty())) {
-                    std::string targetDirectory = currentPath / lastSelectedFile;
-                    pasteFiles(targetDirectory);
+                    pasteFiles(currentPath / lastSelectedFile);
                 }
 
                 ImGui::Separator();
@@ -763,8 +761,7 @@ void Editor::ResourcesWindow::show() {
 
             if (ImGui::BeginDragDropTarget()){
                 if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
-                    std::string targetDirectory = currentPath / file.name;
-                    handleInternalDragAndDrop(targetDirectory);
+                    handleInternalDragAndDrop(currentPath / file.name);
                 }
                 ImGui::EndDragDropTarget();
             }
@@ -800,7 +797,7 @@ void Editor::ResourcesWindow::show() {
             ImGui::CloseCurrentPopup();
         }
         if (ImGui::MenuItem(ICON_FA_PASTE"  Paste", nullptr, false, !clipboardFiles.empty())) {
-            pasteFiles(currentPath.string());
+            pasteFiles(currentPath);
         }
 
         ImGui::EndPopup();
@@ -882,7 +879,7 @@ void Editor::ResourcesWindow::show() {
                 copySelectedFiles(true);
             }else if (ImGui::IsKeyPressed(ImGuiKey_V)) {
                 if (!clipboardFiles.empty()) {
-                    pasteFiles(currentPath.string());
+                    pasteFiles(currentPath);
                 }
             }else if (ImGui::IsKeyPressed(ImGuiKey_A)) {
                 // Select all files in the current directory

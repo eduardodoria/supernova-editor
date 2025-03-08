@@ -47,16 +47,20 @@ namespace Supernova::Editor{
         }
 
     public:
-        inline static void pathDisplay(fs::path path, fs::path projectPath = fs::path()){
+        inline static void pathDisplay(fs::path path, const Vector2& size = Vector2::ZERO, fs::path projectPath = fs::path()){
             ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(50, 50, 50, 255));
-            ImGui::BeginChild("PathFrame", ImVec2(- ImGui::CalcTextSize(ICON_FA_GEAR).x - ImGui::GetStyle().ItemSpacing.x - ImGui::GetStyle().FramePadding.x * 2, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+            ImGui::BeginChild("PathFrame", ImVec2(size.x, size.y), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
             
             std::string subPath = path.string();
-            if (subPath.find(projectPath.string()) == 0) {
-                subPath = subPath.substr(projectPath.string().length());
-                if (subPath.empty()){
-                    subPath = "/";
+            if (!projectPath.empty()){
+                if (subPath.find(projectPath.string()) == 0) {
+                    subPath = subPath.substr(projectPath.string().length());
+                    if (subPath.empty()){
+                        subPath = "/";
+                    }
                 }
+            }else{
+                subPath = subPath.empty() ? "<No path selected>" : subPath;
             }
 
             std::string shortenedPath = shortenPath(subPath, ImGui::GetContentRegionAvail().x);
@@ -65,7 +69,9 @@ namespace Supernova::Editor{
             ImGui::Text("%s", ((shortenedPath == ".") ? "" : shortenedPath).c_str());
         
             ImGui::EndChild();
-            ImGui::SetItemTooltip("%s", path.string().c_str());
+            if (!path.empty()){
+                ImGui::SetItemTooltip("%s", path.string().c_str());
+            }
             ImGui::PopStyleColor();
         }
     };
