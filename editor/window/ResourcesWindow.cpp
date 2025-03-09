@@ -518,7 +518,8 @@ void Editor::ResourcesWindow::show() {
     ImVec2 scrollRegionMax = ImVec2(scrollRegionMin.x + ImGui::GetWindowSize().x,
                         scrollRegionMin.y + ImGui::GetWindowSize().y);
 
-    ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(8.0f, 8.0f));
+    ImVec2 cellPadding = ImVec2(8.0f, 8.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, cellPadding);
 
     // Deferred deletion
     static bool showDeleteConfirmation = false;
@@ -565,8 +566,7 @@ void Editor::ResourcesWindow::show() {
         }
     }
 
-    float totalTableWidth = std::min(ImGui::GetContentRegionAvail().x, ((columnWidth * files.size()) + (columnWidth * files.size() / 2.0f)));
-
+    float totalTableWidth = std::min(ImGui::GetContentRegionAvail().x, ((columnWidth * files.size()) + (columnWidth * files.size() / 2.0f) + (cellPadding.x * 2 * (files.size()-1))));
     if (ImGui::BeginTable("FileTable", columns, ImGuiTableFlags_SizingStretchSame, ImVec2(totalTableWidth, 0))) {
         for (auto& file : files) {
             ImGui::TableNextColumn();
