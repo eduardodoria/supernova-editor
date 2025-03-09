@@ -268,9 +268,7 @@ bool Editor::Project::saveProjectToPath(const std::filesystem::path& path) {
             }
 
             // Delete the temp directory after moving all files
-            if (!wasTemp){
-                std::filesystem::remove_all(oldPath);
-            }
+            std::filesystem::remove_all(oldPath);
 
         } catch (const std::exception& e) {
             Out::error("Failed to move project files: %s", e.what());
@@ -296,7 +294,7 @@ bool Editor::Project::saveProjectToPath(const std::filesystem::path& path) {
         Out::info("Project saved to: %s", path.string().c_str());
 
         // Update the app settings
-        if (!wasTemp) {
+        if (!isTempProject()){
             AppSettings::setLastProjectPath(path);
         }
         Backend::getApp().updateResourcesPath();
