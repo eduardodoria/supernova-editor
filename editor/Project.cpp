@@ -293,8 +293,6 @@ bool Editor::Project::saveProjectToPath(const std::filesystem::path& path) {
         fout << YAML::Dump(root);
         fout.close();
 
-        Out::info("Project saved to: %s", path.string().c_str());
-
         // Update the app settings
         if (!isTempProject()){
             AppSettings::setLastProjectPath(path);
@@ -422,7 +420,7 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
     sceneProject->isModified = false;
     saveProject();
 
-    Out::info("Scene saved to: %s", path.string().c_str());
+    Out::info("Scene saved to: \"%s\"", path.string().c_str());
 }
 
 void Editor::Project::saveAllScenes() {

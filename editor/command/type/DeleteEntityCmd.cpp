@@ -1,5 +1,8 @@
 #include "DeleteEntityCmd.h"
 
+#include "Stream.h"
+#include "Out.h"
+
 using namespace Supernova;
 
 Editor::DeleteEntityCmd::DeleteEntityCmd(Project* project, uint32_t sceneId, Entity entity){
@@ -19,17 +22,7 @@ void Editor::DeleteEntityCmd::execute(){
     for (auto it = entities.rbegin(); it != entities.rend(); ++it) {
         DeleteEntityData& entityData = *it;
 
-        entityData.entityName = sceneProject->scene->getEntityName(entityData.entity);
-        entityData.signature = sceneProject->scene->getSignature(entityData.entity);
-
-        if (entityData.signature.test(sceneProject->scene->getComponentId<Transform>())){
-            entityData.transform = sceneProject->scene->getComponent<Transform>(entityData.entity);
-            entityData.transformIndex = sceneProject->scene->getComponentArray<Transform>()->getIndex(entityData.entity);
-            entityData.parent = entityData.transform.parent;
-        }
-        if (entityData.signature.test(sceneProject->scene->getComponentId<MeshComponent>())){
-            entityData.mesh = sceneProject->scene->getComponent<MeshComponent>(entityData.entity);
-        }
+        entityData.data = Stream::encodeEntity(entityData.entity, sceneProject->scene);
 
         sceneProject->scene->destroyEntity(entityData.entity);
 
@@ -51,22 +44,14 @@ void Editor::DeleteEntityCmd::undo(){
 
     for (DeleteEntityData& entityData : entities){
 
-        entityData.entity = sceneProject->scene->createEntityInternal(entityData.entity);
+        if (sceneProject->scene->isEntityCreated(entityData.entity)){
+            Out::error("Entity '%u' already exists", entityData.entity);
+            continue;
+        }
+
+        entityData.entity = Stream::decodeEntity(sceneProject->scene, entityData.data);
 
         sceneProject->entities.push_back(entityData.entity);
-
-        sceneProject->scene->setEntityName(entityData.entity, entityData.entityName);
-
-        if (entityData.signature.test(sceneProject->scene->getComponentId<Transform>())){
-            sceneProject->scene->addComponent<Transform>(entityData.entity, entityData.transform);
-            sceneProject->scene->moveChildToIndex(entityData.entity, entityData.transformIndex);
-            if (entityData.parent != NULL_ENTITY){
-                sceneProject->scene->addEntityChild(entityData.parent, entityData.entity, false);
-            }
-        }
-        if (entityData.signature.test(sceneProject->scene->getComponentId<MeshComponent>())){
-            sceneProject->scene->addComponent<MeshComponent>(entityData.entity, {});
-        }
     }
 
     if (lastSelected.size() > 0){

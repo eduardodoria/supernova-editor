@@ -6,18 +6,17 @@
 #include <cstdint>
 #include <string>
 
+#include "yaml-cpp/yaml.h"
+
 namespace Supernova::Editor{
 
     struct DeleteEntityData{
         Entity entity;
 
         Entity parent;
-        std::string entityName;
-        Signature signature;
         size_t transformIndex;
-        
-        Transform transform;
-        MeshComponent mesh;
+
+        YAML::Node data;
     };
 
     class DeleteEntityCmd: public Command{
