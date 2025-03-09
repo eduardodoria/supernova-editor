@@ -449,7 +449,7 @@ void Editor::App::engineInit(int argc, char** argv) {
     if (!lastProjectPath.empty() && std::filesystem::exists(lastProjectPath)) {
         // Try to load the last project
         if (project.loadProject(lastProjectPath)) {
-            Out::info("Loaded last opened project: %s", lastProjectPath.string().c_str());
+            Out::info("Loaded last opened project: \"%s\"", lastProjectPath.string().c_str());
         } else {
             // If loading fails, create a new temp project
             project.createTempProject("MySupernovaProject");

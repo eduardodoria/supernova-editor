@@ -41,6 +41,15 @@ Vector3 Editor::Properties::roundZero(const Vector3& val, const float threshold)
     );
 }
 
+bool Editor::Properties::compareVectorFloat(const float* a, const float* b, size_t elements, const float threshold){
+    for (size_t i = 0; i < elements; ++i) {
+        if (fabs(a[i] - b[i]) > threshold) {
+            return true;
+        }
+    }
+    return false;
+}
+
 float Editor::Properties::getMaxLabelSize(std::map<std::string, PropertyData> props, const std::vector<std::string>& includes, const std::vector<std::string>& excludes){
     float maxLabelSize = ImGui::GetFontSize();
 
@@ -139,7 +148,8 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         Vector3 newValue = *value;
 
-        if (propertyHeader(prop.label, secondColSize, (newValue != *static_cast<Vector3*>(prop.def)), child)){
+        bool changed = compareVectorFloat((float*)&newValue, static_cast<float*>(prop.def), 3, compThreshold);
+        if (propertyHeader(prop.label, secondColSize, changed, child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector3>(scene, entity, cpType, name, prop.updateFlags, *static_cast<Vector3*>(prop.def));
                 CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
@@ -211,7 +221,8 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         Vector4 newValue = *value;
 
-        if (propertyHeader(prop.label, secondColSize, (newValue != *static_cast<Vector4*>(prop.def)), child)){
+        bool changed = compareVectorFloat((float*)&newValue, static_cast<float*>(prop.def), 4, compThreshold);
+        if (propertyHeader(prop.label, secondColSize, changed, child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector4>(scene, entity, cpType, name, prop.updateFlags, *static_cast<Vector4*>(prop.def));
                 CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
@@ -295,7 +306,8 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         Vector3 newValue = *value;
 
-        if (propertyHeader(prop.label, secondColSize, (qValue != *static_cast<Quaternion*>(prop.def)), child)){
+        bool changed = compareVectorFloat((float*)&newValue, static_cast<float*>(prop.def), 4, compThreshold);
+        if (propertyHeader(prop.label, secondColSize, changed, child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Quaternion>(scene, entity, cpType, name, prop.updateFlags, *static_cast<Quaternion*>(prop.def));
                 CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
@@ -426,7 +438,9 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         Vector3 newValue = Color::linearTosRGB(*value);
 
-        if (propertyHeader(prop.label, secondColSize, (newValue != Color::linearTosRGB(*static_cast<Vector3*>(prop.def))), child)){
+        // using 'value' beacause it is linear too
+        bool changed = compareVectorFloat((float*)value, static_cast<float*>(prop.def), 3, compThreshold);
+        if (propertyHeader(prop.label, secondColSize, changed, child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector3>(scene, entity, cpType, name, prop.updateFlags, *static_cast<Vector3*>(prop.def));
                 CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
@@ -460,7 +474,9 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         Vector4 newValue = Color::linearTosRGB(*value);
 
-        if (propertyHeader(prop.label, secondColSize, (newValue != Color::linearTosRGB(*static_cast<Vector4*>(prop.def))), child)){
+        // using 'value' beacause it is linear too
+        bool changed = compareVectorFloat((float*)value, static_cast<float*>(prop.def), 4, compThreshold);
+        if (propertyHeader(prop.label, secondColSize, changed, child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector4>(scene, entity, cpType, name, prop.updateFlags, *static_cast<Vector4*>(prop.def));
                 CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);

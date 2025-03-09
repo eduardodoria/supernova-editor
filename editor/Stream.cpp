@@ -47,10 +47,10 @@ Vector4 Editor::Stream::decodeVector4(const YAML::Node& node) {
 YAML::Node Editor::Stream::encodeQuaternion(const Quaternion& quat) {
     YAML::Node node;
     node.SetStyle(YAML::EmitterStyle::Flow);
+    node.push_back(quat.w);
     node.push_back(quat.x);
     node.push_back(quat.y);
     node.push_back(quat.z);
-    node.push_back(quat.w);
     return node;
 }
 

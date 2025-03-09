@@ -197,11 +197,11 @@ bool Editor::Project::createTempProject(std::string projectName, bool deleteIfEx
             if (!std::filesystem::exists(projectPath)) {
                 std::filesystem::create_directory(projectPath);
             }
-            Out::info("Created project directory: %s", projectPath.string().c_str());
+            Out::info("Created project directory: \"%s\"", projectPath.string().c_str());
             saveProject();
             createNewScene("New Scene");
         } else {
-            Out::info("Project directory already exists: %s", projectPath.string().c_str());
+            Out::info("Project directory already exists: \"%s\"", projectPath.string().c_str());
             loadProject(projectPath);
         }
 
@@ -301,7 +301,7 @@ bool Editor::Project::saveProjectToPath(const std::filesystem::path& path) {
 
         return true;
     } catch (const std::exception& e) {
-        Out::error("Failed to save project: %s", e.what());
+        Out::error("Failed to save project: \"%s\"", e.what());
         Backend::getApp().registerAlert("Error", "Failed to save project!");
         return false;
     }
@@ -314,7 +314,7 @@ bool Editor::Project::loadProject(const std::filesystem::path path) {
 
     try {
         if (!std::filesystem::exists(projectPath)) {
-            Out::error("Project directory does not exist: %s", projectPath.string().c_str());
+            Out::error("Project directory does not exist: \"%s\"", projectPath.string().c_str());
             return false;
         }
 
@@ -340,15 +340,15 @@ bool Editor::Project::loadProject(const std::filesystem::path path) {
             AppSettings::setLastProjectPath(projectPath);
         }
 
-        Out::info("Project loaded successfully: %s", projectPath.string().c_str());
+        Out::info("Project loaded successfully: \"%s\"", projectPath.string().c_str());
         return true;
 
     } catch (const YAML::Exception& e) {
-        Out::error("Failed to load project YAML: %s", e.what());
+        Out::error("Failed to load project YAML: \"%s\"", e.what());
         Backend::getApp().registerAlert("Error", "Failed to load project file!");
         return false;
     } catch (const std::exception& e) {
-        Out::error("Failed to load project: %s", e.what());
+        Out::error("Failed to load project: \"%s\"", e.what());
         Backend::getApp().registerAlert("Error", "Failed to load project!");
         return false;
     }
@@ -382,7 +382,7 @@ bool Editor::Project::openProject() {
     if (loadProject(projectDir)) {
         return true;
     } else {
-        Out::error("Failed to open project: %s", projectDir.string().c_str());
+        Out::error("Failed to open project: \"%s\"", projectDir.string().c_str());
         Backend::getApp().registerAlert("Error", "Failed to open project!");
         return false;
     }
