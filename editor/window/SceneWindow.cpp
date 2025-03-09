@@ -5,6 +5,7 @@
 #include "Util.h"
 #include "command/CommandHandle.h"
 #include "command/type/PropertyCmd.h"
+#include "render/SceneRender3D.h"
 
 #include "math/Vector2.h"
 
@@ -93,7 +94,7 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
         float x = mousePos.x - windowPos.x;
         float y = mousePos.y - windowPos.y;
 
-        if (mouseLeftDraggedInside && !project->getScene(sceneId)->sceneRender->isGizmoSideSelected()){
+        if (mouseLeftDraggedInside && !project->getScene(sceneId)->sceneRender->isAnyGizmoSideSelected()){
             Vector2 clickStartPos = Vector2((2 * mouseLeftStartPos.x / width[sceneId]) - 1, -((2 * mouseLeftStartPos.y / height[sceneId]) - 1));
             Vector2 clickEndPos = Vector2((2 * mouseLeftDragPos.x / width[sceneId]) - 1, -((2 * mouseLeftDragPos.y / height[sceneId]) - 1));
             project->selectObjectsByRect(sceneId, clickStartPos, clickEndPos);
@@ -189,16 +190,18 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
     if (!ImGui::IsAnyItemActive() && !ImGui::IsAnyItemFocused()){
         if (project->getSelectedSceneId() == sceneId){
             if (!walkingMode){
+                SceneRender3D* sceneRender3D = (SceneRender3D*)project->getScene(sceneId)->sceneRender;
+
                 if (ImGui::IsKeyPressed(ImGuiKey_W)) {
-                    project->getScene(sceneId)->sceneRender->getToolsLayer()->enableTranslateGizmo();
+                    sceneRender3D->getToolsLayer()->enableTranslateGizmo();
                 }
 
                 if (ImGui::IsKeyPressed(ImGuiKey_E)) {
-                    project->getScene(sceneId)->sceneRender->getToolsLayer()->enableRotateGizmo();
+                    sceneRender3D->getToolsLayer()->enableRotateGizmo();
                 }
 
                 if (ImGui::IsKeyPressed(ImGuiKey_R)) {
-                    project->getScene(sceneId)->sceneRender->getToolsLayer()->enableScaleGizmo();
+                    sceneRender3D->getToolsLayer()->enableScaleGizmo();
                 }
 
                 if (ImGui::IsKeyPressed(ImGuiKey_T)){
@@ -246,12 +249,13 @@ void Editor::SceneWindow::show() {
             ImGui::Dummy(ImVec2(1, 20));
             ImGui::SameLine(0, 10);
 
-            GizmoSelected gizmoSelected = sceneProject.sceneRender->getToolsLayer()->getGizmoSelected();
+            SceneRender3D* sceneRender3D = (SceneRender3D*)sceneProject.sceneRender;
+            GizmoSelected gizmoSelected = sceneRender3D->getToolsLayer()->getGizmoSelected();
 
             ImGui::BeginDisabled(gizmoSelected == GizmoSelected::TRANSLATE);
             ImGui::SameLine();
             if (ImGui::Button(ICON_FA_ARROWS_UP_DOWN_LEFT_RIGHT)) {
-                sceneProject.sceneRender->getToolsLayer()->enableTranslateGizmo();
+                sceneRender3D->getToolsLayer()->enableTranslateGizmo();
             }
             ImGui::SetItemTooltip("Translate (W)");
             ImGui::EndDisabled();
@@ -259,7 +263,7 @@ void Editor::SceneWindow::show() {
             ImGui::BeginDisabled(gizmoSelected == GizmoSelected::ROTATE);
             ImGui::SameLine();
             if (ImGui::Button(ICON_FA_ROTATE)) {
-                sceneProject.sceneRender->getToolsLayer()->enableRotateGizmo();
+                sceneRender3D->getToolsLayer()->enableRotateGizmo();
             }
             ImGui::SetItemTooltip("Rotate (E)");
             ImGui::EndDisabled();
@@ -267,7 +271,7 @@ void Editor::SceneWindow::show() {
             ImGui::BeginDisabled(gizmoSelected == GizmoSelected::SCALE);
             ImGui::SameLine();
             if (ImGui::Button(ICON_FA_UP_RIGHT_AND_DOWN_LEFT_FROM_CENTER)) {
-                sceneProject.sceneRender->getToolsLayer()->enableScaleGizmo();
+                sceneRender3D->getToolsLayer()->enableScaleGizmo();
             }
             ImGui::SetItemTooltip("Scale (R)");
             ImGui::EndDisabled();

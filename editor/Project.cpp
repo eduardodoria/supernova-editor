@@ -5,6 +5,8 @@
 #include "yaml-cpp/yaml.h"
 #include <fstream>
 
+#include "render/SceneRender3D.h"
+
 #include "AppSettings.h"
 #include "Out.h"
 #include "subsystem/MeshSystem.h"
@@ -48,7 +50,7 @@ uint32_t Editor::Project::createNewScene(std::string sceneName){
     data.id = ++nextSceneId;
     data.name = sceneName;
     data.scene = new Scene();
-    data.sceneRender = new SceneRender(data.scene);
+    data.sceneRender = new SceneRender3D(data.scene);
     data.selectedEntities.clear();
     data.needUpdateRender = true;
     data.isModified = false;
@@ -72,7 +74,7 @@ void Editor::Project::openScene(fs::path filepath){
         data.id = NULL_PROJECT_SCENE;
         data.name = "Unknown";
         data.scene = new Scene();
-        data.sceneRender = new SceneRender(data.scene);
+        data.sceneRender = new SceneRender3D(data.scene);
         data.selectedEntities.clear();
         data.needUpdateRender = true;
         data.isModified = false;
@@ -491,7 +493,7 @@ bool Editor::Project::selectObjectByRay(uint32_t sceneId, float x, float y, bool
     SceneProject* scenedata = getScene(sceneId);
     Entity selEntity = findObjectByRay(sceneId, x, y);
 
-    if (!scenedata->sceneRender->isGizmoSideSelected()){
+    if (!scenedata->sceneRender->isAnyGizmoSideSelected()){
         if (selEntity != NULL_ENTITY){
             if (!shiftPressed){
                 clearSelectedEntities(sceneId);

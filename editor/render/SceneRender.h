@@ -1,75 +1,38 @@
-#ifndef SCENERENDER_H
-#define SCENERENDER_H
+#pragma once
 
 #include "Supernova.h"
-#include "ViewportGizmo.h"
-#include "ToolsLayer.h"
-#include "UILayer.h"
-#include "command/Command.h"
 
 namespace Supernova::Editor{
 
-    class SceneProject;
+    struct SceneProject;
 
     class SceneRender{
-    private:
+    protected:
         Scene* scene;
-
         Camera* camera;
-
-        Lines* lines;
-        Light* sun;
-        SkyBox* sky;
-        Lines* selAABBLines;
-
         Framebuffer framebuffer;
 
-        ToolsLayer toolslayer;
-        UILayer uilayer;
-        ViewportGizmo viewgizmo;
-
         bool useGlobalTransform;
-
-        Vector2 linesOffset;
-
-        Ray mouseRay;
-        bool mouseClicked;
-        Plane cursorPlane;
-        Vector3 rotationAxis;
-        Vector3 cursorStartOffset;
-        Quaternion rotationStartOffset;
-        Vector3 scaleStartOffset;
-
-        std::map<Entity, Matrix4> objectMatrixOffset;
-
-        Command* lastCommand;
-
-        static float gizmoSize;
-
-        AABB getFamilyAABB(Entity entity);
-        void createLines();
 
     public:
         SceneRender(Scene* scene);
         virtual ~SceneRender();
 
-        void activate();
+        virtual void activate();
+
         void updateRenderSystem();
         void updateSize(int width, int height);
-        void update(std::vector<Entity> selEntities);
-        void mouseHoverEvent(float x, float y);
-        void mouseClickEvent(float x, float y, std::vector<Entity> selEntities);
-        void mouseReleaseEvent(float x, float y);
-        void mouseDragEvent(float x, float y, float origX, float origY, size_t sceneId, SceneProject* sceneProject, std::vector<Entity> selEntities);
+
+        virtual void update(std::vector<Entity> selEntities) = 0;
+        virtual void mouseHoverEvent(float x, float y) = 0;
+        virtual void mouseClickEvent(float x, float y, std::vector<Entity> selEntities) = 0;
+        virtual void mouseReleaseEvent(float x, float y) = 0;
+        virtual void mouseDragEvent(float x, float y, float origX, float origY, size_t sceneId, SceneProject* sceneProject, std::vector<Entity> selEntities) = 0;
+
+        virtual bool isAnyGizmoSideSelected() const = 0;
 
         TextureRender& getTexture();
-
         Camera* getCamera();
-        ViewportGizmo* getViewportGizmo();
-        ToolsLayer* getToolsLayer();
-        UILayer* getUILayer();
-
-        bool isGizmoSideSelected() const;
 
         bool isUseGlobalTransform() const;
         void setUseGlobalTransform(bool useGlobalTransform);
@@ -77,5 +40,3 @@ namespace Supernova::Editor{
     };
 
 }
-
-#endif /* SCENERENDER_H */
