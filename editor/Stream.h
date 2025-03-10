@@ -12,6 +12,9 @@ namespace Supernova::Editor {
     class Stream {
     private:
 
+        static std::string sceneTypeToString(SceneType type);
+        static SceneType stringToSceneType(const std::string& str);
+
         static std::string primitiveTypeToString(PrimitiveType type);
         static PrimitiveType stringToPrimitiveType(const std::string& str);
 

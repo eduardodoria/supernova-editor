@@ -5,6 +5,22 @@
 
 using namespace Supernova;
 
+std::string Editor::Stream::sceneTypeToString(Editor::SceneType type){
+    switch (type) {
+        case SceneType::SCENE_3D: return "scene_3d";
+        case SceneType::SCENE_2D: return "scene_2d";
+        case SceneType::SCENE_UI: return "scene_ui";
+        default: return "scene_3d";
+    }
+}
+
+Editor::SceneType Editor::Stream::stringToSceneType(const std::string& str){
+    if (str == "scene_3d") return SceneType::SCENE_3D;
+    if (str == "scene_2d") return SceneType::SCENE_2D;
+    if (str == "scene_ui") return SceneType::SCENE_UI;
+    return SceneType::SCENE_3D; // Default
+}
+
 std::string Editor::Stream::primitiveTypeToString(PrimitiveType type) {
     switch (type) {
         case PrimitiveType::TRIANGLES: return "triangles";
@@ -835,6 +851,7 @@ YAML::Node Editor::Stream::encodeSceneProject(const SceneProject* sceneProject) 
 
     root["id"] = sceneProject->id;
     root["name"] = sceneProject->name;
+    root["sceneType"] = sceneTypeToString(sceneProject->sceneType);
 
     YAML::Node entitiesNode;
     for (const auto& entity : sceneProject->entities) {
@@ -848,6 +865,7 @@ YAML::Node Editor::Stream::encodeSceneProject(const SceneProject* sceneProject) 
 void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::Node& node) {
     sceneProject->id = node["id"].as<uint32_t>();
     sceneProject->name = node["name"].as<std::string>();
+    sceneProject->sceneType = stringToSceneType(node["sceneType"].as<std::string>());
 
     auto entitiesNode = node["entities"];
     for (const auto& entityNode : entitiesNode) {

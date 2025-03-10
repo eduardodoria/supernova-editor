@@ -14,11 +14,18 @@
 
 namespace Supernova::Editor{
 
+    enum class SceneType{
+        SCENE_3D,
+        SCENE_2D,
+        SCENE_UI
+    };
+
     struct SceneProject{
         uint32_t id;
         std::string name;
         Scene* scene;
         std::vector<Entity> entities;
+        SceneType sceneType;
         SceneRender* sceneRender;
         std::vector<Entity> selectedEntities;
         fs::path filepath;

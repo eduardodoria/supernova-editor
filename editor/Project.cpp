@@ -5,6 +5,7 @@
 #include "yaml-cpp/yaml.h"
 #include <fstream>
 
+#include "render/SceneRender2D.h"
 #include "render/SceneRender3D.h"
 
 #include "AppSettings.h"
@@ -50,6 +51,7 @@ uint32_t Editor::Project::createNewScene(std::string sceneName){
     data.id = ++nextSceneId;
     data.name = sceneName;
     data.scene = new Scene();
+    data.sceneType = SceneType::SCENE_3D;
     data.sceneRender = new SceneRender3D(data.scene);
     data.selectedEntities.clear();
     data.needUpdateRender = true;
@@ -74,13 +76,20 @@ void Editor::Project::openScene(fs::path filepath){
         data.id = NULL_PROJECT_SCENE;
         data.name = "Unknown";
         data.scene = new Scene();
-        data.sceneRender = new SceneRender3D(data.scene);
         data.selectedEntities.clear();
         data.needUpdateRender = true;
         data.isModified = false;
         data.filepath = filepath;
 
         Stream::decodeSceneProject(&data, sceneNode);
+
+        if (data.sceneType == SceneType::SCENE_3D){
+            data.sceneRender = new SceneRender3D(data.scene);
+        }else if (data.sceneType == SceneType::SCENE_2D){
+            data.sceneRender = new SceneRender2D(data.scene);
+        }else if (data.sceneType == SceneType::SCENE_UI){
+            data.sceneRender = new SceneRender2D(data.scene);
+        }
 
         if (getScene(data.id) != nullptr) {
             uint32_t old = data.id;
