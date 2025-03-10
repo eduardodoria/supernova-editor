@@ -306,7 +306,8 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         Vector3 newValue = *value;
 
-        bool changed = compareVectorFloat((float*)&newValue, static_cast<float*>(prop.def), 4, compThreshold);
+        // using 'qValue' to compare quaternions
+        bool changed = compareVectorFloat((float*)&qValue, static_cast<float*>(prop.def), 4, compThreshold);
         if (propertyHeader(prop.label, secondColSize, changed, child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Quaternion>(scene, entity, cpType, name, prop.updateFlags, *static_cast<Quaternion*>(prop.def));
