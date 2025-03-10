@@ -11,6 +11,36 @@
 namespace Supernova::Editor {
     class Stream {
     private:
+
+        static std::string primitiveTypeToString(PrimitiveType type);
+        static PrimitiveType stringToPrimitiveType(const std::string& str);
+
+        static std::string bufferTypeToString(BufferType type);
+        static BufferType stringToBufferType(const std::string& str);
+
+        static std::string bufferUsageToString(BufferUsage usage);
+        static BufferUsage stringToBufferUsage(const std::string& str);
+
+        static std::string attributeTypeToString(AttributeType type);
+        static AttributeType stringToAttributeType(const std::string& str);
+
+        static std::string attributeDataTypeToString(AttributeDataType type);
+        static AttributeDataType stringToAttributeDataType(const std::string& str);
+
+        static std::string cullingModeToString(CullingMode mode);
+        static CullingMode stringToCullingMode(const std::string& str);
+
+        static std::string windingOrderToString(WindingOrder order);
+        static WindingOrder stringToWindingOrder(const std::string& str);
+
+        static std::string textureFilterToString(TextureFilter filter);
+        static TextureFilter stringToTextureFilter(const std::string& str);
+
+        static std::string textureWrapToString(TextureWrap wrap);
+        static TextureWrap stringToTextureWrap(const std::string& str);
+
+        // ==============================
+
         static YAML::Node encodeVector2(const Vector2& vec);
         static Vector2 decodeVector2(const YAML::Node& node);
 

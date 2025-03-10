@@ -5,6 +5,235 @@
 
 using namespace Supernova;
 
+std::string Editor::Stream::primitiveTypeToString(PrimitiveType type) {
+    switch (type) {
+        case PrimitiveType::TRIANGLES: return "triangles";
+        case PrimitiveType::TRIANGLE_STRIP: return "triangle_strip";
+        case PrimitiveType::POINTS: return "points";
+        case PrimitiveType::LINES: return "lines";
+        default: return "triangles";
+    }
+}
+
+PrimitiveType Editor::Stream::stringToPrimitiveType(const std::string& str) {
+    if (str == "triangles") return PrimitiveType::TRIANGLES;
+    if (str == "triangle_strip") return PrimitiveType::TRIANGLE_STRIP;
+    if (str == "points") return PrimitiveType::POINTS;
+    if (str == "lines") return PrimitiveType::LINES;
+    return PrimitiveType::TRIANGLES; // Default
+}
+
+std::string Editor::Stream::bufferTypeToString(BufferType type) {
+    switch (type) {
+        case BufferType::VERTEX_BUFFER: return "vertex_buffer";
+        case BufferType::INDEX_BUFFER: return "index_buffer";
+        case BufferType::STORAGE_BUFFER: return "storage_buffer";
+        default: return "vertex_buffer";
+    }
+}
+
+BufferType Editor::Stream::stringToBufferType(const std::string& str) {
+    if (str == "vertex_buffer") return BufferType::VERTEX_BUFFER;
+    if (str == "index_buffer") return BufferType::INDEX_BUFFER;
+    if (str == "storage_buffer") return BufferType::STORAGE_BUFFER;
+    return BufferType::VERTEX_BUFFER; // Default
+}
+
+// BufferUsage enum conversion
+std::string Editor::Stream::bufferUsageToString(BufferUsage usage) {
+    switch (usage) {
+        case BufferUsage::IMMUTABLE: return "immutable";
+        case BufferUsage::DYNAMIC: return "dynamic";
+        case BufferUsage::STREAM: return "stream";
+        default: return "immutable"; // Default
+    }
+}
+
+BufferUsage Editor::Stream::stringToBufferUsage(const std::string& str) {
+    if (str == "immutable") return BufferUsage::IMMUTABLE;
+    if (str == "dynamic") return BufferUsage::DYNAMIC;
+    if (str == "stream") return BufferUsage::STREAM;
+    return BufferUsage::IMMUTABLE; // Default
+}
+
+// AttributeType enum conversion
+std::string Editor::Stream::attributeTypeToString(AttributeType type) {
+    switch (type) {
+        case AttributeType::INDEX: return "index";
+        case AttributeType::POSITION: return "position";
+        case AttributeType::TEXCOORD1: return "texcoord1";
+        case AttributeType::NORMAL: return "normal";
+        case AttributeType::TANGENT: return "tangent";
+        case AttributeType::COLOR: return "color";
+        case AttributeType::POINTSIZE: return "pointsize";
+        case AttributeType::POINTROTATION: return "pointrotation";
+        case AttributeType::TEXTURERECT: return "texturerect";
+        case AttributeType::BONEWEIGHTS: return "boneweights";
+        case AttributeType::BONEIDS: return "boneids";
+        case AttributeType::MORPHTARGET0: return "morphtarget0";
+        case AttributeType::MORPHTARGET1: return "morphtarget1";
+        case AttributeType::MORPHTARGET2: return "morphtarget2";
+        case AttributeType::MORPHTARGET3: return "morphtarget3";
+        case AttributeType::MORPHTARGET4: return "morphtarget4";
+        case AttributeType::MORPHTARGET5: return "morphtarget5";
+        case AttributeType::MORPHTARGET6: return "morphtarget6";
+        case AttributeType::MORPHTARGET7: return "morphtarget7";
+        case AttributeType::MORPHNORMAL0: return "morphnormal0";
+        case AttributeType::MORPHNORMAL1: return "morphnormal1";
+        case AttributeType::MORPHNORMAL2: return "morphnormal2";
+        case AttributeType::MORPHNORMAL3: return "morphnormal3";
+        case AttributeType::MORPHTANGENT0: return "morphtangent0";
+        case AttributeType::MORPHTANGENT1: return "morphtangent1";
+        case AttributeType::INSTANCEMATRIXCOL1: return "instancematrixcol1";
+        case AttributeType::INSTANCEMATRIXCOL2: return "instancematrixcol2";
+        case AttributeType::INSTANCEMATRIXCOL3: return "instancematrixcol3";
+        case AttributeType::INSTANCEMATRIXCOL4: return "instancematrixcol4";
+        case AttributeType::INSTANCECOLOR: return "instancecolor";
+        case AttributeType::INSTANCETEXTURERECT: return "instancetexturerect";
+        case AttributeType::TERRAINNODEPOSITION: return "terrainnodeposition";
+        case AttributeType::TERRAINNODESIZE: return "terrainnodesize";
+        case AttributeType::TERRAINNODERANGE: return "terrainnoderange";
+        case AttributeType::TERRAINNODERESOLUTION: return "terrainnoderesolution";
+        default: return "position"; // Default
+    }
+}
+
+AttributeType Editor::Stream::stringToAttributeType(const std::string& str) {
+    if (str == "index") return AttributeType::INDEX;
+    if (str == "position") return AttributeType::POSITION;
+    if (str == "texcoord1") return AttributeType::TEXCOORD1;
+    if (str == "normal") return AttributeType::NORMAL;
+    if (str == "tangent") return AttributeType::TANGENT;
+    if (str == "color") return AttributeType::COLOR;
+    if (str == "pointsize") return AttributeType::POINTSIZE;
+    if (str == "pointrotation") return AttributeType::POINTROTATION;
+    if (str == "texturerect") return AttributeType::TEXTURERECT;
+    if (str == "boneweights") return AttributeType::BONEWEIGHTS;
+    if (str == "boneids") return AttributeType::BONEIDS;
+    if (str == "morphtarget0") return AttributeType::MORPHTARGET0;
+    if (str == "morphtarget1") return AttributeType::MORPHTARGET1;
+    if (str == "morphtarget2") return AttributeType::MORPHTARGET2;
+    if (str == "morphtarget3") return AttributeType::MORPHTARGET3;
+    if (str == "morphtarget4") return AttributeType::MORPHTARGET4;
+    if (str == "morphtarget5") return AttributeType::MORPHTARGET5;
+    if (str == "morphtarget6") return AttributeType::MORPHTARGET6;
+    if (str == "morphtarget7") return AttributeType::MORPHTARGET7;
+    if (str == "morphnormal0") return AttributeType::MORPHNORMAL0;
+    if (str == "morphnormal1") return AttributeType::MORPHNORMAL1;
+    if (str == "morphnormal2") return AttributeType::MORPHNORMAL2;
+    if (str == "morphnormal3") return AttributeType::MORPHNORMAL3;
+    if (str == "morphtangent0") return AttributeType::MORPHTANGENT0;
+    if (str == "morphtangent1") return AttributeType::MORPHTANGENT1;
+    if (str == "instancematrixcol1") return AttributeType::INSTANCEMATRIXCOL1;
+    if (str == "instancematrixcol2") return AttributeType::INSTANCEMATRIXCOL2;
+    if (str == "instancematrixcol3") return AttributeType::INSTANCEMATRIXCOL3;
+    if (str == "instancematrixcol4") return AttributeType::INSTANCEMATRIXCOL4;
+    if (str == "instancecolor") return AttributeType::INSTANCECOLOR;
+    if (str == "instancetexturerect") return AttributeType::INSTANCETEXTURERECT;
+    if (str == "terrainnodeposition") return AttributeType::TERRAINNODEPOSITION;
+    if (str == "terrainnodesize") return AttributeType::TERRAINNODESIZE;
+    if (str == "terrainnoderange") return AttributeType::TERRAINNODERANGE;
+    if (str == "terrainnoderesolution") return AttributeType::TERRAINNODERESOLUTION;
+    return AttributeType::POSITION; // Default
+}
+
+// AttributeDataType enum conversion
+std::string Editor::Stream::attributeDataTypeToString(AttributeDataType type) {
+    switch (type) {
+        case AttributeDataType::BYTE: return "byte";
+        case AttributeDataType::UNSIGNED_BYTE: return "unsigned_byte";
+        case AttributeDataType::SHORT: return "short";
+        case AttributeDataType::UNSIGNED_SHORT: return "unsigned_short";
+        case AttributeDataType::INT: return "int";
+        case AttributeDataType::UNSIGNED_INT: return "unsigned_int";
+        case AttributeDataType::FLOAT: return "float";
+        default: return "float"; // Default
+    }
+}
+
+AttributeDataType Editor::Stream::stringToAttributeDataType(const std::string& str) {
+    if (str == "byte") return AttributeDataType::BYTE;
+    if (str == "unsigned_byte") return AttributeDataType::UNSIGNED_BYTE;
+    if (str == "short") return AttributeDataType::SHORT;
+    if (str == "unsigned_short") return AttributeDataType::UNSIGNED_SHORT;
+    if (str == "int") return AttributeDataType::INT;
+    if (str == "unsigned_int") return AttributeDataType::UNSIGNED_INT;
+    if (str == "float") return AttributeDataType::FLOAT;
+    return AttributeDataType::FLOAT; // Default
+}
+
+// CullingMode enum conversion
+std::string Editor::Stream::cullingModeToString(CullingMode mode) {
+    switch (mode) {
+        case CullingMode::BACK: return "back";
+        case CullingMode::FRONT: return "front";
+        default: return "back";
+    }
+}
+
+CullingMode Editor::Stream::stringToCullingMode(const std::string& str) {
+    if (str == "back") return CullingMode::BACK;
+    if (str == "front") return CullingMode::FRONT;
+    return CullingMode::BACK;
+}
+
+// WindingOrder enum conversion
+std::string Editor::Stream::windingOrderToString(WindingOrder order) {
+    switch (order) {
+        case WindingOrder::CCW: return "ccw";
+        case WindingOrder::CW: return "cw";
+        default: return "ccw";
+    }
+}
+
+WindingOrder Editor::Stream::stringToWindingOrder(const std::string& str) {
+    if (str == "ccw") return WindingOrder::CCW;
+    if (str == "cw") return WindingOrder::CW;
+    return WindingOrder::CCW;
+}
+
+// TextureFilter enum conversion
+std::string Editor::Stream::textureFilterToString(TextureFilter filter) {
+    switch (filter) {
+        case TextureFilter::NEAREST: return "nearest";
+        case TextureFilter::LINEAR: return "linear";
+        case TextureFilter::NEAREST_MIPMAP_NEAREST: return "nearest_mipmap_nearest";
+        case TextureFilter::NEAREST_MIPMAP_LINEAR: return "nearest_mipmap_linear";
+        case TextureFilter::LINEAR_MIPMAP_NEAREST: return "linear_mipmap_nearest";
+        case TextureFilter::LINEAR_MIPMAP_LINEAR: return "linear_mipmap_linear";
+        default: return "linear";
+    }
+}
+
+TextureFilter Editor::Stream::stringToTextureFilter(const std::string& str) {
+    if (str == "nearest") return TextureFilter::NEAREST;
+    if (str == "linear") return TextureFilter::LINEAR;
+    if (str == "nearest_mipmap_nearest") return TextureFilter::NEAREST_MIPMAP_NEAREST;
+    if (str == "nearest_mipmap_linear") return TextureFilter::NEAREST_MIPMAP_LINEAR;
+    if (str == "linear_mipmap_nearest") return TextureFilter::LINEAR_MIPMAP_NEAREST;
+    if (str == "linear_mipmap_linear") return TextureFilter::LINEAR_MIPMAP_LINEAR;
+    return TextureFilter::LINEAR;
+}
+
+// TextureWrap enum conversion
+std::string Editor::Stream::textureWrapToString(TextureWrap wrap) {
+    switch (wrap) {
+        case TextureWrap::REPEAT: return "repeat";
+        case TextureWrap::MIRRORED_REPEAT: return "mirrored_repeat";
+        case TextureWrap::CLAMP_TO_EDGE: return "clamp_to_edge";
+        case TextureWrap::CLAMP_TO_BORDER: return "clamp_to_border";
+        default: return "repeat";
+    }
+}
+
+TextureWrap Editor::Stream::stringToTextureWrap(const std::string& str) {
+    if (str == "repeat") return TextureWrap::REPEAT;
+    if (str == "mirrored_repeat") return TextureWrap::MIRRORED_REPEAT;
+    if (str == "clamp_to_edge") return TextureWrap::CLAMP_TO_EDGE;
+    if (str == "clamp_to_border") return TextureWrap::CLAMP_TO_BORDER;
+    return TextureWrap::REPEAT;
+}
+
 YAML::Node Editor::Stream::encodeVector2(const Vector2& vec){
     YAML::Node node;
     node.SetStyle(YAML::EmitterStyle::Flow);
@@ -153,10 +382,10 @@ YAML::Node Editor::Stream::encodeTexture(const Texture& texture) {
     if (!texture.empty()) {
         node["id"] = texture.getId();
         node["path"] = texture.getPath();
-        node["minFilter"] = static_cast<int>(texture.getMinFilter());
-        node["magFilter"] = static_cast<int>(texture.getMagFilter());
-        node["wrapU"] = static_cast<int>(texture.getWrapU());
-        node["wrapV"] = static_cast<int>(texture.getWrapV());
+        node["minFilter"] = textureFilterToString(texture.getMinFilter());
+        node["magFilter"] = textureFilterToString(texture.getMagFilter());
+        node["wrapU"] = textureWrapToString(texture.getWrapU());
+        node["wrapV"] = textureWrapToString(texture.getWrapV());
 
         if (texture.isFramebuffer()) {
             node["isFramebuffer"] = true;
@@ -179,10 +408,10 @@ Texture Editor::Stream::decodeTexture(const YAML::Node& node) {
     if (node.IsMap()) { // Check if node has data
         texture.setId(node["id"].as<std::string>());
         texture.setPath(node["path"].as<std::string>());
-        texture.setMinFilter(static_cast<TextureFilter>(node["minFilter"].as<int>()));
-        texture.setMagFilter(static_cast<TextureFilter>(node["magFilter"].as<int>()));
-        texture.setWrapU(static_cast<TextureWrap>(node["wrapU"].as<int>()));
-        texture.setWrapV(static_cast<TextureWrap>(node["wrapV"].as<int>()));
+        texture.setMinFilter(stringToTextureFilter(node["minFilter"].as<std::string>()));
+        texture.setMagFilter(stringToTextureFilter(node["magFilter"].as<std::string>()));
+        texture.setWrapU(stringToTextureWrap(node["wrapU"].as<std::string>()));
+        texture.setWrapV(stringToTextureWrap(node["wrapV"].as<std::string>()));
 
         //if (node["isFramebuffer"] && node["isFramebuffer"].as<bool>()) {
         //    texture.setIsFramebuffer(true);
@@ -203,8 +432,8 @@ YAML::Node Editor::Stream::encodeBuffer(const Buffer& buffer) {
     YAML::Node node;
 
     // Encode buffer properties
-    node["type"] = static_cast<int>(buffer.getType());
-    node["usage"] = static_cast<int>(buffer.getUsage());
+    node["type"] = bufferTypeToString(buffer.getType());
+    node["usage"] = bufferUsageToString(buffer.getUsage());
     node["stride"] = buffer.getStride();
     node["size"] = buffer.getSize();
     node["count"] = buffer.getCount();
@@ -215,8 +444,8 @@ YAML::Node Editor::Stream::encodeBuffer(const Buffer& buffer) {
     YAML::Node attributesNode;
     for (const auto& [type, attr] : buffer.getAttributes()) {
         YAML::Node attrNode;
-        attrNode["type"] = static_cast<int>(type);
-        attrNode["dataType"] = static_cast<int>(attr.getDataType());
+        attrNode["type"] = attributeTypeToString(type);
+        attrNode["dataType"] = attributeDataTypeToString(attr.getDataType());
         attrNode["bufferName"] = attr.getBufferName();
         attrNode["elements"] = attr.getElements();
         attrNode["offset"] = attr.getOffset();
@@ -240,8 +469,8 @@ void Editor::Stream::decodeBuffer(Buffer& buffer, const YAML::Node& node) {
     if (!node.IsMap()) return;
 
     // Decode buffer properties
-    buffer.setType(static_cast<BufferType>(node["type"].as<int>()));
-    buffer.setUsage(static_cast<BufferUsage>(node["usage"].as<int>()));
+    buffer.setType(stringToBufferType(node["type"].as<std::string>()));
+    buffer.setUsage(stringToBufferUsage(node["usage"].as<std::string>()));
     buffer.setStride(node["stride"].as<unsigned int>());
     buffer.setCount(node["count"].as<unsigned int>());
     buffer.setRenderAttributes(node["renderAttributes"].as<bool>());
@@ -250,8 +479,8 @@ void Editor::Stream::decodeBuffer(Buffer& buffer, const YAML::Node& node) {
     // Decode attributes
     if (node["attributes"]) {
         for (const auto& attrNode : node["attributes"]) {
-            AttributeType type = static_cast<AttributeType>(attrNode["type"].as<int>());
-            AttributeDataType dataType = static_cast<AttributeDataType>(attrNode["dataType"].as<int>());
+            AttributeType type = stringToAttributeType(attrNode["type"].as<std::string>());
+            AttributeDataType dataType = stringToAttributeDataType(attrNode["dataType"].as<std::string>());
             std::string bufferName = attrNode["bufferName"].as<std::string>();
             unsigned int elements = attrNode["elements"].as<unsigned int>();
             size_t offset = attrNode["offset"].as<size_t>();
@@ -362,7 +591,7 @@ YAML::Node Editor::Stream::encodeSubmesh(const Submesh& submesh) {
 
     node["material"] = encodeMaterial(submesh.material);
     node["textureRect"] = encodeRect(submesh.textureRect);
-    node["primitiveType"] = static_cast<int>(submesh.primitiveType);
+    node["primitiveType"] = primitiveTypeToString(submesh.primitiveType);
     node["vertexCount"] = submesh.vertexCount;
     node["faceCulling"] = submesh.faceCulling;
 
@@ -386,7 +615,7 @@ Submesh Editor::Stream::decodeSubmesh(const YAML::Node& node) {
 
     submesh.material = decodeMaterial(node["material"]);
     submesh.textureRect = decodeRect(node["textureRect"]);
-    submesh.primitiveType = static_cast<PrimitiveType>(node["primitiveType"].as<int>());
+    submesh.primitiveType = stringToPrimitiveType(node["primitiveType"].as<std::string>());
     submesh.vertexCount = node["vertexCount"].as<uint32_t>();
     submesh.faceCulling = node["faceCulling"].as<bool>();
 
@@ -472,8 +701,8 @@ YAML::Node Editor::Stream::encodeMeshComponent(const MeshComponent& mesh) {
     node["shadowsBillboard"] = mesh.shadowsBillboard;
     node["transparent"] = mesh.transparent;
 
-    node["cullingMode"] = static_cast<int>(mesh.cullingMode);
-    node["windingOrder"] = static_cast<int>(mesh.windingOrder);
+    node["cullingMode"] = cullingModeToString(mesh.cullingMode);
+    node["windingOrder"] = windingOrderToString(mesh.windingOrder);
 
     //node["needUpdateBuffer"] = mesh.needUpdateBuffer;
     //node["needReload"] = mesh.needReload;
@@ -538,8 +767,8 @@ MeshComponent Editor::Stream::decodeMeshComponent(const YAML::Node& node) {
     mesh.shadowsBillboard = node["shadowsBillboard"].as<bool>();
     mesh.transparent = node["transparent"].as<bool>();
 
-    mesh.cullingMode = static_cast<CullingMode>(node["cullingMode"].as<int>());
-    mesh.windingOrder = static_cast<WindingOrder>(node["windingOrder"].as<int>());
+    mesh.cullingMode = stringToCullingMode(node["cullingMode"].as<std::string>());
+    mesh.windingOrder = stringToWindingOrder(node["windingOrder"].as<std::string>());
 
     //mesh.needUpdateBuffer = node["needUpdateBuffer"].as<bool>();
     //mesh.needReload = node["needReload"].as<bool>();
