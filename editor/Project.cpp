@@ -31,7 +31,7 @@ void Editor::Project::setName(std::string name){
     Backend::updateWindowTitle(name);
 }
 
-uint32_t Editor::Project::createNewScene(std::string sceneName){
+uint32_t Editor::Project::createNewScene(std::string sceneName, SceneType type){
     unsigned int nameCount = 2;
     std::string baseName = sceneName;
     bool foundName = true;
@@ -51,11 +51,17 @@ uint32_t Editor::Project::createNewScene(std::string sceneName){
     data.id = ++nextSceneId;
     data.name = sceneName;
     data.scene = new Scene();
-    data.sceneType = SceneType::SCENE_3D;
-    data.sceneRender = new SceneRender3D(data.scene);
+    data.sceneType = type;
+    if (data.sceneType == SceneType::SCENE_3D){
+        data.sceneRender = new SceneRender3D(data.scene);
+    }else if (data.sceneType == SceneType::SCENE_2D){
+        data.sceneRender = new SceneRender2D(data.scene);
+    }else if (data.sceneType == SceneType::SCENE_UI){
+        data.sceneRender = new SceneRender2D(data.scene);
+    }
     data.selectedEntities.clear();
     data.needUpdateRender = true;
-    data.isModified = false;
+    data.isModified = true;
 
     data.scene->setLastEntityInternal(99);
 
@@ -210,7 +216,7 @@ bool Editor::Project::createTempProject(std::string projectName, bool deleteIfEx
             }
             Out::info("Created project directory: \"%s\"", projectPath.string().c_str());
             saveProject();
-            createNewScene("New Scene");
+            createNewScene("New Scene", SceneType::SCENE_3D);
         } else {
             Out::info("Project directory already exists: \"%s\"", projectPath.string().c_str());
             loadProject(projectPath);
@@ -339,7 +345,7 @@ bool Editor::Project::loadProject(const std::filesystem::path path) {
 
         // Create a default scene if no scenes were loaded
         if (scenes.empty()) {
-            createNewScene("New Scene");
+            createNewScene("New Scene", SceneType::SCENE_3D);
         }
 
         Backend::getApp().updateResourcesPath();

@@ -75,7 +75,7 @@ namespace Supernova::Editor{
         void saveAllScenes();
         void saveLastSelectedScene();
 
-        uint32_t createNewScene(std::string sceneName);
+        uint32_t createNewScene(std::string sceneName, SceneType type);
         void openScene(fs::path filepath);
         void closeScene(uint32_t sceneId);
 

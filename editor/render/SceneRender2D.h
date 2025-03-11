@@ -12,6 +12,7 @@ namespace Supernova::Editor{
 
     class SceneRender2D: public SceneRender{
     private:
+        Lines* lines;
     public:
         SceneRender2D(Scene* scene);
         virtual ~SceneRender2D();

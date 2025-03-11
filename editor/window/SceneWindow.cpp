@@ -190,22 +190,25 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
     if (!ImGui::IsAnyItemActive() && !ImGui::IsAnyItemFocused()){
         if (project->getSelectedSceneId() == sceneId){
             if (!walkingMode){
-                SceneRender3D* sceneRender3D = (SceneRender3D*)project->getScene(sceneId)->sceneRender;
+                SceneProject* sceneProject = project->getScene(sceneId);
+                if (sceneProject->sceneType == SceneType::SCENE_3D){
+                    SceneRender3D* sceneRender3D = (SceneRender3D*)sceneProject->sceneRender;
 
-                if (ImGui::IsKeyPressed(ImGuiKey_W)) {
-                    sceneRender3D->getToolsLayer()->enableTranslateGizmo();
-                }
+                    if (ImGui::IsKeyPressed(ImGuiKey_W)) {
+                        sceneRender3D->getToolsLayer()->enableTranslateGizmo();
+                    }
 
-                if (ImGui::IsKeyPressed(ImGuiKey_E)) {
-                    sceneRender3D->getToolsLayer()->enableRotateGizmo();
-                }
+                    if (ImGui::IsKeyPressed(ImGuiKey_E)) {
+                        sceneRender3D->getToolsLayer()->enableRotateGizmo();
+                    }
 
-                if (ImGui::IsKeyPressed(ImGuiKey_R)) {
-                    sceneRender3D->getToolsLayer()->enableScaleGizmo();
-                }
+                    if (ImGui::IsKeyPressed(ImGuiKey_R)) {
+                        sceneRender3D->getToolsLayer()->enableScaleGizmo();
+                    }
 
-                if (ImGui::IsKeyPressed(ImGuiKey_T)){
-                    project->getScene(sceneId)->sceneRender->changeUseGlobalTransform();
+                    if (ImGui::IsKeyPressed(ImGuiKey_T)){
+                        project->getScene(sceneId)->sceneRender->changeUseGlobalTransform();
+                    }
                 }
             }
         }
@@ -249,32 +252,34 @@ void Editor::SceneWindow::show() {
             ImGui::Dummy(ImVec2(1, 20));
             ImGui::SameLine(0, 10);
 
-            SceneRender3D* sceneRender3D = (SceneRender3D*)sceneProject.sceneRender;
-            GizmoSelected gizmoSelected = sceneRender3D->getToolsLayer()->getGizmoSelected();
+            if (sceneProject.sceneType == SceneType::SCENE_3D){
+                SceneRender3D* sceneRender3D = (SceneRender3D*)sceneProject.sceneRender;
+                GizmoSelected gizmoSelected = sceneRender3D->getToolsLayer()->getGizmoSelected();
 
-            ImGui::BeginDisabled(gizmoSelected == GizmoSelected::TRANSLATE);
-            ImGui::SameLine();
-            if (ImGui::Button(ICON_FA_ARROWS_UP_DOWN_LEFT_RIGHT)) {
-                sceneRender3D->getToolsLayer()->enableTranslateGizmo();
-            }
-            ImGui::SetItemTooltip("Translate (W)");
-            ImGui::EndDisabled();
+                ImGui::BeginDisabled(gizmoSelected == GizmoSelected::TRANSLATE);
+                ImGui::SameLine();
+                if (ImGui::Button(ICON_FA_ARROWS_UP_DOWN_LEFT_RIGHT)) {
+                    sceneRender3D->getToolsLayer()->enableTranslateGizmo();
+                }
+                ImGui::SetItemTooltip("Translate (W)");
+                ImGui::EndDisabled();
 
-            ImGui::BeginDisabled(gizmoSelected == GizmoSelected::ROTATE);
-            ImGui::SameLine();
-            if (ImGui::Button(ICON_FA_ROTATE)) {
-                sceneRender3D->getToolsLayer()->enableRotateGizmo();
-            }
-            ImGui::SetItemTooltip("Rotate (E)");
-            ImGui::EndDisabled();
+                ImGui::BeginDisabled(gizmoSelected == GizmoSelected::ROTATE);
+                ImGui::SameLine();
+                if (ImGui::Button(ICON_FA_ROTATE)) {
+                    sceneRender3D->getToolsLayer()->enableRotateGizmo();
+                }
+                ImGui::SetItemTooltip("Rotate (E)");
+                ImGui::EndDisabled();
 
-            ImGui::BeginDisabled(gizmoSelected == GizmoSelected::SCALE);
-            ImGui::SameLine();
-            if (ImGui::Button(ICON_FA_UP_RIGHT_AND_DOWN_LEFT_FROM_CENTER)) {
-                sceneRender3D->getToolsLayer()->enableScaleGizmo();
+                ImGui::BeginDisabled(gizmoSelected == GizmoSelected::SCALE);
+                ImGui::SameLine();
+                if (ImGui::Button(ICON_FA_UP_RIGHT_AND_DOWN_LEFT_FROM_CENTER)) {
+                    sceneRender3D->getToolsLayer()->enableScaleGizmo();
+                }
+                ImGui::SetItemTooltip("Scale (R)");
+                ImGui::EndDisabled();
             }
-            ImGui::SetItemTooltip("Scale (R)");
-            ImGui::EndDisabled();
 
             ImGui::SameLine(0, 10);
             ImGui::Dummy(ImVec2(1, 20));

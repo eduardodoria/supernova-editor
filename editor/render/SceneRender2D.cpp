@@ -6,8 +6,12 @@
 using namespace Supernova;
 
 Editor::SceneRender2D::SceneRender2D(Scene* scene): SceneRender(scene){
-    scene->setCamera(camera);
-    scene->setBackgroundColor(Vector4(0.25, 0.45, 0.65, 1.0));
+    camera->setType(CameraType::CAMERA_2D);
+
+    lines = new Lines(scene);
+    lines->addLine(Vector3(50, 50, 0), Vector3(500, 500, 0), Vector4(0.8, 0.8, 1.0, 1.0));
+
+    scene->setBackgroundColor(Vector4(0.0824, 0.2980, 0.4745, 1.0));
 
     Engine::setScalingMode(Scaling::NATIVE);
     Engine::setFixedTimeSceneUpdate(false);

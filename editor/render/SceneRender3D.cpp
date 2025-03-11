@@ -1,11 +1,11 @@
 #include "SceneRender3D.h"
 
-#include "sky/Daylight_Box_Back_png.h"
-#include "sky/Daylight_Box_Bottom_png.h"
-#include "sky/Daylight_Box_Front_png.h"
-#include "sky/Daylight_Box_Left_png.h"
-#include "sky/Daylight_Box_Right_png.h"
-#include "sky/Daylight_Box_Top_png.h"
+#include "resources/sky/Daylight_Box_Back_png.h"
+#include "resources/sky/Daylight_Box_Bottom_png.h"
+#include "resources/sky/Daylight_Box_Front_png.h"
+#include "resources/sky/Daylight_Box_Left_png.h"
+#include "resources/sky/Daylight_Box_Right_png.h"
+#include "resources/sky/Daylight_Box_Top_png.h"
 
 #include "Project.h"
 #include "command/CommandHandle.h"
@@ -64,7 +64,6 @@ Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene){
 
     scene->setAmbientLight(0.2);
     //scene->setSceneAmbientLightEnabled(false);
-    scene->setCamera(camera);
     scene->setBackgroundColor(Vector4(0.25, 0.45, 0.65, 1.0));
 
     uilayer.setViewportGizmoTexture(viewgizmo.getFramebuffer());
@@ -147,7 +146,6 @@ void Editor::SceneRender3D::createLines(){
 void Editor::SceneRender3D::activate(){
     SceneRender::activate();
 
-    Engine::removeAllSceneLayers();
     Engine::addSceneLayer(toolslayer.getScene());
     Engine::addSceneLayer(uilayer.getScene());
     Engine::addSceneLayer(viewgizmo.getScene());

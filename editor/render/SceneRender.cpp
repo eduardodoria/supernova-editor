@@ -5,6 +5,8 @@ using namespace Supernova;
 Editor::SceneRender::SceneRender(Scene* scene){
     this->scene = scene;
     camera = new Camera(scene);
+
+    scene->setCamera(camera);
 }
 
 Editor::SceneRender::~SceneRender(){
@@ -16,6 +18,8 @@ Editor::SceneRender::~SceneRender(){
 void Editor::SceneRender::activate(){
     Engine::setFramebuffer(&framebuffer);
     Engine::setScene(scene);
+
+    Engine::removeAllSceneLayers();
 }
 
 void Editor::SceneRender::updateRenderSystem(){
