@@ -6,10 +6,15 @@
 using namespace Supernova;
 
 Editor::SceneRender2D::SceneRender2D(Scene* scene): SceneRender(scene){
-    camera->setType(CameraType::CAMERA_2D);
+    camera->setType(CameraType::CAMERA_ORTHO);
 
     lines = new Lines(scene);
-    lines->addLine(Vector3(50, 50, 0), Vector3(500, 500, 0), Vector4(0.8, 0.8, 1.0, 1.0));
+
+    lines->addLine(Vector3(50, -5000, 0), Vector3(50, 5000, 0), Vector4(0.2, 0.8, 0.4, 1.0));
+    lines->addLine(Vector3(-5000, 50, 0), Vector3(5000, 50, 0), Vector4(0.8, 0.2, 0.4, 1.0));
+
+    lines->addLine(Vector3(50, 500, 0), Vector3(1000, 500, 0), Vector4(0.8, 0.8, 0.8, 1.0));
+    lines->addLine(Vector3(1000, 500, 0), Vector3(1000, 50, 0), Vector4(0.8, 0.8, 0.8, 1.0));
 
     scene->setBackgroundColor(Vector4(0.0824, 0.2980, 0.4745, 1.0));
 
