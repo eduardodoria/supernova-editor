@@ -57,8 +57,14 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
     bool isMouseInWindow = ImGui::IsWindowHovered() && (mousePos.x >= windowPos.x && mousePos.x <= windowPos.x + windowSize.x &&
                             mousePos.y >= windowPos.y && mousePos.y <= windowPos.y + windowSize.y);
 
+    SceneProject* sceneProject = project->getScene(sceneId);
+
+    bool disableSelection = 
+        sceneProject->sceneRender->getCursorSelected() == CursorSelected::HAND || 
+        sceneProject->sceneRender->isAnyGizmoSideSelected() ||
+        sceneProject->sceneType != SceneType::SCENE_3D && ImGui::IsKeyDown(ImGuiKey_Space);
+
     if (isMouseInWindow){
-        SceneProject* sceneProject = project->getScene(sceneId);
 
         float x = mousePos.x - windowPos.x;
         float y = mousePos.y - windowPos.y;
@@ -79,12 +85,12 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
             mouseLeftDragPos = Vector2(x, y);
             if (mouseLeftStartPos.distance(mouseLeftDragPos) > 5){
                 mouseLeftDraggedInside = true;
-                sceneProject->sceneRender->mouseDragEvent(x, y, mouseLeftStartPos.x, mouseLeftStartPos.y, sceneId, sceneProject, project->getSelectedEntities(sceneId));
+                sceneProject->sceneRender->mouseDragEvent(x, y, mouseLeftStartPos.x, mouseLeftStartPos.y, sceneId, sceneProject, project->getSelectedEntities(sceneId), disableSelection);
             }
         }
 
         if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)){
-            if (!mouseLeftDraggedInside && mouseLeftDown){
+            if (!mouseLeftDraggedInside && mouseLeftDown && !disableSelection){
                 project->selectObjectByRay(sceneId, x, y, io.KeyShift);
             }
             mouseLeftDown = false;
@@ -95,7 +101,7 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
         float x = mousePos.x - windowPos.x;
         float y = mousePos.y - windowPos.y;
 
-        if (mouseLeftDraggedInside && !project->getScene(sceneId)->sceneRender->isAnyGizmoSideSelected()){
+        if (mouseLeftDraggedInside && !disableSelection){
             Vector2 clickStartPos = Vector2((2 * mouseLeftStartPos.x / width[sceneId]) - 1, -((2 * mouseLeftStartPos.y / height[sceneId]) - 1));
             Vector2 clickEndPos = Vector2((2 * mouseLeftDragPos.x / width[sceneId]) - 1, -((2 * mouseLeftDragPos.y / height[sceneId]) - 1));
             project->selectObjectsByRect(sceneId, clickStartPos, clickEndPos);
@@ -121,7 +127,6 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
 
     Camera* camera = project->getScene(sceneId)->sceneRender->getCamera();
 
-    SceneProject* sceneProject = project->getScene(sceneId);
     if (sceneProject->sceneType == SceneType::SCENE_3D){
 
         bool walkingMode = false;
@@ -184,8 +189,12 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
                     camera->elevatePosition(0.1 * mouseDelta.y);
                 }
             }
-        }
 
+        }
+        if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && sceneProject->sceneRender->getCursorSelected() == CursorSelected::HAND){
+            camera->slide(-0.01 * mouseDelta.x);
+            camera->slideUp(0.01 * mouseDelta.y);
+        }
         if (!ImGui::IsMouseDown(ImGuiMouseButton_Right)){
             if (isMouseInWindow && mouseWheel != 0.0f){
                 camera->zoom(2.0 * mouseWheel);
@@ -214,7 +223,23 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
                 }
             }
         }
+
     }else if (sceneProject->sceneType == SceneType::SCENE_2D){
+
+        if (ImGui::IsMouseDown(ImGuiMouseButton_Middle) || 
+                (ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsKeyDown(ImGuiKey_Space)) ||
+                (ImGui::IsMouseDown(ImGuiMouseButton_Left) && sceneProject->sceneRender->getCursorSelected() == CursorSelected::HAND)){
+
+            SceneRender2D* sceneRender2D = static_cast<SceneRender2D*>(sceneProject->sceneRender);
+            float currentZoom = sceneRender2D->getZoom();
+
+            float slideX = -currentZoom * mouseDelta.x;
+            float slideY = currentZoom * mouseDelta.y;
+
+            camera->slide(slideX);
+            camera->slideUp(slideY);
+        }
+
         if (!ImGui::IsMouseDown(ImGuiMouseButton_Right)){
             if (isMouseInWindow && mouseWheel != 0.0f){
                 float zoomFactor = 1.0f - (0.1f * mouseWheel);
@@ -252,6 +277,7 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
                 sceneRender2D->setZoom(newZoom);
             }
         }
+
     }
 
 }
@@ -292,7 +318,29 @@ void Editor::SceneWindow::show() {
             ImGui::Dummy(ImVec2(1, 20));
             ImGui::SameLine(0, 10);
 
+            CursorSelected cursorSelected = sceneProject.sceneRender->getCursorSelected();
+
+            ImGui::BeginDisabled(cursorSelected == CursorSelected::POINTER);
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_ARROW_POINTER)) {
+                sceneProject.sceneRender->enableCursorPointer();
+            }
+            ImGui::SetItemTooltip("Select mode");
+            ImGui::EndDisabled();
+
+            ImGui::BeginDisabled(cursorSelected == CursorSelected::HAND);
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_HAND)) {
+                sceneProject.sceneRender->enableCursorHand();
+            }
+            ImGui::SetItemTooltip("Pan view");
+            ImGui::EndDisabled();
+
             if (sceneProject.sceneType == SceneType::SCENE_3D){
+                ImGui::SameLine(0, 10);
+                ImGui::Dummy(ImVec2(1, 20));
+                ImGui::SameLine(0, 10);
+
                 SceneRender3D* sceneRender3D = (SceneRender3D*)sceneProject.sceneRender;
                 GizmoSelected gizmoSelected = sceneRender3D->getToolsLayer()->getGizmoSelected();
 
@@ -362,6 +410,13 @@ void Editor::SceneWindow::show() {
 
             ImGui::BeginChild(("Canvas" + std::to_string(sceneProject.id)).c_str());
             {
+                if (ImGui::IsWindowHovered()) {
+                    CursorSelected cursorSelected = sceneProject.sceneRender->getCursorSelected();
+                    if (cursorSelected == CursorSelected::HAND) {
+                        ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
+                    }
+                }
+
                 sceneEventHandler(project, sceneProject.id);
 
                 int widthNew = ImGui::GetContentRegionAvail().x;

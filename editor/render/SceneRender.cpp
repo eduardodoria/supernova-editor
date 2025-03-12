@@ -7,6 +7,8 @@ Editor::SceneRender::SceneRender(Scene* scene){
     camera = new Camera(scene);
 
     scene->setCamera(camera);
+
+    cursorSelected = CursorSelected::POINTER;
 }
 
 Editor::SceneRender::~SceneRender(){
@@ -49,4 +51,16 @@ void Editor::SceneRender::setUseGlobalTransform(bool useGlobalTransform){
 
 void Editor::SceneRender::changeUseGlobalTransform(){
     this->useGlobalTransform = !this->useGlobalTransform;
+}
+
+void Editor::SceneRender::enableCursorPointer(){
+    cursorSelected = CursorSelected::POINTER;
+}
+
+void Editor::SceneRender::enableCursorHand(){
+    cursorSelected = CursorSelected::HAND;
+}
+
+Editor::CursorSelected Editor::SceneRender::getCursorSelected(){
+    return cursorSelected;
 }

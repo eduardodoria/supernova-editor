@@ -2,10 +2,8 @@
 
 using namespace Supernova;
 
-Editor::UILayer::UILayer(){
+Editor::UILayer::UILayer(bool enableViewGizmo){
     Vector3 rectColor = Vector3(0.3, 0.1, 0.2);
-
-    cursorSelected = CursorSelected::POINTER;
 
     scene = new Scene();
     camera = new Camera(scene);
@@ -17,29 +15,32 @@ Editor::UILayer::UILayer(){
     rightRect = new Polygon(scene);
     centralRect = new Polygon(scene);
 
-    // to avoid try to load every frame (without vertices)
-    updateRect(Vector2::ZERO, Vector2::ZERO);
-
-    viewGizmoImage = new Image(scene);
-
-    viewGizmoImage->setAnchorPreset(AnchorPreset::TOP_RIGHT);
-    rect->setVisible(false);
-
     upRect->setColor(Vector4(rectColor, 1.0));
     bottomRect->setColor(Vector4(rectColor, 1.0));
     leftRect->setColor(Vector4(rectColor, 1.0));
     rightRect->setColor(Vector4(rectColor, 1.0));
     centralRect->setColor(Vector4(rectColor, 0.2));
 
+    rect->setVisible(false);
     rect->addChild(upRect);
     rect->addChild(bottomRect);
     rect->addChild(leftRect);
     rect->addChild(rightRect);
     rect->addChild(centralRect);
+
+    // to avoid try to load every frame (without vertices)
+    updateRect(Vector2::ZERO, Vector2::ZERO);
     
     camera->setType(CameraType::CAMERA_2D);
 
-    viewGizmoImage->setSize(100, 100);
+    if (enableViewGizmo){
+        viewGizmoImage = new Image(scene);
+
+        viewGizmoImage->setAnchorPreset(AnchorPreset::TOP_RIGHT);
+        viewGizmoImage->setSize(100, 100);
+    }else{
+        viewGizmoImage = nullptr;
+    }
 
     scene->setCamera(camera);
 }
@@ -52,21 +53,15 @@ Editor::UILayer::~UILayer(){
     delete leftRect;
     delete rightRect;
     delete centralRect;
-    delete viewGizmoImage;
+    if (viewGizmoImage){
+        delete viewGizmoImage;
+    }
 
     delete scene;
 }
 
 void Editor::UILayer::setViewportGizmoTexture(Framebuffer* framebuffer){
     viewGizmoImage->setTexture(framebuffer);
-}
-
-void Editor::UILayer::enableCursorPointer(){
-    cursorSelected = CursorSelected::POINTER;
-}
-
-void Editor::UILayer::enableCursorHand(){
-    cursorSelected = CursorSelected::HAND;
 }
 
 void Editor::UILayer::setRectVisible(bool visible){
@@ -129,8 +124,4 @@ Camera* Editor::UILayer::getCamera(){
 
 Scene* Editor::UILayer::getScene(){
     return scene;
-}
-
-Editor::CursorSelected Editor::UILayer::getCursorSelected(){
-    return cursorSelected;
 }

@@ -7,7 +7,6 @@
 #include "object/Shape.h"
 #include "object/ui/Image.h"
 #include "object/ui/Polygon.h"
-#include "RenderUtil.h"
 
 namespace Supernova::Editor{
 
@@ -25,16 +24,11 @@ namespace Supernova::Editor{
         Polygon* centralRect;
 
         Image* viewGizmoImage;
-
-        CursorSelected cursorSelected;
     public:
-        UILayer();
+        UILayer(bool enableViewGizmo = true);
         virtual ~UILayer();
 
         void setViewportGizmoTexture(Framebuffer* framebuffer);
-
-        void enableCursorPointer();
-        void enableCursorHand();
 
         void setRectVisible(bool visible);
         void updateRect(Vector2 position, Vector2 size);
@@ -43,7 +37,6 @@ namespace Supernova::Editor{
         TextureRender& getTexture();
         Camera* getCamera();
         Scene* getScene();
-        CursorSelected getCursorSelected();
     };
 
 }

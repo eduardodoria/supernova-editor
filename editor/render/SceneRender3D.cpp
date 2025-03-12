@@ -306,8 +306,8 @@ void Editor::SceneRender3D::mouseReleaseEvent(float x, float y){
     }
 }
 
-void Editor::SceneRender3D::mouseDragEvent(float x, float y, float origX, float origY, size_t sceneId, SceneProject* sceneProject, std::vector<Entity> selEntities){
-    if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::NONE){
+void Editor::SceneRender3D::mouseDragEvent(float x, float y, float origX, float origY, size_t sceneId, SceneProject* sceneProject, std::vector<Entity> selEntities, bool disableSelection){
+    if (!disableSelection){
         uilayer.setRectVisible(true);
         uilayer.updateRect(Vector2(origX, origY), Vector2(x, y) - Vector2(origX, origY));
     }

@@ -5,7 +5,7 @@
 
 using namespace Supernova;
 
-Editor::SceneRender2D::SceneRender2D(Scene* scene): SceneRender(scene){
+Editor::SceneRender2D::SceneRender2D(Scene* scene): uilayer(false), SceneRender(scene){
     camera->setType(CameraType::CAMERA_ORTHO);
 
     lines = new Lines(scene);
@@ -16,7 +16,7 @@ Editor::SceneRender2D::SceneRender2D(Scene* scene): SceneRender(scene){
     lines->addLine(Vector3(50, 500, 0), Vector3(1000, 500, 0), Vector4(0.8, 0.8, 0.8, 1.0));
     lines->addLine(Vector3(1000, 500, 0), Vector3(1000, 50, 0), Vector4(0.8, 0.8, 0.8, 1.0));
 
-    scene->setBackgroundColor(Vector4(0.0824, 0.2980, 0.4745, 1.0));
+    scene->setBackgroundColor(Vector4(0.231, 0.298, 0.475, 1.0));
 
     zoom = 1.0f;
 
@@ -30,6 +30,8 @@ Editor::SceneRender2D::~SceneRender2D(){
 
 void Editor::SceneRender2D::activate(){
     SceneRender::activate();
+
+    Engine::addSceneLayer(uilayer.getScene());
 }
 
 void Editor::SceneRender2D::updateSize(int width, int height){
@@ -63,11 +65,14 @@ void Editor::SceneRender2D::mouseClickEvent(float x, float y, std::vector<Entity
 }
 
 void Editor::SceneRender2D::mouseReleaseEvent(float x, float y){
-
+    uilayer.setRectVisible(false);
 }
 
-void Editor::SceneRender2D::mouseDragEvent(float x, float y, float origX, float origY, size_t sceneId, SceneProject* sceneProject, std::vector<Entity> selEntities){
-
+void Editor::SceneRender2D::mouseDragEvent(float x, float y, float origX, float origY, size_t sceneId, SceneProject* sceneProject, std::vector<Entity> selEntities, bool disableSelection){
+    if (!disableSelection){
+        uilayer.setRectVisible(true);
+        uilayer.updateRect(Vector2(origX, origY), Vector2(x, y) - Vector2(origX, origY));
+    }
 }
 
 bool Editor::SceneRender2D::isAnyGizmoSideSelected() const{
