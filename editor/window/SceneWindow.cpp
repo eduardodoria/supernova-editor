@@ -5,6 +5,7 @@
 #include "Util.h"
 #include "command/CommandHandle.h"
 #include "command/type/PropertyCmd.h"
+#include "render/SceneRender2D.h"
 #include "render/SceneRender3D.h"
 
 #include "math/Vector2.h"
@@ -193,7 +194,7 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
         if (!ImGui::IsAnyItemActive() && !ImGui::IsAnyItemFocused()){
             if (project->getSelectedSceneId() == sceneId){
                 if (!walkingMode){
-                    SceneRender3D* sceneRender3D = (SceneRender3D*)sceneProject->sceneRender;
+                    SceneRender3D* sceneRender3D = static_cast<SceneRender3D*>(sceneProject->sceneRender);
 
                     if (ImGui::IsKeyPressed(ImGuiKey_W)) {
                         sceneRender3D->getToolsLayer()->enableTranslateGizmo();
@@ -229,21 +230,26 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
                 float worldX = left + (mouseX / width[sceneProject->id]) * (right - left);
                 float worldY = bottom + ((height[sceneProject->id] - mouseY) / height[sceneProject->id]) * (top - bottom);
 
-                float newWidth = (right - left) * zoomFactor;
-                float newHeight = (top - bottom) * zoomFactor;
+                float currentWidth = right - left;
+                float currentZoom = currentWidth / width[sceneProject->id]; // units per pixel
 
-                float percentX = (worldX - left) / (right - left);
-                float percentY = (worldY - bottom) / (top - bottom);
+                float newZoom = currentZoom * zoomFactor;
 
-                float newLeft = worldX - (newWidth * percentX);
+                float newWidth = width[sceneProject->id] * newZoom;
+                float newHeight = height[sceneProject->id] * newZoom;
+
+                float newLeft = worldX - (mouseX / width[sceneProject->id]) * newWidth;
                 float newRight = newLeft + newWidth;
-                float newBottom = worldY - (newHeight * percentY);
+                float newBottom = worldY - ((height[sceneProject->id] - mouseY) / height[sceneProject->id]) * newHeight;
                 float newTop = newBottom + newHeight;
 
                 camera->setLeftClip(newLeft);
                 camera->setRightClip(newRight);
                 camera->setBottomClip(newBottom);
                 camera->setTopClip(newTop);
+
+                SceneRender2D* sceneRender2D = static_cast<SceneRender2D*>(sceneProject->sceneRender);
+                sceneRender2D->setZoom(newZoom);
             }
         }
     }

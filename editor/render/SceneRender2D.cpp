@@ -10,13 +10,15 @@ Editor::SceneRender2D::SceneRender2D(Scene* scene): SceneRender(scene){
 
     lines = new Lines(scene);
 
-    lines->addLine(Vector3(50, -5000, 0), Vector3(50, 5000, 0), Vector4(0.2, 0.8, 0.4, 1.0));
-    lines->addLine(Vector3(-5000, 50, 0), Vector3(5000, 50, 0), Vector4(0.8, 0.2, 0.4, 1.0));
+    lines->addLine(Vector3(50, -1000000, 0), Vector3(50, 1000000, 0), Vector4(0.2, 0.8, 0.4, 1.0));
+    lines->addLine(Vector3(-1000000, 50, 0), Vector3(1000000, 50, 0), Vector4(0.8, 0.2, 0.4, 1.0));
 
     lines->addLine(Vector3(50, 500, 0), Vector3(1000, 500, 0), Vector4(0.8, 0.8, 0.8, 1.0));
     lines->addLine(Vector3(1000, 500, 0), Vector3(1000, 50, 0), Vector4(0.8, 0.8, 0.8, 1.0));
 
     scene->setBackgroundColor(Vector4(0.0824, 0.2980, 0.4745, 1.0));
+
+    zoom = 1.0f;
 
     Engine::setScalingMode(Scaling::NATIVE);
     Engine::setFixedTimeSceneUpdate(false);
@@ -28,6 +30,24 @@ Editor::SceneRender2D::~SceneRender2D(){
 
 void Editor::SceneRender2D::activate(){
     SceneRender::activate();
+}
+
+void Editor::SceneRender2D::updateSize(int width, int height){
+    SceneRender::updateSize(width, height);
+
+    float newWidth = width * zoom;
+    float newHeight = height * zoom;
+
+    float left = camera->getLeftClip();
+    float bottom = camera->getBottomClip();
+
+    float right = left + newWidth;
+    float top = bottom + newHeight;
+
+    camera->setLeftClip(left);
+    camera->setRightClip(right);
+    camera->setBottomClip(bottom);
+    camera->setTopClip(top);
 }
 
 void Editor::SceneRender2D::update(std::vector<Entity> selEntities){
@@ -52,4 +72,12 @@ void Editor::SceneRender2D::mouseDragEvent(float x, float y, float origX, float 
 
 bool Editor::SceneRender2D::isAnyGizmoSideSelected() const{
     return false;
+}
+
+void Editor::SceneRender2D::setZoom(float newZoom) {
+    zoom = newZoom;
+}
+
+float Editor::SceneRender2D::getZoom() const {
+    return zoom;
 }

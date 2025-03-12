@@ -19,9 +19,9 @@ namespace Supernova::Editor{
         virtual ~SceneRender();
 
         virtual void activate();
+        virtual void updateSize(int width, int height);
 
         void updateRenderSystem();
-        void updateSize(int width, int height);
 
         virtual void update(std::vector<Entity> selEntities) = 0;
         virtual void mouseHoverEvent(float x, float y) = 0;

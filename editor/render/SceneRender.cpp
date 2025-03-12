@@ -22,14 +22,12 @@ void Editor::SceneRender::activate(){
     Engine::removeAllSceneLayers();
 }
 
-void Editor::SceneRender::updateRenderSystem(){
-    scene->getSystem<RenderSystem>()->update(0);
+void Editor::SceneRender::updateSize(int width, int height){
+
 }
 
-void Editor::SceneRender::updateSize(int width, int height){
-    //if (width > 0 && height > 0){
-        //camera->setFramebufferSize(width, height);
-    //}
+void Editor::SceneRender::updateRenderSystem(){
+    scene->getSystem<RenderSystem>()->update(0);
 }
 
 TextureRender& Editor::SceneRender::getTexture(){
