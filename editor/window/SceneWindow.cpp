@@ -107,7 +107,7 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
             project->selectObjectsByRect(sceneId, clickStartPos, clickEndPos);
         }
 
-        project->getScene(sceneId)->sceneRender->mouseReleaseEvent(x, y);
+        sceneProject->sceneRender->mouseReleaseEvent(x, y);
 
         mouseLeftDraggedInside = false;
     }
@@ -125,17 +125,21 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
         io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
     }
 
-    Camera* camera = project->getScene(sceneId)->sceneRender->getCamera();
+    Camera* camera = sceneProject->sceneRender->getCamera();
 
     if (sceneProject->sceneType == SceneType::SCENE_3D){
 
         bool walkingMode = false;
 
+        float distanceFromTarget = camera->getDistanceFromTarget();
+
+        // Scale factor: movements should be proportional to distance
+        // Base movement rate is maintained at around distanceFromTarget = 10
+        float distanceScaleFactor = std::max(0.1f, distanceFromTarget / 10.0f);
+
         // Check for mouse clicks
         if (draggingMouse[sceneId] && (ImGui::IsMouseDown(ImGuiMouseButton_Middle) || ImGui::IsMouseDown(ImGuiMouseButton_Right))) {
-
-            if (ImGui::IsMouseDown(ImGuiMouseButton_Right)){
-
+            if (ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
                 walkingMode = true;
 
                 camera->rotateView(-0.1 * mouseDelta.x);
@@ -146,60 +150,63 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
                 float speedOffset = 10.0;
 
                 walkSpeed[sceneId] += mouseWheel;
-                if (walkSpeed[sceneId] <= -speedOffset){
+                if (walkSpeed[sceneId] <= -speedOffset) {
                     walkSpeed[sceneId] = -speedOffset + minSpeed;
                 }
-                if (walkSpeed[sceneId] > maxSpeed){
+                if (walkSpeed[sceneId] > maxSpeed) {
                     walkSpeed[sceneId] = maxSpeed;
                 }
 
-                float finalSpeed = 0.02 * (speedOffset + walkSpeed[sceneId]);
+                // Apply distanceScaleFactor to walking speed
+                float finalSpeed = 0.02 * (speedOffset + walkSpeed[sceneId]) * distanceScaleFactor;
 
-                if (ImGui::IsKeyDown(ImGuiKey_W)){
+                if (ImGui::IsKeyDown(ImGuiKey_W)) {
                     camera->slideForward(finalSpeed);
                 }
-                if (ImGui::IsKeyDown(ImGuiKey_S)){
+                if (ImGui::IsKeyDown(ImGuiKey_S)) {
                     camera->slideForward(-finalSpeed);
                 }
-                if (ImGui::IsKeyDown(ImGuiKey_A)){
+                if (ImGui::IsKeyDown(ImGuiKey_A)) {
                     camera->slide(-finalSpeed);
                 }
-                if (ImGui::IsKeyDown(ImGuiKey_D)){
+                if (ImGui::IsKeyDown(ImGuiKey_D)) {
                     camera->slide(finalSpeed);
                 }
-                if (ImGui::IsKeyDown(ImGuiKey_E)){
+                if (ImGui::IsKeyDown(ImGuiKey_E)) {
                     camera->slideUp(finalSpeed);
                 }
-                if (ImGui::IsKeyDown(ImGuiKey_Q)){
+                if (ImGui::IsKeyDown(ImGuiKey_Q)) {
                     camera->slideUp(-finalSpeed);
                 }
 
-                //ImGui::SetMouseCursor(ImGuiMouseCursor_None);
                 io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
                 Backend::disableMouseCursor();
             }
-            if (ImGui::IsMouseDown(ImGuiMouseButton_Middle)){
-                if (ImGui::IsKeyDown(ImGuiKey_ModShift)){
-                    camera->slide(-0.01 * mouseDelta.x);
-                    camera->slideUp(0.01 * mouseDelta.y);
-                }else if (ImGui::IsKeyDown(ImGuiKey_ModCtrl)){
+            if (ImGui::IsMouseDown(ImGuiMouseButton_Middle)) {
+                if (ImGui::IsKeyDown(ImGuiKey_ModShift)) {
+                    camera->slide(-0.01 * mouseDelta.x * distanceScaleFactor);
+                    camera->slideUp(0.01 * mouseDelta.y * distanceScaleFactor);
+                } else if (ImGui::IsKeyDown(ImGuiKey_ModCtrl)) {
                     camera->zoom(-0.1 * mouseDelta.y);
-                }else{
+                } else {
                     camera->rotatePosition(-0.1 * mouseDelta.x);
                     camera->elevatePosition(0.1 * mouseDelta.y);
                 }
             }
+        }
 
+        if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && sceneProject->sceneRender->getCursorSelected() == CursorSelected::HAND) {
+            camera->slide(-0.01 * mouseDelta.x * distanceScaleFactor);
+            camera->slideUp(0.01 * mouseDelta.y * distanceScaleFactor);
         }
-        if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && sceneProject->sceneRender->getCursorSelected() == CursorSelected::HAND){
-            camera->slide(-0.01 * mouseDelta.x);
-            camera->slideUp(0.01 * mouseDelta.y);
-        }
-        if (!ImGui::IsMouseDown(ImGuiMouseButton_Right)){
-            if (isMouseInWindow && mouseWheel != 0.0f){
+
+        // The zoom speed itself can remain constant
+        if (!ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
+            if (isMouseInWindow && mouseWheel != 0.0f) {
                 camera->zoom(2.0 * mouseWheel);
             }
         }
+
         if (!ImGui::IsAnyItemActive() && !ImGui::IsAnyItemFocused()){
             if (project->getSelectedSceneId() == sceneId){
                 if (!walkingMode){
@@ -218,7 +225,7 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
                     }
 
                     if (ImGui::IsKeyPressed(ImGuiKey_T)){
-                        project->getScene(sceneId)->sceneRender->changeUseGlobalTransform();
+                        sceneProject->sceneRender->changeUseGlobalTransform();
                     }
                 }
             }
