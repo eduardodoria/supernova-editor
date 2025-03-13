@@ -31,6 +31,19 @@ void Editor::Project::setName(std::string name){
     Backend::updateWindowTitle(name);
 }
 
+void Editor::Project::setWindowSize(unsigned int width, unsigned int height){
+    this->windowWidth = width;
+    this->windowHeight = height;
+}
+
+unsigned int Editor::Project::getWindowWidth() const{
+    return windowWidth;
+}
+
+unsigned int Editor::Project::getWindowHeight() const{
+    return windowHeight;
+}
+
 uint32_t Editor::Project::createNewScene(std::string sceneName, SceneType type){
     unsigned int nameCount = 2;
     std::string baseName = sceneName;
@@ -55,9 +68,9 @@ uint32_t Editor::Project::createNewScene(std::string sceneName, SceneType type){
     if (data.sceneType == SceneType::SCENE_3D){
         data.sceneRender = new SceneRender3D(data.scene);
     }else if (data.sceneType == SceneType::SCENE_2D){
-        data.sceneRender = new SceneRender2D(data.scene);
+        data.sceneRender = new SceneRender2D(data.scene, windowWidth, windowHeight, true);
     }else if (data.sceneType == SceneType::SCENE_UI){
-        data.sceneRender = new SceneRender2D(data.scene);
+        data.sceneRender = new SceneRender2D(data.scene, windowWidth, windowHeight, true);
     }
     data.selectedEntities.clear();
     data.needUpdateRender = true;
@@ -92,9 +105,9 @@ void Editor::Project::openScene(fs::path filepath){
         if (data.sceneType == SceneType::SCENE_3D){
             data.sceneRender = new SceneRender3D(data.scene);
         }else if (data.sceneType == SceneType::SCENE_2D){
-            data.sceneRender = new SceneRender2D(data.scene);
+            data.sceneRender = new SceneRender2D(data.scene, windowWidth, windowHeight, false);
         }else if (data.sceneType == SceneType::SCENE_UI){
-            data.sceneRender = new SceneRender2D(data.scene);
+            data.sceneRender = new SceneRender2D(data.scene, windowWidth, windowHeight, false);
         }
 
         if (getScene(data.id) != nullptr) {
@@ -187,6 +200,8 @@ void Editor::Project::resetConfigs() {
 
     // Reset state
     name = "";
+    windowWidth = 1280;
+    windowHeight = 720;
     selectedScene = NULL_PROJECT_SCENE;
     nextSceneId = 0;
     projectPath.clear();

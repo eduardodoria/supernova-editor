@@ -799,6 +799,9 @@ YAML::Node Editor::Stream::encodeProject(Project* project) {
     root["nextSceneId"] = project->getNextSceneId();
     root["selectedScene"] = project->getSelectedSceneId();
 
+    root["windowWidth"] = project->getWindowWidth();
+    root["windowHeight"] = project->getWindowHeight();
+
     // Add scenes array
     YAML::Node scenesNode;
     for (const auto& sceneProject : project->getScenes()) {
@@ -828,9 +831,15 @@ void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
         }
     }
 
-    // Set selected scene if it exists
     if (node["selectedScene"]) {
         project->setSelectedSceneId(node["selectedScene"].as<uint32_t>());
+    }
+
+    if (node["windowWidth"] && node["windowHeight"]) {
+        project->setWindowSize(
+            node["windowWidth"].as<unsigned int>(),
+            node["windowHeight"].as<unsigned int>()
+        );
     }
 
     // Load scenes information

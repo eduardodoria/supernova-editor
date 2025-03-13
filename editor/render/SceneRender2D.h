@@ -17,8 +17,12 @@ namespace Supernova::Editor{
         UILayer uilayer;
 
         float zoom;       // Current zoom level (units per pixel)
+        bool configureCamera;
+
+        void createLines(unsigned int width, unsigned int height);
+
     public:
-        SceneRender2D(Scene* scene);
+        SceneRender2D(Scene* scene, unsigned int width, unsigned int height, bool confiureCamera);
         virtual ~SceneRender2D();
 
         virtual void activate();
