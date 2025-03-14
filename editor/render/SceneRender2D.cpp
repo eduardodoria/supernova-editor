@@ -5,8 +5,11 @@
 
 using namespace Supernova;
 
-Editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned int height, bool configureCamera): uilayer(false), SceneRender(scene){
+Editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned int height): uilayer(false), SceneRender(scene){
     camera->setType(CameraType::CAMERA_ORTHO);
+
+    camera->slide(-50);
+    camera->slideUp(-50);
 
     lines = new Lines(scene);
 
@@ -42,12 +45,6 @@ void Editor::SceneRender2D::activate(){
 }
 
 void Editor::SceneRender2D::updateSize(int width, int height){
-    if (configureCamera){
-        zoom = 3.0;
-
-        configureCamera = false;
-    }
-
     SceneRender::updateSize(width, height);
 
     float newWidth = width * zoom;

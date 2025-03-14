@@ -22,7 +22,7 @@ namespace Supernova::Editor{
         void createLines(unsigned int width, unsigned int height);
 
     public:
-        SceneRender2D(Scene* scene, unsigned int width, unsigned int height, bool confiureCamera);
+        SceneRender2D(Scene* scene, unsigned int width, unsigned int height);
         virtual ~SceneRender2D();
 
         virtual void activate();
