@@ -593,7 +593,12 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
                             originalTex[name][entity] = Texture(*valueRef);
                             if (*valueRef != Texture(receivedStrings[0])){
                                 *valueRef = Texture(receivedStrings[0]);
-                                scene->getComponent<MeshComponent>(entity).needReload = true;
+                                if (prop.updateFlags & UpdateFlags_MeshReload){
+                                    scene->getComponent<MeshComponent>(entity).needReload = true;
+                                }
+                                if (prop.updateFlags & UpdateFlags_UIUpdateTexture){
+                                    scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
+                                }
                                 //printf("reload %s\n", name.c_str());
                             }
                         }
@@ -621,7 +626,12 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
                     Texture* valueRef = Catalog::getPropertyRef<Texture>(scene, entity, cpType, name);
                     if (*valueRef != originalTex[name][entity]){
                         *valueRef = originalTex[name][entity];
-                        scene->getComponent<MeshComponent>(entity).needReload = true;
+                        if (prop.updateFlags & UpdateFlags_MeshReload){
+                            scene->getComponent<MeshComponent>(entity).needReload = true;
+                        }
+                        if (prop.updateFlags & UpdateFlags_UIUpdateTexture){
+                            scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
+                        }
                         //printf("reload %s\n", name.c_str());
                     }
                 }
@@ -768,6 +778,15 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
     }
 }
 
+void Editor::Properties::drawUIComponent(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, std::vector<Entity> entities){
+    beginTable(cpType, getMaxLabelSize(props, {}, {}));
+
+    propertyRow(cpType, props, "color", scene, entities);
+    propertyRow(cpType, props, "texture", scene, entities);
+
+    endTable();
+}
+
 void Editor::Properties::show(){
     ImGui::Begin("Properties");
 
@@ -854,6 +873,8 @@ void Editor::Properties::show(){
                 drawTransform(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
             }else if (cpType == ComponentType::MeshComponent){
                 drawMeshComponent(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
+            }else if (cpType == ComponentType::UIComponent){
+                drawUIComponent(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
             }
 
         }

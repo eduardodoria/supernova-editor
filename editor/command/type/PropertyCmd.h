@@ -35,6 +35,9 @@ namespace Supernova::Editor{
             if (updateFlags & UpdateFlags_MeshReload){
                 scene->getComponent<MeshComponent>(entity).needReload = true;
             }
+            if (updateFlags & UpdateFlags_UIUpdateTexture){
+                scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
+            }
         }
 
     public:

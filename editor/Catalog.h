@@ -11,6 +11,7 @@ namespace Supernova::Editor{
         UpdateFlags_None                     = 0,
         UpdateFlags_Transform                = 1 << 0,
         UpdateFlags_MeshReload               = 1 << 1,
+        UpdateFlags_UIUpdateTexture          = 1 << 2
     };
 
     enum class ComponentType : int {

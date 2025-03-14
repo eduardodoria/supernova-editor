@@ -12,7 +12,8 @@ namespace Supernova::Editor{
         EMPTY,
         OBJECT,
         BOX,
-        PLANE
+        PLANE,
+        IMAGE
     };
 
     class CreateEntityCmd: public Command{

@@ -144,6 +144,12 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
             ps["submeshes["+idx+"].face_culling"] = {PropertyType::Bool, "Face culling", UpdateFlags_MeshReload, (void*)&def->submeshes[0].faceCulling, (compRef) ? (void*)&comp->submeshes[s].faceCulling : nullptr};
             ps["submeshes["+idx+"].texture_rect"] = {PropertyType::Vector4, "Texture rect", UpdateFlags_None, (void*)&def->submeshes[0].textureRect, (compRef) ? (void*)&comp->submeshes[s].textureRect : nullptr};
         }
+    }else if (component == ComponentType::UIComponent){
+        UIComponent* comp = (UIComponent*)compRef;
+        static UIComponent* def = new UIComponent;
+
+        ps["color"] = {PropertyType::Color4L, "Base Color", UpdateFlags_None, (void*)&def->color, (compRef) ? (void*)&comp->color : nullptr};
+        ps["texture"] = {PropertyType::Texture, "Texture", UpdateFlags_UIUpdateTexture, (void*)&def->texture, (compRef) ? (void*)&comp->texture : nullptr};
     }
 
     return ps;
@@ -295,6 +301,10 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::findEntityPropertie
         }
     }else if (component == ComponentType::MeshComponent){
         if (MeshComponent* compRef = scene->findComponent<MeshComponent>(entity)){
+            return getProperties(component, compRef);
+        }
+    }else if (component == ComponentType::UIComponent){
+        if (UIComponent* compRef = scene->findComponent<UIComponent>(entity)){
             return getProperties(component, compRef);
         }
     }

@@ -56,8 +56,6 @@ void Editor::CreateEntityCmd::execute(){
                 scenes[i].scene->addComponent<Transform>(entity, {});
                 scenes[i].scene->addComponent<MeshComponent>(entity, {});
 
-                MeshComponent& mesh = scenes[i].scene->getComponent<MeshComponent>(entity);
-
                 scenes[i].scene->getSystem<MeshSystem>()->createBox(entity, 1, 1, 1);
 
             }else if (type == EntityCreationType::PLANE){
@@ -65,10 +63,18 @@ void Editor::CreateEntityCmd::execute(){
                 scenes[i].scene->addComponent<Transform>(entity, {});
                 scenes[i].scene->addComponent<MeshComponent>(entity, {});
 
-                MeshComponent& mesh = scenes[i].scene->getComponent<MeshComponent>(entity);
-
                 scenes[i].scene->getSystem<MeshSystem>()->createPlane(entity, 10, 10);
 
+            }else if (type == EntityCreationType::IMAGE){
+
+                scenes[i].scene->addComponent<Transform>(entity, {});
+                scenes[i].scene->addComponent<UILayoutComponent>(entity, {});
+                scenes[i].scene->addComponent<UIComponent>(entity, {});
+                scenes[i].scene->addComponent<ImageComponent>(entity, {});
+
+                UILayoutComponent& layout = scenes[i].scene->getComponent<UILayoutComponent>(entity);
+                layout.width = 100;
+                layout.height = 100;
             }
 
             scenes[i].scene->setEntityName(entity, entityName);
