@@ -122,8 +122,8 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         MeshComponent* comp = (MeshComponent*)compRef;
         static MeshComponent* def = new MeshComponent;
 
-        ps["cast_shadows"] = {PropertyType::Bool, "Cast shadows", UpdateFlags_MeshReload, (void*)&def->castShadows, (compRef) ? (void*)&comp->castShadows : nullptr};
-        ps["receive_shadows"] = {PropertyType::Bool, "Receive shadows", UpdateFlags_MeshReload, (void*)&def->receiveShadows, (compRef) ? (void*)&comp->receiveShadows : nullptr};
+        ps["cast_shadows"] = {PropertyType::Bool, "Cast shadows", UpdateFlags_Mesh_Reload, (void*)&def->castShadows, (compRef) ? (void*)&comp->castShadows : nullptr};
+        ps["receive_shadows"] = {PropertyType::Bool, "Receive shadows", UpdateFlags_Mesh_Reload, (void*)&def->receiveShadows, (compRef) ? (void*)&comp->receiveShadows : nullptr};
         ps["num_submeshes"] = {PropertyType::UInt, "Num submesh", UpdateFlags_None, (void*)&def->numSubmeshes, (compRef) ? (void*)&comp->numSubmeshes : nullptr};
         for (int s = 0; s < ((compRef) ? comp->numSubmeshes : 1); s++){
             std::string idx = (compRef) ? std::to_string(s) : "";
@@ -134,14 +134,14 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
             ps["submeshes["+idx+"].material.emissivefactor"] = {PropertyType::Color3L, "Emissive Factor", UpdateFlags_None, (void*)&def->submeshes[0].material.emissiveFactor, (compRef) ? (void*)&comp->submeshes[s].material.emissiveFactor : nullptr};
             ps["submeshes["+idx+"].material.ambientlight"] = {PropertyType::Color3L, "Ambient Light", UpdateFlags_None, (void*)&def->submeshes[0].material.ambientLight, (compRef) ? (void*)&comp->submeshes[s].material.ambientLight : nullptr};
             ps["submeshes["+idx+"].material.ambientintensity"] = {PropertyType::Float_0_1, "Ambient Intensity", UpdateFlags_None, (void*)&def->submeshes[0].material.ambientIntensity, (compRef) ? (void*)&comp->submeshes[s].material.ambientIntensity : nullptr};
-            ps["submeshes["+idx+"].material.basecolortexture"] = {PropertyType::Texture, "Base Texture", UpdateFlags_MeshReload, (void*)&def->submeshes[0].material.baseColorTexture, (compRef) ? (void*)&comp->submeshes[s].material.baseColorTexture : nullptr};
-            ps["submeshes["+idx+"].material.emissivetexture"] = {PropertyType::Texture, "Emissive Texture", UpdateFlags_MeshReload, (void*)&def->submeshes[0].material.emissiveTexture, (compRef) ? (void*)&comp->submeshes[s].material.emissiveTexture : nullptr};
-            ps["submeshes["+idx+"].material.metallicroughnesstexture"] = {PropertyType::Texture, "Met. Rou. Texture", UpdateFlags_MeshReload, (void*)&def->submeshes[0].material.metallicRoughnessTexture, (compRef) ? (void*)&comp->submeshes[s].material.metallicRoughnessTexture : nullptr};
-            ps["submeshes["+idx+"].material.occlusiontexture"] = {PropertyType::Texture, "Occlusion Texture", UpdateFlags_MeshReload, (void*)&def->submeshes[0].material.occlusionTexture, (compRef) ? (void*)&comp->submeshes[s].material.occlusionTexture : nullptr};
-            ps["submeshes["+idx+"].material.normalTexture"] = {PropertyType::Texture, "Normal Texture", UpdateFlags_MeshReload, (void*)&def->submeshes[0].material.normalTexture, (compRef) ? (void*)&comp->submeshes[s].material.normalTexture : nullptr};
+            ps["submeshes["+idx+"].material.basecolortexture"] = {PropertyType::Texture, "Base Texture", UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.baseColorTexture, (compRef) ? (void*)&comp->submeshes[s].material.baseColorTexture : nullptr};
+            ps["submeshes["+idx+"].material.emissivetexture"] = {PropertyType::Texture, "Emissive Texture", UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.emissiveTexture, (compRef) ? (void*)&comp->submeshes[s].material.emissiveTexture : nullptr};
+            ps["submeshes["+idx+"].material.metallicroughnesstexture"] = {PropertyType::Texture, "Met. Rou. Texture", UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.metallicRoughnessTexture, (compRef) ? (void*)&comp->submeshes[s].material.metallicRoughnessTexture : nullptr};
+            ps["submeshes["+idx+"].material.occlusiontexture"] = {PropertyType::Texture, "Occlusion Texture", UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.occlusionTexture, (compRef) ? (void*)&comp->submeshes[s].material.occlusionTexture : nullptr};
+            ps["submeshes["+idx+"].material.normalTexture"] = {PropertyType::Texture, "Normal Texture", UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.normalTexture, (compRef) ? (void*)&comp->submeshes[s].material.normalTexture : nullptr};
 
-            ps["submeshes["+idx+"].primitive_type"] = {PropertyType::PrimitiveType, "Primitive", UpdateFlags_MeshReload, (void*)&def->submeshes[0].primitiveType, (compRef) ? (void*)&comp->submeshes[s].primitiveType : nullptr};
-            ps["submeshes["+idx+"].face_culling"] = {PropertyType::Bool, "Face culling", UpdateFlags_MeshReload, (void*)&def->submeshes[0].faceCulling, (compRef) ? (void*)&comp->submeshes[s].faceCulling : nullptr};
+            ps["submeshes["+idx+"].primitive_type"] = {PropertyType::PrimitiveType, "Primitive", UpdateFlags_Mesh_Reload, (void*)&def->submeshes[0].primitiveType, (compRef) ? (void*)&comp->submeshes[s].primitiveType : nullptr};
+            ps["submeshes["+idx+"].face_culling"] = {PropertyType::Bool, "Face culling", UpdateFlags_Mesh_Reload, (void*)&def->submeshes[0].faceCulling, (compRef) ? (void*)&comp->submeshes[s].faceCulling : nullptr};
             ps["submeshes["+idx+"].texture_rect"] = {PropertyType::Vector4, "Texture rect", UpdateFlags_None, (void*)&def->submeshes[0].textureRect, (compRef) ? (void*)&comp->submeshes[s].textureRect : nullptr};
         }
     }else if (component == ComponentType::UIComponent){
@@ -149,7 +149,7 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         static UIComponent* def = new UIComponent;
 
         ps["color"] = {PropertyType::Color4L, "Base Color", UpdateFlags_None, (void*)&def->color, (compRef) ? (void*)&comp->color : nullptr};
-        ps["texture"] = {PropertyType::Texture, "Texture", UpdateFlags_UIUpdateTexture, (void*)&def->texture, (compRef) ? (void*)&comp->texture : nullptr};
+        ps["texture"] = {PropertyType::Texture, "Texture", UpdateFlags_UI_Texture, (void*)&def->texture, (compRef) ? (void*)&comp->texture : nullptr};
     }
 
     return ps;

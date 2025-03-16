@@ -129,6 +129,8 @@ std::string Editor::Structure::getObjectIcon(Signature signature, Scene* scene){
         return ICON_FA_PERSON_WALKING;
     }else if (signature.test(scene->getComponentId<MeshComponent>())){
         return ICON_FA_CUBE;
+    }else if (signature.test(scene->getComponentId<UIComponent>())){
+        return ICON_FA_IMAGE;
     }else if (signature.test(scene->getComponentId<Transform>())){
         return ICON_FA_SITEMAP;
     }

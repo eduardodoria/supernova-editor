@@ -32,10 +32,19 @@ namespace Supernova::Editor{
             if (updateFlags & UpdateFlags_Transform){
                 scene->getComponent<Transform>(entity).needUpdate = true;
             }
-            if (updateFlags & UpdateFlags_MeshReload){
+            if (updateFlags & UpdateFlags_Mesh_Reload){
                 scene->getComponent<MeshComponent>(entity).needReload = true;
             }
-            if (updateFlags & UpdateFlags_UIUpdateTexture){
+            if (updateFlags & UpdateFlags_Mesh_Texture){
+                unsigned int numSubmeshes = scene->getComponent<MeshComponent>(entity).numSubmeshes;
+                for (unsigned int i = 0; i < numSubmeshes; i++){
+                    scene->getComponent<MeshComponent>(entity).submeshes[i].needUpdateTexture = true;
+                }
+            }
+            if (updateFlags & UpdateFlags_UI_Reload){
+                scene->getComponent<UIComponent>(entity).needReload = true;
+            }
+            if (updateFlags & UpdateFlags_UI_Texture){
                 scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
             }
         }

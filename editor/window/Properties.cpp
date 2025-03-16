@@ -593,13 +593,16 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
                             originalTex[name][entity] = Texture(*valueRef);
                             if (*valueRef != Texture(receivedStrings[0])){
                                 *valueRef = Texture(receivedStrings[0]);
-                                if (prop.updateFlags & UpdateFlags_MeshReload){
-                                    scene->getComponent<MeshComponent>(entity).needReload = true;
+                                if (prop.updateFlags & UpdateFlags_Mesh_Texture){
+                                    unsigned int numSubmeshes = scene->getComponent<MeshComponent>(entity).numSubmeshes;
+                                    for (unsigned int i = 0; i < numSubmeshes; i++){
+                                        scene->getComponent<MeshComponent>(entity).submeshes[i].needUpdateTexture = true;
+                                    }
                                 }
-                                if (prop.updateFlags & UpdateFlags_UIUpdateTexture){
+                                if (prop.updateFlags & UpdateFlags_UI_Texture){
                                     scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
                                 }
-                                //printf("reload %s\n", name.c_str());
+                                //printf("needUpdateTexture %s\n", name.c_str());
                             }
                         }
                     }
@@ -626,13 +629,16 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
                     Texture* valueRef = Catalog::getPropertyRef<Texture>(scene, entity, cpType, name);
                     if (*valueRef != originalTex[name][entity]){
                         *valueRef = originalTex[name][entity];
-                        if (prop.updateFlags & UpdateFlags_MeshReload){
-                            scene->getComponent<MeshComponent>(entity).needReload = true;
+                        if (prop.updateFlags & UpdateFlags_Mesh_Texture){
+                            unsigned int numSubmeshes = scene->getComponent<MeshComponent>(entity).numSubmeshes;
+                            for (unsigned int i = 0; i < numSubmeshes; i++){
+                                scene->getComponent<MeshComponent>(entity).submeshes[i].needUpdateTexture = true;
+                            }
                         }
-                        if (prop.updateFlags & UpdateFlags_UIUpdateTexture){
+                        if (prop.updateFlags & UpdateFlags_UI_Texture){
                             scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
                         }
-                        //printf("reload %s\n", name.c_str());
+                        //printf("needUpdateTexture %s\n", name.c_str());
                     }
                 }
 
