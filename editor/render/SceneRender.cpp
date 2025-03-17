@@ -29,6 +29,9 @@ void Editor::SceneRender::updateSize(int width, int height){
 }
 
 void Editor::SceneRender::updateRenderSystem(){
+    // UIs is created in update, without this can affect worldA
+    scene->getSystem<UISystem>()->update(0);
+    // to avoid gizmos delays
     scene->getSystem<RenderSystem>()->update(0);
 }
 

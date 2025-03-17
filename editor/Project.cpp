@@ -502,9 +502,19 @@ Entity Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
     float distance = FLT_MAX;
     Entity selEntity = NULL_ENTITY;
     for (auto& entity : scenedata->entities) {
-        MeshComponent* mesh = scenedata->scene->findComponent<MeshComponent>(entity);
-        if (mesh){
-            RayReturn rreturn = ray.intersects(mesh->worldAABB);
+        AABB aabb;
+        Signature signature = scenedata->scene->getSignature(entity);
+
+        if (signature.test(scenedata->scene->getComponentId<MeshComponent>())){
+            MeshComponent& mesh = scenedata->scene->getComponent<MeshComponent>(entity);
+            aabb = mesh.worldAABB;
+        }else if (signature.test(scenedata->scene->getComponentId<UIComponent>())){
+            UIComponent& ui = scenedata->scene->getComponent<UIComponent>(entity);
+            aabb = ui.worldAABB;
+        }
+
+        if (!aabb.isNull()){
+            RayReturn rreturn = ray.intersects(aabb);
             if (rreturn.hit){
                 if (rreturn.distance < distance){
                     distance = rreturn.distance;
