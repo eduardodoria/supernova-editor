@@ -17,6 +17,9 @@ namespace Supernova::Editor{
         bool useGlobalTransform;
 
         CursorSelected cursorSelected;
+
+        AABB getFamilyAABB(Entity entity, float sizePercent);
+
     public:
         SceneRender(Scene* scene);
         virtual ~SceneRender();

@@ -14,10 +14,11 @@ namespace Supernova::Editor{
     private:
         Lines* lines;
 
+        Lines* selLines;
+
         UILayer uilayer;
 
         float zoom;       // Current zoom level (units per pixel)
-        bool configureCamera;
 
         void createLines(unsigned int width, unsigned int height);
 

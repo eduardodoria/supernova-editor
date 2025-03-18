@@ -79,33 +79,6 @@ Editor::SceneRender3D::~SceneRender3D(){
     delete selAABBLines;
 }
 
-AABB Editor::SceneRender3D::getFamilyAABB(Entity entity){
-    auto transforms = scene->getComponentArray<Transform>();
-    size_t index = transforms->getIndex(entity);
-
-    AABB aabb;
-    std::vector<Entity> parentList;
-    for (int i = index; i < transforms->size(); i++){
-        Transform& transform = transforms->getComponentFromIndex(i);
-
-        // Finding childs
-        if (i > index){
-            if (std::find(parentList.begin(), parentList.end(), transform.parent) == parentList.end()){
-                break;
-            }
-        }
-
-        entity = transforms->getEntity(i);
-        parentList.push_back(entity);
-
-        if (MeshComponent* mesh = scene->findComponent<MeshComponent>(entity)){
-            aabb.merge(transform.modelMatrix * Matrix4::scaleMatrix(Vector3(1.01)) * mesh->aabb);
-        }
-    }
-
-    return aabb;
-}
-
 void Editor::SceneRender3D::createLines(){
     int gridHeight = 0;
     int gridSize = camera->getFarClip() * 2;
@@ -186,7 +159,7 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities){
                 gizmoRotation = transform->worldRotation;
             }
 
-            selAABB.merge(getFamilyAABB(entity));
+            selAABB.merge(getFamilyAABB(entity, 1.01));
         }
     }
 

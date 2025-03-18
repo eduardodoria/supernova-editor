@@ -17,6 +17,39 @@ Editor::SceneRender::~SceneRender(){
     delete camera;
 }
 
+AABB Editor::SceneRender::getFamilyAABB(Entity entity, float sizePercent){
+    auto transforms = scene->getComponentArray<Transform>();
+    size_t index = transforms->getIndex(entity);
+
+    AABB aabb;
+    std::vector<Entity> parentList;
+    for (int i = index; i < transforms->size(); i++){
+        Transform& transform = transforms->getComponentFromIndex(i);
+
+        // Finding childs
+        if (i > index){
+            if (std::find(parentList.begin(), parentList.end(), transform.parent) == parentList.end()){
+                break;
+            }
+        }
+
+        entity = transforms->getEntity(i);
+        parentList.push_back(entity);
+
+        Signature signature = scene->getSignature(entity);
+        if (signature.test(scene->getComponentId<MeshComponent>())){
+            MeshComponent& mesh = scene->getComponent<MeshComponent>(entity);
+            aabb.merge(transform.modelMatrix * Matrix4::scaleMatrix(Vector3(sizePercent)) * mesh.aabb);
+        }else if (signature.test(scene->getComponentId<UIComponent>())){
+            UIComponent& ui = scene->getComponent<UIComponent>(entity);
+            aabb.merge(transform.modelMatrix * Matrix4::scaleMatrix(Vector3(sizePercent)) * ui.aabb);
+            //aabb = Matrix4::translateMatrix(Vector3(-30, -30, 0)) * aabb;
+        }
+    }
+
+    return aabb;
+}
+
 void Editor::SceneRender::activate(){
     Engine::setFramebuffer(&framebuffer);
     Engine::setScene(scene);

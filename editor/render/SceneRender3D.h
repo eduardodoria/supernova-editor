@@ -38,7 +38,6 @@ namespace Supernova::Editor{
 
         static float gizmoSize;
 
-        AABB getFamilyAABB(Entity entity);
         void createLines();
 
     public:

@@ -14,7 +14,12 @@ Editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned 
     lines = new Lines(scene);
 
     createLines(width, height);
-    this->configureCamera = configureCamera;
+
+    selLines = new Lines(scene);
+    for (int i = 0; i < 4; i++){
+        selLines->addLine(Vector3::ZERO, Vector3::ZERO, Vector4(1.0, 0.6, 0.0, 1.0));
+    }
+    selLines->setVisible(false);
 
     scene->setBackgroundColor(Vector4(0.231, 0.298, 0.475, 1.0));
 
@@ -63,7 +68,44 @@ void Editor::SceneRender2D::updateSize(int width, int height){
 }
 
 void Editor::SceneRender2D::update(std::vector<Entity> selEntities){
+    size_t numTEntities = 0;
+    AABB selAABB;
 
+    for (Entity& entity: selEntities){
+        if (Transform* transform = scene->findComponent<Transform>(entity)){
+            numTEntities++;
+
+            //gizmoPosition += transform->worldPosition;
+
+            //if (!useGlobalTransform && selEntities.size() == 1){
+            //    gizmoRotation = transform->worldRotation;
+            //}
+
+            selAABB.merge(getFamilyAABB(entity, 1.3));
+        }
+    }
+
+    if (numTEntities > 0){
+        //gizmoPosition /= numTEntities;
+
+        //gizmoVisibility = true;
+
+        //float dist = (gizmoPosition - camera->getWorldPosition()).length();
+        //float scale = std::tan(cameracomp.yfov) * dist * (gizmoSize / (float)framebuffer.getHeight());
+
+        //toolslayer.updateGizmo(camera, gizmoPosition, gizmoRotation, scale, mouseRay, mouseClicked);
+
+        if (selAABB.isNull() || selAABB.isInfinite()){
+            selLines->setVisible(false);
+        }else{
+            selLines->setVisible(true);
+
+            selLines->updateLine(0, selAABB.getCorner(AABB::NEAR_LEFT_BOTTOM), selAABB.getCorner(AABB::NEAR_LEFT_TOP));
+            selLines->updateLine(1, selAABB.getCorner(AABB::NEAR_LEFT_TOP), selAABB.getCorner(AABB::NEAR_RIGHT_TOP));
+            selLines->updateLine(2, selAABB.getCorner(AABB::NEAR_RIGHT_TOP), selAABB.getCorner(AABB::NEAR_RIGHT_BOTTOM));
+            selLines->updateLine(3, selAABB.getCorner(AABB::NEAR_RIGHT_BOTTOM), selAABB.getCorner(AABB::NEAR_LEFT_BOTTOM));
+        }
+    }
 }
 
 void Editor::SceneRender2D::mouseHoverEvent(float x, float y){
