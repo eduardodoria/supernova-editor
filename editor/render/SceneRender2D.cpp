@@ -25,6 +25,8 @@ Editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned 
 
     zoom = 1.0f;
 
+    o2dgizmo = new Object2DGizmo(scene);
+
     Engine::setScalingMode(Scaling::NATIVE);
     Engine::setFixedTimeSceneUpdate(false);
 }

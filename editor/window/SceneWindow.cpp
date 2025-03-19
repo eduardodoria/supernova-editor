@@ -41,7 +41,15 @@ bool Editor::SceneWindow::isFocused() const {
 }
 
 std::string Editor::SceneWindow::getWindowTitle(const SceneProject& sceneProject) const {
-    return sceneProject.name + (sceneProject.isModified ? " *" : "") + "###Scene" + std::to_string(sceneProject.id);
+    std::string icon;
+    if (sceneProject.sceneType == SceneType::SCENE_3D){
+        icon = ICON_FA_CUBES + std::string("  ");
+    }else if (sceneProject.sceneType == SceneType::SCENE_2D){
+        icon = ICON_FA_CUBES_STACKED + std::string("  ");
+    }else if (sceneProject.sceneType == SceneType::SCENE_UI){
+        icon = ICON_FA_WINDOW_RESTORE + std::string("  ");
+    }
+    return icon + sceneProject.name + (sceneProject.isModified ? " *" : "") + "###Scene" + std::to_string(sceneProject.id);
 }
 
 void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){

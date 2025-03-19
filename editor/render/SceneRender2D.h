@@ -3,8 +3,7 @@
 #include "SceneRender.h"
 
 #include "Supernova.h"
-#include "ViewportGizmo.h"
-#include "ToolsLayer.h"
+#include "gizmo/Object2DGizmo.h"
 #include "UILayer.h"
 #include "command/Command.h"
 
@@ -17,6 +16,7 @@ namespace Supernova::Editor{
         Lines* selLines;
 
         UILayer uilayer;
+        Object2DGizmo* o2dgizmo;
 
         float zoom;       // Current zoom level (units per pixel)
 
