@@ -18,7 +18,7 @@ namespace Supernova::Editor{
 
         CursorSelected cursorSelected;
 
-        AABB getFamilyAABB(Entity entity, float sizePercent);
+        AABB getFamilyAABB(Entity entity, float scale);
 
     public:
         SceneRender(Scene* scene);

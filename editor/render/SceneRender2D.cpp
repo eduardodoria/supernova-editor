@@ -81,14 +81,15 @@ void Editor::SceneRender2D::update(std::vector<Entity> selEntities){
             //    gizmoRotation = transform->worldRotation;
             //}
 
-            selAABB.merge(getFamilyAABB(entity, 1.3));
+            selAABB.merge(getFamilyAABB(entity, 1.05));
         }
     }
 
+    bool gizmoVisibility = false;
     if (numTEntities > 0){
         //gizmoPosition /= numTEntities;
 
-        //gizmoVisibility = true;
+        gizmoVisibility = true;
 
         //float dist = (gizmoPosition - camera->getWorldPosition()).length();
         //float scale = std::tan(cameracomp.yfov) * dist * (gizmoSize / (float)framebuffer.getHeight());
@@ -106,6 +107,8 @@ void Editor::SceneRender2D::update(std::vector<Entity> selEntities){
             selLines->updateLine(3, selAABB.getCorner(AABB::NEAR_RIGHT_BOTTOM), selAABB.getCorner(AABB::NEAR_LEFT_BOTTOM));
         }
     }
+
+    selLines->setVisible(gizmoVisibility);
 }
 
 void Editor::SceneRender2D::mouseHoverEvent(float x, float y){

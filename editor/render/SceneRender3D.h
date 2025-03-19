@@ -16,7 +16,7 @@ namespace Supernova::Editor{
         Lines* lines;
         Light* sun;
         SkyBox* sky;
-        Lines* selAABBLines;
+        Lines* selLines;
 
         ToolsLayer toolslayer;
         UILayer uilayer;

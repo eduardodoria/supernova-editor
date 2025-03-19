@@ -17,7 +17,7 @@ Editor::SceneRender::~SceneRender(){
     delete camera;
 }
 
-AABB Editor::SceneRender::getFamilyAABB(Entity entity, float sizePercent){
+AABB Editor::SceneRender::getFamilyAABB(Entity entity, float scale){
     auto transforms = scene->getComponentArray<Transform>();
     size_t index = transforms->getIndex(entity);
 
@@ -36,14 +36,22 @@ AABB Editor::SceneRender::getFamilyAABB(Entity entity, float sizePercent){
         entity = transforms->getEntity(i);
         parentList.push_back(entity);
 
+        AABB entityAABB;
         Signature signature = scene->getSignature(entity);
         if (signature.test(scene->getComponentId<MeshComponent>())){
             MeshComponent& mesh = scene->getComponent<MeshComponent>(entity);
-            aabb.merge(transform.modelMatrix * Matrix4::scaleMatrix(Vector3(sizePercent)) * mesh.aabb);
+            entityAABB = mesh.worldAABB;
         }else if (signature.test(scene->getComponentId<UIComponent>())){
             UIComponent& ui = scene->getComponent<UIComponent>(entity);
-            aabb.merge(transform.modelMatrix * Matrix4::scaleMatrix(Vector3(sizePercent)) * ui.aabb);
-            //aabb = Matrix4::translateMatrix(Vector3(-30, -30, 0)) * aabb;
+            entityAABB = ui.worldAABB;
+        }
+
+        if (!entityAABB.isNull() && !entityAABB.isInfinite()){
+            Vector3 worldCenter = entityAABB.getCenter();
+            Vector3 worldHalfSize = entityAABB.getHalfSize() * scale;
+            AABB scaledAABB(worldCenter - worldHalfSize, worldCenter + worldHalfSize);
+
+            aabb.merge(scaledAABB);
         }
     }
 

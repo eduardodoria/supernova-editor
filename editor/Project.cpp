@@ -513,7 +513,7 @@ Entity Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
             aabb = ui.worldAABB;
         }
 
-        if (!aabb.isNull()){
+        if (!aabb.isNull() && !aabb.isInfinite()){
             RayReturn rreturn = ray.intersects(aabb);
             if (rreturn.hit){
                 if (rreturn.distance < distance){
