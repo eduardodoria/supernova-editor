@@ -11,6 +11,7 @@
 #include "gizmo/TranslateGizmo.h"
 #include "gizmo/RotateGizmo.h"
 #include "gizmo/ScaleGizmo.h"
+#include "gizmo/Object2DGizmo.h"
 
 namespace Supernova::Editor{
 
@@ -22,9 +23,12 @@ namespace Supernova::Editor{
         TranslateGizmo* tGizmo;
         RotateGizmo* rGizmo;
         ScaleGizmo* sGizmo;
+        Object2DGizmo* oGizmo;
 
         GizmoSelected gizmoSelected;
         GizmoSideSelected gizmoSideSelected;
+
+        float gizmoScale;
     public:
         ToolsLayer();
         virtual ~ToolsLayer();

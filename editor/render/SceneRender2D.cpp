@@ -5,7 +5,7 @@
 
 using namespace Supernova;
 
-Editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned int height): uilayer(false), SceneRender(scene){
+Editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned int height): SceneRender(scene, false, 50, 1.05){
     camera->setType(CameraType::CAMERA_ORTHO);
 
     camera->slide(-50);
@@ -22,10 +22,6 @@ Editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned 
     selLines->setVisible(false);
 
     scene->setBackgroundColor(Vector4(0.231, 0.298, 0.475, 1.0));
-
-    zoom = 1.0f;
-
-    o2dgizmo = new Object2DGizmo(scene);
 
     Engine::setScalingMode(Scaling::NATIVE);
     Engine::setFixedTimeSceneUpdate(false);
@@ -47,8 +43,6 @@ void Editor::SceneRender2D::createLines(unsigned int width, unsigned int height)
 
 void Editor::SceneRender2D::activate(){
     SceneRender::activate();
-
-    Engine::addSceneLayer(uilayer.getScene());
 }
 
 void Editor::SceneRender2D::updateSize(int width, int height){
@@ -69,75 +63,43 @@ void Editor::SceneRender2D::updateSize(int width, int height){
     camera->setTopClip(top);
 }
 
+void Editor::SceneRender2D::updateSelLines(AABB aabb){
+    selLines->updateLine(0, aabb.getCorner(AABB::NEAR_LEFT_BOTTOM), aabb.getCorner(AABB::NEAR_LEFT_TOP));
+    selLines->updateLine(1, aabb.getCorner(AABB::NEAR_LEFT_TOP), aabb.getCorner(AABB::NEAR_RIGHT_TOP));
+    selLines->updateLine(2, aabb.getCorner(AABB::NEAR_RIGHT_TOP), aabb.getCorner(AABB::NEAR_RIGHT_BOTTOM));
+    selLines->updateLine(3, aabb.getCorner(AABB::NEAR_RIGHT_BOTTOM), aabb.getCorner(AABB::NEAR_LEFT_BOTTOM));
+}
+
 void Editor::SceneRender2D::update(std::vector<Entity> selEntities){
-    size_t numTEntities = 0;
-    AABB selAABB;
-
-    for (Entity& entity: selEntities){
-        if (Transform* transform = scene->findComponent<Transform>(entity)){
-            numTEntities++;
-
-            //gizmoPosition += transform->worldPosition;
-
-            //if (!useGlobalTransform && selEntities.size() == 1){
-            //    gizmoRotation = transform->worldRotation;
-            //}
-
-            selAABB.merge(getFamilyAABB(entity, 1.05));
-        }
-    }
-
-    bool gizmoVisibility = false;
-    if (numTEntities > 0){
-        //gizmoPosition /= numTEntities;
-
-        gizmoVisibility = true;
-
-        //float dist = (gizmoPosition - camera->getWorldPosition()).length();
-        //float scale = std::tan(cameracomp.yfov) * dist * (gizmoSize / (float)framebuffer.getHeight());
-
-        //toolslayer.updateGizmo(camera, gizmoPosition, gizmoRotation, scale, mouseRay, mouseClicked);
-
-        if (selAABB.isNull() || selAABB.isInfinite()){
-            selLines->setVisible(false);
-        }else{
-            selLines->setVisible(true);
-
-            selLines->updateLine(0, selAABB.getCorner(AABB::NEAR_LEFT_BOTTOM), selAABB.getCorner(AABB::NEAR_LEFT_TOP));
-            selLines->updateLine(1, selAABB.getCorner(AABB::NEAR_LEFT_TOP), selAABB.getCorner(AABB::NEAR_RIGHT_TOP));
-            selLines->updateLine(2, selAABB.getCorner(AABB::NEAR_RIGHT_TOP), selAABB.getCorner(AABB::NEAR_RIGHT_BOTTOM));
-            selLines->updateLine(3, selAABB.getCorner(AABB::NEAR_RIGHT_BOTTOM), selAABB.getCorner(AABB::NEAR_LEFT_BOTTOM));
-        }
-    }
-
-    selLines->setVisible(gizmoVisibility);
+    SceneRender::update(selEntities);
 }
 
 void Editor::SceneRender2D::mouseHoverEvent(float x, float y){
-
+    SceneRender::mouseHoverEvent(x, y);
 }
 
 void Editor::SceneRender2D::mouseClickEvent(float x, float y, std::vector<Entity> selEntities){
-
+    SceneRender::mouseClickEvent(x, y, selEntities);
 }
 
 void Editor::SceneRender2D::mouseReleaseEvent(float x, float y){
-    uilayer.setRectVisible(false);
+    SceneRender::mouseReleaseEvent(x, y);
 }
 
 void Editor::SceneRender2D::mouseDragEvent(float x, float y, float origX, float origY, size_t sceneId, SceneProject* sceneProject, std::vector<Entity> selEntities, bool disableSelection){
-    if (!disableSelection){
-        uilayer.setRectVisible(true);
-        uilayer.updateRect(Vector2(origX, origY), Vector2(x, y) - Vector2(origX, origY));
-    }
-}
-
-bool Editor::SceneRender2D::isAnyGizmoSideSelected() const{
-    return false;
+    SceneRender::mouseDragEvent(x, y, origX, origY, sceneId, sceneProject, selEntities, disableSelection);
 }
 
 void Editor::SceneRender2D::setZoom(float newZoom) {
-    zoom = newZoom;
+    if (zoom != newZoom) {
+        Entity cameraEntity = camera->getEntity();
+        CameraComponent& cameracomp = scene->getComponent<CameraComponent>(cameraEntity);
+        Transform& cameratransform = scene->getComponent<Transform>(cameraEntity);
+
+        toolslayer.updateCamera(cameracomp, cameratransform);
+
+        zoom = newZoom;
+    }
 }
 
 float Editor::SceneRender2D::getZoom() const {

@@ -4,9 +4,6 @@
 
 #include "Supernova.h"
 #include "ViewportGizmo.h"
-#include "ToolsLayer.h"
-#include "UILayer.h"
-#include "command/Command.h"
 
 namespace Supernova::Editor{
 
@@ -16,27 +13,10 @@ namespace Supernova::Editor{
         Lines* lines;
         Light* sun;
         SkyBox* sky;
-        Lines* selLines;
 
-        ToolsLayer toolslayer;
-        UILayer uilayer;
         ViewportGizmo viewgizmo;
 
         Vector2 linesOffset;
-
-        Ray mouseRay;
-        bool mouseClicked;
-        Plane cursorPlane;
-        Vector3 rotationAxis;
-        Vector3 cursorStartOffset;
-        Quaternion rotationStartOffset;
-        Vector3 scaleStartOffset;
-
-        std::map<Entity, Matrix4> objectMatrixOffset;
-
-        Command* lastCommand;
-
-        static float gizmoSize;
 
         void createLines();
 
@@ -45,6 +25,7 @@ namespace Supernova::Editor{
         virtual ~SceneRender3D();
 
         virtual void activate();
+        virtual void updateSelLines(AABB aabb);
 
         virtual void update(std::vector<Entity> selEntities);
         virtual void mouseHoverEvent(float x, float y);
@@ -52,11 +33,7 @@ namespace Supernova::Editor{
         virtual void mouseReleaseEvent(float x, float y);
         virtual void mouseDragEvent(float x, float y, float origX, float origY, size_t sceneId, SceneProject* sceneProject, std::vector<Entity> selEntities, bool disableSelection);
 
-        virtual bool isAnyGizmoSideSelected() const;
-
         ViewportGizmo* getViewportGizmo();
-        ToolsLayer* getToolsLayer();
-        UILayer* getUILayer();
     };
 
 }

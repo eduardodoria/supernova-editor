@@ -3,10 +3,6 @@
 using namespace Supernova;
 
 Editor::ToolsLayer::ToolsLayer(){
-    float cylinderRadius = 0.05;
-    float cylinderHeight = 2;
-    float arrowRadius = 0.1;
-    float arrowHeight = 0.4;
     gizmoSelected = GizmoSelected::TRANSLATE;
     gizmoSideSelected = GizmoSideSelected::NONE;
 
@@ -16,8 +12,11 @@ Editor::ToolsLayer::ToolsLayer(){
     tGizmo = new TranslateGizmo(scene);
     rGizmo = new RotateGizmo(scene);
     sGizmo = new ScaleGizmo(scene);
+    oGizmo = new Object2DGizmo(scene);
 
     scene->setCamera(camera);
+
+    gizmoScale = 1.0f;
 }
 
 Editor::ToolsLayer::~ToolsLayer(){
@@ -25,6 +24,7 @@ Editor::ToolsLayer::~ToolsLayer(){
     delete tGizmo;
     delete rGizmo;
     delete sGizmo;
+    delete oGizmo;
 
     delete scene;
 }
@@ -49,9 +49,27 @@ void Editor::ToolsLayer::updateCamera(CameraComponent& extCamera, Transform& ext
     if (extCamera.needUpdate){
         cameracomp.needUpdate = extCamera.needUpdate;
     }
+    /*
+    float newNearClip;
+    float newFarClip;
+    if (cameracomp.type == CameraType::CAMERA_PERSPECTIVE){
+        //newNearClip = 0.0001;
+        newFarClip = extCamera.farClip * gizmoScale;
+    }else{
+        //newNearClip = extCamera.nearClip * gizmoScale;
+        newFarClip = extCamera.farClip * gizmoScale;
+    }
+    if (newNearClip != cameracomp.nearClip || newFarClip != cameracomp.farClip){
+        cameracomp.nearClip = newNearClip;
+        cameracomp.farClip = newFarClip;
+        cameracomp.needUpdate = true;
+    }
+    */
 }
 
 void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quaternion& rotation, float scale, Ray& mouseRay, bool mouseClicked){
+    gizmoScale = scale;
+
     if (gizmoSelected == GizmoSelected::TRANSLATE){
         tGizmo->setPosition(position);
         tGizmo->setRotation(rotation);
