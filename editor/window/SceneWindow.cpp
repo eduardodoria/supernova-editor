@@ -259,37 +259,11 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
             if (isMouseInWindow && mouseWheel != 0.0f){
                 float zoomFactor = 1.0f - (0.1f * mouseWheel);
 
-                float left = camera->getLeftClip();
-                float right = camera->getRightClip();
-                float bottom = camera->getBottomClip();
-                float top = camera->getTopClip();
-
                 float mouseX = mousePos.x - windowPos.x;
                 float mouseY = mousePos.y - windowPos.y;
 
-                float worldX = left + (mouseX / width[sceneProject->id]) * (right - left);
-                float worldY = bottom + ((height[sceneProject->id] - mouseY) / height[sceneProject->id]) * (top - bottom);
-
-                float currentWidth = right - left;
-                float currentZoom = currentWidth / width[sceneProject->id]; // units per pixel
-
-                float newZoom = currentZoom * zoomFactor;
-
-                float newWidth = width[sceneProject->id] * newZoom;
-                float newHeight = height[sceneProject->id] * newZoom;
-
-                float newLeft = worldX - (mouseX / width[sceneProject->id]) * newWidth;
-                float newRight = newLeft + newWidth;
-                float newBottom = worldY - ((height[sceneProject->id] - mouseY) / height[sceneProject->id]) * newHeight;
-                float newTop = newBottom + newHeight;
-
-                camera->setLeftClip(newLeft);
-                camera->setRightClip(newRight);
-                camera->setBottomClip(newBottom);
-                camera->setTopClip(newTop);
-
                 SceneRender2D* sceneRender2D = static_cast<SceneRender2D*>(sceneProject->sceneRender);
-                sceneRender2D->setZoom(newZoom);
+                sceneRender2D->zoomAtPosition(width[sceneProject->id], height[sceneProject->id], Vector2(mouseX, mouseY), zoomFactor);
             }
         }
 

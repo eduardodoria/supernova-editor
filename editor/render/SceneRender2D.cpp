@@ -5,7 +5,7 @@
 
 using namespace Supernova;
 
-Editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned int height): SceneRender(scene, false, 50, 1.05){
+Editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned int height): SceneRender(scene, false, 40, 1.05){
     camera->setType(CameraType::CAMERA_ORTHO);
 
     camera->slide(-50);
@@ -61,6 +61,12 @@ void Editor::SceneRender2D::updateSize(int width, int height){
     camera->setRightClip(right);
     camera->setBottomClip(bottom);
     camera->setTopClip(top);
+
+    Entity cameraEntity = camera->getEntity();
+    CameraComponent& cameracomp = scene->getComponent<CameraComponent>(cameraEntity);
+    Transform& cameratransform = scene->getComponent<Transform>(cameraEntity);
+
+    toolslayer.updateCamera(cameracomp, cameratransform);
 }
 
 void Editor::SceneRender2D::updateSelLines(AABB aabb){
@@ -90,7 +96,36 @@ void Editor::SceneRender2D::mouseDragEvent(float x, float y, float origX, float 
     SceneRender::mouseDragEvent(x, y, origX, origY, sceneId, sceneProject, selEntities, disableSelection);
 }
 
-void Editor::SceneRender2D::setZoom(float newZoom) {
+void Editor::SceneRender2D::zoomAtPosition(float width, float height, Vector2 pos, float zoomFactor){
+    float left = camera->getLeftClip();
+    float right = camera->getRightClip();
+    float bottom = camera->getBottomClip();
+    float top = camera->getTopClip();
+
+    float worldX = left + (pos.x / width) * (right - left);
+    float worldY = bottom + ((height - pos.y) / height) * (top - bottom);
+
+    float currentWidth = right - left;
+    float currentZoom = currentWidth / width; // units per pixel
+
+    float newZoom = currentZoom * zoomFactor;
+
+    float newWidth = width * newZoom;
+    float newHeight = height * newZoom;
+
+    float newLeft = worldX - (pos.x / width) * newWidth;
+    float newRight = newLeft + newWidth;
+    float newBottom = worldY - ((height - pos.y) / height) * newHeight;
+    float newTop = newBottom + newHeight;
+
+    camera->setLeftClip(newLeft);
+    camera->setRightClip(newRight);
+    camera->setBottomClip(newBottom);
+    camera->setTopClip(newTop);
+
+    camera->setNearClip(-10 * newZoom);
+    camera->setFarClip(10 * newZoom);
+
     if (zoom != newZoom) {
         Entity cameraEntity = camera->getEntity();
         CameraComponent& cameracomp = scene->getComponent<CameraComponent>(cameraEntity);

@@ -28,7 +28,8 @@ namespace Supernova::Editor{
         virtual void mouseReleaseEvent(float x, float y);
         virtual void mouseDragEvent(float x, float y, float origX, float origY, size_t sceneId, SceneProject* sceneProject, std::vector<Entity> selEntities, bool disableSelection);
 
-        void setZoom(float newZoom);
+        void zoomAtPosition(float width, float height, Vector2 pos, float zoomFactor);
+
         float getZoom() const;
     };
 
