@@ -11,7 +11,7 @@
 
 using namespace Supernova;
 
-Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, true, 40.0, 1.01){
+Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, true, 40.0, 0.01){
     linesOffset = Vector2(0, 0);
 
     lines = new Lines(scene);

@@ -5,13 +5,13 @@
 
 using namespace Supernova;
 
-Editor::SceneRender::SceneRender(Scene* scene, bool enableViewGizmo, float gizmoScale, float selectionScale): uilayer(enableViewGizmo){
+Editor::SceneRender::SceneRender(Scene* scene, bool use2DGizmos, bool enableViewGizmo, float gizmoScale, float selectionOffset): toolslayer(use2DGizmos), uilayer(enableViewGizmo){
     this->mouseClicked = false;
     this->lastCommand = nullptr;
     this->useGlobalTransform = true;
 
     this->gizmoScale = gizmoScale;
-    this->selectionScale = selectionScale;
+    this->selectionOffset = selectionOffset;
 
     this->scene = scene;
     this->camera = new Camera(scene);
@@ -29,7 +29,7 @@ Editor::SceneRender::~SceneRender(){
     delete camera;
 }
 
-AABB Editor::SceneRender::getFamilyAABB(Entity entity, float scale){
+AABB Editor::SceneRender::getFamilyAABB(Entity entity, float offset){
     auto transforms = scene->getComponentArray<Transform>();
     size_t index = transforms->getIndex(entity);
 
@@ -59,11 +59,11 @@ AABB Editor::SceneRender::getFamilyAABB(Entity entity, float scale){
         }
 
         if (!entityAABB.isNull() && !entityAABB.isInfinite()){
-            Vector3 worldCenter = entityAABB.getCenter();
-            Vector3 worldHalfSize = entityAABB.getHalfSize() * scale;
-            AABB scaledAABB(worldCenter - worldHalfSize, worldCenter + worldHalfSize);
+            Vector3 min = entityAABB.getMinimum() - Vector3(offset);
+            Vector3 max = entityAABB.getMaximum() + Vector3(offset);
+            entityAABB.setExtents(min, max);
 
-            aabb.merge(scaledAABB);
+            aabb.merge(entityAABB);
         }
     }
 
@@ -113,7 +113,7 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities){
                 gizmoRotation = transform->worldRotation;
             }
 
-            selAABB.merge(getFamilyAABB(entity, selectionScale));
+            selAABB.merge(getFamilyAABB(entity, selectionOffset));
         }
     }
 

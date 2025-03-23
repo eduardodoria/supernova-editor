@@ -93,6 +93,8 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
             mouseLeftDragPos = Vector2(x, y);
             if (mouseLeftStartPos.distance(mouseLeftDragPos) > 5){
                 mouseLeftDraggedInside = true;
+            }
+            if (mouseLeftDraggedInside){
                 sceneProject->sceneRender->mouseDragEvent(x, y, mouseLeftStartPos.x, mouseLeftStartPos.y, sceneId, sceneProject, project->getSelectedEntities(sceneId), disableSelection);
             }
         }
@@ -325,38 +327,46 @@ void Editor::SceneWindow::show() {
             ImGui::SetItemTooltip("Pan view");
             ImGui::EndDisabled();
 
-            if (sceneProject.sceneType == SceneType::SCENE_3D){
-                ImGui::SameLine(0, 10);
-                ImGui::Dummy(ImVec2(1, 20));
-                ImGui::SameLine(0, 10);
+            ImGui::SameLine(0, 10);
+            ImGui::Dummy(ImVec2(1, 20));
+            ImGui::SameLine(0, 10);
 
-                SceneRender3D* sceneRender3D = (SceneRender3D*)sceneProject.sceneRender;
-                GizmoSelected gizmoSelected = sceneRender3D->getToolsLayer()->getGizmoSelected();
+            SceneRender3D* sceneRender3D = (SceneRender3D*)sceneProject.sceneRender;
+            GizmoSelected gizmoSelected = sceneRender3D->getToolsLayer()->getGizmoSelected();
 
-                ImGui::BeginDisabled(gizmoSelected == GizmoSelected::TRANSLATE);
+            if (sceneProject.sceneType != SceneType::SCENE_3D){
+                ImGui::BeginDisabled(gizmoSelected == GizmoSelected::OBJECT2D);
                 ImGui::SameLine();
-                if (ImGui::Button(ICON_FA_ARROWS_UP_DOWN_LEFT_RIGHT)) {
-                    sceneRender3D->getToolsLayer()->enableTranslateGizmo();
+                if (ImGui::Button(ICON_FA_EXPAND)) {
+                    sceneRender3D->getToolsLayer()->enableObject2DGizmo();
                 }
-                ImGui::SetItemTooltip("Translate (W)");
-                ImGui::EndDisabled();
-
-                ImGui::BeginDisabled(gizmoSelected == GizmoSelected::ROTATE);
-                ImGui::SameLine();
-                if (ImGui::Button(ICON_FA_ROTATE)) {
-                    sceneRender3D->getToolsLayer()->enableRotateGizmo();
-                }
-                ImGui::SetItemTooltip("Rotate (E)");
-                ImGui::EndDisabled();
-
-                ImGui::BeginDisabled(gizmoSelected == GizmoSelected::SCALE);
-                ImGui::SameLine();
-                if (ImGui::Button(ICON_FA_UP_RIGHT_AND_DOWN_LEFT_FROM_CENTER)) {
-                    sceneRender3D->getToolsLayer()->enableScaleGizmo();
-                }
-                ImGui::SetItemTooltip("Scale (R)");
+                ImGui::SetItemTooltip("2D Gizmo (Q)");
                 ImGui::EndDisabled();
             }
+
+            ImGui::BeginDisabled(gizmoSelected == GizmoSelected::TRANSLATE);
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_ARROWS_UP_DOWN_LEFT_RIGHT)) {
+                sceneRender3D->getToolsLayer()->enableTranslateGizmo();
+            }
+            ImGui::SetItemTooltip("Translate (W)");
+            ImGui::EndDisabled();
+
+            ImGui::BeginDisabled(gizmoSelected == GizmoSelected::ROTATE);
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_ROTATE)) {
+                sceneRender3D->getToolsLayer()->enableRotateGizmo();
+            }
+            ImGui::SetItemTooltip("Rotate (E)");
+            ImGui::EndDisabled();
+
+            ImGui::BeginDisabled(gizmoSelected == GizmoSelected::SCALE);
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_UP_RIGHT_AND_DOWN_LEFT_FROM_CENTER)) {
+                sceneRender3D->getToolsLayer()->enableScaleGizmo();
+            }
+            ImGui::SetItemTooltip("Scale (R)");
+            ImGui::EndDisabled();
 
             ImGui::SameLine(0, 10);
             ImGui::Dummy(ImVec2(1, 20));

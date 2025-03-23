@@ -12,6 +12,8 @@ namespace Supernova::Editor{
 
     class ScaleGizmo: public Object{
     private:
+        bool use2DGizmo;
+
         Shape* centerbox;
         Shape* xaxis;
         Shape* yaxis;
@@ -34,7 +36,7 @@ namespace Supernova::Editor{
         static const float rectAlpha;
 
     public:
-        ScaleGizmo(Scene* scene);
+        ScaleGizmo(Scene* scene, bool use2DGizmo);
         virtual ~ScaleGizmo();
 
         GizmoSideSelected checkHoverHighlight(Ray& ray);

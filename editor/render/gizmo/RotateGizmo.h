@@ -13,12 +13,14 @@ namespace Supernova::Editor{
 
     class RotateGizmo: public Object{
     private:
+        bool use2DGizmo;
+
         Shape* maincircle;
         Shape* xcircle;
         Shape* ycircle;
         Shape* zcircle;
 
-        Lines* lines;
+        Lines* line;
 
         std::vector<AABB> xcircleAABBs;
         std::vector<AABB> ycircleAABBs;
@@ -38,7 +40,7 @@ namespace Supernova::Editor{
         std::vector<AABB> createHalfTorus(Entity entity, float radius, float ringRadius, unsigned int sides, unsigned int rings);
 
     public:
-        RotateGizmo(Scene* scene);
+        RotateGizmo(Scene* scene, bool use2DGizmo);
         virtual ~RotateGizmo();
 
         void updateRotations(Camera* camera);

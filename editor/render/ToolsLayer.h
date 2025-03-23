@@ -30,7 +30,7 @@ namespace Supernova::Editor{
 
         float gizmoScale;
     public:
-        ToolsLayer();
+        ToolsLayer(bool use2DGizmos);
         virtual ~ToolsLayer();
 
         void updateCamera(CameraComponent& extCamera, Transform& extCameraTransform);
@@ -42,6 +42,7 @@ namespace Supernova::Editor{
         void enableTranslateGizmo();
         void enableRotateGizmo();
         void enableScaleGizmo();
+        void enableObject2DGizmo();
 
         void setGizmoVisible(bool visible);
 

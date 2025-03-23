@@ -12,6 +12,8 @@ namespace Supernova::Editor{
 
     class TranslateGizmo: public Object{
     private:
+        bool use2DGizmo;
+
         Shape* sphere;
         Shape* xaxis;
         Shape* yaxis;
@@ -34,7 +36,7 @@ namespace Supernova::Editor{
         static const float rectAlpha;
 
     public:
-        TranslateGizmo(Scene* scene);
+        TranslateGizmo(Scene* scene, bool use2DGizmo);
         virtual ~TranslateGizmo();
 
         GizmoSideSelected checkHoverHighlight(Ray& ray);

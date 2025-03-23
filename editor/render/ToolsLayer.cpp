@@ -2,16 +2,20 @@
 
 using namespace Supernova;
 
-Editor::ToolsLayer::ToolsLayer(){
-    gizmoSelected = GizmoSelected::TRANSLATE;
+Editor::ToolsLayer::ToolsLayer(bool use2DGizmos){
+    if (use2DGizmos){
+        gizmoSelected = GizmoSelected::OBJECT2D;
+    }else{
+        gizmoSelected = GizmoSelected::TRANSLATE;
+    }
     gizmoSideSelected = GizmoSideSelected::NONE;
 
     scene = new Scene();
     camera = new Camera(scene);
 
-    tGizmo = new TranslateGizmo(scene);
-    rGizmo = new RotateGizmo(scene);
-    sGizmo = new ScaleGizmo(scene);
+    tGizmo = new TranslateGizmo(scene, use2DGizmos);
+    rGizmo = new RotateGizmo(scene, use2DGizmos);
+    sGizmo = new ScaleGizmo(scene, use2DGizmos);
     oGizmo = new Object2DGizmo(scene);
 
     scene->setCamera(camera);
@@ -21,6 +25,7 @@ Editor::ToolsLayer::ToolsLayer(){
 
 Editor::ToolsLayer::~ToolsLayer(){
     delete camera;
+
     delete tGizmo;
     delete rGizmo;
     delete sGizmo;
@@ -49,22 +54,6 @@ void Editor::ToolsLayer::updateCamera(CameraComponent& extCamera, Transform& ext
     if (extCamera.needUpdate){
         cameracomp.needUpdate = extCamera.needUpdate;
     }
-    /*
-    float newNearClip;
-    float newFarClip;
-    if (cameracomp.type == CameraType::CAMERA_PERSPECTIVE){
-        //newNearClip = 0.0001;
-        newFarClip = extCamera.farClip * gizmoScale;
-    }else{
-        //newNearClip = extCamera.nearClip * gizmoScale;
-        newFarClip = extCamera.farClip * gizmoScale;
-    }
-    if (newNearClip != cameracomp.nearClip || newFarClip != cameracomp.farClip){
-        cameracomp.nearClip = newNearClip;
-        cameracomp.farClip = newFarClip;
-        cameracomp.needUpdate = true;
-    }
-    */
 }
 
 void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quaternion& rotation, float scale, Ray& mouseRay, bool mouseClicked){
@@ -95,6 +84,14 @@ void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quater
             gizmoSideSelected = sGizmo->checkHoverHighlight(mouseRay);
         }
     }
+    if (gizmoSelected == GizmoSelected::OBJECT2D){
+        oGizmo->setPosition(position);
+        //oGizmo->setRotation(rotation);
+        //oGizmo->setScale(scale);
+        //if (!mouseClicked){
+        //    gizmoSideSelected = oGizmo->checkHoverHighlight(mouseRay);
+        //}
+    }
 }
 
 void Editor::ToolsLayer::mouseDrag(Vector3 point){
@@ -121,10 +118,15 @@ void Editor::ToolsLayer::enableScaleGizmo(){
     gizmoSelected = GizmoSelected::SCALE;
 }
 
+void Editor::ToolsLayer::enableObject2DGizmo(){
+    gizmoSelected = GizmoSelected::OBJECT2D;
+}
+
 void Editor::ToolsLayer::setGizmoVisible(bool visible){
     tGizmo->setVisible(false);
     rGizmo->setVisible(false);
     sGizmo->setVisible(false);
+    oGizmo->setVisible(false);
 
     if (gizmoSelected == GizmoSelected::TRANSLATE){
         tGizmo->setVisible(visible);
@@ -134,6 +136,9 @@ void Editor::ToolsLayer::setGizmoVisible(bool visible){
     }
     if (gizmoSelected == GizmoSelected::SCALE){
         sGizmo->setVisible(visible);
+    }
+    if (gizmoSelected == GizmoSelected::OBJECT2D){
+        oGizmo->setVisible(visible);
     }
 }
 
@@ -162,6 +167,9 @@ Object* Editor::ToolsLayer::getGizmoObject() const{
     }
     if (gizmoSelected == GizmoSelected::SCALE){
         return sGizmo;
+    }
+    if (gizmoSelected == GizmoSelected::OBJECT2D){
+        return oGizmo;
     }
 
     return nullptr;

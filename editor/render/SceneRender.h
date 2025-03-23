@@ -25,7 +25,7 @@ namespace Supernova::Editor{
         bool useGlobalTransform;
 
         float gizmoScale;
-        float selectionScale;
+        float selectionOffset;
 
         Command* lastCommand;
 
@@ -46,7 +46,7 @@ namespace Supernova::Editor{
         float zoom;       // current zoom level (units per pixel) for 2D
 
     public:
-        SceneRender(Scene* scene, bool enableViewGizmo, float gizmoScale, float selectionScale);
+        SceneRender(Scene* scene, bool use2DGizmos, bool enableViewGizmo, float gizmoScale, float selectionOffset);
         virtual ~SceneRender();
 
         virtual void activate();

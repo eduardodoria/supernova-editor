@@ -17,46 +17,65 @@ const Vector3 Editor::RotateGizmo::yaxisColorHightlight = Vector3(0.7, 0.9, 0.7)
 const Vector3 Editor::RotateGizmo::zaxisColorHightlight = Vector3(0.7, 0.7, 0.9);
 const float Editor::RotateGizmo::circleAlpha = 0.6;
 
-Editor::RotateGizmo::RotateGizmo(Scene* scene): Object(scene){
+Editor::RotateGizmo::RotateGizmo(Scene* scene, bool use2DGizmo): Object(scene){
     float mainRadius = 0.02;
     float axisRadius = 0.05;
     float torusHeight = 2;
+    float center2DRadius = 0.2;
+
+    this->use2DGizmo = use2DGizmo;
 
     maincircle = new Shape(scene);
-    xcircle = new Shape(scene);
-    ycircle = new Shape(scene);
+    line = new Lines(scene); // not a direct child of the gizmo to keep invisible if parent set visible to true
+
+    // For 2D gizmo, we only need the z-circle for rotation
+    if (!use2DGizmo) {
+        xcircle = new Shape(scene);
+        ycircle = new Shape(scene);
+    }
     zcircle = new Shape(scene);
-    lines = new Lines(scene);
 
-    lines->addLine(Vector3::ZERO, Vector3::ZERO, Vector4(lineColor, 1.0));
-    lines->setVisible(false);
+    line->addLine(Vector3::ZERO, Vector3::ZERO, Vector4(lineColor, 1.0));
+    line->setVisible(false);
 
-    maincircle->createTorus(torusHeight, mainRadius, 32, 32);
-
-    xcircleAABBs = createHalfTorus(xcircle->getEntity(), torusHeight, axisRadius, 32, 16);
-    ycircleAABBs = createHalfTorus(ycircle->getEntity(), torusHeight, axisRadius, 32, 16);
-    zcircleAABBs = createHalfTorus(zcircle->getEntity(), torusHeight, axisRadius, 32, 16);
-
+    maincircle->createTorus((use2DGizmo)?center2DRadius:torusHeight, mainRadius, 32, 32);
     maincircle->setColor(Vector4(mainColor, circleAlpha));
-    xcircle->setColor(Vector4(xaxisColor, 1.0));
-    ycircle->setColor(Vector4(yaxisColor, 1.0));
-    zcircle->setColor(Vector4(zaxisColor, 1.0));
-
     maincircle->setRotation(90,0,0);
-    maincircle->setBillboard(true, false, false);
+    maincircle->setBillboard((!use2DGizmo), false, false);
+
+    if (!use2DGizmo) {
+        xcircleAABBs = createHalfTorus(xcircle->getEntity(), torusHeight, axisRadius, 32, 16);
+        ycircleAABBs = createHalfTorus(ycircle->getEntity(), torusHeight, axisRadius, 32, 16);
+        zcircleAABBs = createHalfTorus(zcircle->getEntity(), torusHeight, axisRadius, 32, 16);
+
+        xcircle->setColor(Vector4(xaxisColor, 1.0));
+        ycircle->setColor(Vector4(yaxisColor, 1.0));
+        zcircle->setColor(Vector4(zaxisColor, 1.0));
+    } else {
+        // For 2D mode, create a full torus for Z rotation
+        zcircle->createTorus(torusHeight, axisRadius, 32, 32);
+        zcircle->setColor(Vector4(zaxisColor, 1.0));
+        // Create a dummy AABB for the full circle
+        zcircleAABBs.resize(1);
+        zcircleAABBs[0] = zcircle->getAABB();
+    }
 
     this->addChild(maincircle);
-    this->addChild(xcircle);
-    this->addChild(ycircle);
+    if (!use2DGizmo) {
+        this->addChild(xcircle);
+        this->addChild(ycircle);
+    }
     this->addChild(zcircle);
 }
 
 Editor::RotateGizmo::~RotateGizmo(){
     delete maincircle;
-    delete xcircle;
-    delete ycircle;
+    if (!use2DGizmo) {
+        delete xcircle;
+        delete ycircle;
+    }
     delete zcircle;
-    delete lines;
+    delete line;
 }
 
 std::vector<AABB> Editor::RotateGizmo::createHalfTorus(Entity entity, float radius, float ringRadius, unsigned int sides, unsigned int rings) {
@@ -199,26 +218,32 @@ std::vector<AABB> Editor::RotateGizmo::createHalfTorus(Entity entity, float radi
 void Editor::RotateGizmo::updateRotations(Camera* camera){
     Matrix4 rotMatrixInv = getWorldRotation().getRotationMatrix().inverse();
 
-    Plane planeX(Vector3(1,0,0), 0);
-    Plane planeY(Vector3(0,1,0), 0);
     Plane planeZ(Vector3(0,0,1), 0);
-
-    Vector3 viewX = planeX.projectVector(rotMatrixInv * camera->getWorldDirection()).normalize();
-    Vector3 viewY = planeY.projectVector(rotMatrixInv * camera->getWorldDirection()).normalize();
     Vector3 viewZ = planeZ.projectVector(rotMatrixInv * camera->getWorldDirection()).normalize();
 
-    xcircle->setRotation(Quaternion(Angle::radToDefault(atan2(viewX.z, viewX.y)), planeX.normal) * Quaternion(0, 0, 90));
-    ycircle->setRotation(Quaternion(Angle::radToDefault(atan2(viewY.x, viewY.z) - M_PI_2), planeY.normal));
-    zcircle->setRotation(Quaternion(Angle::radToDefault(atan2(viewZ.y, viewZ.x)), planeZ.normal) * Quaternion(90, 0, 0));
+    if (!use2DGizmo) {
+        Plane planeX(Vector3(1,0,0), 0);
+        Plane planeY(Vector3(0,1,0), 0);
+
+        Vector3 viewX = planeX.projectVector(rotMatrixInv * camera->getWorldDirection()).normalize();
+        Vector3 viewY = planeY.projectVector(rotMatrixInv * camera->getWorldDirection()).normalize();
+
+        xcircle->setRotation(Quaternion(Angle::radToDefault(atan2(viewX.z, viewX.y)), planeX.normal) * Quaternion(0, 0, 90));
+        ycircle->setRotation(Quaternion(Angle::radToDefault(atan2(viewY.x, viewY.z) - M_PI_2), planeY.normal));
+        zcircle->setRotation(Quaternion(Angle::radToDefault(atan2(viewZ.y, viewZ.x)), planeZ.normal) * Quaternion(90, 0, 0));
+    } else {
+        // For 2D mode, we just need to keep the z-circle flat on the XY plane
+        zcircle->setRotation(Quaternion(90, 0, 0));
+    }
 }
 
 void Editor::RotateGizmo::drawLine(Vector3 point){
-    lines->setVisible(true);
-    lines->updateLine(0, getWorldPosition(), point);
+    line->setVisible(true);
+    line->updateLine(0, getWorldPosition(), point);
 }
 
 void Editor::RotateGizmo::removeLine(){
-    lines->setVisible(false);
+    line->setVisible(false);
 }
 
 Editor::GizmoSideSelected Editor::RotateGizmo::checkHoverHighlight(Ray& ray){
@@ -229,20 +254,23 @@ Editor::GizmoSideSelected Editor::RotateGizmo::checkHoverHighlight(Ray& ray){
 
     int axis = -1;
 
-    for (int i = 0; i < xcircleAABBs.size(); i++){
-        if (RayReturn creturn = ray.intersects(xcircle->getModelMatrix() * xcircleAABBs[i])){
-            axis = 0;
-            break;
+    if (!use2DGizmo) {
+        for (int i = 0; i < xcircleAABBs.size(); i++){
+            if (RayReturn creturn = ray.intersects(xcircle->getModelMatrix() * xcircleAABBs[i])){
+                axis = 0;
+                break;
+            }
+        }
+
+        for (int i = 0; i < ycircleAABBs.size(); i++){
+            if (RayReturn creturn = ray.intersects(ycircle->getModelMatrix() * ycircleAABBs[i])){
+                axis = 1;
+                break;
+            }
         }
     }
 
-    for (int i = 0; i < ycircleAABBs.size(); i++){
-        if (RayReturn creturn = ray.intersects(ycircle->getModelMatrix() * ycircleAABBs[i])){
-            axis = 1;
-            break;
-        }
-    }
-
+    // Always check z-circle for rotation
     for (int i = 0; i < zcircleAABBs.size(); i++){
         if (RayReturn creturn = ray.intersects(zcircle->getModelMatrix() * zcircleAABBs[i])){
             axis = 2;
@@ -256,18 +284,20 @@ Editor::GizmoSideSelected Editor::RotateGizmo::checkHoverHighlight(Ray& ray){
         }
     }
 
-    if (axis == 0){
-        xcircle->setColor(Vector4(xaxisColorHightlight, 1.0));
-        gizmoSideSelected = GizmoSideSelected::X;
-    }else{
-        xcircle->setColor(Vector4(xaxisColor, 1.0));
-    }
+    if (!use2DGizmo) {
+        if (axis == 0){
+            xcircle->setColor(Vector4(xaxisColorHightlight, 1.0));
+            gizmoSideSelected = GizmoSideSelected::X;
+        }else{
+            xcircle->setColor(Vector4(xaxisColor, 1.0));
+        }
 
-    if (axis == 1){
-        ycircle->setColor(Vector4(yaxisColorHightlight, 1.0));
-        gizmoSideSelected = GizmoSideSelected::Y;
-    }else{
-        ycircle->setColor(Vector4(yaxisColor, 1.0));
+        if (axis == 1){
+            ycircle->setColor(Vector4(yaxisColorHightlight, 1.0));
+            gizmoSideSelected = GizmoSideSelected::Y;
+        }else{
+            ycircle->setColor(Vector4(yaxisColor, 1.0));
+        }
     }
 
     if (axis == 2){
@@ -279,7 +309,7 @@ Editor::GizmoSideSelected Editor::RotateGizmo::checkHoverHighlight(Ray& ray){
 
     if (axis == 3){
         maincircle->setColor(Vector4(mainColorHightlight, circleAlpha));
-        gizmoSideSelected = GizmoSideSelected::XYZ;
+        gizmoSideSelected = use2DGizmo ? GizmoSideSelected::Z : GizmoSideSelected::XYZ;
     }else{
         maincircle->setColor(Vector4(mainColor, circleAlpha));
     }

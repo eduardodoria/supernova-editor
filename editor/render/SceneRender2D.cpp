@@ -5,7 +5,7 @@
 
 using namespace Supernova;
 
-Editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned int height): SceneRender(scene, false, 40, 1.05){
+Editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned int height): SceneRender(scene, true, false, 40, 2){
     camera->setType(CameraType::CAMERA_ORTHO);
 
     camera->slide(-50);
