@@ -12,7 +12,7 @@ namespace Supernova::Editor{
         TRANSLATE,
         ROTATE,
         SCALE,
-        OBJECT2D,
+        OBJECT2D
     };
 
     enum class GizmoSideSelected{
