@@ -26,6 +26,19 @@ namespace Supernova::Editor{
         XYZ
     };
 
+    enum class Gizmo2DSideSelected{
+        NONE,
+        NX_NY, // -X -Y
+        NX, // -X
+        NX_PY, // -X +Y
+        PY, // +Y
+        PX_PY, // +X +Y
+        PX, // +X
+        PX_NY, // +X -Y
+        NY, // -Y
+        CENTER
+    };
+
 }
 
 #endif /* RENDERUTIL_H */

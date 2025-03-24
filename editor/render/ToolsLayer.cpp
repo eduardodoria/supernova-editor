@@ -9,6 +9,7 @@ Editor::ToolsLayer::ToolsLayer(bool use2DGizmos){
         gizmoSelected = GizmoSelected::TRANSLATE;
     }
     gizmoSideSelected = GizmoSideSelected::NONE;
+    gizmo2DSideSelected = Gizmo2DSideSelected::NONE;
 
     scene = new Scene();
     camera = new Camera(scene);
@@ -56,7 +57,7 @@ void Editor::ToolsLayer::updateCamera(CameraComponent& extCamera, Transform& ext
     }
 }
 
-void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quaternion& rotation, float scale, Ray& mouseRay, bool mouseClicked){
+void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quaternion& rotation, float scale, AABB aabb, Ray& mouseRay, bool mouseClicked){
     gizmoScale = scale;
 
     if (gizmoSelected == GizmoSelected::TRANSLATE){
@@ -64,7 +65,8 @@ void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quater
         tGizmo->setRotation(rotation);
         tGizmo->setScale(scale);
         if (!mouseClicked){
-            gizmoSideSelected = tGizmo->checkHoverHighlight(mouseRay);
+            gizmoSideSelected = tGizmo->checkHover(mouseRay);
+            gizmo2DSideSelected = Gizmo2DSideSelected::NONE;
         }
     }
     if (gizmoSelected == GizmoSelected::ROTATE){
@@ -73,7 +75,8 @@ void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quater
         rGizmo->setRotation(rotation);
         rGizmo->setScale(scale);
         if (!mouseClicked){
-            gizmoSideSelected = rGizmo->checkHoverHighlight(mouseRay);
+            gizmoSideSelected = rGizmo->checkHover(mouseRay);
+            gizmo2DSideSelected = Gizmo2DSideSelected::NONE;
         }
     }
     if (gizmoSelected == GizmoSelected::SCALE){
@@ -81,16 +84,21 @@ void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quater
         sGizmo->setRotation(rotation);
         sGizmo->setScale(scale);
         if (!mouseClicked){
-            gizmoSideSelected = sGizmo->checkHoverHighlight(mouseRay);
+            gizmoSideSelected = sGizmo->checkHover(mouseRay);
+            gizmo2DSideSelected = Gizmo2DSideSelected::NONE;
         }
     }
     if (gizmoSelected == GizmoSelected::OBJECT2D){
-        oGizmo->setPosition(position.x+50, position.y+50, position.z);
-        //oGizmo->setRotation(rotation);
-        //oGizmo->setScale(scale);
-        //if (!mouseClicked){
-        //    gizmoSideSelected = oGizmo->checkHoverHighlight(mouseRay);
-        //}
+        Vector3 center = aabb.getCenter();
+        Vector3 size = aabb.getSize();
+        oGizmo->setPosition(center.x, center.y, center.z);
+        oGizmo->setRotation(rotation);
+        oGizmo->setScale(scale);
+        oGizmo->setSize(size.x / scale, size.y / scale);
+        if (!mouseClicked){
+            gizmoSideSelected = GizmoSideSelected::NONE;
+            gizmo2DSideSelected = oGizmo->checkHover(mouseRay, aabb);
+        }
     }
 }
 
@@ -189,4 +197,8 @@ Editor::GizmoSelected Editor::ToolsLayer::getGizmoSelected() const{
 
 Editor::GizmoSideSelected Editor::ToolsLayer::getGizmoSideSelected() const{
     return gizmoSideSelected;
+}
+
+Editor::Gizmo2DSideSelected Editor::ToolsLayer::getGizmo2DSideSelected() const{
+    return gizmo2DSideSelected;
 }

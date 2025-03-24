@@ -39,7 +39,7 @@ namespace Supernova::Editor{
         TranslateGizmo(Scene* scene, bool use2DGizmo);
         virtual ~TranslateGizmo();
 
-        GizmoSideSelected checkHoverHighlight(Ray& ray);
+        GizmoSideSelected checkHover(Ray& ray);
     };
 
 }

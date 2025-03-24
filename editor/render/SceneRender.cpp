@@ -129,7 +129,7 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities){
             scale = std::tan(cameracomp.yfov) * dist * (gizmoScale / (float)framebuffer.getHeight());
         }
 
-        toolslayer.updateGizmo(camera, gizmoPosition, gizmoRotation, scale, mouseRay, mouseClicked);
+        toolslayer.updateGizmo(camera, gizmoPosition, gizmoRotation, scale, selAABB, mouseRay, mouseClicked);
 
         if (selAABB.isNull() || selAABB.isInfinite()){
             selLines->setVisible(false);
@@ -192,6 +192,10 @@ void Editor::SceneRender::mouseClickEvent(float x, float y, std::vector<Entity> 
         }else{
             rotationAxis = cursorPlane.normal;
         }
+    }
+
+    if (toolslayer.getGizmoSelected() == GizmoSelected::OBJECT2D){
+        cursorPlane = Plane(Vector3(0, 0, 1), gizmoPosition);
     }
 
     RayReturn rretrun = mouseRay.intersects(cursorPlane);
@@ -342,7 +346,40 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                     if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
                         lastCommand = new ObjectTransformCmd(sceneProject, entity, objMatrix);
                     }
+                }
 
+                if (toolslayer.getGizmoSelected() == GizmoSelected::OBJECT2D){
+                    Vector3 newPos = gizmoRMatrix.inverse() * ((rretrun.point + cursorStartOffset) - gizmoPosition);
+                    if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::CENTER){
+                        newPos = gizmoPosition + (gizmoRMatrix * newPos);
+                    }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::NX){
+                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(newPos.x, 0, 0));
+                    }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::NY){
+                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(0, 0, 0));
+                    }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::PX){
+                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(0, 0, 0));
+                    }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::PY){
+                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(0, newPos.y, 0));
+                    }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::NX_NY){
+                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(newPos.x, 0, 0));
+                    }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::NX_PY){
+                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(newPos.x, newPos.y, 0));
+                    }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::PX_NY){
+                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(0, 0, 0));
+                    }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::PX_PY){
+                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(0, newPos.y, 0));
+                    }
+
+                    Matrix4 gizmoMatrix = Matrix4::translateMatrix(newPos) * gizmoRMatrix * Matrix4::scaleMatrix(Vector3(1,1,1));
+                    Matrix4 objMatrix = gizmoMatrix * objectMatrixOffset[entity];
+
+                    if (transformParent){
+                        objMatrix = transformParent->modelMatrix.inverse() * objMatrix;
+                    }
+
+                    if (toolslayer.getGizmo2DSideSelected() != Gizmo2DSideSelected::NONE){
+                        lastCommand = new ObjectTransformCmd(sceneProject, entity, objMatrix);
+                    }
                 }
 
                 if (lastCommand){
@@ -354,7 +391,7 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
 }
 
 bool Editor::SceneRender::isAnyGizmoSideSelected() const{
-    return (toolslayer.getGizmoSideSelected() != Editor::GizmoSideSelected::NONE);
+    return (toolslayer.getGizmoSideSelected() != Editor::GizmoSideSelected::NONE || toolslayer.getGizmo2DSideSelected() != Gizmo2DSideSelected::NONE);
 }
 
 TextureRender& Editor::SceneRender::getTexture(){

@@ -13,10 +13,21 @@ namespace Supernova::Editor{
     private:
         Polygon* rects[8];
 
+        float width;
+        float height;
+
+        static const float rectSize;
+        static const float sizeOffset;
+
+        void updateRects();
+
     public:
         Object2DGizmo(Scene* scene);
         virtual ~Object2DGizmo();
 
+        void setSize(float width, float height);
+
+        Gizmo2DSideSelected checkHover(Ray& ray, AABB& aabb);
     };
 
 }

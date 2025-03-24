@@ -27,6 +27,7 @@ namespace Supernova::Editor{
 
         GizmoSelected gizmoSelected;
         GizmoSideSelected gizmoSideSelected;
+        Gizmo2DSideSelected gizmo2DSideSelected;
 
         float gizmoScale;
     public:
@@ -34,7 +35,7 @@ namespace Supernova::Editor{
         virtual ~ToolsLayer();
 
         void updateCamera(CameraComponent& extCamera, Transform& extCameraTransform);
-        void updateGizmo(Camera* sceneCam, Vector3& position, Quaternion& rotation, float scale, Ray& mouseRay, bool mouseClicked);
+        void updateGizmo(Camera* sceneCam, Vector3& position, Quaternion& rotation, float scale, AABB aabb, Ray& mouseRay, bool mouseClicked);
 
         void mouseDrag(Vector3 point);
         void mouseRelease();
@@ -57,6 +58,7 @@ namespace Supernova::Editor{
 
         GizmoSelected getGizmoSelected() const;
         GizmoSideSelected getGizmoSideSelected() const;
+        Gizmo2DSideSelected getGizmo2DSideSelected() const;
     };
 
 }
