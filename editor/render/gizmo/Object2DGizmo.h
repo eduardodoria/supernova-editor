@@ -11,7 +11,7 @@ namespace Supernova::Editor{
 
     class Object2DGizmo: public Object{
     private:
-        Polygon* polygon;
+        Polygon* rects[8];
 
     public:
         Object2DGizmo(Scene* scene);

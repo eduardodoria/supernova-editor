@@ -85,7 +85,7 @@ void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quater
         }
     }
     if (gizmoSelected == GizmoSelected::OBJECT2D){
-        oGizmo->setPosition(position);
+        oGizmo->setPosition(position.x+50, position.y+50, position.z);
         //oGizmo->setRotation(rotation);
         //oGizmo->setScale(scale);
         //if (!mouseClicked){

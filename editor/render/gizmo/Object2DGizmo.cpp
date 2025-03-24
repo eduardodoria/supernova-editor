@@ -3,18 +3,38 @@
 using namespace Supernova;
 
 Editor::Object2DGizmo::Object2DGizmo(Scene* scene): Object(scene){
-    Polygon* polygon = new Polygon(scene);
+    float rectSize = 10;
+    float width = 100;
+    float height = 100;
 
-    polygon->addVertex(0, 0);
-    polygon->addVertex(10, 0);
-    polygon->addVertex(0, 10);
-    polygon->addVertex(10, 10);
-    polygon->setColor(1.0, 0.3, 0.8, 1.0);
-    polygon->setPosition(50, 50, 0);
+    for (int i = 0; i < 8; i++){
+        rects[i] = new Polygon(scene);
 
-    this->addChild(polygon);
+        rects[i]->addVertex(0, 0);
+        rects[i]->addVertex(rectSize, 0);
+        rects[i]->addVertex(0, rectSize);
+        rects[i]->addVertex(rectSize, rectSize);
+        rects[i]->setColor(1.0, 0.3, 0.8, 1.0);
+
+        this->addChild(rects[i]);
+    }
+
+    float halfRect = rectSize / 2.0;
+    float halfWidth = width / 2.0;
+    float halfHeight = height / 2.0;
+
+    rects[0]->setPosition(-halfWidth-halfRect, -halfHeight-halfRect, 0);
+    rects[1]->setPosition(-halfWidth-halfRect, -halfRect, 0);
+    rects[2]->setPosition(-halfWidth-halfRect, halfHeight-halfRect, 0);
+    rects[3]->setPosition(-halfRect, halfHeight-halfRect, 0);
+    rects[4]->setPosition(halfWidth-halfRect, halfHeight-halfRect, 0);
+    rects[5]->setPosition(halfWidth-halfRect, -halfRect, 0);
+    rects[6]->setPosition(halfWidth-halfRect, -halfHeight-halfRect, 0);
+    rects[7]->setPosition(-halfRect, -halfHeight-halfRect, 0);
 }
 
 Editor::Object2DGizmo::~Object2DGizmo(){
-    delete polygon;
+    for (int i = 0; i < 8; i++){
+        delete rects[i];
+    }
 }
