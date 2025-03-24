@@ -47,6 +47,9 @@ namespace Supernova::Editor{
             if (updateFlags & UpdateFlags_UI_Texture){
                 scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
             }
+            if (updateFlags & UpdateFlags_Layout_Sizes){
+                scene->getComponent<UILayoutComponent>(entity).needUpdateSizes = true;
+            }
         }
 
     public:

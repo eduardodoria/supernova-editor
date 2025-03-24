@@ -150,6 +150,12 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
 
         ps["color"] = {PropertyType::Color4L, "Base Color", UpdateFlags_None, (void*)&def->color, (compRef) ? (void*)&comp->color : nullptr};
         ps["texture"] = {PropertyType::Texture, "Texture", UpdateFlags_UI_Texture, (void*)&def->texture, (compRef) ? (void*)&comp->texture : nullptr};
+    }else if (component == ComponentType::UILayoutComponent){
+        UILayoutComponent* comp = (UILayoutComponent*)compRef;
+        static UILayoutComponent* def = new UILayoutComponent;
+
+        ps["width"] = {PropertyType::Int, "Width", UpdateFlags_Layout_Sizes, (void*)&def->width, (compRef) ? (void*)&comp->width : nullptr};
+        ps["height"] = {PropertyType::Int, "Height", UpdateFlags_Layout_Sizes, (void*)&def->height, (compRef) ? (void*)&comp->height : nullptr};
     }
 
     return ps;
@@ -305,6 +311,10 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::findEntityPropertie
         }
     }else if (component == ComponentType::UIComponent){
         if (UIComponent* compRef = scene->findComponent<UIComponent>(entity)){
+            return getProperties(component, compRef);
+        }
+    }else if (component == ComponentType::UILayoutComponent){
+        if (UILayoutComponent* compRef = scene->findComponent<UILayoutComponent>(entity)){
             return getProperties(component, compRef);
         }
     }

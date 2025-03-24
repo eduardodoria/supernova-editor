@@ -425,6 +425,40 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             ImGui::PopStyleColor();
         //ImGui::SetItemTooltip("%s", prop.label.c_str());
 
+    }else if (prop.type == PropertyType::Int){
+        int* value = nullptr;
+        std::map<Entity, int> eValue;
+        bool dif = false;
+        for (Entity& entity : entities){
+            eValue[entity] = *Catalog::getPropertyRef<int>(scene, entity, cpType, name);
+            if (value){
+                if (*value != eValue[entity])
+                    dif = true;
+            }
+            value = &eValue[entity];
+        }
+
+        int newValue = *value;
+
+        if (propertyHeader(prop.label, secondColSize, (newValue != *static_cast<int*>(prop.def)), child)){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<int>(scene, entity, cpType, name, prop.updateFlags, *static_cast<int*>(prop.def));
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            }
+        }
+
+        if (dif)
+            ImGui::PushStyleColor(ImGuiCol_CheckMark, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        if (ImGui::DragInt(("##input_int_"+name).c_str(), &newValue, static_cast<int>(stepSize), 0.0f, 0.0f)){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<int>(scene, entity, cpType, name, prop.updateFlags, newValue);
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            }
+        }
+        if (dif)
+            ImGui::PopStyleColor();
+        //ImGui::SetItemTooltip("%s", prop.label.c_str());
+
     }else if (prop.type == PropertyType::Color3L){
         Vector3* value = nullptr;
         std::map<Entity, Vector3> eValue;
@@ -811,6 +845,15 @@ void Editor::Properties::drawUIComponent(ComponentType cpType, std::map<std::str
     endTable();
 }
 
+void Editor::Properties::drawUILayoutComponent(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, std::vector<Entity> entities){
+    beginTable(cpType, getMaxLabelSize(props, {}, {}));
+
+    propertyRow(cpType, props, "width", scene, entities, 1.0, 6 * ImGui::GetFontSize());
+    propertyRow(cpType, props, "height", scene, entities, 1.0, 6 * ImGui::GetFontSize());
+
+    endTable();
+}
+
 void Editor::Properties::show(){
     ImGui::Begin("Properties");
 
@@ -899,6 +942,8 @@ void Editor::Properties::show(){
                 drawMeshComponent(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
             }else if (cpType == ComponentType::UIComponent){
                 drawUIComponent(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
+            }else if (cpType == ComponentType::UILayoutComponent){
+                drawUILayoutComponent(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
             }
 
         }
