@@ -2,6 +2,7 @@
 
 #include "command/CommandHandle.h"
 #include "command/type/ObjectTransformCmd.h"
+#include "command/type/PropertyCmd.h"
 
 using namespace Supernova;
 
@@ -378,7 +379,8 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                     }
 
                     if (toolslayer.getGizmo2DSideSelected() != Gizmo2DSideSelected::NONE){
-                        lastCommand = new ObjectTransformCmd(sceneProject, entity, objMatrix);
+                        Vector3 pos = Vector3(objMatrix[3][0], objMatrix[3][1], objMatrix[3][2]);
+                        lastCommand = new PropertyCmd<Vector3>(sceneProject->scene, entity, ComponentType::Transform, "position", UpdateFlags_Transform, pos);
                     }
                 }
 
