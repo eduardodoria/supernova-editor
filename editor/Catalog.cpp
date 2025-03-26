@@ -154,8 +154,8 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         UILayoutComponent* comp = (UILayoutComponent*)compRef;
         static UILayoutComponent* def = new UILayoutComponent;
 
-        ps["width"] = {PropertyType::Int, "Width", UpdateFlags_Layout_Sizes, (void*)&def->width, (compRef) ? (void*)&comp->width : nullptr};
-        ps["height"] = {PropertyType::Int, "Height", UpdateFlags_Layout_Sizes, (void*)&def->height, (compRef) ? (void*)&comp->height : nullptr};
+        ps["width"] = {PropertyType::Int, "Width", UpdateFlags_Layout_Sizes, nullptr, (compRef) ? (void*)&comp->width : nullptr};
+        ps["height"] = {PropertyType::Int, "Height", UpdateFlags_Layout_Sizes, nullptr, (compRef) ? (void*)&comp->height : nullptr};
     }
 
     return ps;
