@@ -19,6 +19,7 @@ namespace Supernova::Editor{
         Quaternion rotationStartOffset;
         Vector3 scaleStartOffset;
         std::map<Entity, Matrix4> objectMatrixOffset;
+        std::map<Entity, Vector2> objectSizeOffset;
 
         Ray mouseRay;
         bool mouseClicked;
