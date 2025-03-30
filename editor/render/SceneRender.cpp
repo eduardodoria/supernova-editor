@@ -30,6 +30,27 @@ Editor::SceneRender::~SceneRender(){
     delete camera;
 }
 
+AABB Editor::SceneRender::getAABB(Entity entity, bool local){
+    Signature signature = scene->getSignature(entity);
+    if (signature.test(scene->getComponentId<MeshComponent>())){
+        MeshComponent& mesh = scene->getComponent<MeshComponent>(entity);
+        if (local){
+            return mesh.aabb;
+        }else{
+            return mesh.worldAABB;
+        }
+    }else if (signature.test(scene->getComponentId<UIComponent>())){
+        UIComponent& ui = scene->getComponent<UIComponent>(entity);
+        if (local){
+            return ui.aabb;
+        }else{
+            return ui.worldAABB;
+        }
+    }
+
+    return AABB();
+}
+
 AABB Editor::SceneRender::getFamilyAABB(Entity entity, float offset){
     auto transforms = scene->getComponentArray<Transform>();
     size_t index = transforms->getIndex(entity);
@@ -49,15 +70,7 @@ AABB Editor::SceneRender::getFamilyAABB(Entity entity, float offset){
         entity = transforms->getEntity(i);
         parentList.push_back(entity);
 
-        AABB entityAABB;
-        Signature signature = scene->getSignature(entity);
-        if (signature.test(scene->getComponentId<MeshComponent>())){
-            MeshComponent& mesh = scene->getComponent<MeshComponent>(entity);
-            entityAABB = mesh.worldAABB;
-        }else if (signature.test(scene->getComponentId<UIComponent>())){
-            UIComponent& ui = scene->getComponent<UIComponent>(entity);
-            entityAABB = ui.worldAABB;
-        }
+        AABB entityAABB = getAABB(entity, false);
 
         if (!entityAABB.isNull() && !entityAABB.isInfinite()){
             Vector3 min = entityAABB.getMinimum() - Vector3(offset);
@@ -69,6 +82,65 @@ AABB Editor::SceneRender::getFamilyAABB(Entity entity, float offset){
     }
 
     return aabb;
+}
+
+OBB Editor::SceneRender::getOBB(Entity entity, bool local){
+    Signature signature = scene->getSignature(entity);
+
+    Matrix4 modelMatrix;
+    if (signature.test(scene->getComponentId<Transform>())){
+        Transform& transform = scene->getComponent<Transform>(entity);
+        modelMatrix = transform.modelMatrix;
+    }
+
+    if (signature.test(scene->getComponentId<MeshComponent>())){
+        MeshComponent& mesh = scene->getComponent<MeshComponent>(entity);
+        if (local){
+            return mesh.aabb.getOBB();
+        }else{
+            return modelMatrix * mesh.aabb.getOBB();
+        }
+    }else if (signature.test(scene->getComponentId<UIComponent>())){
+        UIComponent& ui = scene->getComponent<UIComponent>(entity);
+        if (local){
+            return ui.aabb.getOBB();
+        }else{
+            return modelMatrix * ui.aabb.getOBB();
+        }
+    }
+
+    return OBB();
+}
+
+OBB Editor::SceneRender::getFamilyOBB(Entity entity, float offset){
+    auto transforms = scene->getComponentArray<Transform>();
+    size_t index = transforms->getIndex(entity);
+
+    OBB obb;
+    std::vector<Entity> parentList;
+    for (int i = index; i < transforms->size(); i++){
+        Transform& transform = transforms->getComponentFromIndex(i);
+
+        // Finding childs
+        if (i > index){
+            if (std::find(parentList.begin(), parentList.end(), transform.parent) == parentList.end()){
+                break;
+            }
+        }
+
+        entity = transforms->getEntity(i);
+        parentList.push_back(entity);
+
+        OBB entityOBB = getOBB(entity, false);
+
+        if (entityOBB != OBB::ZERO){
+            entityOBB.setHalfExtents(entityOBB.getHalfExtents() + Vector3(offset));
+
+            obb.enclose(entityOBB);
+        }
+    }
+
+    return obb;
 }
 
 void Editor::SceneRender::activate(){
@@ -102,7 +174,9 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities){
     Quaternion gizmoRotation;
 
     size_t numTEntities = 0;
-    AABB selAABB;
+    OBB selBB;
+    AABB singleObjectAABB;
+    Matrix4 singleObjectMatrix;
 
     for (Entity& entity: selEntities){
         if (Transform* transform = scene->findComponent<Transform>(entity)){
@@ -114,7 +188,12 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities){
                 gizmoRotation = transform->worldRotation;
             }
 
-            selAABB.merge(getFamilyAABB(entity, selectionOffset));
+            if (selEntities.size() == 1){
+                singleObjectAABB = getAABB(selEntities[0], true);
+                singleObjectMatrix = transform->modelMatrix;
+            }
+
+            selBB.enclose(getFamilyOBB(entity, selectionOffset));
         }
     }
 
@@ -130,14 +209,14 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities){
             scale = std::tan(cameracomp.yfov) * dist * (gizmoScale / (float)framebuffer.getHeight());
         }
 
-        toolslayer.updateGizmo(camera, gizmoPosition, gizmoRotation, scale, selAABB, mouseRay, mouseClicked);
+        toolslayer.updateGizmo(camera, gizmoPosition, gizmoRotation, scale, singleObjectAABB, singleObjectMatrix, mouseRay, mouseClicked);
 
-        if (selAABB.isNull() || selAABB.isInfinite()){
+        if (selBB == OBB::ZERO){
             selLines->setVisible(false);
         }else{
             selLines->setVisible(true);
 
-            updateSelLines(selAABB);
+            updateSelLines(selBB);
         }
     }
     toolslayer.updateCamera(cameracomp, cameratransform);
@@ -202,6 +281,7 @@ void Editor::SceneRender::mouseClickEvent(float x, float y, std::vector<Entity> 
     RayReturn rretrun = mouseRay.intersects(cursorPlane);
     objectMatrixOffset.clear();
     if (rretrun){
+        //pointStartPosition = rretrun.point;
         cursorStartOffset = gizmoPosition - rretrun.point;
         rotationStartOffset = gizmoRotation;
         scaleStartOffset = Vector3(1,1,1);
@@ -211,10 +291,12 @@ void Editor::SceneRender::mouseClickEvent(float x, float y, std::vector<Entity> 
             if (signature.test(scene->getComponentId<Transform>())){
                 Transform& transform = scene->getComponent<Transform>(entity);
                 objectMatrixOffset[entity] = gizmoMatrix.inverse() * transform.modelMatrix;
-            }else if (signature.test(scene->getComponentId<SpriteComponent>())){
+            }
+            if (signature.test(scene->getComponentId<SpriteComponent>())){
                 SpriteComponent& sprite = scene->getComponent<SpriteComponent>(entity);
                 objectSizeOffset[entity] = Vector2(sprite.width, sprite.height);
-            }else if (signature.test(scene->getComponentId<UILayoutComponent>())){
+            }
+            if (signature.test(scene->getComponentId<UILayoutComponent>())){
                 UILayoutComponent& layout = scene->getComponent<UILayoutComponent>(entity);
                 objectSizeOffset[entity] = Vector2(layout.width, layout.height);
             }
@@ -358,7 +440,7 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
 
                 if (toolslayer.getGizmoSelected() == GizmoSelected::OBJECT2D){
                     Vector3 newPos = gizmoRMatrix.inverse() * ((rretrun.point + cursorStartOffset) - gizmoPosition);
-                    Vector2 newSize;
+                    //Vector2 newSize = Vector2(gizmoRMatrix.inverse() * (rretrun.point - pointStartPosition));
                     if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::CENTER){
                         newPos = gizmoPosition + (gizmoRMatrix * newPos);
                     }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::NX){
@@ -366,10 +448,10 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                     }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::NY){
                         newPos = gizmoPosition + (gizmoRMatrix * Vector3(0, 0, 0));
                     }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::PX){
-                        newSize = objectSizeOffset[entity] + Vector2(newPos.x, 0);
-                        printf("objectSizeOffset: %f, %f\n", objectSizeOffset[entity].x, objectSizeOffset[entity].y);
-                        printf("newPos: %f, %f\n", newPos.x, newPos.y);
-                        printf("newSize: %f, %f\n", newSize.x, newSize.y);
+                        //newSize = objectSizeOffset[entity] + Vector2(gizmoRMatrix * Vector3(newPos.x, 0, 0));
+                        //printf("objectSizeOffset: %f, %f\n", objectSizeOffset[entity].x, objectSizeOffset[entity].y);
+                        //printf("newPos: %f, %f\n", newPos.x, newPos.y);
+                        //printf("newSize: %f, %f\n", newSize.x, newSize.y);
                         newPos = gizmoPosition + (gizmoRMatrix * Vector3(0, 0, 0));
                     }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::PY){
                         newPos = gizmoPosition + (gizmoRMatrix * Vector3(0, newPos.y, 0));
@@ -390,10 +472,14 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                         objMatrix = transformParent->modelMatrix.inverse() * objMatrix;
                     }
 
+                    //newSize = Vector2(objMatrix * Vector3(newSize.x, newSize.y, 0));
+
                     if (toolslayer.getGizmo2DSideSelected() != Gizmo2DSideSelected::NONE){
+                        //lastCommand = new PropertyCmd<int>(sceneProject->scene, entity, ComponentType::UILayoutComponent, "width", UpdateFlags_Layout_Sizes, static_cast<int>(newSize.x));
+                        //CommandHandle::get(sceneId)->addCommand(lastCommand);
+                        //lastCommand = new PropertyCmd<int>(sceneProject->scene, entity, ComponentType::UILayoutComponent, "height", UpdateFlags_Layout_Sizes, static_cast<int>(newSize.y));
+                        //CommandHandle::get(sceneId)->addCommand(lastCommand);
                         Vector3 pos = Vector3(objMatrix[3][0], objMatrix[3][1], objMatrix[3][2]);
-                        lastCommand = new PropertyCmd<int>(sceneProject->scene, entity, ComponentType::UILayoutComponent, "width", UpdateFlags_Layout_Sizes, static_cast<int>(newSize.x));
-                        lastCommand = new PropertyCmd<int>(sceneProject->scene, entity, ComponentType::UILayoutComponent, "height", UpdateFlags_Layout_Sizes, static_cast<int>(newSize.y));
                         lastCommand = new PropertyCmd<Vector3>(sceneProject->scene, entity, ComponentType::Transform, "position", UpdateFlags_Transform, pos);
                     }
                 }

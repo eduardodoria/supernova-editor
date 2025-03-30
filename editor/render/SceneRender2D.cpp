@@ -76,6 +76,13 @@ void Editor::SceneRender2D::updateSelLines(AABB aabb){
     selLines->updateLine(3, aabb.getCorner(AABB::NEAR_RIGHT_BOTTOM), aabb.getCorner(AABB::NEAR_LEFT_BOTTOM));
 }
 
+void Editor::SceneRender2D::updateSelLines(OBB obb){
+    selLines->updateLine(0, obb.getCorner(OBB::NEAR_LEFT_BOTTOM), obb.getCorner(OBB::NEAR_LEFT_TOP));
+    selLines->updateLine(1, obb.getCorner(OBB::NEAR_LEFT_TOP), obb.getCorner(OBB::NEAR_RIGHT_TOP));
+    selLines->updateLine(2, obb.getCorner(OBB::NEAR_RIGHT_TOP), obb.getCorner(OBB::NEAR_RIGHT_BOTTOM));
+    selLines->updateLine(3, obb.getCorner(OBB::NEAR_RIGHT_BOTTOM), obb.getCorner(OBB::NEAR_LEFT_BOTTOM));
+}
+
 void Editor::SceneRender2D::update(std::vector<Entity> selEntities){
     SceneRender::update(selEntities);
 }

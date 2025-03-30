@@ -57,7 +57,7 @@ void Editor::ToolsLayer::updateCamera(CameraComponent& extCamera, Transform& ext
     }
 }
 
-void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quaternion& rotation, float scale, AABB aabb, Ray& mouseRay, bool mouseClicked){
+void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quaternion& rotation, float scale, AABB aabb, Matrix4 objectMatrix, Ray& mouseRay, bool mouseClicked){
     gizmoScale = scale;
 
     if (gizmoSelected == GizmoSelected::TRANSLATE){
@@ -88,12 +88,20 @@ void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quater
             gizmo2DSideSelected = Gizmo2DSideSelected::NONE;
         }
     }
+    // only for single selections
+    // do not use gizmo position and rotation
     if (gizmoSelected == GizmoSelected::OBJECT2D){
         Vector3 center = aabb.getCenter();
         Vector3 size = aabb.getSize();
-        oGizmo->setPosition(center.x, center.y, center.z);
-        oGizmo->setRotation(rotation);
-        oGizmo->setScale(scale);
+
+        Matrix4 translateMatrix = Matrix4::translateMatrix(Vector3(center.x, center.y, center.z));
+        Matrix4 scaleMatrix = Matrix4::scaleMatrix(Vector3(scale, scale, scale));
+        oGizmo->setLocalMatrix(objectMatrix * (translateMatrix * scaleMatrix));
+
+        //oGizmo->setPosition(center.x, center.y, center.z);
+        //oGizmo->setRotation(rotation);
+        //oGizmo->setScale(scale);
+
         oGizmo->setSize(size.x / scale, size.y / scale);
         if (!mouseClicked){
             gizmoSideSelected = GizmoSideSelected::NONE;

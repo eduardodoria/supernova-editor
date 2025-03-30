@@ -15,6 +15,7 @@ namespace Supernova::Editor{
     private:
         Plane cursorPlane;
         Vector3 rotationAxis;
+        //Vector3 pointStartPosition;
         Vector3 cursorStartOffset;
         Quaternion rotationStartOffset;
         Vector3 scaleStartOffset;
@@ -32,7 +33,11 @@ namespace Supernova::Editor{
 
         CursorSelected cursorSelected;
 
-        AABB getFamilyAABB(Entity entity, float scale);
+        AABB getAABB(Entity entity, bool local);
+        AABB getFamilyAABB(Entity entity, float offset);
+
+        OBB getOBB(Entity entity, bool local);
+        OBB getFamilyOBB(Entity entity, float offset);
 
     protected:
         Scene* scene;
@@ -53,6 +58,7 @@ namespace Supernova::Editor{
         virtual void activate();
         virtual void updateSize(int width, int height);
         virtual void updateSelLines(AABB aabb) = 0;
+        virtual void updateSelLines(OBB obb) = 0;
 
         void updateRenderSystem();
 

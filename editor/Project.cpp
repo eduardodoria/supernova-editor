@@ -558,7 +558,7 @@ bool Editor::Project::selectObjectsByRect(uint32_t sceneId, Vector2 start, Vecto
         Transform* transform = scenedata->scene->findComponent<Transform>(entity);
         MeshComponent* mesh = scenedata->scene->findComponent<MeshComponent>(entity);
         if (transform && mesh){
-            const Vector3* corners = mesh->aabb.getAllCorners();
+            const Vector3* corners = mesh->aabb.getCorners();
 
             Vector2 minRect = Vector2(std::min(start.x, end.x), std::min(start.y, end.y));
             Vector2 maxRect = Vector2(std::max(start.x, end.x), std::max(start.y, end.y));
