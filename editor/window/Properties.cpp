@@ -886,6 +886,7 @@ void Editor::Properties::drawUILayoutComponent(ComponentType cpType, std::map<st
 
     propertyRow(cpType, props, "width", scene, entities, 1.0, 6 * ImGui::GetFontSize());
     propertyRow(cpType, props, "height", scene, entities, 1.0, 6 * ImGui::GetFontSize());
+    propertyRow(cpType, props, "ignore_scissor", scene, entities);
 
     endTable();
 }

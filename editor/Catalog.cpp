@@ -156,6 +156,7 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
 
         ps["width"] = {PropertyType::Int, "Width", UpdateFlags_Layout_Sizes, nullptr, (compRef) ? (void*)&comp->width : nullptr};
         ps["height"] = {PropertyType::Int, "Height", UpdateFlags_Layout_Sizes, nullptr, (compRef) ? (void*)&comp->height : nullptr};
+        ps["ignore_scissor"] = {PropertyType::Bool, "Ignore scissor", UpdateFlags_None, (void*)&def->ignoreScissor, (compRef) ? (void*)&comp->ignoreScissor : nullptr};
     }
 
     return ps;
