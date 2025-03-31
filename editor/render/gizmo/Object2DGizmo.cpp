@@ -52,7 +52,7 @@ void Editor::Object2DGizmo::setSize(float width, float height){
     }
 }
 
-Editor::Gizmo2DSideSelected Editor::Object2DGizmo::checkHover(Ray& ray, AABB& aabb){
+Editor::Gizmo2DSideSelected Editor::Object2DGizmo::checkHover(const Ray& ray, const AABB& aabb){
     Editor::Gizmo2DSideSelected gizmoSideSelected = Gizmo2DSideSelected::NONE;
 
     if (RayReturn rreturn = ray.intersects(aabb)){

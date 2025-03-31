@@ -246,7 +246,7 @@ void Editor::RotateGizmo::removeLine(){
     line->setVisible(false);
 }
 
-Editor::GizmoSideSelected Editor::RotateGizmo::checkHover(Ray& ray){
+Editor::GizmoSideSelected Editor::RotateGizmo::checkHover(const Ray& ray){
 
     Editor::GizmoSideSelected gizmoSideSelected = GizmoSideSelected::NONE;
 

@@ -105,7 +105,7 @@ void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quater
         oGizmo->setSize(size.x / scale, size.y / scale);
         if (!mouseClicked){
             gizmoSideSelected = GizmoSideSelected::NONE;
-            gizmo2DSideSelected = oGizmo->checkHover(mouseRay, aabb);
+            gizmo2DSideSelected = oGizmo->checkHover(mouseRay, objectMatrix * aabb);
         }
     }
 }

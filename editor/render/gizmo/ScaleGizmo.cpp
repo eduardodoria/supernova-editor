@@ -109,7 +109,7 @@ Editor::ScaleGizmo::~ScaleGizmo(){
     }
 }
 
-Editor::GizmoSideSelected Editor::ScaleGizmo::checkHover(Ray& ray){
+Editor::GizmoSideSelected Editor::ScaleGizmo::checkHover(const Ray& ray){
 
     Editor::GizmoSideSelected gizmoSideSelected = GizmoSideSelected::NONE;
 

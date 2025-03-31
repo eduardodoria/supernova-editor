@@ -27,7 +27,7 @@ namespace Supernova::Editor{
 
         void setSize(float width, float height);
 
-        Gizmo2DSideSelected checkHover(Ray& ray, AABB& aabb);
+        Gizmo2DSideSelected checkHover(const Ray& ray, const AABB& aabb);
     };
 
 }

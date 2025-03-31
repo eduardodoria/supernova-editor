@@ -114,7 +114,7 @@ Editor::TranslateGizmo::~TranslateGizmo(){
     }
 }
 
-Editor::GizmoSideSelected Editor::TranslateGizmo::checkHover(Ray& ray){
+Editor::GizmoSideSelected Editor::TranslateGizmo::checkHover(const Ray& ray){
 
     Editor::GizmoSideSelected gizmoSideSelected = GizmoSideSelected::NONE;
 

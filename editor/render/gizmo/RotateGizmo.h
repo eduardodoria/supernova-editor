@@ -47,7 +47,7 @@ namespace Supernova::Editor{
         void drawLine(Vector3 point);
         void removeLine();
 
-        GizmoSideSelected checkHover(Ray& ray);
+        GizmoSideSelected checkHover(const Ray& ray);
     };
 
 }

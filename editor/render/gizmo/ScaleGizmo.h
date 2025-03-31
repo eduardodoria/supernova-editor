@@ -39,7 +39,7 @@ namespace Supernova::Editor{
         ScaleGizmo(Scene* scene, bool use2DGizmo);
         virtual ~ScaleGizmo();
 
-        GizmoSideSelected checkHover(Ray& ray);
+        GizmoSideSelected checkHover(const Ray& ray);
     };
 
 }
