@@ -9,6 +9,8 @@ Editor::Object2DGizmo::Object2DGizmo(Scene* scene): Object(scene){
     width = 0.0;
     height = 0.0;
 
+    center = new Object(scene);
+
     for (int i = 0; i < 8; i++){
         rects[i] = new Polygon(scene);
 
@@ -18,8 +20,10 @@ Editor::Object2DGizmo::Object2DGizmo(Scene* scene): Object(scene){
         rects[i]->addVertex(rectSize, rectSize);
         rects[i]->setColor(0.9, 0.5, 0.3, 1.0);
 
-        this->addChild(rects[i]);
+        center->addChild(rects[i]);
     }
+
+    this->addChild(center);
 }
 
 Editor::Object2DGizmo::~Object2DGizmo(){
@@ -41,6 +45,10 @@ void Editor::Object2DGizmo::updateRects(){
     rects[5]->setPosition(halfWidth-halfRect+sizeOffset, -halfRect, 0);
     rects[6]->setPosition(halfWidth-halfRect+sizeOffset, -halfHeight-halfRect-sizeOffset, 0);
     rects[7]->setPosition(-halfRect, -halfHeight-halfRect-sizeOffset, 0);
+}
+
+void Editor::Object2DGizmo::setCenter(Vector3 point){
+    center->setPosition(point);
 }
 
 void Editor::Object2DGizmo::setSize(float width, float height){

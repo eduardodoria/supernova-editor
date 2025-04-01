@@ -94,15 +94,17 @@ void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quater
         Vector3 center = aabb.getCenter();
         Vector3 size = aabb.getSize();
 
-        Matrix4 translateMatrix = Matrix4::translateMatrix(Vector3(center.x, center.y, center.z));
-        Matrix4 scaleMatrix = Matrix4::scaleMatrix(Vector3(scale, scale, scale));
-        oGizmo->setLocalMatrix(objectMatrix * (translateMatrix * scaleMatrix));
+        Vector3 oScale = Vector3(1.0f, 1.0f, 1.0f);
+        oScale.x = Vector3(objectMatrix[0][0], objectMatrix[0][1], objectMatrix[0][2]).length();
+        oScale.y = Vector3(objectMatrix[1][0], objectMatrix[1][1], objectMatrix[1][2]).length();
+        oScale.z = Vector3(objectMatrix[2][0], objectMatrix[2][1], objectMatrix[2][2]).length();
 
-        //oGizmo->setPosition(center.x, center.y, center.z);
-        //oGizmo->setRotation(rotation);
-        //oGizmo->setScale(scale);
+        oGizmo->setPosition(position);
+        oGizmo->setRotation(rotation);
+        oGizmo->setScale(scale);
+        oGizmo->setCenter(center / scale * oScale);
+        oGizmo->setSize(size.x / scale * oScale.x, size.y / scale * oScale.y);
 
-        oGizmo->setSize(size.x / scale, size.y / scale);
         if (!mouseClicked){
             gizmoSideSelected = GizmoSideSelected::NONE;
             gizmo2DSideSelected = oGizmo->checkHover(mouseRay, objectMatrix * aabb);

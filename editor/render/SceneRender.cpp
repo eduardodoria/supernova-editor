@@ -17,6 +17,8 @@ Editor::SceneRender::SceneRender(Scene* scene, bool use2DGizmos, bool enableView
     this->scene = scene;
     this->camera = new Camera(scene);
 
+    this->multipleEntitiesSelected = false;
+
     this->zoom = 1.0f;
 
     scene->setCamera(camera);
@@ -184,7 +186,7 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities){
 
             gizmoPosition += transform->worldPosition;
 
-            if (!useGlobalTransform && selEntities.size() == 1){
+            if ((!useGlobalTransform && selEntities.size() == 1) || toolslayer.getGizmoSelected() == GizmoSelected::OBJECT2D){
                 gizmoRotation = transform->worldRotation;
             }
 
@@ -196,6 +198,8 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities){
             selBB.enclose(getFamilyOBB(entity, selectionOffset));
         }
     }
+
+    multipleEntitiesSelected = selEntities.size() > 1;
 
     bool gizmoVisibility = false;
     if (numTEntities > 0){
@@ -281,7 +285,7 @@ void Editor::SceneRender::mouseClickEvent(float x, float y, std::vector<Entity> 
     RayReturn rretrun = mouseRay.intersects(cursorPlane);
     objectMatrixOffset.clear();
     if (rretrun){
-        //pointStartPosition = rretrun.point;
+        gizmoStartPosition = gizmoPosition;
         cursorStartOffset = gizmoPosition - rretrun.point;
         rotationStartOffset = gizmoRotation;
         scaleStartOffset = Vector3(1,1,1);
@@ -440,29 +444,36 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
 
                 if (toolslayer.getGizmoSelected() == GizmoSelected::OBJECT2D){
                     Vector3 newPos = gizmoRMatrix.inverse() * ((rretrun.point + cursorStartOffset) - gizmoPosition);
-                    //Vector2 newSize = Vector2(gizmoRMatrix.inverse() * (rretrun.point - pointStartPosition));
+
+                    Vector3 newSize = gizmoRMatrix.inverse() * -(gizmoStartPosition - rretrun.point - cursorStartOffset);
+
                     if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::CENTER){
                         newPos = gizmoPosition + (gizmoRMatrix * newPos);
+                        newSize = Vector3(0, 0, 0);
                     }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::NX){
                         newPos = gizmoPosition + (gizmoRMatrix * Vector3(newPos.x, 0, 0));
+                        newSize = Vector3(-newSize.x, 0, 0);
                     }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::NY){
-                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(0, 0, 0));
+                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(0, newPos.y, 0));
+                        newSize = Vector3(0, -newSize.y, 0);
                     }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::PX){
-                        //newSize = objectSizeOffset[entity] + Vector2(gizmoRMatrix * Vector3(newPos.x, 0, 0));
-                        //printf("objectSizeOffset: %f, %f\n", objectSizeOffset[entity].x, objectSizeOffset[entity].y);
-                        //printf("newPos: %f, %f\n", newPos.x, newPos.y);
-                        //printf("newSize: %f, %f\n", newSize.x, newSize.y);
                         newPos = gizmoPosition + (gizmoRMatrix * Vector3(0, 0, 0));
+                        newSize = Vector3(newSize.x, 0, 0);
                     }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::PY){
-                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(0, newPos.y, 0));
-                    }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::NX_NY){
-                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(newPos.x, 0, 0));
-                    }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::NX_PY){
-                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(newPos.x, newPos.y, 0));
-                    }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::PX_NY){
                         newPos = gizmoPosition + (gizmoRMatrix * Vector3(0, 0, 0));
-                    }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::PX_PY){
+                        newSize = Vector3(0, newSize.y, 0);
+                    }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::NX_NY){
+                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(newPos.x, newPos.y, 0));
+                        newSize = Vector3(-newSize.x, -newSize.y, 0);
+                    }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::NX_PY){
+                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(newPos.x, 0, 0));
+                        newSize = Vector3(-newSize.x, newSize.y, 0);
+                    }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::PX_NY){
                         newPos = gizmoPosition + (gizmoRMatrix * Vector3(0, newPos.y, 0));
+                        newSize = Vector3(newSize.x, -newSize.y, 0);
+                    }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::PX_PY){
+                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(0, 0, 0));
+                        newSize = Vector3(newSize.x, newSize.y, 0);
                     }
 
                     Matrix4 gizmoMatrix = Matrix4::translateMatrix(newPos) * gizmoRMatrix * Matrix4::scaleMatrix(Vector3(1,1,1));
@@ -472,14 +483,14 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                         objMatrix = transformParent->modelMatrix.inverse() * objMatrix;
                     }
 
-                    //newSize = Vector2(objMatrix * Vector3(newSize.x, newSize.y, 0));
+                    Vector2 size = objectSizeOffset[entity] + Vector2(newSize);
+                    Vector3 pos = Vector3(objMatrix[3][0], objMatrix[3][1], objMatrix[3][2]);
 
                     if (toolslayer.getGizmo2DSideSelected() != Gizmo2DSideSelected::NONE){
-                        //lastCommand = new PropertyCmd<int>(sceneProject->scene, entity, ComponentType::UILayoutComponent, "width", UpdateFlags_Layout_Sizes, static_cast<int>(newSize.x));
-                        //CommandHandle::get(sceneId)->addCommand(lastCommand);
-                        //lastCommand = new PropertyCmd<int>(sceneProject->scene, entity, ComponentType::UILayoutComponent, "height", UpdateFlags_Layout_Sizes, static_cast<int>(newSize.y));
-                        //CommandHandle::get(sceneId)->addCommand(lastCommand);
-                        Vector3 pos = Vector3(objMatrix[3][0], objMatrix[3][1], objMatrix[3][2]);
+                        lastCommand = new PropertyCmd<int>(sceneProject->scene, entity, ComponentType::UILayoutComponent, "width", UpdateFlags_Layout_Sizes, static_cast<int>(size.x));
+                        CommandHandle::get(sceneId)->addCommand(lastCommand);
+                        lastCommand = new PropertyCmd<int>(sceneProject->scene, entity, ComponentType::UILayoutComponent, "height", UpdateFlags_Layout_Sizes, static_cast<int>(size.y));
+                        CommandHandle::get(sceneId)->addCommand(lastCommand);
                         lastCommand = new PropertyCmd<Vector3>(sceneProject->scene, entity, ComponentType::Transform, "position", UpdateFlags_Transform, pos);
                     }
                 }
@@ -533,6 +544,10 @@ void Editor::SceneRender::enableCursorHand(){
     cursorSelected = CursorSelected::HAND;
 }
 
-Editor::CursorSelected Editor::SceneRender::getCursorSelected(){
+Editor::CursorSelected Editor::SceneRender::getCursorSelected() const{
     return cursorSelected;
+}
+
+bool Editor::SceneRender::isMultipleEntitesSelected() const{
+    return multipleEntitiesSelected;
 }

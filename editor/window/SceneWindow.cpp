@@ -331,14 +331,14 @@ void Editor::SceneWindow::show() {
             ImGui::Dummy(ImVec2(1, 20));
             ImGui::SameLine(0, 10);
 
-            SceneRender3D* sceneRender3D = (SceneRender3D*)sceneProject.sceneRender;
-            GizmoSelected gizmoSelected = sceneRender3D->getToolsLayer()->getGizmoSelected();
+            GizmoSelected gizmoSelected = sceneProject.sceneRender->getToolsLayer()->getGizmoSelected();
+            bool multipleEntitiesSelected = sceneProject.sceneRender->isMultipleEntitesSelected();
 
             if (sceneProject.sceneType != SceneType::SCENE_3D){
                 ImGui::BeginDisabled(gizmoSelected == GizmoSelected::OBJECT2D);
                 ImGui::SameLine();
                 if (ImGui::Button(ICON_FA_EXPAND)) {
-                    sceneRender3D->getToolsLayer()->enableObject2DGizmo();
+                    sceneProject.sceneRender->getToolsLayer()->enableObject2DGizmo();
                 }
                 ImGui::SetItemTooltip("2D Gizmo (Q)");
                 ImGui::EndDisabled();
@@ -347,7 +347,7 @@ void Editor::SceneWindow::show() {
             ImGui::BeginDisabled(gizmoSelected == GizmoSelected::TRANSLATE);
             ImGui::SameLine();
             if (ImGui::Button(ICON_FA_ARROWS_UP_DOWN_LEFT_RIGHT)) {
-                sceneRender3D->getToolsLayer()->enableTranslateGizmo();
+                sceneProject.sceneRender->getToolsLayer()->enableTranslateGizmo();
             }
             ImGui::SetItemTooltip("Translate (W)");
             ImGui::EndDisabled();
@@ -355,7 +355,7 @@ void Editor::SceneWindow::show() {
             ImGui::BeginDisabled(gizmoSelected == GizmoSelected::ROTATE);
             ImGui::SameLine();
             if (ImGui::Button(ICON_FA_ROTATE)) {
-                sceneRender3D->getToolsLayer()->enableRotateGizmo();
+                sceneProject.sceneRender->getToolsLayer()->enableRotateGizmo();
             }
             ImGui::SetItemTooltip("Rotate (E)");
             ImGui::EndDisabled();
@@ -363,7 +363,7 @@ void Editor::SceneWindow::show() {
             ImGui::BeginDisabled(gizmoSelected == GizmoSelected::SCALE);
             ImGui::SameLine();
             if (ImGui::Button(ICON_FA_UP_RIGHT_AND_DOWN_LEFT_FROM_CENTER)) {
-                sceneRender3D->getToolsLayer()->enableScaleGizmo();
+                sceneProject.sceneRender->getToolsLayer()->enableScaleGizmo();
             }
             ImGui::SetItemTooltip("Scale (R)");
             ImGui::EndDisabled();
@@ -374,7 +374,7 @@ void Editor::SceneWindow::show() {
 
             bool useGlobalTransform = sceneProject.sceneRender->isUseGlobalTransform();
 
-            ImGui::BeginDisabled(useGlobalTransform);
+            ImGui::BeginDisabled(useGlobalTransform || gizmoSelected == GizmoSelected::OBJECT2D || multipleEntitiesSelected);
             ImGui::SameLine();
             if (ImGui::Button(ICON_FA_GLOBE)) {
                 sceneProject.sceneRender->setUseGlobalTransform(true);
@@ -382,7 +382,7 @@ void Editor::SceneWindow::show() {
             ImGui::SetItemTooltip("World transform (T)");
             ImGui::EndDisabled();
 
-            ImGui::BeginDisabled(!useGlobalTransform);
+            ImGui::BeginDisabled(!useGlobalTransform || gizmoSelected == GizmoSelected::OBJECT2D || multipleEntitiesSelected);
             ImGui::SameLine();
             if (ImGui::Button(ICON_FA_LOCATION_DOT)) {
                 sceneProject.sceneRender->setUseGlobalTransform(false);

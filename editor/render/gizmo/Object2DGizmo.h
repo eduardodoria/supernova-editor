@@ -11,6 +11,7 @@ namespace Supernova::Editor{
 
     class Object2DGizmo: public Object{
     private:
+        Object* center;
         Polygon* rects[8];
 
         float width;
@@ -25,6 +26,7 @@ namespace Supernova::Editor{
         Object2DGizmo(Scene* scene);
         virtual ~Object2DGizmo();
 
+        void setCenter(Vector3 point);
         void setSize(float width, float height);
 
         Gizmo2DSideSelected checkHover(const Ray& ray, const AABB& aabb);

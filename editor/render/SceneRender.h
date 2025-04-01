@@ -15,7 +15,7 @@ namespace Supernova::Editor{
     private:
         Plane cursorPlane;
         Vector3 rotationAxis;
-        //Vector3 pointStartPosition;
+        Vector3 gizmoStartPosition;
         Vector3 cursorStartOffset;
         Quaternion rotationStartOffset;
         Vector3 scaleStartOffset;
@@ -49,6 +49,8 @@ namespace Supernova::Editor{
         ToolsLayer toolslayer;
         UILayer uilayer;
 
+        bool multipleEntitiesSelected;
+
         float zoom;       // current zoom level (units per pixel) for 2D
 
     public:
@@ -81,7 +83,9 @@ namespace Supernova::Editor{
 
         void enableCursorPointer();
         void enableCursorHand();
-        CursorSelected getCursorSelected();
+        CursorSelected getCursorSelected() const;
+
+        bool isMultipleEntitesSelected() const;
     };
 
 }
