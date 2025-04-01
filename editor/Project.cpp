@@ -500,10 +500,15 @@ Entity Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
     Ray ray = scenedata->sceneRender->getCamera()->screenToRay(x, y);
 
     float distance = FLT_MAX;
+    size_t index = 0;
     Entity selEntity = NULL_ENTITY;
     for (auto& entity : scenedata->entities) {
         AABB aabb;
         Signature signature = scenedata->scene->getSignature(entity);
+
+        if (!signature.test(scenedata->scene->getComponentId<Transform>())){
+            continue;
+        }
 
         if (signature.test(scenedata->scene->getComponentId<MeshComponent>())){
             MeshComponent& mesh = scenedata->scene->getComponent<MeshComponent>(entity);
@@ -516,8 +521,10 @@ Entity Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
         if (!aabb.isNull() && !aabb.isInfinite()){
             RayReturn rreturn = ray.intersects(aabb);
             if (rreturn.hit){
-                if (rreturn.distance < distance){
+                size_t nIndex = scenedata->scene->getComponentArray<Transform>()->getIndex(entity);
+                if (rreturn.distance < distance || nIndex >= index){
                     distance = rreturn.distance;
+                    index = nIndex;
                     selEntity = entity;
                 }
             }
