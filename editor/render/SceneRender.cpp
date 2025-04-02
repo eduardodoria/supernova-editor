@@ -3,6 +3,7 @@
 #include "command/CommandHandle.h"
 #include "command/type/ObjectTransformCmd.h"
 #include "command/type/PropertyCmd.h"
+#include "command/type/MultiPropertyCmd.h"
 
 using namespace Supernova;
 
@@ -483,15 +484,20 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                         objMatrix = transformParent->modelMatrix.inverse() * objMatrix;
                     }
 
-                    Vector2 size = objectSizeOffset[entity] + Vector2(newSize);
+                    Vector3 oScale = Vector3(1.0f, 1.0f, 1.0f);
+                    oScale.x = Vector3(objMatrix[0][0], objMatrix[0][1], objMatrix[0][2]).length();
+                    oScale.y = Vector3(objMatrix[1][0], objMatrix[1][1], objMatrix[1][2]).length();
+                    oScale.z = Vector3(objMatrix[2][0], objMatrix[2][1], objMatrix[2][2]).length();
+
+                    Vector2 size = objectSizeOffset[entity] + Vector2(newSize.x / oScale.x, newSize.y / oScale.y);
                     Vector3 pos = Vector3(objMatrix[3][0], objMatrix[3][1], objMatrix[3][2]);
 
                     if (toolslayer.getGizmo2DSideSelected() != Gizmo2DSideSelected::NONE){
-                        lastCommand = new PropertyCmd<int>(sceneProject->scene, entity, ComponentType::UILayoutComponent, "width", UpdateFlags_Layout_Sizes, static_cast<int>(size.x));
-                        CommandHandle::get(sceneId)->addCommand(lastCommand);
-                        lastCommand = new PropertyCmd<int>(sceneProject->scene, entity, ComponentType::UILayoutComponent, "height", UpdateFlags_Layout_Sizes, static_cast<int>(size.y));
-                        CommandHandle::get(sceneId)->addCommand(lastCommand);
-                        lastCommand = new PropertyCmd<Vector3>(sceneProject->scene, entity, ComponentType::Transform, "position", UpdateFlags_Transform, pos);
+                        MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+                        multiCmd->addPropertyCmd<int>(sceneProject->scene, entity, ComponentType::UILayoutComponent, "width", UpdateFlags_Layout_Sizes, static_cast<int>(size.x));
+                        multiCmd->addPropertyCmd<int>(sceneProject->scene, entity, ComponentType::UILayoutComponent, "height", UpdateFlags_Layout_Sizes, static_cast<int>(size.y));
+                        multiCmd->addPropertyCmd<Vector3>(sceneProject->scene, entity, ComponentType::Transform, "position", UpdateFlags_Transform, pos);
+                        lastCommand = multiCmd;
                     }
                 }
 
