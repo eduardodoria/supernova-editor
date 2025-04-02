@@ -442,6 +442,44 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             ImGui::PopStyleColor();
         //ImGui::SetItemTooltip("%s", prop.label.c_str());
 
+    }else if (prop.type == PropertyType::UInt){
+        unsigned int* value = nullptr;
+        std::map<Entity, unsigned int> eValue;
+        bool dif = false;
+        for (Entity& entity : entities){
+            eValue[entity] = *Catalog::getPropertyRef<unsigned int>(scene, entity, cpType, name);
+            if (value){
+                if (*value != eValue[entity])
+                    dif = true;
+            }
+            value = &eValue[entity];
+        }
+
+        unsigned int newValue = *value;
+
+        bool defChanged = false;
+        if (prop.def){
+            defChanged = (newValue != *static_cast<unsigned int*>(prop.def));
+        }
+        if (propertyHeader(prop.label, secondColSize, defChanged, child)){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<unsigned int>(scene, entity, cpType, name, prop.updateFlags, *static_cast<unsigned int*>(prop.def));
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            }
+        }
+
+        if (dif)
+            ImGui::PushStyleColor(ImGuiCol_CheckMark, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        if (ImGui::DragInt(("##input_uint_"+name).c_str(), (int*)&newValue, static_cast<unsigned int>(stepSize), 0.0f, INT_MAX)){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<unsigned int>(scene, entity, cpType, name, prop.updateFlags, newValue);
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            }
+        }
+        if (dif)
+            ImGui::PopStyleColor();
+        //ImGui::SetItemTooltip("%s", prop.label.c_str());
+
     }else if (prop.type == PropertyType::Int){
         int* value = nullptr;
         std::map<Entity, int> eValue;

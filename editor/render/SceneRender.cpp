@@ -494,8 +494,8 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
 
                     if (toolslayer.getGizmo2DSideSelected() != Gizmo2DSideSelected::NONE){
                         MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
-                        multiCmd->addPropertyCmd<int>(sceneProject->scene, entity, ComponentType::UILayoutComponent, "width", UpdateFlags_Layout_Sizes, static_cast<int>(size.x));
-                        multiCmd->addPropertyCmd<int>(sceneProject->scene, entity, ComponentType::UILayoutComponent, "height", UpdateFlags_Layout_Sizes, static_cast<int>(size.y));
+                        multiCmd->addPropertyCmd<unsigned int>(sceneProject->scene, entity, ComponentType::UILayoutComponent, "width", UpdateFlags_Layout_Sizes, static_cast<unsigned int>(size.x));
+                        multiCmd->addPropertyCmd<unsigned int>(sceneProject->scene, entity, ComponentType::UILayoutComponent, "height", UpdateFlags_Layout_Sizes, static_cast<unsigned int>(size.y));
                         multiCmd->addPropertyCmd<Vector3>(sceneProject->scene, entity, ComponentType::Transform, "position", UpdateFlags_Transform, pos);
                         lastCommand = multiCmd;
                     }

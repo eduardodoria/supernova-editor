@@ -154,8 +154,8 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         UILayoutComponent* comp = (UILayoutComponent*)compRef;
         static UILayoutComponent* def = new UILayoutComponent;
 
-        ps["width"] = {PropertyType::Int, "Width", UpdateFlags_Layout_Sizes, nullptr, (compRef) ? (void*)&comp->width : nullptr};
-        ps["height"] = {PropertyType::Int, "Height", UpdateFlags_Layout_Sizes, nullptr, (compRef) ? (void*)&comp->height : nullptr};
+        ps["width"] = {PropertyType::UInt, "Width", UpdateFlags_Layout_Sizes, nullptr, (compRef) ? (void*)&comp->width : nullptr};
+        ps["height"] = {PropertyType::UInt, "Height", UpdateFlags_Layout_Sizes, nullptr, (compRef) ? (void*)&comp->height : nullptr};
         ps["ignore_scissor"] = {PropertyType::Bool, "Ignore scissor", UpdateFlags_None, (void*)&def->ignoreScissor, (compRef) ? (void*)&comp->ignoreScissor : nullptr};
     }
 
