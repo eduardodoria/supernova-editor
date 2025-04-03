@@ -90,7 +90,7 @@ void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quater
     }
     // only for single selections
     // do not use gizmo position and rotation
-    if (gizmoSelected == GizmoSelected::OBJECT2D){
+    if (gizmoSelected == GizmoSelected::OBJECT2D && aabb.isFinite() && !aabb.isNull()){
         Vector3 center = aabb.getCenter();
         Vector3 size = aabb.getSize();
 

@@ -207,6 +207,9 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities){
         gizmoPosition /= numTEntities;
 
         gizmoVisibility = true;
+        //if (toolslayer.getGizmoSelected() == GizmoSelected::OBJECT2D && (singleObjectAABB.isInfinite() || singleObjectAABB.isNull())){
+        //    gizmoVisibility = false;
+        //}
 
         float scale = gizmoScale * zoom;
         if (cameracomp.type == CameraType::CAMERA_PERSPECTIVE){

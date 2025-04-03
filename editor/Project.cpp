@@ -522,7 +522,7 @@ Entity Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
             RayReturn rreturn = ray.intersects(aabb);
             if (rreturn.hit){
                 size_t nIndex = scenedata->scene->getComponentArray<Transform>()->getIndex(entity);
-                if (rreturn.distance < distance || nIndex >= index){
+                if (rreturn.distance < distance || (nIndex >= index && scenedata->sceneType != SceneType::SCENE_3D)){
                     distance = rreturn.distance;
                     index = nIndex;
                     selEntity = entity;
