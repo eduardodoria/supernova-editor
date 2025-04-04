@@ -22,6 +22,10 @@ Editor::SceneRender::SceneRender(Scene* scene, bool use2DGizmos, bool enableView
 
     this->zoom = 1.0f;
 
+    selLines = new Lines(scene);
+    selLines->addLine(Vector3::ZERO, Vector3::ZERO, Vector4::ZERO);
+    selLines->setVisible(false);
+
     scene->setCamera(camera);
 
     cursorSelected = CursorSelected::POINTER;
@@ -177,7 +181,7 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities){
     Quaternion gizmoRotation;
 
     size_t numTEntities = 0;
-    OBB selBB;
+    std::vector<OBB> selBB;
     AABB singleObjectAABB;
     Matrix4 singleObjectMatrix;
 
@@ -196,20 +200,17 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities){
                 singleObjectMatrix = transform->modelMatrix;
             }
 
-            selBB.enclose(getFamilyOBB(entity, selectionOffset));
+            selBB.push_back(getFamilyOBB(entity, selectionOffset));
         }
     }
 
     multipleEntitiesSelected = selEntities.size() > 1;
 
-    bool gizmoVisibility = false;
+    bool selectionVisibility = false;
     if (numTEntities > 0){
         gizmoPosition /= numTEntities;
 
-        gizmoVisibility = true;
-        //if (toolslayer.getGizmoSelected() == GizmoSelected::OBJECT2D && (singleObjectAABB.isInfinite() || singleObjectAABB.isNull())){
-        //    gizmoVisibility = false;
-        //}
+        selectionVisibility = true;
 
         float scale = gizmoScale * zoom;
         if (cameracomp.type == CameraType::CAMERA_PERSPECTIVE){
@@ -219,7 +220,7 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities){
 
         toolslayer.updateGizmo(camera, gizmoPosition, gizmoRotation, scale, singleObjectAABB, singleObjectMatrix, mouseRay, mouseClicked);
 
-        if (selBB == OBB::ZERO){
+        if (selBB.size() == 0){
             selLines->setVisible(false);
         }else{
             selLines->setVisible(true);
@@ -228,8 +229,13 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities){
         }
     }
     toolslayer.updateCamera(cameracomp, cameratransform);
-    toolslayer.setGizmoVisible(gizmoVisibility);
-    selLines->setVisible(gizmoVisibility);
+    selLines->setVisible(selectionVisibility);
+
+    if (toolslayer.getGizmoSelected() == GizmoSelected::OBJECT2D && (singleObjectAABB.isInfinite() || singleObjectAABB.isNull())){
+        toolslayer.setGizmoVisible(false);
+    }else{
+        toolslayer.setGizmoVisible(selectionVisibility);
+    }
 }
 
 void Editor::SceneRender::mouseHoverEvent(float x, float y){

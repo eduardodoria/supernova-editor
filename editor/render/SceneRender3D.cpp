@@ -18,12 +18,6 @@ Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, tr
     sun = new Light(scene);
     sky = new SkyBox(scene);
 
-    selLines = new Lines(scene);
-    for (int i = 0; i < 12; i++){
-        selLines->addLine(Vector3::ZERO, Vector3::ZERO, Vector4(1.0, 0.6, 0.0, 1.0));
-    }
-    selLines->setVisible(false);
-
     TextureData skyBack;
     TextureData skyBottom;
     TextureData skyFront;
@@ -132,21 +126,24 @@ void Editor::SceneRender3D::updateSelLines(AABB aabb){
     selLines->updateLine(11, aabb.getCorner(AABB::FAR_RIGHT_BOTTOM), aabb.getCorner(AABB::NEAR_RIGHT_BOTTOM));
 }
 
-void Editor::SceneRender3D::updateSelLines(OBB obb){
-    selLines->updateLine(0, obb.getCorner(OBB::FAR_LEFT_BOTTOM), obb.getCorner(OBB::FAR_LEFT_TOP));
-    selLines->updateLine(1, obb.getCorner(OBB::FAR_LEFT_TOP), obb.getCorner(OBB::FAR_RIGHT_TOP));
-    selLines->updateLine(2, obb.getCorner(OBB::FAR_RIGHT_TOP), obb.getCorner(OBB::FAR_RIGHT_BOTTOM));
-    selLines->updateLine(3, obb.getCorner(OBB::FAR_RIGHT_BOTTOM), obb.getCorner(OBB::FAR_LEFT_BOTTOM));
+void Editor::SceneRender3D::updateSelLines(std::vector<OBB> obbs){
+    selLines->clearLines();
+    for (OBB& obb : obbs){
+        selLines->addLine(obb.getCorner(OBB::FAR_LEFT_BOTTOM), obb.getCorner(OBB::FAR_LEFT_TOP), Vector4(1.0, 0.6, 0.0, 1.0));
+        selLines->addLine(obb.getCorner(OBB::FAR_LEFT_TOP), obb.getCorner(OBB::FAR_RIGHT_TOP), Vector4(1.0, 0.6, 0.0, 1.0));
+        selLines->addLine(obb.getCorner(OBB::FAR_RIGHT_TOP), obb.getCorner(OBB::FAR_RIGHT_BOTTOM), Vector4(1.0, 0.6, 0.0, 1.0));
+        selLines->addLine(obb.getCorner(OBB::FAR_RIGHT_BOTTOM), obb.getCorner(OBB::FAR_LEFT_BOTTOM), Vector4(1.0, 0.6, 0.0, 1.0));
 
-    selLines->updateLine(4, obb.getCorner(OBB::NEAR_LEFT_BOTTOM), obb.getCorner(OBB::NEAR_LEFT_TOP));
-    selLines->updateLine(5, obb.getCorner(OBB::NEAR_LEFT_TOP), obb.getCorner(OBB::NEAR_RIGHT_TOP));
-    selLines->updateLine(6, obb.getCorner(OBB::NEAR_RIGHT_TOP), obb.getCorner(OBB::NEAR_RIGHT_BOTTOM));
-    selLines->updateLine(7, obb.getCorner(OBB::NEAR_RIGHT_BOTTOM), obb.getCorner(OBB::NEAR_LEFT_BOTTOM));
+        selLines->addLine(obb.getCorner(OBB::NEAR_LEFT_BOTTOM), obb.getCorner(OBB::NEAR_LEFT_TOP), Vector4(1.0, 0.6, 0.0, 1.0));
+        selLines->addLine(obb.getCorner(OBB::NEAR_LEFT_TOP), obb.getCorner(OBB::NEAR_RIGHT_TOP), Vector4(1.0, 0.6, 0.0, 1.0));
+        selLines->addLine(obb.getCorner(OBB::NEAR_RIGHT_TOP), obb.getCorner(OBB::NEAR_RIGHT_BOTTOM), Vector4(1.0, 0.6, 0.0, 1.0));
+        selLines->addLine(obb.getCorner(OBB::NEAR_RIGHT_BOTTOM), obb.getCorner(OBB::NEAR_LEFT_BOTTOM)), Vector4(1.0, 0.6, 0.0, 1.0);
 
-    selLines->updateLine(8, obb.getCorner(OBB::FAR_LEFT_BOTTOM), obb.getCorner(OBB::NEAR_LEFT_BOTTOM));
-    selLines->updateLine(9, obb.getCorner(OBB::FAR_LEFT_TOP), obb.getCorner(OBB::NEAR_LEFT_TOP));
-    selLines->updateLine(10, obb.getCorner(OBB::FAR_RIGHT_TOP), obb.getCorner(OBB::NEAR_RIGHT_TOP));
-    selLines->updateLine(11, obb.getCorner(OBB::FAR_RIGHT_BOTTOM), obb.getCorner(OBB::NEAR_RIGHT_BOTTOM));
+        selLines->addLine(obb.getCorner(OBB::FAR_LEFT_BOTTOM), obb.getCorner(OBB::NEAR_LEFT_BOTTOM), Vector4(1.0, 0.6, 0.0, 1.0));
+        selLines->addLine(obb.getCorner(OBB::FAR_LEFT_TOP), obb.getCorner(OBB::NEAR_LEFT_TOP), Vector4(1.0, 0.6, 0.0, 1.0));
+        selLines->addLine(obb.getCorner(OBB::FAR_RIGHT_TOP), obb.getCorner(OBB::NEAR_RIGHT_TOP), Vector4(1.0, 0.6, 0.0, 1.0));
+        selLines->addLine(obb.getCorner(OBB::FAR_RIGHT_BOTTOM), obb.getCorner(OBB::NEAR_RIGHT_BOTTOM), Vector4(1.0, 0.6, 0.0, 1.0));
+    }
 }
 
 void Editor::SceneRender3D::update(std::vector<Entity> selEntities){

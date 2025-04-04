@@ -562,10 +562,26 @@ bool Editor::Project::selectObjectsByRect(uint32_t sceneId, Vector2 start, Vecto
     float distance = FLT_MAX;
     Entity selEntity = NULL_ENTITY;
     for (auto& entity : scenedata->entities) {
-        Transform* transform = scenedata->scene->findComponent<Transform>(entity);
-        MeshComponent* mesh = scenedata->scene->findComponent<MeshComponent>(entity);
-        if (transform && mesh){
-            const Vector3* corners = mesh->aabb.getCorners();
+
+        AABB aabb;
+        Signature signature = scenedata->scene->getSignature(entity);
+
+        if (!signature.test(scenedata->scene->getComponentId<Transform>())){
+            continue;
+        }
+
+        if (signature.test(scenedata->scene->getComponentId<MeshComponent>())){
+            MeshComponent& mesh = scenedata->scene->getComponent<MeshComponent>(entity);
+            aabb = mesh.aabb;
+        }else if (signature.test(scenedata->scene->getComponentId<UIComponent>())){
+            UIComponent& ui = scenedata->scene->getComponent<UIComponent>(entity);
+            aabb = ui.aabb;
+        }
+
+        if (!aabb.isNull() && !aabb.isInfinite()){
+            Transform& transform = scenedata->scene->getComponent<Transform>(entity);
+
+            const Vector3* corners = aabb.getCorners();
 
             Vector2 minRect = Vector2(std::min(start.x, end.x), std::min(start.y, end.y));
             Vector2 maxRect = Vector2(std::max(start.x, end.x), std::max(start.y, end.y));
@@ -573,7 +589,7 @@ bool Editor::Project::selectObjectsByRect(uint32_t sceneId, Vector2 start, Vecto
             bool found = true;
 
             for (int c = 0; c < 8; c++){
-                Vector4 clipCorner = camera->getViewProjectionMatrix() * transform->modelMatrix * Vector4(corners[c], 1.0);
+                Vector4 clipCorner = camera->getViewProjectionMatrix() * transform.modelMatrix * Vector4(corners[c], 1.0);
                 Vector3 ndcCorner = Vector3(clipCorner) / clipCorner.w;
 
                 if (!(ndcCorner.x >= minRect.x && ndcCorner.x <= maxRect.x && ndcCorner.y >= minRect.y && ndcCorner.y <= maxRect.y)){

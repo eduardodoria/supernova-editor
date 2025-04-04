@@ -431,7 +431,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         }
 
         if (dif)
-            ImGui::PushStyleColor(ImGuiCol_CheckMark, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         if (ImGui::DragFloat(("##input_float_"+name).c_str(), &newValue, stepSize, 0.0f, 1.0f, "%.2f")){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<float>(scene, entity, cpType, name, prop.updateFlags, newValue);
@@ -469,7 +469,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         }
 
         if (dif)
-            ImGui::PushStyleColor(ImGuiCol_CheckMark, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         if (ImGui::DragInt(("##input_uint_"+name).c_str(), (int*)&newValue, static_cast<unsigned int>(stepSize), 0.0f, INT_MAX)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<unsigned int>(scene, entity, cpType, name, prop.updateFlags, newValue);
@@ -507,7 +507,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         }
 
         if (dif)
-            ImGui::PushStyleColor(ImGuiCol_CheckMark, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         if (ImGui::DragInt(("##input_int_"+name).c_str(), &newValue, static_cast<int>(stepSize), 0.0f, 0.0f)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<int>(scene, entity, cpType, name, prop.updateFlags, newValue);

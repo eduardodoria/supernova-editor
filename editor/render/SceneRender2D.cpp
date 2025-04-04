@@ -15,12 +15,6 @@ Editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned 
 
     createLines(width, height);
 
-    selLines = new Lines(scene);
-    for (int i = 0; i < 4; i++){
-        selLines->addLine(Vector3::ZERO, Vector3::ZERO, Vector4(1.0, 0.6, 0.0, 1.0));
-    }
-    selLines->setVisible(false);
-
     scene->setBackgroundColor(Vector4(0.231, 0.298, 0.475, 1.0));
 
     Engine::setScalingMode(Scaling::NATIVE);
@@ -76,11 +70,14 @@ void Editor::SceneRender2D::updateSelLines(AABB aabb){
     selLines->updateLine(3, aabb.getCorner(AABB::NEAR_RIGHT_BOTTOM), aabb.getCorner(AABB::NEAR_LEFT_BOTTOM));
 }
 
-void Editor::SceneRender2D::updateSelLines(OBB obb){
-    selLines->updateLine(0, obb.getCorner(OBB::NEAR_LEFT_BOTTOM), obb.getCorner(OBB::NEAR_LEFT_TOP));
-    selLines->updateLine(1, obb.getCorner(OBB::NEAR_LEFT_TOP), obb.getCorner(OBB::NEAR_RIGHT_TOP));
-    selLines->updateLine(2, obb.getCorner(OBB::NEAR_RIGHT_TOP), obb.getCorner(OBB::NEAR_RIGHT_BOTTOM));
-    selLines->updateLine(3, obb.getCorner(OBB::NEAR_RIGHT_BOTTOM), obb.getCorner(OBB::NEAR_LEFT_BOTTOM));
+void Editor::SceneRender2D::updateSelLines(std::vector<OBB> obbs){
+    selLines->clearLines();
+    for (OBB& obb : obbs){
+        selLines->addLine(obb.getCorner(OBB::NEAR_LEFT_BOTTOM), obb.getCorner(OBB::NEAR_LEFT_TOP), Vector4(1.0, 0.6, 0.0, 1.0));
+        selLines->addLine(obb.getCorner(OBB::NEAR_LEFT_TOP), obb.getCorner(OBB::NEAR_RIGHT_TOP), Vector4(1.0, 0.6, 0.0, 1.0));
+        selLines->addLine(obb.getCorner(OBB::NEAR_RIGHT_TOP), obb.getCorner(OBB::NEAR_RIGHT_BOTTOM), Vector4(1.0, 0.6, 0.0, 1.0));
+        selLines->addLine(obb.getCorner(OBB::NEAR_RIGHT_BOTTOM), obb.getCorner(OBB::NEAR_LEFT_BOTTOM), Vector4(1.0, 0.6, 0.0, 1.0));
+    }
 }
 
 void Editor::SceneRender2D::update(std::vector<Entity> selEntities){
