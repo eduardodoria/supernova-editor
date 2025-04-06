@@ -442,6 +442,7 @@ void Editor::SceneWindow::show() {
                     static UIComponent* selUI = nullptr;
                     static Texture originalTex;
                     static Entity lastSelEntity = NULL_ENTITY;
+                    static Image* tempImage;
 
                     if (selEntity == NULL_ENTITY || lastSelEntity != selEntity) {
                         if (selMesh) {
@@ -507,6 +508,21 @@ void Editor::SceneWindow::show() {
                                         ImGui::SetWindowFocus();
                                         selUI = nullptr;
                                     }
+                                }
+                            }
+                        }
+                    }else if (sceneProject.sceneType != SceneType::SCENE_3D){
+                        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
+                            std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
+                            if (receivedStrings.size() > 0){
+                                if (!tempImage){
+                                    tempImage = new Image(sceneProject.scene);
+                                    tempImage->setTexture(receivedStrings[0]);
+                                }
+                                Ray ray = sceneProject.sceneRender->getCamera()->screenToRay(x, y);
+                                RayReturn rreturn = ray.intersects(Plane(Vector3(0, 0, 1), Vector3(0, 0, 0)));
+                                if (rreturn){
+                                    tempImage->setPosition(rreturn.point);
                                 }
                             }
                         }
