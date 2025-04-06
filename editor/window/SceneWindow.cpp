@@ -439,6 +439,7 @@ void Editor::SceneWindow::show() {
                     Entity selEntity = project->findObjectByRay(sceneProject.id, x, y);
 
                     static MeshComponent* selMesh = nullptr;
+                    static UIComponent* selUI = nullptr;
                     static Texture originalTex;
                     static Entity lastSelEntity = NULL_ENTITY;
 
@@ -446,9 +447,16 @@ void Editor::SceneWindow::show() {
                         if (selMesh) {
                             if (selMesh->submeshes[0].material.baseColorTexture != originalTex) {
                                 selMesh->submeshes[0].material.baseColorTexture = originalTex;
-                                selMesh->needReload = true;
+                                selMesh->submeshes[0].needUpdateTexture = true;
                             }
                             selMesh = nullptr;
+                        }
+                        if (selUI) {
+                            if (selUI->texture != originalTex) {
+                                selUI->texture = originalTex;
+                                selUI->needUpdateTexture = true;
+                            }
+                            selUI = nullptr;
                         }
                     }
 
@@ -456,27 +464,49 @@ void Editor::SceneWindow::show() {
                         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
                             lastSelEntity = selEntity;
                             std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
-                            MeshComponent* mesh = sceneProject.scene->findComponent<MeshComponent>(selEntity);
-                            if (mesh && receivedStrings.size() > 0) {
-                                if (!selMesh) {
-                                    selMesh = mesh;
-                                    originalTex = mesh->submeshes[0].material.baseColorTexture;
-                                }
-                                Texture newTex(receivedStrings[0]);
-                                if (mesh->submeshes[0].material.baseColorTexture != newTex) {
-                                    mesh->submeshes[0].material.baseColorTexture = newTex;
-                                    mesh->needReload = true;
-                                }
-                                if (payload->IsDelivery()) {
-                                    std::string propName = "submeshes[0].material.basecolortexture";
-                                    selMesh->submeshes[0].material.baseColorTexture = originalTex;
+                            if (receivedStrings.size() > 0){
+                                if (MeshComponent* mesh = sceneProject.scene->findComponent<MeshComponent>(selEntity)) {
+                                    if (!selMesh) {
+                                        selMesh = mesh;
+                                        originalTex = mesh->submeshes[0].material.baseColorTexture;
+                                    }
+                                    Texture newTex(receivedStrings[0]);
+                                    if (mesh->submeshes[0].material.baseColorTexture != newTex) {
+                                        mesh->submeshes[0].material.baseColorTexture = newTex;
+                                        mesh->submeshes[0].needUpdateTexture = true;
+                                    }
+                                    if (payload->IsDelivery()) {
+                                        std::string propName = "submeshes[0].material.basecolortexture";
+                                        selMesh->submeshes[0].material.baseColorTexture = originalTex;
 
-                                    PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(sceneProject.scene, selEntity, ComponentType::MeshComponent, propName, UpdateFlags_Mesh_Texture, newTex);
-                                    cmd->setNoMerge();
-                                    CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                                        PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(sceneProject.scene, selEntity, ComponentType::MeshComponent, propName, UpdateFlags_Mesh_Texture, newTex);
+                                        cmd->setNoMerge();
+                                        CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
 
-                                    ImGui::SetWindowFocus();
-                                    selMesh = nullptr;
+                                        ImGui::SetWindowFocus();
+                                        selMesh = nullptr;
+                                    }
+                                }else if (UIComponent* ui = sceneProject.scene->findComponent<UIComponent>(selEntity)){
+                                    if (!selUI) {
+                                        selUI = ui;
+                                        originalTex = ui->texture;
+                                    }
+                                    Texture newTex(receivedStrings[0]);
+                                    if (ui->texture != newTex) {
+                                        ui->texture = newTex;
+                                        ui->needUpdateTexture = true;
+                                    }
+                                    if (payload->IsDelivery()) {
+                                        std::string propName = "texture";
+                                        selUI->texture = originalTex;
+
+                                        PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(sceneProject.scene, selEntity, ComponentType::UIComponent, propName, UpdateFlags_UI_Texture, newTex);
+                                        cmd->setNoMerge();
+                                        CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+
+                                        ImGui::SetWindowFocus();
+                                        selUI = nullptr;
+                                    }
                                 }
                             }
                         }

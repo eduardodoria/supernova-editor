@@ -109,23 +109,6 @@ void Editor::SceneRender3D::activate(){
     Engine::addSceneLayer(viewgizmo.getScene());
 }
 
-void Editor::SceneRender3D::updateSelLines(AABB aabb){
-    selLines->updateLine(0, aabb.getCorner(AABB::FAR_LEFT_BOTTOM), aabb.getCorner(AABB::FAR_LEFT_TOP));
-    selLines->updateLine(1, aabb.getCorner(AABB::FAR_LEFT_TOP), aabb.getCorner(AABB::FAR_RIGHT_TOP));
-    selLines->updateLine(2, aabb.getCorner(AABB::FAR_RIGHT_TOP), aabb.getCorner(AABB::FAR_RIGHT_BOTTOM));
-    selLines->updateLine(3, aabb.getCorner(AABB::FAR_RIGHT_BOTTOM), aabb.getCorner(AABB::FAR_LEFT_BOTTOM));
-
-    selLines->updateLine(4, aabb.getCorner(AABB::NEAR_LEFT_BOTTOM), aabb.getCorner(AABB::NEAR_LEFT_TOP));
-    selLines->updateLine(5, aabb.getCorner(AABB::NEAR_LEFT_TOP), aabb.getCorner(AABB::NEAR_RIGHT_TOP));
-    selLines->updateLine(6, aabb.getCorner(AABB::NEAR_RIGHT_TOP), aabb.getCorner(AABB::NEAR_RIGHT_BOTTOM));
-    selLines->updateLine(7, aabb.getCorner(AABB::NEAR_RIGHT_BOTTOM), aabb.getCorner(AABB::NEAR_LEFT_BOTTOM));
-
-    selLines->updateLine(8, aabb.getCorner(AABB::FAR_LEFT_BOTTOM), aabb.getCorner(AABB::NEAR_LEFT_BOTTOM));
-    selLines->updateLine(9, aabb.getCorner(AABB::FAR_LEFT_TOP), aabb.getCorner(AABB::NEAR_LEFT_TOP));
-    selLines->updateLine(10, aabb.getCorner(AABB::FAR_RIGHT_TOP), aabb.getCorner(AABB::NEAR_RIGHT_TOP));
-    selLines->updateLine(11, aabb.getCorner(AABB::FAR_RIGHT_BOTTOM), aabb.getCorner(AABB::NEAR_RIGHT_BOTTOM));
-}
-
 void Editor::SceneRender3D::updateSelLines(std::vector<OBB> obbs){
     Vector4 color = Vector4(1.0, 0.6, 0.0, 1.0);
 

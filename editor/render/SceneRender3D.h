@@ -25,7 +25,6 @@ namespace Supernova::Editor{
         virtual ~SceneRender3D();
 
         virtual void activate();
-        virtual void updateSelLines(AABB aabb);
         virtual void updateSelLines(std::vector<OBB> obbs);
 
         virtual void update(std::vector<Entity> selEntities);

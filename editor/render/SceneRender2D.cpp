@@ -63,13 +63,6 @@ void Editor::SceneRender2D::updateSize(int width, int height){
     toolslayer.updateCamera(cameracomp, cameratransform);
 }
 
-void Editor::SceneRender2D::updateSelLines(AABB aabb){
-    selLines->updateLine(0, aabb.getCorner(AABB::NEAR_LEFT_BOTTOM), aabb.getCorner(AABB::NEAR_LEFT_TOP));
-    selLines->updateLine(1, aabb.getCorner(AABB::NEAR_LEFT_TOP), aabb.getCorner(AABB::NEAR_RIGHT_TOP));
-    selLines->updateLine(2, aabb.getCorner(AABB::NEAR_RIGHT_TOP), aabb.getCorner(AABB::NEAR_RIGHT_BOTTOM));
-    selLines->updateLine(3, aabb.getCorner(AABB::NEAR_RIGHT_BOTTOM), aabb.getCorner(AABB::NEAR_LEFT_BOTTOM));
-}
-
 void Editor::SceneRender2D::updateSelLines(std::vector<OBB> obbs){
     Vector4 color = Vector4(1.0, 0.6, 0.0, 1.0);
 

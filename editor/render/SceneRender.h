@@ -59,7 +59,6 @@ namespace Supernova::Editor{
 
         virtual void activate();
         virtual void updateSize(int width, int height);
-        virtual void updateSelLines(AABB aabb) = 0;
         virtual void updateSelLines(std::vector<OBB> obbs) = 0;
 
         void updateRenderSystem();
