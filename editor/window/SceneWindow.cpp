@@ -5,6 +5,7 @@
 #include "Util.h"
 #include "command/CommandHandle.h"
 #include "command/type/PropertyCmd.h"
+#include "command/type/CreateEntityCmd.h"
 #include "render/SceneRender2D.h"
 #include "render/SceneRender3D.h"
 
@@ -430,6 +431,7 @@ void Editor::SceneWindow::show() {
 
                 ImGui::Image((ImTextureID)(intptr_t)sceneProject.sceneRender->getTexture().getGLHandler(), ImGui::GetContentRegionAvail(), ImVec2(0, 1), ImVec2(1, 0));
                 
+                static Image* tempImage = nullptr;
                 if (ImGui::BeginDragDropTarget()) {
                     ImVec2 windowPos = ImGui::GetWindowPos();
                     ImGuiIO& io = ImGui::GetIO();
@@ -442,7 +444,6 @@ void Editor::SceneWindow::show() {
                     static UIComponent* selUI = nullptr;
                     static Texture originalTex;
                     static Entity lastSelEntity = NULL_ENTITY;
-                    static Image* tempImage;
 
                     if (selEntity == NULL_ENTITY || lastSelEntity != selEntity) {
                         if (selMesh) {
@@ -466,6 +467,10 @@ void Editor::SceneWindow::show() {
                             lastSelEntity = selEntity;
                             std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
                             if (receivedStrings.size() > 0){
+                                if (tempImage != nullptr) {
+                                    delete tempImage;
+                                    tempImage = nullptr;
+                                }
                                 if (MeshComponent* mesh = sceneProject.scene->findComponent<MeshComponent>(selEntity)) {
                                     if (!selMesh) {
                                         selMesh = mesh;
@@ -484,8 +489,9 @@ void Editor::SceneWindow::show() {
                                         cmd->setNoMerge();
                                         CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
 
-                                        ImGui::SetWindowFocus();
                                         selMesh = nullptr;
+
+                                        ImGui::SetWindowFocus();
                                     }
                                 }else if (UIComponent* ui = sceneProject.scene->findComponent<UIComponent>(selEntity)){
                                     if (!selUI) {
@@ -505,8 +511,9 @@ void Editor::SceneWindow::show() {
                                         cmd->setNoMerge();
                                         CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
 
-                                        ImGui::SetWindowFocus();
                                         selUI = nullptr;
+
+                                        ImGui::SetWindowFocus();
                                     }
                                 }
                             }
@@ -518,16 +525,46 @@ void Editor::SceneWindow::show() {
                                 if (!tempImage){
                                     tempImage = new Image(sceneProject.scene);
                                     tempImage->setTexture(receivedStrings[0]);
+                                    tempImage->setAlpha(0.5f);
                                 }
                                 Ray ray = sceneProject.sceneRender->getCamera()->screenToRay(x, y);
                                 RayReturn rreturn = ray.intersects(Plane(Vector3(0, 0, 1), Vector3(0, 0, 0)));
                                 if (rreturn){
                                     tempImage->setPosition(rreturn.point);
                                 }
+                                if (payload->IsDelivery()) {
+                                    CreateEntityCmd* cmd = new CreateEntityCmd(project, sceneProject.id, "Image", EntityCreationType::IMAGE, NULL_ENTITY);
+                                    cmd->setNoMerge();
+                                    CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+
+                                    Entity newEntity = cmd->getEntity();
+                                    Transform& transform = sceneProject.scene->getComponent<Transform>(newEntity);
+                                    transform.position = rreturn.point;
+                                    transform.needUpdate = true;
+
+                                    UIComponent& ui = sceneProject.scene->getComponent<UIComponent>(newEntity);
+                                    ui.texture.setPath(receivedStrings[0]);
+                                    ui.needUpdateTexture = true;
+
+                                    UILayoutComponent& layout = sceneProject.scene->getComponent<UILayoutComponent>(newEntity);
+                                    layout.width = tempImage->getWidth();
+                                    layout.height = tempImage->getHeight();
+                                    layout.needUpdateSizes = true;
+
+                                    delete tempImage;
+                                    tempImage = nullptr;
+
+                                    ImGui::SetWindowFocus();
+                                }
                             }
                         }
                     }
                     ImGui::EndDragDropTarget();
+                }else{
+                    if (tempImage != nullptr) {
+                        delete tempImage;
+                        tempImage = nullptr;
+                    }
                 }
             }
             ImGui::EndChild();

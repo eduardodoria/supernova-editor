@@ -120,3 +120,7 @@ void Editor::CreateEntityCmd::undo(){
 bool Editor::CreateEntityCmd::mergeWith(Editor::Command* otherCommand){
     return false;
 }
+
+Entity Editor::CreateEntityCmd::getEntity(){
+    return entity;
+}
