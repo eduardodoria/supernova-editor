@@ -4,7 +4,7 @@
 #include "Backend.h"
 #include "Util.h"
 #include "command/CommandHandle.h"
-#include "command/type/PropertyCmd.h"
+#include "command/type/MultiPropertyCmd.h"
 #include "command/type/CreateEntityCmd.h"
 #include "render/SceneRender2D.h"
 #include "render/SceneRender3D.h"
@@ -534,22 +534,15 @@ void Editor::SceneWindow::show() {
                                 }
                                 if (payload->IsDelivery()) {
                                     CreateEntityCmd* cmd = new CreateEntityCmd(project, sceneProject.id, "Image", EntityCreationType::IMAGE, NULL_ENTITY);
+
+                                    cmd->addProperty<Vector3>(ComponentType::Transform, "position", rreturn.point, UpdateFlags_Transform);
+                                    cmd->addProperty<Texture>(ComponentType::UIComponent, "texture", Texture(receivedStrings[0]), UpdateFlags_UI_Texture);
+                                    cmd->addProperty<unsigned int>(ComponentType::UILayoutComponent, "width", tempImage->getWidth(), UpdateFlags_Layout_Sizes);
+                                    cmd->addProperty<unsigned int>(ComponentType::UILayoutComponent, "height", tempImage->getHeight(), UpdateFlags_Layout_Sizes);
+
                                     cmd->setNoMerge();
+
                                     CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
-
-                                    Entity newEntity = cmd->getEntity();
-                                    Transform& transform = sceneProject.scene->getComponent<Transform>(newEntity);
-                                    transform.position = rreturn.point;
-                                    transform.needUpdate = true;
-
-                                    UIComponent& ui = sceneProject.scene->getComponent<UIComponent>(newEntity);
-                                    ui.texture.setPath(receivedStrings[0]);
-                                    ui.needUpdateTexture = true;
-
-                                    UILayoutComponent& layout = sceneProject.scene->getComponent<UILayoutComponent>(newEntity);
-                                    layout.width = tempImage->getWidth();
-                                    layout.height = tempImage->getHeight();
-                                    layout.needUpdateSizes = true;
 
                                     delete tempImage;
                                     tempImage = nullptr;

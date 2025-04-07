@@ -11,6 +11,7 @@ Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std
     this->entity = NULL_ENTITY;
     this->parent = NULL_ENTITY;
     this->type = EntityCreationType::EMPTY;
+    this->updateFlags = 0;
 }
 
 Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type, Entity parent){
@@ -20,6 +21,7 @@ Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std
     this->entity = NULL_ENTITY;
     this->parent = parent;
     this->type = type;
+    this->updateFlags = 0;
 }
 
 void Editor::CreateEntityCmd::execute(){
@@ -82,6 +84,15 @@ void Editor::CreateEntityCmd::execute(){
             if (parent != NULL_ENTITY){
                 scenes[i].scene->addEntityChild(parent, entity, false);
             }
+
+            // Apply all property setters
+            for (const auto& [componentType, properties] : propertySetters) {
+                for (const auto& [propertyName, propertySetter] : properties) {
+                    propertySetter(entity);
+                }
+            }
+
+            Catalog::updateEntity(scenes[i].scene, entity, updateFlags);
 
             scenes[i].entities.push_back(entity);
 

@@ -119,6 +119,8 @@ namespace Supernova::Editor{
         static std::vector<const char*> getPrimitiveTypeArray();
         static size_t getPrimitiveTypeToIndex(PrimitiveType pt);
         static PrimitiveType getPrimitiveTypeFromIndex(size_t i);
+
+        static void updateEntity(Scene* scene, Entity entity, int updateFlags);
     };
 
 }

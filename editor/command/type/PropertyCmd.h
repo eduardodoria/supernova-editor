@@ -28,30 +28,6 @@ namespace Supernova::Editor{
 
         std::map<Entity,PropertyCmdValue<T>> values;
 
-        void updateEntity(Entity entity){
-            if (updateFlags & UpdateFlags_Transform){
-                scene->getComponent<Transform>(entity).needUpdate = true;
-            }
-            if (updateFlags & UpdateFlags_Mesh_Reload){
-                scene->getComponent<MeshComponent>(entity).needReload = true;
-            }
-            if (updateFlags & UpdateFlags_Mesh_Texture){
-                unsigned int numSubmeshes = scene->getComponent<MeshComponent>(entity).numSubmeshes;
-                for (unsigned int i = 0; i < numSubmeshes; i++){
-                    scene->getComponent<MeshComponent>(entity).submeshes[i].needUpdateTexture = true;
-                }
-            }
-            if (updateFlags & UpdateFlags_UI_Reload){
-                scene->getComponent<UIComponent>(entity).needReload = true;
-            }
-            if (updateFlags & UpdateFlags_UI_Texture){
-                scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
-            }
-            if (updateFlags & UpdateFlags_Layout_Sizes){
-                scene->getComponent<UILayoutComponent>(entity).needUpdateSizes = true;
-            }
-        }
-
     public:
 
         PropertyCmd(Scene* scene, Entity entity, ComponentType type, std::string propertyName, int updateFlags, T newValue){
@@ -70,7 +46,7 @@ namespace Supernova::Editor{
                 value.oldValue = T(*valueRef);
                 *valueRef = value.newValue;
 
-                updateEntity(entity);
+                Catalog::updateEntity(scene, entity, updateFlags);
             }
         }
 
@@ -80,7 +56,7 @@ namespace Supernova::Editor{
 
                 *valueRef = value.oldValue;
 
-                updateEntity(entity);
+                Catalog::updateEntity(scene, entity, updateFlags);
             }
         }
 

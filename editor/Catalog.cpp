@@ -354,3 +354,27 @@ PrimitiveType Editor::Catalog::getPrimitiveTypeFromIndex(size_t i){
 
     return PrimitiveType::TRIANGLES;
 }
+
+void Editor::Catalog::updateEntity(Scene* scene, Entity entity, int updateFlags){
+    if (updateFlags & UpdateFlags_Transform){
+        scene->getComponent<Transform>(entity).needUpdate = true;
+    }
+    if (updateFlags & UpdateFlags_Mesh_Reload){
+        scene->getComponent<MeshComponent>(entity).needReload = true;
+    }
+    if (updateFlags & UpdateFlags_Mesh_Texture){
+        unsigned int numSubmeshes = scene->getComponent<MeshComponent>(entity).numSubmeshes;
+        for (unsigned int i = 0; i < numSubmeshes; i++){
+            scene->getComponent<MeshComponent>(entity).submeshes[i].needUpdateTexture = true;
+        }
+    }
+    if (updateFlags & UpdateFlags_UI_Reload){
+        scene->getComponent<UIComponent>(entity).needReload = true;
+    }
+    if (updateFlags & UpdateFlags_UI_Texture){
+        scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
+    }
+    if (updateFlags & UpdateFlags_Layout_Sizes){
+        scene->getComponent<UILayoutComponent>(entity).needUpdateSizes = true;
+    }
+}

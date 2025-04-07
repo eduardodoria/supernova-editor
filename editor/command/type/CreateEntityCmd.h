@@ -5,6 +5,9 @@
 #include "Project.h"
 #include <cstdint>
 #include <string>
+#include <unordered_map>
+#include <any>
+#include <functional>
 
 namespace Supernova::Editor{
 
@@ -28,6 +31,10 @@ namespace Supernova::Editor{
         EntityCreationType type;
         std::vector<Entity> lastSelected;
 
+        // Component type -> property name -> property setter function
+        std::unordered_map<ComponentType, std::unordered_map<std::string, std::function<void(Entity)>>> propertySetters;
+        int updateFlags;
+
     public:
         CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName);
         CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type, Entity parent);
@@ -38,6 +45,19 @@ namespace Supernova::Editor{
         virtual bool mergeWith(Command* otherCommand);
 
         Entity getEntity();
+
+        template<typename T>
+        void addProperty(ComponentType componentType, const std::string& propertyName, T value, int updateFlags = 0) {
+            this->updateFlags |= updateFlags;
+            Scene* scene = project->getScene(sceneId)->scene;
+
+            propertySetters[componentType][propertyName] = [value, scene, propertyName, componentType](Entity entity) {
+                T* valueRef = Catalog::getPropertyRef<T>(scene, entity, componentType, propertyName);
+                if (valueRef != nullptr) {
+                    *valueRef = value;
+                }
+            };
+        }
     };
 
 }
