@@ -57,7 +57,7 @@ void Editor::ToolsLayer::updateCamera(CameraComponent& extCamera, Transform& ext
     }
 }
 
-void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quaternion& rotation, float scale, AABB aabb, Matrix4 objectMatrix, Ray& mouseRay, bool mouseClicked){
+void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quaternion& rotation, float scale, OBB obb, Ray& mouseRay, bool mouseClicked){
     gizmoScale = scale;
 
     if (gizmoSelected == GizmoSelected::TRANSLATE){
@@ -90,24 +90,19 @@ void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quater
     }
     // only for single selections
     // do not use gizmo position and rotation
-    if (gizmoSelected == GizmoSelected::OBJECT2D && aabb.isFinite() && !aabb.isNull()){
-        Vector3 center = aabb.getCenter();
-        Vector3 size = aabb.getSize();
-
-        Vector3 oScale = Vector3(1.0f, 1.0f, 1.0f);
-        oScale.x = Vector3(objectMatrix[0][0], objectMatrix[0][1], objectMatrix[0][2]).length();
-        oScale.y = Vector3(objectMatrix[1][0], objectMatrix[1][1], objectMatrix[1][2]).length();
-        oScale.z = Vector3(objectMatrix[2][0], objectMatrix[2][1], objectMatrix[2][2]).length();
+    if (gizmoSelected == GizmoSelected::OBJECT2D){
+        Vector3 center = obb.getCenter();
+        Vector3 size = obb.getHalfExtents() * 2.0f;
 
         oGizmo->setPosition(position);
         oGizmo->setRotation(rotation);
         oGizmo->setScale(scale);
-        oGizmo->setCenter(center / scale * oScale);
-        oGizmo->setSize(size.x / scale * oScale.x, size.y / scale * oScale.y);
+        oGizmo->setCenter(rotation.getRotationMatrix().inverse() * (center - position) / scale);
+        oGizmo->setSize(size.x / scale, size.y / scale);
 
         if (!mouseClicked){
             gizmoSideSelected = GizmoSideSelected::NONE;
-            gizmo2DSideSelected = oGizmo->checkHover(mouseRay, objectMatrix * aabb);
+            gizmo2DSideSelected = oGizmo->checkHover(mouseRay, obb);
         }
     }
 }

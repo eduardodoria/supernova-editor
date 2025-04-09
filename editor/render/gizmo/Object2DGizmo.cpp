@@ -60,31 +60,33 @@ void Editor::Object2DGizmo::setSize(float width, float height){
     }
 }
 
-Editor::Gizmo2DSideSelected Editor::Object2DGizmo::checkHover(const Ray& ray, const AABB& aabb){
+Editor::Gizmo2DSideSelected Editor::Object2DGizmo::checkHover(const Ray& ray, const OBB& obb){
     Editor::Gizmo2DSideSelected gizmoSideSelected = Gizmo2DSideSelected::NONE;
 
-    if (RayReturn rreturn = ray.intersects(aabb)){
+    if (RayReturn rreturn = ray.intersects(obb)){
         gizmoSideSelected = Gizmo2DSideSelected::CENTER;
     }
 
-    for (int i = 0; i < 8; i++){
-        if (RayReturn rreturn = ray.intersects(rects[i]->getWorldAABB())){
-            if (i == 0){
-                gizmoSideSelected = Gizmo2DSideSelected::NX_NY;
-            } else if (i == 1){
-                gizmoSideSelected = Gizmo2DSideSelected::NX;
-            } else if (i == 2){
-                gizmoSideSelected = Gizmo2DSideSelected::NX_PY;
-            } else if (i == 3){
-                gizmoSideSelected = Gizmo2DSideSelected::PY;
-            } else if (i == 4){
-                gizmoSideSelected = Gizmo2DSideSelected::PX_PY;
-            } else if (i == 5){
-                gizmoSideSelected = Gizmo2DSideSelected::PX;
-            } else if (i == 6){
-                gizmoSideSelected = Gizmo2DSideSelected::PX_NY;
-            } else if (i == 7){
-                gizmoSideSelected = Gizmo2DSideSelected::NY;
+    if (isVisible()){
+        for (int i = 0; i < 8; i++){
+            if (RayReturn rreturn = ray.intersects(rects[i]->getWorldAABB())){
+                if (i == 0){
+                    gizmoSideSelected = Gizmo2DSideSelected::NX_NY;
+                } else if (i == 1){
+                    gizmoSideSelected = Gizmo2DSideSelected::NX;
+                } else if (i == 2){
+                    gizmoSideSelected = Gizmo2DSideSelected::NX_PY;
+                } else if (i == 3){
+                    gizmoSideSelected = Gizmo2DSideSelected::PY;
+                } else if (i == 4){
+                    gizmoSideSelected = Gizmo2DSideSelected::PX_PY;
+                } else if (i == 5){
+                    gizmoSideSelected = Gizmo2DSideSelected::PX;
+                } else if (i == 6){
+                    gizmoSideSelected = Gizmo2DSideSelected::PX_NY;
+                } else if (i == 7){
+                    gizmoSideSelected = Gizmo2DSideSelected::NY;
+                }
             }
         }
     }

@@ -180,10 +180,13 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities){
     Vector3 gizmoPosition;
     Quaternion gizmoRotation;
 
+    bool sameRotation = true;
+    Quaternion firstRotation;
+    bool firstEntity = true;
+
     size_t numTEntities = 0;
     std::vector<OBB> selBB;
-    AABB singleObjectAABB;
-    Matrix4 singleObjectMatrix;
+    OBB totalSelBB;
 
     for (Entity& entity: selEntities){
         if (Transform* transform = scene->findComponent<Transform>(entity)){
@@ -191,16 +194,20 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities){
 
             gizmoPosition += transform->worldPosition;
 
+            if (firstEntity) {
+                firstRotation = transform->worldRotation;
+                firstEntity = false;
+            } else if (transform->worldRotation != firstRotation) {
+                sameRotation = false;
+            }
+
             if ((!useGlobalTransform && selEntities.size() == 1) || toolslayer.getGizmoSelected() == GizmoSelected::OBJECT2D){
                 gizmoRotation = transform->worldRotation;
             }
 
-            if (selEntities.size() == 1){
-                singleObjectAABB = getAABB(selEntities[0], true);
-                singleObjectMatrix = transform->modelMatrix;
-            }
-
             selBB.push_back(getFamilyOBB(entity, selectionOffset));
+
+            totalSelBB.enclose(getOBB(entity, false));
         }
     }
 
@@ -218,7 +225,7 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities){
             scale = std::tan(cameracomp.yfov) * dist * (gizmoScale / (float)framebuffer.getHeight());
         }
 
-        toolslayer.updateGizmo(camera, gizmoPosition, gizmoRotation, scale, singleObjectAABB, singleObjectMatrix, mouseRay, mouseClicked);
+        toolslayer.updateGizmo(camera, gizmoPosition, gizmoRotation, scale, totalSelBB, mouseRay, mouseClicked);
 
         if (selBB.size() == 0){
             selLines->setVisible(false);
@@ -231,7 +238,7 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities){
     toolslayer.updateCamera(cameracomp, cameratransform);
     selLines->setVisible(selectionVisibility);
 
-    if (toolslayer.getGizmoSelected() == GizmoSelected::OBJECT2D && (singleObjectAABB.isInfinite() || singleObjectAABB.isNull())){
+    if (toolslayer.getGizmoSelected() == GizmoSelected::OBJECT2D && !sameRotation){
         toolslayer.setGizmoVisible(false);
     }else{
         toolslayer.setGizmoVisible(selectionVisibility);
@@ -500,6 +507,9 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
 
                     Vector2 size = objectSizeOffset[entity] + Vector2(newSize.x / oScale.x, newSize.y / oScale.y);
                     Vector3 pos = Vector3(objMatrix[3][0], objMatrix[3][1], objMatrix[3][2]);
+
+                    if (size.x < 0) size.x = 0;
+                    if (size.y < 0) size.y = 0;
 
                     if (toolslayer.getGizmo2DSideSelected() != Gizmo2DSideSelected::NONE){
                         MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
