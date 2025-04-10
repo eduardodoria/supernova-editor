@@ -51,7 +51,7 @@ void Editor::MoveEntityOrderCmd::execute(){
             --targetTransformIndex;
         }
 
-        sceneProject->scene->moveChildToIndex(source, targetTransformIndex);
+        sceneProject->scene->moveChildToIndex(source, targetTransformIndex, false);
     }
 
     size_t sourceIndex = getIndex(entities, source);
@@ -80,7 +80,7 @@ void Editor::MoveEntityOrderCmd::undo(){
     if (transformSource && transformTarget){
         sceneProject->scene->addEntityChild(oldParent, source, true);
 
-        sceneProject->scene->moveChildToIndex(source, oldTransformIndex);
+        sceneProject->scene->moveChildToIndex(source, oldTransformIndex, false);
     }
 
     size_t sourceIndex = getIndex(entities, source);
