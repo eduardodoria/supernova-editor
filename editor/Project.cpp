@@ -94,7 +94,7 @@ void Editor::Project::openScene(fs::path filepath){
         SceneProject data;
         data.id = NULL_PROJECT_SCENE;
         data.name = "Unknown";
-        data.scene = new Scene();
+        data.scene = nullptr;
         data.selectedEntities.clear();
         data.needUpdateRender = true;
         data.isModified = false;
@@ -110,6 +110,8 @@ void Editor::Project::openScene(fs::path filepath){
             data.sceneRender = new SceneRender2D(data.scene, windowWidth, windowHeight);
         }
 
+        Stream::decodeSceneProjectEntities(&data, sceneNode);
+
         if (getScene(data.id) != nullptr) {
             uint32_t old = data.id;
             data.id = ++nextSceneId;
@@ -123,17 +125,17 @@ void Editor::Project::openScene(fs::path filepath){
         Backend::getApp().addNewSceneToDock(scenes.back().id);
 
     } catch (const YAML::Exception& e) {
-        Log::error("Failed to open scene: %s", e.what());
+        Out::error("Failed to open scene: %s", e.what());
         Backend::getApp().registerAlert("Error", "Failed to open scene file!");
     } catch (const std::exception& e) {
-        Log::error("Failed to open scene: %s", e.what());
+        Out::error("Failed to open scene: %s", e.what());
         Backend::getApp().registerAlert("Error", "Failed to open scene file!");
     }
 }
 
 void Editor::Project::closeScene(uint32_t sceneId) {
     if (scenes.size() == 1) {
-        Log::error("Cannot close last scene");
+        Out::error("Cannot close last scene");
         return;
     }
 
@@ -142,7 +144,7 @@ void Editor::Project::closeScene(uint32_t sceneId) {
     
     if (it != scenes.end()) {
         if (selectedScene == sceneId) {
-            Log::error("Scene is selected, cannot close it");
+            Out::error("Scene is selected, cannot close it");
             return;
         }
 
@@ -652,6 +654,8 @@ uint32_t Editor::Project::getNextSceneId() const{
 void Editor::Project::setSelectedSceneId(uint32_t selectedScene){
     if (this->selectedScene != selectedScene){
         this->selectedScene = selectedScene;
+
+        debugSceneHierarchy();
     }
 }
 
@@ -782,4 +786,16 @@ void Editor::Project::build() {
         }
     });
     connectThread.detach();
+}
+
+void Editor::Project::debugSceneHierarchy(){
+    if (SceneProject* sceneProject = getSelectedScene()){
+        printf("Debug scene: %s\n", sceneProject->name.c_str());
+        auto transforms = sceneProject->scene->getComponentArray<Transform>();
+        for (int i = 0; i < transforms->size(); i++){
+            auto transform = transforms->getComponentFromIndex(i);
+            printf("Transform %i - Entity: %i - Parent: %i: %s\n", i, transforms->getEntity(i), transform.parent, sceneProject->scene->getEntityName(transforms->getEntity(i)).c_str());
+        }
+        printf("\n");
+    }
 }

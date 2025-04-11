@@ -92,8 +92,10 @@ namespace Supernova::Editor {
 
         static YAML::Node encodeSceneProject(const SceneProject* sceneProject);
         static void decodeSceneProject(SceneProject* sceneProject, const YAML::Node& node);
+        static void decodeSceneProjectEntities(SceneProject* sceneProject, const YAML::Node& node);
 
         static YAML::Node encodeScene(Scene* scene);
+        static Scene* decodeScene(Scene* scene, const YAML::Node& node);
 
         static YAML::Node encodeEntity(const Entity entity, const Scene* scene);
         static Entity decodeEntity(Scene* scene, const YAML::Node& entityNode);

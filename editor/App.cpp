@@ -443,6 +443,8 @@ void Editor::App::show(){
 }
 
 void Editor::App::engineInit(int argc, char** argv) {
+    System::setExternalSystem(new Editor::Platform());
+
     // Check if there's a last opened project
     std::filesystem::path lastProjectPath = AppSettings::getLastProjectPath();
 
@@ -459,7 +461,6 @@ void Editor::App::engineInit(int argc, char** argv) {
         project.createTempProject("MySupernovaProject");
     }
 
-    System::setExternalSystem(new Editor::Platform());
     Engine::systemInit(argc, argv);
 }
 

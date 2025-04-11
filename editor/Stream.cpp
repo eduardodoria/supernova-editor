@@ -860,6 +860,7 @@ YAML::Node Editor::Stream::encodeSceneProject(const SceneProject* sceneProject) 
 
     root["id"] = sceneProject->id;
     root["name"] = sceneProject->name;
+    root["scene"] = encodeScene(sceneProject->scene);
     root["sceneType"] = sceneTypeToString(sceneProject->sceneType);
 
     YAML::Node entitiesNode;
@@ -874,19 +875,41 @@ YAML::Node Editor::Stream::encodeSceneProject(const SceneProject* sceneProject) 
 void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::Node& node) {
     sceneProject->id = node["id"].as<uint32_t>();
     sceneProject->name = node["name"].as<std::string>();
+    sceneProject->scene = decodeScene(sceneProject->scene, node["scene"]);
     sceneProject->sceneType = stringToSceneType(node["sceneType"].as<std::string>());
+}
 
+void Editor::Stream::decodeSceneProjectEntities(SceneProject* sceneProject, const YAML::Node& node) {
     auto entitiesNode = node["entities"];
+
+    Entity lastEntity = NULL_ENTITY;
     for (const auto& entityNode : entitiesNode) {
         Entity entity = decodeEntity(sceneProject->scene, entityNode);
         sceneProject->entities.push_back(entity);
+
+        if (lastEntity < entity){
+            lastEntity = entity;
+        }
     }
+    sceneProject->scene->setLastEntityInternal(lastEntity);
 }
 
 YAML::Node Editor::Stream::encodeScene(Scene* scene) {
     YAML::Node sceneNode;
-    // Add scene serialization logic here
+    //sceneNode["lastEntity"] = scene->getLastEntityInternal();
     return sceneNode;
+}
+
+Scene* Editor::Stream::decodeScene(Scene* scene, const YAML::Node& node) {
+    if (!scene){
+        scene = new Scene();
+    }
+
+    //if (node["lastEntity"]) {
+    //    scene->setLastEntityInternal(node["lastEntity"].as<uint32_t>());
+    //}
+
+    return scene;
 }
 
 YAML::Node Editor::Stream::encodeEntity(const Entity entity, const Scene* scene) {

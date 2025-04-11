@@ -24,8 +24,8 @@ namespace Supernova::Editor{
         uint32_t id;
         std::string name;
         Scene* scene;
-        std::vector<Entity> entities;
         SceneType sceneType;
+        std::vector<Entity> entities;
         SceneRender* sceneRender;
         std::vector<Entity> selectedEntities;
         fs::path filepath;
@@ -122,6 +122,8 @@ namespace Supernova::Editor{
         bool hasScenesUnsavedChanges() const;
 
         void build();
+
+        void debugSceneHierarchy();
     };
 
 }
