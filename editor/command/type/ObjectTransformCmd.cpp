@@ -16,7 +16,7 @@ Editor::ObjectTransformCmd::ObjectTransformCmd(SceneProject* sceneProject, Entit
     props[entity].newScale = scale;
 }
 
-void Editor::ObjectTransformCmd::execute(){
+bool Editor::ObjectTransformCmd::execute(){
     for (auto& [entity, property] : props){
         if (Transform* transform = sceneProject->scene->findComponent<Transform>(entity)){
             property.oldPosition = transform->position;
@@ -32,6 +32,8 @@ void Editor::ObjectTransformCmd::execute(){
     }
 
     sceneProject->isModified = true;
+
+    return true;
 }
 
 void Editor::ObjectTransformCmd::undo(){

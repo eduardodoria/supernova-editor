@@ -39,7 +39,7 @@ namespace Supernova::Editor{
             this->values[entity].newValue = newValue;
         }
 
-        void execute(){
+        bool execute(){
             for (auto& [entity, value] : values){
                 T* valueRef = Catalog::getPropertyRef<T>(scene, entity, type, propertyName);
 
@@ -48,6 +48,8 @@ namespace Supernova::Editor{
 
                 Catalog::updateEntity(scene, entity, updateFlags);
             }
+
+            return true;
         }
 
         void undo(){

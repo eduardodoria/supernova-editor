@@ -26,7 +26,7 @@ Editor::CopyFileCmd::CopyFileCmd(std::vector<std::string> sourcePaths, std::stri
     this->copy = copy;
 }
 
-void Editor::CopyFileCmd::execute(){
+bool Editor::CopyFileCmd::execute(){
     for (const auto& fdata : files) {
         fs::path sourceFs = fdata.sourceDirectory / fdata.filename;
         fs::path destFs = fdata.targetDirectory / fdata.filename;
@@ -48,8 +48,11 @@ void Editor::CopyFileCmd::execute(){
             }
         } catch (const fs::filesystem_error& e) {
             printf("Error: Moving/Copying %s: %s\n", sourceFs.string().c_str(), e.what());
+            return false;
         }
     }
+
+    return true;
 }
 
 void Editor::CopyFileCmd::undo(){

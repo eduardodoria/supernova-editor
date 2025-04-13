@@ -6,12 +6,15 @@ Editor::CreateDirCmd::CreateDirCmd(std::string dirName, std::string dirPath){
     this->directory = fs::path(dirPath) / fs::path(dirName);
 }
 
-void Editor::CreateDirCmd::execute(){
+bool Editor::CreateDirCmd::execute(){
     try {
         fs::create_directory(directory);
     } catch (const fs::filesystem_error& e) {
         printf("Error: Creating directory %s: %s\n", directory.string().c_str(), e.what());
+        return false;
     }
+
+    return true;
 }
 
 void Editor::CreateDirCmd::undo(){

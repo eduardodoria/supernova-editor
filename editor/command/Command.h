@@ -10,7 +10,7 @@ namespace Supernova::Editor{
     public:
         virtual ~Command() {}
 
-        virtual void execute() = 0;
+        virtual bool execute() = 0;
         virtual void undo() = 0;
 
         virtual bool mergeWith(Command* olderCommand) = 0;

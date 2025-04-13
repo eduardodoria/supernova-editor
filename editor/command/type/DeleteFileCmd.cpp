@@ -30,7 +30,7 @@ fs::path Editor::DeleteFileCmd::generateUniqueTrashPath(const fs::path& trashDir
     return newPath;
 }
 
-void Editor::DeleteFileCmd::execute(){
+bool Editor::DeleteFileCmd::execute(){
     if (!fs::exists(trash)) {
         fs::create_directory(trash);
     }
@@ -57,8 +57,10 @@ void Editor::DeleteFileCmd::execute(){
             }
         } catch (const fs::filesystem_error& e) {
             printf("Error: Deleting %s: %s\n", file.originalFile.string().c_str(), e.what());
+            return false;
         }
     }
+    return true;
 }
 
 void Editor::DeleteFileCmd::undo(){

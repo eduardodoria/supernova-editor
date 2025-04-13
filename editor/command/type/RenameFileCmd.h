@@ -21,7 +21,7 @@ namespace Supernova::Editor{
     public:
         RenameFileCmd(std::string oldName, std::string newName, std::string directory);
 
-        virtual void execute();
+        virtual bool execute();
         virtual void undo();
 
         virtual bool mergeWith(Command* otherCommand);

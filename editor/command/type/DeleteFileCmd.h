@@ -27,7 +27,7 @@ namespace Supernova::Editor{
     public:
         DeleteFileCmd(std::vector<fs::path> filePaths, fs::path rootPath);
 
-        virtual void execute();
+        virtual bool execute();
         virtual void undo();
 
         virtual bool mergeWith(Command* otherCommand);

@@ -24,7 +24,7 @@ Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std
     this->updateFlags = 0;
 }
 
-void Editor::CreateEntityCmd::execute(){
+bool Editor::CreateEntityCmd::execute(){
     std::vector<Supernova::Editor::SceneProject> &scenes = project->getScenes();
     for (int i = 0; i < scenes.size(); i++){
         if (scenes[i].id == sceneId){
@@ -106,6 +106,8 @@ void Editor::CreateEntityCmd::execute(){
             Editor::Out::info("Created entity '%s' at scene '%s'", entityName.c_str(), scenes[i].name.c_str());
         }
     }
+
+    return true;
 }
 
 void Editor::CreateEntityCmd::undo(){

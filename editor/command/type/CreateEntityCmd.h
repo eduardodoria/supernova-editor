@@ -39,7 +39,7 @@ namespace Supernova::Editor{
         CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName);
         CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type, Entity parent);
 
-        virtual void execute();
+        virtual bool execute();
         virtual void undo();
 
         virtual bool mergeWith(Command* otherCommand);

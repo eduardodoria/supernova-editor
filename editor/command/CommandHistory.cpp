@@ -10,24 +10,26 @@ Editor::CommandHistory::~CommandHistory(){
 }
 
 void Editor::CommandHistory::addCommand(Editor::Command* cmd){
-    cmd->execute();
+    if (cmd->execute()){
+        if (index < list.size()){
+            for (auto it = list.begin() + index; it != list.end(); ++it) {
+                delete *it;
+            }
 
-    if (index < list.size()){
-        for (auto it = list.begin() + index; it != list.end(); ++it) {
-            delete *it;
+            list.erase(list.begin() + index, list.end());
         }
 
-        list.erase(list.begin() + index, list.end());
-    }
-
-    if (list.size() > 0 && list.back()->canMerge() && cmd->canMerge()){
-        if (cmd->mergeWith(list.back())){
-            list.pop_back();
+        if (list.size() > 0 && list.back()->canMerge() && cmd->canMerge()){
+            if (cmd->mergeWith(list.back())){
+                list.pop_back();
+            }
         }
-    }
 
-    list.push_back(cmd);
-    index = list.size();
+        list.push_back(cmd);
+        index = list.size();
+    }else{
+        delete cmd;
+    }
 }
 
 void Editor::CommandHistory::addCommandNoMerge(Command* cmd){

@@ -20,7 +20,7 @@ namespace Supernova::Editor{
     public:
         EntityNameCmd(SceneProject* sceneProject, Entity entity, std::string name);
 
-        virtual void execute();
+        virtual bool execute();
         virtual void undo();
 
         virtual bool mergeWith(Command* otherCommand);

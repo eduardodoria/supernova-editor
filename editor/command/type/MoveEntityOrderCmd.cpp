@@ -1,5 +1,7 @@
 #include "MoveEntityOrderCmd.h"
 
+#include "Out.h"
+
 using namespace Supernova;        
         
 Editor::MoveEntityOrderCmd::MoveEntityOrderCmd(Project* project, uint32_t sceneId, Entity source, Entity target, InsertionType type){
@@ -19,7 +21,7 @@ size_t Editor::MoveEntityOrderCmd::getIndex(std::vector<Entity>& entities, Entit
     throw std::out_of_range("cannot find entity");
 }
 
-void Editor::MoveEntityOrderCmd::execute(){
+bool Editor::MoveEntityOrderCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
     std::vector<Entity>& entities = sceneProject->entities;
 
@@ -27,6 +29,11 @@ void Editor::MoveEntityOrderCmd::execute(){
     Transform* transformTarget = sceneProject->scene->findComponent<Transform>(target);
 
     if (transformSource && transformTarget){
+        if (sceneProject->scene->isParentOf(source, target)){
+            Out::error("Cannot move entity to a child");
+            return false;
+        }
+
         auto transforms = sceneProject->scene->getComponentArray<Transform>();
 
         size_t sourceTransformIndex = transforms->getIndex(source);
@@ -68,6 +75,8 @@ void Editor::MoveEntityOrderCmd::execute(){
 
     entities.erase(entities.begin() + sourceIndex);
     entities.insert(entities.begin() + targetIndex, source);
+
+    return true;
 }
 
 void Editor::MoveEntityOrderCmd::undo(){

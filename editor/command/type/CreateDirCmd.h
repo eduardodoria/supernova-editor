@@ -19,7 +19,7 @@ namespace Supernova::Editor{
     public:
         CreateDirCmd(std::string dirName, std::string dirPath);
 
-        virtual void execute();
+        virtual bool execute();
         virtual void undo();
 
         virtual bool mergeWith(Command* otherCommand);

@@ -14,7 +14,7 @@ Editor::DeleteEntityCmd::DeleteEntityCmd(Project* project, uint32_t sceneId, Ent
     this->entities.push_back(entityData);
 }
 
-void Editor::DeleteEntityCmd::execute(){
+bool Editor::DeleteEntityCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     lastSelected = project->getSelectedEntities(sceneId);
@@ -37,6 +37,8 @@ void Editor::DeleteEntityCmd::execute(){
 
         sceneProject->isModified = true;
     }
+
+    return true;
 }
 
 void Editor::DeleteEntityCmd::undo(){

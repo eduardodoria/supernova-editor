@@ -26,10 +26,13 @@ namespace Supernova::Editor {
             commands.push_back(std::move(command));
         }
 
-        void execute() override {
+        bool execute() override {
             for (auto& cmd : commands) {
-                cmd->execute();
+                if (!cmd->execute()){
+                    return false;
+                }
             }
+            return true;
         }
 
         void undo() override {

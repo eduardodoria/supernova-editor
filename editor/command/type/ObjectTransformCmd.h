@@ -29,7 +29,7 @@ namespace Supernova::Editor{
         ObjectTransformCmd(SceneProject* sceneProject, Entity entity, Matrix4 localMatrix);
         ObjectTransformCmd(SceneProject* sceneProject, Entity entity, Vector3 position, Quaternion rotation, Vector3 scale);
 
-        virtual void execute();
+        virtual bool execute();
         virtual void undo();
 
         virtual bool mergeWith(Command* otherCommand);

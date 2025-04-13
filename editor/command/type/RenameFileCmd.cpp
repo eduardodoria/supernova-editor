@@ -8,7 +8,7 @@ Editor::RenameFileCmd::RenameFileCmd(std::string oldName, std::string newName, s
     this->directory = fs::path(directory);
 }
 
-void Editor::RenameFileCmd::execute(){
+bool Editor::RenameFileCmd::execute(){
     fs::path sourceFs = directory / oldFilename;
     fs::path destFs = directory / newFilename;
     try {
@@ -17,7 +17,10 @@ void Editor::RenameFileCmd::execute(){
         }
     } catch (const fs::filesystem_error& e) {
         printf("Error: Renaming %s: %s\n", sourceFs.string().c_str(), e.what());
+        return false;
     }
+
+    return true;
 }
 
 void Editor::RenameFileCmd::undo(){

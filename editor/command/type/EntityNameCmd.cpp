@@ -8,11 +8,13 @@ Editor::EntityNameCmd::EntityNameCmd(SceneProject* sceneProject, Entity entity, 
     this->newName = name;
 }
 
-void Editor::EntityNameCmd::execute(){
+bool Editor::EntityNameCmd::execute(){
     oldName = sceneProject->scene->getEntityName(entity);
     sceneProject->scene->setEntityName(entity, newName);
 
     sceneProject->isModified = true;
+
+    return true;
 }
 
 void Editor::EntityNameCmd::undo(){

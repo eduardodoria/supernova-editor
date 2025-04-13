@@ -27,7 +27,7 @@ namespace Supernova::Editor{
         CopyFileCmd(std::vector<std::string> sourceFiles, std::string currentDirectory, std::string targetDirectory, bool remove);
         CopyFileCmd(std::vector<std::string> sourcePaths, std::string targetDirectory, bool remove);
 
-        virtual void execute();
+        virtual bool execute();
         virtual void undo();
 
         virtual bool mergeWith(Command* otherCommand);

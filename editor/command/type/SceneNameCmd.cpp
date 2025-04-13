@@ -8,12 +8,14 @@ Editor::SceneNameCmd::SceneNameCmd(Project* project, uint32_t sceneId, std::stri
     this->newName = name;
 }
 
-void Editor::SceneNameCmd::execute(){
+bool Editor::SceneNameCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     oldName = sceneProject->name;
     sceneProject->name = newName;
     sceneProject->isModified = true;
+
+    return true;
 }
 
 void Editor::SceneNameCmd::undo(){
