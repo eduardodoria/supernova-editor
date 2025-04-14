@@ -24,6 +24,7 @@
 #include <atomic>
 #include "stb_image.h"
 #include "stb_image_write.h"
+#include "stb_image_resize2.h"
 
 using namespace Supernova;
 
@@ -100,6 +101,16 @@ void Editor::ResourcesWindow::scanDirectory(const fs::path& path) {
     files.clear();
 
     for (const auto& entry : fs::directory_iterator(path)) {
+        // Skip hidden files and directories (starting with '.')
+        if (entry.path().filename().string()[0] == '.') {
+            continue;
+        }
+
+        // Skip project.yaml file
+        if (entry.path().filename() == "project.yaml") {
+            continue;
+        }
+
         FileEntry fileEntry;
         fileEntry.name = entry.path().filename().string();
         fileEntry.isDirectory = entry.is_directory();
@@ -434,7 +445,9 @@ bool Editor::ResourcesWindow::isImageFile(const std::string& extension) const {
         ".png", ".jpg", ".jpeg", ".bmp", ".tga", ".gif", ".hdr", ".psd", ".pic", ".pnm"
     };
 
-    return imageExtensions.find(extension) != imageExtensions.end();
+    std::string lowerExt = extension;
+    std::transform(lowerExt.begin(), lowerExt.end(), lowerExt.begin(), ::tolower);
+    return imageExtensions.find(lowerExt) != imageExtensions.end();
 }
 
 // Get the path where the thumbnail should be stored
@@ -502,30 +515,52 @@ void Editor::ResourcesWindow::thumbnailWorker() {
         int width, height, channels;
         unsigned char* data = stbi_load(filePath.string().c_str(), &width, &height, &channels, 4);
         if (data) {
-            // Calculate thumbnail size
-            int thumbWidth = 128;
-            int thumbHeight = 128;
-            if (width > height) {
-                thumbHeight = (height * thumbWidth) / width;
-            } else {
-                thumbWidth = (width * thumbHeight) / height;
-            }
-            // Resize the image (simple downsampling)
-            unsigned char* thumbData = new unsigned char[thumbWidth * thumbHeight * 4];
-            for (int y = 0; y < thumbHeight; y++) {
-                for (int x = 0; x < thumbWidth; x++) {
-                    int srcX = x * width / thumbWidth;
-                    int srcY = y * height / thumbHeight;
-                    for (int c = 0; c < 4; c++) {
-                        thumbData[(y * thumbWidth + x) * 4 + c] = data[(srcY * width + srcX) * 4 + c];
-                    }
+            // Create a square crop of the image
+            int cropSize = std::min(width, height);
+            int startX = (width - cropSize) / 2;
+            int startY = (height - cropSize) / 2;
+
+            // Create a buffer for the cropped image
+            unsigned char* croppedData = new unsigned char[cropSize * cropSize * 4];
+
+            // Crop the image to a square
+            for (int y = 0; y < cropSize; y++) {
+                for (int x = 0; x < cropSize; x++) {
+                    int sourceIndex = ((startY + y) * width + (startX + x)) * 4;
+                    int destIndex = (y * cropSize + x) * 4;
+
+                    croppedData[destIndex] = data[sourceIndex];
+                    croppedData[destIndex + 1] = data[sourceIndex + 1];
+                    croppedData[destIndex + 2] = data[sourceIndex + 2];
+                    croppedData[destIndex + 3] = data[sourceIndex + 3];
                 }
             }
+
+            // Define thumbnail size (constant square)
+            int thumbSize = 128;
+
+            // Resize the cropped image using stb_image_resize2
+            unsigned char* thumbData = new unsigned char[thumbSize * thumbSize * 4];
+
+            stbir_resize_uint8_linear(
+                croppedData,            // input
+                cropSize,               // input width
+                cropSize,               // input height
+                0,                      // input stride in bytes (0 = width * channels)
+                thumbData,              // output
+                thumbSize,              // output width
+                thumbSize,              // output height
+                0,                      // output stride in bytes (0 = width * channels)
+                STBIR_RGBA              // number of channels (RGBA = 4)
+            );
+
             // Save the thumbnail
             fs::path thumbnailPath = getThumbnailPath(filePath);
             fs::create_directories(thumbnailPath.parent_path());
-            stbi_write_png(thumbnailPath.string().c_str(), thumbWidth, thumbHeight, 4, thumbData, thumbWidth * 4);
+            stbi_write_png(thumbnailPath.string().c_str(), thumbSize, thumbSize, 4, thumbData, thumbSize * 4);
 
+            // Clean up
+            delete[] croppedData;
             delete[] thumbData;
             stbi_image_free(data);
 
