@@ -19,6 +19,11 @@
 
 #include <fstream>
 #include <sstream>
+#include <thread>
+#include <mutex>
+#include <atomic>
+#include "stb_image.h"
+#include "stb_image_write.h"
 
 using namespace Supernova;
 
@@ -35,7 +40,18 @@ Editor::ResourcesWindow::ResourcesWindow(Project* project, CodeEditor* codeEdito
     this->isCreatingNewDirectory = false;
     this->timeSinceLastCheck = 0.0f;
     this->windowFocused = false;
+    this->stopThumbnailThread = false;
     memset(this->nameBuffer, 0, sizeof(this->nameBuffer));
+
+    thumbnailThread = std::thread(&ResourcesWindow::thumbnailWorker, this);
+}
+
+Editor::ResourcesWindow::~ResourcesWindow() {
+    stopThumbnailThread = true;
+    thumbnailCondition.notify_one(); // Wake the worker thread to check stop condition
+    if (thumbnailThread.joinable()) {
+        thumbnailThread.join();
+    }
 }
 
 bool Editor::ResourcesWindow::isFocused() const{
@@ -43,6 +59,15 @@ bool Editor::ResourcesWindow::isFocused() const{
 }
 
 void Editor::ResourcesWindow::notifyProjectPathChange(){
+    // Clear thumbnail textures when changing projects
+    thumbnailTextures.clear();
+
+    // Clear the thumbnail queue
+    {
+        std::lock_guard<std::mutex> lock(thumbnailMutex);
+        std::queue<fs::path> empty;
+        std::swap(thumbnailQueue, empty);
+    }
     scanDirectory(project->getProjectPath());
 }
 
@@ -66,6 +91,9 @@ void Editor::ResourcesWindow::scanDirectory(const fs::path& path) {
     // Update last write time
     lastWriteTime = fs::last_write_time(currentPath);
 
+    // Ensure the thumbnail directory exists
+    ensureThumbnailDirectory();
+
     intptr_t folderIconH = (intptr_t)folderIcon.getRender()->getGLHandler();
     intptr_t fileIconH = (intptr_t)fileIcon.getRender()->getGLHandler();
 
@@ -76,11 +104,20 @@ void Editor::ResourcesWindow::scanDirectory(const fs::path& path) {
         fileEntry.name = entry.path().filename().string();
         fileEntry.isDirectory = entry.is_directory();
         fileEntry.icon = entry.is_directory() ? folderIconH : fileIconH;
+        fileEntry.isImage = false;
+        fileEntry.hasThumbnail = false;
+
         if (!fileEntry.isDirectory) {
             fileEntry.type = entry.path().extension().string();
+            fileEntry.isImage = isImageFile(fileEntry.type);
+
+            if (fileEntry.isImage) {
+                queueThumbnailGeneration(entry.path(), fileEntry.type);
+            }
         } else {
             fileEntry.type = "";
         }
+
         files.push_back(fileEntry);
     }
 }
@@ -391,6 +428,141 @@ void Editor::ResourcesWindow::pasteFiles(const fs::path& targetDirectory) {
     scanDirectory(currentPath);
 }
 
+// Check if a file is an image based on its extension
+bool Editor::ResourcesWindow::isImageFile(const std::string& extension) const {
+    static const std::unordered_set<std::string> imageExtensions = {
+        ".png", ".jpg", ".jpeg", ".bmp", ".tga", ".gif", ".hdr", ".psd", ".pic", ".pnm"
+    };
+
+    return imageExtensions.find(extension) != imageExtensions.end();
+}
+
+// Get the path where the thumbnail should be stored
+fs::path Editor::ResourcesWindow::getThumbnailPath(const fs::path& originalPath) const {
+    fs::path thumbsDir = project->getProjectPath() / ".supernova" / "thumbs";
+
+    // Create a relative path from the project root
+    fs::path relativePath = fs::relative(originalPath, project->getProjectPath());
+
+    // Create the thumbnail path with the same directory structure
+    fs::path thumbnailPath = thumbsDir / relativePath;
+    thumbnailPath.replace_extension(".thumb.png");
+
+    return thumbnailPath;
+}
+
+// Ensure the thumbnail directory exists
+void Editor::ResourcesWindow::ensureThumbnailDirectory() const {
+    fs::path thumbsDir = project->getProjectPath() / ".supernova" / "thumbs";
+
+    if (!fs::exists(thumbsDir)) {
+        fs::create_directories(thumbsDir);
+    }
+}
+
+void Editor::ResourcesWindow::queueThumbnailGeneration(const fs::path& filePath, const std::string& extension) {
+    if (isImageFile(extension)) {
+        fs::path thumbnailPath = getThumbnailPath(filePath);
+        if (fs::exists(thumbnailPath)) {
+            auto imageTime = fs::last_write_time(filePath);
+            auto thumbTime = fs::last_write_time(thumbnailPath);
+            if (thumbTime >= imageTime) {
+                // Thumbnail is up-to-date, queue it for loading
+                std::lock_guard<std::mutex> lock(completedThumbnailMutex);
+                completedThumbnailQueue.push(filePath);
+                return;
+            }
+        }
+        {
+            std::lock_guard<std::mutex> lock(thumbnailMutex);
+            thumbnailQueue.push(filePath);
+        }
+        thumbnailCondition.notify_one();
+    }
+}
+
+void Editor::ResourcesWindow::thumbnailWorker() {
+    while (!stopThumbnailThread) {
+        fs::path filePath;
+        {
+            std::unique_lock<std::mutex> lock(thumbnailMutex);
+            // Wait until there is work or the thread is stopped
+            thumbnailCondition.wait(lock, [this]() {
+                return !thumbnailQueue.empty() || stopThumbnailThread;
+            });
+            // Check if we should exit
+            if (stopThumbnailThread && thumbnailQueue.empty()) {
+                return;
+            }
+            // Get the next file path
+            filePath = thumbnailQueue.front();
+            thumbnailQueue.pop();
+        }
+        // Generate thumbnail
+        int width, height, channels;
+        unsigned char* data = stbi_load(filePath.string().c_str(), &width, &height, &channels, 4);
+        if (data) {
+            // Calculate thumbnail size
+            int thumbWidth = 128;
+            int thumbHeight = 128;
+            if (width > height) {
+                thumbHeight = (height * thumbWidth) / width;
+            } else {
+                thumbWidth = (width * thumbHeight) / height;
+            }
+            // Resize the image (simple downsampling)
+            unsigned char* thumbData = new unsigned char[thumbWidth * thumbHeight * 4];
+            for (int y = 0; y < thumbHeight; y++) {
+                for (int x = 0; x < thumbWidth; x++) {
+                    int srcX = x * width / thumbWidth;
+                    int srcY = y * height / thumbHeight;
+                    for (int c = 0; c < 4; c++) {
+                        thumbData[(y * thumbWidth + x) * 4 + c] = data[(srcY * width + srcX) * 4 + c];
+                    }
+                }
+            }
+            // Save the thumbnail
+            fs::path thumbnailPath = getThumbnailPath(filePath);
+            fs::create_directories(thumbnailPath.parent_path());
+            stbi_write_png(thumbnailPath.string().c_str(), thumbWidth, thumbHeight, 4, thumbData, thumbWidth * 4);
+
+            delete[] thumbData;
+            stbi_image_free(data);
+
+            // Notify main thread that thumbnail is ready
+            {
+                std::lock_guard<std::mutex> lock(completedThumbnailMutex);
+                completedThumbnailQueue.push(filePath);
+            }
+        }
+    }
+}
+
+// Load a thumbnail texture for a file entry
+void Editor::ResourcesWindow::loadThumbnail(FileEntry& entry) {
+    if (!entry.isImage || entry.hasThumbnail) {
+        return;
+    }
+
+    fs::path filePath = currentPath / entry.name;
+    fs::path thumbnailPath = getThumbnailPath(filePath);
+
+    if (fs::exists(thumbnailPath)) {
+        // Check if we already have this thumbnail loaded
+        if (thumbnailTextures.find(thumbnailPath.string()) == thumbnailTextures.end()) {
+            // Load the thumbnail texture
+            Texture thumbTexture;
+            thumbTexture.setPath(thumbnailPath.string());
+            if (thumbTexture.load()){
+                thumbnailTextures[thumbnailPath.string()] = thumbTexture;
+            }
+        }
+
+        entry.hasThumbnail = true;
+        entry.thumbnailPath = thumbnailPath.string();
+    }
+}
+
 void Editor::ResourcesWindow::show() {
     if (firstOpen) {
         int iconWidth, iconHeight;
@@ -410,7 +582,26 @@ void Editor::ResourcesWindow::show() {
         firstOpen = false;
     }
 
-    // Check directory for changes every second
+    // Process completed thumbnails
+    while (true) {
+        fs::path filePath;
+        {
+            std::lock_guard<std::mutex> lock(completedThumbnailMutex);
+            if (completedThumbnailQueue.empty()) {
+                break;
+            }
+            filePath = completedThumbnailQueue.front();
+            completedThumbnailQueue.pop();
+        }
+        // Find and update the corresponding file entry
+        for (auto& file : files) {
+            if ((currentPath / file.name) == filePath) {
+                loadThumbnail(file);
+                break;
+            }
+        }
+    }
+
     timeSinceLastCheck += ImGui::GetIO().DeltaTime;
     if (timeSinceLastCheck >= 1.0f) {
         try {
@@ -447,7 +638,7 @@ void Editor::ResourcesWindow::show() {
         scanDirectory(project->getProjectPath().string());
         selectedFiles.clear();
     }
-    if (currentPath != project->getProjectPath() && ImGui::BeginDragDropTarget()){
+    if (currentPath != project->getProjectPath() && ImGui::BeginDragDropTarget()) {
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
             handleInternalDragAndDrop(project->getProjectPath());
         }
@@ -464,7 +655,7 @@ void Editor::ResourcesWindow::show() {
             selectedFiles.clear();
         }
     }
-    if (currentPath != project->getProjectPath() && ImGui::BeginDragDropTarget()){
+    if (currentPath != project->getProjectPath() && ImGui::BeginDragDropTarget()) {
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
             handleInternalDragAndDrop(currentPath.parent_path());
         }
@@ -475,7 +666,7 @@ void Editor::ResourcesWindow::show() {
 
     ImGui::SameLine();
 
-    Vector2 pathDisplaySize = Vector2(- ImGui::CalcTextSize(ICON_FA_GEAR).x - ImGui::GetStyle().ItemSpacing.x - ImGui::GetStyle().FramePadding.x * 2, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2);
+    Vector2 pathDisplaySize = Vector2(-ImGui::CalcTextSize(ICON_FA_GEAR).x - ImGui::GetStyle().ItemSpacing.x - ImGui::GetStyle().FramePadding.x * 2, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2);
     Widgets::pathDisplay(currentPath, pathDisplaySize, project->getProjectPath());
 
     ImGui::SameLine();
@@ -516,7 +707,7 @@ void Editor::ResourcesWindow::show() {
 
     ImVec2 scrollRegionMin = ImGui::GetWindowPos();
     ImVec2 scrollRegionMax = ImVec2(scrollRegionMin.x + ImGui::GetWindowSize().x,
-                        scrollRegionMin.y + ImGui::GetWindowSize().y);
+                                   scrollRegionMin.y + ImGui::GetWindowSize().y);
 
     ImVec2 cellPadding = ImVec2(8.0f, 8.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, cellPadding);
@@ -538,8 +729,6 @@ void Editor::ResourcesWindow::show() {
 
     if (isDragging) {
         ImVec2 mousePos = ImGui::GetMousePos();
-
-        // Handle auto-scrolling
         float scrollMargin = 20.0f;
         float currentScroll = ImGui::GetScrollY();
 
@@ -552,7 +741,6 @@ void Editor::ResourcesWindow::show() {
             ImGui::SetScrollY(currentScroll + scrollDelta);
         }
 
-        // Update drag end position
         dragEnd = mousePos;
         // Convert to window-relative coordinates
         dragEnd.x -= scrollRegionMin.x;
@@ -723,7 +911,18 @@ void Editor::ResourcesWindow::show() {
             float iconOffsetY = selectableSize.y + itemSpacingY;
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() + iconOffsetX);
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() - iconOffsetY);
-            ImGui::Image((ImTextureID)file.icon, ImVec2(iconSize, iconSize));
+
+            // Use thumbnail if available
+            if (file.isImage && file.hasThumbnail && thumbnailTextures.find(file.thumbnailPath) != thumbnailTextures.end()) {
+                Texture& thumbTexture = thumbnailTextures[file.thumbnailPath];
+                if (thumbTexture.getRender()) {
+                    ImGui::Image((ImTextureID)(intptr_t)thumbTexture.getRender()->getGLHandler(), ImVec2(iconSize, iconSize));
+                } else {
+                    ImGui::Image((ImTextureID)file.icon, ImVec2(iconSize, iconSize));
+                }
+            } else {
+                ImGui::Image((ImTextureID)file.icon, ImVec2(iconSize, iconSize));
+            }
 
             float textOffsetX = (cellWidth / 2) - (textSize.x / 2);
             if (textOffsetX < 0) textOffsetX = 0;
@@ -750,16 +949,12 @@ void Editor::ResourcesWindow::show() {
                     buffer.push_back('\0'); // Add null terminator for each string
                 }
 
-                // Set the payload with the vector of paths
                 ImGui::SetDragDropPayload("resource_files", buffer.data(), buffer.size());
-
-                // Preview of dragged items
                 ImGui::Text("Moving %zu file(s)", selectedFiles.size());
-
                 ImGui::EndDragDropSource();
             }
 
-            if (ImGui::BeginDragDropTarget()){
+            if (ImGui::BeginDragDropTarget()) {
                 if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
                     handleInternalDragAndDrop(currentPath / file.name);
                 }
@@ -783,7 +978,7 @@ void Editor::ResourcesWindow::show() {
         if (ImGui::MenuItem(ICON_FA_FILE_IMPORT"  Import Files")) {
             std::vector<std::string> filePaths = Editor::Util::openFileDialogMultiple();
 
-            if (!filePaths.empty()){
+            if (!filePaths.empty()) {
                 cmdHistory.addCommand(new CopyFileCmd(filePaths, currentPath.string(), true));
                 scanDirectory(currentPath);
             }
@@ -812,7 +1007,6 @@ void Editor::ResourcesWindow::show() {
             scrollRegionMin.x + std::min(dragStart.x, dragEnd.x) - ImGui::GetScrollX(),
             scrollRegionMin.y + std::min(dragStart.y, dragEnd.y) - ImGui::GetScrollY()
         );
-
         ImVec2 rectMax(
             scrollRegionMin.x + std::max(dragStart.x, dragEnd.x) - ImGui::GetScrollX(),
             scrollRegionMin.y + std::max(dragStart.y, dragEnd.y) - ImGui::GetScrollY()
@@ -830,12 +1024,9 @@ void Editor::ResourcesWindow::show() {
 
     ImGui::EndChild();
 
-    // Handle drag and drop from system
-    if (ImGui::BeginDragDropTarget()){
+    if (ImGui::BeginDragDropTarget()) {
         isDragDropTarget = true;
-
-        // Accept dropped files from external applications
-        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("external_files")){
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("external_files")) {
             std::vector<std::string> droppedPaths = *(std::vector<std::string>*)payload->Data;
 
             cmdHistory.addCommand(new CopyFileCmd(droppedPaths, currentPath.string(), true));
@@ -846,43 +1037,39 @@ void Editor::ResourcesWindow::show() {
         ImGui::EndDragDropTarget();
     }
 
-    // Visual feedback for drag and drop
-    if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup)){
+    if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup)) {
         ImGuiDragDropFlags target_flags = 0;
         target_flags |= ImGuiDragDropFlags_AcceptBeforeDelivery;
-
-        if (const ImGuiPayload* payload = ImGui::GetDragDropPayload()){
-            if (payload->IsDataType("external_files")){
+        if (const ImGuiPayload* payload = ImGui::GetDragDropPayload()) {
+            if (payload->IsDataType("external_files")) {
                 highlightDragAndDrop();
             }
         }
     }
 
-    if (isExternalDragHovering){
+    if (isExternalDragHovering) {
         highlightDragAndDrop();
     }
 
     windowFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
 
     if (windowFocused) {
-        if (!selectedFiles.empty()){
+        if (!selectedFiles.empty()) {
             if (ImGui::IsKeyPressed(ImGuiKey_Delete)) {
                 showDeleteConfirmation = true;
             }
         }
 
-        // Add keyboard shortcuts for copy/cut/paste
         if (ctrlPressed) {
             if (ImGui::IsKeyPressed(ImGuiKey_C)) {
                 copySelectedFiles(false);
-            }else if (ImGui::IsKeyPressed(ImGuiKey_X)) {
+            } else if (ImGui::IsKeyPressed(ImGuiKey_X)) {
                 copySelectedFiles(true);
-            }else if (ImGui::IsKeyPressed(ImGuiKey_V)) {
+            } else if (ImGui::IsKeyPressed(ImGuiKey_V)) {
                 if (!clipboardFiles.empty()) {
                     pasteFiles(currentPath);
                 }
-            }else if (ImGui::IsKeyPressed(ImGuiKey_A)) {
-                // Select all files in the current directory
+            } else if (ImGui::IsKeyPressed(ImGuiKey_A)) {
                 selectedFiles.clear();
                 for (const auto& file : files) {
                     selectedFiles.insert(file.name);
@@ -890,13 +1077,13 @@ void Editor::ResourcesWindow::show() {
                 if (!files.empty()) {
                     lastSelectedFile = files.back().name;
                 }
-            }else if (!shiftPressed && ImGui::IsKeyPressed(ImGuiKey_Z)) {
+            } else if (!shiftPressed && ImGui::IsKeyPressed(ImGuiKey_Z)) {
                 cmdHistory.undo();
                 scanDirectory(currentPath);
-            }else if (shiftPressed && ImGui::IsKeyPressed(ImGuiKey_Z)) {
+            } else if (shiftPressed && ImGui::IsKeyPressed(ImGuiKey_Z)) {
                 cmdHistory.redo();
                 scanDirectory(currentPath);
-            }else if (ImGui::IsKeyPressed(ImGuiKey_Y)) {
+            } else if (ImGui::IsKeyPressed(ImGuiKey_Y)) {
                 cmdHistory.redo();
                 scanDirectory(currentPath);
             }
@@ -923,14 +1110,12 @@ void Editor::ResourcesWindow::show() {
             fileCount++;
         }
 
-        // If there are more files, show a message
         if (fileCount > 10) {
             ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "And %d more items...", fileCount - 10);
         }
 
         ImGui::Separator();
 
-        // Calculate total width of the buttons
         const float buttonWidth = 120.0f;
         const float buttonSpacing = ImGui::GetStyle().ItemSpacing.x;
         const float totalWidth = (buttonWidth * 2) + buttonSpacing;
@@ -950,13 +1135,10 @@ void Editor::ResourcesWindow::show() {
             }
             cmdHistory.addCommand(new DeleteFileCmd(pathsToDelete, project->getProjectPath()));
 
-            // Clear the selection set
             selectedFiles.clear();
 
-            // Refresh the files list
             scanDirectory(currentPath);
 
-            // Close the modal
             showDeleteConfirmation = false;
             ImGui::CloseCurrentPopup();
         }

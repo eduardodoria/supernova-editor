@@ -88,6 +88,7 @@ include_directories (${SUPERNOVA_ROOT}/engine/libs/sokol)
 include_directories (${SUPERNOVA_ROOT}/engine/libs/lua)
 include_directories (${SUPERNOVA_ROOT}/engine/libs/box2d/include)
 include_directories (${SUPERNOVA_ROOT}/engine/libs/joltphysics)
+include_directories (${SUPERNOVA_ROOT}/engine/libs/stb)
 
 include_directories (${SUPERNOVA_ROOT}/engine/core)
 include_directories (${SUPERNOVA_ROOT}/engine/core/action)

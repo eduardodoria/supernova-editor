@@ -9,21 +9,30 @@
 #include <filesystem>
 #include <string>
 #include <vector>
+#include <thread>
+#include <mutex>
+#include <queue>
+#include <atomic>
+#include <unordered_map>
+#include <condition_variable>
 
 #include "imgui.h"
 
 namespace fs = std::filesystem;
 
-namespace Supernova::Editor{
+namespace Supernova::Editor {
 
     struct FileEntry {
         std::string name;
         std::string type;
         bool isDirectory;
         intptr_t icon;
+        bool isImage;
+        bool hasThumbnail;
+        std::string thumbnailPath;
     };
 
-    class ResourcesWindow{
+    class ResourcesWindow {
     private:
         Project* project;
         CodeEditor* codeEditor;
@@ -37,20 +46,21 @@ namespace Supernova::Editor{
 
         Texture folderIcon;
         Texture fileIcon;
+        std::unordered_map<std::string, Texture> thumbnailTextures;
 
         int iconSize;
         float iconPadding;
 
         std::string lastSelectedFile;
-        std::unordered_set<std::string> selectedFiles; // To track selected files
-        bool ctrlPressed; // To handle multi-selection using CTRL key
-        bool shiftPressed; // To handle range selection using SHIFT key
+        std::unordered_set<std::string> selectedFiles;
+        bool ctrlPressed;
+        bool shiftPressed;
 
         bool isDragging;
         ImVec2 dragStart;
         ImVec2 dragEnd;
-        ImVec2 windowPos;        // Store window position for coordinate conversion
-        ImVec2 scrollOffset;     // Store scroll offset
+        ImVec2 windowPos;
+        ImVec2 scrollOffset;
 
         bool isDragDropTarget;
         bool isExternalDragHovering;
@@ -70,6 +80,17 @@ namespace Supernova::Editor{
 
         bool windowFocused;
 
+        // Thumbnail generation
+        std::thread thumbnailThread;
+        std::mutex thumbnailMutex;
+        std::queue<fs::path> thumbnailQueue;
+        std::atomic<bool> stopThumbnailThread;
+        std::condition_variable thumbnailCondition;
+
+        // Queue for completed thumbnails
+        std::mutex completedThumbnailMutex;
+        std::queue<fs::path> completedThumbnailQueue;
+
         void scanDirectory(const fs::path& path);
         void sortWithSortSpecs(ImGuiTableSortSpecs* sortSpecs, std::vector<FileEntry>& files);
         void highlightDragAndDrop();
@@ -79,8 +100,16 @@ namespace Supernova::Editor{
         void copySelectedFiles(bool cut);
         void pasteFiles(const fs::path& targetDirectory);
 
+        bool isImageFile(const std::string& extension) const;
+        void queueThumbnailGeneration(const fs::path& filePath, const std::string& extension);
+        void thumbnailWorker();
+        fs::path getThumbnailPath(const fs::path& originalPath) const;
+        void ensureThumbnailDirectory() const;
+        void loadThumbnail(FileEntry& entry);
+
     public:
         ResourcesWindow(Project* project, CodeEditor* codeEditor);
+        ~ResourcesWindow();
 
         bool isFocused() const;
 
