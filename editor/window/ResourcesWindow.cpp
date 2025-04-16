@@ -254,12 +254,18 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
                     selectedFiles.insert(file.name);
                     lastSelectedFile = file.name;
                 }
-                if (ImGui::IsMouseDoubleClicked(0) && !file.isDirectory) {
-                    std::string extension = file.type;
-                    if (extension == ".scene") {
-                        project->openScene(currentPath / file.name);
-                    } else if (extension == ".c" || extension == ".cpp" || extension == ".h" || extension == ".hpp") {
-                        codeEditor->openFile((currentPath / file.name).string());
+                if (ImGui::IsMouseDoubleClicked(0)) {
+                    if (file.isDirectory) {
+                        scanDirectory(currentPath / file.name);
+                        selectedFiles.clear();
+                    } else {
+                        // Existing file handling
+                        std::string extension = file.type;
+                        if (extension == ".scene") {
+                            project->openScene(currentPath / file.name);
+                        } else if (extension == ".c" || extension == ".cpp" || extension == ".h" || extension == ".hpp") {
+                            codeEditor->openFile((currentPath / file.name).string());
+                        }
                     }
                 }
             }
@@ -431,9 +437,21 @@ void Editor::ResourcesWindow::renderDirectoryTree(const fs::path& rootPath) {
     ImGuiTreeNodeFlags rootFlags = ImGuiTreeNodeFlags_OpenOnArrow;
     if (isRootSelected) rootFlags |= ImGuiTreeNodeFlags_Selected;
 
-    // For root directory of the project, expand initially
-    if (rootPath == project->getProjectPath()) {
+    // Check if this directory is in the path to current directory
+    bool isInCurrentPath = false;
+    if (currentPath.string().find(rootPath.string()) == 0 && rootPath != currentPath) {
+        // This directory is a parent of the current directory
+        isInCurrentPath = true;
+    }
+
+    // For root directory of the project or directories in path to current directory, expand initially
+    if (rootPath == project->getProjectPath() || isInCurrentPath) {
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+    }
+
+    // Auto-expand the parent of the current directory
+    if (rootPath == currentPath.parent_path()) {
+        ImGui::SetNextItemOpen(true, ImGuiCond_Always);
     }
 
     // Use unique ID to prevent ImGui tree node confusion
