@@ -37,6 +37,15 @@ namespace Supernova::Editor {
         Project* project;
         CodeEditor* codeEditor;
 
+        enum class LayoutType {
+            AUTO,  // Automatically switch between GRID and SPLIT based on window size
+            GRID,  // Current single-column list view
+            SPLIT   // New two-column tree view
+        };
+        LayoutType currentLayout = LayoutType::AUTO;
+        float layoutAutoThreshold = 600.0f;
+        float leftPanelWidth = 200.0f;  // Width of the left panel in SPLIT layout
+
         CommandHistory cmdHistory;
 
         bool firstOpen;
@@ -90,6 +99,10 @@ namespace Supernova::Editor {
         // Queue for completed thumbnails
         std::mutex completedThumbnailMutex;
         std::queue<fs::path> completedThumbnailQueue;
+
+        void renderHeader();
+        void renderFileListing(bool showDirectories);
+        void renderDirectoryTree(const fs::path& path);
 
         void scanDirectory(const fs::path& path);
         void sortWithSortSpecs(ImGuiTableSortSpecs* sortSpecs, std::vector<FileEntry>& files);
