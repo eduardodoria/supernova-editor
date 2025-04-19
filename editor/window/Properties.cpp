@@ -2,7 +2,8 @@
 
 #include "imgui_internal.h"
 
-#include "Util.h"
+#include "util/Util.h"
+#include "util/FileDialogs.h"
 #include "external/IconsFontAwesome6.h"
 #include "command/CommandHandle.h"
 #include "command/type/PropertyCmd.h"
@@ -760,7 +761,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         ImGui::SameLine();
         if (ImGui::Button(ICON_FA_FILE_IMPORT)) {
-            std::string path = Editor::Util::openFileDialog(project->getProjectPath().string(), true);
+            std::string path = Editor::FileDialogs::openFileDialog(project->getProjectPath().string(), true);
             if (!path.empty()) {
                 std::filesystem::path projectPath = project->getProjectPath();
                 std::filesystem::path filePath = std::filesystem::absolute(path);

@@ -13,7 +13,8 @@
 
 #include "Backend.h"
 #include "App.h"
-#include "Util.h"
+#include "util/FileDialogs.h"
+#include "util/SHA1.h"
 
 #include "imgui_internal.h"
 
@@ -41,6 +42,7 @@ Editor::ResourcesWindow::ResourcesWindow(Project* project, CodeEditor* codeEdito
     this->isCreatingNewDirectory = false;
     this->timeSinceLastCheck = 0.0f;
     this->windowFocused = false;
+    this->showDeleteConfirmation = false;
     this->stopThumbnailThread = false;
     memset(this->nameBuffer, 0, sizeof(this->nameBuffer));
 
@@ -160,8 +162,6 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
     ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, cellPadding);
 
     bool clickedInFile = false;  // Declare this before the table for scope
-
-    static bool showDeleteConfirmation = false;
 
     if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(0) && !ImGui::IsAnyItemHovered()) {
         isDragging = true;
@@ -345,9 +345,14 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
     }
     ImGui::PopStyleVar();
 
-    if (ImGui::BeginPopupContextWindow("ResourcesContextMenu", ImGuiPopupFlags_MouseButtonRight)) {
+    // Handle right-click on empty space
+    if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsWindowHovered() && !clickedInFile) {
+        ImGui::OpenPopup("ResourcesContextMenu");
+    }
+
+    if (ImGui::BeginPopup("ResourcesContextMenu")) {
         if (ImGui::MenuItem(ICON_FA_FILE_IMPORT"  Import Files")) {
-            std::vector<std::string> filePaths = Editor::Util::openFileDialogMultiple();
+            std::vector<std::string> filePaths = Editor::FileDialogs::openFileDialogMultiple();
             if (!filePaths.empty()) {
                 cmdHistory.addCommand(new CopyFileCmd(filePaths, currentPath.string(), true));
                 scanDirectory(currentPath);
@@ -888,14 +893,18 @@ bool Editor::ResourcesWindow::isImageFile(const std::string& extension) const {
 fs::path Editor::ResourcesWindow::getThumbnailPath(const fs::path& originalPath) const {
     fs::path thumbsDir = project->getProjectPath() / ".supernova" / "thumbs";
 
-    // Create a relative path from the project root
+    // Get relative path from project root, as a string
     fs::path relativePath = fs::relative(originalPath, project->getProjectPath());
+    std::string relPathStr = relativePath.generic_string();
 
-    // Create the thumbnail path with the same directory structure
-    fs::path thumbnailPath = thumbsDir / relativePath;
-    thumbnailPath.replace_extension(".thumb.png");
+    // Hash the relative path
+    std::string hash = SHA1::hash(relPathStr);
 
-    return thumbnailPath;
+    // Use the hash as the filename, with original extension for reference (optional)
+    std::string ext = originalPath.extension().string();
+    std::string thumbFilename = hash + ".thumb.png";
+
+    return thumbsDir / thumbFilename;
 }
 
 // Ensure the thumbnail directory exists
@@ -1029,6 +1038,42 @@ void Editor::ResourcesWindow::loadThumbnail(FileEntry& entry) {
 
         entry.hasThumbnail = true;
         entry.thumbnailPath = thumbnailPath.string();
+    }
+}
+
+void Editor::ResourcesWindow::cleanupThumbnails() {
+    // 1. Collect all valid hashes of existing image files
+    std::unordered_set<std::string> validThumbHashes;
+
+    // Recursively scan project directory for images
+    for (auto& p : fs::recursive_directory_iterator(project->getProjectPath())) {
+        if (!fs::is_regular_file(p.status()))
+            continue;
+        std::string ext = p.path().extension().string();
+        if (isImageFile(ext)) {
+            fs::path rel = fs::relative(p.path(), project->getProjectPath());
+            std::string hash = SHA1::hash(rel.generic_string());
+            validThumbHashes.insert(hash);
+        }
+    }
+
+    // 2. Walk .supernova/thumbs/ and remove any orphaned thumb
+    fs::path thumbsDir = project->getProjectPath() / ".supernova" / "thumbs";
+    if (!fs::exists(thumbsDir)) return;
+
+    for (auto& p : fs::directory_iterator(thumbsDir)) {
+        if (!fs::is_regular_file(p.status())) continue;
+        std::string fname = p.path().filename().string();
+
+        // Filename should be: <hash>.thumb.png
+        auto pos = fname.find(".thumb.png");
+        if (pos != std::string::npos) {
+            std::string hash = fname.substr(0, pos);
+            if (validThumbHashes.find(hash) == validThumbHashes.end()) {
+                std::error_code ec;
+                fs::remove(p, ec);
+            }
+        }
     }
 }
 
@@ -1200,6 +1245,7 @@ void Editor::ResourcesWindow::show() {
     if (windowFocused) {
         if (!selectedFiles.empty() && ImGui::IsKeyPressed(ImGuiKey_Delete)) {
             // Trigger delete confirmation (handled in renderFileListing)
+            showDeleteConfirmation = true;
         }
         if (ctrlPressed) {
             if (ImGui::IsKeyPressed(ImGuiKey_C)) copySelectedFiles(false);

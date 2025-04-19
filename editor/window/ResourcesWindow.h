@@ -89,6 +89,8 @@ namespace Supernova::Editor {
 
         bool windowFocused;
 
+        bool showDeleteConfirmation;
+
         // Thumbnail generation
         std::thread thumbnailThread;
         std::mutex thumbnailMutex;
@@ -130,6 +132,8 @@ namespace Supernova::Editor {
 
         void handleExternalDragEnter();
         void handleExternalDragLeave();
+
+        void cleanupThumbnails();
 
         void show();
     };

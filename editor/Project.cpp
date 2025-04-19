@@ -14,7 +14,7 @@
 #include "command/CommandHandle.h"
 #include "command/type/DeleteEntityCmd.h"
 #include "Stream.h"
-#include "Util.h"
+#include "util/FileDialogs.h"
 
 using namespace Supernova;
 
@@ -396,7 +396,7 @@ bool Editor::Project::openProject() {
     #endif
 
     // Open a folder selection dialog
-    std::string selectedDir = Util::openFileDialog(homeDirPath, false, true);
+    std::string selectedDir = FileDialogs::openFileDialog(homeDirPath, false, true);
 
     if (selectedDir.empty()) {
         return false; // User canceled the dialog

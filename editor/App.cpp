@@ -660,6 +660,7 @@ void Editor::App::updateResourcesPath(){
     if (isInitialized){
         resourcesWindow->notifyProjectPathChange();
     }
+    resourcesWindow->cleanupThumbnails();
 }
 
 void Editor::App::registerAlert(std::string title, std::string message) {
