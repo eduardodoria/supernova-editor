@@ -28,7 +28,7 @@ namespace Supernova::Editor{
         size_t oldTransformIndex;
         Entity oldParent;
 
-        size_t getIndex(std::vector<Entity>& entities, Entity entity);
+        void sortEntitiesByTransformOrder(std::vector<Entity>& entities, Scene* scene);
 
     public:
         MoveEntityOrderCmd(Project* project, uint32_t sceneId, Entity source, Entity target, InsertionType type);

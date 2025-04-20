@@ -12,13 +12,18 @@ Editor::MoveEntityOrderCmd::MoveEntityOrderCmd(Project* project, uint32_t sceneI
     this->type = type;
 }
 
-size_t Editor::MoveEntityOrderCmd::getIndex(std::vector<Entity>& entities, Entity entity){
-    auto it = std::find(entities.begin(), entities.end(), entity);
-    if (it != entities.end()) {
-        return std::distance(entities.begin(), it);
+void Editor::MoveEntityOrderCmd::sortEntitiesByTransformOrder(std::vector<Entity>& entities, Scene* scene) {
+    auto transforms = scene->getComponentArray<Transform>();
+    std::unordered_map<Entity, size_t> transformOrder;
+    for (size_t i = 0; i < transforms->size(); ++i) {
+        Entity ent = transforms->getEntity(i);
+        transformOrder[ent] = i;
     }
-
-    throw std::out_of_range("cannot find entity");
+    std::sort(entities.begin(), entities.end(),
+        [&transformOrder](const Entity& a, const Entity& b) {
+            return transformOrder[a] < transformOrder[b];
+        }
+    );
 }
 
 bool Editor::MoveEntityOrderCmd::execute(){
@@ -57,24 +62,17 @@ bool Editor::MoveEntityOrderCmd::execute(){
         if (sourceTransformIndex < targetTransformIndex){
             --targetTransformIndex;
         }
+        if (type == InsertionType::AFTER){
+            // if position target has children, move them to the end of the list
+            targetTransformIndex = sceneProject->scene->findBranchLastIndex(target);
+        }
 
         sceneProject->scene->moveChildToIndex(source, targetTransformIndex, false);
     }
 
-    size_t sourceIndex = getIndex(entities, source);
-    size_t targetIndex = getIndex(entities, target);
+    sortEntitiesByTransformOrder(entities, sceneProject->scene);
 
-    oldIndex = sourceIndex;
-
-    if (type == InsertionType::AFTER || type == InsertionType::IN){
-        targetIndex++;
-    }
-    if (sourceIndex < targetIndex){
-        --targetIndex;
-    }
-
-    entities.erase(entities.begin() + sourceIndex);
-    entities.insert(entities.begin() + targetIndex, source);
+    sceneProject->isModified = true;
 
     return true;
 }
@@ -92,10 +90,9 @@ void Editor::MoveEntityOrderCmd::undo(){
         sceneProject->scene->moveChildToIndex(source, oldTransformIndex, false);
     }
 
-    size_t sourceIndex = getIndex(entities, source);
+    sortEntitiesByTransformOrder(entities, sceneProject->scene);
 
-    entities.erase(entities.begin() + sourceIndex);
-    entities.insert(entities.begin() + oldIndex, source);
+    sceneProject->isModified = true;
 }
 
 bool Editor::MoveEntityOrderCmd::mergeWith(Command* otherCommand){
