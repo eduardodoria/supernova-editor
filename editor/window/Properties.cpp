@@ -815,7 +815,7 @@ void Editor::Properties::drawTransform(ComponentType cpType, std::map<std::strin
             // For 3D scenes, scale step based on distance from target
             float distanceFromTarget = camera->getDistanceFromTarget();
             stepSize = std::max(0.01f, distanceFromTarget / 200.0f);
-        } else if (sceneProject->sceneType == SceneType::SCENE_2D) {
+        } else {
             // For 2D scenes, use the zoom level
             SceneRender2D* sceneRender2D = static_cast<SceneRender2D*>(sceneProject->sceneRender);
             float zoom = sceneRender2D->getZoom();

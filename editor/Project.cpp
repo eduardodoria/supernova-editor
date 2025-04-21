@@ -68,9 +68,9 @@ uint32_t Editor::Project::createNewScene(std::string sceneName, SceneType type){
     if (data.sceneType == SceneType::SCENE_3D){
         data.sceneRender = new SceneRender3D(data.scene);
     }else if (data.sceneType == SceneType::SCENE_2D){
-        data.sceneRender = new SceneRender2D(data.scene, windowWidth, windowHeight);
+        data.sceneRender = new SceneRender2D(data.scene, windowWidth, windowHeight, false);
     }else if (data.sceneType == SceneType::SCENE_UI){
-        data.sceneRender = new SceneRender2D(data.scene, windowWidth, windowHeight);
+        data.sceneRender = new SceneRender2D(data.scene, windowWidth, windowHeight, true);
     }
     data.selectedEntities.clear();
     data.needUpdateRender = true;
@@ -105,9 +105,9 @@ void Editor::Project::openScene(fs::path filepath){
         if (data.sceneType == SceneType::SCENE_3D){
             data.sceneRender = new SceneRender3D(data.scene);
         }else if (data.sceneType == SceneType::SCENE_2D){
-            data.sceneRender = new SceneRender2D(data.scene, windowWidth, windowHeight);
+            data.sceneRender = new SceneRender2D(data.scene, windowWidth, windowHeight, false);
         }else if (data.sceneType == SceneType::SCENE_UI){
-            data.sceneRender = new SceneRender2D(data.scene, windowWidth, windowHeight);
+            data.sceneRender = new SceneRender2D(data.scene, windowWidth, windowHeight, true);
         }
 
         Stream::decodeSceneProjectEntities(&data, sceneNode);
@@ -655,7 +655,7 @@ void Editor::Project::setSelectedSceneId(uint32_t selectedScene){
     if (this->selectedScene != selectedScene){
         this->selectedScene = selectedScene;
 
-        debugSceneHierarchy();
+        //debugSceneHierarchy();
     }
 }
 

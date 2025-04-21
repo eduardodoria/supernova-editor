@@ -5,8 +5,14 @@
 
 using namespace Supernova;
 
-Editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned int height): SceneRender(scene, true, false, 40, 2){
-    camera->setType(CameraType::CAMERA_ORTHO);
+Editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned int height, bool isUI): SceneRender(scene, true, false, 40, 2){
+    this->isUI = isUI;
+
+    if (isUI){
+        camera->setType(CameraType::CAMERA_2D);
+    }else{
+        camera->setType(CameraType::CAMERA_ORTHO);
+    }
 
     camera->slide(-50);
     camera->slideUp(-50);
@@ -15,7 +21,11 @@ Editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned 
 
     createLines(width, height);
 
-    scene->setBackgroundColor(Vector4(0.231, 0.298, 0.475, 1.0));
+    if (isUI){
+        scene->setBackgroundColor(Vector4(0.525, 0.525, 0.525, 1.0));
+    }else{
+        scene->setBackgroundColor(Vector4(0.231, 0.298, 0.475, 1.0));
+    }
 
     Engine::setScalingMode(Scaling::NATIVE);
     Engine::setFixedTimeSceneUpdate(false);
@@ -113,7 +123,7 @@ void Editor::SceneRender2D::zoomAtPosition(float width, float height, Vector2 po
     float top = camera->getTopClip();
 
     float worldX = left + (pos.x / width) * (right - left);
-    float worldY = bottom + ((height - pos.y) / height) * (top - bottom);
+    float worldY = bottom + (pos.y / height) * (top - bottom);
 
     float currentWidth = right - left;
     float currentZoom = currentWidth / width; // units per pixel
@@ -125,7 +135,7 @@ void Editor::SceneRender2D::zoomAtPosition(float width, float height, Vector2 po
 
     float newLeft = worldX - (pos.x / width) * newWidth;
     float newRight = newLeft + newWidth;
-    float newBottom = worldY - ((height - pos.y) / height) * newHeight;
+    float newBottom = worldY - (pos.y / height) * newHeight;
     float newTop = newBottom + newHeight;
 
     camera->setLeftClip(newLeft);
