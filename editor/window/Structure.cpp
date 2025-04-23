@@ -43,6 +43,14 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent){
         ImGui::EndMenu();
     }
 
+    if (ImGui::BeginMenu(ICON_FA_CUBES_STACKED"  2D")){
+        if (ImGui::MenuItem(ICON_FA_IMAGE"  Sprite")){
+            CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Sprite", EntityCreationType::SPRITE, parent));
+            openParent = parent;
+        }
+        ImGui::EndMenu();
+    }
+
     if (ImGui::BeginMenu(ICON_FA_WINDOW_RESTORE"  UI")){
         if (ImGui::MenuItem(ICON_FA_IMAGE"  Image")){
             CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Image", EntityCreationType::IMAGE, parent));

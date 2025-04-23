@@ -165,7 +165,8 @@ void Editor::SceneRender::updateSize(int width, int height){
 }
 
 void Editor::SceneRender::updateRenderSystem(){
-    // UIs is created in update, without this can affect worldA
+    // Meshes and UIs are created in update, without this can affect worldAABB
+    scene->getSystem<MeshSystem>()->update(0);
     scene->getSystem<UISystem>()->update(0);
     // to avoid gizmos delays
     scene->getSystem<RenderSystem>()->update(0);
@@ -460,6 +461,9 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                 }
 
                 if (toolslayer.getGizmoSelected() == GizmoSelected::OBJECT2D){
+                    bool isSprite = scene->getComponentArray<SpriteComponent>()->hasEntity(entity);
+                    bool isLayout = scene->getComponentArray<UILayoutComponent>()->hasEntity(entity);
+
                     Vector3 newPos = gizmoRMatrix.inverse() * ((rretrun.point + cursorStartOffset) - gizmoPosition);
 
                     Vector3 newSize = gizmoRMatrix.inverse() * -(gizmoStartPosition - rretrun.point - cursorStartOffset);
@@ -513,8 +517,13 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
 
                     if (toolslayer.getGizmo2DSideSelected() != Gizmo2DSideSelected::NONE){
                         MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
-                        multiCmd->addPropertyCmd<unsigned int>(sceneProject->scene, entity, ComponentType::UILayoutComponent, "width", UpdateFlags_Layout_Sizes, static_cast<unsigned int>(size.x));
-                        multiCmd->addPropertyCmd<unsigned int>(sceneProject->scene, entity, ComponentType::UILayoutComponent, "height", UpdateFlags_Layout_Sizes, static_cast<unsigned int>(size.y));
+                        if (isLayout){
+                            multiCmd->addPropertyCmd<unsigned int>(sceneProject->scene, entity, ComponentType::UILayoutComponent, "width", UpdateFlags_Layout_Sizes, static_cast<unsigned int>(size.x));
+                            multiCmd->addPropertyCmd<unsigned int>(sceneProject->scene, entity, ComponentType::UILayoutComponent, "height", UpdateFlags_Layout_Sizes, static_cast<unsigned int>(size.y));
+                        }else if (isSprite){
+                            multiCmd->addPropertyCmd<unsigned int>(sceneProject->scene, entity, ComponentType::SpriteComponent, "width", UpdateFlags_Sprite, static_cast<unsigned int>(size.x));
+                            multiCmd->addPropertyCmd<unsigned int>(sceneProject->scene, entity, ComponentType::SpriteComponent, "height", UpdateFlags_Sprite, static_cast<unsigned int>(size.y));
+                        }
                         multiCmd->addPropertyCmd<Vector3>(sceneProject->scene, entity, ComponentType::Transform, "position", UpdateFlags_Transform, pos);
                         lastCommand = multiCmd;
                     }

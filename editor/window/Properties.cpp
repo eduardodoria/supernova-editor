@@ -930,6 +930,15 @@ void Editor::Properties::drawUILayoutComponent(ComponentType cpType, std::map<st
     endTable();
 }
 
+void Editor::Properties::drawSpriteComponent(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, std::vector<Entity> entities){
+    beginTable(cpType, getMaxLabelSize(props, {}, {}));
+
+    propertyRow(cpType, props, "width", scene, entities, 1.0, 6 * ImGui::GetFontSize());
+    propertyRow(cpType, props, "height", scene, entities, 1.0, 6 * ImGui::GetFontSize());
+
+    endTable();
+}
+
 void Editor::Properties::show(){
     ImGui::Begin("Properties");
 
@@ -1020,6 +1029,8 @@ void Editor::Properties::show(){
                 drawUIComponent(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
             }else if (cpType == ComponentType::UILayoutComponent){
                 drawUILayoutComponent(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
+            }else if (cpType == ComponentType::SpriteComponent){
+                drawSpriteComponent(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
             }
 
         }

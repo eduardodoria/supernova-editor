@@ -77,6 +77,15 @@ bool Editor::CreateEntityCmd::execute(){
                 UILayoutComponent& layout = scenes[i].scene->getComponent<UILayoutComponent>(entity);
                 layout.width = 100;
                 layout.height = 100;
+            }else if (type == EntityCreationType::SPRITE){
+
+                scenes[i].scene->addComponent<Transform>(entity, {});
+                scenes[i].scene->addComponent<MeshComponent>(entity, {});
+                scenes[i].scene->addComponent<SpriteComponent>(entity, {});
+
+                SpriteComponent& sprite = scenes[i].scene->getComponent<SpriteComponent>(entity);
+                sprite.width = 100;
+                sprite.height = 100;
             }
 
             scenes[i].scene->setEntityName(entity, entityName);

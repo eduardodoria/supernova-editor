@@ -157,6 +157,12 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["width"] = {PropertyType::UInt, "Width", UpdateFlags_Layout_Sizes, nullptr, (compRef) ? (void*)&comp->width : nullptr};
         ps["height"] = {PropertyType::UInt, "Height", UpdateFlags_Layout_Sizes, nullptr, (compRef) ? (void*)&comp->height : nullptr};
         ps["ignore_scissor"] = {PropertyType::Bool, "Ignore scissor", UpdateFlags_None, (void*)&def->ignoreScissor, (compRef) ? (void*)&comp->ignoreScissor : nullptr};
+    }else if (component == ComponentType::SpriteComponent){
+        SpriteComponent* comp = (SpriteComponent*)compRef;
+        static SpriteComponent* def = new SpriteComponent;
+
+        ps["width"] = {PropertyType::UInt, "Width", UpdateFlags_Sprite, nullptr, (compRef) ? (void*)&comp->width : nullptr};
+        ps["height"] = {PropertyType::UInt, "Height", UpdateFlags_Sprite, nullptr, (compRef) ? (void*)&comp->height : nullptr};
     }
 
     return ps;
@@ -318,6 +324,10 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::findEntityPropertie
         if (UILayoutComponent* compRef = scene->findComponent<UILayoutComponent>(entity)){
             return getProperties(component, compRef);
         }
+    }else if (component == ComponentType::SpriteComponent){
+        if (SpriteComponent* compRef = scene->findComponent<SpriteComponent>(entity)){
+            return getProperties(component, compRef);
+        }
     }
 
     return std::map<std::string, Editor::PropertyData>();
@@ -376,5 +386,8 @@ void Editor::Catalog::updateEntity(Scene* scene, Entity entity, int updateFlags)
     }
     if (updateFlags & UpdateFlags_Layout_Sizes){
         scene->getComponent<UILayoutComponent>(entity).needUpdateSizes = true;
+    }
+    if (updateFlags & UpdateFlags_Sprite){
+        scene->getComponent<SpriteComponent>(entity).needUpdateSprite = true;
     }
 }

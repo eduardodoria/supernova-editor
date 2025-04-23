@@ -14,7 +14,8 @@ namespace Supernova::Editor{
         UpdateFlags_Mesh_Texture    = 1 << 2,
         UpdateFlags_UI_Reload       = 1 << 3,
         UpdateFlags_UI_Texture      = 1 << 4,
-        UpdateFlags_Layout_Sizes    = 1 << 5
+        UpdateFlags_Layout_Sizes    = 1 << 5,
+        UpdateFlags_Sprite          = 1 << 6
     };
 
     enum class ComponentType : int {
