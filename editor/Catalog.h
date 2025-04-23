@@ -79,7 +79,12 @@ namespace Supernova::Editor{
         Int,
         UInt,
         Texture,
-        PrimitiveType
+        Enum
+    };
+
+    struct EnumEntry {
+        int value;
+        const char* name;
     };
 
     struct PropertyData{
@@ -88,6 +93,7 @@ namespace Supernova::Editor{
         int updateFlags;
         void* def;
         void* ref;
+        std::vector<EnumEntry>* enumEntries = nullptr;
     };
 
     class Catalog{
@@ -115,11 +121,6 @@ namespace Supernova::Editor{
             printf("ERROR: Cannot find property %s\n", propertyName.c_str());
             return nullptr;
         }
-
-
-        static std::vector<const char*> getPrimitiveTypeArray();
-        static size_t getPrimitiveTypeToIndex(PrimitiveType pt);
-        static PrimitiveType getPrimitiveTypeFromIndex(size_t i);
 
         static void updateEntity(Scene* scene, Entity entity, int updateFlags);
     };

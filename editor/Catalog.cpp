@@ -4,6 +4,14 @@
 
 using namespace Supernova;
 
+static std::vector<Editor::EnumEntry> primitiveTypeEntries = {
+    { (int)PrimitiveType::TRIANGLES, "Triangles" },
+    { (int)PrimitiveType::TRIANGLE_STRIP, "Triangle Strip" },
+    { (int)PrimitiveType::POINTS, "Points" },
+    { (int)PrimitiveType::LINES, "Lines" }
+};
+
+
 Editor::Catalog::Catalog(){
 }
 
@@ -140,7 +148,7 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
             ps["submeshes["+idx+"].material.occlusiontexture"] = {PropertyType::Texture, "Occlusion Texture", UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.occlusionTexture, (compRef) ? (void*)&comp->submeshes[s].material.occlusionTexture : nullptr};
             ps["submeshes["+idx+"].material.normalTexture"] = {PropertyType::Texture, "Normal Texture", UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.normalTexture, (compRef) ? (void*)&comp->submeshes[s].material.normalTexture : nullptr};
 
-            ps["submeshes["+idx+"].primitive_type"] = {PropertyType::PrimitiveType, "Primitive", UpdateFlags_Mesh_Reload, (void*)&def->submeshes[0].primitiveType, (compRef) ? (void*)&comp->submeshes[s].primitiveType : nullptr};
+            ps["submeshes["+idx+"].primitive_type"] = {PropertyType::Enum, "Primitive", UpdateFlags_Mesh_Reload, (void*)&def->submeshes[0].primitiveType, (compRef) ? (void*)&comp->submeshes[s].primitiveType : nullptr, &primitiveTypeEntries};
             ps["submeshes["+idx+"].face_culling"] = {PropertyType::Bool, "Face culling", UpdateFlags_Mesh_Reload, (void*)&def->submeshes[0].faceCulling, (compRef) ? (void*)&comp->submeshes[s].faceCulling : nullptr};
             ps["submeshes["+idx+"].texture_rect"] = {PropertyType::Vector4, "Texture rect", UpdateFlags_None, (void*)&def->submeshes[0].textureRect, (compRef) ? (void*)&comp->submeshes[s].textureRect : nullptr};
         }
@@ -331,38 +339,6 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::findEntityPropertie
     }
 
     return std::map<std::string, Editor::PropertyData>();
-}
-
-std::vector<const char*> Editor::Catalog::getPrimitiveTypeArray(){
-    return {"Triangles", "Triangle Strip", "Points", "Lines"};
-}
-
-size_t Editor::Catalog::getPrimitiveTypeToIndex(PrimitiveType pt){
-    if (pt == PrimitiveType::TRIANGLES){
-        return 0;
-    }else if (pt == PrimitiveType::TRIANGLE_STRIP){
-        return 1;
-    }else if (pt == PrimitiveType::POINTS){
-        return 2;
-    }else if (pt == PrimitiveType::LINES){
-        return 3;
-    }
-
-    return 0;
-}
-
-PrimitiveType Editor::Catalog::getPrimitiveTypeFromIndex(size_t i){
-    if (i == 0){
-        return PrimitiveType::TRIANGLES;
-    }else if (i == 1){
-        return PrimitiveType::TRIANGLE_STRIP;
-    }else if (i == 2){
-        return PrimitiveType::POINTS;
-    }else if (i == 3){
-        return PrimitiveType::LINES;
-    }
-
-    return PrimitiveType::TRIANGLES;
 }
 
 void Editor::Catalog::updateEntity(Scene* scene, Entity entity, int updateFlags){

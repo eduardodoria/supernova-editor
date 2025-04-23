@@ -597,12 +597,12 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             ImGui::PopStyleColor();
         //ImGui::SetItemTooltip("%s", prop.label.c_str());
 
-    }else if (prop.type == PropertyType::PrimitiveType){
-        PrimitiveType* value = nullptr;
-        std::map<Entity, PrimitiveType> eValue;
+    }else if (prop.type == PropertyType::Enum && prop.enumEntries) {
+        int* value = nullptr;
+        std::map<Entity, int> eValue;
         bool dif = false;
         for (Entity& entity : entities){
-            eValue[entity] = *Catalog::getPropertyRef<PrimitiveType>(scene, entity, cpType, name);
+            eValue[entity] = *static_cast<int*>(Catalog::getPropertyRef<int>(scene, entity, cpType, name));
             if (value){
                 if (*value != eValue[entity])
                     dif = true;
@@ -610,27 +610,48 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             value = &eValue[entity];
         }
 
-        int item_current = Catalog::getPrimitiveTypeToIndex(*value);
+        int item_current = 0;
+        // Find current index in enumEntries
+        for (size_t i = 0; i < prop.enumEntries->size(); ++i) {
+            if ((*prop.enumEntries)[i].value == *value) {
+                item_current = static_cast<int>(i);
+                break;
+            }
+        }
         int item_default = item_current;
 
         bool defChanged = false;
         if (prop.def){
-            item_default = Catalog::getPrimitiveTypeToIndex(*static_cast<PrimitiveType*>(prop.def));
+            int defValue = *static_cast<int*>(prop.def);
+            // Find index of default value in enumEntries
+            for (size_t i = 0; i < prop.enumEntries->size(); ++i) {
+                if ((*prop.enumEntries)[i].value == defValue) {
+                    item_default = static_cast<int>(i);
+                    break;
+                }
+            }
             defChanged = (item_current != item_default);
         }
         if (propertyHeader(prop.label, secondColSize, defChanged, child)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<PrimitiveType>(scene, entity, cpType, name, prop.updateFlags, Catalog::getPrimitiveTypeFromIndex(item_default));
+                int defValue = (*prop.enumEntries)[item_default].value;
+                cmd = new PropertyCmd<int>(scene, entity, cpType, name, prop.updateFlags, defValue);
                 CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
             }
         }
 
+        // Build names array
+        std::vector<const char*> names;
+        for (const auto& entry : *prop.enumEntries) {
+            names.push_back(entry.name);
+        }
+
         if (dif)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::Combo(("##combo_"+name).c_str(), &item_current, Catalog::getPrimitiveTypeArray().data(), Catalog::getPrimitiveTypeArray().size())){
-            PrimitiveType newValue = Catalog::getPrimitiveTypeFromIndex(item_current);
+        if (ImGui::Combo(("##combo_" + name).c_str(), &item_current, names.data(), static_cast<int>(names.size()))) {
+            int newValue = (*prop.enumEntries)[item_current].value;
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<PrimitiveType>(scene, entity, cpType, name, prop.updateFlags, newValue);
+                cmd = new PropertyCmd<int>(scene, entity, cpType, name, prop.updateFlags, newValue);
                 CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
             }
         }
