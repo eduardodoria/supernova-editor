@@ -405,7 +405,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             ImGui::PopStyleColor();
         //ImGui::SetItemTooltip("%s", prop.label.c_str());
 
-    }else if (prop.type == PropertyType::Float_0_1){
+    }else if (prop.type == PropertyType::Float || prop.type == PropertyType::Float_0_1){
         float* value = nullptr;
         std::map<Entity, float> eValue;
         bool dif = false;
@@ -431,9 +431,16 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             }
         }
 
+        float v_min = (0.0F);
+        float v_max = (0.0F);
+        if (prop.type == PropertyType::Float_0_1){
+            v_min = 0.0F;
+            v_max = 1.0F;
+        }
+
         if (dif)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::DragFloat(("##input_float_"+name).c_str(), &newValue, stepSize, 0.0f, 1.0f, "%.2f")){
+        if (ImGui::DragFloat(("##input_float_"+name).c_str(), &newValue, stepSize, v_min, v_max, "%.2f")){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<float>(scene, entity, cpType, name, prop.updateFlags, newValue);
                 CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
@@ -956,6 +963,8 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, std::map<std:
 
     propertyRow(cpType, props, "width", scene, entities, 1.0, 6 * ImGui::GetFontSize());
     propertyRow(cpType, props, "height", scene, entities, 1.0, 6 * ImGui::GetFontSize());
+    propertyRow(cpType, props, "pivot_preset", scene, entities);
+    propertyRow(cpType, props, "texture_cut_factor", scene, entities, 0.1f, 6 * ImGui::GetFontSize());
 
     endTable();
 }

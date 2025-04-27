@@ -4,13 +4,24 @@
 
 using namespace Supernova;
 
-static std::vector<Editor::EnumEntry> primitiveTypeEntries = {
+static std::vector<Editor::EnumEntry> entriesPrimitiveType = {
     { (int)PrimitiveType::TRIANGLES, "Triangles" },
     { (int)PrimitiveType::TRIANGLE_STRIP, "Triangle Strip" },
     { (int)PrimitiveType::POINTS, "Points" },
     { (int)PrimitiveType::LINES, "Lines" }
 };
 
+static std::vector<Editor::EnumEntry> entriesPivotPreset = {
+    { (int)PivotPreset::CENTER, "Center" },
+    { (int)PivotPreset::TOP_CENTER, "Top Center" },
+    { (int)PivotPreset::BOTTOM_CENTER, "Bottom Center" },
+    { (int)PivotPreset::LEFT_CENTER, "Left Center" },
+    { (int)PivotPreset::RIGHT_CENTER, "Right Center" },
+    { (int)PivotPreset::TOP_LEFT, "Top Left" },
+    { (int)PivotPreset::BOTTOM_LEFT, "Bottom Left" },
+    { (int)PivotPreset::TOP_RIGHT, "Top Right" },
+    { (int)PivotPreset::BOTTOM_RIGHT, "Bottom Right" }
+};
 
 Editor::Catalog::Catalog(){
 }
@@ -148,7 +159,7 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
             ps["submeshes["+idx+"].material.occlusiontexture"] = {PropertyType::Texture, "Occlusion Texture", UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.occlusionTexture, (compRef) ? (void*)&comp->submeshes[s].material.occlusionTexture : nullptr};
             ps["submeshes["+idx+"].material.normalTexture"] = {PropertyType::Texture, "Normal Texture", UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.normalTexture, (compRef) ? (void*)&comp->submeshes[s].material.normalTexture : nullptr};
 
-            ps["submeshes["+idx+"].primitive_type"] = {PropertyType::Enum, "Primitive", UpdateFlags_Mesh_Reload, (void*)&def->submeshes[0].primitiveType, (compRef) ? (void*)&comp->submeshes[s].primitiveType : nullptr, &primitiveTypeEntries};
+            ps["submeshes["+idx+"].primitive_type"] = {PropertyType::Enum, "Primitive", UpdateFlags_Mesh_Reload, (void*)&def->submeshes[0].primitiveType, (compRef) ? (void*)&comp->submeshes[s].primitiveType : nullptr, &entriesPrimitiveType};
             ps["submeshes["+idx+"].face_culling"] = {PropertyType::Bool, "Face culling", UpdateFlags_Mesh_Reload, (void*)&def->submeshes[0].faceCulling, (compRef) ? (void*)&comp->submeshes[s].faceCulling : nullptr};
             ps["submeshes["+idx+"].texture_rect"] = {PropertyType::Vector4, "Texture rect", UpdateFlags_None, (void*)&def->submeshes[0].textureRect, (compRef) ? (void*)&comp->submeshes[s].textureRect : nullptr};
         }
@@ -171,6 +182,8 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
 
         ps["width"] = {PropertyType::UInt, "Width", UpdateFlags_Sprite, nullptr, (compRef) ? (void*)&comp->width : nullptr};
         ps["height"] = {PropertyType::UInt, "Height", UpdateFlags_Sprite, nullptr, (compRef) ? (void*)&comp->height : nullptr};
+        ps["pivot_preset"] = {PropertyType::Enum, "Pivot", UpdateFlags_Sprite, (void*)&def->pivotPreset, (compRef) ? (void*)&comp->pivotPreset : nullptr, &entriesPivotPreset};
+        ps["texture_cut_factor"] = {PropertyType::Float, "Cut Factor", UpdateFlags_None, (void*)&def->textureCutFactor, (compRef) ? (void*)&comp->textureCutFactor : nullptr};
     }
 
     return ps;

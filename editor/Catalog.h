@@ -69,6 +69,7 @@ namespace Supernova::Editor{
     enum class PropertyType{
         Bool,
         String,
+        Float,
         Float_0_1,
         Vector2,
         Vector3,
