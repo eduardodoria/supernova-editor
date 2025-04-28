@@ -77,6 +77,17 @@ float Editor::Properties::getMaxLabelSize(std::map<std::string, PropertyData> pr
     return maxLabelSize;
 }
 
+void Editor::Properties::helpMarker(std::string desc) {
+    ImGui::TextDisabled("(?)");
+    if (ImGui::BeginItemTooltip())
+    {
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+        ImGui::TextUnformatted(desc.c_str());
+        ImGui::PopTextWrapPos();
+        ImGui::EndTooltip();
+    }
+}
+
 void Editor::Properties::beginTable(ComponentType cpType, float firstColSize, std::string nameAddon){
     ImGui::PushItemWidth(-1);
     if (!nameAddon.empty()){
@@ -121,7 +132,7 @@ bool Editor::Properties::propertyHeader(std::string label, float secondColSize, 
     return button;
 }
 
-void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string, PropertyData> props, std::string name, Scene* scene, std::vector<Entity> entities, float stepSize, float secondColSize, bool child){
+void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string, PropertyData> props, std::string name, Scene* scene, std::vector<Entity> entities, float stepSize, float secondColSize, bool child, std::string help){
     PropertyData prop = props[replaceNumberedBrackets(name)];
 
     static Command* cmd = nullptr;
@@ -449,6 +460,10 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (dif)
             ImGui::PopStyleColor();
         //ImGui::SetItemTooltip("%s", prop.label.c_str());
+
+        if (!help.empty()){
+            ImGui::SameLine(); helpMarker(help);
+        }
 
     }else if (prop.type == PropertyType::UInt){
         unsigned int* value = nullptr;
@@ -964,7 +979,7 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, std::map<std:
     propertyRow(cpType, props, "width", scene, entities, 1.0, 6 * ImGui::GetFontSize());
     propertyRow(cpType, props, "height", scene, entities, 1.0, 6 * ImGui::GetFontSize());
     propertyRow(cpType, props, "pivot_preset", scene, entities);
-    propertyRow(cpType, props, "texture_cut_factor", scene, entities, 0.1f, 6 * ImGui::GetFontSize());
+    propertyRow(cpType, props, "texture_cut_factor", scene, entities, 0.1f, 6 * ImGui::GetFontSize(), false, "Increase or decrease texture area");
 
     endTable();
 }
