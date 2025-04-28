@@ -86,6 +86,12 @@ namespace Supernova::Editor {
         static YAML::Node encodeMeshComponent(const MeshComponent& mesh);
         static MeshComponent decodeMeshComponent(const YAML::Node& node);
 
+        static YAML::Node encodeUIComponent(const UIComponent& ui);
+        static UIComponent decodeUIComponent(const YAML::Node& node);
+
+        static YAML::Node encodeUILayoutComponent(const UILayoutComponent& layout);
+        static UILayoutComponent decodeUILayoutComponent(const YAML::Node& node);
+
     public:
         static YAML::Node encodeProject(Project* project);
         static void decodeProject(Project* project, const YAML::Node& node);
