@@ -176,6 +176,11 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["width"] = {PropertyType::UInt, "Width", UpdateFlags_Layout_Sizes, nullptr, (compRef) ? (void*)&comp->width : nullptr};
         ps["height"] = {PropertyType::UInt, "Height", UpdateFlags_Layout_Sizes, nullptr, (compRef) ? (void*)&comp->height : nullptr};
         ps["ignore_scissor"] = {PropertyType::Bool, "Ignore scissor", UpdateFlags_None, (void*)&def->ignoreScissor, (compRef) ? (void*)&comp->ignoreScissor : nullptr};
+    }else if (component == ComponentType::ImageComponent){
+        ImageComponent* comp = (ImageComponent*)compRef;
+        static ImageComponent* def = new ImageComponent;
+
+        ps["texture_cut_factor"] = {PropertyType::Float, "Cut factor", UpdateFlags_Image_Patches, (void*)&def->textureCutFactor, (compRef) ? (void*)&comp->textureCutFactor : nullptr};
     }else if (component == ComponentType::SpriteComponent){
         SpriteComponent* comp = (SpriteComponent*)compRef;
         static SpriteComponent* def = new SpriteComponent;
@@ -183,7 +188,7 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["width"] = {PropertyType::UInt, "Width", UpdateFlags_Sprite, nullptr, (compRef) ? (void*)&comp->width : nullptr};
         ps["height"] = {PropertyType::UInt, "Height", UpdateFlags_Sprite, nullptr, (compRef) ? (void*)&comp->height : nullptr};
         ps["pivot_preset"] = {PropertyType::Enum, "Pivot", UpdateFlags_Sprite, (void*)&def->pivotPreset, (compRef) ? (void*)&comp->pivotPreset : nullptr, &entriesPivotPreset};
-        ps["texture_cut_factor"] = {PropertyType::Float, "Cut Factor", UpdateFlags_Sprite, (void*)&def->textureCutFactor, (compRef) ? (void*)&comp->textureCutFactor : nullptr};
+        ps["texture_cut_factor"] = {PropertyType::Float, "Cut factor", UpdateFlags_Sprite, (void*)&def->textureCutFactor, (compRef) ? (void*)&comp->textureCutFactor : nullptr};
     }
 
     return ps;
@@ -345,6 +350,10 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::findEntityPropertie
         if (UILayoutComponent* compRef = scene->findComponent<UILayoutComponent>(entity)){
             return getProperties(component, compRef);
         }
+    }else if (component == ComponentType::ImageComponent){
+        if (ImageComponent* compRef = scene->findComponent<ImageComponent>(entity)){
+            return getProperties(component, compRef);
+        }
     }else if (component == ComponentType::SpriteComponent){
         if (SpriteComponent* compRef = scene->findComponent<SpriteComponent>(entity)){
             return getProperties(component, compRef);
@@ -372,6 +381,9 @@ void Editor::Catalog::updateEntity(Scene* scene, Entity entity, int updateFlags)
     }
     if (updateFlags & UpdateFlags_UI_Texture){
         scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
+    }
+    if (updateFlags & UpdateFlags_Image_Patches){
+        scene->getComponent<ImageComponent>(entity).needUpdatePatches = true;
     }
     if (updateFlags & UpdateFlags_Layout_Sizes){
         scene->getComponent<UILayoutComponent>(entity).needUpdateSizes = true;

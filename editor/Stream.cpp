@@ -919,6 +919,30 @@ UILayoutComponent Editor::Stream::decodeUILayoutComponent(const YAML::Node& node
     return layout;
 }
 
+YAML::Node Editor::Stream::encodeImageComponent(const ImageComponent& image) {
+    YAML::Node node;
+    node["patchMarginLeft"] = image.patchMarginLeft;
+    node["patchMarginRight"] = image.patchMarginRight;
+    node["patchMarginTop"] = image.patchMarginTop;
+    node["patchMarginBottom"] = image.patchMarginBottom;
+    node["textureCutFactor"] = image.textureCutFactor;
+    //node["needUpdatePatches"] = image.needUpdatePatches;
+
+    return node;
+}
+
+ImageComponent Editor::Stream::decodeImageComponent(const YAML::Node& node) {
+    ImageComponent image;
+    image.patchMarginLeft = node["patchMarginLeft"].as<int>();
+    image.patchMarginRight = node["patchMarginRight"].as<int>();
+    image.patchMarginTop = node["patchMarginTop"].as<int>();
+    image.patchMarginBottom = node["patchMarginBottom"].as<int>();
+    image.textureCutFactor = node["textureCutFactor"].as<float>();
+    //image.needUpdatePatches = node["needUpdatePatches"].as<bool>();
+
+    return image;
+}
+
 YAML::Node Editor::Stream::encodeProject(Project* project) {
     YAML::Node root;
 
@@ -1066,6 +1090,11 @@ YAML::Node Editor::Stream::encodeEntity(const Entity entity, const Scene* scene)
         entityNode["layout"] = encodeUILayoutComponent(layout);
     }
 
+    if (signature.test(scene->getComponentId<ImageComponent>())) {
+        ImageComponent image = scene->getComponent<ImageComponent>(entity);
+        entityNode["image"] = encodeImageComponent(image);
+    }
+
     return entityNode;
 }
 
@@ -1102,6 +1131,11 @@ Entity Editor::Stream::decodeEntity(Scene* scene, const YAML::Node& entityNode) 
     if (entityNode["layout"]) {
         UILayoutComponent layout = decodeUILayoutComponent(entityNode["layout"]);
         scene->addComponent<UILayoutComponent>(entity, layout);
+    }
+
+    if (entityNode["image"]) {
+        ImageComponent image = decodeImageComponent(entityNode["image"]);
+        scene->addComponent<ImageComponent>(entity, image);
     }
 
     return entity;

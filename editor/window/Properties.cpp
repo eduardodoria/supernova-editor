@@ -973,6 +973,14 @@ void Editor::Properties::drawUILayoutComponent(ComponentType cpType, std::map<st
     endTable();
 }
 
+void Editor::Properties::drawImageComponent(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, std::vector<Entity> entities){
+    beginTable(cpType, getMaxLabelSize(props, {}, {}));
+
+    propertyRow(cpType, props, "texture_cut_factor", scene, entities, 0.1f, 6 * ImGui::GetFontSize(), false, "Increase or decrease texture area");
+
+    endTable();
+}
+
 void Editor::Properties::drawSpriteComponent(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, std::vector<Entity> entities){
     beginTable(cpType, getMaxLabelSize(props, {}, {}));
 
@@ -1074,6 +1082,8 @@ void Editor::Properties::show(){
                 drawUIComponent(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
             }else if (cpType == ComponentType::UILayoutComponent){
                 drawUILayoutComponent(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
+            }else if (cpType == ComponentType::ImageComponent){
+                drawImageComponent(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
             }else if (cpType == ComponentType::SpriteComponent){
                 drawSpriteComponent(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
             }
