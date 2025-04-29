@@ -11,6 +11,7 @@
 #include <filesystem>
 
 #define NULL_PROJECT_SCENE 0
+#define USER_LASTENTITY 99
 
 namespace Supernova::Editor{
 

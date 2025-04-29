@@ -52,29 +52,8 @@ bool Editor::Properties::compareVectorFloat(const float* a, const float* b, size
     return false;
 }
 
-float Editor::Properties::getMaxLabelSize(std::map<std::string, PropertyData> props, const std::vector<std::string>& includes, const std::vector<std::string>& excludes){
-    float maxLabelSize = ImGui::GetFontSize();
-
-    for (auto& [name, prop] : props) {
-        bool containsInclude = includes.empty() || 
-            std::any_of(includes.begin(), includes.end(), [&name](const std::string& include) {
-                return name.find(include) != std::string::npos;
-            });
-
-        bool containsExclude = !excludes.empty() && 
-            std::any_of(excludes.begin(), excludes.end(), [&name](const std::string& exclude) {
-                return name.find(exclude) != std::string::npos;
-            });
-
-        if (containsInclude && !containsExclude) {
-            maxLabelSize = std::max(
-                maxLabelSize, 
-                ImGui::CalcTextSize((prop.label + ICON_FA_ROTATE_LEFT).c_str()).x
-            );
-        }
-    }
-
-    return maxLabelSize;
+float Editor::Properties::getLabelSize(std::string label){
+    return ImGui::CalcTextSize((label + ICON_FA_ROTATE_LEFT).c_str()).x;
 }
 
 void Editor::Properties::helpMarker(std::string desc) {
@@ -570,7 +549,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         if (dif)
             ImGui::PushStyleColor(ImGuiCol_FrameBg, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::ColorEdit3((prop.label+"##checkbox_"+id).c_str(), (float*)&newValue.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)){
+        if (ImGui::ColorEdit3((label+"##checkbox_"+id).c_str(), (float*)&newValue.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector3>(scene, entity, cpType, id, prop.updateFlags, Color::sRGBToLinear(newValue));
                 CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
@@ -609,7 +588,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         if (dif)
             ImGui::PushStyleColor(ImGuiCol_FrameBg, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::ColorEdit4((prop.label+"##checkbox_"+id).c_str(), (float*)&newValue.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)){
+        if (ImGui::ColorEdit4((label+"##checkbox_"+id).c_str(), (float*)&newValue.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector4>(scene, entity, cpType, id, prop.updateFlags, Color::sRGBToLinear(newValue));
                 CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
@@ -866,7 +845,7 @@ void Editor::Properties::drawTransform(ComponentType cpType, std::map<std::strin
         }
     }
 
-    beginTable(cpType, getMaxLabelSize(props, {}, {"_billboard"}));
+    beginTable(cpType, getLabelSize("billboard"));
 
     propertyRow(cpType, props, "position", "Position", scene, entities, stepSize);
     propertyRow(cpType, props, "rotation", "Rotation", scene, entities);
@@ -883,7 +862,7 @@ void Editor::Properties::drawTransform(ComponentType cpType, std::map<std::strin
         ImGui::Text("Billboard settings");
         ImGui::Separator();
 
-        beginTable(cpType, getMaxLabelSize(props), {"_billboard"});
+        beginTable(cpType, getLabelSize("cylindrical"));
 
         propertyRow(cpType, props, "fake_billboard", "Fake", scene, entities);
         propertyRow(cpType, props, "cylindrical_billboard", "Cylindrical", scene, entities);
@@ -898,7 +877,7 @@ void Editor::Properties::drawTransform(ComponentType cpType, std::map<std::strin
 }
 
 void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, std::vector<Entity> entities){
-    beginTable(cpType, getMaxLabelSize(props, {}, {"submeshes"}));
+    beginTable(cpType, getLabelSize("receive shadows"));
 
     propertyRow(cpType, props, "cast_shadows", "Cast Shadows", scene, entities);
     propertyRow(cpType, props, "receive_shadows", "Receive Shadows", scene, entities);
@@ -913,7 +892,7 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
     for (int s = 0; s < numSubmeshes; s++){
         ImGui::SeparatorText(("Submesh "+std::to_string(s+1)).c_str());
 
-        float submeshesTableSize = getMaxLabelSize(props, {"submeshes"}, {"num", "material"});
+        float submeshesTableSize = getLabelSize("Texture Rect");
 
         beginTable(cpType, submeshesTableSize, "submeshes");
 
@@ -928,7 +907,7 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
 
         if (show_button_group){
             endTable();
-            beginTable(cpType, getMaxLabelSize(props, {"material"}), "material_table");
+            beginTable(cpType, getLabelSize("Met. Roug. Texture"), "material_table");
             propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.basecolor", "Base Color", scene, entities, 0.1f, -1, true);
             propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.basecolortexture", "Base Texture", scene, entities, 0.1f, -1, true);
             propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.metallicfactor", "Metallic Factor", scene, entities, 0.01f, 4 * ImGui::GetFontSize(), true);
@@ -955,7 +934,7 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
 }
 
 void Editor::Properties::drawUIComponent(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, std::vector<Entity> entities){
-    beginTable(cpType, getMaxLabelSize(props, {}, {}));
+    beginTable(cpType, getLabelSize("Texture"));
 
     propertyRow(cpType, props, "color", "Color", scene, entities);
     propertyRow(cpType, props, "texture", "Texture", scene, entities);
@@ -964,7 +943,7 @@ void Editor::Properties::drawUIComponent(ComponentType cpType, std::map<std::str
 }
 
 void Editor::Properties::drawUILayoutComponent(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, std::vector<Entity> entities){
-    beginTable(cpType, getMaxLabelSize(props, {}, {}));
+    beginTable(cpType, getLabelSize("Ignore Scissor"));
 
     propertyRow(cpType, props, "width", "Width", scene, entities, 1.0, 6 * ImGui::GetFontSize());
     propertyRow(cpType, props, "height", "Height", scene, entities, 1.0, 6 * ImGui::GetFontSize());
@@ -975,7 +954,7 @@ void Editor::Properties::drawUILayoutComponent(ComponentType cpType, std::map<st
 
 void Editor::Properties::drawImageComponent(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, std::vector<Entity> entities){
     ImGui::SeparatorText("Nine-patch rect");
-    beginTable(cpType, getMaxLabelSize(props, {"margin"}), "nine_margin_table");
+    beginTable(cpType, getLabelSize("Margin Bottom"), "nine_margin_table");
 
     propertyRow(cpType, props, "patch_margin_left", "Margin Left", scene, entities, 1.0, 6 * ImGui::GetFontSize());
     propertyRow(cpType, props, "patch_margin_right", "Margin Right", scene, entities, 1.0, 6 * ImGui::GetFontSize());
@@ -984,7 +963,7 @@ void Editor::Properties::drawImageComponent(ComponentType cpType, std::map<std::
 
     endTable();
 
-    beginTable(cpType, getMaxLabelSize(props, {}, {"margin"}));
+    beginTable(cpType, getLabelSize("Cut Factor"));
 
     propertyRow(cpType, props, "texture_cut_factor", "Cut Factor", scene, entities, 0.1f, 6 * ImGui::GetFontSize(), false, "Increase or decrease texture area");
 
@@ -992,7 +971,7 @@ void Editor::Properties::drawImageComponent(ComponentType cpType, std::map<std::
 }
 
 void Editor::Properties::drawSpriteComponent(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, std::vector<Entity> entities){
-    beginTable(cpType, getMaxLabelSize(props, {}, {}));
+    beginTable(cpType, getLabelSize("Cut Factor"));
 
     propertyRow(cpType, props, "width", "Width", scene, entities, 1.0, 6 * ImGui::GetFontSize());
     propertyRow(cpType, props, "height", "Height", scene, entities, 1.0, 6 * ImGui::GetFontSize());

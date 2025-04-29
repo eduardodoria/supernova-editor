@@ -19,7 +19,7 @@ namespace Supernova::Editor{
 
         bool compareVectorFloat(const float* a, const float* b, size_t elements, const float threshold);
 
-        float getMaxLabelSize(std::map<std::string, PropertyData> props, const std::vector<std::string>& includes = {}, const std::vector<std::string>& excludes = {});
+        float getLabelSize(std::string label);
 
         void helpMarker(std::string desc);
 

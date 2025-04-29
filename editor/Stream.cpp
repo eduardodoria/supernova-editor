@@ -1033,7 +1033,7 @@ void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::
 void Editor::Stream::decodeSceneProjectEntities(SceneProject* sceneProject, const YAML::Node& node) {
     auto entitiesNode = node["entities"];
 
-    Entity lastEntity = NULL_ENTITY;
+    Entity lastEntity = USER_LASTENTITY;
     for (const auto& entityNode : entitiesNode) {
         Entity entity = decodeEntity(sceneProject->scene, entityNode);
         sceneProject->entities.push_back(entity);

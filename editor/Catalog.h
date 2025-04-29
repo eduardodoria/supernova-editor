@@ -91,7 +91,6 @@ namespace Supernova::Editor{
 
     struct PropertyData{
         PropertyType type;
-        std::string label;
         int updateFlags;
         void* def;
         void* ref;

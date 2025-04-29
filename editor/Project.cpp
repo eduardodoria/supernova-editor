@@ -76,7 +76,7 @@ uint32_t Editor::Project::createNewScene(std::string sceneName, SceneType type){
     data.needUpdateRender = true;
     data.isModified = true;
 
-    data.scene->setLastEntityInternal(99);
+    data.scene->setLastEntityInternal(USER_LASTENTITY);
 
     scenes.push_back(data);
 
