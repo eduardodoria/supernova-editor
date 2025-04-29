@@ -974,7 +974,18 @@ void Editor::Properties::drawUILayoutComponent(ComponentType cpType, std::map<st
 }
 
 void Editor::Properties::drawImageComponent(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, std::vector<Entity> entities){
-    beginTable(cpType, getMaxLabelSize(props, {}, {}));
+
+    ImGui::SeparatorText("Nine-patch rect");
+    beginTable(cpType, getMaxLabelSize(props, {"margin"}), "nine_margin_table");
+
+    propertyRow(cpType, props, "patch_margin_left", scene, entities, 1.0, 6 * ImGui::GetFontSize());
+    propertyRow(cpType, props, "patch_margin_right", scene, entities, 1.0, 6 * ImGui::GetFontSize());
+    propertyRow(cpType, props, "patch_margin_top", scene, entities, 1.0, 6 * ImGui::GetFontSize());
+    propertyRow(cpType, props, "patch_margin_bottom", scene, entities, 1.0, 6 * ImGui::GetFontSize());
+
+    endTable();
+
+    beginTable(cpType, getMaxLabelSize(props, {}, {"margin"}));
 
     propertyRow(cpType, props, "texture_cut_factor", scene, entities, 0.1f, 6 * ImGui::GetFontSize(), false, "Increase or decrease texture area");
 

@@ -180,6 +180,10 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ImageComponent* comp = (ImageComponent*)compRef;
         static ImageComponent* def = new ImageComponent;
 
+        ps["patch_margin_left"] = {PropertyType::Int, "Margin left", UpdateFlags_Image_Patches, (void*)&def->patchMarginLeft, (compRef) ? (void*)&comp->patchMarginLeft : nullptr};
+        ps["patch_margin_right"] = {PropertyType::Int, "Margin right", UpdateFlags_Image_Patches, (void*)&def->patchMarginRight, (compRef) ? (void*)&comp->patchMarginRight : nullptr};
+        ps["patch_margin_top"] = {PropertyType::Int, "Margin top", UpdateFlags_Image_Patches, (void*)&def->patchMarginTop, (compRef) ? (void*)&comp->patchMarginTop : nullptr};
+        ps["patch_margin_bottom"] = {PropertyType::Int, "Margin bottom", UpdateFlags_Image_Patches, (void*)&def->patchMarginBottom, (compRef) ? (void*)&comp->patchMarginBottom : nullptr};
         ps["texture_cut_factor"] = {PropertyType::Float, "Cut factor", UpdateFlags_Image_Patches, (void*)&def->textureCutFactor, (compRef) ? (void*)&comp->textureCutFactor : nullptr};
     }else if (component == ComponentType::SpriteComponent){
         SpriteComponent* comp = (SpriteComponent*)compRef;
