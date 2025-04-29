@@ -26,7 +26,7 @@ namespace Supernova::Editor{
         void beginTable(ComponentType cpType, float firstColSize, std::string nameAddon = "");
         void endTable();
         bool propertyHeader(std::string label, float secondColSize = -1, bool defChanged = false, bool child = false);
-        void propertyRow(ComponentType cpType, std::map<std::string, PropertyData> props, std::string name, Scene* scene, std::vector<Entity> entities, float stepSize = 0.1f, float secondColSize = -1, bool child = false, std::string help = "");
+        void propertyRow(ComponentType cpType, std::map<std::string, PropertyData> props, std::string id, std::string label, Scene* scene, std::vector<Entity> entities, float stepSize = 0.1f, float secondColSize = -1, bool child = false, std::string help = "");
 
         void drawTransform(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, std::vector<Entity> entities);
         void drawMeshComponent(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, std::vector<Entity> entities);
