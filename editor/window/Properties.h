@@ -23,6 +23,9 @@ namespace Supernova::Editor{
 
         void helpMarker(std::string desc);
 
+        ImTextureID findThumbnail(std::string path);
+        void drawImageWithBorderAndRounding(ImTextureID tex_id, const ImVec2& size, float rounding = 4.0f, ImU32 border_col = IM_COL32(0, 0, 0, 255), float border_thickness = 2.0f);
+
         void beginTable(ComponentType cpType, float firstColSize, std::string nameAddon = "");
         void endTable();
         bool propertyHeader(std::string label, float secondColSize = -1, bool defChanged = false, bool child = false);

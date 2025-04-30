@@ -9,6 +9,7 @@
 #include "command/type/PropertyCmd.h"
 #include "command/type/EntityNameCmd.h"
 #include "render/SceneRender2D.h"
+#include "util/SHA1.h"
 
 #include <map>
 
@@ -65,6 +66,61 @@ void Editor::Properties::helpMarker(std::string desc) {
         ImGui::PopTextWrapPos();
         ImGui::EndTooltip();
     }
+}
+
+ImTextureID Editor::Properties::findThumbnail(std::string path){
+    ImTextureID tex_id = 0;
+
+    // Compute the thumbnail path
+    std::filesystem::path texPath = path;
+    std::filesystem::path projectPath = project->getProjectPath();
+    std::filesystem::path thumbnailPath;
+
+    // Only try if the texture path is not empty and is inside the project
+    if (!texPath.empty() && texPath.is_absolute() && texPath.string().find(projectPath.string()) == 0) {
+        // Replicate getThumbnailPath() logic from ResourcesWindow
+        std::filesystem::path relPath = std::filesystem::relative(texPath, projectPath);
+        std::string relPathStr = relPath.generic_string();
+
+        std::string hash = SHA1::hash(relPathStr);
+        thumbnailPath = projectPath / ".supernova" / "thumbs" / (hash + ".thumb.png");
+
+        // If the thumbnail exists, load and use it
+        if (std::filesystem::exists(thumbnailPath)) {
+            static std::unordered_map<std::string, Texture> thumbCache;
+            auto thumbIt = thumbCache.find(thumbnailPath.string());
+            if (thumbIt == thumbCache.end()) {
+                Texture thumbTexture;
+                thumbTexture.setPath(thumbnailPath.string());
+                if (thumbTexture.load() && thumbTexture.getRender()) {
+                    tex_id = (ImTextureID)(intptr_t)thumbTexture.getRender()->getGLHandler();
+                    thumbCache[thumbnailPath.string()] = thumbTexture;
+                }
+            } else if (thumbIt->second.getRender()) {
+                tex_id = (ImTextureID)(intptr_t)thumbIt->second.getRender()->getGLHandler();
+            }
+        }
+    }
+
+    return tex_id;
+}
+
+void Editor::Properties::drawImageWithBorderAndRounding(ImTextureID tex_id, const ImVec2& size, float rounding, ImU32 border_col, float border_thickness) {
+    ImVec2 cursor = ImGui::GetCursorScreenPos();
+    ImVec2 p_min = cursor;
+    ImVec2 p_max = ImVec2(cursor.x + size.x, cursor.y + size.y);
+
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+    // Draw the image with rounded corners in one pass
+    draw_list->AddImageRounded(tex_id, p_min, p_max, ImVec2(0,0), ImVec2(1,1),
+    IM_COL32_WHITE, rounding, ImDrawFlags_RoundCornersAll);
+
+    // Draw the border with matching corners
+    draw_list->AddRect(p_min, p_max, border_col, rounding, ImDrawFlags_RoundCornersAll, border_thickness);
+
+    // Reserve space for interaction
+    ImGui::InvisibleButton("##image", size);
 }
 
 void Editor::Properties::beginTable(ComponentType cpType, float firstColSize, std::string nameAddon){
@@ -688,6 +744,17 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         ImGui::PushID(("texture_"+id).c_str());
         ImGui::PushStyleColor(ImGuiCol_ChildBg, textureLabel);
 
+        float thumbSize = 64;
+        ImTextureID tex_id = findThumbnail(newValue.getId());
+        if (tex_id) {
+            drawImageWithBorderAndRounding(tex_id, ImVec2(thumbSize, thumbSize), ImGui::GetStyle().FrameRounding);
+            if (ImGui::IsItemHovered()) {
+                ImGui::BeginTooltip();
+                ImGui::Image(tex_id, ImVec2(128, 128));
+                ImGui::EndTooltip();
+            }
+        }
+
         // Use calculated width for the frame
         ImGui::BeginChild("textureframe", ImVec2(- ImGui::CalcTextSize(ICON_FA_GEAR).x - ImGui::GetStyle().ItemSpacing.x * 2 - ImGui::GetStyle().FramePadding.x * 2, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2), 
             false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
@@ -708,7 +775,9 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             ImGui::PopStyleColor();
 
         ImGui::EndChild();
-        ImGui::SetItemTooltip("%s", newValue.getId().c_str());
+        if (!newValue.getId().empty()){
+            ImGui::SetItemTooltip("%s", newValue.getId().c_str());
+        }
 
         static std::map<std::string, bool> hasTextureDrag;
         static std::map<std::string, std::map<Entity, Texture>> originalTex;
@@ -782,6 +851,7 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         ImGui::PopStyleColor();
 
         ImGui::SameLine();
+
         if (ImGui::Button(ICON_FA_FILE_IMPORT)) {
             std::string path = Editor::FileDialogs::openFileDialog(project->getProjectPath().string(), true);
             if (!path.empty()) {
