@@ -17,6 +17,7 @@ using namespace Supernova;
 
 Editor::Properties::Properties(Project* project){
     this->project = project;
+    this->cmd = nullptr;
 }
 
 std::string Editor::Properties::replaceNumberedBrackets(const std::string& input) {
@@ -123,6 +124,74 @@ void Editor::Properties::drawImageWithBorderAndRounding(ImTextureID tex_id, cons
     ImGui::InvisibleButton("##image", size);
 }
 
+void Editor::Properties::dragDropResources(ComponentType cpType, std::string id, Scene* scene, std::vector<Entity> entities, int updateFlags){
+    if (ImGui::BeginDragDropTarget()){
+
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
+            std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
+            if (receivedStrings.size() > 0){
+                if (!hasTextureDrag.count(id)){
+                    hasTextureDrag[id] = true;
+                    for (Entity& entity : entities){
+                        Texture* valueRef = Catalog::getPropertyRef<Texture>(scene, entity, cpType, id);
+                        originalTex[id][entity] = Texture(*valueRef);
+                        if (*valueRef != Texture(receivedStrings[0])){
+                            *valueRef = Texture(receivedStrings[0]);
+                            if (updateFlags & UpdateFlags_Mesh_Texture){
+                                unsigned int numSubmeshes = scene->getComponent<MeshComponent>(entity).numSubmeshes;
+                                for (unsigned int i = 0; i < numSubmeshes; i++){
+                                    scene->getComponent<MeshComponent>(entity).submeshes[i].needUpdateTexture = true;
+                                }
+                            }
+                            if (updateFlags & UpdateFlags_UI_Texture){
+                                scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
+                            }
+                            //printf("needUpdateTexture %s\n", name.c_str());
+                        }
+                    }
+                }
+                if (payload->IsDelivery()){
+                    Texture texture(receivedStrings[0]);
+                    for (Entity& entity : entities){
+                        Texture* valueRef = Catalog::getPropertyRef<Texture>(scene, entity, cpType, id);
+                        *valueRef = originalTex[id][entity];
+                        cmd = new PropertyCmd<Texture>(scene, entity, cpType, id, updateFlags, texture);
+                        cmd->setNoMerge();
+                        CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                    }
+
+                    ImGui::SetWindowFocus();
+                    hasTextureDrag.erase(id);
+                    originalTex.erase(id);
+                }
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }else{
+        if (hasTextureDrag.count(id) && hasTextureDrag[id]){
+            for (Entity& entity : entities){
+                Texture* valueRef = Catalog::getPropertyRef<Texture>(scene, entity, cpType, id);
+                if (*valueRef != originalTex[id][entity]){
+                    *valueRef = originalTex[id][entity];
+                    if (updateFlags & UpdateFlags_Mesh_Texture){
+                        unsigned int numSubmeshes = scene->getComponent<MeshComponent>(entity).numSubmeshes;
+                        for (unsigned int i = 0; i < numSubmeshes; i++){
+                            scene->getComponent<MeshComponent>(entity).submeshes[i].needUpdateTexture = true;
+                        }
+                    }
+                    if (updateFlags & UpdateFlags_UI_Texture){
+                        scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
+                    }
+                    //printf("needUpdateTexture %s\n", id.c_str());
+                }
+            }
+
+            hasTextureDrag.erase(id);
+            originalTex.erase(id);
+        }
+    }
+}
+
 void Editor::Properties::beginTable(ComponentType cpType, float firstColSize, std::string nameAddon){
     ImGui::PushItemWidth(-1);
     if (!nameAddon.empty()){
@@ -169,8 +238,6 @@ bool Editor::Properties::propertyHeader(std::string label, float secondColSize, 
 
 void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string, PropertyData> props, std::string id, std::string label, Scene* scene, std::vector<Entity> entities, float stepSize, float secondColSize, bool child, std::string help){
     PropertyData prop = props[replaceNumberedBrackets(id)];
-
-    static Command* cmd = nullptr;
 
     constexpr float compThreshold = 1e-4;
     constexpr float zeroThreshold = 1e-4;
@@ -744,10 +811,16 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         ImGui::PushID(("texture_"+id).c_str());
         ImGui::PushStyleColor(ImGuiCol_ChildBg, textureLabel);
 
+        ImGui::BeginGroup();
+
         float thumbSize = 64;
         ImTextureID tex_id = findThumbnail(newValue.getId());
         if (tex_id) {
-            drawImageWithBorderAndRounding(tex_id, ImVec2(thumbSize, thumbSize), ImGui::GetStyle().FrameRounding);
+            ImU32 border_col = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyle().Colors[ImGuiCol_FrameBg]);
+            if (dif){
+                border_col = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+            }
+            drawImageWithBorderAndRounding(tex_id, ImVec2(thumbSize, thumbSize), ImGui::GetStyle().FrameRounding, border_col);
             if (ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
                 ImGui::Image(tex_id, ImVec2(128, 128));
@@ -778,76 +851,6 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (!newValue.getId().empty()){
             ImGui::SetItemTooltip("%s", newValue.getId().c_str());
         }
-
-        static std::map<std::string, bool> hasTextureDrag;
-        static std::map<std::string, std::map<Entity, Texture>> originalTex;
-
-        if (ImGui::BeginDragDropTarget()){
-
-            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
-                std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
-                if (receivedStrings.size() > 0){
-                    if (!hasTextureDrag.count(id)){
-                        hasTextureDrag[id] = true;
-                        for (Entity& entity : entities){
-                            Texture* valueRef = Catalog::getPropertyRef<Texture>(scene, entity, cpType, id);
-                            originalTex[id][entity] = Texture(*valueRef);
-                            if (*valueRef != Texture(receivedStrings[0])){
-                                *valueRef = Texture(receivedStrings[0]);
-                                if (prop.updateFlags & UpdateFlags_Mesh_Texture){
-                                    unsigned int numSubmeshes = scene->getComponent<MeshComponent>(entity).numSubmeshes;
-                                    for (unsigned int i = 0; i < numSubmeshes; i++){
-                                        scene->getComponent<MeshComponent>(entity).submeshes[i].needUpdateTexture = true;
-                                    }
-                                }
-                                if (prop.updateFlags & UpdateFlags_UI_Texture){
-                                    scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
-                                }
-                                //printf("needUpdateTexture %s\n", name.c_str());
-                            }
-                        }
-                    }
-                    if (payload->IsDelivery()){
-                        Texture texture(receivedStrings[0]);
-                        for (Entity& entity : entities){
-                            Texture* valueRef = Catalog::getPropertyRef<Texture>(scene, entity, cpType, id);
-                            *valueRef = originalTex[id][entity];
-                            cmd = new PropertyCmd<Texture>(scene, entity, cpType, id, prop.updateFlags, texture);
-                            cmd->setNoMerge();
-                            CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
-                        }
-
-                        ImGui::SetWindowFocus();
-                        hasTextureDrag.erase(id);
-                        originalTex.erase(id);
-                    }
-                }
-            }
-            ImGui::EndDragDropTarget();
-        }else{
-            if (hasTextureDrag.count(id) && hasTextureDrag[id]){
-                for (Entity& entity : entities){
-                    Texture* valueRef = Catalog::getPropertyRef<Texture>(scene, entity, cpType, id);
-                    if (*valueRef != originalTex[id][entity]){
-                        *valueRef = originalTex[id][entity];
-                        if (prop.updateFlags & UpdateFlags_Mesh_Texture){
-                            unsigned int numSubmeshes = scene->getComponent<MeshComponent>(entity).numSubmeshes;
-                            for (unsigned int i = 0; i < numSubmeshes; i++){
-                                scene->getComponent<MeshComponent>(entity).submeshes[i].needUpdateTexture = true;
-                            }
-                        }
-                        if (prop.updateFlags & UpdateFlags_UI_Texture){
-                            scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
-                        }
-                        //printf("needUpdateTexture %s\n", id.c_str());
-                    }
-                }
-
-                hasTextureDrag.erase(id);
-                originalTex.erase(id);
-            }
-        }
-        //ImGui::SetItemTooltip("%s", currentPath.c_str());
         ImGui::PopStyleColor();
 
         ImGui::SameLine();
@@ -874,6 +877,10 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             }
         }
 
+        ImGui::EndGroup();
+
+        dragDropResources(cpType, id, scene, entities, prop.updateFlags);
+
         // Error popup modal
         if (ImGui::BeginPopupModal("File Import Error", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::Text("Selected file must be within the project directory.");
@@ -888,7 +895,6 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             ImGui::EndPopup();
         }
         ImGui::PopID();
-
     }
 
     if (ImGui::IsItemDeactivatedAfterEdit()) {
