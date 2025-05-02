@@ -227,6 +227,74 @@ void Editor::Properties::dragDropResources(ComponentType cpType, std::string id,
     }
 }
 
+void Editor::Properties::drawNinePatchesPreview(const ImageComponent& img, Texture* texture, Texture* thumbTexture){
+    float availWidth = ImGui::GetContentRegionAvail().x;
+    float imageWidth = thumbTexture->getWidth();
+    // Calculate position to center the image
+    float xPos = (availWidth - imageWidth) * 0.5f;
+    // Set cursor position to create centering effect
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + xPos);
+
+    // Store the cursor position before drawing the image
+    ImVec2 cursor = ImGui::GetCursorScreenPos();
+
+    ImGui::Image(thumbTexture->getRender()->getGLHandler(), ImVec2(thumbTexture->getWidth(), thumbTexture->getHeight()));
+
+    // Get draw list for custom rendering
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+    // Define line color
+    ImU32 line_color = IM_COL32(255, 0, 0, 255); // Red color
+
+    // Get the original texture and thumbnail dimensions
+    float origWidth = static_cast<float>(texture->getWidth());
+    float origHeight = static_cast<float>(texture->getHeight());
+    float thumbWidth = static_cast<float>(thumbTexture->getWidth());
+    float thumbHeight = static_cast<float>(thumbTexture->getHeight());
+
+    // Calculate scale factors between original texture and thumbnail
+    float scaleX = thumbWidth / origWidth;
+    float scaleY = thumbHeight / origHeight;
+
+    // Scale the margin values by the appropriate scale factor
+    float scaledLeftMargin = img.patchMarginLeft * scaleX;
+    float scaledRightMargin = img.patchMarginRight * scaleX;
+    float scaledTopMargin = img.patchMarginTop * scaleY;
+    float scaledBottomMargin = img.patchMarginBottom * scaleY;
+
+    // Draw left margin line
+    float leftX = cursor.x + scaledLeftMargin;
+    draw_list->AddLine(
+        ImVec2(leftX, cursor.y),
+        ImVec2(leftX, cursor.y + thumbHeight),
+        line_color, 1.0f
+    );
+
+    // Draw right margin line
+    float rightX = cursor.x + thumbWidth - scaledRightMargin;
+    draw_list->AddLine(
+        ImVec2(rightX, cursor.y),
+        ImVec2(rightX, cursor.y + thumbHeight),
+        line_color, 1.0f
+    );
+
+    // Draw top margin line
+    float topY = cursor.y + scaledTopMargin;
+    draw_list->AddLine(
+        ImVec2(cursor.x, topY),
+        ImVec2(cursor.x + thumbWidth, topY),
+        line_color, 1.0f
+    );
+
+    // Draw bottom margin line
+    float bottomY = cursor.y + thumbHeight - scaledBottomMargin;
+    draw_list->AddLine(
+        ImVec2(cursor.x, bottomY),
+        ImVec2(cursor.x + thumbWidth, bottomY),
+        line_color, 1.0f
+    );
+}
+
 void Editor::Properties::beginTable(ComponentType cpType, float firstColSize, std::string nameAddon){
     ImGui::PushItemWidth(-1);
     if (!nameAddon.empty()){
@@ -1012,7 +1080,7 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
         ImGui::SameLine();
 
         static bool show_button_group = false;
-        if (ImGui::ArrowButton("##toggle", show_button_group ? ImGuiDir_Down : ImGuiDir_Right)){
+        if (ImGui::ArrowButton("##toggle_mesh", show_button_group ? ImGuiDir_Down : ImGuiDir_Right)){
             show_button_group = !show_button_group;
         }
 
@@ -1065,6 +1133,17 @@ void Editor::Properties::drawUILayoutComponent(ComponentType cpType, std::map<st
 
 void Editor::Properties::drawImageComponent(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, std::vector<Entity> entities){
     ImGui::SeparatorText("Nine-patch rect");
+
+    if (entities.size() == 1) {
+        if (UIComponent* ui = scene->findComponent<UIComponent>(entities[0])){
+            Texture* thumbTexture = findThumbnail(ui->texture.getId());
+            if (thumbTexture) {
+                //TODO: preview size is using same of thumb size
+                drawNinePatchesPreview(scene->getComponent<ImageComponent>(entities[0]), &ui->texture, thumbTexture);
+            }
+        }
+    }
+
     beginTable(cpType, getLabelSize("Margin Bottom"), "nine_margin_table");
 
     propertyRow(cpType, props, "patch_margin_left", "Margin Left", scene, entities, 1.0, 6 * ImGui::GetFontSize());
