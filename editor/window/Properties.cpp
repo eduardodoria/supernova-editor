@@ -69,7 +69,7 @@ void Editor::Properties::helpMarker(std::string desc) {
     }
 }
 
-ImTextureID Editor::Properties::findThumbnail(std::string path){
+std::string Editor::Properties::findThumbnail(std::string path){
     ImTextureID tex_id = 0;
 
     // Compute the thumbnail path
@@ -88,40 +88,47 @@ ImTextureID Editor::Properties::findThumbnail(std::string path){
 
         // If the thumbnail exists, load and use it
         if (std::filesystem::exists(thumbnailPath)) {
-            static std::unordered_map<std::string, Texture> thumbCache;
-            auto thumbIt = thumbCache.find(thumbnailPath.string());
-            if (thumbIt == thumbCache.end()) {
-                Texture thumbTexture;
-                thumbTexture.setPath(thumbnailPath.string());
-                if (thumbTexture.load() && thumbTexture.getRender()) {
-                    tex_id = (ImTextureID)(intptr_t)thumbTexture.getRender()->getGLHandler();
-                    thumbCache[thumbnailPath.string()] = thumbTexture;
-                }
-            } else if (thumbIt->second.getRender()) {
-                tex_id = (ImTextureID)(intptr_t)thumbIt->second.getRender()->getGLHandler();
-            }
+            return thumbnailPath;
         }
     }
 
-    return tex_id;
+    return "";
 }
 
-void Editor::Properties::drawImageWithBorderAndRounding(ImTextureID tex_id, const ImVec2& size, float rounding, ImU32 border_col, float border_thickness) {
+void Editor::Properties::drawImageWithBorderAndRounding(Texture& texture, const ImVec2& size, float rounding, ImU32 border_col, float border_thickness) {
+    ImTextureID tex_id = (ImTextureID)(intptr_t)texture.getRender()->getGLHandler();
+    int texWidth = texture.getWidth();
+    int texHeight = texture.getHeight();
+
     ImVec2 cursor = ImGui::GetCursorScreenPos();
-    ImVec2 p_min = cursor;
-    ImVec2 p_max = ImVec2(cursor.x + size.x, cursor.y + size.y);
+
+    // Calculate scaling to fit within the provided size while preserving aspect ratio
+    float scaleX = size.x / texWidth;
+    float scaleY = size.y / texHeight;
+    float scale = std::min(scaleX, scaleY);
+
+    // Calculate display dimensions
+    float displayWidth = texWidth * scale;
+    float displayHeight = texHeight * scale;
+
+    // Calculate offset to center the image within the allocated space
+    float offsetX = 0;
+    float offsetY = 0;
+
+    // Calculate the final positions with centering
+    ImVec2 p_min = ImVec2(cursor.x + offsetX, cursor.y + offsetY);
+    ImVec2 p_max = ImVec2(p_min.x + displayWidth, p_min.y + displayHeight);
 
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
     // Draw the image with rounded corners in one pass
-    draw_list->AddImageRounded(tex_id, p_min, p_max, ImVec2(0,0), ImVec2(1,1),
-    IM_COL32_WHITE, rounding, ImDrawFlags_RoundCornersAll);
+    draw_list->AddImageRounded(tex_id, p_min, p_max, ImVec2(0,0), ImVec2(1,1), IM_COL32_WHITE, rounding, ImDrawFlags_RoundCornersAll);
 
     // Draw the border with matching corners
     draw_list->AddRect(p_min, p_max, border_col, rounding, ImDrawFlags_RoundCornersAll, border_thickness);
 
-    // Reserve space for interaction
-    ImGui::InvisibleButton("##image", size);
+    // Reserve space for interaction (use the full allocated size, not just the image size)
+    ImGui::InvisibleButton("##image", ImVec2(displayWidth, displayHeight));
 }
 
 void Editor::Properties::dragDropResources(ComponentType cpType, std::string id, Scene* scene, std::vector<Entity> entities, int updateFlags){
@@ -814,16 +821,17 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         ImGui::BeginGroup();
 
         float thumbSize = 64;
-        ImTextureID tex_id = findThumbnail(newValue.getId());
-        if (tex_id) {
+        std::string thumbPath = findThumbnail(newValue.getId());
+        if (!thumbPath.empty()) {
             ImU32 border_col = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyle().Colors[ImGuiCol_FrameBg]);
             if (dif){
                 border_col = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
             }
-            drawImageWithBorderAndRounding(tex_id, ImVec2(thumbSize, thumbSize), ImGui::GetStyle().FrameRounding, border_col);
+            Texture thumbTexture(thumbPath);
+            drawImageWithBorderAndRounding(thumbTexture, ImVec2(thumbSize, thumbSize), ImGui::GetStyle().FrameRounding, border_col);
             if (ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
-                ImGui::Image(tex_id, ImVec2(128, 128));
+                ImGui::Image(thumbTexture.getRender()->getGLHandler(), ImVec2(thumbTexture.getWidth(), thumbTexture.getHeight()));
                 ImGui::EndTooltip();
             }
         }

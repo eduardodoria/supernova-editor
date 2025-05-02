@@ -301,7 +301,32 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
             if (file.isImage && file.hasThumbnail && thumbnailTextures.find(file.thumbnailPath) != thumbnailTextures.end()) {
                 Texture& thumbTexture = thumbnailTextures[file.thumbnailPath];
                 if (thumbTexture.getRender()) {
-                    ImGui::Image((ImTextureID)(intptr_t)thumbTexture.getRender()->getGLHandler(), ImVec2(iconSize, iconSize));
+                    // Get actual thumbnail dimensions
+                    int thumbWidth = thumbTexture.getWidth();
+                    int thumbHeight = thumbTexture.getHeight();
+
+                    // Calculate scaling to fit within iconSize while preserving aspect ratio
+                    float scaleX = (float)iconSize / thumbWidth;
+                    float scaleY = (float)iconSize / thumbHeight;
+                    float scale = std::min(scaleX, scaleY);
+
+                    // Calculate display dimensions
+                    float displayWidth = thumbWidth * scale;
+                    float displayHeight = thumbHeight * scale;
+
+                    // Calculate offset to center the thumbnail within the icon space
+                    float offsetX = (iconSize - displayWidth) / 2;
+                    float offsetY = (iconSize - displayHeight) / 2;
+
+                    // Adjust cursor position for centering
+                    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offsetX);
+                    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + offsetY);
+
+                    // Display the image with the correct aspect ratio
+                    ImGui::Image(
+                        (ImTextureID)(intptr_t)thumbTexture.getRender()->getGLHandler(),
+                        ImVec2(displayWidth, displayHeight)
+                    );
                 } else {
                     ImGui::Image((ImTextureID)file.icon, ImVec2(iconSize, iconSize));
                 }
@@ -954,45 +979,39 @@ void Editor::ResourcesWindow::thumbnailWorker() {
             filePath = thumbnailQueue.front();
             thumbnailQueue.pop();
         }
+
         // Generate thumbnail
         int width, height, channels;
         unsigned char* data = stbi_load(filePath.string().c_str(), &width, &height, &channels, 4);
         if (data) {
-            // Create a square crop of the image
-            int cropSize = std::min(width, height);
-            int startX = (width - cropSize) / 2;
-            int startY = (height - cropSize) / 2;
+            // Define maximum thumbnail dimension
+            int maxThumbSize = 128;
 
-            // Create a buffer for the cropped image
-            unsigned char* croppedData = new unsigned char[cropSize * cropSize * 4];
+            // Calculate scaling factor to fit within maxThumbSize while preserving aspect ratio
+            float scale = (width > height) ? 
+                (float)maxThumbSize / width : 
+                (float)maxThumbSize / height;
 
-            // Crop the image to a square
-            for (int y = 0; y < cropSize; y++) {
-                for (int x = 0; x < cropSize; x++) {
-                    int sourceIndex = ((startY + y) * width + (startX + x)) * 4;
-                    int destIndex = (y * cropSize + x) * 4;
+            // Calculate the new dimensions
+            int newWidth = static_cast<int>(width * scale);
+            int newHeight = static_cast<int>(height * scale);
 
-                    croppedData[destIndex] = data[sourceIndex];
-                    croppedData[destIndex + 1] = data[sourceIndex + 1];
-                    croppedData[destIndex + 2] = data[sourceIndex + 2];
-                    croppedData[destIndex + 3] = data[sourceIndex + 3];
-                }
-            }
+            // Ensure dimensions are at least 1 pixel
+            newWidth = std::max(1, newWidth);
+            newHeight = std::max(1, newHeight);
 
-            // Define thumbnail size (constant square)
-            int thumbSize = 128;
+            // Create a buffer for the resized image
+            unsigned char* thumbData = new unsigned char[newWidth * newHeight * 4];
 
-            // Resize the cropped image using stb_image_resize2
-            unsigned char* thumbData = new unsigned char[thumbSize * thumbSize * 4];
-
+            // Resize the image while preserving aspect ratio
             stbir_resize_uint8_linear(
-                croppedData,            // input
-                cropSize,               // input width
-                cropSize,               // input height
+                data,                   // input
+                width,                  // input width
+                height,                 // input height
                 0,                      // input stride in bytes (0 = width * channels)
                 thumbData,              // output
-                thumbSize,              // output width
-                thumbSize,              // output height
+                newWidth,               // output width
+                newHeight,              // output height
                 0,                      // output stride in bytes (0 = width * channels)
                 STBIR_RGBA              // number of channels (RGBA = 4)
             );
@@ -1000,10 +1019,9 @@ void Editor::ResourcesWindow::thumbnailWorker() {
             // Save the thumbnail
             fs::path thumbnailPath = getThumbnailPath(filePath);
             fs::create_directories(thumbnailPath.parent_path());
-            stbi_write_png(thumbnailPath.string().c_str(), thumbSize, thumbSize, 4, thumbData, thumbSize * 4);
+            stbi_write_png(thumbnailPath.string().c_str(), newWidth, newHeight, 4, thumbData, newWidth * 4);
 
             // Clean up
-            delete[] croppedData;
             delete[] thumbData;
             stbi_image_free(data);
 
