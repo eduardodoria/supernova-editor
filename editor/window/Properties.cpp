@@ -69,8 +69,8 @@ void Editor::Properties::helpMarker(std::string desc) {
     }
 }
 
-std::string Editor::Properties::findThumbnail(std::string path){
-    ImTextureID tex_id = 0;
+Texture* Editor::Properties::findThumbnail(const std::string& path) {
+    if (path.empty()) return nullptr;
 
     // Compute the thumbnail path
     std::filesystem::path texPath = path;
@@ -88,47 +88,75 @@ std::string Editor::Properties::findThumbnail(std::string path){
 
         // If the thumbnail exists, load and use it
         if (std::filesystem::exists(thumbnailPath)) {
-            return thumbnailPath;
+            // Check if we already have this thumbnail loaded in cache
+            std::string thumbPathStr = thumbnailPath.string();
+            auto thumbIt = thumbnailTextures.find(thumbPathStr);
+
+            if (thumbIt == thumbnailTextures.end()) {
+                // Load the thumbnail texture if not in cache
+                Texture thumbTexture;
+                thumbTexture.setPath(thumbPathStr);
+                if (thumbTexture.load()) {
+                    thumbnailTextures[thumbPathStr] = thumbTexture;
+                    return &thumbnailTextures[thumbPathStr];
+                }
+            } else if (thumbIt->second.getRender()) {
+                // Return cached texture
+                return &thumbIt->second;
+            }
         }
     }
 
-    return "";
+    return nullptr;
 }
 
-void Editor::Properties::drawImageWithBorderAndRounding(Texture& texture, const ImVec2& size, float rounding, ImU32 border_col, float border_thickness) {
-    ImTextureID tex_id = (ImTextureID)(intptr_t)texture.getRender()->getGLHandler();
-    int texWidth = texture.getWidth();
-    int texHeight = texture.getHeight();
+void Editor::Properties::drawImageWithBorderAndRounding(Texture* texture, const ImVec2& size, float rounding, ImU32 border_col, float border_thickness) {
+    if (!texture) return;
+
+    ImTextureID tex_id = (ImTextureID)(intptr_t)texture->getRender()->getGLHandler();
+    int texWidth = texture->getWidth();
+    int texHeight = texture->getHeight();
 
     ImVec2 cursor = ImGui::GetCursorScreenPos();
 
-    // Calculate scaling to fit within the provided size while preserving aspect ratio
-    float scaleX = size.x / texWidth;
-    float scaleY = size.y / texHeight;
-    float scale = std::min(scaleX, scaleY);
+    // Calculate source aspect and target aspect
+    float srcAspect = static_cast<float>(texWidth) / texHeight;
+    float dstAspect = size.x / size.y;
 
-    // Calculate display dimensions
-    float displayWidth = texWidth * scale;
-    float displayHeight = texHeight * scale;
+    // Default UVs (full image)
+    ImVec2 uv0(0, 0);
+    ImVec2 uv1(1, 1);
 
-    // Calculate offset to center the image within the allocated space
-    float offsetX = 0;
-    float offsetY = 0;
+    // If aspect ratios differ, calculate the crop
+    if (fabs(srcAspect - dstAspect) > 1e-3f) {
+        if (srcAspect > dstAspect) {
+            // Source is wider; crop left and right
+            float newWidth = texHeight * dstAspect;
+            float x0 = (texWidth - newWidth) / 2.0f;
+            uv0.x = x0 / texWidth;
+            uv1.x = (x0 + newWidth) / texWidth;
+        } else {
+            // Source is taller; crop top and bottom
+            float newHeight = texWidth / dstAspect;
+            float y0 = (texHeight - newHeight) / 2.0f;
+            uv0.y = y0 / texHeight;
+            uv1.y = (y0 + newHeight) / texHeight;
+        }
+    }
 
-    // Calculate the final positions with centering
-    ImVec2 p_min = ImVec2(cursor.x + offsetX, cursor.y + offsetY);
-    ImVec2 p_max = ImVec2(p_min.x + displayWidth, p_min.y + displayHeight);
+    ImVec2 p_min = cursor;
+    ImVec2 p_max = ImVec2(cursor.x + size.x, cursor.y + size.y);
 
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
-    // Draw the image with rounded corners in one pass
-    draw_list->AddImageRounded(tex_id, p_min, p_max, ImVec2(0,0), ImVec2(1,1), IM_COL32_WHITE, rounding, ImDrawFlags_RoundCornersAll);
+    // Draw the cropped image with rounding
+    draw_list->AddImageRounded(tex_id, p_min, p_max, uv0, uv1, IM_COL32_WHITE, rounding, ImDrawFlags_RoundCornersAll);
 
-    // Draw the border with matching corners
+    // Draw the border
     draw_list->AddRect(p_min, p_max, border_col, rounding, ImDrawFlags_RoundCornersAll, border_thickness);
 
-    // Reserve space for interaction (use the full allocated size, not just the image size)
-    ImGui::InvisibleButton("##image", ImVec2(displayWidth, displayHeight));
+    // Reserve space for interaction
+    ImGui::InvisibleButton("##image", size);
 }
 
 void Editor::Properties::dragDropResources(ComponentType cpType, std::string id, Scene* scene, std::vector<Entity> entities, int updateFlags){
@@ -821,17 +849,16 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         ImGui::BeginGroup();
 
         float thumbSize = 64;
-        std::string thumbPath = findThumbnail(newValue.getId());
-        if (!thumbPath.empty()) {
+        Texture* thumbTexture = findThumbnail(newValue.getId());
+        if (thumbTexture) {
             ImU32 border_col = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyle().Colors[ImGuiCol_FrameBg]);
             if (dif){
                 border_col = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
             }
-            Texture thumbTexture(thumbPath);
             drawImageWithBorderAndRounding(thumbTexture, ImVec2(thumbSize, thumbSize), ImGui::GetStyle().FrameRounding, border_col);
             if (ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
-                ImGui::Image(thumbTexture.getRender()->getGLHandler(), ImVec2(thumbTexture.getWidth(), thumbTexture.getHeight()));
+                ImGui::Image(thumbTexture->getRender()->getGLHandler(), ImVec2(thumbTexture->getWidth(), thumbTexture->getHeight()));
                 ImGui::EndTooltip();
             }
         }
@@ -1140,28 +1167,32 @@ void Editor::Properties::show(){
             // Button was clicked
             //ImGui::Text("Button clicked!");
         }
-    }
 
-    for (ComponentType& cpType : components){
+        for (ComponentType& cpType : components){
 
-        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-        if (ImGui::CollapsingHeader(Catalog::getComponentName(cpType).c_str())){
+            ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+            if (ImGui::CollapsingHeader(Catalog::getComponentName(cpType).c_str())){
 
-            if (cpType == ComponentType::Transform){
-                drawTransform(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
-            }else if (cpType == ComponentType::MeshComponent){
-                drawMeshComponent(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
-            }else if (cpType == ComponentType::UIComponent){
-                drawUIComponent(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
-            }else if (cpType == ComponentType::UILayoutComponent){
-                drawUILayoutComponent(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
-            }else if (cpType == ComponentType::ImageComponent){
-                drawImageComponent(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
-            }else if (cpType == ComponentType::SpriteComponent){
-                drawSpriteComponent(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
+                if (cpType == ComponentType::Transform){
+                    drawTransform(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
+                }else if (cpType == ComponentType::MeshComponent){
+                    drawMeshComponent(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
+                }else if (cpType == ComponentType::UIComponent){
+                    drawUIComponent(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
+                }else if (cpType == ComponentType::UILayoutComponent){
+                    drawUILayoutComponent(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
+                }else if (cpType == ComponentType::ImageComponent){
+                    drawImageComponent(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
+                }else if (cpType == ComponentType::SpriteComponent){
+                    drawSpriteComponent(cpType, Catalog::getProperties(cpType, nullptr), scene, entities);
+                }
+
             }
-
         }
+
+    }else{
+        thumbnailTextures.clear();
     }
+
     ImGui::End();
 }
