@@ -184,7 +184,7 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["patch_margin_right"] = {PropertyType::UInt, UpdateFlags_Image_Patches, (void*)&def->patchMarginRight, (compRef) ? (void*)&comp->patchMarginRight : nullptr};
         ps["patch_margin_top"] = {PropertyType::UInt, UpdateFlags_Image_Patches, (void*)&def->patchMarginTop, (compRef) ? (void*)&comp->patchMarginTop : nullptr};
         ps["patch_margin_bottom"] = {PropertyType::UInt, UpdateFlags_Image_Patches, (void*)&def->patchMarginBottom, (compRef) ? (void*)&comp->patchMarginBottom : nullptr};
-        ps["texture_cut_factor"] = {PropertyType::Float, UpdateFlags_Image_Patches, (void*)&def->textureCutFactor, (compRef) ? (void*)&comp->textureCutFactor : nullptr};
+        ps["texture_scale_factor"] = {PropertyType::Float, UpdateFlags_Image_Patches, (void*)&def->textureScaleFactor, (compRef) ? (void*)&comp->textureScaleFactor : nullptr};
     }else if (component == ComponentType::SpriteComponent){
         SpriteComponent* comp = (SpriteComponent*)compRef;
         static SpriteComponent* def = new SpriteComponent;
@@ -192,7 +192,7 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["width"] = {PropertyType::UInt, UpdateFlags_Sprite, nullptr, (compRef) ? (void*)&comp->width : nullptr};
         ps["height"] = {PropertyType::UInt, UpdateFlags_Sprite, nullptr, (compRef) ? (void*)&comp->height : nullptr};
         ps["pivot_preset"] = {PropertyType::Enum, UpdateFlags_Sprite, (void*)&def->pivotPreset, (compRef) ? (void*)&comp->pivotPreset : nullptr, &entriesPivotPreset};
-        ps["texture_cut_factor"] = {PropertyType::Float, UpdateFlags_Sprite, (void*)&def->textureCutFactor, (compRef) ? (void*)&comp->textureCutFactor : nullptr};
+        ps["texture_scale_factor"] = {PropertyType::Float, UpdateFlags_Sprite, (void*)&def->textureScaleFactor, (compRef) ? (void*)&comp->textureScaleFactor : nullptr};
     }
 
     return ps;

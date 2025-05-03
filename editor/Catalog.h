@@ -19,8 +19,12 @@ namespace Supernova::Editor{
         UpdateFlags_Sprite          = 1 << 7
     };
 
+    // the order of components here affects properties window
     enum class ComponentType : int {
         Transform,
+        MeshComponent,
+        UIComponent,
+        UILayoutComponent,
         ActionComponent,
         AlphaActionComponent,
         AnimationComponent,
@@ -39,7 +43,6 @@ namespace Supernova::Editor{
         KeyframeTracksComponent,
         LightComponent,
         LinesComponent,
-        MeshComponent,
         MeshPolygonComponent,
         ModelComponent,
         MorphTracksComponent,
@@ -62,9 +65,7 @@ namespace Supernova::Editor{
         TilemapComponent,
         TimedActionComponent,
         TranslateTracksComponent,
-        UIComponent,
-        UIContainerComponent,
-        UILayoutComponent
+        UIContainerComponent
     };
 
     enum class PropertyType{

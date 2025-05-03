@@ -227,18 +227,32 @@ void Editor::Properties::dragDropResources(ComponentType cpType, std::string id,
     }
 }
 
-void Editor::Properties::drawNinePatchesPreview(const ImageComponent& img, Texture* texture, Texture* thumbTexture){
+void Editor::Properties::drawNinePatchesPreview(const ImageComponent& img, Texture* texture, Texture* thumbTexture, const ImVec2& size){
     float availWidth = ImGui::GetContentRegionAvail().x;
-    float imageWidth = thumbTexture->getWidth();
+
+    // Calculate display size based on input parameter or default to texture size
+    float displayWidth = (size.x > 0) ? size.x : thumbTexture->getWidth();
+    float displayHeight = (size.y > 0) ? size.y : thumbTexture->getHeight();
+
+    // If only one dimension is specified, maintain aspect ratio
+    if (size.x > 0 && size.y <= 0) {
+        float aspectRatio = (float)thumbTexture->getHeight() / thumbTexture->getWidth();
+        displayHeight = displayWidth * aspectRatio;
+    } else if (size.x <= 0 && size.y > 0) {
+        float aspectRatio = (float)thumbTexture->getWidth() / thumbTexture->getHeight();
+        displayWidth = displayHeight * aspectRatio;
+    }
+
     // Calculate position to center the image
-    float xPos = (availWidth - imageWidth) * 0.5f;
+    float xPos = (availWidth - displayWidth) * 0.5f;
     // Set cursor position to create centering effect
     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + xPos);
 
     // Store the cursor position before drawing the image
     ImVec2 cursor = ImGui::GetCursorScreenPos();
 
-    ImGui::Image(thumbTexture->getRender()->getGLHandler(), ImVec2(thumbTexture->getWidth(), thumbTexture->getHeight()));
+    // Draw the image with the calculated size
+    ImGui::Image(thumbTexture->getRender()->getGLHandler(), ImVec2(displayWidth, displayHeight));
 
     // Get draw list for custom rendering
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
@@ -252,9 +266,9 @@ void Editor::Properties::drawNinePatchesPreview(const ImageComponent& img, Textu
     float thumbWidth = static_cast<float>(thumbTexture->getWidth());
     float thumbHeight = static_cast<float>(thumbTexture->getHeight());
 
-    // Calculate scale factors between original texture and thumbnail
-    float scaleX = thumbWidth / origWidth;
-    float scaleY = thumbHeight / origHeight;
+    // Calculate scale factors between original texture and display size
+    float scaleX = displayWidth / origWidth;
+    float scaleY = displayHeight / origHeight;
 
     // Scale the margin values by the appropriate scale factor
     float scaledLeftMargin = img.patchMarginLeft * scaleX;
@@ -266,15 +280,15 @@ void Editor::Properties::drawNinePatchesPreview(const ImageComponent& img, Textu
     float leftX = cursor.x + scaledLeftMargin;
     draw_list->AddLine(
         ImVec2(leftX, cursor.y),
-        ImVec2(leftX, cursor.y + thumbHeight),
+        ImVec2(leftX, cursor.y + displayHeight),
         line_color, 1.0f
     );
 
     // Draw right margin line
-    float rightX = cursor.x + thumbWidth - scaledRightMargin;
+    float rightX = cursor.x + displayWidth - scaledRightMargin;
     draw_list->AddLine(
         ImVec2(rightX, cursor.y),
-        ImVec2(rightX, cursor.y + thumbHeight),
+        ImVec2(rightX, cursor.y + displayHeight),
         line_color, 1.0f
     );
 
@@ -282,18 +296,19 @@ void Editor::Properties::drawNinePatchesPreview(const ImageComponent& img, Textu
     float topY = cursor.y + scaledTopMargin;
     draw_list->AddLine(
         ImVec2(cursor.x, topY),
-        ImVec2(cursor.x + thumbWidth, topY),
+        ImVec2(cursor.x + displayWidth, topY),
         line_color, 1.0f
     );
 
     // Draw bottom margin line
-    float bottomY = cursor.y + thumbHeight - scaledBottomMargin;
+    float bottomY = cursor.y + displayHeight - scaledBottomMargin;
     draw_list->AddLine(
         ImVec2(cursor.x, bottomY),
-        ImVec2(cursor.x + thumbWidth, bottomY),
+        ImVec2(cursor.x + displayWidth, bottomY),
         line_color, 1.0f
     );
 }
+
 
 void Editor::Properties::beginTable(ComponentType cpType, float firstColSize, std::string nameAddon){
     ImGui::PushItemWidth(-1);
@@ -1138,8 +1153,7 @@ void Editor::Properties::drawImageComponent(ComponentType cpType, std::map<std::
         if (UIComponent* ui = scene->findComponent<UIComponent>(entities[0])){
             Texture* thumbTexture = findThumbnail(ui->texture.getId());
             if (thumbTexture) {
-                //TODO: preview size is using same of thumb size
-                drawNinePatchesPreview(scene->getComponent<ImageComponent>(entities[0]), &ui->texture, thumbTexture);
+                drawNinePatchesPreview(scene->getComponent<ImageComponent>(entities[0]), &ui->texture, thumbTexture, ImVec2(THUMBNAIL_SIZE, THUMBNAIL_SIZE));
             }
         }
     }
@@ -1153,20 +1167,20 @@ void Editor::Properties::drawImageComponent(ComponentType cpType, std::map<std::
 
     endTable();
 
-    beginTable(cpType, getLabelSize("Cut Factor"));
+    beginTable(cpType, getLabelSize("Texture Scale"));
 
-    propertyRow(cpType, props, "texture_cut_factor", "Cut Factor", scene, entities, 0.1f, 6 * ImGui::GetFontSize(), false, "Increase or decrease texture area");
+    propertyRow(cpType, props, "texture_scale_factor", "Texture Scale", scene, entities, 0.1f, 6 * ImGui::GetFontSize(), false, "Increase or decrease texture area by a factor");
 
     endTable();
 }
 
 void Editor::Properties::drawSpriteComponent(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, std::vector<Entity> entities){
-    beginTable(cpType, getLabelSize("Cut Factor"));
+    beginTable(cpType, getLabelSize("Texture Scale"));
 
     propertyRow(cpType, props, "width", "Width", scene, entities, 1.0, 6 * ImGui::GetFontSize());
     propertyRow(cpType, props, "height", "Height", scene, entities, 1.0, 6 * ImGui::GetFontSize());
     propertyRow(cpType, props, "pivot_preset", "Pivot", scene, entities);
-    propertyRow(cpType, props, "texture_cut_factor", "Cut Factor", scene, entities, 0.1f, 6 * ImGui::GetFontSize(), false, "Increase or decrease texture area");
+    propertyRow(cpType, props, "texture_scale_factor", "Texture Scale", scene, entities, 0.1f, 6 * ImGui::GetFontSize(), false, "Increase or decrease texture area by a factor");
 
     endTable();
 }

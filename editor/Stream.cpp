@@ -925,7 +925,7 @@ YAML::Node Editor::Stream::encodeImageComponent(const ImageComponent& image) {
     node["patchMarginRight"] = image.patchMarginRight;
     node["patchMarginTop"] = image.patchMarginTop;
     node["patchMarginBottom"] = image.patchMarginBottom;
-    node["textureCutFactor"] = image.textureCutFactor;
+    node["textureScaleFactor"] = image.textureScaleFactor;
     //node["needUpdatePatches"] = image.needUpdatePatches;
 
     return node;
@@ -937,7 +937,7 @@ ImageComponent Editor::Stream::decodeImageComponent(const YAML::Node& node) {
     image.patchMarginRight = node["patchMarginRight"].as<int>();
     image.patchMarginTop = node["patchMarginTop"].as<int>();
     image.patchMarginBottom = node["patchMarginBottom"].as<int>();
-    image.textureCutFactor = node["textureCutFactor"].as<float>();
+    image.textureScaleFactor = node["textureScaleFactor"].as<float>();
     //image.needUpdatePatches = node["needUpdatePatches"].as<bool>();
 
     return image;

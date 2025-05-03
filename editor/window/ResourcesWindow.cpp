@@ -121,7 +121,7 @@ void Editor::ResourcesWindow::renderHeader() {
     if (ImGui::BeginPopup("SettingsPopup")) {
         ImGui::Text("Settings");
         ImGui::Separator();
-        if (ImGui::SliderInt("Icon Size", &iconSize, 16.0f, 128.0f)) {
+        if (ImGui::SliderInt("Icon Size", &iconSize, 16.0f, THUMBNAIL_SIZE)) {
             iconPadding = 1.5 * iconSize;
         }
         ImGui::Separator();
@@ -985,7 +985,7 @@ void Editor::ResourcesWindow::thumbnailWorker() {
         unsigned char* data = stbi_load(filePath.string().c_str(), &width, &height, &channels, 4);
         if (data) {
             // Define maximum thumbnail dimension
-            int maxThumbSize = 128;
+            int maxThumbSize = THUMBNAIL_SIZE;
 
             // Calculate scaling factor to fit within maxThumbSize while preserving aspect ratio
             float scale = (width > height) ? 

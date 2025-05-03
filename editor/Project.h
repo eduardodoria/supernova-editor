@@ -1,6 +1,10 @@
 #ifndef PROJECT_H
 #define PROJECT_H
 
+#define NULL_PROJECT_SCENE 0
+#define USER_LASTENTITY 99
+#define THUMBNAIL_SIZE 128
+
 #include "Scene.h"
 #include "Catalog.h"
 #include "render/SceneRender.h"
@@ -9,9 +13,6 @@
 #include "Generator.h"
 
 #include <filesystem>
-
-#define NULL_PROJECT_SCENE 0
-#define USER_LASTENTITY 99
 
 namespace Supernova::Editor{
 
