@@ -56,15 +56,15 @@ bool Editor::MoveEntityOrderCmd::execute(){
 
         oldTransformIndex = sourceTransformIndex;
 
+        if (type == InsertionType::AFTER){
+            // if position target has children, move them to the end of the list
+            targetTransformIndex = sceneProject->scene->findBranchLastIndex(target);
+        }
         if (type == InsertionType::AFTER || type == InsertionType::IN){
             targetTransformIndex++;
         }
         if (sourceTransformIndex < targetTransformIndex){
             --targetTransformIndex;
-        }
-        if (type == InsertionType::AFTER){
-            // if position target has children, move them to the end of the list
-            targetTransformIndex = sceneProject->scene->findBranchLastIndex(target);
         }
 
         sceneProject->scene->moveChildToIndex(source, targetTransformIndex, false);
