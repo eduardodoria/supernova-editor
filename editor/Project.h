@@ -9,6 +9,7 @@
 #include "Catalog.h"
 #include "render/SceneRender.h"
 #include "command/CommandHistory.h"
+#include "render/material/MaterialRender.h"
 #include "Conector.h"
 #include "Generator.h"
 
@@ -54,6 +55,8 @@ namespace Supernova::Editor{
         std::filesystem::path projectPath;
         bool resourcesFocused;
 
+        MaterialRender materialRender;
+
         template<typename T>
         T* findScene(uint32_t sceneId) const;
 
@@ -61,6 +64,8 @@ namespace Supernova::Editor{
         bool createNewComponent(uint32_t sceneId, Entity entity, ComponentType component);
         void deleteSceneProject(SceneProject* sceneProject);
         void resetConfigs();
+
+        void ensureMaterialThumbnailDirectory() const;
 
     public:
         Project();
@@ -119,6 +124,8 @@ namespace Supernova::Editor{
         void clearSelectedEntities(uint32_t sceneId);
         std::vector<Entity> getSelectedEntities(uint32_t sceneId) const;
         bool hasSelectedEntities(uint32_t sceneId) const;
+
+        TextureRender& getMaterialThumbnail(const Material& material);
 
         bool hasSelectedSceneUnsavedChanges() const;
         bool hasScenesUnsavedChanges() const;

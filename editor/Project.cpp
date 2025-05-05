@@ -767,6 +767,36 @@ bool Editor::Project::hasSelectedSceneUnsavedChanges() const{
     return getScene(selectedScene)->isModified;
 }
 
+void Editor::Project::ensureMaterialThumbnailDirectory() const {
+    fs::path thumbsDir = getProjectPath() / ".supernova" / "thumbs" / "material";
+
+    if (!fs::exists(thumbsDir)) {
+        fs::create_directories(thumbsDir);
+    }
+}
+
+TextureRender& Editor::Project::getMaterialThumbnail(const Material& material){
+    //materialRender.getScene()->load();
+    //materialRender.getScene()->updateSizeFromCamera();
+    //materialRender.getScene()->update(0.0f);
+    //materialRender.getScene()->draw();
+
+    static bool adicionado = false;
+
+    if (adicionado){
+        //Engine::removeScene(materialRender.getScene());
+    }
+
+    materialRender.applyMaterial(material);
+
+    if (!adicionado){
+        Engine::addSceneLayer(materialRender.getScene());
+        adicionado = true;
+    }
+
+    return materialRender.getTexture();
+}
+
 bool Editor::Project::hasScenesUnsavedChanges() const{
     for (auto& scene: scenes){
         if (scene.isModified){

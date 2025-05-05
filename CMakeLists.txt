@@ -173,6 +173,7 @@ add_executable(
     ${EDITOR_DIR}/render/gizmo/RotateGizmo.cpp
     ${EDITOR_DIR}/render/gizmo/ScaleGizmo.cpp
     ${EDITOR_DIR}/render/gizmo/Object2DGizmo.cpp
+    ${EDITOR_DIR}/render/material/MaterialRender.cpp
 
     ${EDITOR_DIR}/command/CommandHandle.cpp
     ${EDITOR_DIR}/command/CommandHistory.cpp
