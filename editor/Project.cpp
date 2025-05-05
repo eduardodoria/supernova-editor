@@ -15,6 +15,7 @@
 #include "command/type/DeleteEntityCmd.h"
 #include "Stream.h"
 #include "util/FileDialogs.h"
+#include "util/SHA1.h"
 
 using namespace Supernova;
 
@@ -775,7 +776,25 @@ void Editor::Project::ensureMaterialThumbnailDirectory() const {
     }
 }
 
-TextureRender& Editor::Project::getMaterialThumbnail(const Material& material){
+fs::path Editor::Project::getMaterialThumbnailPath(const Material& material) const {
+    fs::path thumbsDir = getProjectPath() / ".supernova" / "thumbs" / "material";
+
+    std::string materialStr = YAML::Dump(Stream::encodeMaterial(material));
+    std::string hash = SHA1::hash(materialStr);
+
+    std::string thumbFilename = hash + ".mat.png";
+
+    return thumbsDir / thumbFilename;
+}
+
+Texture Editor::Project::getMaterialThumbnail(const Material& material){
+    ensureMaterialThumbnailDirectory();
+
+    fs::path thumbPath = getMaterialThumbnailPath(material);
+
+    if (!fs::exists(thumbPath)) {
+    }
+
     //materialRender.getScene()->load();
     //materialRender.getScene()->updateSizeFromCamera();
     //materialRender.getScene()->update(0.0f);

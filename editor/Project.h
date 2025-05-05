@@ -66,6 +66,7 @@ namespace Supernova::Editor{
         void resetConfigs();
 
         void ensureMaterialThumbnailDirectory() const;
+        fs::path getMaterialThumbnailPath(const Material& material) const;
 
     public:
         Project();
@@ -125,7 +126,7 @@ namespace Supernova::Editor{
         std::vector<Entity> getSelectedEntities(uint32_t sceneId) const;
         bool hasSelectedEntities(uint32_t sceneId) const;
 
-        TextureRender& getMaterialThumbnail(const Material& material);
+        Texture getMaterialThumbnail(const Material& material);
 
         bool hasSelectedSceneUnsavedChanges() const;
         bool hasScenesUnsavedChanges() const;

@@ -556,9 +556,6 @@ void Editor::ResourcesWindow::scanDirectory(const fs::path& path) {
     // Update last write time
     lastWriteTime = fs::last_write_time(currentPath);
 
-    // Ensure the thumbnail directory exists
-    ensureThumbnailDirectory();
-
     intptr_t folderIconH = (intptr_t)folderIcon.getRender()->getGLHandler();
     intptr_t fileIconH = (intptr_t)fileIcon.getRender()->getGLHandler();
 
@@ -930,15 +927,6 @@ fs::path Editor::ResourcesWindow::getThumbnailPath(const fs::path& originalPath)
     std::string thumbFilename = hash + ".thumb.png";
 
     return thumbsDir / thumbFilename;
-}
-
-// Ensure the thumbnail directory exists
-void Editor::ResourcesWindow::ensureThumbnailDirectory() const {
-    fs::path thumbsDir = project->getProjectPath() / ".supernova" / "thumbs";
-
-    if (!fs::exists(thumbsDir)) {
-        fs::create_directories(thumbsDir);
-    }
 }
 
 void Editor::ResourcesWindow::queueThumbnailGeneration(const fs::path& filePath, const std::string& extension) {

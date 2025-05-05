@@ -1127,8 +1127,8 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
     }
 
     Material material = scene->getComponent<MeshComponent>(entities[0]).submeshes[0].material;
-    TextureRender& texRender = project->getMaterialThumbnail(material);
-    ImGui::Image(texRender.getGLHandler(), ImVec2(128, 128));
+    Texture texRender = project->getMaterialThumbnail(material);
+    ImGui::Image(texRender.getRender()->getGLHandler(), ImVec2(128, 128));
 }
 
 void Editor::Properties::drawUIComponent(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, std::vector<Entity> entities){

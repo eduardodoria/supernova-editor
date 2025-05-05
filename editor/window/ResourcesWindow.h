@@ -119,7 +119,6 @@ namespace Supernova::Editor {
         void queueThumbnailGeneration(const fs::path& filePath, const std::string& extension);
         void thumbnailWorker();
         fs::path getThumbnailPath(const fs::path& originalPath) const;
-        void ensureThumbnailDirectory() const;
         void loadThumbnail(FileEntry& entry);
 
     public:

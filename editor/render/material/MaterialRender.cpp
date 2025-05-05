@@ -41,8 +41,8 @@ Framebuffer* Editor::MaterialRender::getFramebuffer(){
     return camera->getFramebuffer();
 }
 
-TextureRender& Editor::MaterialRender::getTexture(){
-    return getFramebuffer()->getRender().getColorTexture();
+Texture Editor::MaterialRender::getTexture(){
+    return Texture(getFramebuffer());
 }
 
 Scene* Editor::MaterialRender::getScene(){

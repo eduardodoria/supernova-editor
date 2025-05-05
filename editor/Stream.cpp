@@ -529,79 +529,6 @@ void Editor::Stream::decodeExternalBuffer(ExternalBuffer& buffer, const YAML::No
     buffer.setName(node["name"].as<std::string>()); // Set ExternalBuffer specific property
 }
 
-YAML::Node Editor::Stream::encodeMaterial(const Material& material) {
-    YAML::Node node;
-
-    // Encode shader part properties
-    node["baseColorFactor"] = encodeVector4(material.baseColorFactor);
-    node["metallicFactor"] = material.metallicFactor;
-    node["roughnessFactor"] = material.roughnessFactor;
-    node["emissiveFactor"] = encodeVector3(material.emissiveFactor);
-    node["ambientLight"] = encodeVector3(material.ambientLight);
-    node["ambientIntensity"] = material.ambientIntensity;
-
-    // Encode textures using the helper method
-    if (!material.baseColorTexture.empty()) {
-        node["baseColorTexture"] = encodeTexture(material.baseColorTexture);
-    }
-
-    if (!material.emissiveTexture.empty()) {
-        node["emissiveTexture"] = encodeTexture(material.emissiveTexture);
-    }
-
-    if (!material.metallicRoughnessTexture.empty()) {
-        node["metallicRoughnessTexture"] = encodeTexture(material.metallicRoughnessTexture);
-    }
-
-    if (!material.occlusionTexture.empty()) {
-        node["occlusionTexture"] = encodeTexture(material.occlusionTexture);
-    }
-
-    if (!material.normalTexture.empty()) {
-        node["normalTexture"] = encodeTexture(material.normalTexture);
-    }
-
-    // Encode material name
-    node["name"] = material.name;
-
-    return node;
-}
-
-Material Editor::Stream::decodeMaterial(const YAML::Node& node) {
-    Material material;
-
-    material.baseColorFactor = decodeVector4(node["baseColorFactor"]);
-    material.metallicFactor = node["metallicFactor"].as<float>();
-    material.roughnessFactor = node["roughnessFactor"].as<float>();
-    material.emissiveFactor = decodeVector3(node["emissiveFactor"]);
-    material.ambientLight = decodeVector3(node["ambientLight"]);
-    material.ambientIntensity = node["ambientIntensity"].as<float>();
-
-    if (node["baseColorTexture"]) {
-        material.baseColorTexture = decodeTexture(node["baseColorTexture"]);
-    }
-
-    if (node["emissiveTexture"]) {
-        material.emissiveTexture = decodeTexture(node["emissiveTexture"]);
-    }
-
-    if (node["metallicRoughnessTexture"]) {
-        material.metallicRoughnessTexture = decodeTexture(node["metallicRoughnessTexture"]);
-    }
-
-    if (node["occlusionTexture"]) {
-        material.occlusionTexture = decodeTexture(node["occlusionTexture"]);
-    }
-
-    if (node["normalTexture"]) {
-        material.normalTexture = decodeTexture(node["normalTexture"]);
-    }
-
-    material.name = node["name"].as<std::string>();
-
-    return material;
-}
-
 YAML::Node Editor::Stream::encodeSubmesh(const Submesh& submesh) {
     YAML::Node node;
 
@@ -1139,4 +1066,77 @@ Entity Editor::Stream::decodeEntity(Scene* scene, const YAML::Node& entityNode) 
     }
 
     return entity;
+}
+
+YAML::Node Editor::Stream::encodeMaterial(const Material& material) {
+    YAML::Node node;
+
+    // Encode shader part properties
+    node["baseColorFactor"] = encodeVector4(material.baseColorFactor);
+    node["metallicFactor"] = material.metallicFactor;
+    node["roughnessFactor"] = material.roughnessFactor;
+    node["emissiveFactor"] = encodeVector3(material.emissiveFactor);
+    node["ambientLight"] = encodeVector3(material.ambientLight);
+    node["ambientIntensity"] = material.ambientIntensity;
+
+    // Encode textures using the helper method
+    if (!material.baseColorTexture.empty()) {
+        node["baseColorTexture"] = encodeTexture(material.baseColorTexture);
+    }
+
+    if (!material.emissiveTexture.empty()) {
+        node["emissiveTexture"] = encodeTexture(material.emissiveTexture);
+    }
+
+    if (!material.metallicRoughnessTexture.empty()) {
+        node["metallicRoughnessTexture"] = encodeTexture(material.metallicRoughnessTexture);
+    }
+
+    if (!material.occlusionTexture.empty()) {
+        node["occlusionTexture"] = encodeTexture(material.occlusionTexture);
+    }
+
+    if (!material.normalTexture.empty()) {
+        node["normalTexture"] = encodeTexture(material.normalTexture);
+    }
+
+    // Encode material name
+    node["name"] = material.name;
+
+    return node;
+}
+
+Material Editor::Stream::decodeMaterial(const YAML::Node& node) {
+    Material material;
+
+    material.baseColorFactor = decodeVector4(node["baseColorFactor"]);
+    material.metallicFactor = node["metallicFactor"].as<float>();
+    material.roughnessFactor = node["roughnessFactor"].as<float>();
+    material.emissiveFactor = decodeVector3(node["emissiveFactor"]);
+    material.ambientLight = decodeVector3(node["ambientLight"]);
+    material.ambientIntensity = node["ambientIntensity"].as<float>();
+
+    if (node["baseColorTexture"]) {
+        material.baseColorTexture = decodeTexture(node["baseColorTexture"]);
+    }
+
+    if (node["emissiveTexture"]) {
+        material.emissiveTexture = decodeTexture(node["emissiveTexture"]);
+    }
+
+    if (node["metallicRoughnessTexture"]) {
+        material.metallicRoughnessTexture = decodeTexture(node["metallicRoughnessTexture"]);
+    }
+
+    if (node["occlusionTexture"]) {
+        material.occlusionTexture = decodeTexture(node["occlusionTexture"]);
+    }
+
+    if (node["normalTexture"]) {
+        material.normalTexture = decodeTexture(node["normalTexture"]);
+    }
+
+    material.name = node["name"].as<std::string>();
+
+    return material;
 }

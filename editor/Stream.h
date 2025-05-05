@@ -74,9 +74,6 @@ namespace Supernova::Editor {
         static YAML::Node encodeExternalBuffer(const ExternalBuffer& buffer);
         static void decodeExternalBuffer(ExternalBuffer& buffer, const YAML::Node& node);
 
-        static YAML::Node encodeMaterial(const Material& material);
-        static Material decodeMaterial(const YAML::Node& node);
-
         static YAML::Node encodeSubmesh(const Submesh& submesh);
         static Submesh decodeSubmesh(const YAML::Node& node);
 
@@ -108,5 +105,8 @@ namespace Supernova::Editor {
 
         static YAML::Node encodeEntity(const Entity entity, const Scene* scene);
         static Entity decodeEntity(Scene* scene, const YAML::Node& entityNode);
+
+        static YAML::Node encodeMaterial(const Material& material);
+        static Material decodeMaterial(const YAML::Node& node);
     };
 }

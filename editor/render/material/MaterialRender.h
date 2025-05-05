@@ -23,7 +23,7 @@ namespace Supernova::Editor{
         void applyMaterial(const Material& material);
 
         Framebuffer* getFramebuffer();
-        TextureRender& getTexture();
+        Texture getTexture();
         Scene* getScene();
         Object* getObject();
     };
