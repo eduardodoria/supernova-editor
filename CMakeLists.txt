@@ -154,6 +154,8 @@ add_executable(
     ${EDITOR_DIR}/Generator.cpp
     ${EDITOR_DIR}/Stream.cpp
 
+    ${EDITOR_DIR}/util/BackendUtils.cpp
+
     ${EDITOR_DIR}/window/Properties.cpp
     ${EDITOR_DIR}/window/OutputWindow.cpp
     ${EDITOR_DIR}/window/SceneWindow.cpp

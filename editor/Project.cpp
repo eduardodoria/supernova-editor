@@ -16,6 +16,7 @@
 #include "Stream.h"
 #include "util/FileDialogs.h"
 #include "util/SHA1.h"
+#include "util/BackendUtils.h"
 
 using namespace Supernova;
 
@@ -787,6 +788,9 @@ fs::path Editor::Project::getMaterialThumbnailPath(const Material& material) con
     return thumbsDir / thumbFilename;
 }
 
+static int materialThumbSaved = false;
+static bool materialThumbCreated = false;
+
 Texture Editor::Project::getMaterialThumbnail(const Material& material){
     ensureMaterialThumbnailDirectory();
 
@@ -800,20 +804,26 @@ Texture Editor::Project::getMaterialThumbnail(const Material& material){
     //materialRender.getScene()->update(0.0f);
     //materialRender.getScene()->draw();
 
-    static bool adicionado = false;
-
-    if (adicionado){
+    if (materialThumbCreated){
         //Engine::removeScene(materialRender.getScene());
     }
 
     materialRender.applyMaterial(material);
 
-    if (!adicionado){
+    if (!materialThumbCreated){
         Engine::addSceneLayer(materialRender.getScene());
-        adicionado = true;
+        materialThumbCreated = true;
     }
 
     return materialRender.getTexture();
+}
+
+void Editor::Project::saveMaterialThumbnail(){
+    if (materialThumbCreated && !materialThumbSaved){
+        BackendUtils::saveImage(128, 128, materialRender.getFramebuffer()->getRender());
+
+        materialThumbSaved = true;
+    }
 }
 
 bool Editor::Project::hasScenesUnsavedChanges() const{
