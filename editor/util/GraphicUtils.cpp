@@ -1,27 +1,32 @@
 #include "GraphicUtils.h"
 
-#include "Engine.h"
 #include "stb_image_write.h"
 
-#if defined(__APPLE__)
-#include <TargetConditionals.h>
+#if defined(SOKOL_METAL)
+    #include <TargetConditionals.h>
 #endif
 
-#if defined(_WIN32)
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <d3d11.h>
-#include <wrl/client.h>
-using Microsoft::WRL::ComPtr;
+#if defined(SOKOL_D3D11)
+    #define WIN32_LEAN_AND_MEAN
+    #include <windows.h>
+    #include <d3d11.h>
+    #include <wrl/client.h>
+    using Microsoft::WRL::ComPtr;
 #endif
 
-#define GL_GLEXT_PROTOTYPES
-#ifdef __APPLE__
-#include <OpenGL/gl.h>
-#include <OpenGL/glext.h>
-#else
-#include <GL/gl.h>
-#include <GL/glext.h>
+#if defined(SOKOL_GLCORE) || defined(SOKOL_GLES3)
+    #define GL_GLEXT_PROTOTYPES
+    #ifdef __APPLE__
+        #include <OpenGL/gl.h>
+        #include <OpenGL/glext.h>
+    #else
+        #if defined(_WIN32)
+            #define WIN32_LEAN_AND_MEAN
+            #include <windows.h>
+        #endif
+        #include <GL/gl.h>
+        #include <GL/glext.h>
+    #endif
 #endif
 
 using namespace Supernova;
@@ -30,9 +35,7 @@ void Editor::GraphicUtils::saveImage(int width, int height, FramebufferRender& f
     uint8_t* pixels = nullptr;
     bool needDelete = false;
 
-    GraphicBackend backend = Engine::getGraphicBackend();
-
-    if (backend == GraphicBackend::GLCORE || backend == GraphicBackend::GLES3) {
+    #if defined(SOKOL_GLCORE) || defined(SOKOL_GLES3)
         // OpenGL
         pixels = new uint8_t[width * height * 4];
         needDelete = true;
@@ -40,9 +43,9 @@ void Editor::GraphicUtils::saveImage(int width, int height, FramebufferRender& f
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.getGLHandler());
         glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
-#if defined(__APPLE__)
-    else if (backend == GraphicBackend::METAL) {
+    #endif
+
+    #if defined(SOKOL_METAL)
         // Metal
         auto metalTexPtr = framebuffer.getColorTexture().getMetalHandler();
         id<MTLTexture> tex = (__bridge id<MTLTexture>)metalTexPtr;
@@ -70,10 +73,9 @@ void Editor::GraphicUtils::saveImage(int width, int height, FramebufferRender& f
 
         pixels = (uint8_t*)[buffer contents];
         needDelete = false; // Don't delete!
-    }
-#endif
-#if defined(_WIN32)
-    else if (backend == GraphicBackend::D3D11) {
+    #endif
+
+    #if defined(SOKOL_D3D11)
         // D3D11
         auto rtvPtr = framebuffer.getD3D11HandlerColorRTV();
         ID3D11RenderTargetView* rtv = reinterpret_cast<ID3D11RenderTargetView*>(const_cast<void*>(rtvPtr));
@@ -121,8 +123,7 @@ void Editor::GraphicUtils::saveImage(int width, int height, FramebufferRender& f
         renderTargetResource->Release();
         context->Release();
         device->Release();
-    }
-#endif
+    #endif
 
     stbi_write_png("output.png", width, height, 4, pixels, width * 4);
 
