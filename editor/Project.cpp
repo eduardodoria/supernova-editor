@@ -16,7 +16,7 @@
 #include "Stream.h"
 #include "util/FileDialogs.h"
 #include "util/SHA1.h"
-#include "util/BackendUtils.h"
+#include "util/GraphicUtils.h"
 
 using namespace Supernova;
 
@@ -820,7 +820,7 @@ Texture Editor::Project::getMaterialThumbnail(const Material& material){
 
 void Editor::Project::saveMaterialThumbnail(){
     if (materialThumbCreated && !materialThumbSaved){
-        BackendUtils::saveImage(128, 128, materialRender.getFramebuffer()->getRender());
+        GraphicUtils::saveImage(128, 128, materialRender.getFramebuffer()->getRender());
 
         materialThumbSaved = true;
     }
