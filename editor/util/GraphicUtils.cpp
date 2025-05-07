@@ -52,7 +52,6 @@ void Editor::GraphicUtils::saveImage(int width, int height, FramebufferRender& f
             if (!glBindFramebufferPtr) {
                 glBindFramebufferPtr = (PFNGLBINDFRAMEBUFFERPROC)wglGetProcAddress("glBindFramebuffer");
                 if (!glBindFramebufferPtr) {
-                    // Log error: "Failed to load glBindFramebuffer"
                     delete[] pixels;
                     Out::error("Engine failure: Failed to load glBindFramebuffer");
                     return;
