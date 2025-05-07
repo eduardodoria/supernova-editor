@@ -1,5 +1,6 @@
 #include "GraphicUtils.h"
 
+#include "Out.h"
 #include "stb_image_write.h"
 
 #if defined(SOKOL_METAL)
@@ -15,7 +16,6 @@
 #endif
 
 #if defined(SOKOL_GLCORE) || defined(SOKOL_GLES3)
-    #define GL_GLEXT_PROTOTYPES
     #ifdef __APPLE__
         #include <OpenGL/gl.h>
     #else
@@ -25,25 +25,13 @@
         #include <GL/gl.h>
     #endif
 
-    // Define function pointer types for OpenGL functions
     #if defined(_WIN32)
         typedef void (APIENTRY *PFNGLBINDFRAMEBUFFERPROC)(GLenum target, GLuint framebuffer);
-        typedef void (APIENTRY *PFNGLREADPIXELSPROC)(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, void *pixels);
         static PFNGLBINDFRAMEBUFFERPROC glBindFramebufferPtr = nullptr;
-        static PFNGLREADPIXELSPROC glReadPixelsPtr = nullptr;
         #define glBindFramebuffer glBindFramebufferPtr
-        #define glReadPixels glReadPixelsPtr
 
-        // Define GL_FRAMEBUFFER if not provided by headers
         #ifndef GL_FRAMEBUFFER
         #define GL_FRAMEBUFFER 0x8D40
-        #endif
-        // Define other required constants if needed
-        #ifndef GL_RGBA
-        #define GL_RGBA 0x1908
-        #endif
-        #ifndef GL_UNSIGNED_BYTE
-        #define GL_UNSIGNED_BYTE 0x1401
         #endif
     #endif
 #endif
@@ -60,13 +48,12 @@ void Editor::GraphicUtils::saveImage(int width, int height, FramebufferRender& f
         needDelete = true;
 
         #if defined(_WIN32)
-            // Load function pointers on Windows if not already loaded
             if (!glBindFramebufferPtr) {
                 glBindFramebufferPtr = (PFNGLBINDFRAMEBUFFERPROC)wglGetProcAddress("glBindFramebuffer");
-                glReadPixelsPtr = (PFNGLREADPIXELSPROC)wglGetProcAddress("glReadPixels");
-                if (!glBindFramebufferPtr || !glReadPixelsPtr) {
-                    // Handle error (e.g., log and return)
+                if (!glBindFramebufferPtr) {
+                    // Log error: "Failed to load glBindFramebuffer"
                     delete[] pixels;
+                    Out::error("Engine failure: Failed to load glBindFramebuffer");
                     return;
                 }
             }
