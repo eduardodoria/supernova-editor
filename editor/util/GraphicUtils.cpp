@@ -18,10 +18,11 @@
 #if defined(SOKOL_GLCORE) || defined(SOKOL_GLES3)
     #ifdef __APPLE__
         #include <OpenGL/gl.h>
+    #elif defined(_WIN32)
+        #include <windows.h>
+        #include <GL/gl.h>
     #else
-        #if defined(_WIN32)
-            #include <windows.h>
-        #endif
+        #define GL_GLEXT_PROTOTYPES
         #include <GL/gl.h>
     #endif
 
