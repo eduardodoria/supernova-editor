@@ -18,14 +18,21 @@
     #define GL_GLEXT_PROTOTYPES
     #ifdef __APPLE__
         #include <OpenGL/gl.h>
-        #include <OpenGL/glext.h>
     #else
         #if defined(_WIN32)
-            #define WIN32_LEAN_AND_MEAN
             #include <windows.h>
         #endif
         #include <GL/gl.h>
-        #include <GL/glext.h>
+    #endif
+
+    // Define function pointer types for OpenGL functions
+    #if defined(_WIN32)
+        typedef void (APIENTRY *PFNGLBINDFRAMEBUFFERPROC)(GLenum target, GLuint framebuffer);
+        typedef void (APIENTRY *PFNGLREADPIXELSPROC)(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, void *pixels);
+        static PFNGLBINDFRAMEBUFFERPROC glBindFramebufferPtr = nullptr;
+        static PFNGLREADPIXELSPROC glReadPixelsPtr = nullptr;
+        #define glBindFramebuffer glBindFramebufferPtr
+        #define glReadPixels glReadPixelsPtr
     #endif
 #endif
 
@@ -39,6 +46,19 @@ void Editor::GraphicUtils::saveImage(int width, int height, FramebufferRender& f
         // OpenGL
         pixels = new uint8_t[width * height * 4];
         needDelete = true;
+
+        #if defined(_WIN32)
+            // Load function pointers on Windows if not already loaded
+            if (!glBindFramebufferPtr) {
+                glBindFramebufferPtr = (PFNGLBINDFRAMEBUFFERPROC)wglGetProcAddress("glBindFramebuffer");
+                glReadPixelsPtr = (PFNGLREADPIXELSPROC)wglGetProcAddress("glReadPixels");
+                if (!glBindFramebufferPtr || !glReadPixelsPtr) {
+                    // Handle error (e.g., log and return)
+                    delete[] pixels;
+                    return;
+                }
+            }
+        #endif
 
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.getGLHandler());
         glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
