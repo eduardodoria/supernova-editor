@@ -33,6 +33,18 @@
         static PFNGLREADPIXELSPROC glReadPixelsPtr = nullptr;
         #define glBindFramebuffer glBindFramebufferPtr
         #define glReadPixels glReadPixelsPtr
+
+        // Define GL_FRAMEBUFFER if not provided by headers
+        #ifndef GL_FRAMEBUFFER
+        #define GL_FRAMEBUFFER 0x8D40
+        #endif
+        // Define other required constants if needed
+        #ifndef GL_RGBA
+        #define GL_RGBA 0x1908
+        #endif
+        #ifndef GL_UNSIGNED_BYTE
+        #define GL_UNSIGNED_BYTE 0x1401
+        #endif
     #endif
 #endif
 
