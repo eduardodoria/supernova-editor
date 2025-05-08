@@ -820,7 +820,7 @@ Texture Editor::Project::getMaterialThumbnail(const Material& material){
 
 void Editor::Project::saveMaterialThumbnail(){
     if (materialThumbCreated && !materialThumbSaved){
-        GraphicUtils::saveImage(128, 128, materialRender.getFramebuffer()->getRender());
+        GraphicUtils::saveFramebufferImage(materialRender.getFramebuffer(), "output.png");
 
         materialThumbSaved = true;
     }

@@ -39,9 +39,12 @@
 
 using namespace Supernova;
 
-void Editor::GraphicUtils::saveImage(int width, int height, FramebufferRender& framebuffer){
+void Editor::GraphicUtils::saveFramebufferImage(Framebuffer* framebuffer, fs::path path){
     uint8_t* pixels = nullptr;
     bool needDelete = false;
+
+    unsigned int width = framebuffer->getWidth();
+    unsigned int height = framebuffer->getHeight();
 
     #if defined(SOKOL_GLCORE) || defined(SOKOL_GLES3)
         // OpenGL
@@ -59,14 +62,14 @@ void Editor::GraphicUtils::saveImage(int width, int height, FramebufferRender& f
             }
         #endif
 
-        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.getGLHandler());
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->getRender().getGLHandler());
         glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     #endif
 
     #if defined(SOKOL_METAL)
         // Metal
-        auto metalTexPtr = framebuffer.getColorTexture().getMetalHandler();
+        auto metalTexPtr = framebuffer->getRender().getColorTexture().getMetalHandler();
         id<MTLTexture> tex = (__bridge id<MTLTexture>)metalTexPtr;
         id<MTLDevice> device = [tex device];
         NSUInteger bytesPerRow = width * 4;
@@ -96,7 +99,7 @@ void Editor::GraphicUtils::saveImage(int width, int height, FramebufferRender& f
 
     #if defined(SOKOL_D3D11)
         // D3D11
-        auto rtvPtr = framebuffer.getD3D11HandlerColorRTV();
+        auto rtvPtr = framebuffer->getRender().getD3D11HandlerColorRTV();
         ID3D11RenderTargetView* rtv = reinterpret_cast<ID3D11RenderTargetView*>(const_cast<void*>(rtvPtr));
 
         ID3D11Device* device = nullptr;
@@ -144,7 +147,7 @@ void Editor::GraphicUtils::saveImage(int width, int height, FramebufferRender& f
         device->Release();
     #endif
 
-    stbi_write_png("output.png", width, height, 4, pixels, width * 4);
+    stbi_write_png(path.string().c_str(), width, height, 4, pixels, width * 4);
 
     if (needDelete && pixels) {
         delete[] pixels;
