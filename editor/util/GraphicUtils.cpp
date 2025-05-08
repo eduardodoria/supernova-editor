@@ -3,6 +3,9 @@
 #include "Out.h"
 #include "stb_image_write.h"
 
+#include <future>
+#include <thread>
+
 #if defined(SOKOL_METAL)
     #include <TargetConditionals.h>
 #endif
@@ -147,9 +150,12 @@ void Editor::GraphicUtils::saveFramebufferImage(Framebuffer* framebuffer, fs::pa
         device->Release();
     #endif
 
-    stbi_write_png(path.string().c_str(), width, height, 4, pixels, width * 4);
+    std::thread([pixels, needDelete, width, height, path]() {
+        stbi_write_png(path.string().c_str(), width, height, 4, pixels, width * 4);
 
-    if (needDelete && pixels) {
-        delete[] pixels;
-    }
+        if (needDelete && pixels) {
+            delete[] pixels;
+        }
+    }).detach();
+
 }
