@@ -65,7 +65,6 @@ namespace Supernova::Editor{
         void deleteSceneProject(SceneProject* sceneProject);
         void resetConfigs();
 
-        void ensureMaterialThumbnailDirectory() const;
         fs::path getMaterialThumbnailPath(const Material& material) const;
 
     public:

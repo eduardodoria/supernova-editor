@@ -769,14 +769,6 @@ bool Editor::Project::hasSelectedSceneUnsavedChanges() const{
     return getScene(selectedScene)->isModified;
 }
 
-void Editor::Project::ensureMaterialThumbnailDirectory() const {
-    fs::path thumbsDir = getProjectPath() / ".supernova" / "thumbs" / "material";
-
-    if (!fs::exists(thumbsDir)) {
-        fs::create_directories(thumbsDir);
-    }
-}
-
 fs::path Editor::Project::getMaterialThumbnailPath(const Material& material) const {
     fs::path thumbsDir = getProjectPath() / ".supernova" / "thumbs" / "material";
 
@@ -792,8 +784,6 @@ static int materialThumbSaved = false;
 static bool materialThumbCreated = false;
 
 Texture Editor::Project::getMaterialThumbnail(const Material& material){
-    ensureMaterialThumbnailDirectory();
-
     fs::path thumbPath = getMaterialThumbnailPath(material);
 
     if (!fs::exists(thumbPath)) {
@@ -811,7 +801,7 @@ Texture Editor::Project::getMaterialThumbnail(const Material& material){
     materialRender.applyMaterial(material);
 
     if (!materialThumbCreated){
-        Engine::addSceneLayer(materialRender.getScene());
+        Engine::executeSceneOnce(materialRender.getScene());
         materialThumbCreated = true;
     }
 
