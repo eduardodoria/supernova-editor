@@ -260,7 +260,7 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
                         selectedFiles.clear();
                     } else {
                         // Existing file handling
-                        std::string extension = file.type;
+                        std::string extension = file.extension;
                         if (extension == ".scene") {
                             project->openScene(currentPath / file.name);
                         } else if (extension == ".c" || extension == ".cpp" || extension == ".h" || extension == ".hpp") {
@@ -298,7 +298,7 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
             float iconOffsetY = selectableSize.y + itemSpacingY;
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() + iconOffsetX);
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() - iconOffsetY);
-            if (file.isImage && file.hasThumbnail && thumbnailTextures.find(file.thumbnailPath) != thumbnailTextures.end()) {
+            if (file.type == FileType::IMAGE && file.hasThumbnail && thumbnailTextures.find(file.thumbnailPath) != thumbnailTextures.end()) {
                 Texture& thumbTexture = thumbnailTextures[file.thumbnailPath];
                 if (thumbTexture.getRender()) {
                     // Get actual thumbnail dimensions
@@ -576,18 +576,23 @@ void Editor::ResourcesWindow::scanDirectory(const fs::path& path) {
         fileEntry.name = entry.path().filename().string();
         fileEntry.isDirectory = entry.is_directory();
         fileEntry.icon = entry.is_directory() ? folderIconH : fileIconH;
-        fileEntry.isImage = false;
         fileEntry.hasThumbnail = false;
 
         if (!fileEntry.isDirectory) {
-            fileEntry.type = entry.path().extension().string();
-            fileEntry.isImage = isImageFile(fileEntry.type);
+            fileEntry.extension = entry.path().extension().string();
+            if (isImageFile(fileEntry.extension)){
+                fileEntry.type = FileType::IMAGE;
+            }else if (isSceneFile(fileEntry.extension)){
+                fileEntry.type = FileType::SCENE;
+            }else if (isMaterialFile(fileEntry.extension)){
+                fileEntry.type = FileType::MATERIAL;
+            }
 
-            if (fileEntry.isImage) {
-                queueThumbnailGeneration(entry.path(), fileEntry.type);
+            if (fileEntry.type == FileType::IMAGE) {
+                queueThumbnailGeneration(entry.path(), fileEntry.extension);
             }
         } else {
-            fileEntry.type = "";
+            fileEntry.extension = "";
         }
 
         files.push_back(fileEntry);
@@ -623,9 +628,9 @@ void Editor::ResourcesWindow::sortWithSortSpecs(ImGuiTableSortSpecs* sortSpecs, 
                     }
                     break;
 
-                case 1: // Column 1: "Type"
-                    if (a.type != b.type) {
-                        return ascending ? (a.type < b.type) : (a.type > b.type);
+                case 1: // Column 1: "Extension"
+                    if (a.extension != b.extension) {
+                        return ascending ? (a.extension < b.extension) : (a.extension > b.extension);
                     }
                     break;
 
@@ -900,10 +905,29 @@ void Editor::ResourcesWindow::pasteFiles(const fs::path& targetDirectory) {
     scanDirectory(currentPath);
 }
 
-// Check if a file is an image based on its extension
 bool Editor::ResourcesWindow::isImageFile(const std::string& extension) const {
     static const std::unordered_set<std::string> imageExtensions = {
         ".png", ".jpg", ".jpeg", ".bmp", ".tga", ".gif", ".hdr", ".psd", ".pic", ".pnm"
+    };
+
+    std::string lowerExt = extension;
+    std::transform(lowerExt.begin(), lowerExt.end(), lowerExt.begin(), ::tolower);
+    return imageExtensions.find(lowerExt) != imageExtensions.end();
+}
+
+bool Editor::ResourcesWindow::isSceneFile(const std::string& extension) const{
+    static const std::unordered_set<std::string> imageExtensions = {
+        ".scene"
+    };
+
+    std::string lowerExt = extension;
+    std::transform(lowerExt.begin(), lowerExt.end(), lowerExt.begin(), ::tolower);
+    return imageExtensions.find(lowerExt) != imageExtensions.end();
+}
+
+bool Editor::ResourcesWindow::isMaterialFile(const std::string& extension) const{
+    static const std::unordered_set<std::string> imageExtensions = {
+        ".material"
     };
 
     std::string lowerExt = extension;
@@ -930,24 +954,22 @@ fs::path Editor::ResourcesWindow::getThumbnailPath(const fs::path& originalPath)
 }
 
 void Editor::ResourcesWindow::queueThumbnailGeneration(const fs::path& filePath, const std::string& extension) {
-    if (isImageFile(extension)) {
-        fs::path thumbnailPath = getThumbnailPath(filePath);
-        if (fs::exists(thumbnailPath)) {
-            auto imageTime = fs::last_write_time(filePath);
-            auto thumbTime = fs::last_write_time(thumbnailPath);
-            if (thumbTime >= imageTime) {
-                // Thumbnail is up-to-date, queue it for loading
-                std::lock_guard<std::mutex> lock(completedThumbnailMutex);
-                completedThumbnailQueue.push(filePath);
-                return;
-            }
+    fs::path thumbnailPath = getThumbnailPath(filePath);
+    if (fs::exists(thumbnailPath)) {
+        auto imageTime = fs::last_write_time(filePath);
+        auto thumbTime = fs::last_write_time(thumbnailPath);
+        if (thumbTime >= imageTime) {
+            // Thumbnail is up-to-date, queue it for loading
+            std::lock_guard<std::mutex> lock(completedThumbnailMutex);
+            completedThumbnailQueue.push(filePath);
+            return;
         }
-        {
-            std::lock_guard<std::mutex> lock(thumbnailMutex);
-            thumbnailQueue.push(filePath);
-        }
-        thumbnailCondition.notify_one();
     }
+    {
+        std::lock_guard<std::mutex> lock(thumbnailMutex);
+        thumbnailQueue.push(filePath);
+    }
+    thumbnailCondition.notify_one();
 }
 
 void Editor::ResourcesWindow::thumbnailWorker() {
@@ -1024,7 +1046,7 @@ void Editor::ResourcesWindow::thumbnailWorker() {
 
 // Load a thumbnail texture for a file entry
 void Editor::ResourcesWindow::loadThumbnail(FileEntry& entry) {
-    if (!entry.isImage || entry.hasThumbnail) {
+    if (entry.type != FileType::IMAGE || entry.hasThumbnail) {
         return;
     }
 
@@ -1044,6 +1066,24 @@ void Editor::ResourcesWindow::loadThumbnail(FileEntry& entry) {
 
         entry.hasThumbnail = true;
         entry.thumbnailPath = thumbnailPath.string();
+    }
+}
+
+void Editor::ResourcesWindow::saveMaterialFile(const fs::path& directory, const char* materialContent, size_t contentLen) {
+    std::string baseName = "Material";
+    std::string fileName = baseName + ".material";
+    fs::path targetFile = directory / fileName;
+    int counter = 1;
+    while (fs::exists(targetFile)) {
+        fileName = baseName + "_" + std::to_string(counter) + ".material";
+        targetFile = directory / fileName;
+        counter++;
+    }
+    std::ofstream out(targetFile, std::ios::binary);
+    if (out.is_open()) {
+        out.write(materialContent, contentLen);
+        out.close();
+        scanDirectory(currentPath);
     }
 }
 
@@ -1233,6 +1273,13 @@ void Editor::ResourcesWindow::show() {
             std::vector<std::string> droppedPaths = *(std::vector<std::string>*)payload->Data;
             cmdHistory.addCommand(new CopyFileCmd(droppedPaths, currentPath.string(), true));
             scanDirectory(currentPath);
+        }
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("material")) {
+            // Assume the payload is a null-terminated string (YAML)
+            const char* materialContent = (const char*)payload->Data;
+            size_t contentLen = payload->DataSize;
+
+            saveMaterialFile(currentPath, materialContent, contentLen);
         }
         ImGui::EndDragDropTarget();
     }

@@ -10,6 +10,7 @@
 #include "command/type/EntityNameCmd.h"
 #include "render/SceneRender2D.h"
 #include "util/SHA1.h"
+#include "Stream.h"
 
 #include <map>
 
@@ -1092,6 +1093,17 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
 
         propertyHeader("Material");
         ImGui::Button("Load");
+
+        if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+
+            Material material = scene->getComponent<MeshComponent>(entities[0]).submeshes[s].material;
+            std::string materialStr = YAML::Dump(Stream::encodeMaterial(material));
+
+            ImGui::SetDragDropPayload("material", materialStr.c_str(), materialStr.size() + 1);
+            ImGui::Text("Moving material");
+            ImGui::EndDragDropSource();
+        }
+
         ImGui::SameLine();
 
         static bool show_button_group = false;

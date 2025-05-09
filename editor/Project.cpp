@@ -781,7 +781,6 @@ fs::path Editor::Project::getMaterialThumbnailPath(const Material& material) con
 }
 
 static int materialThumbSaved = false;
-static bool materialThumbCreated = false;
 
 Texture Editor::Project::getMaterialThumbnail(const Material& material){
     fs::path thumbPath = getMaterialThumbnailPath(material);
@@ -794,22 +793,18 @@ Texture Editor::Project::getMaterialThumbnail(const Material& material){
     //materialRender.getScene()->update(0.0f);
     //materialRender.getScene()->draw();
 
-    if (materialThumbCreated){
-        //Engine::removeScene(materialRender.getScene());
-    }
-
-    materialRender.applyMaterial(material);
-
-    if (!materialThumbCreated){
+    if (firstMaterialRender || (materialRendered != material)){
+        materialRendered = material;
+        materialRender.applyMaterial(material);
         Engine::executeSceneOnce(materialRender.getScene());
-        materialThumbCreated = true;
+        firstMaterialRender = false;
     }
 
     return materialRender.getTexture();
 }
 
 void Editor::Project::saveMaterialThumbnail(){
-    if (materialThumbCreated && !materialThumbSaved){
+    if (materialRender.getFramebuffer()->isCreated() && !materialThumbSaved){
         GraphicUtils::saveFramebufferImage(materialRender.getFramebuffer(), "output.png");
 
         materialThumbSaved = true;

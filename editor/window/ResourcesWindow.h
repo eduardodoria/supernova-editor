@@ -22,12 +22,19 @@ namespace fs = std::filesystem;
 
 namespace Supernova::Editor {
 
+    enum class FileType {
+        NONE,
+        IMAGE,
+        MATERIAL,
+        SCENE
+    };
+
     struct FileEntry {
         std::string name;
-        std::string type;
+        std::string extension;
+        FileType type = FileType::NONE;
         bool isDirectory;
         intptr_t icon;
-        bool isImage;
         bool hasThumbnail;
         std::string thumbnailPath;
     };
@@ -116,10 +123,15 @@ namespace Supernova::Editor {
         void pasteFiles(const fs::path& targetDirectory);
 
         bool isImageFile(const std::string& extension) const;
+        bool isSceneFile(const std::string& extension) const;
+        bool isMaterialFile(const std::string& extension) const;
+
         void queueThumbnailGeneration(const fs::path& filePath, const std::string& extension);
         void thumbnailWorker();
         fs::path getThumbnailPath(const fs::path& originalPath) const;
         void loadThumbnail(FileEntry& entry);
+
+        void saveMaterialFile(const fs::path& directory, const char* materialContent, size_t contentLen);
 
     public:
         ResourcesWindow(Project* project, CodeEditor* codeEditor);

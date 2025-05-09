@@ -56,6 +56,8 @@ namespace Supernova::Editor{
         bool resourcesFocused;
 
         MaterialRender materialRender;
+        Material materialRendered;
+        bool firstMaterialRender = true;
 
         template<typename T>
         T* findScene(uint32_t sceneId) const;
