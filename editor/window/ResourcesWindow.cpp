@@ -13,6 +13,7 @@
 
 #include "Backend.h"
 #include "App.h"
+#include "Stream.h"
 #include "util/FileDialogs.h"
 #include "util/SHA1.h"
 
@@ -68,7 +69,7 @@ void Editor::ResourcesWindow::notifyProjectPathChange(){
     // Clear the thumbnail queue
     {
         std::lock_guard<std::mutex> lock(thumbnailMutex);
-        std::queue<fs::path> empty;
+        std::queue<ThumbnailRequest> empty;
         std::swap(thumbnailQueue, empty);
     }
     scanDirectory(project->getProjectPath());
@@ -588,8 +589,8 @@ void Editor::ResourcesWindow::scanDirectory(const fs::path& path) {
                 fileEntry.type = FileType::MATERIAL;
             }
 
-            if (fileEntry.type == FileType::IMAGE) {
-                queueThumbnailGeneration(entry.path(), fileEntry.extension);
+            if (fileEntry.type == FileType::IMAGE || fileEntry.type == FileType::MATERIAL) {
+                queueThumbnailGeneration(entry.path(), fileEntry.type);
             }
         } else {
             fileEntry.extension = "";
@@ -953,28 +954,30 @@ fs::path Editor::ResourcesWindow::getThumbnailPath(const fs::path& originalPath)
     return thumbsDir / thumbFilename;
 }
 
-void Editor::ResourcesWindow::queueThumbnailGeneration(const fs::path& filePath, const std::string& extension) {
+void Editor::ResourcesWindow::queueThumbnailGeneration(const fs::path& filePath, FileType type) {
     fs::path thumbnailPath = getThumbnailPath(filePath);
+
+    ThumbnailRequest thumbFile = {filePath, type};
     if (fs::exists(thumbnailPath)) {
         auto imageTime = fs::last_write_time(filePath);
         auto thumbTime = fs::last_write_time(thumbnailPath);
         if (thumbTime >= imageTime) {
             // Thumbnail is up-to-date, queue it for loading
             std::lock_guard<std::mutex> lock(completedThumbnailMutex);
-            completedThumbnailQueue.push(filePath);
+            completedThumbnailQueue.push(thumbFile);
             return;
         }
     }
     {
         std::lock_guard<std::mutex> lock(thumbnailMutex);
-        thumbnailQueue.push(filePath);
+        thumbnailQueue.push(thumbFile);
     }
     thumbnailCondition.notify_one();
 }
 
 void Editor::ResourcesWindow::thumbnailWorker() {
     while (!stopThumbnailThread) {
-        fs::path filePath;
+        ThumbnailRequest thumbFile;
         {
             std::unique_lock<std::mutex> lock(thumbnailMutex);
             // Wait until there is work or the thread is stopped
@@ -986,59 +989,77 @@ void Editor::ResourcesWindow::thumbnailWorker() {
                 return;
             }
             // Get the next file path
-            filePath = thumbnailQueue.front();
+            thumbFile = thumbnailQueue.front();
             thumbnailQueue.pop();
         }
 
         // Generate thumbnail
-        int width, height, channels;
-        unsigned char* data = stbi_load(filePath.string().c_str(), &width, &height, &channels, 4);
-        if (data) {
-            // Define maximum thumbnail dimension
-            int maxThumbSize = THUMBNAIL_SIZE;
+        if (thumbFile.type == FileType::IMAGE) {
+            int width, height, channels;
+            unsigned char* data = stbi_load(thumbFile.path.string().c_str(), &width, &height, &channels, 4);
+            if (data) {
+                // Define maximum thumbnail dimension
+                int maxThumbSize = THUMBNAIL_SIZE;
 
-            // Calculate scaling factor to fit within maxThumbSize while preserving aspect ratio
-            float scale = (width > height) ? 
-                (float)maxThumbSize / width : 
-                (float)maxThumbSize / height;
+                // Calculate scaling factor to fit within maxThumbSize while preserving aspect ratio
+                float scale = (width > height) ? 
+                    (float)maxThumbSize / width : 
+                    (float)maxThumbSize / height;
 
-            // Calculate the new dimensions
-            int newWidth = static_cast<int>(width * scale);
-            int newHeight = static_cast<int>(height * scale);
+                // Calculate the new dimensions
+                int newWidth = static_cast<int>(width * scale);
+                int newHeight = static_cast<int>(height * scale);
 
-            // Ensure dimensions are at least 1 pixel
-            newWidth = std::max(1, newWidth);
-            newHeight = std::max(1, newHeight);
+                // Ensure dimensions are at least 1 pixel
+                newWidth = std::max(1, newWidth);
+                newHeight = std::max(1, newHeight);
 
-            // Create a buffer for the resized image
-            unsigned char* thumbData = new unsigned char[newWidth * newHeight * 4];
+                // Create a buffer for the resized image
+                unsigned char* thumbData = new unsigned char[newWidth * newHeight * 4];
 
-            // Resize the image while preserving aspect ratio
-            stbir_resize_uint8_linear(
-                data,                   // input
-                width,                  // input width
-                height,                 // input height
-                0,                      // input stride in bytes (0 = width * channels)
-                thumbData,              // output
-                newWidth,               // output width
-                newHeight,              // output height
-                0,                      // output stride in bytes (0 = width * channels)
-                STBIR_RGBA              // number of channels (RGBA = 4)
-            );
+                // Resize the image while preserving aspect ratio
+                stbir_resize_uint8_linear(
+                    data,                   // input
+                    width,                  // input width
+                    height,                 // input height
+                    0,                      // input stride in bytes (0 = width * channels)
+                    thumbData,              // output
+                    newWidth,               // output width
+                    newHeight,              // output height
+                    0,                      // output stride in bytes (0 = width * channels)
+                    STBIR_RGBA              // number of channels (RGBA = 4)
+                );
 
-            // Save the thumbnail
-            fs::path thumbnailPath = getThumbnailPath(filePath);
-            fs::create_directories(thumbnailPath.parent_path());
-            stbi_write_png(thumbnailPath.string().c_str(), newWidth, newHeight, 4, thumbData, newWidth * 4);
+                // Save the thumbnail
+                fs::path thumbnailPath = getThumbnailPath(thumbFile.path);
+                fs::create_directories(thumbnailPath.parent_path());
+                stbi_write_png(thumbnailPath.string().c_str(), newWidth, newHeight, 4, thumbData, newWidth * 4);
 
-            // Clean up
-            delete[] thumbData;
-            stbi_image_free(data);
+                // Clean up
+                delete[] thumbData;
+                stbi_image_free(data);
 
-            // Notify main thread that thumbnail is ready
-            {
-                std::lock_guard<std::mutex> lock(completedThumbnailMutex);
-                completedThumbnailQueue.push(filePath);
+                // Notify main thread that thumbnail is ready
+                {
+                    std::lock_guard<std::mutex> lock(completedThumbnailMutex);
+                    completedThumbnailQueue.push(thumbFile);
+                }
+            }
+        }else if (thumbFile.type == FileType::MATERIAL) {
+            // Load the material file content
+            std::ifstream file(thumbFile.path.string());
+            if (file.is_open()) {
+                std::stringstream buffer;
+                buffer << file.rdbuf();
+                std::string materialContent = buffer.str();
+
+                // Parse the content as YAML
+                YAML::Node materialNode = YAML::Load(materialContent);
+
+                // Decode the material
+                Material material = Stream::decodeMaterial(materialNode);
+                materialRender.applyMaterial(material);
+                Engine::executeSceneOnce(materialRender.getScene());
             }
         }
     }
@@ -1144,18 +1165,18 @@ void Editor::ResourcesWindow::show() {
 
     // Process completed thumbnails
     while (true) {
-        fs::path filePath;
+        ThumbnailRequest thumbFile;
         {
             std::lock_guard<std::mutex> lock(completedThumbnailMutex);
             if (completedThumbnailQueue.empty()) {
                 break;
             }
-            filePath = completedThumbnailQueue.front();
+            thumbFile = completedThumbnailQueue.front();
             completedThumbnailQueue.pop();
         }
         // Find and update the corresponding file entry
         for (auto& file : files) {
-            if ((currentPath / file.name) == filePath) {
+            if ((currentPath / file.name) == thumbFile.path) {
                 loadThumbnail(file);
                 break;
             }

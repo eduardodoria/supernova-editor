@@ -39,6 +39,11 @@ namespace Supernova::Editor {
         std::string thumbnailPath;
     };
 
+    struct ThumbnailRequest {
+        fs::path path;
+        FileType type = FileType::NONE;
+    };
+
     class ResourcesWindow {
     private:
         Project* project;
@@ -98,16 +103,18 @@ namespace Supernova::Editor {
 
         bool showDeleteConfirmation;
 
+        MaterialRender materialRender;
+
         // Thumbnail generation
         std::thread thumbnailThread;
         std::mutex thumbnailMutex;
-        std::queue<fs::path> thumbnailQueue;
+        std::queue<ThumbnailRequest> thumbnailQueue;
         std::atomic<bool> stopThumbnailThread;
         std::condition_variable thumbnailCondition;
 
         // Queue for completed thumbnails
         std::mutex completedThumbnailMutex;
-        std::queue<fs::path> completedThumbnailQueue;
+        std::queue<ThumbnailRequest> completedThumbnailQueue;
 
         void renderHeader();
         void renderFileListing(bool showDirectories);
@@ -126,7 +133,7 @@ namespace Supernova::Editor {
         bool isSceneFile(const std::string& extension) const;
         bool isMaterialFile(const std::string& extension) const;
 
-        void queueThumbnailGeneration(const fs::path& filePath, const std::string& extension);
+        void queueThumbnailGeneration(const fs::path& filePath, FileType type);
         void thumbnailWorker();
         fs::path getThumbnailPath(const fs::path& originalPath) const;
         void loadThumbnail(FileEntry& entry);
