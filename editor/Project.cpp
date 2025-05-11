@@ -803,14 +803,6 @@ Texture Editor::Project::getMaterialThumbnail(const Material& material){
     return materialRender.getTexture();
 }
 
-void Editor::Project::saveMaterialThumbnail(){
-    if (materialRender.getFramebuffer()->isCreated() && !materialThumbSaved){
-        GraphicUtils::saveFramebufferImage(materialRender.getFramebuffer(), "output.png");
-
-        materialThumbSaved = true;
-    }
-}
-
 bool Editor::Project::hasScenesUnsavedChanges() const{
     for (auto& scene: scenes){
         if (scene.isModified){

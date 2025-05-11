@@ -502,7 +502,7 @@ void Editor::App::engineRender(){
 
                 Engine::systemDraw();
 
-                project.saveMaterialThumbnail();
+                resourcesWindow->processMaterialThumbnails();
 
                 sceneProject.needUpdateRender = false;
             }

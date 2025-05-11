@@ -116,6 +116,11 @@ namespace Supernova::Editor {
         std::mutex completedThumbnailMutex;
         std::queue<ThumbnailRequest> completedThumbnailQueue;
 
+        // Add these to the private section of the ResourcesWindow class
+        fs::path pendingMaterialPath;
+        bool hasPendingMaterialRender = false;
+        std::mutex materialRenderMutex;
+
         void renderHeader();
         void renderFileListing(bool showDirectories);
         void renderDirectoryTree(const fs::path& path);
@@ -150,6 +155,9 @@ namespace Supernova::Editor {
 
         void handleExternalDragEnter();
         void handleExternalDragLeave();
+
+        // need to be after draw
+        void processMaterialThumbnails();
 
         void cleanupThumbnails();
 

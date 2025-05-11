@@ -19,7 +19,7 @@ Editor::MaterialRender::MaterialRender(){
 
     scene->setAmbientLight(0.2);
 
-    camera->setPosition(0, 0, 5);
+    camera->setPosition(0, 0, 3);
     camera->setTarget(0, 0, 0);
     camera->setType(CameraType::CAMERA_PERSPECTIVE);
     camera->setFramebufferSize(128, 128);

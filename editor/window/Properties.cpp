@@ -1099,7 +1099,7 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
             Material material = scene->getComponent<MeshComponent>(entities[0]).submeshes[s].material;
             std::string materialStr = YAML::Dump(Stream::encodeMaterial(material));
 
-            ImGui::SetDragDropPayload("material", materialStr.c_str(), materialStr.size() + 1);
+            ImGui::SetDragDropPayload("material", materialStr.c_str(), materialStr.size());
             ImGui::Text("Moving material");
             ImGui::EndDragDropSource();
         }

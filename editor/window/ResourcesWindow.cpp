@@ -16,6 +16,7 @@
 #include "Stream.h"
 #include "util/FileDialogs.h"
 #include "util/SHA1.h"
+#include "util/GraphicUtils.h"
 
 #include "imgui_internal.h"
 
@@ -81,6 +82,35 @@ void Editor::ResourcesWindow::handleExternalDragEnter() {
 
 void Editor::ResourcesWindow::handleExternalDragLeave() {
     isExternalDragHovering = false;
+}
+
+void Editor::ResourcesWindow::processMaterialThumbnails() {
+    // Check if we have a pending material render that needs post-processing
+    if (hasPendingMaterialRender) {
+        std::lock_guard<std::mutex> lock(materialRenderMutex);
+        if (hasPendingMaterialRender) {
+            fs::path thumbnailPath = getThumbnailPath(pendingMaterialPath);
+            fs::create_directories(thumbnailPath.parent_path());
+
+            // Store captured variables for the callback
+            fs::path capturedPath = pendingMaterialPath;
+            FileType capturedType = FileType::MATERIAL;
+
+            // Use the callback to notify when the image save is complete
+            GraphicUtils::saveFramebufferImage(materialRender.getFramebuffer(), thumbnailPath, 
+                [this, capturedPath, capturedType]() {
+                    // This code runs after the image has been saved
+                    std::lock_guard<std::mutex> completedLock(completedThumbnailMutex);
+                    completedThumbnailQueue.push({capturedPath, capturedType});
+                });
+
+            // Mark as processed
+            hasPendingMaterialRender = false;
+
+            // Notify the thumbnail thread that we've processed the material
+            thumbnailCondition.notify_one();
+        }
+    }
 }
 
 void Editor::ResourcesWindow::renderHeader() {
@@ -299,7 +329,7 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
             float iconOffsetY = selectableSize.y + itemSpacingY;
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() + iconOffsetX);
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() - iconOffsetY);
-            if (file.type == FileType::IMAGE && file.hasThumbnail && thumbnailTextures.find(file.thumbnailPath) != thumbnailTextures.end()) {
+            if (file.hasThumbnail && thumbnailTextures.find(file.thumbnailPath) != thumbnailTextures.end()) {
                 Texture& thumbTexture = thumbnailTextures[file.thumbnailPath];
                 if (thumbTexture.getRender()) {
                     // Get actual thumbnail dimensions
@@ -982,12 +1012,14 @@ void Editor::ResourcesWindow::thumbnailWorker() {
             std::unique_lock<std::mutex> lock(thumbnailMutex);
             // Wait until there is work or the thread is stopped
             thumbnailCondition.wait(lock, [this]() {
-                return !thumbnailQueue.empty() || stopThumbnailThread;
+                return (!thumbnailQueue.empty() && !hasPendingMaterialRender) || stopThumbnailThread;
             });
-            // Check if we should exit
-            if (stopThumbnailThread && thumbnailQueue.empty()) {
+
+            // If we're stopping, exit
+            if (stopThumbnailThread) {
                 return;
             }
+
             // Get the next file path
             thumbFile = thumbnailQueue.front();
             thumbnailQueue.pop();
@@ -1045,29 +1077,33 @@ void Editor::ResourcesWindow::thumbnailWorker() {
                     completedThumbnailQueue.push(thumbFile);
                 }
             }
-        }else if (thumbFile.type == FileType::MATERIAL) {
-            // Load the material file content
-            std::ifstream file(thumbFile.path.string());
-            if (file.is_open()) {
-                std::stringstream buffer;
-                buffer << file.rdbuf();
-                std::string materialContent = buffer.str();
-
-                // Parse the content as YAML
-                YAML::Node materialNode = YAML::Load(materialContent);
-
-                // Decode the material
+        } else if (thumbFile.type == FileType::MATERIAL) {
+            if (YAML::Node materialNode = YAML::LoadFile(thumbFile.path.string())) {
                 Material material = Stream::decodeMaterial(materialNode);
                 materialRender.applyMaterial(material);
+
+                // Set the pending flag before executing the scene
+                {
+                    std::lock_guard<std::mutex> lock(materialRenderMutex);
+                    pendingMaterialPath = thumbFile.path;
+                    hasPendingMaterialRender = true;
+                }
+
+                Engine::startAsyncThread();
                 Engine::executeSceneOnce(materialRender.getScene());
+                Engine::endAsyncThread();
+
+                // The processMaterialThumbnails method will handle the rest
+                // and set hasPendingMaterialRender to false when done
             }
         }
     }
 }
 
+
 // Load a thumbnail texture for a file entry
 void Editor::ResourcesWindow::loadThumbnail(FileEntry& entry) {
-    if (entry.type != FileType::IMAGE || entry.hasThumbnail) {
+    if (entry.hasThumbnail) {
         return;
     }
 
@@ -1117,7 +1153,7 @@ void Editor::ResourcesWindow::cleanupThumbnails() {
         if (!fs::is_regular_file(p.status()))
             continue;
         std::string ext = p.path().extension().string();
-        if (isImageFile(ext)) {
+        if (isImageFile(ext) || isMaterialFile(ext)) {
             fs::path rel = fs::relative(p.path(), project->getProjectPath());
             std::string hash = SHA1::hash(rel.generic_string());
             validThumbHashes.insert(hash);

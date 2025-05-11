@@ -8,7 +8,7 @@ namespace fs = std::filesystem;
 namespace Supernova::Editor {
     class GraphicUtils {
     public:
-        static void saveFramebufferImage(Framebuffer* framebuffer, fs::path path);
+        static void saveFramebufferImage(Framebuffer* framebuffer, fs::path path, std::function<void()> onComplete = nullptr);
 
     };
 }

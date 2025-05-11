@@ -128,7 +128,6 @@ namespace Supernova::Editor{
         bool hasSelectedEntities(uint32_t sceneId) const;
 
         Texture getMaterialThumbnail(const Material& material);
-        void saveMaterialThumbnail();
 
         bool hasSelectedSceneUnsavedChanges() const;
         bool hasScenesUnsavedChanges() const;
