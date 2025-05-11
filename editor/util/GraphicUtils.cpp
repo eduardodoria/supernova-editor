@@ -6,6 +6,10 @@
 #include <future>
 #include <thread>
 
+#ifndef USE_GL_READPIXELS
+#define USE_GL_READPIXELS 0
+#endif
+
 #if defined(SOKOL_METAL)
     #include <TargetConditionals.h>
 #endif
@@ -29,7 +33,7 @@
         #include <GL/gl.h>
     #endif
 
-    #if defined(_WIN32)
+    #if USE_GL_READPIXELS && defined(_WIN32)
         typedef void (APIENTRY *PFNGLBINDFRAMEBUFFERPROC)(GLenum target, GLuint framebuffer);
         static PFNGLBINDFRAMEBUFFERPROC glBindFramebufferPtr = nullptr;
         #define glBindFramebuffer glBindFramebufferPtr
@@ -54,20 +58,25 @@ void Editor::GraphicUtils::saveFramebufferImage(Framebuffer* framebuffer, fs::pa
         pixels = new uint8_t[width * height * 4];
         needDelete = true;
 
-        #if defined(_WIN32)
-            if (!glBindFramebufferPtr) {
-                glBindFramebufferPtr = (PFNGLBINDFRAMEBUFFERPROC)wglGetProcAddress("glBindFramebuffer");
+        #if USE_GL_READPIXELS
+            #if defined(_WIN32)
                 if (!glBindFramebufferPtr) {
-                    delete[] pixels;
-                    Out::error("Engine failure: Failed to load glBindFramebuffer");
-                    return;
+                    glBindFramebufferPtr = (PFNGLBINDFRAMEBUFFERPROC)wglGetProcAddress("glBindFramebuffer");
+                    if (!glBindFramebufferPtr) {
+                        delete[] pixels;
+                        Out::error("Engine failure: Failed to load glBindFramebuffer");
+                        return;
+                    }
                 }
-            }
+            #endif
+            glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->getRender().getGLHandler());
+            glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        #else
+            glBindTexture(GL_TEXTURE_2D, framebuffer->getRender().getColorTexture().getGLHandler());
+            glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+            glBindTexture(GL_TEXTURE_2D, 0);
         #endif
-
-        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->getRender().getGLHandler());
-        glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     #endif
 
     #if defined(SOKOL_METAL)
