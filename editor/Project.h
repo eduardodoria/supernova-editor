@@ -1,10 +1,6 @@
 #ifndef PROJECT_H
 #define PROJECT_H
 
-#define NULL_PROJECT_SCENE 0
-#define USER_LASTENTITY 99
-#define THUMBNAIL_SIZE 128
-
 #include "Scene.h"
 #include "Catalog.h"
 #include "render/SceneRender.h"
@@ -12,6 +8,7 @@
 #include "render/material/MaterialRender.h"
 #include "Conector.h"
 #include "Generator.h"
+#include "Configs.h"
 
 #include <filesystem>
 

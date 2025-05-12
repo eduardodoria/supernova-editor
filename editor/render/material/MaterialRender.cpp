@@ -1,5 +1,7 @@
 #include "MaterialRender.h"
 
+#include "Configs.h"
+
 using namespace Supernova;
 
 Editor::MaterialRender::MaterialRender(){
@@ -22,7 +24,7 @@ Editor::MaterialRender::MaterialRender(){
     camera->setPosition(0, 0, 3);
     camera->setTarget(0, 0, 0);
     camera->setType(CameraType::CAMERA_PERSPECTIVE);
-    camera->setFramebufferSize(128, 128);
+    camera->setFramebufferSize(THUMBNAIL_SIZE, THUMBNAIL_SIZE);
     camera->setRenderToTexture(true);
 }
 
