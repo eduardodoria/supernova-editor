@@ -769,40 +769,6 @@ bool Editor::Project::hasSelectedSceneUnsavedChanges() const{
     return getScene(selectedScene)->isModified;
 }
 
-fs::path Editor::Project::getMaterialThumbnailPath(const Material& material) const {
-    fs::path thumbsDir = getProjectPath() / ".supernova" / "thumbs" / "material";
-
-    std::string materialStr = YAML::Dump(Stream::encodeMaterial(material));
-    std::string hash = SHA1::hash(materialStr);
-
-    std::string thumbFilename = hash + ".mat.png";
-
-    return thumbsDir / thumbFilename;
-}
-
-static int materialThumbSaved = false;
-
-Texture Editor::Project::getMaterialThumbnail(const Material& material){
-    fs::path thumbPath = getMaterialThumbnailPath(material);
-
-    if (!fs::exists(thumbPath)) {
-    }
-
-    //materialRender.getScene()->load();
-    //materialRender.getScene()->updateSizeFromCamera();
-    //materialRender.getScene()->update(0.0f);
-    //materialRender.getScene()->draw();
-
-    if (firstMaterialRender || (materialRendered != material)){
-        materialRendered = material;
-        materialRender.applyMaterial(material);
-        Engine::executeSceneOnce(materialRender.getScene());
-        firstMaterialRender = false;
-    }
-
-    return materialRender.getTexture();
-}
-
 bool Editor::Project::hasScenesUnsavedChanges() const{
     for (auto& scene: scenes){
         if (scene.isModified){

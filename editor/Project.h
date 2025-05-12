@@ -52,10 +52,6 @@ namespace Supernova::Editor{
         std::filesystem::path projectPath;
         bool resourcesFocused;
 
-        MaterialRender materialRender;
-        Material materialRendered;
-        bool firstMaterialRender = true;
-
         template<typename T>
         T* findScene(uint32_t sceneId) const;
 
@@ -63,8 +59,6 @@ namespace Supernova::Editor{
         bool createNewComponent(uint32_t sceneId, Entity entity, ComponentType component);
         void deleteSceneProject(SceneProject* sceneProject);
         void resetConfigs();
-
-        fs::path getMaterialThumbnailPath(const Material& material) const;
 
     public:
         Project();
@@ -123,8 +117,6 @@ namespace Supernova::Editor{
         void clearSelectedEntities(uint32_t sceneId);
         std::vector<Entity> getSelectedEntities(uint32_t sceneId) const;
         bool hasSelectedEntities(uint32_t sceneId) const;
-
-        Texture getMaterialThumbnail(const Material& material);
 
         bool hasSelectedSceneUnsavedChanges() const;
         bool hasScenesUnsavedChanges() const;

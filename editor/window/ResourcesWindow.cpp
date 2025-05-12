@@ -325,6 +325,9 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
                 ImGui::EndPopup();
             }
 
+            ImTextureID fileIconImage = (ImTextureID)file.icon;
+            ImVec2 fileIconSize = ImVec2(iconSize, iconSize);
+
             float iconOffsetX = (cellWidth - iconSize) / 2;
             float iconOffsetY = selectableSize.y + itemSpacingY;
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() + iconOffsetX);
@@ -345,25 +348,12 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
                     float displayWidth = thumbWidth * scale;
                     float displayHeight = thumbHeight * scale;
 
-                    // Calculate offset to center the thumbnail within the icon space
-                    float offsetX = (iconSize - displayWidth) / 2;
-                    float offsetY = (iconSize - displayHeight) / 2;
-
-                    // Adjust cursor position for centering
-                    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offsetX);
-                    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + offsetY);
-
-                    // Display the image with the correct aspect ratio
-                    ImGui::Image(
-                        (ImTextureID)(intptr_t)thumbTexture.getRender()->getGLHandler(),
-                        ImVec2(displayWidth, displayHeight)
-                    );
-                } else {
-                    ImGui::Image((ImTextureID)file.icon, ImVec2(iconSize, iconSize));
+                    fileIconImage = (ImTextureID)(intptr_t)thumbTexture.getRender()->getGLHandler();
+                    fileIconSize = ImVec2(displayWidth, displayHeight);
                 }
-            } else {
-                ImGui::Image((ImTextureID)file.icon, ImVec2(iconSize, iconSize));
             }
+
+            ImGui::Image(fileIconImage, fileIconSize);
 
             float textOffsetX = (cellWidth / 2) - (textSize.x / 2);
             if (textOffsetX < 0) textOffsetX = 0;
@@ -387,6 +377,24 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
                 }
                 ImGui::SetDragDropPayload("resource_files", buffer.data(), buffer.size());
                 ImGui::Text("Moving %zu file(s)", selectedFiles.size());
+                if (selectedFiles.size() == 1){
+                    float imageDragSize = 32;
+
+                    // Calculate scaling to fit within iconSize while preserving aspect ratio
+                    float scaleX = imageDragSize / fileIconSize.x;
+                    float scaleY = imageDragSize / fileIconSize.y;
+                    float scale = std::min(scaleX, scaleY);
+
+                    // Calculate display dimensions
+                    float displayWidth = fileIconSize.x * scale;
+                    float displayHeight = fileIconSize.y * scale;
+
+                    float availWidth = ImGui::GetCurrentWindow()->Size.x;
+                    float xPos = (availWidth - displayWidth) * 0.5f;
+                    ImGui::SetCursorPosX(xPos);
+
+                    ImGui::Image(fileIconImage, ImVec2(displayWidth, displayHeight));
+                }
                 ImGui::EndDragDropSource();
             }
 
@@ -1078,24 +1086,34 @@ void Editor::ResourcesWindow::thumbnailWorker() {
                 }
             }
         } else if (thumbFile.type == FileType::MATERIAL) {
-            if (YAML::Node materialNode = YAML::LoadFile(thumbFile.path.string())) {
-                Material material = Stream::decodeMaterial(materialNode);
-                materialRender.applyMaterial(material);
+            try {
+                if (YAML::Node materialNode = YAML::LoadFile(thumbFile.path.string())) {
+                    Material material = Stream::decodeMaterial(materialNode);
+                    materialRender.applyMaterial(material);
 
-                // Set the pending flag before executing the scene
-                {
-                    std::lock_guard<std::mutex> lock(materialRenderMutex);
-                    pendingMaterialPath = thumbFile.path;
-                    hasPendingMaterialRender = true;
+                    // Set the pending flag before executing the scene
+                    {
+                        std::lock_guard<std::mutex> lock(materialRenderMutex);
+                        pendingMaterialPath = thumbFile.path;
+                        hasPendingMaterialRender = true;
+                    }
+
+                    Engine::startAsyncThread();
+                    Engine::executeSceneOnce(materialRender.getScene());
+                    Engine::endAsyncThread();
+
+                    // The processMaterialThumbnails method will handle the rest
+                    // and set hasPendingMaterialRender to false when done
                 }
+            } catch (const std::exception& e) {
+                // Log the error and continue with other thumbnails
+                std::cerr << "Error generating thumbnail for material: " << thumbFile.path.string() << " - " << e.what() << std::endl;
 
-                Engine::startAsyncThread();
-                Engine::executeSceneOnce(materialRender.getScene());
-                Engine::endAsyncThread();
-
-                // The processMaterialThumbnails method will handle the rest
-                // and set hasPendingMaterialRender to false when done
+                // Make sure we reset the pending flag if there was an error
+                std::lock_guard<std::mutex> lock(materialRenderMutex);
+                hasPendingMaterialRender = false;
             }
+
         }
     }
 }

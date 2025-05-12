@@ -21,6 +21,7 @@ namespace Supernova::Editor{
         virtual ~MaterialRender();
 
         void applyMaterial(const Material& material);
+        const Material getMaterial();
 
         Framebuffer* getFramebuffer();
         Texture getTexture();

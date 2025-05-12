@@ -39,6 +39,10 @@ void Editor::MaterialRender::applyMaterial(const Material& material){
     sphere->setMaterial(material);
 }
 
+const Material Editor::MaterialRender::getMaterial(){
+    return sphere->getMaterial();
+}
+
 Framebuffer* Editor::MaterialRender::getFramebuffer(){
     return camera->getFramebuffer();
 }

@@ -228,6 +228,15 @@ void Editor::Properties::dragDropResources(ComponentType cpType, std::string id,
     }
 }
 
+Texture Editor::Properties::getMaterialThumbnail(const Material& material){
+    if ((materialRender.getMaterial() != material) || !materialRender.getFramebuffer()->isCreated()){
+        materialRender.applyMaterial(material);
+        Engine::executeSceneOnce(materialRender.getScene());
+    }
+
+    return materialRender.getTexture();
+}
+
 void Editor::Properties::drawNinePatchesPreview(const ImageComponent& img, Texture* texture, Texture* thumbTexture, const ImVec2& size){
     float availWidth = ImGui::GetContentRegionAvail().x;
 
@@ -1040,9 +1049,9 @@ bool Editor::Properties::propertyMaterial(Scene* scene, std::vector<Entity>& ent
 
     static bool show_button_group = false;
 
-    Texture texRender = project->getMaterialThumbnail(material);
+    Texture texRender = getMaterialThumbnail(material);
     ImGui::Image(texRender.getRender()->getGLHandler(), ImVec2(64, 64));
-    if (ImGui::IsItemClicked()) {
+    if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
         show_button_group = !show_button_group;
     }
 
@@ -1089,6 +1098,11 @@ bool Editor::Properties::propertyMaterial(Scene* scene, std::vector<Entity>& ent
 
         ImGui::SetDragDropPayload("material", materialStr.c_str(), materialStr.size());
         ImGui::Text("Moving material");
+        float imageDragSize = 32;
+        float availWidth = ImGui::GetCurrentWindow()->Size.x;
+        float xPos = (availWidth - imageDragSize) * 0.5f;
+        ImGui::SetCursorPosX(xPos);
+        ImGui::Image(texRender.getRender()->getGLHandler(), ImVec2(imageDragSize, imageDragSize));
         ImGui::EndDragDropSource();
     }
 

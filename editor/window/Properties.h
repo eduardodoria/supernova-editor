@@ -12,6 +12,8 @@ namespace Supernova::Editor{
         Project* project;
         Command* cmd;
 
+        MaterialRender materialRender;
+
         // for drag and drop textures
         std::map<std::string, bool> hasTextureDrag;
         std::map<std::string, std::map<Entity, Texture>> originalTex;
@@ -33,6 +35,7 @@ namespace Supernova::Editor{
         Texture* findThumbnail(const std::string& path);
         void drawImageWithBorderAndRounding(Texture* texture, const ImVec2& size, float rounding = 4.0f, ImU32 border_col = IM_COL32(0, 0, 0, 255), float border_thickness = 1.0f);
         void dragDropResources(ComponentType cpType, std::string id, Scene* scene, std::vector<Entity> entities, int updateFlags);
+        Texture getMaterialThumbnail(const Material& material);
 
         void drawNinePatchesPreview(const ImageComponent& img, Texture* texture, Texture* thumbTexture, const ImVec2& size = ImVec2(0, 0));
 
