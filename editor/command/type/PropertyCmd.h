@@ -1,5 +1,4 @@
-#ifndef CHANGEPROPERTYCMD_H
-#define CHANGEPROPERTYCMD_H
+#pragma once
 
 #include "command/Command.h"
 #include "Scene.h"
@@ -83,5 +82,3 @@ namespace Supernova::Editor{
     };
 
 }
-
-#endif /* CHANGEPROPERTYCMD_H */

@@ -39,6 +39,33 @@ namespace Supernova::Editor {
 
         int getWidth(uint32_t sceneId) const;
         int getHeight(uint32_t sceneId) const;
+
+        template<typename T>
+        void drawSceneProperty(Project* project, Scene* scene, const std::string& propertyName, const char* label, float col2Size = -1.0f) {
+            T value = Supernova::Editor::Catalog::getSceneProperty<T>(scene, propertyName);
+            bool changed = false;
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("%s", label);
+            ImGui::TableSetColumnIndex(1);
+
+            //ImGui::SetNextItemWidth(-1);
+            if constexpr (std::is_same_v<T, bool>) {
+                changed = ImGui::Checkbox(("##" + propertyName).c_str(), &value);
+            } else if constexpr (std::is_same_v<T, float>) {
+                changed = ImGui::DragFloat(("##" + propertyName).c_str(), &value, 0.01f);
+            } else if constexpr (std::is_same_v<T, Vector3>) {
+                changed = ImGui::ColorEdit3(("##" + propertyName).c_str(), (float*)&value.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf);
+            } else if constexpr (std::is_same_v<T, Vector4>) {
+                changed = ImGui::ColorEdit4(("##" + propertyName).c_str(), (float*)&value.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf);
+            }
+
+            if (changed) {
+                Supernova::Editor::Catalog::setSceneProperty<T>(scene, propertyName, value);
+                project->getSelectedScene()->isModified = true;
+            }
+        }
     };
 }
 

@@ -411,12 +411,24 @@ void Editor::SceneWindow::show() {
             if (ImGui::Button(ICON_FA_GEAR)) {
                 ImGui::OpenPopup("scenesettings");
             }
+            ImGui::SetNextWindowSizeConstraints(ImVec2(350.0f, 0.0f), ImVec2(FLT_MAX, FLT_MAX));
             if (ImGui::BeginPopup("scenesettings")) {
                 ImGui::Text("Scene settings");
                 ImGui::Separator();
 
-                static float test;
-                ImGui::DragFloat("Shadow distance", &test);
+                // Start a table for properties
+                if (ImGui::BeginTable("scene_settings_table", 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Resizable)) {
+                    ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("Ambient Intensity").x);
+                    ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+                    drawSceneProperty<Vector4>(project, sceneProject.scene, "background_color",   "Background");
+                    drawSceneProperty<bool>  (project, sceneProject.scene, "shadows_pcf",        "Shadows PCF");
+                    drawSceneProperty<bool>  (project, sceneProject.scene, "ambient_light_enabled", "Ambient Enabled");
+                    drawSceneProperty<Vector3>(project, sceneProject.scene, "ambient_light_color",   "Ambient Color");
+                    drawSceneProperty<float> (project, sceneProject.scene, "ambient_light_intensity", "Ambient Intensity");
+
+                    ImGui::EndTable();
+                }
 
                 ImGui::EndPopup();
             }

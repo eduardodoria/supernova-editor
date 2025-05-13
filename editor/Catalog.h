@@ -1,5 +1,4 @@
-#ifndef CATALOG_H
-#define CATALOG_H
+#pragma once
 
 #include <stddef.h>
 #include <string>
@@ -112,6 +111,7 @@ namespace Supernova::Editor{
         static std::vector<ComponentType> findComponents(Scene* scene, Entity entity);
         static std::map<std::string, PropertyData> findEntityProperties(Scene* scene, Entity entity, ComponentType component);
 
+        static void updateEntity(Scene* scene, Entity entity, int updateFlags);
 
         template<typename T>
         static T* getPropertyRef(Scene* scene, Entity entity, ComponentType component, std::string propertyName){
@@ -125,9 +125,86 @@ namespace Supernova::Editor{
             return nullptr;
         }
 
-        static void updateEntity(Scene* scene, Entity entity, int updateFlags);
+        template<typename T>
+        static T getSceneProperty(Scene* scene, const std::string& propertyName) {
+            if (!scene) {
+                // Return default values if scene is null
+                if constexpr (std::is_same_v<T, Vector4>) return Vector4(0.0, 0.0, 0.0, 1.0);
+                if constexpr (std::is_same_v<T, Vector3>) return Vector3(1.0, 1.0, 1.0);
+                if constexpr (std::is_same_v<T, bool>) return false;
+                if constexpr (std::is_same_v<T, float>) return 0.0f;
+                // Add other types as needed
+            }
+
+            if (propertyName == "background_color") {
+                if constexpr (std::is_same_v<T, Vector4>) {
+                    return scene->getBackgroundColor();
+                }
+            }
+            else if (propertyName == "shadows_pcf") {
+                if constexpr (std::is_same_v<T, bool>) {
+                    return scene->isShadowsPCF();
+                }
+            }
+            else if (propertyName == "ambient_light_enabled") {
+                if constexpr (std::is_same_v<T, bool>) {
+                    return scene->isSceneAmbientLightEnabled();
+                }
+            }
+            else if (propertyName == "ambient_light_color") {
+                if constexpr (std::is_same_v<T, Vector3>) {
+                    return scene->getAmbientLightColor();
+                }
+            }
+            else if (propertyName == "ambient_light_color_linear") {
+                if constexpr (std::is_same_v<T, Vector3>) {
+                    return scene->getAmbientLightColorLinear();
+                }
+            }
+            else if (propertyName == "ambient_light_intensity") {
+                if constexpr (std::is_same_v<T, float>) {
+                    return scene->getAmbientLightIntensity();
+                }
+            }
+
+            // Return default value if property not found
+            if constexpr (std::is_same_v<T, Vector4>) return Vector4(0.0, 0.0, 0.0, 1.0);
+            if constexpr (std::is_same_v<T, Vector3>) return Vector3(1.0, 1.0, 1.0);
+            if constexpr (std::is_same_v<T, bool>) return false;
+            if constexpr (std::is_same_v<T, float>) return 0.0f;
+            // Add other types as needed
+        }
+
+        template<typename T>
+        static void setSceneProperty(Scene* scene, const std::string& propertyName, const T& value) {
+            if (!scene) return;
+
+            if (propertyName == "background_color") {
+                if constexpr (std::is_same_v<T, Vector4>) {
+                    scene->setBackgroundColor(value);
+                }
+            }
+            else if (propertyName == "shadows_pcf") {
+                if constexpr (std::is_same_v<T, bool>) {
+                    scene->setShadowsPCF(value);
+                }
+            }
+            else if (propertyName == "ambient_light_enabled") {
+                if constexpr (std::is_same_v<T, bool>) {
+                    scene->setSceneAmbientLightEnabled(value);
+                }
+            }
+            else if (propertyName == "ambient_light_color") {
+                if constexpr (std::is_same_v<T, Vector3>) {
+                    scene->setAmbientLight(value);
+                }
+            }
+            else if (propertyName == "ambient_light_intensity") {
+                if constexpr (std::is_same_v<T, float>) {
+                    scene->setAmbientLight(value);
+                }
+            }
+        }
     };
 
 }
-
-#endif /* CATALOG_H */
