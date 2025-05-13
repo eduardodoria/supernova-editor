@@ -19,7 +19,7 @@ Editor::MaterialRender::MaterialRender(){
     light->setIntensity(6.0);
     light->setType(LightType::DIRECTIONAL);
 
-    scene->setAmbientLight(0.2);
+    scene->setSceneAmbientLightEnabled(false);
 
     camera->setPosition(0, 0, 3);
     camera->setTarget(0, 0, 0);

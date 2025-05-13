@@ -348,6 +348,13 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
                     float displayWidth = thumbWidth * scale;
                     float displayHeight = thumbHeight * scale;
 
+                    float offsetX = (iconSize - displayWidth) / 2;
+                    float offsetY = (iconSize - displayHeight) / 2;
+
+                    // Adjust cursor position for centering
+                    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offsetX);
+                    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + offsetY);
+
                     fileIconImage = (ImTextureID)(intptr_t)thumbTexture.getRender()->getGLHandler();
                     fileIconSize = ImVec2(displayWidth, displayHeight);
                 }
