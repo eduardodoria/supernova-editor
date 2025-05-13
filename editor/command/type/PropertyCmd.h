@@ -20,7 +20,7 @@ namespace Supernova::Editor{
     class PropertyCmd: public Command{
 
     private:
-        Scene* scene;
+        SceneProject* sceneProject;
         ComponentType type;
         std::string propertyName;
         int updateFlags;
@@ -29,8 +29,8 @@ namespace Supernova::Editor{
 
     public:
 
-        PropertyCmd(Scene* scene, Entity entity, ComponentType type, std::string propertyName, int updateFlags, T newValue){
-            this->scene = scene;
+        PropertyCmd(SceneProject* sceneProject, Entity entity, ComponentType type, std::string propertyName, int updateFlags, T newValue){
+            this->sceneProject = sceneProject;
             this->type = type;
             this->propertyName = propertyName;
             this->updateFlags = updateFlags;
@@ -40,31 +40,35 @@ namespace Supernova::Editor{
 
         bool execute(){
             for (auto& [entity, value] : values){
-                T* valueRef = Catalog::getPropertyRef<T>(scene, entity, type, propertyName);
+                T* valueRef = Catalog::getPropertyRef<T>(sceneProject->scene, entity, type, propertyName);
 
                 value.oldValue = T(*valueRef);
                 *valueRef = value.newValue;
 
-                Catalog::updateEntity(scene, entity, updateFlags);
+                Catalog::updateEntity(sceneProject->scene, entity, updateFlags);
             }
+
+            sceneProject->isModified = true;
 
             return true;
         }
 
         void undo(){
             for (auto const& [entity, value] : values){
-                T* valueRef = Catalog::getPropertyRef<T>(scene, entity, type, propertyName);
+                T* valueRef = Catalog::getPropertyRef<T>(sceneProject->scene, entity, type, propertyName);
 
                 *valueRef = value.oldValue;
 
-                Catalog::updateEntity(scene, entity, updateFlags);
+                Catalog::updateEntity(sceneProject->scene, entity, updateFlags);
             }
+
+            sceneProject->isModified = true;
         }
 
         bool mergeWith(Editor::Command* otherCommand){
             PropertyCmd* otherCmd = dynamic_cast<PropertyCmd*>(otherCommand);
             if (otherCmd != nullptr){
-                if (scene == otherCmd->scene && propertyName == otherCmd->propertyName){
+                if (sceneProject->scene == otherCmd->sceneProject->scene && propertyName == otherCmd->propertyName){
                     for (auto const& [otherEntity, otherValue] : otherCmd->values){
                         if (values.find(otherEntity) != values.end()) {
                             values[otherEntity].oldValue = otherValue.oldValue;
