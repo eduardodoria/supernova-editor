@@ -364,8 +364,10 @@ bool Editor::Properties::propertyHeader(std::string label, float secondColSize, 
     return button;
 }
 
-void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string, PropertyData> props, std::string id, std::string label, Scene* scene, std::vector<Entity> entities, float stepSize, float secondColSize, bool child, std::string help){
+bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string, PropertyData> props, std::string id, std::string label, Scene* scene, std::vector<Entity> entities, float stepSize, float secondColSize, bool child, std::string help){
     PropertyData prop = props[replaceNumberedBrackets(id)];
+
+    bool result = true;
 
     constexpr float compThreshold = 1e-4;
     constexpr float zeroThreshold = 1e-4;
@@ -1023,90 +1025,103 @@ void Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         ImGui::EndGroup();
 
         dragDropResources(cpType, id, scene, entities, prop.updateFlags);
+
+    }else if (prop.type == PropertyType::Material){
+        Material* value = nullptr;
+        std::map<Entity, Material> eValue;
+        bool dif = false;
+        for (Entity& entity : entities){
+            eValue[entity] = *Catalog::getPropertyRef<Material>(scene, entity, cpType, id);
+            if (value){
+                if (*value != eValue[entity])
+                    dif = true;
+            }
+            value = &eValue[entity];
+        }
+        Material newValue = *value;
+
+        bool defChanged = false;
+        if (prop.def){
+            Material defMat = *static_cast<Material*>(prop.def);
+            defMat.ambientLight = scene->getAmbientLightColorLinear();
+            defMat.ambientIntensity = scene->getAmbientLightIntensity();
+            defChanged = (newValue != defMat);
+        }
+        if (propertyHeader(label, secondColSize, defChanged, child)){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<Material>(scene, entity, cpType, id, prop.updateFlags, *static_cast<Material*>(prop.def));
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+            }
+        }
+
+        ImGui::BeginGroup();
+
+        Texture texRender = getMaterialThumbnail(newValue);
+        ImGui::Image(texRender.getRender()->getGLHandler(), ImVec2(64, 64));
+        if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
+            materialButtonGroups[id] = !materialButtonGroups[id];
+        }
+
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, textureLabel);
+
+        ImVec2 arrowButtonSize = ImGui::CalcItemSize(ImVec2(0, 0), ImGui::GetFrameHeight(), ImGui::GetFrameHeight());
+        ImGui::BeginChild("textureframe", ImVec2( - arrowButtonSize.x - ImGui::GetStyle().ItemSpacing.x, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2), 
+            false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+
+        std::string matName = newValue.name;
+        if (std::filesystem::exists(matName)) {
+            matName = std::filesystem::path(matName).filename().string();
+        }
+        if (matName.empty()) {
+            matName = "< Not defined >";
+        }
+
+        float textWidth = ImGui::CalcTextSize(matName.c_str()).x;
+        float availWidth = ImGui::GetContentRegionAvail().x;
+        ImGui::SetCursorPosX(availWidth - textWidth - 2);
+        ImGui::SetCursorPosY(ImGui::GetStyle().FramePadding.y);
+        if (dif)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        ImGui::Text("%s", matName.c_str());
+        if (dif)
+            ImGui::PopStyleColor();
+
+        ImGui::EndChild();
+        if (!newValue.name.empty()){
+            ImGui::SetItemTooltip("%s", newValue.name.c_str());
+        }
+        ImGui::PopStyleColor();
+
+        ImGui::SameLine();
+
+        if (ImGui::ArrowButton("##toggle_mesh", materialButtonGroups[id] ? ImGuiDir_Up : ImGuiDir_Down)){
+            materialButtonGroups[id] = !materialButtonGroups[id];
+        }
+
+        ImGui::EndGroup();
+
+        if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+            std::string materialStr = YAML::Dump(Stream::encodeMaterial(newValue));
+
+            ImGui::SetDragDropPayload("material", materialStr.c_str(), materialStr.size());
+            ImGui::Text("Moving material");
+            float imageDragSize = 32;
+            float availWidth = ImGui::GetCurrentWindow()->Size.x;
+            float xPos = (availWidth - imageDragSize) * 0.5f;
+            ImGui::SetCursorPosX(xPos);
+            ImGui::Image(texRender.getRender()->getGLHandler(), ImVec2(imageDragSize, imageDragSize));
+            ImGui::EndDragDropSource();
+        }
+
+        result = materialButtonGroups[id];
     }
 
     if (ImGui::IsItemDeactivatedAfterEdit()) {
         cmd->setNoMerge();
         cmd = nullptr;
     }
-}
 
-bool Editor::Properties::propertyMaterial(Scene* scene, std::vector<Entity>& entities, const size_t submeshIndex) {
-    Material* value = nullptr;
-    std::map<Entity, Material> eValue;
-    bool dif = false;
-    for (Entity& entity : entities){
-        eValue[entity] = scene->getComponent<MeshComponent>(entity).submeshes[submeshIndex].material;
-        if (value){
-            if (*value != eValue[entity])
-                dif = true;
-        }
-        value = &eValue[entity];
-    }
-    Material material = *value;
-
-    ImGui::BeginGroup();
-
-    static bool show_button_group = false;
-
-    Texture texRender = getMaterialThumbnail(material);
-    ImGui::Image(texRender.getRender()->getGLHandler(), ImVec2(64, 64));
-    if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
-        show_button_group = !show_button_group;
-    }
-
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, textureLabel);
-
-    ImVec2 arrowButtonSize = ImGui::CalcItemSize(ImVec2(0, 0), ImGui::GetFrameHeight(), ImGui::GetFrameHeight());
-    ImGui::BeginChild("textureframe", ImVec2( - arrowButtonSize.x - ImGui::GetStyle().ItemSpacing.x, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2), 
-        false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-
-    std::string matName = material.name;
-    if (std::filesystem::exists(matName)) {
-        matName = std::filesystem::path(matName).filename().string();
-    }
-    if (matName.empty()) {
-        matName = "< Not defined >";
-    }
-
-    float textWidth = ImGui::CalcTextSize(matName.c_str()).x;
-    float availWidth = ImGui::GetContentRegionAvail().x;
-    ImGui::SetCursorPosX(availWidth - textWidth - 2);
-    ImGui::SetCursorPosY(ImGui::GetStyle().FramePadding.y);
-    if (dif)
-        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-    ImGui::Text("%s", matName.c_str());
-    if (dif)
-        ImGui::PopStyleColor();
-
-    ImGui::EndChild();
-    if (!material.name.empty()){
-        ImGui::SetItemTooltip("%s", material.name.c_str());
-    }
-    ImGui::PopStyleColor();
-
-    ImGui::SameLine();
-
-    if (ImGui::ArrowButton("##toggle_mesh", show_button_group ? ImGuiDir_Up : ImGuiDir_Down)){
-        show_button_group = !show_button_group;
-    }
-
-    ImGui::EndGroup();
-
-    if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
-        std::string materialStr = YAML::Dump(Stream::encodeMaterial(material));
-
-        ImGui::SetDragDropPayload("material", materialStr.c_str(), materialStr.size());
-        ImGui::Text("Moving material");
-        float imageDragSize = 32;
-        float availWidth = ImGui::GetCurrentWindow()->Size.x;
-        float xPos = (availWidth - imageDragSize) * 0.5f;
-        ImGui::SetCursorPosX(xPos);
-        ImGui::Image(texRender.getRender()->getGLHandler(), ImVec2(imageDragSize, imageDragSize));
-        ImGui::EndDragDropSource();
-    }
-
-    return show_button_group;
+    return result;
 }
 
 void Editor::Properties::drawTransform(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, std::vector<Entity> entities){
@@ -1178,9 +1193,7 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
 
         beginTable(cpType, submeshesTableSize, "submeshes");
 
-        propertyHeader("Material");
-
-        if (propertyMaterial(scene, entities, s)){
+        if (propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material", "Material", scene, entities)){
             endTable();
             beginTable(cpType, getLabelSize("Met. Roug. Texture"), "material_table");
             propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.basecolor", "Base Color", scene, entities, 0.1f, -1, true);

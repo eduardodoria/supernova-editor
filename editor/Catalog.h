@@ -81,6 +81,7 @@ namespace Supernova::Editor{
         Color4L,
         Int,
         UInt,
+        Material,
         Texture,
         Enum
     };

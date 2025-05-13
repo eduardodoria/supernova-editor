@@ -18,6 +18,8 @@ namespace Supernova::Editor{
         std::map<std::string, bool> hasTextureDrag;
         std::map<std::string, std::map<Entity, Texture>> originalTex;
 
+        std::map<std::string, bool> materialButtonGroups;
+
         std::unordered_map<std::string, Texture> thumbnailTextures;
 
         const ImU32 textureLabel = IM_COL32(50, 50, 50, 255);
@@ -42,8 +44,7 @@ namespace Supernova::Editor{
         void beginTable(ComponentType cpType, float firstColSize, std::string nameAddon = "");
         void endTable();
         bool propertyHeader(std::string label, float secondColSize = -1, bool defChanged = false, bool child = false);
-        void propertyRow(ComponentType cpType, std::map<std::string, PropertyData> props, std::string id, std::string label, Scene* scene, std::vector<Entity> entities, float stepSize = 0.1f, float secondColSize = -1, bool child = false, std::string help = "");
-        bool propertyMaterial(Scene* scene, std::vector<Entity>& entities, const size_t submeshIndex);
+        bool propertyRow(ComponentType cpType, std::map<std::string, PropertyData> props, std::string id, std::string label, Scene* scene, std::vector<Entity> entities, float stepSize = 0.1f, float secondColSize = -1, bool child = false, std::string help = "");
 
         void drawTransform(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, std::vector<Entity> entities);
         void drawMeshComponent(ComponentType cpType, std::map<std::string, PropertyData> props, Scene* scene, std::vector<Entity> entities);
