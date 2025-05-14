@@ -5,6 +5,8 @@
 #include "imgui_internal.h"
 #include "Project.h"
 #include "object/Camera.h"
+#include "command/CommandHandle.h"
+#include "command/type/ScenePropertyCmd.h"
 #include <unordered_map>
 
 namespace Supernova::Editor {
@@ -41,9 +43,11 @@ namespace Supernova::Editor {
         int getHeight(uint32_t sceneId) const;
 
         template<typename T>
-        void drawSceneProperty(Project* project, Scene* scene, const std::string& propertyName, const char* label, float col2Size = -1.0f) {
-            T value = Supernova::Editor::Catalog::getSceneProperty<T>(scene, propertyName);
+        void drawSceneProperty(SceneProject* sceneProject, const std::string& propertyName, const char* label, float col2Size = -1.0f) {
+            T value = Supernova::Editor::Catalog::getSceneProperty<T>(sceneProject->scene, propertyName);
             bool changed = false;
+
+            Command* cmd = nullptr;
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
@@ -62,8 +66,15 @@ namespace Supernova::Editor {
             }
 
             if (changed) {
-                Supernova::Editor::Catalog::setSceneProperty<T>(scene, propertyName, value);
-                project->getSelectedScene()->isModified = true;
+                cmd = new ScenePropertyCmd<T>(sceneProject, propertyName, value);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
+            }
+
+            if (ImGui::IsItemDeactivatedAfterEdit()) {
+                if (cmd){
+                    cmd->setNoMerge();
+                    cmd = nullptr;
+                }
             }
         }
     };

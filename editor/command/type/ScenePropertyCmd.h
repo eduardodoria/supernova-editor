@@ -16,35 +16,47 @@ namespace Supernova::Editor {
     class ScenePropertyCmd : public Command {
 
     private:
-        Scene* scene;
+        SceneProject* sceneProject;
         std::string propertyName;
         ScenePropertyCmdValue<T> value;
 
+        bool wasModified;
+
     public:
-        ScenePropertyCmd(Scene* scene, const std::string& propertyName, const T& newValue) {
-            this->scene = scene;
+        ScenePropertyCmd(SceneProject* sceneProject, const std::string& propertyName, const T& newValue) {
+            this->sceneProject = sceneProject;
             this->propertyName = propertyName;
             this->value.newValue = newValue;
+
+            this->wasModified = sceneProject->isModified;
         }
 
         bool execute() override {
             // Store the old value before changing it
-            value.oldValue = Catalog::getSceneProperty<T>(scene, propertyName);
-            Catalog::setSceneProperty<T>(scene, propertyName, value.newValue);
+            value.oldValue = Catalog::getSceneProperty<T>(sceneProject->scene, propertyName);
+            Catalog::setSceneProperty<T>(sceneProject->scene, propertyName, value.newValue);
+
+            sceneProject->isModified = true;
+
             return true;
         }
 
         void undo() override {
-            Catalog::setSceneProperty<T>(scene, propertyName, value.oldValue);
+            Catalog::setSceneProperty<T>(sceneProject->scene, propertyName, value.oldValue);
+
+            sceneProject->isModified = wasModified;
         }
 
         bool mergeWith(Editor::Command* otherCommand) override {
             ScenePropertyCmd* otherCmd = dynamic_cast<ScenePropertyCmd*>(otherCommand);
             if (otherCmd != nullptr) {
-                if (scene == otherCmd->scene && propertyName == otherCmd->propertyName) {
+                if (sceneProject->scene == otherCmd->sceneProject->scene && propertyName == otherCmd->propertyName) {
                     // Update oldValue from the earliest command
                     value.oldValue = otherCmd->value.oldValue;
                     value.newValue = otherCmd->value.newValue;
+
+                    wasModified = wasModified && otherCmd->wasModified;
+
                     return true;
                 }
             }

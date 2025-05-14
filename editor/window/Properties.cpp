@@ -193,7 +193,7 @@ void Editor::Properties::dragDropResources(ComponentType cpType, std::string id,
                         *valueRef = originalTex[id][entity];
                         cmd = new PropertyCmd<Texture>(sceneProject, entity, cpType, id, updateFlags, texture);
                         cmd->setNoMerge();
-                        CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                        CommandHandle::get(sceneProject->id)->addCommand(cmd);
                     }
 
                     ImGui::SetWindowFocus();
@@ -400,7 +400,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (propertyHeader(label, secondColSize, defChanged, child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector3>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<Vector3*>(prop.def));
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
 
@@ -412,7 +412,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (ImGui::DragFloat(("##input_x_"+id).c_str(), &(newValue.x), stepSize, 0.0f, 0.0f, "%.2f")){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector3>(sceneProject, entity, cpType, id, prop.updateFlags, Vector3(newValue.x, eValue[entity].y, eValue[entity].z));
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
         if (difX)
@@ -424,7 +424,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (ImGui::DragFloat(("##input_y_"+id).c_str(), &(newValue.y), stepSize, 0.0f, 0.0f, "%.2f")){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector3>(sceneProject, entity, cpType, id, prop.updateFlags, Vector3(eValue[entity].x, newValue.y, eValue[entity].z));
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
         if (difY)
@@ -436,7 +436,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (ImGui::DragFloat(("##input_z_"+id).c_str(), &(newValue.z), stepSize, 0.0f, 0.0f, "%.2f")){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector3>(sceneProject, entity, cpType, id, prop.updateFlags, Vector3(eValue[entity].x, eValue[entity].y, newValue.z));
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
         if (difZ)
@@ -476,7 +476,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (propertyHeader(label, secondColSize, defChanged, child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector4>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<Vector4*>(prop.def));
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
 
@@ -488,7 +488,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (ImGui::DragFloat(("##input_x_"+id).c_str(), &(newValue.x), stepSize, 0.0f, 0.0f, "%.2f")){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector4>(sceneProject, entity, cpType, id, prop.updateFlags, Vector4(newValue.x, eValue[entity].y, eValue[entity].z, eValue[entity].w));
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
         if (difX)
@@ -500,7 +500,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (ImGui::DragFloat(("##input_y_"+id).c_str(), &(newValue.y), stepSize, 0.0f, 0.0f, "%.2f")){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector4>(sceneProject, entity, cpType, id, prop.updateFlags, Vector4(eValue[entity].x, newValue.y, eValue[entity].z, eValue[entity].w));
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
         if (difY)
@@ -512,7 +512,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (ImGui::DragFloat(("##input_z_"+id).c_str(), &(newValue.z), stepSize, 0.0f, 0.0f, "%.2f")){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector4>(sceneProject, entity, cpType, id, prop.updateFlags, Vector4(eValue[entity].x, eValue[entity].y, newValue.z, eValue[entity].w));
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
         if (difZ)
@@ -524,7 +524,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (ImGui::DragFloat(("##input_w_"+id).c_str(), &(newValue.w), stepSize, 0.0f, 0.0f, "%.2f")){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector4>(sceneProject, entity, cpType, id, prop.updateFlags, Vector4(eValue[entity].x, eValue[entity].y, eValue[entity].z, newValue.w));
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
         if (difW)
@@ -565,7 +565,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (propertyHeader(label, secondColSize, defChanged, child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Quaternion>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<Quaternion*>(prop.def));
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
 
@@ -577,7 +577,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (ImGui::DragFloat(("##input_x_"+id).c_str(), &(newValue.x), stepSize, 0.0f, 0.0f, "%.2f°")){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Quaternion>(sceneProject, entity, cpType, id, prop.updateFlags, Quaternion(newValue.x, eValue[entity].y, eValue[entity].z, order));
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
         if (difX)
@@ -589,7 +589,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (ImGui::DragFloat(("##input_y_"+id).c_str(), &(newValue.y), stepSize, 0.0f, 0.0f, "%.2f°")){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Quaternion>(sceneProject, entity, cpType, id, prop.updateFlags, Quaternion(eValue[entity].x, newValue.y, eValue[entity].z, order));
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
         if (difY)
@@ -601,7 +601,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (ImGui::DragFloat(("##input_z_"+id).c_str(), &(newValue.z), stepSize, 0.0f, 0.0f, "%.2f°")){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Quaternion>(sceneProject, entity, cpType, id, prop.updateFlags, Quaternion(eValue[entity].x, eValue[entity].y, newValue.z, order));
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
         if (difZ)
@@ -632,7 +632,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (propertyHeader(label, secondColSize, defChanged, child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<bool>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<bool*>(prop.def));
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
 
@@ -641,7 +641,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (ImGui::Checkbox(("##checkbox_"+id).c_str(), &newValue)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<bool>(sceneProject, entity, cpType, id, prop.updateFlags, newValue);
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
         if (dif)
@@ -670,7 +670,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (propertyHeader(label, secondColSize, defChanged, child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<float>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<float*>(prop.def));
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
 
@@ -686,7 +686,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (ImGui::DragFloat(("##input_float_"+id).c_str(), &newValue, stepSize, v_min, v_max, "%.2f")){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<float>(sceneProject, entity, cpType, id, prop.updateFlags, newValue);
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
         if (dif)
@@ -719,7 +719,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (propertyHeader(label, secondColSize, defChanged, child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<unsigned int>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<unsigned int*>(prop.def));
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
 
@@ -728,7 +728,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (ImGui::DragInt(("##input_uint_"+id).c_str(), (int*)&newValue, static_cast<unsigned int>(stepSize), 0.0f, INT_MAX)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<unsigned int>(sceneProject, entity, cpType, id, prop.updateFlags, newValue);
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
         if (dif)
@@ -757,7 +757,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (propertyHeader(label, secondColSize, defChanged, child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<int>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<int*>(prop.def));
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
 
@@ -766,7 +766,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (ImGui::DragInt(("##input_int_"+id).c_str(), &newValue, static_cast<int>(stepSize), 0.0f, 0.0f)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<int>(sceneProject, entity, cpType, id, prop.updateFlags, newValue);
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
         if (dif)
@@ -796,7 +796,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (propertyHeader(label, secondColSize, defChanged, child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector3>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<Vector3*>(prop.def));
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
 
@@ -805,7 +805,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (ImGui::ColorEdit3((label+"##checkbox_"+id).c_str(), (float*)&newValue.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector3>(sceneProject, entity, cpType, id, prop.updateFlags, Color::sRGBToLinear(newValue));
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
         if (dif)
@@ -835,7 +835,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (propertyHeader(label, secondColSize, defChanged, child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector4>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<Vector4*>(prop.def));
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
 
@@ -844,7 +844,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (ImGui::ColorEdit4((label+"##checkbox_"+id).c_str(), (float*)&newValue.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector4>(sceneProject, entity, cpType, id, prop.updateFlags, Color::sRGBToLinear(newValue));
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
         if (dif)
@@ -890,7 +890,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             for (Entity& entity : entities){
                 int defValue = (*prop.enumEntries)[item_default].value;
                 cmd = new PropertyCmd<int>(sceneProject, entity, cpType, id, prop.updateFlags, defValue);
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
 
@@ -906,7 +906,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             int newValue = (*prop.enumEntries)[item_current].value;
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<int>(sceneProject, entity, cpType, id, prop.updateFlags, newValue);
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
         if (dif)
@@ -934,7 +934,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (propertyHeader(label, secondColSize, defChanged, child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Texture>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<Texture*>(prop.def));
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
 
@@ -1001,7 +1001,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
                     for (Entity& entity : entities){
                         cmd = new PropertyCmd<Texture>(sceneProject, entity, cpType, id, prop.updateFlags, texture);
                         cmd->setNoMerge();
-                        CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                        CommandHandle::get(sceneProject->id)->addCommand(cmd);
                     }
                 }
             }
@@ -1050,7 +1050,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         if (propertyHeader(label, secondColSize, defChanged, child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Material>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<Material*>(prop.def));
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
 
@@ -1342,7 +1342,7 @@ void Editor::Properties::show(){
         if (ImGui::IsItemDeactivatedAfterEdit()) {
             if (entities.size() == 1){
                 if (nameBuffer[0] != '\0' && strcmp(nameBuffer, scene->getEntityName(entities[0]).c_str()) != 0) {
-                    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new EntityNameCmd(sceneProject, entities[0], nameBuffer));
+                    CommandHandle::get(sceneProject->id)->addCommandNoMerge(new EntityNameCmd(sceneProject, entities[0], nameBuffer));
                 }
             }
         }

@@ -421,11 +421,11 @@ void Editor::SceneWindow::show() {
                     ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("Ambient Intensity").x);
                     ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
-                    drawSceneProperty<Vector4>(project, sceneProject.scene, "background_color",   "Background");
-                    drawSceneProperty<bool>  (project, sceneProject.scene, "shadows_pcf",        "Shadows PCF");
-                    drawSceneProperty<bool>  (project, sceneProject.scene, "ambient_light_enabled", "Ambient Enabled");
-                    drawSceneProperty<Vector3>(project, sceneProject.scene, "ambient_light_color",   "Ambient Color");
-                    drawSceneProperty<float> (project, sceneProject.scene, "ambient_light_intensity", "Ambient Intensity");
+                    drawSceneProperty<Vector4>(&sceneProject, "background_color",   "Background");
+                    drawSceneProperty<bool>  (&sceneProject, "shadows_pcf",        "Shadows PCF");
+                    drawSceneProperty<bool>  (&sceneProject, "ambient_light_enabled", "Ambient Enabled");
+                    drawSceneProperty<Vector3>(&sceneProject, "ambient_light_color",   "Ambient Color");
+                    drawSceneProperty<float> (&sceneProject, "ambient_light_intensity", "Ambient Intensity");
 
                     ImGui::EndTable();
                 }
