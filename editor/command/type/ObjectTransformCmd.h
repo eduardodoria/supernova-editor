@@ -25,6 +25,8 @@ namespace Supernova::Editor{
 
         std::map<Entity, TransformCmdValue> props;
 
+        bool wasModified;
+
     public:
         ObjectTransformCmd(SceneProject* sceneProject, Entity entity, Matrix4 localMatrix);
         ObjectTransformCmd(SceneProject* sceneProject, Entity entity, Vector3 position, Quaternion rotation, Vector3 scale);

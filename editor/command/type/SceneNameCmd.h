@@ -17,6 +17,8 @@ namespace Supernova::Editor{
         Project* project;
         uint32_t sceneId;
 
+        bool wasModified;
+
     public:
         SceneNameCmd(Project* project, uint32_t sceneId, std::string name);
 

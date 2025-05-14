@@ -6,6 +6,8 @@ Editor::ObjectTransformCmd::ObjectTransformCmd(SceneProject* sceneProject, Entit
     this->sceneProject = sceneProject;
     
     localMatrix.decomposeStandard(props[entity].newPosition, props[entity].newScale, props[entity].newRotation);
+
+    this->wasModified = sceneProject->isModified;
 }
 
 Editor::ObjectTransformCmd::ObjectTransformCmd(SceneProject* sceneProject, Entity entity, Vector3 position, Quaternion rotation, Vector3 scale){
@@ -14,6 +16,8 @@ Editor::ObjectTransformCmd::ObjectTransformCmd(SceneProject* sceneProject, Entit
     props[entity].newPosition = position;
     props[entity].newRotation = rotation;
     props[entity].newScale = scale;
+
+    this->wasModified = sceneProject->isModified;
 }
 
 bool Editor::ObjectTransformCmd::execute(){
@@ -47,7 +51,7 @@ void Editor::ObjectTransformCmd::undo(){
         }
     }
 
-    sceneProject->isModified = true;
+    sceneProject->isModified = wasModified;
 }
 
 bool Editor::ObjectTransformCmd::mergeWith(Editor::Command* otherCommand){
@@ -64,6 +68,8 @@ bool Editor::ObjectTransformCmd::mergeWith(Editor::Command* otherCommand){
                     props[otherEntity] = otherProperty;
                 }
             }
+
+            wasModified = wasModified && otherCmd->wasModified;
 
             return true;
         }

@@ -17,6 +17,8 @@ namespace Supernova::Editor{
         SceneProject* sceneProject;
         Entity entity;
 
+        bool wasModified;
+
     public:
         EntityNameCmd(SceneProject* sceneProject, Entity entity, std::string name);
 

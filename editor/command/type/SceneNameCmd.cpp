@@ -6,6 +6,8 @@ Editor::SceneNameCmd::SceneNameCmd(Project* project, uint32_t sceneId, std::stri
     this->project = project;
     this->sceneId = sceneId;
     this->newName = name;
+
+    this->wasModified = project->getScene(sceneId)->isModified;
 }
 
 bool Editor::SceneNameCmd::execute(){
@@ -13,6 +15,7 @@ bool Editor::SceneNameCmd::execute(){
 
     oldName = sceneProject->name;
     sceneProject->name = newName;
+
     sceneProject->isModified = true;
 
     return true;
@@ -22,7 +25,8 @@ void Editor::SceneNameCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     sceneProject->name = oldName;
-    sceneProject->isModified = true;
+
+    sceneProject->isModified = wasModified;
 }
 
 bool Editor::SceneNameCmd::mergeWith(Editor::Command* otherCommand){
@@ -30,6 +34,8 @@ bool Editor::SceneNameCmd::mergeWith(Editor::Command* otherCommand){
     if (otherCmd != nullptr){
         if (sceneId == otherCmd->sceneId){
             this->oldName = otherCmd->oldName;
+
+            this->wasModified = this->wasModified && otherCmd->wasModified;
             return true;
         }
     }

@@ -12,6 +12,8 @@ Editor::DeleteEntityCmd::DeleteEntityCmd(Project* project, uint32_t sceneId, Ent
     DeleteEntityData entityData;
     entityData.entity = entity;
     this->entities.push_back(entityData);
+
+    this->wasModified = project->getScene(sceneId)->isModified;
 }
 
 bool Editor::DeleteEntityCmd::execute(){
@@ -60,7 +62,7 @@ void Editor::DeleteEntityCmd::undo(){
         project->replaceSelectedEntities(sceneId, lastSelected);
     }
 
-    sceneProject->isModified = true;
+    sceneProject->isModified = wasModified;
 }
 
 bool Editor::DeleteEntityCmd::mergeWith(Editor::Command* otherCommand){
@@ -78,6 +80,8 @@ bool Editor::DeleteEntityCmd::mergeWith(Editor::Command* otherCommand){
             std::sort(entities.begin(), entities.end(), [](const DeleteEntityData& a, const DeleteEntityData& b) {
                 return a.parent < b.parent || a.transformIndex < b.transformIndex;
             });
+
+            wasModified = wasModified && otherCmd->wasModified;
 
             return true;
         }

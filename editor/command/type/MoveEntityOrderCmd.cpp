@@ -10,6 +10,8 @@ Editor::MoveEntityOrderCmd::MoveEntityOrderCmd(Project* project, uint32_t sceneI
     this->source = source;
     this->target = target;
     this->type = type;
+
+    this->wasModified = project->getScene(sceneId)->isModified;
 }
 
 void Editor::MoveEntityOrderCmd::sortEntitiesByTransformOrder(std::vector<Entity>& entities, Scene* scene) {
@@ -92,7 +94,7 @@ void Editor::MoveEntityOrderCmd::undo(){
 
     sortEntitiesByTransformOrder(entities, sceneProject->scene);
 
-    sceneProject->isModified = true;
+    sceneProject->isModified = wasModified;
 }
 
 bool Editor::MoveEntityOrderCmd::mergeWith(Command* otherCommand){

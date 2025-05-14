@@ -6,6 +6,8 @@ Editor::EntityNameCmd::EntityNameCmd(SceneProject* sceneProject, Entity entity, 
     this->sceneProject = sceneProject;
     this->entity = entity;
     this->newName = name;
+
+    this->wasModified = sceneProject->isModified;
 }
 
 bool Editor::EntityNameCmd::execute(){
@@ -20,7 +22,7 @@ bool Editor::EntityNameCmd::execute(){
 void Editor::EntityNameCmd::undo(){
     sceneProject->scene->setEntityName(entity, oldName);
 
-    sceneProject->isModified = true;
+    sceneProject->isModified = wasModified;
 }
 
 bool Editor::EntityNameCmd::mergeWith(Editor::Command* otherCommand){
@@ -28,6 +30,8 @@ bool Editor::EntityNameCmd::mergeWith(Editor::Command* otherCommand){
     if (otherCmd != nullptr){
         if (sceneProject == otherCmd->sceneProject && entity == otherCmd->entity){
             this->oldName = otherCmd->oldName;
+
+            this->wasModified = this->wasModified && otherCmd->wasModified;
             return true;
         }
     }

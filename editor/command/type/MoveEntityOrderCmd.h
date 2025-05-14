@@ -28,6 +28,8 @@ namespace Supernova::Editor{
         size_t oldTransformIndex;
         Entity oldParent;
 
+        bool wasModified;
+
         void sortEntitiesByTransformOrder(std::vector<Entity>& entities, Scene* scene);
 
     public:

@@ -1127,7 +1127,6 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 void Editor::Properties::drawTransform(ComponentType cpType, std::map<std::string, PropertyData> props, SceneProject* sceneProject, std::vector<Entity> entities){
     // Add this code to calculate appropriate step size based on selected scene
     float stepSize = 0.1f;
-    //SceneProject* sceneProject = project->getSelectedScene();
     if (sceneProject) {
         Camera* camera = sceneProject->sceneRender->getCamera();
         if (sceneProject->sceneType == SceneType::SCENE_3D) {

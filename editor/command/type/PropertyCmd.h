@@ -24,6 +24,7 @@ namespace Supernova::Editor{
         ComponentType type;
         std::string propertyName;
         int updateFlags;
+        bool wasModified;
 
         std::map<Entity,PropertyCmdValue<T>> values;
 
@@ -36,6 +37,7 @@ namespace Supernova::Editor{
             this->updateFlags = updateFlags;
 
             this->values[entity].newValue = newValue;
+            this->wasModified = sceneProject->isModified;
         }
 
         bool execute(){
@@ -62,7 +64,7 @@ namespace Supernova::Editor{
                 Catalog::updateEntity(sceneProject->scene, entity, updateFlags);
             }
 
-            sceneProject->isModified = true;
+            sceneProject->isModified = wasModified;
         }
 
         bool mergeWith(Editor::Command* otherCommand){
@@ -77,6 +79,7 @@ namespace Supernova::Editor{
                         }
                     }
                     updateFlags |= otherCmd->updateFlags;
+                    wasModified = wasModified && otherCmd->wasModified;
                     return true;
                 }
             }

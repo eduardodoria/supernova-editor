@@ -29,6 +29,8 @@ namespace Supernova::Editor{
 
         std::vector<DeleteEntityData> entities;
 
+        bool wasModified;
+
     public:
         DeleteEntityCmd(Project* project, uint32_t sceneId, Entity entity);
 
