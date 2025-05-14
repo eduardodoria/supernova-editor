@@ -418,14 +418,32 @@ void Editor::SceneWindow::show() {
 
                 // Start a table for properties
                 if (ImGui::BeginTable("scene_settings_table", 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Resizable)) {
-                    ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("Ambient Intensity").x);
+                    ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("Shadows PCF").x);
                     ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
                     drawSceneProperty<Vector4>(&sceneProject, "background_color",   "Background");
                     drawSceneProperty<bool>  (&sceneProject, "shadows_pcf",        "Shadows PCF");
-                    drawSceneProperty<bool>  (&sceneProject, "ambient_light_enabled", "Ambient Enabled");
-                    drawSceneProperty<Vector3>(&sceneProject, "ambient_light_color",   "Ambient Color");
-                    drawSceneProperty<float> (&sceneProject, "ambient_light_intensity", "Ambient Intensity");
+
+                    ImGui::EndTable();
+                }
+
+                ImGui::SeparatorText("Global Illumination");
+
+                if (ImGui::BeginTable("scene_globalillum_table", 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Resizable)) {
+                    ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("Intensity").x);
+                    ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+                    drawSceneProperty<Vector3>(&sceneProject, "global_illumination_color",   "Color");
+                    drawSceneProperty<float> (&sceneProject, "global_illumination_intensity", "Intensity");
+
+                    ImGui::EndTable();
+                }
+
+                ImGui::SeparatorText("Sun light");
+
+                if (ImGui::BeginTable("scene_sunlight_table", 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Resizable)) {
+                    ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("Ambient Intensity").x);
+                    ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
                     ImGui::EndTable();
                 }

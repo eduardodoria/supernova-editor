@@ -49,8 +49,7 @@ Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, tr
     sun->setShadows(true);
     sun->setRange(100);
 
-    scene->setAmbientLight(0.2);
-    //scene->setSceneAmbientLightEnabled(false);
+    scene->setGlobalIllumination(0.2);
     scene->setBackgroundColor(Vector4(0.25, 0.45, 0.65, 1.0));
 
     uilayer.setViewportGizmoTexture(viewgizmo.getFramebuffer());

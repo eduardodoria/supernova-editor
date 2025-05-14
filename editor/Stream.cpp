@@ -1076,8 +1076,6 @@ YAML::Node Editor::Stream::encodeMaterial(const Material& material) {
     node["metallicFactor"] = material.metallicFactor;
     node["roughnessFactor"] = material.roughnessFactor;
     node["emissiveFactor"] = encodeVector3(material.emissiveFactor);
-    node["ambientLight"] = encodeVector3(material.ambientLight);
-    node["ambientIntensity"] = material.ambientIntensity;
 
     // Encode textures using the helper method
     if (!material.baseColorTexture.empty()) {
@@ -1113,8 +1111,6 @@ Material Editor::Stream::decodeMaterial(const YAML::Node& node) {
     material.metallicFactor = node["metallicFactor"].as<float>();
     material.roughnessFactor = node["roughnessFactor"].as<float>();
     material.emissiveFactor = decodeVector3(node["emissiveFactor"]);
-    material.ambientLight = decodeVector3(node["ambientLight"]);
-    material.ambientIntensity = node["ambientIntensity"].as<float>();
 
     if (node["baseColorTexture"]) {
         material.baseColorTexture = decodeTexture(node["baseColorTexture"]);

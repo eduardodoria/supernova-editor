@@ -19,8 +19,6 @@ Editor::MaterialRender::MaterialRender(){
     light->setIntensity(6.0);
     light->setType(LightType::DIRECTIONAL);
 
-    scene->setSceneAmbientLightEnabled(false);
-
     camera->setPosition(0, 0, 3);
     camera->setTarget(0, 0, 0);
     camera->setType(CameraType::CAMERA_PERSPECTIVE);

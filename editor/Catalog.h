@@ -146,24 +146,14 @@ namespace Supernova::Editor{
                     return scene->isShadowsPCF();
                 }
             }
-            else if (propertyName == "ambient_light_enabled") {
-                if constexpr (std::is_same_v<T, bool>) {
-                    return scene->isSceneAmbientLightEnabled();
-                }
-            }
-            else if (propertyName == "ambient_light_color") {
+            else if (propertyName == "global_illumination_color") {
                 if constexpr (std::is_same_v<T, Vector3>) {
-                    return scene->getAmbientLightColor();
+                    return scene->getGlobalIlluminationColor();
                 }
             }
-            else if (propertyName == "ambient_light_color_linear") {
-                if constexpr (std::is_same_v<T, Vector3>) {
-                    return scene->getAmbientLightColorLinear();
-                }
-            }
-            else if (propertyName == "ambient_light_intensity") {
+            else if (propertyName == "global_illumination_intensity") {
                 if constexpr (std::is_same_v<T, float>) {
-                    return scene->getAmbientLightIntensity();
+                    return scene->getGlobalIlluminationIntensity();
                 }
             }
 
@@ -189,19 +179,14 @@ namespace Supernova::Editor{
                     scene->setShadowsPCF(value);
                 }
             }
-            else if (propertyName == "ambient_light_enabled") {
-                if constexpr (std::is_same_v<T, bool>) {
-                    scene->setSceneAmbientLightEnabled(value);
-                }
-            }
-            else if (propertyName == "ambient_light_color") {
+            else if (propertyName == "global_illumination_color") {
                 if constexpr (std::is_same_v<T, Vector3>) {
-                    scene->setAmbientLight(value);
+                    scene->setGlobalIllumination(value);
                 }
             }
-            else if (propertyName == "ambient_light_intensity") {
+            else if (propertyName == "global_illumination_intensity") {
                 if constexpr (std::is_same_v<T, float>) {
-                    scene->setAmbientLight(value);
+                    scene->setGlobalIllumination(value);
                 }
             }
         }

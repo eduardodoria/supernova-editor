@@ -1042,10 +1042,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         bool defChanged = false;
         if (prop.def){
-            Material defMat = *static_cast<Material*>(prop.def);
-            defMat.ambientLight = sceneProject->scene->getAmbientLightColorLinear();
-            defMat.ambientIntensity = sceneProject->scene->getAmbientLightIntensity();
-            defChanged = (newValue != defMat);
+            defChanged = (newValue != *static_cast<Material*>(prop.def));
         }
         if (propertyHeader(label, secondColSize, defChanged, child)){
             for (Entity& entity : entities){
@@ -1204,10 +1201,6 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
             propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.emissivetexture", "Emissive Texture", sceneProject, entities, 0.1f, -1, true);
             propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.occlusiontexture", "Occlusion Texture", sceneProject, entities, 0.1f, -1, true);
             propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.normalTexture", "Normal Texture", sceneProject, entities, 0.1f, -1, true);
-            if (!sceneProject->scene->isSceneAmbientLightEnabled()){
-                propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.ambientlight", "Ambient Light", sceneProject, entities, 0.1f, -1, true);
-                propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.ambientintensity", "Ambient Intensity", sceneProject, entities, 0.1f, 4 * ImGui::GetFontSize(), true);
-            }
             endTable();
             beginTable(cpType, submeshesTableSize, "submeshes");
         }
