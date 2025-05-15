@@ -182,6 +182,10 @@ void Editor::SceneRender3D::mouseDragEvent(float x, float y, float origX, float 
     SceneRender::mouseDragEvent(x, y, origX, origY, sceneId, sceneProject, selEntities, disableSelection);
 }
 
+Light* Editor::SceneRender3D::getSunLight(){
+    return sun;
+}
+
 Editor::ViewportGizmo* Editor::SceneRender3D::getViewportGizmo(){
     return &viewgizmo;
 }

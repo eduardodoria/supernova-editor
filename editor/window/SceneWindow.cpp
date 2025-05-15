@@ -439,13 +439,20 @@ void Editor::SceneWindow::show() {
                     ImGui::EndTable();
                 }
 
-                ImGui::SeparatorText("Sun light");
+                if (sceneProject.sceneType == SceneType::SCENE_3D){
 
-                if (ImGui::BeginTable("scene_sunlight_table", 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Resizable)) {
-                    ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("Ambient Intensity").x);
-                    ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+                    ImGui::SeparatorText("Sun light");
 
-                    ImGui::EndTable();
+                    if (ImGui::BeginTable("scene_sunlight_table", 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Resizable)) {
+                        ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("Ambient Intensity").x);
+                        ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+                        SceneRender3D* sceneRender3D = static_cast<SceneRender3D*>(sceneProject.sceneRender);
+                        Entity lightentity = sceneRender3D->getSunLight()->getEntity();
+
+                        ImGui::EndTable();
+                    }
+
                 }
 
                 ImGui::EndPopup();
