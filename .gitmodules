@@ -1,3 +1,6 @@
 [submodule "supernova"]
 	path = supernova
 	url = https://github.com/supernovaengine/supernova.git
+[submodule "supershader"]
+	path = supershader
+	url = https://github.com/supernovaengine/supershader
