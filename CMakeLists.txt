@@ -86,6 +86,24 @@ add_definitions("-DSOKOL_GLCORE")
 add_definitions("-DWITH_MINIAUDIO") # For SoLoud
 set(NFD_PORTAL ON CACHE BOOL "Use xdg-desktop-portal instead of GTK") # For NFD
 
+set(SHADER_DIR "${CMAKE_SOURCE_DIR}/supernova/tools/shaderlib")
+set(GENERATED_DIR "${CMAKE_BINARY_DIR}/generated")
+set(SHADERS_HEADER "${GENERATED_DIR}/shaders.h")
+set(GENERATE_SHADERS_SCRIPT "${CMAKE_SOURCE_DIR}/generate_shaders.cmake")
+
+file(GLOB SHADER_FILES "${SHADER_DIR}/*.frag" "${SHADER_DIR}/*.vert")
+
+add_custom_command(
+    OUTPUT ${SHADERS_HEADER}
+    COMMAND ${CMAKE_COMMAND}
+            -DSHADER_FILES=${SHADER_FILES}
+            -DSHADERS_HEADER=${SHADERS_HEADER}
+            -P ${GENERATE_SHADERS_SCRIPT}
+    DEPENDS ${GENERATE_SHADERS_SCRIPT} ${SHADER_FILES}
+    COMMENT "Generating shaders.h"
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
+
 include_directories (${CMAKE_CURRENT_SOURCE_DIR})
 
 include_directories (${SUPERNOVA_ROOT}/engine/libs/sokol)
@@ -143,6 +161,8 @@ if(UNIX AND NOT APPLE)
     set(CMAKE_INSTALL_RPATH "$ORIGIN")
     set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 endif()
+
+add_custom_target(generate_shaders DEPENDS ${SHADERS_HEADER})
 
 add_executable(
     supernova-editor
@@ -202,6 +222,8 @@ add_executable(
     ${BACKEND_SOURCES}
 )
 
+add_dependencies(supernova-editor generate_shaders)
+
 # Include directories
 target_include_directories(supernova-editor PRIVATE
     ${IMGUI_DIR}
@@ -209,6 +231,7 @@ target_include_directories(supernova-editor PRIVATE
     ${IMGUICOLORTEXTEDIT_DIR}
     ${IMGUICOLORTEXTEDIT_DIR}/vendor/regex/include
     ${OPENGL_INCLUDE_DIR}
+    ${GENERATED_DIR}
 )
 
 # Link libraries
