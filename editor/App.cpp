@@ -14,6 +14,9 @@
 //#include "recources/fonts/roboto-v20-latin-regular_ttf.h"
 #include "util/DefaultFont.h"
 
+#include "supershader.h"
+#include "shaders.h"
+
 using namespace Supernova;
 
 Editor::App::App(){
@@ -33,6 +36,18 @@ Editor::App::App(){
     isDroppedExternalPaths = false;
 
     resetLastActivatedScene();
+
+
+    // =======TESTING=========
+    std::vector<supershader::input_t> inputs;
+    supershader::args_t args;
+    args.vert_file = "mesh.vert";
+    args.frag_file = "mesh.frag";
+    args.fileBuffers = Editor::shaderMap;
+    //args.frag_file
+	if (!supershader::load_input(inputs, args, true)){
+		printf("Erro");
+    }
 }
 
 void Editor::App::saveFunc(){
