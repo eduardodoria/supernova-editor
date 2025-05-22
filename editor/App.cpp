@@ -36,18 +36,6 @@ Editor::App::App(){
     isDroppedExternalPaths = false;
 
     resetLastActivatedScene();
-
-
-    // =======TESTING=========
-    std::vector<supershader::input_t> inputs;
-    supershader::args_t args;
-    args.vert_file = "mesh.vert";
-    args.frag_file = "mesh.frag";
-    args.fileBuffers = Editor::shaderMap;
-    //args.frag_file
-	if (!supershader::load_input(inputs, args, true)){
-		printf("Erro");
-    }
 }
 
 void Editor::App::saveFunc(){
@@ -477,6 +465,28 @@ void Editor::App::engineInit(int argc, char** argv) {
     }
 
     Engine::systemInit(argc, argv);
+
+    // =======TESTING=========
+    std::vector<supershader::input_t> inputs;
+    supershader::args_t args = supershader::initialize_args();
+    args.isValid = true;
+    args.vert_file = "mesh.vert";
+    args.frag_file = "mesh.frag";
+    args.useBuffers = true;
+    args.fileBuffers = Editor::shaderMap;
+    args.lang = supershader::LANG_GLSL;
+    args.version = 410;
+    args.output_basename="output";
+    args.defines.push_back({"USE_PUNCTUAL", "1"});
+    args.defines.push_back({"MAX_LIGHTS", "4"});
+
+    if (!supershader::load_input(inputs, args))
+        printf("Erro\n");
+
+    std::vector<supershader::spirv_t> spirvvec;
+    spirvvec.resize(inputs.size());
+    if (!compile_to_spirv(spirvvec, inputs, args))
+        printf("Erro");
 }
 
 void Editor::App::engineViewLoaded(){

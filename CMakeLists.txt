@@ -86,16 +86,17 @@ add_definitions("-DSOKOL_GLCORE")
 add_definitions("-DWITH_MINIAUDIO") # For SoLoud
 set(NFD_PORTAL ON CACHE BOOL "Use xdg-desktop-portal instead of GTK") # For NFD
 
-set(SHADER_DIR "${CMAKE_SOURCE_DIR}/supernova/tools/shaderlib")
+set(SHADERS_DIR "${CMAKE_SOURCE_DIR}/supernova/tools/shaderlib")
 set(GENERATED_DIR "${CMAKE_BINARY_DIR}/generated")
 set(SHADERS_HEADER "${GENERATED_DIR}/shaders.h")
 set(GENERATE_SHADERS_SCRIPT "${CMAKE_SOURCE_DIR}/generate_shaders.cmake")
 
-file(GLOB_RECURSE SHADER_FILES "${SHADER_DIR}/*.glsl" "${SHADER_DIR}/*.frag" "${SHADER_DIR}/*.vert")
+file(GLOB_RECURSE SHADER_FILES "${SHADERS_DIR}/*.glsl" "${SHADERS_DIR}/*.frag" "${SHADERS_DIR}/*.vert")
 
 add_custom_command(
     OUTPUT ${SHADERS_HEADER}
     COMMAND ${CMAKE_COMMAND}
+            -DSHADERS_DIR=${SHADERS_DIR}
             -DSHADER_FILES="${SHADER_FILES}"
             -DSHADERS_HEADER=${SHADERS_HEADER}
             -P ${GENERATE_SHADERS_SCRIPT}
