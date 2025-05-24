@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shader/ShaderData.h"
+#include "ShaderData.h"
 #include <vector>
 
 #include "supershader.h"
