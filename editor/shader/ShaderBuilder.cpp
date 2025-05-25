@@ -1,6 +1,7 @@
 #include "ShaderBuilder.h"
 
 #include <cstring>
+#include <cstdint>
 
 using namespace Supernova;
 
@@ -204,6 +205,57 @@ const std::vector<supershader::spirvcross_t>& spirvcrossvec,
     }
 }
 
+void Editor::ShaderBuilder::addMeshPropertyDefinitions(std::vector<supershader::define_t> defs, uint32_t prop) {
+    if (prop & (1 << 0))  defs.push_back({"MATERIAL_UNLIT", "1"});            // 'Ult'
+    if (prop & (1 << 1))  defs.push_back({"HAS_UV_SET1", "1"});               // 'Uv1'
+    if (prop & (1 << 2))  defs.push_back({"HAS_UV_SET2", "1"});               // 'Uv2'
+    if (prop & (1 << 3))  defs.push_back({"USE_PUNCTUAL", "1"});              // 'Puc'
+    if (prop & (1 << 4))  defs.push_back({"USE_SHADOWS", "1"});               // 'Shw'
+    if (prop & (1 << 5))  defs.push_back({"USE_SHADOWS_PCF", "1"});           // 'Pcf'
+    if (prop & (1 << 6))  defs.push_back({"HAS_NORMALS", "1"});               // 'Nor'
+    if (prop & (1 << 7))  defs.push_back({"HAS_NORMAL_MAP", "1"});            // 'Nmp'
+    if (prop & (1 << 8))  defs.push_back({"HAS_TANGENTS", "1"});              // 'Tan'
+    if (prop & (1 << 9))  defs.push_back({"HAS_VERTEX_COLOR_VEC3", "1"});     // 'Vc3'
+    if (prop & (1 << 10)) defs.push_back({"HAS_VERTEX_COLOR_VEC4", "1"});     // 'Vc4'
+    if (prop & (1 << 11)) defs.push_back({"HAS_TEXTURERECT", "1"});           // 'Txr'
+    if (prop & (1 << 12)) defs.push_back({"HAS_FOG", "1"});                   // 'Fog'
+    if (prop & (1 << 13)) defs.push_back({"HAS_SKINNING", "1"});              // 'Ski'
+    if (prop & (1 << 14)) defs.push_back({"HAS_MORPHTARGET", "1"});           // 'Mta'
+    if (prop & (1 << 15)) defs.push_back({"HAS_MORPHNORMAL", "1"});           // 'Mnr'
+    if (prop & (1 << 16)) defs.push_back({"HAS_MORPHTANGENT", "1"});          // 'Mtg'
+    if (prop & (1 << 17)) defs.push_back({"HAS_TERRAIN", "1"});               // 'Ter'
+    if (prop & (1 << 18)) defs.push_back({"HAS_INSTANCING", "1"});            // 'Ist'
+}
+
+void Editor::ShaderBuilder::addDepthMeshPropertyDefinitions(std::vector<supershader::define_t> defs, uint32_t prop) {
+    if (prop & (1 << 0))  defs.push_back({"HAS_TEXTURE", "1"});       // 'Tex'
+    if (prop & (1 << 1))  defs.push_back({"HAS_SKINNING", "1"});      // 'Ski'
+    if (prop & (1 << 2))  defs.push_back({"HAS_MORPHTARGET", "1"});   // 'Mta'
+    if (prop & (1 << 3))  defs.push_back({"HAS_MORPHNORMAL", "1"});   // 'Mnr'
+    if (prop & (1 << 4))  defs.push_back({"HAS_MORPHTANGENT", "1"});  // 'Mtg'
+    if (prop & (1 << 5))  defs.push_back({"HAS_TERRAIN", "1"});       // 'Ter'
+    if (prop & (1 << 6))  defs.push_back({"HAS_INSTANCING", "1"});    // 'Ist'
+}
+
+void Editor::ShaderBuilder::addUIPropertyDefinitions(std::vector<supershader::define_t> defs, uint32_t prop) {
+    if (prop & (1 << 0))  defs.push_back({"HAS_TEXTURE", "1"});              // 'Tex'
+    if (prop & (1 << 1))  defs.push_back({"HAS_FONTATLAS_TEXTURE", "1"});    // 'Ftx'
+    if (prop & (1 << 2))  defs.push_back({"HAS_VERTEX_COLOR_VEC3", "1"});    // 'Vc3'
+    if (prop & (1 << 3))  defs.push_back({"HAS_VERTEX_COLOR_VEC4", "1"});    // 'Vc4'
+}
+
+void Editor::ShaderBuilder::addPointsPropertyDefinitions(std::vector<supershader::define_t> defs, uint32_t prop) {
+    if (prop & (1 << 0))  defs.push_back({"HAS_TEXTURE", "1"});              // 'Tex'
+    if (prop & (1 << 1))  defs.push_back({"HAS_VERTEX_COLOR_VEC3", "1"});    // 'Vc3'
+    if (prop & (1 << 2))  defs.push_back({"HAS_VERTEX_COLOR_VEC4", "1"});    // 'Vc4'
+    if (prop & (1 << 3))  defs.push_back({"HAS_TEXTURERECT", "1"});          // 'Txr'
+}
+
+void Editor::ShaderBuilder::addLinesPropertyDefinitions(std::vector<supershader::define_t> defs, uint32_t prop) {
+    if (prop & (1 << 0))  defs.push_back({"HAS_VERTEX_COLOR_VEC3", "1"});    // 'Vc3'
+    if (prop & (1 << 1))  defs.push_back({"HAS_VERTEX_COLOR_VEC4", "1"});    // 'Vc4'
+}
+
 void Editor::ShaderBuilder::execute(){
     std::vector<supershader::input_t> inputs;
     supershader::args_t args = supershader::initialize_args();
@@ -214,7 +266,9 @@ void Editor::ShaderBuilder::execute(){
     args.fileBuffers = Editor::shaderMap;
     args.lang = supershader::LANG_GLSL;
     args.version = 410;
-    args.output_basename="output";
+
+    addMeshPropertyDefinitions(args.defines, 0);
+
     args.defines.push_back({"USE_PUNCTUAL", "1"});
     args.defines.push_back({"MAX_LIGHTS", "4"});
 
