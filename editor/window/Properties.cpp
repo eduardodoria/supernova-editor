@@ -101,7 +101,7 @@ Texture* Editor::Properties::findThumbnail(const std::string& path) {
                     thumbnailTextures[thumbPathStr] = thumbTexture;
                     return &thumbnailTextures[thumbPathStr];
                 }
-            } else if (thumbIt->second.getRender()) {
+            } else if (!thumbIt->second.empty()) {
                 // Return cached texture
                 return &thumbIt->second;
             }

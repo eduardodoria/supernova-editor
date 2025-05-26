@@ -121,16 +121,14 @@ const std::vector<supershader::spirvcross_t>& spirvcrossvec,
         stage.source = cross.source;
 
         // Attributes
-        if (stage.type == ShaderStageType::VERTEX) {
-            for (const auto& attr : cross.inputs) {
-                ShaderAttr sa;
-                sa.name = attr.name;
-                sa.semanticName = attr.semantic_name;
-                sa.semanticIndex = attr.semantic_index;
-                sa.location = attr.location;
-                sa.type = mapVertexType(attr.type);
-                stage.attributes.push_back(sa);
-            }
+        for (const auto& attr : cross.inputs) {
+            ShaderAttr sa;
+            sa.name = attr.name;
+            sa.semanticName = attr.semantic_name;
+            sa.semanticIndex = attr.semantic_index;
+            sa.location = attr.location;
+            sa.type = mapVertexType(attr.type);
+            stage.attributes.push_back(sa);
         }
 
         // Uniform Blocks
@@ -323,9 +321,9 @@ void Editor::ShaderBuilder::buildShader(ShaderType shaderType, uint32_t properti
 
     convertToShaderData(spirvcrossvec, inputs, args);
 
-    printf("%s\n", shaderData.stages[0].source.c_str());
-    printf("%s\n", shaderData.stages[1].source.c_str());
-    printf("Shader (%s, %s) generated successfully with %zu stages\n", args.vert_file.c_str(), args.frag_file.c_str(), shaderData.stages.size());
+    //printf("%s\n", shaderData.stages[0].source.c_str());
+    //printf("%s\n", shaderData.stages[1].source.c_str());
+    printf("Shader (%s, %s, %u) generated successfully\n", args.vert_file.c_str(), args.frag_file.c_str(), properties);
 }
 
 ShaderData& Editor::ShaderBuilder::getShaderData() { 

@@ -334,7 +334,7 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() - iconOffsetY);
             if (file.hasThumbnail && thumbnailTextures.find(file.thumbnailPath) != thumbnailTextures.end()) {
                 Texture& thumbTexture = thumbnailTextures[file.thumbnailPath];
-                if (thumbTexture.getRender()) {
+                if (!thumbTexture.empty()) {
                     // Get actual thumbnail dimensions
                     int thumbWidth = thumbTexture.getWidth();
                     int thumbHeight = thumbTexture.getHeight();
