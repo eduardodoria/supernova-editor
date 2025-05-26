@@ -112,24 +112,25 @@ const std::vector<supershader::spirvcross_t>& spirvcrossvec,
     shaderData.version = args.version;
     shaderData.es = args.es;
 
+    unsigned int texCount = 0, samplerCount = 0, ubCount = 0, sbCount = 0, pairCount = 0;
+
     for (const auto& cross : spirvcrossvec) {
         ShaderStage stage;
         stage.type = mapStageType(cross.stage_type);
         stage.name = args.output_basename;  // Using output basename for stage name
         stage.source = cross.source;
 
-        // Counter variables for slot assignments
-        unsigned int texCount = 0, samplerCount = 0, ubCount = 0, sbCount = 0, pairCount = 0;
-
         // Attributes
-        for (const auto& attr : cross.inputs) {
-            ShaderAttr sa;
-            sa.name = attr.name;
-            sa.semanticName = attr.semantic_name;
-            sa.semanticIndex = attr.semantic_index;
-            sa.location = attr.location;
-            sa.type = mapVertexType(attr.type);
-            stage.attributes.push_back(sa);
+        if (stage.type == ShaderStageType::VERTEX) {
+            for (const auto& attr : cross.inputs) {
+                ShaderAttr sa;
+                sa.name = attr.name;
+                sa.semanticName = attr.semantic_name;
+                sa.semanticIndex = attr.semantic_index;
+                sa.location = attr.location;
+                sa.type = mapVertexType(attr.type);
+                stage.attributes.push_back(sa);
+            }
         }
 
         // Uniform Blocks
@@ -205,7 +206,7 @@ const std::vector<supershader::spirvcross_t>& spirvcrossvec,
     }
 }
 
-void Editor::ShaderBuilder::addMeshPropertyDefinitions(std::vector<supershader::define_t> defs, uint32_t prop) {
+void Editor::ShaderBuilder::addMeshPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop) {
     if (prop & (1 << 0))  defs.push_back({"MATERIAL_UNLIT", "1"});            // 'Ult'
     if (prop & (1 << 1))  defs.push_back({"HAS_UV_SET1", "1"});               // 'Uv1'
     if (prop & (1 << 2))  defs.push_back({"HAS_UV_SET2", "1"});               // 'Uv2'
@@ -227,7 +228,7 @@ void Editor::ShaderBuilder::addMeshPropertyDefinitions(std::vector<supershader::
     if (prop & (1 << 18)) defs.push_back({"HAS_INSTANCING", "1"});            // 'Ist'
 }
 
-void Editor::ShaderBuilder::addDepthMeshPropertyDefinitions(std::vector<supershader::define_t> defs, uint32_t prop) {
+void Editor::ShaderBuilder::addDepthMeshPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop) {
     if (prop & (1 << 0))  defs.push_back({"HAS_TEXTURE", "1"});       // 'Tex'
     if (prop & (1 << 1))  defs.push_back({"HAS_SKINNING", "1"});      // 'Ski'
     if (prop & (1 << 2))  defs.push_back({"HAS_MORPHTARGET", "1"});   // 'Mta'
@@ -237,21 +238,21 @@ void Editor::ShaderBuilder::addDepthMeshPropertyDefinitions(std::vector<supersha
     if (prop & (1 << 6))  defs.push_back({"HAS_INSTANCING", "1"});    // 'Ist'
 }
 
-void Editor::ShaderBuilder::addUIPropertyDefinitions(std::vector<supershader::define_t> defs, uint32_t prop) {
+void Editor::ShaderBuilder::addUIPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop) {
     if (prop & (1 << 0))  defs.push_back({"HAS_TEXTURE", "1"});              // 'Tex'
     if (prop & (1 << 1))  defs.push_back({"HAS_FONTATLAS_TEXTURE", "1"});    // 'Ftx'
     if (prop & (1 << 2))  defs.push_back({"HAS_VERTEX_COLOR_VEC3", "1"});    // 'Vc3'
     if (prop & (1 << 3))  defs.push_back({"HAS_VERTEX_COLOR_VEC4", "1"});    // 'Vc4'
 }
 
-void Editor::ShaderBuilder::addPointsPropertyDefinitions(std::vector<supershader::define_t> defs, uint32_t prop) {
+void Editor::ShaderBuilder::addPointsPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop) {
     if (prop & (1 << 0))  defs.push_back({"HAS_TEXTURE", "1"});              // 'Tex'
     if (prop & (1 << 1))  defs.push_back({"HAS_VERTEX_COLOR_VEC3", "1"});    // 'Vc3'
     if (prop & (1 << 2))  defs.push_back({"HAS_VERTEX_COLOR_VEC4", "1"});    // 'Vc4'
     if (prop & (1 << 3))  defs.push_back({"HAS_TEXTURERECT", "1"});          // 'Txr'
 }
 
-void Editor::ShaderBuilder::addLinesPropertyDefinitions(std::vector<supershader::define_t> defs, uint32_t prop) {
+void Editor::ShaderBuilder::addLinesPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop) {
     if (prop & (1 << 0))  defs.push_back({"HAS_VERTEX_COLOR_VEC3", "1"});    // 'Vc3'
     if (prop & (1 << 1))  defs.push_back({"HAS_VERTEX_COLOR_VEC4", "1"});    // 'Vc4'
 }

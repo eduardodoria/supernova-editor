@@ -33,11 +33,11 @@ namespace Supernova::Editor {
             const std::vector<supershader::input_t>& inputs,
             const supershader::args_t& args);
 
-        void addMeshPropertyDefinitions(std::vector<supershader::define_t> defs, uint32_t prop);
-        void addDepthMeshPropertyDefinitions(std::vector<supershader::define_t> defs, uint32_t prop);
-        void addUIPropertyDefinitions(std::vector<supershader::define_t> defs, uint32_t prop);
-        void addPointsPropertyDefinitions(std::vector<supershader::define_t> defs, uint32_t prop);
-        void addLinesPropertyDefinitions(std::vector<supershader::define_t> defs, uint32_t prop);
+        void addMeshPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop);
+        void addDepthMeshPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop);
+        void addUIPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop);
+        void addPointsPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop);
+        void addLinesPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop);
 
     public:
         ShaderBuilder();
