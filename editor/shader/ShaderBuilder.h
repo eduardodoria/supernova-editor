@@ -43,7 +43,7 @@ namespace Supernova::Editor {
         ShaderBuilder();
         virtual ~ShaderBuilder();
 
-        void execute();
+        void buildShader(ShaderType shaderType, uint32_t properties);
 
         ShaderData& getShaderData();
     };

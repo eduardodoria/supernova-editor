@@ -256,21 +256,50 @@ void Editor::ShaderBuilder::addLinesPropertyDefinitions(std::vector<supershader:
     if (prop & (1 << 1))  defs.push_back({"HAS_VERTEX_COLOR_VEC4", "1"});    // 'Vc4'
 }
 
-void Editor::ShaderBuilder::execute(){
+void Editor::ShaderBuilder::buildShader(ShaderType shaderType, uint32_t properties){
     std::vector<supershader::input_t> inputs;
     supershader::args_t args = supershader::initialize_args();
     args.isValid = true;
-    args.vert_file = "mesh.vert";
-    args.frag_file = "mesh.frag";
     args.useBuffers = true;
     args.fileBuffers = Editor::shaderMap;
     args.lang = supershader::LANG_GLSL;
     args.version = 410;
 
-    addMeshPropertyDefinitions(args.defines, 0);
+    if (shaderType == ShaderType::MESH){
+        args.vert_file = "mesh.vert";
+        args.frag_file = "mesh.frag";
+        addMeshPropertyDefinitions(args.defines, properties);
+    }else if (shaderType == ShaderType::DEPTH){
+        args.vert_file = "depth.vert";
+        args.frag_file = "depth.frag";
+        addDepthMeshPropertyDefinitions(args.defines, properties);
+    }else if (shaderType == ShaderType::UI){
+        args.vert_file = "ui.vert";
+        args.frag_file = "ui.frag";
+        addUIPropertyDefinitions(args.defines, properties);
+    }else if (shaderType == ShaderType::POINTS){
+        args.vert_file = "points.vert";
+        args.frag_file = "points.frag";
+        addPointsPropertyDefinitions(args.defines, properties);
+    }else if (shaderType == ShaderType::LINES){
+        args.vert_file = "lines.vert";
+        args.frag_file = "lines.frag";
+        addLinesPropertyDefinitions(args.defines, properties);
+    }else if (shaderType == ShaderType::SKYBOX){
+        args.vert_file = "sky.vert";
+        args.frag_file = "sky.frag";
+    }
 
-    args.defines.push_back({"USE_PUNCTUAL", "1"});
-    args.defines.push_back({"MAX_LIGHTS", "4"});
+    if (shaderType == ShaderType::MESH){
+        args.defines.push_back({"MAX_LIGHTS", "6"});
+        args.defines.push_back({"MAX_SHADOWSMAP", "6"});
+        args.defines.push_back({"MAX_SHADOWSCUBEMAP", "1"});
+        args.defines.push_back({"MAX_SHADOWCASCADES", "4"});
+        args.defines.push_back({"MAX_BONES", "70"});
+    }
+    if (shaderType == ShaderType::DEPTH){
+        args.defines.push_back({"MAX_BONES", "70"});
+    }
 
     if (!supershader::load_input(inputs, args)) {
         printf("Error loading shader input\n");
@@ -293,7 +322,9 @@ void Editor::ShaderBuilder::execute(){
 
     convertToShaderData(spirvcrossvec, inputs, args);
 
-    printf("Shader generated successfully with %zu stages\n", shaderData.stages.size());
+    printf("%s\n", shaderData.stages[0].source.c_str());
+    printf("%s\n", shaderData.stages[1].source.c_str());
+    printf("Shader (%s, %s) generated successfully with %zu stages\n", args.vert_file.c_str(), args.frag_file.c_str(), shaderData.stages.size());
 }
 
 ShaderData& Editor::ShaderBuilder::getShaderData() { 
