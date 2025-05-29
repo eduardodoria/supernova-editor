@@ -5,6 +5,10 @@
 
 using namespace Supernova;
 
+
+std::unordered_map<ShaderKey, ShaderData> Editor::ShaderBuilder::shaderDataCache;
+
+
 Editor::ShaderBuilder::ShaderBuilder(){
 }
 
@@ -103,10 +107,12 @@ ShaderLang Editor::ShaderBuilder::mapLang(supershader::lang_type_t lang) {
 }
 
 // Implementation of convertToShaderData
-void Editor::ShaderBuilder::convertToShaderData(
-const std::vector<supershader::spirvcross_t>& spirvcrossvec,
+ShaderData Editor::ShaderBuilder::convertToShaderData(
+    const std::vector<supershader::spirvcross_t>& spirvcrossvec,
     const std::vector<supershader::input_t>& inputs,
     const supershader::args_t& args) {
+
+    ShaderData shaderData;
 
     shaderData.lang = mapLang(args.lang);
     shaderData.version = args.version;
@@ -202,6 +208,8 @@ const std::vector<supershader::spirvcross_t>& spirvcrossvec,
 
         shaderData.stages.push_back(stage);
     }
+
+    return shaderData;
 }
 
 void Editor::ShaderBuilder::addMeshPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop) {
@@ -255,7 +263,15 @@ void Editor::ShaderBuilder::addLinesPropertyDefinitions(std::vector<supershader:
     if (prop & (1 << 1))  defs.push_back({"HAS_VERTEX_COLOR_VEC4", "1"});    // 'Vc4'
 }
 
-void Editor::ShaderBuilder::buildShader(ShaderType shaderType, uint32_t properties){
+void Editor::ShaderBuilder::buildShader(ShaderKey shaderKey){
+
+    if (shaderDataCache.count(shaderKey)){
+        return;
+    }
+
+    ShaderType shaderType = ShaderPool::getShaderTypeFromKey(shaderKey);
+    uint32_t properties = ShaderPool::getPropertiesFromKey(shaderKey);
+
     std::vector<supershader::input_t> inputs;
     supershader::args_t args = supershader::initialize_args();
     args.isValid = true;
@@ -319,13 +335,13 @@ void Editor::ShaderBuilder::buildShader(ShaderType shaderType, uint32_t properti
         return;
     }
 
-    convertToShaderData(spirvcrossvec, inputs, args);
+    shaderDataCache[shaderKey] = convertToShaderData(spirvcrossvec, inputs, args);
 
     //printf("%s\n", shaderData.stages[0].source.c_str());
     //printf("%s\n", shaderData.stages[1].source.c_str());
     printf("Shader (%s, %s, %u) generated successfully\n", args.vert_file.c_str(), args.frag_file.c_str(), properties);
 }
 
-ShaderData& Editor::ShaderBuilder::getShaderData() { 
-    return shaderData; 
+ShaderData& Editor::ShaderBuilder::getShaderData(ShaderKey shaderKey) { 
+    return shaderDataCache[shaderKey]; 
 }

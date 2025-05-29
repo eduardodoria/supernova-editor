@@ -1,5 +1,6 @@
 #pragma once
 
+#include "pool/ShaderPool.h"
 #include "ShaderData.h"
 #include <vector>
 
@@ -16,7 +17,7 @@ namespace Supernova::Editor {
 
     class ShaderBuilder {
     private:
-        ShaderData shaderData;
+        static std::unordered_map<ShaderKey, ShaderData> shaderDataCache;
 
         // Mapping functions declarations with camelCase
         ShaderVertexType mapVertexType(supershader::attribute_type_t type);
@@ -28,7 +29,7 @@ namespace Supernova::Editor {
         ShaderStageType mapStageType(supershader::stage_type_t type);
         ShaderLang mapLang(supershader::lang_type_t lang);
 
-        void convertToShaderData(
+        ShaderData convertToShaderData(
             const std::vector<supershader::spirvcross_t>& spirvcrossvec,
             const std::vector<supershader::input_t>& inputs,
             const supershader::args_t& args);
@@ -43,9 +44,9 @@ namespace Supernova::Editor {
         ShaderBuilder();
         virtual ~ShaderBuilder();
 
-        void buildShader(ShaderType shaderType, uint32_t properties);
+        void buildShader(ShaderKey shaderKey);
 
-        ShaderData& getShaderData();
+        ShaderData& getShaderData(ShaderKey shaderKey);
     };
 
 }

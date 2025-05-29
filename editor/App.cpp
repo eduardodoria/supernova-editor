@@ -465,10 +465,10 @@ void Editor::App::engineInit(int argc, char** argv) {
 
     Engine::systemInit(argc, argv);
 
-    ShaderPool::setShaderBuilder([](Supernova::ShaderType type, uint32_t prop) -> Supernova::ShaderData {
+    ShaderPool::setShaderBuilder([](Supernova::ShaderKey shaderKey) -> Supernova::ShaderData {
         Supernova::Editor::ShaderBuilder builder;
-        builder.buildShader(type, prop);
-        return builder.getShaderData();
+        builder.buildShader(shaderKey);
+        return builder.getShaderData(shaderKey);
     });
 }
 
