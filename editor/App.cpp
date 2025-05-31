@@ -465,10 +465,9 @@ void Editor::App::engineInit(int argc, char** argv) {
 
     Engine::systemInit(argc, argv);
 
-    ShaderPool::setShaderBuilder([](Supernova::ShaderKey shaderKey) -> Supernova::ShaderData {
-        Supernova::Editor::ShaderBuilder builder;
-        builder.buildShader(shaderKey);
-        return builder.getShaderData(shaderKey);
+    ShaderPool::setShaderBuilder([](Supernova::ShaderKey shaderKey) -> Supernova::ShaderBuildResult {
+        static Supernova::Editor::ShaderBuilder builder;  // Make static to reuse
+        return builder.buildShader(shaderKey);
     });
 }
 

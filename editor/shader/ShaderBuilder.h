@@ -3,6 +3,9 @@
 #include "pool/ShaderPool.h"
 #include "ShaderData.h"
 #include <vector>
+#include <unordered_map>
+#include <mutex>
+#include <future>
 
 #include "supershader.h"
 #include "shaders.h"
@@ -18,6 +21,8 @@ namespace Supernova::Editor {
     class ShaderBuilder {
     private:
         static std::unordered_map<ShaderKey, ShaderData> shaderDataCache;
+        static std::unordered_map<ShaderKey, std::future<ShaderData>> pendingBuilds;
+        static std::mutex cacheMutex;
 
         // Mapping functions declarations with camelCase
         ShaderVertexType mapVertexType(supershader::attribute_type_t type);
@@ -40,11 +45,13 @@ namespace Supernova::Editor {
         void addPointsPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop);
         void addLinesPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop);
 
+        ShaderData buildShaderInternal(ShaderKey shaderKey);
+
     public:
         ShaderBuilder();
         virtual ~ShaderBuilder();
 
-        void buildShader(ShaderKey shaderKey);
+        ShaderBuildResult buildShader(ShaderKey shaderKey);
 
         ShaderData& getShaderData(ShaderKey shaderKey);
     };

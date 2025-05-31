@@ -7,7 +7,8 @@ using namespace Supernova;
 
 
 std::unordered_map<ShaderKey, ShaderData> Editor::ShaderBuilder::shaderDataCache;
-
+std::unordered_map<ShaderKey, std::future<ShaderData>> Editor::ShaderBuilder::pendingBuilds;
+std::mutex Editor::ShaderBuilder::cacheMutex;
 
 Editor::ShaderBuilder::ShaderBuilder(){
 }
@@ -263,12 +264,43 @@ void Editor::ShaderBuilder::addLinesPropertyDefinitions(std::vector<supershader:
     if (prop & (1 << 1))  defs.push_back({"HAS_VERTEX_COLOR_VEC4", "1"});    // 'Vc4'
 }
 
-void Editor::ShaderBuilder::buildShader(ShaderKey shaderKey){
+ShaderBuildResult Editor::ShaderBuilder::buildShader(ShaderKey shaderKey){
+    std::lock_guard<std::mutex> lock(cacheMutex);
 
+    // Check if already in cache
     if (shaderDataCache.count(shaderKey)){
-        return;
+        return ShaderBuildResult(shaderDataCache[shaderKey], ShaderBuildState::Finished);
     }
 
+    // Check if already building
+    if (pendingBuilds.count(shaderKey)) {
+        auto& future = pendingBuilds[shaderKey];
+        if (future.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+            // Build finished, move to cache
+            try {
+                ShaderData data = future.get();
+                shaderDataCache[shaderKey] = data;
+                pendingBuilds.erase(shaderKey);
+                return ShaderBuildResult(data, ShaderBuildState::Finished);
+            } catch (const std::exception& e) {
+                pendingBuilds.erase(shaderKey);
+                return ShaderBuildResult({}, ShaderBuildState::Failed);
+            }
+        } else {
+            // Still building
+            return ShaderBuildResult({}, ShaderBuildState::Running);
+        }
+    }
+
+    // Start new async build
+    pendingBuilds[shaderKey] = std::async(std::launch::async, [this, shaderKey]() {
+        return buildShaderInternal(shaderKey);
+    });
+
+    return ShaderBuildResult({}, ShaderBuildState::Running);
+}
+
+ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey){
     ShaderType shaderType = ShaderPool::getShaderTypeFromKey(shaderKey);
     uint32_t properties = ShaderPool::getPropertiesFromKey(shaderKey);
 
@@ -318,30 +350,31 @@ void Editor::ShaderBuilder::buildShader(ShaderKey shaderKey){
 
     if (!supershader::load_input(inputs, args)) {
         printf("Error loading shader input\n");
-        return;
+        throw std::runtime_error("Error loading shader input");
     }
 
     std::vector<supershader::spirv_t> spirvvec;
     spirvvec.resize(inputs.size());
     if (!supershader::compile_to_spirv(spirvvec, inputs, args)) {
         printf("Error compiling to SPIRV\n");
-        return;
+        throw std::runtime_error("Error compiling to SPIRV");
     }
 
     std::vector<supershader::spirvcross_t> spirvcrossvec;
     spirvcrossvec.resize(inputs.size());
     if (!supershader::compile_to_lang(spirvcrossvec, spirvvec, inputs, args)) {
         printf("Error cross-compiling\n");
-        return;
+        throw std::runtime_error("Error cross-compiling");
     }
 
-    shaderDataCache[shaderKey] = convertToShaderData(spirvcrossvec, inputs, args);
+    ShaderData shaderData = convertToShaderData(spirvcrossvec, inputs, args);
 
-    //printf("%s\n", shaderData.stages[0].source.c_str());
-    //printf("%s\n", shaderData.stages[1].source.c_str());
     printf("Shader (%s, %s, %u) generated successfully\n", args.vert_file.c_str(), args.frag_file.c_str(), properties);
+
+    return shaderData;
 }
 
 ShaderData& Editor::ShaderBuilder::getShaderData(ShaderKey shaderKey) { 
+    std::lock_guard<std::mutex> lock(cacheMutex);
     return shaderDataCache[shaderKey]; 
 }
