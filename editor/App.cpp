@@ -25,6 +25,7 @@ Editor::App::App(){
     structureWindow = new Structure(&project, sceneWindow);
     codeEditor = new CodeEditor();
     resourcesWindow = new ResourcesWindow(&project, codeEditor);
+    loadingWindow = new LoadingWindow();
 
     isInitialized = false;
 
@@ -442,6 +443,8 @@ void Editor::App::show(){
     propertiesWindow->show();
     codeEditor->show();
     sceneWindow->show();
+
+    loadingWindow->show();
 }
 
 void Editor::App::engineInit(int argc, char** argv) {
@@ -585,7 +588,7 @@ void Editor::App::kewtStyleTheme(){
     colors[ImGuiCol_DockingEmptyBg]         = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
     colors[ImGuiCol_PlotLines]              = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
     colors[ImGuiCol_PlotLinesHovered]       = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
-    colors[ImGuiCol_PlotHistogram]          = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
+    colors[ImGuiCol_PlotHistogram]          = ImVec4(0.36f, 0.43f, 0.48f, 1.00f);
     colors[ImGuiCol_PlotHistogramHovered]   = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
     colors[ImGuiCol_TableHeaderBg]          = ImVec4(0.27f, 0.25f, 0.24f, 1.00f);
     colors[ImGuiCol_TableBorderStrong]      = ImVec4(0.47f, 0.44f, 0.42f, 1.00f);

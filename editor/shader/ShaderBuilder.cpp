@@ -1,7 +1,12 @@
 #include "ShaderBuilder.h"
 
+#include "util/ResourceProgress.h"
+
 #include <cstring>
 #include <cstdint>
+
+//#include <thread>
+//#include <chrono>
 
 using namespace Supernova;
 
@@ -281,9 +286,11 @@ ShaderBuildResult Editor::ShaderBuilder::buildShader(ShaderKey shaderKey){
                 ShaderData data = future.get();
                 shaderDataCache[shaderKey] = data;
                 pendingBuilds.erase(shaderKey);
+                ResourceProgressTracker::completeBuild(shaderKey);
                 return ShaderBuildResult(data, ShaderBuildState::Finished);
             } catch (const std::exception& e) {
                 pendingBuilds.erase(shaderKey);
+                ResourceProgressTracker::failBuild(shaderKey);
                 return ShaderBuildResult({}, ShaderBuildState::Failed);
             }
         } else {
@@ -293,7 +300,11 @@ ShaderBuildResult Editor::ShaderBuilder::buildShader(ShaderKey shaderKey){
     }
 
     // Start new async build
+    std::string shaderName = getShaderDisplayName(shaderKey);
+    ResourceProgressTracker::startBuild(shaderKey, ResourceType::Shader, shaderName);
+
     pendingBuilds[shaderKey] = std::async(std::launch::async, [this, shaderKey]() {
+        //std::this_thread::sleep_for(std::chrono::seconds(4));
         return buildShaderInternal(shaderKey);
     });
 
@@ -301,6 +312,8 @@ ShaderBuildResult Editor::ShaderBuilder::buildShader(ShaderKey shaderKey){
 }
 
 ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey){
+    ResourceProgressTracker::updateProgress(shaderKey, 0.1f); // Starting
+
     ShaderType shaderType = ShaderPool::getShaderTypeFromKey(shaderKey);
     uint32_t properties = ShaderPool::getPropertiesFromKey(shaderKey);
 
@@ -348,10 +361,14 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey){
         args.defines.push_back({"MAX_BONES", "70"});
     }
 
+    ResourceProgressTracker::updateProgress(shaderKey, 0.3f); // Setup complete
+
     if (!supershader::load_input(inputs, args)) {
         printf("Error loading shader input\n");
         throw std::runtime_error("Error loading shader input");
     }
+
+    ResourceProgressTracker::updateProgress(shaderKey, 0.5f); // Input loaded
 
     std::vector<supershader::spirv_t> spirvvec;
     spirvvec.resize(inputs.size());
@@ -360,6 +377,8 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey){
         throw std::runtime_error("Error compiling to SPIRV");
     }
 
+    ResourceProgressTracker::updateProgress(shaderKey, 0.8f); // SPIRV compiled
+
     std::vector<supershader::spirvcross_t> spirvcrossvec;
     spirvcrossvec.resize(inputs.size());
     if (!supershader::compile_to_lang(spirvcrossvec, spirvvec, inputs, args)) {
@@ -367,11 +386,45 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey){
         throw std::runtime_error("Error cross-compiling");
     }
 
+    ResourceProgressTracker::updateProgress(shaderKey, 0.95f); // Cross-compilation done
+
     ShaderData shaderData = convertToShaderData(spirvcrossvec, inputs, args);
+
+    ResourceProgressTracker::updateProgress(shaderKey, 1.0f); // Complete
 
     printf("Shader (%s, %s, %u) generated successfully\n", args.vert_file.c_str(), args.frag_file.c_str(), properties);
 
     return shaderData;
+}
+
+std::string Editor::ShaderBuilder::getShaderDisplayName(ShaderKey key) {
+    ShaderType type = ShaderPool::getShaderTypeFromKey(key);
+    uint32_t properties = ShaderPool::getPropertiesFromKey(key);
+    std::string shaderStr = ShaderPool::getShaderStr(type, properties);
+
+    // Find the underscore separating type and properties
+    size_t underscorePos = shaderStr.find('_');
+    std::string props;
+    std::string typeStr = shaderStr; // Use a separate string variable
+
+    if (underscorePos != std::string::npos) {
+        typeStr = shaderStr.substr(0, underscorePos);  // Assign to string, not enum
+        props = shaderStr.substr(underscorePos + 1);
+    }
+
+    // Capitalize the first character of type, lowercase the rest
+    if (!typeStr.empty()) {
+        typeStr[0] = std::toupper(typeStr[0]);
+        for (size_t i = 1; i < typeStr.size(); ++i)
+            typeStr[i] = std::tolower(typeStr[i]);
+    }
+
+    // Format as "Type (Props)"
+    std::string result = typeStr;
+    if (!props.empty()) {
+        result += " (" + props + ")";
+    }
+    return result;
 }
 
 ShaderData& Editor::ShaderBuilder::getShaderData(ShaderKey shaderKey) { 

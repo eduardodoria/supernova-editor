@@ -12,6 +12,8 @@
 #include "window/ResourcesWindow.h"
 #include "window/CodeEditor.h"
 
+#include "window/LoadingWindow.h"
+
 #include "window/ProjectSaveDialog.h"
 #include "window/SceneSaveDialog.h"
 
@@ -57,6 +59,8 @@ namespace Supernova::Editor{
         SceneWindow* sceneWindow;
         CodeEditor* codeEditor;
         ResourcesWindow* resourcesWindow;
+
+        LoadingWindow* loadingWindow;
 
         bool isInitialized;
 

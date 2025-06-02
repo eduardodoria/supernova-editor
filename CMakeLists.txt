@@ -184,6 +184,7 @@ add_executable(
     ${EDITOR_DIR}/Stream.cpp
 
     ${EDITOR_DIR}/util/GraphicUtils.cpp
+    ${EDITOR_DIR}/util/ResourceProgress.cpp
 
     ${EDITOR_DIR}/shader/ShaderBuilder.cpp
 
@@ -195,6 +196,7 @@ add_executable(
     ${EDITOR_DIR}/window/CodeEditor.cpp
     ${EDITOR_DIR}/window/SceneSaveDialog.cpp
     ${EDITOR_DIR}/window/ProjectSaveDialog.cpp
+    ${EDITOR_DIR}/window/LoadingWindow.cpp
 
     ${EDITOR_DIR}/render/ViewportGizmo.cpp
     ${EDITOR_DIR}/render/ToolsLayer.cpp

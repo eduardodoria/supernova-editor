@@ -46,6 +46,7 @@ namespace Supernova::Editor {
         void addLinesPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop);
 
         ShaderData buildShaderInternal(ShaderKey shaderKey);
+        std::string getShaderDisplayName(ShaderKey key);
 
     public:
         ShaderBuilder();
