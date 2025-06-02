@@ -14,6 +14,7 @@ using namespace Supernova;
 std::unordered_map<ShaderKey, ShaderData> Editor::ShaderBuilder::shaderDataCache;
 std::unordered_map<ShaderKey, std::future<ShaderData>> Editor::ShaderBuilder::pendingBuilds;
 std::mutex Editor::ShaderBuilder::cacheMutex;
+std::atomic<bool> Editor::ShaderBuilder::shutdownRequested{false};
 
 Editor::ShaderBuilder::ShaderBuilder(){
 }
@@ -311,7 +312,23 @@ ShaderBuildResult Editor::ShaderBuilder::buildShader(ShaderKey shaderKey){
     return ShaderBuildResult({}, ShaderBuildState::Running);
 }
 
+void Editor::ShaderBuilder::requestShutdown() {
+    std::lock_guard<std::mutex> lock(cacheMutex);
+    shutdownRequested = true;
+
+    // Wait for all pending builds to complete
+    for (auto& [key, future] : pendingBuilds) {
+        if (future.valid()) {
+            future.wait(); // Wait for completion
+        }
+    }
+    pendingBuilds.clear();
+}
+
 ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey){
+    if (shutdownRequested) {
+        throw std::runtime_error("Shutdown requested");
+    }
     ResourceProgressTracker::updateProgress(shaderKey, 0.1f); // Starting
 
     ShaderType shaderType = ShaderPool::getShaderTypeFromKey(shaderKey);
@@ -361,6 +378,9 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey){
         args.defines.push_back({"MAX_BONES", "70"});
     }
 
+    if (shutdownRequested) {
+        throw std::runtime_error("Shutdown requested");
+    }
     ResourceProgressTracker::updateProgress(shaderKey, 0.3f); // Setup complete
 
     if (!supershader::load_input(inputs, args)) {
@@ -368,6 +388,9 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey){
         throw std::runtime_error("Error loading shader input");
     }
 
+    if (shutdownRequested) {
+        throw std::runtime_error("Shutdown requested");
+    }
     ResourceProgressTracker::updateProgress(shaderKey, 0.5f); // Input loaded
 
     std::vector<supershader::spirv_t> spirvvec;
@@ -377,6 +400,9 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey){
         throw std::runtime_error("Error compiling to SPIRV");
     }
 
+    if (shutdownRequested) {
+        throw std::runtime_error("Shutdown requested");
+    }
     ResourceProgressTracker::updateProgress(shaderKey, 0.8f); // SPIRV compiled
 
     std::vector<supershader::spirvcross_t> spirvcrossvec;
@@ -386,10 +412,16 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey){
         throw std::runtime_error("Error cross-compiling");
     }
 
+    if (shutdownRequested) {
+        throw std::runtime_error("Shutdown requested");
+    }
     ResourceProgressTracker::updateProgress(shaderKey, 0.95f); // Cross-compilation done
 
     ShaderData shaderData = convertToShaderData(spirvcrossvec, inputs, args);
 
+    if (shutdownRequested) {
+        throw std::runtime_error("Shutdown requested");
+    }
     ResourceProgressTracker::updateProgress(shaderKey, 1.0f); // Complete
 
     printf("Shader (%s, %s, %u) generated successfully\n", args.vert_file.c_str(), args.frag_file.c_str(), properties);

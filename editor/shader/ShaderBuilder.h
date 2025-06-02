@@ -24,6 +24,8 @@ namespace Supernova::Editor {
         static std::unordered_map<ShaderKey, std::future<ShaderData>> pendingBuilds;
         static std::mutex cacheMutex;
 
+        static std::atomic<bool> shutdownRequested;
+
         // Mapping functions declarations with camelCase
         ShaderVertexType mapVertexType(supershader::attribute_type_t type);
         ShaderUniformType mapUniformType(supershader::uniform_type_t type);
@@ -53,6 +55,8 @@ namespace Supernova::Editor {
         virtual ~ShaderBuilder();
 
         ShaderBuildResult buildShader(ShaderKey shaderKey);
+
+        static void requestShutdown();
 
         ShaderData& getShaderData(ShaderKey shaderKey);
     };

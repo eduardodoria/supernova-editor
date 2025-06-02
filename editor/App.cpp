@@ -845,6 +845,8 @@ void Editor::App::saveWindowSettings(int width, int height, bool maximized) {
 }
 
 void Editor::App::exit() {
+    Editor::ShaderBuilder::requestShutdown();
+
     // First check if the scene save dialog is open
     if (sceneSaveDialog.isOpen()) {
         // Close the dialog first
