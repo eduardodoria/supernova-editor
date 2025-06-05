@@ -481,19 +481,21 @@ void Editor::SceneWindow::show() {
 
                 ImGui::Image((ImTextureID)(intptr_t)sceneProject.sceneRender->getTexture().getGLHandler(), ImGui::GetContentRegionAvail(), ImVec2(0, 1), ImVec2(1, 0));
                 
+                static bool draggingResourceFile = false;
                 static Image* tempImage = nullptr;
+                static MeshComponent* selMesh = nullptr;
+                static UIComponent* selUI = nullptr;
+                static Texture originalTex;
+                static Entity lastSelEntity = NULL_ENTITY;
+
                 if (ImGui::BeginDragDropTarget()) {
+                    draggingResourceFile = true;
                     ImVec2 windowPos = ImGui::GetWindowPos();
                     ImGuiIO& io = ImGui::GetIO();
                     ImVec2 mousePos = io.MousePos;
                     float x = mousePos.x - windowPos.x;
                     float y = mousePos.y - windowPos.y;
                     Entity selEntity = project->findObjectByRay(sceneProject.id, x, y);
-
-                    static MeshComponent* selMesh = nullptr;
-                    static UIComponent* selUI = nullptr;
-                    static Texture originalTex;
-                    static Entity lastSelEntity = NULL_ENTITY;
 
                     if (selEntity == NULL_ENTITY || lastSelEntity != selEntity) {
                         if (selMesh) {
@@ -604,6 +606,25 @@ void Editor::SceneWindow::show() {
                     }
                     ImGui::EndDragDropTarget();
                 }else{
+                    if (draggingResourceFile) {
+                        // If user released mouse (ended drag) and we have a temp texture applied, revert it
+                        if (selMesh) {
+                            if (selMesh->submeshes[0].material.baseColorTexture != originalTex) {
+                                selMesh->submeshes[0].material.baseColorTexture = originalTex;
+                                selMesh->submeshes[0].needUpdateTexture = true;
+                            }
+                            selMesh = nullptr;
+                        }
+                        if (selUI) {
+                            if (selUI->texture != originalTex) {
+                                selUI->texture = originalTex;
+                                selUI->needUpdateTexture = true;
+                            }
+                            selUI = nullptr;
+                        }
+                        draggingResourceFile = false; // Reset flag
+                        lastSelEntity = NULL_ENTITY;
+                    }
                     if (tempImage != nullptr) {
                         delete tempImage;
                         tempImage = nullptr;
