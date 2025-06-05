@@ -1,5 +1,6 @@
 #include "LoadingWindow.h"
 #include "imgui.h"
+#include "imgui_internal.h"
 #include <vector>
 
 using namespace Supernova::Editor;
@@ -11,15 +12,17 @@ LoadingWindow::~LoadingWindow() {
 }
 
 void LoadingWindow::show() {
-    bool hasBuilds = ResourceProgressTracker::hasActiveBuilds();
+    bool hasBuilds = ResourceProgress::hasActiveBuilds();
 
-    if (hasBuilds) {
+    bool dragDropActive = ImGui::IsDragDropActive();
+
+    if (hasBuilds && !dragDropActive) {
         if (!wasShowing) {
             ImGui::OpenPopup("Loading");
             wasShowing = true;
         }
 
-        OverallBuildProgress overallProgress = ResourceProgressTracker::getOverallProgress();
+        OverallBuildProgress overallProgress = ResourceProgress::getOverallProgress();
         drawProgressModal(overallProgress);
     } else {
         if (wasShowing) {
@@ -53,12 +56,12 @@ void LoadingWindow::drawProgressModal(const OverallBuildProgress& progress) {
 
             if (ImGui::TreeNode("resource_list", "%s", buildingText)) {
                 // Get all active builds for the dropdown
-                std::vector<ResourceBuildInfo> allBuilds = ResourceProgressTracker::getAllActiveBuilds();
+                std::vector<ResourceBuildInfo> allBuilds = ResourceProgress::getAllActiveBuilds();
 
                 for (const auto& build : allBuilds) {
                     ImGui::Bullet();
                     ImGui::Text("%s - %s - %.1f%%", 
-                        ResourceProgressTracker::getResourceTypeName(build.type).c_str(),
+                        ResourceProgress::getResourceTypeName(build.type).c_str(),
                         build.name.c_str(),
                         build.progress * 100.0f);
                 }

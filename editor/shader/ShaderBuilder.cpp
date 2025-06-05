@@ -287,11 +287,11 @@ ShaderBuildResult Editor::ShaderBuilder::buildShader(ShaderKey shaderKey){
                 ShaderData data = future.get();
                 shaderDataCache[shaderKey] = data;
                 pendingBuilds.erase(shaderKey);
-                ResourceProgressTracker::completeBuild(shaderKey);
+                ResourceProgress::completeBuild(shaderKey);
                 return ShaderBuildResult(data, ShaderBuildState::Finished);
             } catch (const std::exception& e) {
                 pendingBuilds.erase(shaderKey);
-                ResourceProgressTracker::failBuild(shaderKey);
+                ResourceProgress::failBuild(shaderKey);
                 return ShaderBuildResult({}, ShaderBuildState::Failed);
             }
         } else {
@@ -302,7 +302,7 @@ ShaderBuildResult Editor::ShaderBuilder::buildShader(ShaderKey shaderKey){
 
     // Start new async build
     std::string shaderName = getShaderDisplayName(shaderKey);
-    ResourceProgressTracker::startBuild(shaderKey, ResourceType::Shader, shaderName);
+    ResourceProgress::startBuild(shaderKey, ResourceType::Shader, shaderName);
 
     pendingBuilds[shaderKey] = std::async(std::launch::async, [this, shaderKey]() {
         //std::this_thread::sleep_for(std::chrono::seconds(4));
@@ -329,7 +329,7 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey){
     if (shutdownRequested) {
         throw std::runtime_error("Shutdown requested");
     }
-    ResourceProgressTracker::updateProgress(shaderKey, 0.1f); // Starting
+    ResourceProgress::updateProgress(shaderKey, 0.1f); // Starting
 
     ShaderType shaderType = ShaderPool::getShaderTypeFromKey(shaderKey);
     uint32_t properties = ShaderPool::getPropertiesFromKey(shaderKey);
@@ -381,7 +381,7 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey){
     if (shutdownRequested) {
         throw std::runtime_error("Shutdown requested");
     }
-    ResourceProgressTracker::updateProgress(shaderKey, 0.3f); // Setup complete
+    ResourceProgress::updateProgress(shaderKey, 0.3f); // Setup complete
 
     if (!supershader::load_input(inputs, args)) {
         printf("Error loading shader input\n");
@@ -391,7 +391,7 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey){
     if (shutdownRequested) {
         throw std::runtime_error("Shutdown requested");
     }
-    ResourceProgressTracker::updateProgress(shaderKey, 0.5f); // Input loaded
+    ResourceProgress::updateProgress(shaderKey, 0.5f); // Input loaded
 
     std::vector<supershader::spirv_t> spirvvec;
     spirvvec.resize(inputs.size());
@@ -403,7 +403,7 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey){
     if (shutdownRequested) {
         throw std::runtime_error("Shutdown requested");
     }
-    ResourceProgressTracker::updateProgress(shaderKey, 0.8f); // SPIRV compiled
+    ResourceProgress::updateProgress(shaderKey, 0.8f); // SPIRV compiled
 
     std::vector<supershader::spirvcross_t> spirvcrossvec;
     spirvcrossvec.resize(inputs.size());
@@ -415,14 +415,14 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey){
     if (shutdownRequested) {
         throw std::runtime_error("Shutdown requested");
     }
-    ResourceProgressTracker::updateProgress(shaderKey, 0.95f); // Cross-compilation done
+    ResourceProgress::updateProgress(shaderKey, 0.95f); // Cross-compilation done
 
     ShaderData shaderData = convertToShaderData(spirvcrossvec, inputs, args);
 
     if (shutdownRequested) {
         throw std::runtime_error("Shutdown requested");
     }
-    ResourceProgressTracker::updateProgress(shaderKey, 1.0f); // Complete
+    ResourceProgress::updateProgress(shaderKey, 1.0f); // Complete
 
     printf("Shader (%s, %s, %u) generated successfully\n", args.vert_file.c_str(), args.frag_file.c_str(), properties);
 

@@ -1125,11 +1125,10 @@ void Editor::ResourcesWindow::thumbnailWorker() {
     }
 }
 
-
 // Load a thumbnail texture for a file entry
-void Editor::ResourcesWindow::loadThumbnail(FileEntry& entry) {
+bool Editor::ResourcesWindow::loadThumbnail(FileEntry& entry) {
     if (entry.hasThumbnail) {
-        return;
+        return true;
     }
 
     fs::path filePath = currentPath / entry.name;
@@ -1143,12 +1142,17 @@ void Editor::ResourcesWindow::loadThumbnail(FileEntry& entry) {
             thumbTexture.setPath(thumbnailPath.string());
             if (thumbTexture.load()){
                 thumbnailTextures[thumbnailPath.string()] = thumbTexture;
+            }else{
+                // only false if there is file but texture is not loaded
+                return false;
             }
         }
 
         entry.hasThumbnail = true;
         entry.thumbnailPath = thumbnailPath.string();
     }
+
+    return true;
 }
 
 void Editor::ResourcesWindow::saveMaterialFile(const fs::path& directory, const char* materialContent, size_t contentLen) {
@@ -1238,7 +1242,10 @@ void Editor::ResourcesWindow::show() {
         // Find and update the corresponding file entry
         for (auto& file : files) {
             if ((currentPath / file.name) == thumbFile.path) {
-                loadThumbnail(file);
+                if (!loadThumbnail(file)){
+                    std::lock_guard<std::mutex> lock(completedThumbnailMutex);
+                    completedThumbnailQueue.push(thumbFile);
+                }
                 break;
             }
         }

@@ -472,6 +472,8 @@ void Editor::App::engineInit(int argc, char** argv) {
         static Supernova::Editor::ShaderBuilder builder;  // Make static to reuse
         return builder.buildShader(shaderKey);
     });
+
+    TextureDataPool::setAsyncLoading(true);
 }
 
 void Editor::App::engineViewLoaded(){

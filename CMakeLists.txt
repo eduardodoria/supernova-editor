@@ -80,6 +80,8 @@ endif()
 set(SUPERNOVA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/supernova)
 set(SUPERSHADER_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/supershader)
 
+add_definitions("-DSUPERNOVA_EDITOR")
+
 add_definitions("-DNO_LUA_INIT")
 add_definitions("-DNO_CPP_INIT")
 add_definitions("-DSOKOL_GLCORE")
@@ -184,7 +186,6 @@ add_executable(
     ${EDITOR_DIR}/Stream.cpp
 
     ${EDITOR_DIR}/util/GraphicUtils.cpp
-    ${EDITOR_DIR}/util/ResourceProgress.cpp
 
     ${EDITOR_DIR}/shader/ShaderBuilder.cpp
 
