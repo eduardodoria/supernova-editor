@@ -1137,9 +1137,8 @@ bool Editor::ResourcesWindow::loadThumbnail(FileEntry& entry) {
     if (fs::exists(thumbnailPath)) {
         // Check if we already have this thumbnail loaded
         if (thumbnailTextures.find(thumbnailPath.string()) == thumbnailTextures.end()) {
-            // Load the thumbnail texture
-            Texture thumbTexture;
-            thumbTexture.setPath(thumbnailPath.string());
+            // Sync load the thumbnail texture
+            Texture thumbTexture(entry.name, TextureData(thumbnailPath.string().c_str()));
             if (thumbTexture.load()){
                 thumbnailTextures[thumbnailPath.string()] = thumbTexture;
             }else{
