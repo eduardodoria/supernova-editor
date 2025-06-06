@@ -537,6 +537,7 @@ YAML::Node Editor::Stream::encodeSubmesh(const Submesh& submesh) {
     node["primitiveType"] = primitiveTypeToString(submesh.primitiveType);
     node["vertexCount"] = submesh.vertexCount;
     node["faceCulling"] = submesh.faceCulling;
+    node["textureShadow"] = submesh.textureShadow;
 
     // Flags
     node["hasTexCoord1"] = submesh.hasTexCoord1;
@@ -548,7 +549,6 @@ YAML::Node Editor::Stream::encodeSubmesh(const Submesh& submesh) {
     node["hasMorphTarget"] = submesh.hasMorphTarget;
     node["hasMorphNormal"] = submesh.hasMorphNormal;
     node["hasMorphTangent"] = submesh.hasMorphTangent;
-    node["hasDepthTexture"] = submesh.hasDepthTexture;
 
     return node;
 }
@@ -561,6 +561,7 @@ Submesh Editor::Stream::decodeSubmesh(const YAML::Node& node) {
     submesh.primitiveType = stringToPrimitiveType(node["primitiveType"].as<std::string>());
     submesh.vertexCount = node["vertexCount"].as<uint32_t>();
     submesh.faceCulling = node["faceCulling"].as<bool>();
+    submesh.textureShadow = node["textureShadow"].as<bool>();
 
     // Flags
     submesh.hasTexCoord1 = node["hasTexCoord1"].as<bool>();
@@ -572,7 +573,6 @@ Submesh Editor::Stream::decodeSubmesh(const YAML::Node& node) {
     submesh.hasMorphTarget = node["hasMorphTarget"].as<bool>();
     submesh.hasMorphNormal = node["hasMorphNormal"].as<bool>();
     submesh.hasMorphTangent = node["hasMorphTangent"].as<bool>();
-    submesh.hasDepthTexture = node["hasDepthTexture"].as<bool>();
 
     return submesh;
 }

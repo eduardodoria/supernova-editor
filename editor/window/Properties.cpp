@@ -1185,7 +1185,7 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
     for (int s = 0; s < numSubmeshes; s++){
         ImGui::SeparatorText(("Submesh "+std::to_string(s+1)).c_str());
 
-        float submeshesTableSize = getLabelSize("Texture Rect");
+        float submeshesTableSize = getLabelSize("Texture Shadow");
 
         beginTable(cpType, submeshesTableSize, "submeshes");
 
@@ -1206,6 +1206,7 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
         }
 
         propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].face_culling", "Face Culling", sceneProject, entities);
+        propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].texture_shadow", "Texture Shadow", sceneProject, entities);
         propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].primitive_type", "Primitive", sceneProject, entities);
         propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].texture_rect", "Texture Rect", sceneProject, entities);
 

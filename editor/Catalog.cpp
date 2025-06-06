@@ -160,6 +160,7 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
 
             ps["submeshes["+idx+"].primitive_type"] = {PropertyType::Enum, UpdateFlags_Mesh_Reload, (void*)&def->submeshes[0].primitiveType, (compRef) ? (void*)&comp->submeshes[s].primitiveType : nullptr, &entriesPrimitiveType};
             ps["submeshes["+idx+"].face_culling"] = {PropertyType::Bool, UpdateFlags_Mesh_Reload, (void*)&def->submeshes[0].faceCulling, (compRef) ? (void*)&comp->submeshes[s].faceCulling : nullptr};
+            ps["submeshes["+idx+"].texture_shadow"] = {PropertyType::Bool, UpdateFlags_Mesh_Reload, (void*)&def->submeshes[0].textureShadow, (compRef) ? (void*)&comp->submeshes[s].textureShadow : nullptr};
             ps["submeshes["+idx+"].texture_rect"] = {PropertyType::Vector4, UpdateFlags_None, (void*)&def->submeshes[0].textureRect, (compRef) ? (void*)&comp->submeshes[s].textureRect : nullptr};
         }
     }else if (component == ComponentType::UIComponent){
