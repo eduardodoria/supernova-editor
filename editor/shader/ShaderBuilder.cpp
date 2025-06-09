@@ -1,6 +1,7 @@
 #include "ShaderBuilder.h"
 
-#include "util/ResourceProgress.h"
+#include "thread/ResourceProgress.h"
+#include "thread/ThreadPoolManager.h"
 
 #include <cstring>
 #include <cstdint>
@@ -304,10 +305,12 @@ ShaderBuildResult Editor::ShaderBuilder::buildShader(ShaderKey shaderKey){
     std::string shaderName = getShaderDisplayName(shaderKey);
     ResourceProgress::startBuild(shaderKey, ResourceType::Shader, shaderName);
 
-    pendingBuilds[shaderKey] = std::async(std::launch::async, [this, shaderKey]() {
-        //std::this_thread::sleep_for(std::chrono::seconds(4));
-        return buildShaderInternal(shaderKey);
-    });
+    // Use thread pool instead of std::async
+    pendingBuilds[shaderKey] = ThreadPoolManager::getInstance().enqueue(
+        [this, shaderKey]() {
+            return buildShaderInternal(shaderKey);
+        }
+    );
 
     return ShaderBuildResult({}, ResourceLoadState::Loading);
 }

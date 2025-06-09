@@ -847,8 +847,6 @@ void Editor::App::saveWindowSettings(int width, int height, bool maximized) {
 }
 
 void Editor::App::exit() {
-    Editor::ShaderBuilder::requestShutdown();
-
     // First check if the scene save dialog is open
     if (sceneSaveDialog.isOpen()) {
         // Close the dialog first
@@ -864,16 +862,21 @@ void Editor::App::exit() {
                 saveAllFunc();
                 project.saveProject(true,
                     [this]() {
-                        Backend::closeWindow();
+                        closeWindow();
                 });
             },
             [this]() {
                 // No callback - just exit without saving
-                Backend::closeWindow();
+                closeWindow();
             }
         );
     } else {
         // No unsaved changes, proceed with exit
-        Backend::closeWindow();
+        closeWindow();
     }
+}
+
+void Editor::App::closeWindow(){
+    Editor::ShaderBuilder::requestShutdown();
+    Backend::closeWindow();
 }

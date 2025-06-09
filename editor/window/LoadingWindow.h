@@ -1,6 +1,6 @@
 #pragma once
 
-#include "util/ResourceProgress.h"
+#include "thread/ResourceProgress.h"
 
 namespace Supernova::Editor {
 

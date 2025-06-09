@@ -92,6 +92,8 @@ namespace Supernova::Editor{
         void kewtStyleTheme();
         void processNextSaveDialog();
 
+        void closeWindow();
+
     public:
 
         App();
