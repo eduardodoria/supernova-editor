@@ -275,7 +275,7 @@ ShaderBuildResult Editor::ShaderBuilder::buildShader(ShaderKey shaderKey){
 
     // Check if already in cache
     if (shaderDataCache.count(shaderKey)){
-        return ShaderBuildResult(shaderDataCache[shaderKey], ShaderBuildState::Finished);
+        return ShaderBuildResult(shaderDataCache[shaderKey], ResourceLoadState::Finished);
     }
 
     // Check if already building
@@ -288,15 +288,15 @@ ShaderBuildResult Editor::ShaderBuilder::buildShader(ShaderKey shaderKey){
                 shaderDataCache[shaderKey] = data;
                 pendingBuilds.erase(shaderKey);
                 ResourceProgress::completeBuild(shaderKey);
-                return ShaderBuildResult(data, ShaderBuildState::Finished);
+                return ShaderBuildResult(data, ResourceLoadState::Finished);
             } catch (const std::exception& e) {
                 pendingBuilds.erase(shaderKey);
                 ResourceProgress::failBuild(shaderKey);
-                return ShaderBuildResult({}, ShaderBuildState::Failed);
+                return ShaderBuildResult({}, ResourceLoadState::Failed);
             }
         } else {
             // Still building
-            return ShaderBuildResult({}, ShaderBuildState::Running);
+            return ShaderBuildResult({}, ResourceLoadState::Loading);
         }
     }
 
@@ -309,7 +309,7 @@ ShaderBuildResult Editor::ShaderBuilder::buildShader(ShaderKey shaderKey){
         return buildShaderInternal(shaderKey);
     });
 
-    return ShaderBuildResult({}, ShaderBuildState::Running);
+    return ShaderBuildResult({}, ResourceLoadState::Loading);
 }
 
 void Editor::ShaderBuilder::requestShutdown() {
