@@ -288,11 +288,9 @@ ShaderBuildResult Editor::ShaderBuilder::buildShader(ShaderKey shaderKey){
                 ShaderData data = future.get();
                 shaderDataCache[shaderKey] = data;
                 pendingBuilds.erase(shaderKey);
-                ResourceProgress::completeBuild(shaderKey);
                 return ShaderBuildResult(data, ResourceLoadState::Finished);
             } catch (const std::exception& e) {
                 pendingBuilds.erase(shaderKey);
-                ResourceProgress::failBuild(shaderKey);
                 return ShaderBuildResult({}, ResourceLoadState::Failed);
             }
         } else {
@@ -387,7 +385,8 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey){
     ResourceProgress::updateProgress(shaderKey, 0.3f); // Setup complete
 
     if (!supershader::load_input(inputs, args)) {
-        printf("Error loading shader input\n");
+        //printf("Error loading shader input\n");
+        ResourceProgress::failBuild(shaderKey);
         throw std::runtime_error("Error loading shader input");
     }
 
@@ -399,7 +398,8 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey){
     std::vector<supershader::spirv_t> spirvvec;
     spirvvec.resize(inputs.size());
     if (!supershader::compile_to_spirv(spirvvec, inputs, args)) {
-        printf("Error compiling to SPIRV\n");
+        //printf("Error compiling to SPIRV\n");
+        ResourceProgress::failBuild(shaderKey);
         throw std::runtime_error("Error compiling to SPIRV");
     }
 
@@ -411,7 +411,8 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey){
     std::vector<supershader::spirvcross_t> spirvcrossvec;
     spirvcrossvec.resize(inputs.size());
     if (!supershader::compile_to_lang(spirvcrossvec, spirvvec, inputs, args)) {
-        printf("Error cross-compiling\n");
+        //printf("Error cross-compiling\n");
+        ResourceProgress::failBuild(shaderKey);
         throw std::runtime_error("Error cross-compiling");
     }
 
@@ -426,6 +427,7 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey){
         throw std::runtime_error("Shutdown requested");
     }
     ResourceProgress::updateProgress(shaderKey, 1.0f); // Complete
+    ResourceProgress::completeBuild(shaderKey);
 
     printf("Shader (%s, %s, %u) generated successfully\n", args.vert_file.c_str(), args.frag_file.c_str(), properties);
 
