@@ -7,6 +7,7 @@
 #include "object/Camera.h"
 #include "command/CommandHandle.h"
 #include "command/type/ScenePropertyCmd.h"
+#include "command/type/PropertyCmd.h"
 #include <unordered_map>
 
 namespace Supernova::Editor {
@@ -67,6 +68,43 @@ namespace Supernova::Editor {
 
             if (changed) {
                 cmd = new ScenePropertyCmd<T>(sceneProject, propertyName, value);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
+            }
+
+            if (ImGui::IsItemDeactivatedAfterEdit()) {
+                if (cmd){
+                    cmd->setNoMerge();
+                    cmd = nullptr;
+                }
+            }
+        }
+
+        template<typename T>
+        void drawProperty(SceneProject* sceneProject, Entity entity, ComponentType cpType, std::string propertyName, const char* label, float col2Size = -1.0f) {
+            PropertyData prop = Catalog::findEntityProperties(sceneProject->scene, entity, cpType)[propertyName];
+            T value = *static_cast<T*>(prop.ref);
+            bool changed = false;
+
+            Command* cmd = nullptr;
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("%s", label);
+            ImGui::TableSetColumnIndex(1);
+
+            //ImGui::SetNextItemWidth(-1);
+            if constexpr (std::is_same_v<T, bool>) {
+                changed = ImGui::Checkbox(("##" + propertyName).c_str(), &value);
+            } else if constexpr (std::is_same_v<T, float>) {
+                changed = ImGui::DragFloat(("##" + propertyName).c_str(), &value, 0.01f);
+            } else if constexpr (std::is_same_v<T, Vector3>) {
+                changed = ImGui::DragFloat3(("##" + propertyName).c_str(), (float*)&value.x);
+            } else if constexpr (std::is_same_v<T, Vector4>) {
+                changed = ImGui::DragFloat4(("##" + propertyName).c_str(), (float*)&value.x);
+            }
+
+            if (changed) {
+                cmd = new PropertyCmd<T>(sceneProject, entity, cpType, propertyName, prop.updateFlags, value);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
 

@@ -450,6 +450,8 @@ void Editor::SceneWindow::show() {
                         SceneRender3D* sceneRender3D = static_cast<SceneRender3D*>(sceneProject.sceneRender);
                         Entity lightentity = sceneRender3D->getSunLight()->getEntity();
 
+                        drawProperty<Vector3>(&sceneProject, lightentity, ComponentType::LightComponent, "direction", "Direction");
+
                         ImGui::EndTable();
                     }
 

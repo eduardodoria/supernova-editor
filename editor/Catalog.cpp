@@ -193,6 +193,11 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["height"] = {PropertyType::UInt, UpdateFlags_Sprite, nullptr, (compRef) ? (void*)&comp->height : nullptr};
         ps["pivot_preset"] = {PropertyType::Enum, UpdateFlags_Sprite, (void*)&def->pivotPreset, (compRef) ? (void*)&comp->pivotPreset : nullptr, &entriesPivotPreset};
         ps["texture_scale_factor"] = {PropertyType::Float, UpdateFlags_Sprite, (void*)&def->textureScaleFactor, (compRef) ? (void*)&comp->textureScaleFactor : nullptr};
+    }else if (component == ComponentType::LightComponent){
+        LightComponent* comp = (LightComponent*)compRef;
+        static LightComponent* def = new LightComponent;
+
+        ps["direction"] = {PropertyType::Vector3, UpdateFlags_Transform, nullptr, (compRef) ? (void*)&comp->direction : nullptr};
     }
 
     return ps;
@@ -360,6 +365,10 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::findEntityPropertie
         }
     }else if (component == ComponentType::SpriteComponent){
         if (SpriteComponent* compRef = scene->findComponent<SpriteComponent>(entity)){
+            return getProperties(component, compRef);
+        }
+    }else if (component == ComponentType::LightComponent){
+        if (LightComponent* compRef = scene->findComponent<LightComponent>(entity)){
             return getProperties(component, compRef);
         }
     }
