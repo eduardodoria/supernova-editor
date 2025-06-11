@@ -1172,6 +1172,165 @@ void Editor::Properties::drawTransform(ComponentType cpType, std::map<std::strin
 void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::string, PropertyData> props, SceneProject* sceneProject, std::vector<Entity> entities){
     beginTable(cpType, getLabelSize("receive shadows"));
 
+    // Add New Geometry property row
+    propertyHeader("Geometry");
+    if (ImGui::Button("New")){
+        ImGui::OpenPopup("menusettings_geometry");
+    }
+
+    // Geometry creation popup
+    ImGui::SetNextWindowSizeConstraints(ImVec2(20 * ImGui::GetFontSize(), 0), ImVec2(FLT_MAX, FLT_MAX));
+    if (ImGui::BeginPopup("menusettings_geometry")){
+        ImGui::Text("Create geometry");
+        ImGui::Separator();
+
+        // Static variables for geometry parameters
+        static int geometryType = 0;
+        static float planeWidth = 1.0f, planeDepth = 1.0f;
+        static unsigned int planeTiles = 1;
+        static float boxWidth = 1.0f, boxHeight = 1.0f, boxDepth = 1.0f;
+        static unsigned int boxTiles = 1;
+        static float sphereRadius = 1.0f;
+        static unsigned int sphereSlices = 36, sphereStacks = 18;
+        static float cylinderBaseRadius = 1.0f, cylinderTopRadius = 1.0f, cylinderHeight = 2.0f;
+        static unsigned int cylinderSlices = 36, cylinderStacks = 18;
+        static float capsuleBaseRadius = 1.0f, capsuleTopRadius = 1.0f, capsuleHeight = 2.0f;
+        static unsigned int capsuleSlices = 36, capsuleStacks = 18;
+        static float torusRadius = 1.0f, torusRingRadius = 0.5f;
+        static unsigned int torusSides = 36, torusRings = 16;
+
+        const char* geometryTypes[] = { "Plane", "Box", "Sphere", "Cylinder", "Capsule", "Torus" };
+
+        beginTable(cpType, getLabelSize("Geometry Type"), "geometry_popup");
+
+        // Geometry type selection
+        propertyHeader("Geometry Type");
+        ImGui::Combo("##geometry_type", &geometryType, geometryTypes, IM_ARRAYSIZE(geometryTypes));
+
+        float secondColSize = 11 * ImGui::GetFontSize();
+        // Show parameters based on selected geometry type
+        switch (geometryType) {
+            case 0: // Plane
+                propertyHeader("Width", secondColSize);
+                ImGui::DragFloat("##plane_width", &planeWidth, 0.1f, 0.1f, 100.0f, "%.2f");
+
+                propertyHeader("Depth", secondColSize);
+                ImGui::DragFloat("##plane_depth", &planeDepth, 0.1f, 0.1f, 100.0f, "%.2f");
+
+                propertyHeader("Tiles", secondColSize);
+                ImGui::DragInt("##plane_tiles", (int*)&planeTiles, 1, 1, 100);
+                break;
+
+            case 1: // Box
+                propertyHeader("Width", secondColSize);
+                ImGui::DragFloat("##box_width", &boxWidth, 0.1f, 0.1f, 100.0f, "%.2f");
+
+                propertyHeader("Height", secondColSize);
+                ImGui::DragFloat("##box_height", &boxHeight, 0.1f, 0.1f, 100.0f, "%.2f");
+
+                propertyHeader("Depth", secondColSize);
+                ImGui::DragFloat("##box_depth", &boxDepth, 0.1f, 0.1f, 100.0f, "%.2f");
+
+                propertyHeader("Tiles", secondColSize);
+                ImGui::DragInt("##box_tiles", (int*)&boxTiles, 1, 1, 100);
+                break;
+
+            case 2: // Sphere
+                propertyHeader("Radius", secondColSize);
+                ImGui::DragFloat("##sphere_radius", &sphereRadius, 0.1f, 0.1f, 100.0f, "%.2f");
+
+                propertyHeader("Slices", secondColSize);
+                ImGui::DragInt("##sphere_slices", (int*)&sphereSlices, 1, 3, 100);
+
+                propertyHeader("Stacks", secondColSize);
+                ImGui::DragInt("##sphere_stacks", (int*)&sphereStacks, 1, 3, 100);
+                break;
+
+            case 3: // Cylinder
+                propertyHeader("Base Radius", secondColSize);
+                ImGui::DragFloat("##cylinder_base_radius", &cylinderBaseRadius, 0.1f, 0.1f, 100.0f, "%.2f");
+
+                propertyHeader("Top Radius", secondColSize);
+                ImGui::DragFloat("##cylinder_top_radius", &cylinderTopRadius, 0.1f, 0.1f, 100.0f, "%.2f");
+
+                propertyHeader("Height", secondColSize);
+                ImGui::DragFloat("##cylinder_height", &cylinderHeight, 0.1f, 0.1f, 100.0f, "%.2f");
+
+                propertyHeader("Slices", secondColSize);
+                ImGui::DragInt("##cylinder_slices", (int*)&cylinderSlices, 1, 3, 100);
+
+                propertyHeader("Stacks", secondColSize);
+                ImGui::DragInt("##cylinder_stacks", (int*)&cylinderStacks, 1, 1, 100);
+                break;
+
+            case 4: // Capsule
+                propertyHeader("Base Radius", secondColSize);
+                ImGui::DragFloat("##capsule_base_radius", &capsuleBaseRadius, 0.1f, 0.1f, 100.0f, "%.2f");
+
+                propertyHeader("Top Radius", secondColSize);
+                ImGui::DragFloat("##capsule_top_radius", &capsuleTopRadius, 0.1f, 0.1f, 100.0f, "%.2f");
+
+                propertyHeader("Height", secondColSize);
+                ImGui::DragFloat("##capsule_height", &capsuleHeight, 0.1f, 0.1f, 100.0f, "%.2f");
+
+                propertyHeader("Slices", secondColSize);
+                ImGui::DragInt("##capsule_slices", (int*)&capsuleSlices, 1, 3, 100);
+
+                propertyHeader("Stacks", secondColSize);
+                ImGui::DragInt("##capsule_stacks", (int*)&capsuleStacks, 1, 1, 100);
+                break;
+
+            case 5: // Torus
+                propertyHeader("Radius", secondColSize);
+                ImGui::DragFloat("##torus_radius", &torusRadius, 0.1f, 0.1f, 100.0f, "%.2f");
+
+                propertyHeader("Ring Radius", secondColSize);
+                ImGui::DragFloat("##torus_ring_radius", &torusRingRadius, 0.1f, 0.1f, 100.0f, "%.2f");
+
+                propertyHeader("Sides", secondColSize);
+                ImGui::DragInt("##torus_sides", (int*)&torusSides, 1, 3, 100);
+
+                propertyHeader("Rings", secondColSize);
+                ImGui::DragInt("##torus_rings", (int*)&torusRings, 1, 3, 100);
+                break;
+        }
+
+        endTable();
+
+        ImGui::Separator();
+
+        // Create geometry button
+        if (ImGui::Button("Apply", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+            for (Entity& entity : entities) {
+                std::shared_ptr<Supernova::MeshSystem> meshSys = sceneProject->scene->getSystem<MeshSystem>();
+                if (meshSys) {
+                    switch (geometryType) {
+                        case 0: // Plane
+                            meshSys->createPlane(entity, planeWidth, planeDepth, planeTiles);
+                            break;
+                        case 1: // Box
+                            meshSys->createBox(entity, boxWidth, boxHeight, boxDepth, boxTiles);
+                            break;
+                        case 2: // Sphere
+                            meshSys->createSphere(entity, sphereRadius, sphereSlices, sphereStacks);
+                            break;
+                        case 3: // Cylinder
+                            meshSys->createCylinder(entity, cylinderBaseRadius, cylinderTopRadius, cylinderHeight, cylinderSlices, cylinderStacks);
+                            break;
+                        case 4: // Capsule
+                            meshSys->createCapsule(entity, capsuleBaseRadius, capsuleTopRadius, capsuleHeight, capsuleSlices, capsuleStacks);
+                            break;
+                        case 5: // Torus
+                            meshSys->createTorus(entity, torusRadius, torusRingRadius, torusSides, torusRings);
+                            break;
+                    }
+                }
+            }
+        }
+
+        ImGui::EndPopup();
+    }
+
     propertyRow(cpType, props, "cast_shadows", "Cast Shadows", sceneProject, entities);
     propertyRow(cpType, props, "receive_shadows", "Receive Shadows", sceneProject, entities);
 
