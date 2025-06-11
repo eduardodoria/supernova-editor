@@ -237,6 +237,39 @@ Texture Editor::Properties::getMaterialThumbnail(const Material& material){
     return materialRender.getTexture();
 }
 
+void Editor::Properties::updateMeshPreview(Scene* scene, Entity entity){
+    MeshComponent& meshComp = scene->getComponent<MeshComponent>(entity);
+    ImVec4 frameBgColor = ImGui::GetStyle().Colors[ImGuiCol_FrameBg];
+
+    meshPreviewRender.applyMesh(Stream::encodeMeshComponent(meshComp));
+    meshPreviewRender.setBackground(Vector4(frameBgColor.x, frameBgColor.y, frameBgColor.z, frameBgColor.w));
+
+    Engine::executeSceneOnce(meshPreviewRender.getScene());
+}
+
+void Editor::Properties::updateMeshShape(Entity entity, MeshSystem* meshSys, const ShapeParameters& shapeParams){
+    switch (shapeParams.geometryType) {
+        case 0: // Plane
+            meshSys->createPlane(entity, shapeParams.planeWidth, shapeParams.planeDepth, shapeParams.planeTiles);
+            break;
+        case 1: // Box
+            meshSys->createBox(entity, shapeParams.boxWidth, shapeParams.boxHeight, shapeParams.boxDepth, shapeParams.boxTiles);
+            break;
+        case 2: // Sphere
+            meshSys->createSphere(entity, shapeParams.sphereRadius, shapeParams.sphereSlices, shapeParams.sphereStacks);
+            break;
+        case 3: // Cylinder
+            meshSys->createCylinder(entity, shapeParams.cylinderBaseRadius, shapeParams.cylinderTopRadius, shapeParams.cylinderHeight, shapeParams.cylinderSlices, shapeParams.cylinderStacks);
+            break;
+        case 4: // Capsule
+            meshSys->createCapsule(entity, shapeParams.capsuleBaseRadius, shapeParams.capsuleTopRadius, shapeParams.capsuleHeight, shapeParams.capsuleSlices, shapeParams.capsuleStacks);
+            break;
+        case 5: // Torus
+            meshSys->createTorus(entity, shapeParams.torusRadius, shapeParams.torusRingRadius, shapeParams.torusSides, shapeParams.torusRings);
+            break;
+    }
+}
+
 void Editor::Properties::drawNinePatchesPreview(const ImageComponent& img, Texture* texture, Texture* thumbTexture, const ImVec2& size){
     float availWidth = ImGui::GetContentRegionAvail().x;
 
@@ -1174,30 +1207,20 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
 
     // Add New Geometry property row
     propertyHeader("Geometry");
-    if (ImGui::Button("New")){
-        ImGui::OpenPopup("menusettings_geometry");
+    if (ImGui::Button("Create Shape")){
+        ImGui::OpenPopup("menusettings_shape_geometry");
+
+        updateMeshPreview(sceneProject->scene, entities[0]);
     }
 
     // Geometry creation popup
-    ImGui::SetNextWindowSizeConstraints(ImVec2(20 * ImGui::GetFontSize(), 0), ImVec2(FLT_MAX, FLT_MAX));
-    if (ImGui::BeginPopup("menusettings_geometry")){
-        ImGui::Text("Create geometry");
+    ImGui::SetNextWindowSizeConstraints(ImVec2(17 * ImGui::GetFontSize(), 0), ImVec2(FLT_MAX, FLT_MAX));
+    if (ImGui::BeginPopup("menusettings_shape_geometry")){
+        ImGui::Text("Create Shape");
         ImGui::Separator();
 
-        // Static variables for geometry parameters
-        static int geometryType = 0;
-        static float planeWidth = 1.0f, planeDepth = 1.0f;
-        static unsigned int planeTiles = 1;
-        static float boxWidth = 1.0f, boxHeight = 1.0f, boxDepth = 1.0f;
-        static unsigned int boxTiles = 1;
-        static float sphereRadius = 1.0f;
-        static unsigned int sphereSlices = 36, sphereStacks = 18;
-        static float cylinderBaseRadius = 1.0f, cylinderTopRadius = 1.0f, cylinderHeight = 2.0f;
-        static unsigned int cylinderSlices = 36, cylinderStacks = 18;
-        static float capsuleBaseRadius = 1.0f, capsuleTopRadius = 1.0f, capsuleHeight = 2.0f;
-        static unsigned int capsuleSlices = 36, capsuleStacks = 18;
-        static float torusRadius = 1.0f, torusRingRadius = 0.5f;
-        static unsigned int torusSides = 36, torusRings = 16;
+        // Static variables for shape parameters
+        static ShapeParameters shapeParams;
 
         const char* geometryTypes[] = { "Plane", "Box", "Sphere", "Cylinder", "Capsule", "Torus" };
 
@@ -1205,94 +1228,160 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
 
         // Geometry type selection
         propertyHeader("Geometry Type");
-        ImGui::Combo("##geometry_type", &geometryType, geometryTypes, IM_ARRAYSIZE(geometryTypes));
 
-        float secondColSize = 11 * ImGui::GetFontSize();
+        float secondColSize = 8 * ImGui::GetFontSize();
+        bool updatedPreview = false;
+
+        Texture texRender = meshPreviewRender.getTexture();
+        ImGui::Image(texRender.getRender()->getGLHandler(), ImVec2(secondColSize, secondColSize), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::SetNextItemWidth(-1);
+        if (ImGui::Combo("##geometry_type", &shapeParams.geometryType, geometryTypes, IM_ARRAYSIZE(geometryTypes))) {
+            updatedPreview = true;
+        }
+
         // Show parameters based on selected geometry type
-        switch (geometryType) {
+        switch (shapeParams.geometryType) {
             case 0: // Plane
                 propertyHeader("Width", secondColSize);
-                ImGui::DragFloat("##plane_width", &planeWidth, 0.1f, 0.1f, 100.0f, "%.2f");
+                if (ImGui::DragFloat("##plane_width", &shapeParams.planeWidth, 0.1f, 0.1f, 100.0f, "%.2f")) {
+                    updatedPreview = true;
+                }
 
                 propertyHeader("Depth", secondColSize);
-                ImGui::DragFloat("##plane_depth", &planeDepth, 0.1f, 0.1f, 100.0f, "%.2f");
+                if (ImGui::DragFloat("##plane_depth", &shapeParams.planeDepth, 0.1f, 0.1f, 100.0f, "%.2f")) {
+                    updatedPreview = true;
+                }
 
                 propertyHeader("Tiles", secondColSize);
-                ImGui::DragInt("##plane_tiles", (int*)&planeTiles, 1, 1, 100);
+                if (ImGui::DragInt("##plane_tiles", (int*)&shapeParams.planeTiles, 1, 1, 100)) {
+                    updatedPreview = true;
+                }
                 break;
 
             case 1: // Box
                 propertyHeader("Width", secondColSize);
-                ImGui::DragFloat("##box_width", &boxWidth, 0.1f, 0.1f, 100.0f, "%.2f");
+                if (ImGui::DragFloat("##box_width", &shapeParams.boxWidth, 0.1f, 0.1f, 100.0f, "%.2f")) {
+                    updatedPreview = true;
+                }
 
                 propertyHeader("Height", secondColSize);
-                ImGui::DragFloat("##box_height", &boxHeight, 0.1f, 0.1f, 100.0f, "%.2f");
+                if (ImGui::DragFloat("##box_height", &shapeParams.boxHeight, 0.1f, 0.1f, 100.0f, "%.2f")) {
+                    updatedPreview = true;
+                }
 
                 propertyHeader("Depth", secondColSize);
-                ImGui::DragFloat("##box_depth", &boxDepth, 0.1f, 0.1f, 100.0f, "%.2f");
+                if (ImGui::DragFloat("##box_depth", &shapeParams.boxDepth, 0.1f, 0.1f, 100.0f, "%.2f")) {
+                    updatedPreview = true;
+                }
 
                 propertyHeader("Tiles", secondColSize);
-                ImGui::DragInt("##box_tiles", (int*)&boxTiles, 1, 1, 100);
+                if (ImGui::DragInt("##box_tiles", (int*)&shapeParams.boxTiles, 1, 1, 100)) {
+                    updatedPreview = true;
+                }
                 break;
 
             case 2: // Sphere
                 propertyHeader("Radius", secondColSize);
-                ImGui::DragFloat("##sphere_radius", &sphereRadius, 0.1f, 0.1f, 100.0f, "%.2f");
+                if (ImGui::DragFloat("##sphere_radius", &shapeParams.sphereRadius, 0.1f, 0.1f, 100.0f, "%.2f")) {
+                    updatedPreview = true;
+                }
 
                 propertyHeader("Slices", secondColSize);
-                ImGui::DragInt("##sphere_slices", (int*)&sphereSlices, 1, 3, 100);
+                if (ImGui::DragInt("##sphere_slices", (int*)&shapeParams.sphereSlices, 1, 3, 100)) {
+                    updatedPreview = true;
+                }
 
                 propertyHeader("Stacks", secondColSize);
-                ImGui::DragInt("##sphere_stacks", (int*)&sphereStacks, 1, 3, 100);
+                if (ImGui::DragInt("##sphere_stacks", (int*)&shapeParams.sphereStacks, 1, 3, 100)) {
+                    updatedPreview = true;
+                }
                 break;
 
             case 3: // Cylinder
                 propertyHeader("Base Radius", secondColSize);
-                ImGui::DragFloat("##cylinder_base_radius", &cylinderBaseRadius, 0.1f, 0.1f, 100.0f, "%.2f");
+                if (ImGui::DragFloat("##cylinder_base_radius", &shapeParams.cylinderBaseRadius, 0.1f, 0.1f, 100.0f, "%.2f")) {
+                    updatedPreview = true;
+                }
 
                 propertyHeader("Top Radius", secondColSize);
-                ImGui::DragFloat("##cylinder_top_radius", &cylinderTopRadius, 0.1f, 0.1f, 100.0f, "%.2f");
+                if (ImGui::DragFloat("##cylinder_top_radius", &shapeParams.cylinderTopRadius, 0.1f, 0.1f, 100.0f, "%.2f")) {
+                    updatedPreview = true;
+                }
 
                 propertyHeader("Height", secondColSize);
-                ImGui::DragFloat("##cylinder_height", &cylinderHeight, 0.1f, 0.1f, 100.0f, "%.2f");
+                if (ImGui::DragFloat("##cylinder_height", &shapeParams.cylinderHeight, 0.1f, 0.1f, 100.0f, "%.2f")) {
+                    updatedPreview = true;
+                }
 
                 propertyHeader("Slices", secondColSize);
-                ImGui::DragInt("##cylinder_slices", (int*)&cylinderSlices, 1, 3, 100);
+                if (ImGui::DragInt("##cylinder_slices", (int*)&shapeParams.cylinderSlices, 1, 3, 100)) {
+                    updatedPreview = true;
+                }
 
                 propertyHeader("Stacks", secondColSize);
-                ImGui::DragInt("##cylinder_stacks", (int*)&cylinderStacks, 1, 1, 100);
+                if (ImGui::DragInt("##cylinder_stacks", (int*)&shapeParams.cylinderStacks, 1, 1, 100)) {
+                    updatedPreview = true;
+                }
                 break;
 
             case 4: // Capsule
                 propertyHeader("Base Radius", secondColSize);
-                ImGui::DragFloat("##capsule_base_radius", &capsuleBaseRadius, 0.1f, 0.1f, 100.0f, "%.2f");
+                if (ImGui::DragFloat("##capsule_base_radius", &shapeParams.capsuleBaseRadius, 0.1f, 0.1f, 100.0f, "%.2f")) {
+                    updatedPreview = true;
+                }
 
                 propertyHeader("Top Radius", secondColSize);
-                ImGui::DragFloat("##capsule_top_radius", &capsuleTopRadius, 0.1f, 0.1f, 100.0f, "%.2f");
+                if (ImGui::DragFloat("##capsule_top_radius", &shapeParams.capsuleTopRadius, 0.1f, 0.1f, 100.0f, "%.2f")) {
+                    updatedPreview = true;
+                }
 
                 propertyHeader("Height", secondColSize);
-                ImGui::DragFloat("##capsule_height", &capsuleHeight, 0.1f, 0.1f, 100.0f, "%.2f");
+                if (ImGui::DragFloat("##capsule_height", &shapeParams.capsuleHeight, 0.1f, 0.1f, 100.0f, "%.2f")) {
+                    updatedPreview = true;
+                }
 
                 propertyHeader("Slices", secondColSize);
-                ImGui::DragInt("##capsule_slices", (int*)&capsuleSlices, 1, 3, 100);
+                if (ImGui::DragInt("##capsule_slices", (int*)&shapeParams.capsuleSlices, 1, 3, 100)) {
+                    updatedPreview = true;
+                }
 
                 propertyHeader("Stacks", secondColSize);
-                ImGui::DragInt("##capsule_stacks", (int*)&capsuleStacks, 1, 1, 100);
+                if (ImGui::DragInt("##capsule_stacks", (int*)&shapeParams.capsuleStacks, 1, 1, 100)) {
+                    updatedPreview = true;
+                }
                 break;
 
             case 5: // Torus
                 propertyHeader("Radius", secondColSize);
-                ImGui::DragFloat("##torus_radius", &torusRadius, 0.1f, 0.1f, 100.0f, "%.2f");
+                if (ImGui::DragFloat("##torus_radius", &shapeParams.torusRadius, 0.1f, 0.1f, 100.0f, "%.2f")) {
+                    updatedPreview = true;
+                }
 
                 propertyHeader("Ring Radius", secondColSize);
-                ImGui::DragFloat("##torus_ring_radius", &torusRingRadius, 0.1f, 0.1f, 100.0f, "%.2f");
+                if (ImGui::DragFloat("##torus_ring_radius", &shapeParams.torusRingRadius, 0.1f, 0.1f, 100.0f, "%.2f")) {
+                    updatedPreview = true;
+                }
 
                 propertyHeader("Sides", secondColSize);
-                ImGui::DragInt("##torus_sides", (int*)&torusSides, 1, 3, 100);
+                if (ImGui::DragInt("##torus_sides", (int*)&shapeParams.torusSides, 1, 3, 100)) {
+                    updatedPreview = true;
+                }
 
                 propertyHeader("Rings", secondColSize);
-                ImGui::DragInt("##torus_rings", (int*)&torusRings, 1, 3, 100);
+                if (ImGui::DragInt("##torus_rings", (int*)&shapeParams.torusRings, 1, 3, 100)) {
+                    updatedPreview = true;
+                }
                 break;
+        }
+
+        if (updatedPreview){
+            updateMeshPreview(sceneProject->scene, entities[0]);
+
+            std::shared_ptr<Supernova::MeshSystem> meshSys = meshPreviewRender.getScene()->getSystem<MeshSystem>();
+            Entity entity = meshPreviewRender.getMeshEntity();
+            updateMeshShape(entity, meshSys.get(), shapeParams);
+
+            meshPreviewRender.positionCameraForMesh();
         }
 
         endTable();
@@ -1303,29 +1392,10 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
         if (ImGui::Button("Apply", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
             for (Entity& entity : entities) {
                 std::shared_ptr<Supernova::MeshSystem> meshSys = sceneProject->scene->getSystem<MeshSystem>();
-                if (meshSys) {
-                    switch (geometryType) {
-                        case 0: // Plane
-                            meshSys->createPlane(entity, planeWidth, planeDepth, planeTiles);
-                            break;
-                        case 1: // Box
-                            meshSys->createBox(entity, boxWidth, boxHeight, boxDepth, boxTiles);
-                            break;
-                        case 2: // Sphere
-                            meshSys->createSphere(entity, sphereRadius, sphereSlices, sphereStacks);
-                            break;
-                        case 3: // Cylinder
-                            meshSys->createCylinder(entity, cylinderBaseRadius, cylinderTopRadius, cylinderHeight, cylinderSlices, cylinderStacks);
-                            break;
-                        case 4: // Capsule
-                            meshSys->createCapsule(entity, capsuleBaseRadius, capsuleTopRadius, capsuleHeight, capsuleSlices, capsuleStacks);
-                            break;
-                        case 5: // Torus
-                            meshSys->createTorus(entity, torusRadius, torusRingRadius, torusSides, torusRings);
-                            break;
-                    }
-                }
+                updateMeshShape(entity, meshSys.get(), shapeParams);
             }
+
+            ImGui::CloseCurrentPopup();
         }
 
         ImGui::EndPopup();

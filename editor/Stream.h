@@ -80,9 +80,6 @@ namespace Supernova::Editor {
         static YAML::Node encodeAABB(const AABB& aabb);
         static AABB decodeAABB(const YAML::Node& node);
 
-        static YAML::Node encodeMeshComponent(const MeshComponent& mesh);
-        static MeshComponent decodeMeshComponent(const YAML::Node& node);
-
         static YAML::Node encodeUIComponent(const UIComponent& ui);
         static UIComponent decodeUIComponent(const YAML::Node& node);
 
@@ -108,5 +105,8 @@ namespace Supernova::Editor {
 
         static YAML::Node encodeMaterial(const Material& material);
         static Material decodeMaterial(const YAML::Node& node);
+
+        static YAML::Node encodeMeshComponent(const MeshComponent& mesh);
+        static MeshComponent decodeMeshComponent(const YAML::Node& node);
     };
 }

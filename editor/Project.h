@@ -5,7 +5,7 @@
 #include "Catalog.h"
 #include "render/SceneRender.h"
 #include "command/CommandHistory.h"
-#include "render/material/MaterialRender.h"
+#include "render/preview/MaterialRender.h"
 #include "Conector.h"
 #include "Generator.h"
 #include "Configs.h"

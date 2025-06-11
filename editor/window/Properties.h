@@ -2,10 +2,27 @@
 #define PROPERTIES_H
 
 #include "Project.h"
+#include "render/preview/MeshPreviewRender.h"
 
 #include "imgui.h"
 
 namespace Supernova::Editor{
+
+    struct ShapeParameters{
+        int geometryType = 0;
+        float planeWidth = 1.0f, planeDepth = 1.0f;
+        unsigned int planeTiles = 1;
+        float boxWidth = 1.0f, boxHeight = 1.0f, boxDepth = 1.0f;
+        unsigned int boxTiles = 1;
+        float sphereRadius = 1.0f;
+        unsigned int sphereSlices = 36, sphereStacks = 18;
+        float cylinderBaseRadius = 1.0f, cylinderTopRadius = 1.0f, cylinderHeight = 2.0f;
+        unsigned int cylinderSlices = 36, cylinderStacks = 18;
+        float capsuleBaseRadius = 1.0f, capsuleTopRadius = 1.0f, capsuleHeight = 2.0f;
+        unsigned int capsuleSlices = 36, capsuleStacks = 18;
+        float torusRadius = 1.0f, torusRingRadius = 0.5f;
+        unsigned int torusSides = 36, torusRings = 16;
+    };
 
     class Properties{
     private:
@@ -13,6 +30,7 @@ namespace Supernova::Editor{
         Command* cmd;
 
         MaterialRender materialRender;
+        MeshPreviewRender meshPreviewRender;
 
         // for drag and drop textures
         std::map<std::string, bool> hasTextureDrag;
@@ -38,6 +56,9 @@ namespace Supernova::Editor{
         void drawImageWithBorderAndRounding(Texture* texture, const ImVec2& size, float rounding = 4.0f, ImU32 border_col = IM_COL32(0, 0, 0, 255), float border_thickness = 1.0f);
         void dragDropResources(ComponentType cpType, std::string id, SceneProject* sceneProject, std::vector<Entity> entities, int updateFlags);
         Texture getMaterialThumbnail(const Material& material);
+
+        void updateMeshPreview(Scene* scene, Entity entity);
+        void updateMeshShape(Entity entity, MeshSystem* meshSys, const ShapeParameters& shapeParams);
 
         void drawNinePatchesPreview(const ImageComponent& img, Texture* texture, Texture* thumbTexture, const ImVec2& size = ImVec2(0, 0));
 

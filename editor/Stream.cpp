@@ -590,135 +590,6 @@ AABB Editor::Stream::decodeAABB(const YAML::Node& node) {
     return AABB(min, max);
 }
 
-YAML::Node Editor::Stream::encodeMeshComponent(const MeshComponent& mesh) {
-    YAML::Node node;
-
-    //node["loaded"] = mesh.loaded;
-    //node["loadCalled"] = mesh.loadCalled;
-
-    node["buffer"] = encodeBuffer(mesh.buffer);
-    node["indices"] = encodeBuffer(mesh.indices);
-
-    // Encode external buffers
-    YAML::Node eBuffersNode;
-    for (unsigned int i = 0; i < mesh.numExternalBuffers; i++) {
-        eBuffersNode.push_back(encodeExternalBuffer(mesh.eBuffers[i]));
-    }
-    node["eBuffers"] = eBuffersNode;
-
-    node["vertexCount"] = mesh.vertexCount;
-
-    // Encode submeshes
-    YAML::Node submeshesNode;
-    for(unsigned int i = 0; i < mesh.numSubmeshes; i++) {
-        submeshesNode.push_back(encodeSubmesh(mesh.submeshes[i]));
-    }
-    node["submeshes"] = submeshesNode;
-    //node["numSubmeshes"] = mesh.numSubmeshes;
-
-    // Encode bones matrix array
-    YAML::Node bonesNode;
-    for(int i = 0; i < MAX_BONES; i++) {
-        bonesNode.push_back(encodeMatrix4(mesh.bonesMatrix[i]));
-    }
-    node["bonesMatrix"] = bonesNode;
-
-    node["normAdjustJoint"] = mesh.normAdjustJoint;
-    node["normAdjustWeight"] = mesh.normAdjustWeight;
-
-    // Encode morph weights array
-    YAML::Node morphWeightsNode;
-    morphWeightsNode.SetStyle(YAML::EmitterStyle::Flow);
-    for(int i = 0; i < MAX_MORPHTARGETS; i++) {
-        morphWeightsNode.push_back(mesh.morphWeights[i]);
-    }
-    node["morphWeights"] = morphWeightsNode;
-
-    // Encode AABBs
-    node["aabb"] = encodeAABB(mesh.aabb);
-    node["verticesAABB"] = encodeAABB(mesh.verticesAABB);
-    node["worldAABB"] = encodeAABB(mesh.worldAABB);
-
-    node["castShadows"] = mesh.castShadows;
-    node["receiveShadows"] = mesh.receiveShadows;
-    node["shadowsBillboard"] = mesh.shadowsBillboard;
-    node["transparent"] = mesh.transparent;
-
-    node["cullingMode"] = cullingModeToString(mesh.cullingMode);
-    node["windingOrder"] = windingOrderToString(mesh.windingOrder);
-
-    //node["needUpdateBuffer"] = mesh.needUpdateBuffer;
-    //node["needReload"] = mesh.needReload;
-
-    return node;
-}
-
-MeshComponent Editor::Stream::decodeMeshComponent(const YAML::Node& node) {
-    MeshComponent mesh;
-
-    //mesh.loaded = node["loaded"].as<bool>();
-    //mesh.loadCalled = node["loadCalled"].as<bool>();
-
-    // Decode buffers using generic methods
-    if (node["buffer"]) {
-        decodeBuffer(mesh.buffer, node["buffer"]);
-    }
-
-    if (node["indices"]) {
-        decodeBuffer(mesh.indices, node["indices"]);
-    }
-
-    // Decode external buffers
-    if (node["eBuffers"]) {
-        auto eBuffersNode = node["eBuffers"];
-        for (unsigned int i = 0; i < eBuffersNode.size() && i < MAX_EXTERNAL_BUFFERS; i++) {
-            decodeExternalBuffer(mesh.eBuffers[i], eBuffersNode[i]);
-        }
-        mesh.numExternalBuffers = eBuffersNode.size();
-    }
-
-    mesh.vertexCount = node["vertexCount"].as<uint32_t>();
-
-    // Decode submeshes
-    auto submeshesNode = node["submeshes"];
-    for(unsigned int i = 0; i < submeshesNode.size() && i < MAX_SUBMESHES; i++) {
-        mesh.submeshes[i] = decodeSubmesh(submeshesNode[i]);
-    }
-    mesh.numSubmeshes = submeshesNode.size();
-
-    // Decode bones matrix
-    auto bonesNode = node["bonesMatrix"];
-    for(int i = 0; i < MAX_BONES; i++) {
-        mesh.bonesMatrix[i] = decodeMatrix4(bonesNode[i]);
-    }
-
-    mesh.normAdjustJoint = node["normAdjustJoint"].as<int>();
-    mesh.normAdjustWeight = node["normAdjustWeight"].as<float>();
-
-    // Decode morph weights
-    auto morphWeightsNode = node["morphWeights"];
-    for(int i = 0; i < MAX_MORPHTARGETS; i++) {
-        mesh.morphWeights[i] = morphWeightsNode[i].as<float>();
-    }
-
-    mesh.aabb = decodeAABB(node["aabb"]);
-    mesh.verticesAABB = decodeAABB(node["verticesAABB"]);
-    mesh.worldAABB = decodeAABB(node["worldAABB"]);
-
-    mesh.castShadows = node["castShadows"].as<bool>();
-    mesh.receiveShadows = node["receiveShadows"].as<bool>();
-    mesh.shadowsBillboard = node["shadowsBillboard"].as<bool>();
-    mesh.transparent = node["transparent"].as<bool>();
-
-    mesh.cullingMode = stringToCullingMode(node["cullingMode"].as<std::string>());
-    mesh.windingOrder = stringToWindingOrder(node["windingOrder"].as<std::string>());
-
-    //mesh.needUpdateBuffer = node["needUpdateBuffer"].as<bool>();
-    //mesh.needReload = node["needReload"].as<bool>();
-
-    return mesh;
-}
-
 YAML::Node Editor::Stream::encodeUIComponent(const UIComponent& ui) {
     YAML::Node node;
     //node["loaded"] = ui.loaded;
@@ -1135,4 +1006,133 @@ Material Editor::Stream::decodeMaterial(const YAML::Node& node) {
     material.name = node["name"].as<std::string>();
 
     return material;
+}
+
+YAML::Node Editor::Stream::encodeMeshComponent(const MeshComponent& mesh) {
+    YAML::Node node;
+
+    //node["loaded"] = mesh.loaded;
+    //node["loadCalled"] = mesh.loadCalled;
+
+    node["buffer"] = encodeBuffer(mesh.buffer);
+    node["indices"] = encodeBuffer(mesh.indices);
+
+    // Encode external buffers
+    YAML::Node eBuffersNode;
+    for (unsigned int i = 0; i < mesh.numExternalBuffers; i++) {
+        eBuffersNode.push_back(encodeExternalBuffer(mesh.eBuffers[i]));
+    }
+    node["eBuffers"] = eBuffersNode;
+
+    node["vertexCount"] = mesh.vertexCount;
+
+    // Encode submeshes
+    YAML::Node submeshesNode;
+    for(unsigned int i = 0; i < mesh.numSubmeshes; i++) {
+        submeshesNode.push_back(encodeSubmesh(mesh.submeshes[i]));
+    }
+    node["submeshes"] = submeshesNode;
+    //node["numSubmeshes"] = mesh.numSubmeshes;
+
+    // Encode bones matrix array
+    YAML::Node bonesNode;
+    for(int i = 0; i < MAX_BONES; i++) {
+        bonesNode.push_back(encodeMatrix4(mesh.bonesMatrix[i]));
+    }
+    node["bonesMatrix"] = bonesNode;
+
+    node["normAdjustJoint"] = mesh.normAdjustJoint;
+    node["normAdjustWeight"] = mesh.normAdjustWeight;
+
+    // Encode morph weights array
+    YAML::Node morphWeightsNode;
+    morphWeightsNode.SetStyle(YAML::EmitterStyle::Flow);
+    for(int i = 0; i < MAX_MORPHTARGETS; i++) {
+        morphWeightsNode.push_back(mesh.morphWeights[i]);
+    }
+    node["morphWeights"] = morphWeightsNode;
+
+    // Encode AABBs
+    node["aabb"] = encodeAABB(mesh.aabb);
+    node["verticesAABB"] = encodeAABB(mesh.verticesAABB);
+    node["worldAABB"] = encodeAABB(mesh.worldAABB);
+
+    node["castShadows"] = mesh.castShadows;
+    node["receiveShadows"] = mesh.receiveShadows;
+    node["shadowsBillboard"] = mesh.shadowsBillboard;
+    node["transparent"] = mesh.transparent;
+
+    node["cullingMode"] = cullingModeToString(mesh.cullingMode);
+    node["windingOrder"] = windingOrderToString(mesh.windingOrder);
+
+    //node["needUpdateBuffer"] = mesh.needUpdateBuffer;
+    //node["needReload"] = mesh.needReload;
+
+    return node;
+}
+
+MeshComponent Editor::Stream::decodeMeshComponent(const YAML::Node& node) {
+    MeshComponent mesh;
+
+    //mesh.loaded = node["loaded"].as<bool>();
+    //mesh.loadCalled = node["loadCalled"].as<bool>();
+
+    // Decode buffers using generic methods
+    if (node["buffer"]) {
+        decodeBuffer(mesh.buffer, node["buffer"]);
+    }
+
+    if (node["indices"]) {
+        decodeBuffer(mesh.indices, node["indices"]);
+    }
+
+    // Decode external buffers
+    if (node["eBuffers"]) {
+        auto eBuffersNode = node["eBuffers"];
+        for (unsigned int i = 0; i < eBuffersNode.size() && i < MAX_EXTERNAL_BUFFERS; i++) {
+            decodeExternalBuffer(mesh.eBuffers[i], eBuffersNode[i]);
+        }
+        mesh.numExternalBuffers = eBuffersNode.size();
+    }
+
+    mesh.vertexCount = node["vertexCount"].as<uint32_t>();
+
+    // Decode submeshes
+    auto submeshesNode = node["submeshes"];
+    for(unsigned int i = 0; i < submeshesNode.size() && i < MAX_SUBMESHES; i++) {
+        mesh.submeshes[i] = decodeSubmesh(submeshesNode[i]);
+    }
+    mesh.numSubmeshes = submeshesNode.size();
+
+    // Decode bones matrix
+    auto bonesNode = node["bonesMatrix"];
+    for(int i = 0; i < MAX_BONES; i++) {
+        mesh.bonesMatrix[i] = decodeMatrix4(bonesNode[i]);
+    }
+
+    mesh.normAdjustJoint = node["normAdjustJoint"].as<int>();
+    mesh.normAdjustWeight = node["normAdjustWeight"].as<float>();
+
+    // Decode morph weights
+    auto morphWeightsNode = node["morphWeights"];
+    for(int i = 0; i < MAX_MORPHTARGETS; i++) {
+        mesh.morphWeights[i] = morphWeightsNode[i].as<float>();
+    }
+
+    mesh.aabb = decodeAABB(node["aabb"]);
+    mesh.verticesAABB = decodeAABB(node["verticesAABB"]);
+    mesh.worldAABB = decodeAABB(node["worldAABB"]);
+
+    mesh.castShadows = node["castShadows"].as<bool>();
+    mesh.receiveShadows = node["receiveShadows"].as<bool>();
+    mesh.shadowsBillboard = node["shadowsBillboard"].as<bool>();
+    mesh.transparent = node["transparent"].as<bool>();
+
+    mesh.cullingMode = stringToCullingMode(node["cullingMode"].as<std::string>());
+    mesh.windingOrder = stringToWindingOrder(node["windingOrder"].as<std::string>());
+
+    //mesh.needUpdateBuffer = node["needUpdateBuffer"].as<bool>();
+    //mesh.needReload = node["needReload"].as<bool>();
+
+    return mesh;
 }
