@@ -23,6 +23,8 @@ Editor::MeshPreviewRender::MeshPreviewRender(){
     camera->setType(CameraType::CAMERA_PERSPECTIVE);
     camera->setFramebufferSize(THUMBNAIL_SIZE, THUMBNAIL_SIZE);
     camera->setRenderToTexture(true);
+
+    removeMaterial = false;
 }
 
 Editor::MeshPreviewRender::~MeshPreviewRender(){
@@ -33,7 +35,7 @@ Editor::MeshPreviewRender::~MeshPreviewRender(){
     delete scene;
 }
 
-void Editor::MeshPreviewRender::applyMesh(YAML::Node meshData){
+void Editor::MeshPreviewRender::applyMesh(YAML::Node meshData, bool updateCamera){
     if (mesh){
         delete mesh;
         mesh = nullptr;
@@ -45,13 +47,22 @@ void Editor::MeshPreviewRender::applyMesh(YAML::Node meshData){
 
     mesh = new Mesh(scene, entity);
     mesh->setEntityOwned(true);
+
+    if (removeMaterial){
+        mesh->setMaterial(Material());
+    }
     
-    // Position camera based on mesh AABB
-    positionCameraForMesh();
+    if (updateCamera){
+        positionCameraForMesh();
+    }
 }
 
 void Editor::MeshPreviewRender::setBackground(Vector4 color){
     scene->setBackgroundColor(color);
+}
+
+void Editor::MeshPreviewRender::setRemoveMaterial(bool removeMaterial){
+    this->removeMaterial = removeMaterial;
 }
 
 void Editor::MeshPreviewRender::positionCameraForMesh(){

@@ -237,14 +237,20 @@ Texture Editor::Properties::getMaterialThumbnail(const Material& material){
     return materialRender.getTexture();
 }
 
-void Editor::Properties::updateMeshPreview(Scene* scene, Entity entity){
+void Editor::Properties::updateShapePreview(Scene* scene, Entity entity, const ShapeParameters& shapeParams){
     MeshComponent& meshComp = scene->getComponent<MeshComponent>(entity);
     ImVec4 frameBgColor = ImGui::GetStyle().Colors[ImGuiCol_FrameBg];
+    std::shared_ptr<Supernova::MeshSystem> meshSys = shapePreviewRender.getScene()->getSystem<MeshSystem>();
 
-    meshPreviewRender.applyMesh(Stream::encodeMeshComponent(meshComp));
-    meshPreviewRender.setBackground(Vector4(frameBgColor.x, frameBgColor.y, frameBgColor.z, frameBgColor.w));
+    shapePreviewRender.applyMesh(Stream::encodeMeshComponent(meshComp), false);
+    shapePreviewRender.setBackground(Vector4(frameBgColor.x, frameBgColor.y, frameBgColor.z, frameBgColor.w));
+    shapePreviewRender.setRemoveMaterial(true);
 
-    Engine::executeSceneOnce(meshPreviewRender.getScene());
+    updateMeshShape(shapePreviewRender.getMeshEntity(), meshSys.get(), shapeParams);
+
+    shapePreviewRender.positionCameraForMesh();
+
+    Engine::executeSceneOnce(shapePreviewRender.getScene());
 }
 
 void Editor::Properties::updateMeshShape(Entity entity, MeshSystem* meshSys, const ShapeParameters& shapeParams){
@@ -1205,12 +1211,15 @@ void Editor::Properties::drawTransform(ComponentType cpType, std::map<std::strin
 void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::string, PropertyData> props, SceneProject* sceneProject, std::vector<Entity> entities){
     beginTable(cpType, getLabelSize("receive shadows"));
 
+    // Static variables for shape parameters
+    static ShapeParameters shapeParams;
+
     // Add New Geometry property row
     propertyHeader("Geometry");
     if (ImGui::Button("Create Shape")){
         ImGui::OpenPopup("menusettings_shape_geometry");
 
-        updateMeshPreview(sceneProject->scene, entities[0]);
+        updateShapePreview(sceneProject->scene, entities[0], shapeParams);
     }
 
     // Geometry creation popup
@@ -1218,9 +1227,6 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
     if (ImGui::BeginPopup("menusettings_shape_geometry")){
         ImGui::Text("Create Shape");
         ImGui::Separator();
-
-        // Static variables for shape parameters
-        static ShapeParameters shapeParams;
 
         const char* geometryTypes[] = { "Plane", "Box", "Sphere", "Cylinder", "Capsule", "Torus" };
 
@@ -1232,7 +1238,7 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
         float secondColSize = 8 * ImGui::GetFontSize();
         bool updatedPreview = false;
 
-        Texture texRender = meshPreviewRender.getTexture();
+        Texture texRender = shapePreviewRender.getTexture();
         ImGui::Image(texRender.getRender()->getGLHandler(), ImVec2(secondColSize, secondColSize), ImVec2(0, 1), ImVec2(1, 0));
         ImGui::SetNextItemWidth(-1);
         if (ImGui::Combo("##geometry_type", &shapeParams.geometryType, geometryTypes, IM_ARRAYSIZE(geometryTypes))) {
@@ -1375,13 +1381,7 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
         }
 
         if (updatedPreview){
-            updateMeshPreview(sceneProject->scene, entities[0]);
-
-            std::shared_ptr<Supernova::MeshSystem> meshSys = meshPreviewRender.getScene()->getSystem<MeshSystem>();
-            Entity entity = meshPreviewRender.getMeshEntity();
-            updateMeshShape(entity, meshSys.get(), shapeParams);
-
-            meshPreviewRender.positionCameraForMesh();
+            updateShapePreview(sceneProject->scene, entities[0], shapeParams);
         }
 
         endTable();
