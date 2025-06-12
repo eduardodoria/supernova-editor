@@ -88,28 +88,27 @@ void Editor::ResourcesWindow::processMaterialThumbnails() {
     // Check if we have a pending material render that needs post-processing
     if (hasPendingMaterialRender) {
         std::lock_guard<std::mutex> lock(materialRenderMutex);
-        if (hasPendingMaterialRender) {
-            fs::path thumbnailPath = getThumbnailPath(pendingMaterialPath);
-            fs::create_directories(thumbnailPath.parent_path());
 
-            // Store captured variables for the callback
-            fs::path capturedPath = pendingMaterialPath;
-            FileType capturedType = FileType::MATERIAL;
+        fs::path thumbnailPath = getThumbnailPath(pendingMaterialPath);
+        fs::create_directories(thumbnailPath.parent_path());
 
-            // Use the callback to notify when the image save is complete
-            GraphicUtils::saveFramebufferImage(materialRender.getFramebuffer(), thumbnailPath, 
-                [this, capturedPath, capturedType]() {
-                    // This code runs after the image has been saved
-                    std::lock_guard<std::mutex> completedLock(completedThumbnailMutex);
-                    completedThumbnailQueue.push({capturedPath, capturedType});
-                });
+        // Store captured variables for the callback
+        fs::path capturedPath = pendingMaterialPath;
+        FileType capturedType = FileType::MATERIAL;
 
-            // Mark as processed
-            hasPendingMaterialRender = false;
+        // Use the callback to notify when the image save is complete
+        GraphicUtils::saveFramebufferImage(materialRender.getFramebuffer(), thumbnailPath, true, 
+            [this, capturedPath, capturedType]() {
+                // This code runs after the image has been saved
+                std::lock_guard<std::mutex> completedLock(completedThumbnailMutex);
+                completedThumbnailQueue.push({capturedPath, capturedType});
+            });
 
-            // Notify the thumbnail thread that we've processed the material
-            thumbnailCondition.notify_one();
-        }
+        // Mark as processed
+        hasPendingMaterialRender = false;
+
+        // Notify the thumbnail thread that we've processed the material
+        thumbnailCondition.notify_one();
     }
 }
 

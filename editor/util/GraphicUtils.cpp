@@ -46,7 +46,7 @@
 
 using namespace Supernova;
 
-void Editor::GraphicUtils::saveFramebufferImage(Framebuffer* framebuffer, fs::path path, std::function<void()> onComplete) {
+void Editor::GraphicUtils::saveFramebufferImage(Framebuffer* framebuffer, fs::path path, bool flipY, std::function<void()> onComplete) {
     uint8_t* pixels = nullptr;
     bool needDelete = false;
 
@@ -159,7 +159,9 @@ void Editor::GraphicUtils::saveFramebufferImage(Framebuffer* framebuffer, fs::pa
         device->Release();
     #endif
 
-    std::thread([pixels, needDelete, width, height, path, onComplete]() {
+    std::thread([pixels, needDelete, width, height, path, flipY, onComplete]() {
+        stbi_flip_vertically_on_write(flipY ? 1 : 0);
+
         stbi_write_png(path.string().c_str(), width, height, 4, pixels, width * 4);
 
         if (needDelete && pixels) {

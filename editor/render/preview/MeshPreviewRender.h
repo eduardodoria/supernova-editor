@@ -19,16 +19,12 @@ namespace Supernova::Editor{
 
         Mesh* mesh;
 
-        bool removeMaterial;
-
     public:
         MeshPreviewRender();
         virtual ~MeshPreviewRender();
 
-        void applyMesh(YAML::Node meshData, bool updateCamera = true);
+        void applyMesh(YAML::Node meshData, bool updateCamera = true, bool removeMaterial = false);
         void setBackground(Vector4 color);
-
-        void setRemoveMaterial(bool removeMaterial);
 
         void positionCameraForMesh();
 

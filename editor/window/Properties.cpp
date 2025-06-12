@@ -242,9 +242,8 @@ void Editor::Properties::updateShapePreview(Scene* scene, Entity entity, const S
     ImVec4 frameBgColor = ImGui::GetStyle().Colors[ImGuiCol_FrameBg];
     std::shared_ptr<Supernova::MeshSystem> meshSys = shapePreviewRender.getScene()->getSystem<MeshSystem>();
 
-    shapePreviewRender.applyMesh(Stream::encodeMeshComponent(meshComp), false);
+    shapePreviewRender.applyMesh(Stream::encodeMeshComponent(meshComp), false, true);
     shapePreviewRender.setBackground(Vector4(frameBgColor.x, frameBgColor.y, frameBgColor.z, frameBgColor.w));
-    shapePreviewRender.setRemoveMaterial(true);
 
     updateMeshShape(shapePreviewRender.getMeshEntity(), meshSys.get(), shapeParams);
 
@@ -1093,7 +1092,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         ImGui::BeginGroup();
 
         Texture texRender = getMaterialThumbnail(newValue);
-        ImGui::Image(texRender.getRender()->getGLHandler(), ImVec2(64, 64));
+        ImGui::Image(texRender.getRender()->getGLHandler(), ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0));
         if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
             materialButtonGroups[id] = !materialButtonGroups[id];
         }
@@ -1145,7 +1144,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             float availWidth = ImGui::GetCurrentWindow()->Size.x;
             float xPos = (availWidth - imageDragSize) * 0.5f;
             ImGui::SetCursorPosX(xPos);
-            ImGui::Image(texRender.getRender()->getGLHandler(), ImVec2(imageDragSize, imageDragSize));
+            ImGui::Image(texRender.getRender()->getGLHandler(), ImVec2(imageDragSize, imageDragSize), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::EndDragDropSource();
         }
 
