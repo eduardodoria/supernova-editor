@@ -988,13 +988,15 @@ fs::path Editor::ResourcesWindow::getThumbnailPath(const fs::path& originalPath)
     fs::path relativePath = fs::relative(originalPath, project->getProjectPath());
     std::string relPathStr = relativePath.generic_string();
 
-    // Hash the relative path
-    std::string hash = SHA1::hash(relPathStr);
+    // Include file size and modification time in hash for uniqueness
+    auto fileSize = fs::file_size(originalPath);
+    auto modTime = fs::last_write_time(originalPath).time_since_epoch().count();
+    std::string hashInput = relPathStr + "_" + std::to_string(fileSize) + "_" + std::to_string(modTime);
 
-    // Use the hash as the filename, with original extension for reference (optional)
-    std::string ext = originalPath.extension().string();
+    // Hash the combined string
+    std::string hash = SHA1::hash(hashInput);
+
     std::string thumbFilename = hash + ".thumb.png";
-
     return thumbsDir / thumbFilename;
 }
 
@@ -1137,7 +1139,7 @@ bool Editor::ResourcesWindow::loadThumbnail(FileEntry& entry) {
         // Check if we already have this thumbnail loaded
         if (thumbnailTextures.find(thumbnailPath.string()) == thumbnailTextures.end()) {
             // Sync load the thumbnail texture
-            Texture thumbTexture(entry.name, TextureData(thumbnailPath.string().c_str()));
+            Texture thumbTexture(thumbnailPath, TextureData(thumbnailPath.string().c_str()));
             if (thumbTexture.load()){
                 thumbnailTextures[thumbnailPath.string()] = thumbTexture;
             }else{
