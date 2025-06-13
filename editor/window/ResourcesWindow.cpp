@@ -86,7 +86,7 @@ void Editor::ResourcesWindow::handleExternalDragLeave() {
 
 void Editor::ResourcesWindow::processMaterialThumbnails() {
     // Check if we have a pending material render that needs post-processing
-    if (hasPendingMaterialRender) {
+    if (hasPendingMaterialRender && !Engine::isSceneRunning(materialRender.getScene())) {
         std::lock_guard<std::mutex> lock(materialRenderMutex);
 
         fs::path thumbnailPath = getThumbnailPath(pendingMaterialPath);
