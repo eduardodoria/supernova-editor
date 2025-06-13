@@ -8,6 +8,7 @@
 #include "command/CommandHandle.h"
 #include "command/type/PropertyCmd.h"
 #include "command/type/EntityNameCmd.h"
+#include "command/type/MeshGeometryCmd.h"
 #include "render/SceneRender2D.h"
 #include "util/SHA1.h"
 #include "Stream.h"
@@ -245,32 +246,32 @@ void Editor::Properties::updateShapePreview(Scene* scene, Entity entity, const S
     shapePreviewRender.applyMesh(Stream::encodeMeshComponent(meshComp), false, true);
     shapePreviewRender.setBackground(Vector4(frameBgColor.x, frameBgColor.y, frameBgColor.z, frameBgColor.w));
 
-    updateMeshShape(shapePreviewRender.getMeshEntity(), meshSys.get(), shapeParams);
+    updateMeshShape(shapePreviewRender.getMeshComponent(), meshSys.get(), shapeParams);
 
     shapePreviewRender.positionCameraForMesh();
 
     Engine::executeSceneOnce(shapePreviewRender.getScene());
 }
 
-void Editor::Properties::updateMeshShape(Entity entity, MeshSystem* meshSys, const ShapeParameters& shapeParams){
+void Editor::Properties::updateMeshShape(MeshComponent& meshComp, MeshSystem* meshSys, const ShapeParameters& shapeParams){
     switch (shapeParams.geometryType) {
         case 0: // Plane
-            meshSys->createPlane(entity, shapeParams.planeWidth, shapeParams.planeDepth, shapeParams.planeTiles);
+            meshSys->createPlane(meshComp, shapeParams.planeWidth, shapeParams.planeDepth, shapeParams.planeTiles);
             break;
         case 1: // Box
-            meshSys->createBox(entity, shapeParams.boxWidth, shapeParams.boxHeight, shapeParams.boxDepth, shapeParams.boxTiles);
+            meshSys->createBox(meshComp, shapeParams.boxWidth, shapeParams.boxHeight, shapeParams.boxDepth, shapeParams.boxTiles);
             break;
         case 2: // Sphere
-            meshSys->createSphere(entity, shapeParams.sphereRadius, shapeParams.sphereSlices, shapeParams.sphereStacks);
+            meshSys->createSphere(meshComp, shapeParams.sphereRadius, shapeParams.sphereSlices, shapeParams.sphereStacks);
             break;
         case 3: // Cylinder
-            meshSys->createCylinder(entity, shapeParams.cylinderBaseRadius, shapeParams.cylinderTopRadius, shapeParams.cylinderHeight, shapeParams.cylinderSlices, shapeParams.cylinderStacks);
+            meshSys->createCylinder(meshComp, shapeParams.cylinderBaseRadius, shapeParams.cylinderTopRadius, shapeParams.cylinderHeight, shapeParams.cylinderSlices, shapeParams.cylinderStacks);
             break;
         case 4: // Capsule
-            meshSys->createCapsule(entity, shapeParams.capsuleBaseRadius, shapeParams.capsuleTopRadius, shapeParams.capsuleHeight, shapeParams.capsuleSlices, shapeParams.capsuleStacks);
+            meshSys->createCapsule(meshComp, shapeParams.capsuleBaseRadius, shapeParams.capsuleTopRadius, shapeParams.capsuleHeight, shapeParams.capsuleSlices, shapeParams.capsuleStacks);
             break;
         case 5: // Torus
-            meshSys->createTorus(entity, shapeParams.torusRadius, shapeParams.torusRingRadius, shapeParams.torusSides, shapeParams.torusRings);
+            meshSys->createTorus(meshComp, shapeParams.torusRadius, shapeParams.torusRingRadius, shapeParams.torusSides, shapeParams.torusRings);
             break;
     }
 }
@@ -1391,7 +1392,11 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
         if (ImGui::Button("Apply", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
             for (Entity& entity : entities) {
                 std::shared_ptr<Supernova::MeshSystem> meshSys = sceneProject->scene->getSystem<MeshSystem>();
-                updateMeshShape(entity, meshSys.get(), shapeParams);
+                MeshComponent meshComp = sceneProject->scene->getComponent<MeshComponent>(entity);
+
+                updateMeshShape(meshComp, meshSys.get(), shapeParams);
+
+                CommandHandle::get(sceneProject->id)->addCommandNoMerge(new MeshGeometryCmd(sceneProject, entities[0], meshComp));
             }
 
             ImGui::CloseCurrentPopup();

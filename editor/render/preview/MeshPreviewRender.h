@@ -31,6 +31,7 @@ namespace Supernova::Editor{
         Framebuffer* getFramebuffer();
         Texture getTexture();
         Entity getMeshEntity();
+        MeshComponent& getMeshComponent();
         Scene* getScene();
         Object* getObject();
     };

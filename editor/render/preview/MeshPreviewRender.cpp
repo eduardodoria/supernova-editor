@@ -10,7 +10,7 @@ Editor::MeshPreviewRender::MeshPreviewRender(){
     camera = new Camera(scene);
     light = new Light(scene);
     
-    mesh = nullptr;
+    mesh = new Mesh(scene);
 
     scene->setBackgroundColor(0.0, 0.0, 0.0, 0.0);
     scene->setCamera(camera);
@@ -27,24 +27,13 @@ Editor::MeshPreviewRender::MeshPreviewRender(){
 
 Editor::MeshPreviewRender::~MeshPreviewRender(){
     delete camera;
-    if (mesh)
-        delete mesh;
+    delete mesh;
 
     delete scene;
 }
 
 void Editor::MeshPreviewRender::applyMesh(YAML::Node meshData, bool updateCamera, bool removeMaterial){
-    if (mesh){
-        delete mesh;
-        mesh = nullptr;
-    }
-
-    Entity entity = scene->createEntity();
-    scene->addComponent<Transform>(entity, {});
-    scene->addComponent<MeshComponent>(entity, Stream::decodeMeshComponent(meshData));
-
-    mesh = new Mesh(scene, entity);
-    mesh->setEntityOwned(true);
+    mesh->getComponent<MeshComponent>() = Stream::decodeMeshComponent(meshData);
 
     if (removeMaterial){
         mesh->setMaterial(Material());
@@ -60,8 +49,6 @@ void Editor::MeshPreviewRender::setBackground(Vector4 color){
 }
 
 void Editor::MeshPreviewRender::positionCameraForMesh(){
-    if (!mesh) return;
-    
     AABB aabb = mesh->getAABB();
     Vector3 center = aabb.getCenter();
     Vector3 size = aabb.getSize();
@@ -96,10 +83,11 @@ Texture Editor::MeshPreviewRender::getTexture(){
 }
 
 Entity Editor::MeshPreviewRender::getMeshEntity(){
-    if (mesh){
-        return mesh->getEntity();
-    }
-    return NULL_ENTITY;
+    return mesh->getEntity();
+}
+
+MeshComponent& Editor::MeshPreviewRender::getMeshComponent(){
+    return mesh->getComponent<MeshComponent>();
 }
 
 Scene* Editor::MeshPreviewRender::getScene(){
