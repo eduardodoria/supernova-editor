@@ -1097,16 +1097,16 @@ void Editor::ResourcesWindow::thumbnailWorker() {
                     Material material = Stream::decodeMaterial(materialNode);
                     materialRender.applyMaterial(material);
 
+                    Engine::startAsyncThread();
+                    Engine::executeSceneOnce(materialRender.getScene());
+                    Engine::endAsyncThread();
+
                     // Set the pending flag before executing the scene
                     {
                         std::lock_guard<std::mutex> lock(materialRenderMutex);
                         pendingMaterialPath = thumbFile.path;
                         hasPendingMaterialRender = true;
                     }
-
-                    Engine::startAsyncThread();
-                    Engine::executeSceneOnce(materialRender.getScene());
-                    Engine::endAsyncThread();
 
                     // The processMaterialThumbnails method will handle the rest
                     // and set hasPendingMaterialRender to false when done

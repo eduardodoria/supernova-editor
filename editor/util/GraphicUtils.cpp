@@ -161,8 +161,8 @@ void Editor::GraphicUtils::saveFramebufferImage(Framebuffer* framebuffer, fs::pa
 
     std::thread([pixels, needDelete, width, height, path, flipY, onComplete]() {
         stbi_flip_vertically_on_write(flipY ? 1 : 0);
-
         stbi_write_png(path.string().c_str(), width, height, 4, pixels, width * 4);
+        stbi_flip_vertically_on_write(0);
 
         if (needDelete && pixels) {
             delete[] pixels;
