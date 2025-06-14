@@ -89,7 +89,7 @@ void Editor::ResourcesWindow::processMaterialThumbnails() {
     if (hasPendingMaterialRender && !Engine::isSceneRunning(materialRender.getScene())) {
         std::lock_guard<std::mutex> lock(materialRenderMutex);
 
-        fs::path thumbnailPath = getThumbnailPath(pendingMaterialPath);
+        fs::path thumbnailPath = project->getThumbnailPath(pendingMaterialPath);
         fs::create_directories(thumbnailPath.parent_path());
 
         // Store captured variables for the callback
@@ -980,28 +980,8 @@ bool Editor::ResourcesWindow::isMaterialFile(const std::string& extension) const
     return imageExtensions.find(lowerExt) != imageExtensions.end();
 }
 
-// Get the path where the thumbnail should be stored
-fs::path Editor::ResourcesWindow::getThumbnailPath(const fs::path& originalPath) const {
-    fs::path thumbsDir = project->getProjectPath() / ".supernova" / "thumbs";
-
-    // Get relative path from project root, as a string
-    fs::path relativePath = fs::relative(originalPath, project->getProjectPath());
-    std::string relPathStr = relativePath.generic_string();
-
-    // Include file size and modification time in hash for uniqueness
-    auto fileSize = fs::file_size(originalPath);
-    auto modTime = fs::last_write_time(originalPath).time_since_epoch().count();
-    std::string hashInput = relPathStr + "_" + std::to_string(fileSize) + "_" + std::to_string(modTime);
-
-    // Hash the combined string
-    std::string hash = SHA1::hash(hashInput);
-
-    std::string thumbFilename = hash + ".thumb.png";
-    return thumbsDir / thumbFilename;
-}
-
 void Editor::ResourcesWindow::queueThumbnailGeneration(const fs::path& filePath, FileType type) {
-    fs::path thumbnailPath = getThumbnailPath(filePath);
+    fs::path thumbnailPath = project->getThumbnailPath(filePath);
 
     ThumbnailRequest thumbFile = {filePath, type};
     if (fs::exists(thumbnailPath)) {
@@ -1079,7 +1059,7 @@ void Editor::ResourcesWindow::thumbnailWorker() {
                 );
 
                 // Save the thumbnail
-                fs::path thumbnailPath = getThumbnailPath(thumbFile.path);
+                fs::path thumbnailPath = project->getThumbnailPath(thumbFile.path);
                 fs::create_directories(thumbnailPath.parent_path());
                 stbi_write_png(thumbnailPath.string().c_str(), newWidth, newHeight, 4, thumbData, newWidth * 4);
 
@@ -1133,7 +1113,7 @@ bool Editor::ResourcesWindow::loadThumbnail(FileEntry& entry) {
     }
 
     fs::path filePath = currentPath / entry.name;
-    fs::path thumbnailPath = getThumbnailPath(filePath);
+    fs::path thumbnailPath = project->getThumbnailPath(filePath);
 
     if (fs::exists(thumbnailPath)) {
         // Check if we already have this thumbnail loaded

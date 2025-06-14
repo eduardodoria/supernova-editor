@@ -7,7 +7,7 @@
 
 namespace Supernova::Editor{
 
-    class MeshGeometryCmd: public Command{
+    class MeshChangeCmd: public Command{
 
     private:
         YAML::Node oldMesh;
@@ -19,7 +19,7 @@ namespace Supernova::Editor{
         bool wasModified;
 
     public:
-        MeshGeometryCmd(SceneProject* sceneProject, Entity entity, MeshComponent mesh);
+        MeshChangeCmd(SceneProject* sceneProject, Entity entity, MeshComponent mesh);
 
         virtual bool execute();
         virtual void undo();

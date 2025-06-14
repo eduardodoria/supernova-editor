@@ -694,6 +694,25 @@ std::filesystem::path Editor::Project::getProjectPath() const{
     return projectPath;
 }
 
+fs::path Editor::Project::getThumbnailPath(const fs::path& originalPath) const {
+    fs::path thumbsDir = getProjectPath() / ".supernova" / "thumbs";
+
+    // Get relative path from project root, as a string
+    fs::path relativePath = fs::relative(originalPath, getProjectPath());
+    std::string relPathStr = relativePath.generic_string();
+
+    // Include file size and modification time in hash for uniqueness
+    auto fileSize = fs::file_size(originalPath);
+    auto modTime = fs::last_write_time(originalPath).time_since_epoch().count();
+    std::string hashInput = relPathStr + "_" + std::to_string(fileSize) + "_" + std::to_string(modTime);
+
+    // Hash the combined string
+    std::string hash = SHA1::hash(hashInput);
+
+    std::string thumbFilename = hash + ".thumb.png";
+    return thumbsDir / thumbFilename;
+}
+
 void Editor::Project::replaceSelectedEntities(uint32_t sceneId, std::vector<Entity> selectedEntities){
     getScene(sceneId)->selectedEntities = selectedEntities;
 }

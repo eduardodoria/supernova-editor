@@ -71,6 +71,12 @@ namespace Supernova::Editor {
         static YAML::Node encodeBuffer(const Buffer& buffer);
         static void decodeBuffer(Buffer& buffer, const YAML::Node& node);
 
+        static YAML::Node encodeInterleavedBuffer(const InterleavedBuffer& buffer);
+        static void decodeInterleavedBuffer(InterleavedBuffer& buffer, const YAML::Node& node);
+
+        static YAML::Node encodeIndexBuffer(const IndexBuffer& buffer);
+        static void decodeIndexBuffer(IndexBuffer& buffer, const YAML::Node& node);
+
         static YAML::Node encodeExternalBuffer(const ExternalBuffer& buffer);
         static void decodeExternalBuffer(ExternalBuffer& buffer, const YAML::Node& node);
 

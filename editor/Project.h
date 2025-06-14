@@ -110,6 +110,8 @@ namespace Supernova::Editor{
         bool isTempUnsavedProject() const;
         std::filesystem::path getProjectPath() const;
 
+        fs::path getThumbnailPath(const fs::path& originalPath) const;
+
         void replaceSelectedEntities(uint32_t sceneId, std::vector<Entity> selectedEntities);
         void setSelectedEntity(uint32_t sceneId, Entity selectedEntity);
         void addSelectedEntity(uint32_t sceneId, Entity selectedEntity);

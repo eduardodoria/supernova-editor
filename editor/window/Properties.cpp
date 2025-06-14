@@ -8,7 +8,7 @@
 #include "command/CommandHandle.h"
 #include "command/type/PropertyCmd.h"
 #include "command/type/EntityNameCmd.h"
-#include "command/type/MeshGeometryCmd.h"
+#include "command/type/MeshChangeCmd.h"
 #include "render/SceneRender2D.h"
 #include "util/SHA1.h"
 #include "Stream.h"
@@ -81,12 +81,7 @@ Texture* Editor::Properties::findThumbnail(const std::string& path) {
 
     // Only try if the texture path is not empty and is inside the project
     if (!texPath.empty() && texPath.is_absolute() && texPath.string().find(projectPath.string()) == 0) {
-        // Replicate getThumbnailPath() logic from ResourcesWindow
-        std::filesystem::path relPath = std::filesystem::relative(texPath, projectPath);
-        std::string relPathStr = relPath.generic_string();
-
-        std::string hash = SHA1::hash(relPathStr);
-        thumbnailPath = projectPath / ".supernova" / "thumbs" / (hash + ".thumb.png");
+        thumbnailPath = project->getThumbnailPath(texPath);
 
         // If the thumbnail exists, load and use it
         if (std::filesystem::exists(thumbnailPath)) {
@@ -238,17 +233,16 @@ Texture Editor::Properties::getMaterialThumbnail(const Material& material){
     return materialRender.getTexture();
 }
 
-void Editor::Properties::updateShapePreview(Scene* scene, Entity entity, const ShapeParameters& shapeParams){
-    MeshComponent& meshComp = scene->getComponent<MeshComponent>(entity);
+void Editor::Properties::updateShapePreview(const ShapeParameters& shapeParams){
     ImVec4 frameBgColor = ImGui::GetStyle().Colors[ImGuiCol_FrameBg];
     std::shared_ptr<Supernova::MeshSystem> meshSys = shapePreviewRender.getScene()->getSystem<MeshSystem>();
 
-    shapePreviewRender.applyMesh(Stream::encodeMeshComponent(meshComp), false, true);
+    MeshComponent meshComp;
+
+    updateMeshShape(meshComp, meshSys.get(), shapeParams);
+
+    shapePreviewRender.applyMesh(Stream::encodeMeshComponent(meshComp), true, true);
     shapePreviewRender.setBackground(Vector4(frameBgColor.x, frameBgColor.y, frameBgColor.z, frameBgColor.w));
-
-    updateMeshShape(shapePreviewRender.getMeshComponent(), meshSys.get(), shapeParams);
-
-    shapePreviewRender.positionCameraForMesh();
 
     Engine::executeSceneOnce(shapePreviewRender.getScene());
 }
@@ -1219,7 +1213,7 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
     if (ImGui::Button("Create Shape")){
         ImGui::OpenPopup("menusettings_shape_geometry");
 
-        updateShapePreview(sceneProject->scene, entities[0], shapeParams);
+        updateShapePreview(shapeParams);
     }
 
     // Geometry creation popup
@@ -1381,7 +1375,7 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
         }
 
         if (updatedPreview){
-            updateShapePreview(sceneProject->scene, entities[0], shapeParams);
+            updateShapePreview(shapeParams);
         }
 
         endTable();
@@ -1396,7 +1390,7 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
 
                 updateMeshShape(meshComp, meshSys.get(), shapeParams);
 
-                CommandHandle::get(sceneProject->id)->addCommandNoMerge(new MeshGeometryCmd(sceneProject, entities[0], meshComp));
+                CommandHandle::get(sceneProject->id)->addCommandNoMerge(new MeshChangeCmd(sceneProject, entities[0], meshComp));
             }
 
             ImGui::CloseCurrentPopup();

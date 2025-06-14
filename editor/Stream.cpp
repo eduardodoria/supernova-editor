@@ -488,6 +488,7 @@ void Editor::Stream::decodeBuffer(Buffer& buffer, const YAML::Node& node) {
     buffer.setType(stringToBufferType(node["type"].as<std::string>()));
     buffer.setUsage(stringToBufferUsage(node["usage"].as<std::string>()));
     buffer.setStride(node["stride"].as<unsigned int>());
+    buffer.setSize(node["size"].as<size_t>());
     buffer.setCount(node["count"].as<unsigned int>());
     buffer.setRenderAttributes(node["renderAttributes"].as<bool>());
     buffer.setInstanceBuffer(node["instanceBuffer"].as<bool>());
@@ -516,6 +517,29 @@ void Editor::Stream::decodeBuffer(Buffer& buffer, const YAML::Node& node) {
 
         buffer.importData(decodedData.data(), decodedData.size());
     }
+}
+
+YAML::Node Editor::Stream::encodeInterleavedBuffer(const InterleavedBuffer& buffer) {
+    YAML::Node node = encodeBuffer(buffer);
+    node["vertexSize"] = buffer.getVertexSize();
+    return node;
+}
+
+void Editor::Stream::decodeInterleavedBuffer(InterleavedBuffer& buffer, const YAML::Node& node) {
+    decodeBuffer(buffer, node);
+
+    if (node["vertexSize"]) {
+        buffer.setVertexSize(node["vertexSize"].as<unsigned int>());
+    }
+}
+
+YAML::Node Editor::Stream::encodeIndexBuffer(const IndexBuffer& buffer) {
+    YAML::Node node = encodeBuffer(buffer);
+    return node;
+}
+
+void Editor::Stream::decodeIndexBuffer(IndexBuffer& buffer, const YAML::Node& node) {
+    decodeBuffer(buffer, node);
 }
 
 YAML::Node Editor::Stream::encodeExternalBuffer(const ExternalBuffer& buffer) {
@@ -1014,8 +1038,8 @@ YAML::Node Editor::Stream::encodeMeshComponent(const MeshComponent& mesh) {
     //node["loaded"] = mesh.loaded;
     //node["loadCalled"] = mesh.loadCalled;
 
-    node["buffer"] = encodeBuffer(mesh.buffer);
-    node["indices"] = encodeBuffer(mesh.indices);
+    node["buffer"] = encodeInterleavedBuffer(mesh.buffer);
+    node["indices"] = encodeIndexBuffer(mesh.indices);
 
     // Encode external buffers
     YAML::Node eBuffersNode;
@@ -1024,7 +1048,7 @@ YAML::Node Editor::Stream::encodeMeshComponent(const MeshComponent& mesh) {
     }
     node["eBuffers"] = eBuffersNode;
 
-    node["vertexCount"] = mesh.vertexCount;
+    //node["vertexCount"] = mesh.vertexCount;
 
     // Encode submeshes
     YAML::Node submeshesNode;
@@ -1079,11 +1103,11 @@ MeshComponent Editor::Stream::decodeMeshComponent(const YAML::Node& node) {
 
     // Decode buffers using generic methods
     if (node["buffer"]) {
-        decodeBuffer(mesh.buffer, node["buffer"]);
+        decodeInterleavedBuffer(mesh.buffer, node["buffer"]);
     }
 
     if (node["indices"]) {
-        decodeBuffer(mesh.indices, node["indices"]);
+        decodeIndexBuffer(mesh.indices, node["indices"]);
     }
 
     // Decode external buffers
@@ -1095,7 +1119,7 @@ MeshComponent Editor::Stream::decodeMeshComponent(const YAML::Node& node) {
         mesh.numExternalBuffers = eBuffersNode.size();
     }
 
-    mesh.vertexCount = node["vertexCount"].as<uint32_t>();
+    //mesh.vertexCount = node["vertexCount"].as<uint32_t>();
 
     // Decode submeshes
     auto submeshesNode = node["submeshes"];

@@ -42,7 +42,7 @@ namespace Supernova::Editor{
         void dragDropResources(ComponentType cpType, std::string id, SceneProject* sceneProject, std::vector<Entity> entities, int updateFlags);
         Texture getMaterialThumbnail(const Material& material);
 
-        void updateShapePreview(Scene* scene, Entity entity, const ShapeParameters& shapeParams);
+        void updateShapePreview(const ShapeParameters& shapeParams);
         void updateMeshShape(MeshComponent& meshComp, MeshSystem* meshSys, const ShapeParameters& shapeParams);
 
         void drawNinePatchesPreview(const ImageComponent& img, Texture* texture, Texture* thumbTexture, const ImVec2& size = ImVec2(0, 0));

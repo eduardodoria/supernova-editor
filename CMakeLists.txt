@@ -219,7 +219,7 @@ add_executable(
     ${EDITOR_DIR}/command/type/MoveEntityOrderCmd.cpp
     ${EDITOR_DIR}/command/type/ObjectTransformCmd.cpp
     ${EDITOR_DIR}/command/type/EntityNameCmd.cpp
-    ${EDITOR_DIR}/command/type/MeshGeometryCmd.cpp
+    ${EDITOR_DIR}/command/type/MeshChangeCmd.cpp
     ${EDITOR_DIR}/command/type/SceneNameCmd.cpp
     ${EDITOR_DIR}/command/type/CopyFileCmd.cpp
     ${EDITOR_DIR}/command/type/RenameFileCmd.cpp
