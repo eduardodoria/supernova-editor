@@ -203,6 +203,8 @@ std::vector<AABB> Editor::RotateGizmo::createHalfTorus(Entity entity, float radi
         }
     }
 
+    mesh.indices.clear();
+
     mesh.indices.setValues(
         0, mesh.indices.getAttribute(AttributeType::INDEX),
         indices.size(), (char*)&indices[0], sizeof(uint16_t));
