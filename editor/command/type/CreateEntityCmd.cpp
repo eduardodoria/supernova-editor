@@ -1,6 +1,7 @@
 #include "CreateEntityCmd.h"
 
 #include "editor/Out.h"
+#include "util/ShapeParameters.h"
 
 using namespace Supernova;
 
@@ -58,16 +59,54 @@ bool Editor::CreateEntityCmd::execute(){
                 scenes[i].scene->addComponent<Transform>(entity, {});
                 scenes[i].scene->addComponent<MeshComponent>(entity, {});
 
+                ShapeParameters shapeDefs;
                 MeshComponent& mesh = scenes[i].scene->getComponent<MeshComponent>(entity);
-                scenes[i].scene->getSystem<MeshSystem>()->createBox(mesh, 1, 1, 1);
+                scenes[i].scene->getSystem<MeshSystem>()->createBox(mesh, shapeDefs.boxWidth, shapeDefs.boxHeight, shapeDefs.boxDepth);
 
             }else if (type == EntityCreationType::PLANE){
 
                 scenes[i].scene->addComponent<Transform>(entity, {});
                 scenes[i].scene->addComponent<MeshComponent>(entity, {});
 
+                ShapeParameters shapeDefs;
                 MeshComponent& mesh = scenes[i].scene->getComponent<MeshComponent>(entity);
-                scenes[i].scene->getSystem<MeshSystem>()->createPlane(mesh, 10, 10);
+                scenes[i].scene->getSystem<MeshSystem>()->createPlane(mesh, shapeDefs.planeWidth, shapeDefs.planeDepth);
+
+            }else if (type == EntityCreationType::SPHERE){
+
+                scenes[i].scene->addComponent<Transform>(entity, {});
+                scenes[i].scene->addComponent<MeshComponent>(entity, {});
+
+                ShapeParameters shapeDefs;
+                MeshComponent& mesh = scenes[i].scene->getComponent<MeshComponent>(entity);
+                scenes[i].scene->getSystem<MeshSystem>()->createSphere(mesh, shapeDefs.sphereRadius, shapeDefs.sphereSlices, shapeDefs.sphereStacks);
+
+            }else if (type == EntityCreationType::CYLINDER){
+
+                scenes[i].scene->addComponent<Transform>(entity, {});
+                scenes[i].scene->addComponent<MeshComponent>(entity, {});
+
+                ShapeParameters shapeDefs;
+                MeshComponent& mesh = scenes[i].scene->getComponent<MeshComponent>(entity);
+                scenes[i].scene->getSystem<MeshSystem>()->createCylinder(mesh, shapeDefs.cylinderBaseRadius, shapeDefs.cylinderTopRadius, shapeDefs.cylinderHeight, shapeDefs.cylinderSlices, shapeDefs.cylinderStacks);
+
+            }else if (type == EntityCreationType::CAPSULE){
+
+                scenes[i].scene->addComponent<Transform>(entity, {});
+                scenes[i].scene->addComponent<MeshComponent>(entity, {});
+
+                ShapeParameters shapeDefs;
+                MeshComponent& mesh = scenes[i].scene->getComponent<MeshComponent>(entity);
+                scenes[i].scene->getSystem<MeshSystem>()->createCapsule(mesh, shapeDefs.capsuleBaseRadius, shapeDefs.capsuleTopRadius, shapeDefs.capsuleHeight, shapeDefs.capsuleSlices, shapeDefs.capsuleStacks);
+
+            }else if (type == EntityCreationType::TORUS){
+
+                scenes[i].scene->addComponent<Transform>(entity, {});
+                scenes[i].scene->addComponent<MeshComponent>(entity, {});
+
+                ShapeParameters shapeDefs;
+                MeshComponent& mesh = scenes[i].scene->getComponent<MeshComponent>(entity);
+                scenes[i].scene->getSystem<MeshSystem>()->createTorus(mesh, shapeDefs.torusRadius, shapeDefs.torusRingRadius, shapeDefs.torusSides, shapeDefs.torusRings);
 
             }else if (type == EntityCreationType::IMAGE){
 
@@ -79,6 +118,7 @@ bool Editor::CreateEntityCmd::execute(){
                 UILayoutComponent& layout = scenes[i].scene->getComponent<UILayoutComponent>(entity);
                 layout.width = 100;
                 layout.height = 100;
+
             }else if (type == EntityCreationType::SPRITE){
 
                 scenes[i].scene->addComponent<Transform>(entity, {});

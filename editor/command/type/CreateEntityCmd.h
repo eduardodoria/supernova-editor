@@ -16,6 +16,10 @@ namespace Supernova::Editor{
         OBJECT,
         BOX,
         PLANE,
+        SPHERE,
+        CYLINDER,
+        CAPSULE,
+        TORUS,
         IMAGE,
         SPRITE
     };

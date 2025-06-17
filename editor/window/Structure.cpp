@@ -40,6 +40,22 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent){
             CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Plane", EntityCreationType::PLANE, parent));
             openParent = parent;
         }
+        if (ImGui::MenuItem(ICON_FA_CUBE"  Sphere")){
+            CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Sphere", EntityCreationType::SPHERE, parent));
+            openParent = parent;
+        }
+        if (ImGui::MenuItem(ICON_FA_CUBE"  Cylinder")){
+            CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Cylinder", EntityCreationType::CYLINDER, parent));
+            openParent = parent;
+        }
+        if (ImGui::MenuItem(ICON_FA_CUBE"  Capsule")){
+            CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Capsule", EntityCreationType::CAPSULE, parent));
+            openParent = parent;
+        }
+        if (ImGui::MenuItem(ICON_FA_CUBE"  Torus")){
+            CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Torus", EntityCreationType::TORUS, parent));
+            openParent = parent;
+        }
         ImGui::EndMenu();
     }
 
