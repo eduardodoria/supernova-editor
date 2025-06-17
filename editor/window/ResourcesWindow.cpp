@@ -1154,37 +1154,45 @@ void Editor::ResourcesWindow::saveMaterialFile(const fs::path& directory, const 
 }
 
 void Editor::ResourcesWindow::cleanupThumbnails() {
-    // 1. Collect all valid hashes of existing image files
-    std::unordered_set<std::string> validThumbHashes;
+    // 1. Collect all valid thumbnail paths of existing files
+    std::unordered_set<std::string> validThumbPaths;
 
-    // Recursively scan project directory for images
+    // Recursively scan project directory for files that have thumbnails
     for (auto& p : fs::recursive_directory_iterator(project->getProjectPath())) {
         if (!fs::is_regular_file(p.status()))
             continue;
+
         std::string ext = p.path().extension().string();
         if (isImageFile(ext) || isMaterialFile(ext)) {
-            fs::path rel = fs::relative(p.path(), project->getProjectPath());
-            std::string hash = SHA1::hash(rel.generic_string());
-            validThumbHashes.insert(hash);
+            fs::path thumbnailPath = project->getThumbnailPath(p.path());
+            validThumbPaths.insert(thumbnailPath.string());
         }
     }
 
-    // 2. Walk .supernova/thumbs/ and remove any orphaned thumb
-    fs::path thumbsDir = project->getProjectPath() / ".supernova" / "thumbs";
+    // 2. Walk .supernova/thumbs/ and remove any orphaned thumbnails
+    fs::path thumbsDir = project->getThumbsDir();
     if (!fs::exists(thumbsDir)) return;
 
-    for (auto& p : fs::directory_iterator(thumbsDir)) {
+    // Recursively iterate through the thumbnails directory to handle subdirectories
+    for (auto& p : fs::recursive_directory_iterator(thumbsDir)) {
         if (!fs::is_regular_file(p.status())) continue;
-        std::string fname = p.path().filename().string();
 
-        // Filename should be: <hash>.thumb.png
-        auto pos = fname.find(".thumb.png");
-        if (pos != std::string::npos) {
-            std::string hash = fname.substr(0, pos);
-            if (validThumbHashes.find(hash) == validThumbHashes.end()) {
-                std::error_code ec;
-                fs::remove(p, ec);
-            }
+        std::string thumbnailPath = p.path().string();
+        if (validThumbPaths.find(thumbnailPath) == validThumbPaths.end()) {
+            // This thumbnail file doesn't correspond to any existing image/material file
+            std::error_code ec;
+            fs::remove(p, ec);
+
+            // Also remove from the loaded thumbnails cache
+            thumbnailTextures.erase(thumbnailPath);
+        }
+    }
+
+    // 3. Remove empty directories in the thumbnails folder
+    for (auto& p : fs::recursive_directory_iterator(thumbsDir)) {
+        if (fs::is_directory(p.status()) && fs::is_empty(p.path())) {
+            std::error_code ec;
+            fs::remove(p, ec);
         }
     }
 }

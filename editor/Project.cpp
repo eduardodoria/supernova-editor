@@ -694,8 +694,12 @@ std::filesystem::path Editor::Project::getProjectPath() const{
     return projectPath;
 }
 
+fs::path Editor::Project::getThumbsDir() const{
+    return getProjectPath() / ".supernova" / "thumbs";
+}
+
 fs::path Editor::Project::getThumbnailPath(const fs::path& originalPath) const {
-    fs::path thumbsDir = getProjectPath() / ".supernova" / "thumbs";
+    fs::path thumbsDir = getThumbsDir();
 
     // Get relative path from project root, as a string
     fs::path relativePath = fs::relative(originalPath, getProjectPath());
