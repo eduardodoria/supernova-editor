@@ -1499,6 +1499,17 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, std::map<std:
     endTable();
 }
 
+void Editor::Properties::drawLightComponent(ComponentType cpType, std::map<std::string, PropertyData> props, SceneProject* sceneProject, std::vector<Entity> entities){
+    beginTable(cpType, getLabelSize("Direction"));
+
+    propertyRow(cpType, props, "direction", "Direction", sceneProject, entities);
+    propertyRow(cpType, props, "shadows", "Shadows", sceneProject, entities);
+    propertyRow(cpType, props, "intensity", "Intensity", sceneProject, entities);
+    propertyRow(cpType, props, "color", "Color", sceneProject, entities);
+
+    endTable();
+}
+
 void Editor::Properties::show(){
     ImGui::Begin("Properties");
 
@@ -1592,6 +1603,8 @@ void Editor::Properties::show(){
                     drawImageComponent(cpType, Catalog::getProperties(cpType, nullptr), sceneProject, entities);
                 }else if (cpType == ComponentType::SpriteComponent){
                     drawSpriteComponent(cpType, Catalog::getProperties(cpType, nullptr), sceneProject, entities);
+                }else if (cpType == ComponentType::LightComponent){
+                    drawLightComponent(cpType, Catalog::getProperties(cpType, nullptr), sceneProject, entities);
                 }
 
             }

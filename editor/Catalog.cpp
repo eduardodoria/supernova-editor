@@ -197,7 +197,10 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         LightComponent* comp = (LightComponent*)compRef;
         static LightComponent* def = new LightComponent;
 
-        ps["direction"] = {PropertyType::Vector3, UpdateFlags_Transform, nullptr, (compRef) ? (void*)&comp->direction : nullptr};
+        ps["direction"] = {PropertyType::Vector3, UpdateFlags_Transform, (void*)&def->direction, (compRef) ? (void*)&comp->direction : nullptr};
+        ps["shadows"] = {PropertyType::Bool, UpdateFlags_Scene_Mesh_Reload, (void*)&def->shadows, (compRef) ? (void*)&comp->shadows : nullptr};
+        ps["intensity"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->intensity, (compRef) ? (void*)&comp->intensity : nullptr};
+        ps["color"] = {PropertyType::Color3L, UpdateFlags_None, (void*)&def->color, (compRef) ? (void*)&comp->color : nullptr};
     }
 
     return ps;
@@ -387,6 +390,13 @@ void Editor::Catalog::updateEntity(Scene* scene, Entity entity, int updateFlags)
         unsigned int numSubmeshes = scene->getComponent<MeshComponent>(entity).numSubmeshes;
         for (unsigned int i = 0; i < numSubmeshes; i++){
             scene->getComponent<MeshComponent>(entity).submeshes[i].needUpdateTexture = true;
+        }
+    }
+    if (updateFlags & UpdateFlags_Scene_Mesh_Reload){
+        auto meshes = scene->getComponentArray<MeshComponent>();
+        for (int i = 0; i < meshes->size(); i++) {
+            MeshComponent& mesh = meshes->getComponentFromIndex(i);
+            mesh.needReload = true;
         }
     }
     if (updateFlags & UpdateFlags_UI_Reload){

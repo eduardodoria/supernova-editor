@@ -21,7 +21,10 @@ namespace Supernova::Editor{
         CAPSULE,
         TORUS,
         IMAGE,
-        SPRITE
+        SPRITE,
+        POINT_LIGHT,
+        DIRECTIONAL_LIGHT,
+        SPOT_LIGHT
     };
 
     class CreateEntityCmd: public Command{

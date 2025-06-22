@@ -128,6 +128,31 @@ bool Editor::CreateEntityCmd::execute(){
                 SpriteComponent& sprite = scenes[i].scene->getComponent<SpriteComponent>(entity);
                 sprite.width = 100;
                 sprite.height = 100;
+            }else if (type == EntityCreationType::DIRECTIONAL_LIGHT){
+
+                scenes[i].scene->addComponent<Transform>(entity, {});
+                scenes[i].scene->addComponent<LightComponent>(entity, {});
+
+                LightComponent& light = scenes[i].scene->getComponent<LightComponent>(entity);
+                light.type = LightType::DIRECTIONAL;
+                light.direction = Vector3(0.0f, -1.0f, 0.0f);
+
+            }else if (type == EntityCreationType::POINT_LIGHT){
+
+                scenes[i].scene->addComponent<Transform>(entity, {});
+                scenes[i].scene->addComponent<LightComponent>(entity, {});
+
+                LightComponent& light = scenes[i].scene->getComponent<LightComponent>(entity);
+                light.type = LightType::POINT;
+
+            }else if (type == EntityCreationType::SPOT_LIGHT){
+
+                scenes[i].scene->addComponent<Transform>(entity, {});
+                scenes[i].scene->addComponent<LightComponent>(entity, {});
+
+                LightComponent& light = scenes[i].scene->getComponent<LightComponent>(entity);
+                light.type = LightType::SPOT;
+
             }
 
             scenes[i].scene->setEntityName(entity, entityName);
