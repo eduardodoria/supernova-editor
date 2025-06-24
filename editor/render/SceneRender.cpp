@@ -98,25 +98,31 @@ OBB Editor::SceneRender::getOBB(Entity entity, bool local){
     if (signature.test(scene->getComponentId<Transform>())){
         Transform& transform = scene->getComponent<Transform>(entity);
         modelMatrix = transform.modelMatrix;
+
+        if (signature.test(scene->getComponentId<MeshComponent>())){
+            MeshComponent& mesh = scene->getComponent<MeshComponent>(entity);
+            if (local){
+                return mesh.aabb.getOBB();
+            }else{
+                return modelMatrix * mesh.aabb.getOBB();
+            }
+        }else if (signature.test(scene->getComponentId<UIComponent>())){
+            UIComponent& ui = scene->getComponent<UIComponent>(entity);
+            if (local){
+                return ui.aabb.getOBB();
+            }else{
+                return modelMatrix * ui.aabb.getOBB();
+            }
+        }
+
+        if (local){
+            return OBB();
+        }else{
+            return modelMatrix * OBB();
+        }
     }
 
-    if (signature.test(scene->getComponentId<MeshComponent>())){
-        MeshComponent& mesh = scene->getComponent<MeshComponent>(entity);
-        if (local){
-            return mesh.aabb.getOBB();
-        }else{
-            return modelMatrix * mesh.aabb.getOBB();
-        }
-    }else if (signature.test(scene->getComponentId<UIComponent>())){
-        UIComponent& ui = scene->getComponent<UIComponent>(entity);
-        if (local){
-            return ui.aabb.getOBB();
-        }else{
-            return modelMatrix * ui.aabb.getOBB();
-        }
-    }
-
-    return OBB();
+    return OBB::ZERO;
 }
 
 OBB Editor::SceneRender::getFamilyOBB(Entity entity, float offset){
