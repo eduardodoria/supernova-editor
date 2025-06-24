@@ -96,8 +96,8 @@ void Editor::SceneRender2D::updateSelLines(std::vector<OBB> obbs){
     }
 }
 
-void Editor::SceneRender2D::update(std::vector<Entity> selEntities){
-    SceneRender::update(selEntities);
+void Editor::SceneRender2D::update(std::vector<Entity> selEntities, std::vector<Entity> entities){
+    SceneRender::update(selEntities, entities);
 }
 
 void Editor::SceneRender2D::mouseHoverEvent(float x, float y){

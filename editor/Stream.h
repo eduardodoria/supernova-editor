@@ -42,6 +42,9 @@ namespace Supernova::Editor {
         static std::string textureWrapToString(TextureWrap wrap);
         static TextureWrap stringToTextureWrap(const std::string& str);
 
+        static std::string lightTypeToString(LightType type);
+        static LightType stringToLightType(const std::string& str);
+
         // ==============================
 
         static YAML::Node encodeVector2(const Vector2& vec);
@@ -94,6 +97,9 @@ namespace Supernova::Editor {
 
         static YAML::Node encodeImageComponent(const ImageComponent& image);
         static ImageComponent decodeImageComponent(const YAML::Node& node);
+
+        static YAML::Node encodeLightComponent(const LightComponent& light);
+        static LightComponent decodeLightComponent(const YAML::Node& node);
 
     public:
         static YAML::Node encodeProject(Project* project);

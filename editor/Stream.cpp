@@ -250,6 +250,22 @@ TextureWrap Editor::Stream::stringToTextureWrap(const std::string& str) {
     return TextureWrap::REPEAT;
 }
 
+std::string Editor::Stream::lightTypeToString(LightType type) {
+    switch (type) {
+        case LightType::DIRECTIONAL: return "directional";
+        case LightType::POINT: return "point";
+        case LightType::SPOT: return "spot";
+        default: return "directional";
+    }
+}
+
+LightType Editor::Stream::stringToLightType(const std::string& str) {
+    if (str == "directional") return LightType::DIRECTIONAL;
+    if (str == "point") return LightType::POINT;
+    if (str == "spot") return LightType::SPOT;
+    return LightType::DIRECTIONAL; // Default
+}
+
 YAML::Node Editor::Stream::encodeVector2(const Vector2& vec){
     YAML::Node node;
     node.SetStyle(YAML::EmitterStyle::Flow);
@@ -361,8 +377,8 @@ YAML::Node Editor::Stream::encodeTransform(const Transform& transform) {
     transformNode["billboard"] = transform.billboard;
     transformNode["fakeBillboard"] = transform.fakeBillboard;
     transformNode["cylindricalBillboard"] = transform.cylindricalBillboard;
-    transformNode["needUpdateChildVisibility"] = transform.needUpdateChildVisibility;
-    transformNode["needUpdate"] = transform.needUpdate;
+    //transformNode["needUpdateChildVisibility"] = transform.needUpdateChildVisibility;
+    //transformNode["needUpdate"] = transform.needUpdate;
 
     return transformNode;
 }
@@ -387,8 +403,8 @@ Transform Editor::Stream::decodeTransform(const YAML::Node& node) {
     transform.billboard = node["billboard"].as<bool>();
     transform.fakeBillboard = node["fakeBillboard"].as<bool>();
     transform.cylindricalBillboard = node["cylindricalBillboard"].as<bool>();
-    transform.needUpdateChildVisibility = node["needUpdateChildVisibility"].as<bool>();
-    transform.needUpdate = node["needUpdate"].as<bool>();
+    //transform.needUpdateChildVisibility = node["needUpdateChildVisibility"].as<bool>();
+    //transform.needUpdate = node["needUpdate"].as<bool>();
 
     return transform;
 }
@@ -765,6 +781,46 @@ ImageComponent Editor::Stream::decodeImageComponent(const YAML::Node& node) {
     return image;
 }
 
+YAML::Node Editor::Stream::encodeLightComponent(const LightComponent& light) {
+    YAML::Node node;
+
+    node["type"] = lightTypeToString(light.type);
+    node["direction"] = encodeVector3(light.direction);
+    node["worldDirection"] = encodeVector3(light.worldDirection);
+    node["color"] = encodeVector3(light.color);
+    node["range"] = light.range;
+    node["intensity"] = light.intensity;
+    node["innerConeCos"] = light.innerConeCos;
+    node["outerConeCos"] = light.outerConeCos;
+    node["shadows"] = light.shadows;
+    node["shadowBias"] = light.shadowBias;
+    node["mapResolution"] = light.mapResolution;
+    node["shadowCameraNearFar"] = encodeVector2(light.shadowCameraNearFar);
+    node["numShadowCascades"] = light.numShadowCascades;
+
+    return node;
+}
+
+LightComponent Editor::Stream::decodeLightComponent(const YAML::Node& node) {
+    LightComponent light;
+
+    light.type = stringToLightType(node["type"].as<std::string>());
+    light.direction = decodeVector3(node["direction"]);
+    light.worldDirection = decodeVector3(node["worldDirection"]);
+    light.color = decodeVector3(node["color"]);
+    light.range = node["range"].as<float>();
+    light.intensity = node["intensity"].as<float>();
+    light.innerConeCos = node["innerConeCos"].as<float>();
+    light.outerConeCos = node["outerConeCos"].as<float>();
+    light.shadows = node["shadows"].as<bool>();
+    light.shadowBias = node["shadowBias"].as<float>();
+    light.mapResolution = node["mapResolution"].as<unsigned int>();
+    light.shadowCameraNearFar = decodeVector2(node["shadowCameraNearFar"]);
+    light.numShadowCascades = node["numShadowCascades"].as<unsigned int>();
+
+    return light;
+}
+
 YAML::Node Editor::Stream::encodeProject(Project* project) {
     YAML::Node root;
 
@@ -917,6 +973,11 @@ YAML::Node Editor::Stream::encodeEntity(const Entity entity, const Scene* scene)
         entityNode["image"] = encodeImageComponent(image);
     }
 
+    if (signature.test(scene->getComponentId<LightComponent>())) {
+        LightComponent light = scene->getComponent<LightComponent>(entity);
+        entityNode["light"] = encodeLightComponent(light);
+    }
+
     return entityNode;
 }
 
@@ -958,6 +1019,11 @@ Entity Editor::Stream::decodeEntity(Scene* scene, const YAML::Node& entityNode) 
     if (entityNode["image"]) {
         ImageComponent image = decodeImageComponent(entityNode["image"]);
         scene->addComponent<ImageComponent>(entity, image);
+    }
+
+    if (entityNode["light"]) {
+        LightComponent light = decodeLightComponent(entityNode["light"]);
+        scene->addComponent<LightComponent>(entity, light);
     }
 
     return entity;
@@ -1081,6 +1147,7 @@ YAML::Node Editor::Stream::encodeMeshComponent(const MeshComponent& mesh) {
     node["verticesAABB"] = encodeAABB(mesh.verticesAABB);
     node["worldAABB"] = encodeAABB(mesh.worldAABB);
 
+    node["receiveLights"] = mesh.receiveLights;
     node["castShadows"] = mesh.castShadows;
     node["receiveShadows"] = mesh.receiveShadows;
     node["shadowsBillboard"] = mesh.shadowsBillboard;
@@ -1147,6 +1214,7 @@ MeshComponent Editor::Stream::decodeMeshComponent(const YAML::Node& node) {
     mesh.verticesAABB = decodeAABB(node["verticesAABB"]);
     mesh.worldAABB = decodeAABB(node["worldAABB"]);
 
+    mesh.receiveLights = node["receiveLights"].as<bool>();
     mesh.castShadows = node["castShadows"].as<bool>();
     mesh.receiveShadows = node["receiveShadows"].as<bool>();
     mesh.shadowsBillboard = node["shadowsBillboard"].as<bool>();

@@ -520,6 +520,13 @@ Entity Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
         }else if (signature.test(scenedata->scene->getComponentId<UIComponent>())){
             UIComponent& ui = scenedata->scene->getComponent<UIComponent>(entity);
             aabb = ui.worldAABB;
+        }else if (signature.test(scenedata->scene->getComponentId<LightComponent>())){
+            Transform& transform = scenedata->scene->getComponent<Transform>(entity);
+            Transform& camtransform = scenedata->scene->getComponent<Transform>(scenedata->scene->getCamera());
+            CameraComponent& camera = scenedata->scene->getComponent<CameraComponent>(scenedata->scene->getCamera());
+            float dist = (transform.worldPosition - camtransform.worldPosition).length();
+            float size = dist * tan(camera.yfov) * 0.01;
+            aabb = transform.modelMatrix * AABB(-size, -size, -size, size, size, size);
         }
 
         if (!aabb.isNull() && !aabb.isInfinite()){
@@ -715,6 +722,10 @@ fs::path Editor::Project::getThumbnailPath(const fs::path& originalPath) const {
 
     std::string thumbFilename = hash + ".thumb.png";
     return thumbsDir / thumbFilename;
+}
+
+std::vector<Entity> Editor::Project::getEntities(uint32_t sceneId) const{
+    return getScene(sceneId)->entities;
 }
 
 void Editor::Project::replaceSelectedEntities(uint32_t sceneId, std::vector<Entity> selectedEntities){

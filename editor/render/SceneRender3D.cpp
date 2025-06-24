@@ -6,6 +6,7 @@
 #include "resources/sky/Daylight_Box_Left_png.h"
 #include "resources/sky/Daylight_Box_Right_png.h"
 #include "resources/sky/Daylight_Box_Top_png.h"
+#include "resources/icons/sun-icon_png.h"
 
 #include "Project.h"
 
@@ -32,7 +33,9 @@ Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, tr
     skyRight.loadTextureFromMemory(Daylight_Box_Right_png, Daylight_Box_Right_png_len);
     skyTop.loadTextureFromMemory(Daylight_Box_Top_png, Daylight_Box_Top_png_len);
 
-    sky->setTextures("default_editor_sky", skyBack, skyFront, skyLeft, skyRight, skyTop, skyBottom);
+    sky->setTextures("editor:resources:default_sky", skyBack, skyFront, skyLeft, skyRight, skyTop, skyBottom);
+
+    sunIcons.clear();
 
     createLines();
 
@@ -63,6 +66,11 @@ Editor::SceneRender3D::~SceneRender3D(){
     delete sun;
     delete sky;
     delete selLines;
+
+    for (auto& pair : sunIcons) {
+        delete pair.second;
+    }
+    sunIcons.clear();
 }
 
 void Editor::SceneRender3D::createLines(){
@@ -151,8 +159,8 @@ void Editor::SceneRender3D::updateSelLines(std::vector<OBB> obbs){
     }
 }
 
-void Editor::SceneRender3D::update(std::vector<Entity> selEntities){
-    SceneRender::update(selEntities);
+void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<Entity> entities){
+    SceneRender::update(selEntities, entities);
 
     int linesStepChange = (int)(camera->getFarClip() / 2);
     int cameraLineStepX = (int)(camera->getWorldPosition().x / linesStepChange) * linesStepChange;
@@ -164,6 +172,65 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities){
     }
 
     viewgizmo.applyRotation(camera);
+
+    std::set<Entity> currentDirectionalLights;
+
+    for (Entity& entity: entities){
+        Signature signature = scene->getSignature(entity);
+
+        if (signature.test(scene->getComponentId<LightComponent>()) && signature.test(scene->getComponentId<Transform>())) {
+            LightComponent& light = scene->getComponent<LightComponent>(entity);
+            Transform& transform = scene->getComponent<Transform>(entity);
+
+            if (light.type == LightType::DIRECTIONAL){
+                currentDirectionalLights.insert(entity);
+
+                // Create sun icon if it doesn't exist for this entity
+                if (sunIcons.find(entity) == sunIcons.end()) {
+                    Sprite* newSunIcon = new Sprite(scene);
+
+                    TextureData sunIconData;
+                    sunIconData.loadTextureFromMemory(sun_icon_png, sun_icon_png_len);
+
+                    newSunIcon->setTexture("editor:resources:sun_icon", sunIconData);
+                    newSunIcon->setBillboard(true);
+                    newSunIcon->setSize(128, 128);
+                    newSunIcon->setReceiveLights(false);
+                    newSunIcon->setCastShadows(false);
+                    newSunIcon->setReceiveShadows(false);
+                    newSunIcon->setPivotPreset(PivotPreset::CENTER);
+
+                    sunIcons[entity] = newSunIcon;
+                }
+
+                // Update sun icon position
+                sunIcons[entity]->setPosition(transform.worldPosition);
+
+                // Update sun icon scale
+                CameraComponent& cameracomp = scene->getComponent<CameraComponent>(camera->getEntity());
+                float sunIconScale = 0.25f;
+                float scale = sunIconScale * zoom;
+
+                if (cameracomp.type == CameraType::CAMERA_PERSPECTIVE){
+                    float dist = (sunIcons[entity]->getPosition() - camera->getWorldPosition()).length();
+                    scale = std::tan(cameracomp.yfov) * dist * (sunIconScale / (float)framebuffer.getHeight());
+                }
+
+                sunIcons[entity]->setScale(scale);
+            }
+        }
+    }
+
+    // Remove sun icons for entities that are no longer directional lights
+    auto it = sunIcons.begin();
+    while (it != sunIcons.end()) {
+        if (currentDirectionalLights.find(it->first) == currentDirectionalLights.end()) {
+            delete it->second;
+            it = sunIcons.erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
 
 void Editor::SceneRender3D::mouseHoverEvent(float x, float y){

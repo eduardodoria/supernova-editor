@@ -172,7 +172,7 @@ void Editor::SceneRender::updateRenderSystem(){
     scene->getSystem<RenderSystem>()->update(0);
 }
 
-void Editor::SceneRender::update(std::vector<Entity> selEntities){
+void Editor::SceneRender::update(std::vector<Entity> selEntities, std::vector<Entity> entities){
     Entity cameraEntity = camera->getEntity();
     CameraComponent& cameracomp = scene->getComponent<CameraComponent>(cameraEntity);
     Transform& cameratransform = scene->getComponent<Transform>(cameraEntity);

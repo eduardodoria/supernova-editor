@@ -23,7 +23,7 @@ namespace Supernova::Editor{
         virtual void updateSize(int width, int height);
         virtual void updateSelLines(std::vector<OBB> obbs);
 
-        virtual void update(std::vector<Entity> selEntities);
+        virtual void update(std::vector<Entity> selEntities, std::vector<Entity> entities);
         virtual void mouseHoverEvent(float x, float y);
         virtual void mouseClickEvent(float x, float y, std::vector<Entity> selEntities);
         virtual void mouseReleaseEvent(float x, float y);

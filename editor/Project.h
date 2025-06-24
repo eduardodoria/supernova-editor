@@ -113,6 +113,8 @@ namespace Supernova::Editor{
         fs::path getThumbsDir() const;
         fs::path getThumbnailPath(const fs::path& originalPath) const;
 
+        std::vector<Entity> getEntities(uint32_t sceneId) const;
+
         void replaceSelectedEntities(uint32_t sceneId, std::vector<Entity> selectedEntities);
         void setSelectedEntity(uint32_t sceneId, Entity selectedEntity);
         void addSelectedEntity(uint32_t sceneId, Entity selectedEntity);
