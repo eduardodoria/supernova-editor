@@ -411,50 +411,33 @@ void Editor::SceneWindow::show() {
             if (ImGui::Button(ICON_FA_GEAR)) {
                 ImGui::OpenPopup("scenesettings");
             }
-            ImGui::SetNextWindowSizeConstraints(ImVec2(350.0f, 0.0f), ImVec2(FLT_MAX, FLT_MAX));
+            ImGui::SetNextWindowSizeConstraints(ImVec2(250.0f, 0.0f), ImVec2(FLT_MAX, FLT_MAX));
             if (ImGui::BeginPopup("scenesettings")) {
                 ImGui::Text("Scene settings");
                 ImGui::Separator();
+                ImGuiTableFlags tableFlags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchSame;
 
                 // Start a table for properties
-                if (ImGui::BeginTable("scene_settings_table", 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Resizable)) {
+                if (ImGui::BeginTable("scene_settings_table", 2, tableFlags)) {
                     ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("Shadows PCF").x);
                     ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
-                    drawSceneProperty<Vector4>(&sceneProject, "background_color",   "Background");
-                    drawSceneProperty<bool>  (&sceneProject, "shadows_pcf",        "Shadows PCF");
+                    drawSceneProperty<Vector4>(&sceneProject, "background_color",   "Background", ScenePropertyType::COLOR_RGBA);
+                    drawSceneProperty<bool>  (&sceneProject, "shadows_pcf",        "Shadows PCF", ScenePropertyType::CHECKBOX);
 
                     ImGui::EndTable();
                 }
 
                 ImGui::SeparatorText("Global Illumination");
 
-                if (ImGui::BeginTable("scene_globalillum_table", 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Resizable)) {
+                if (ImGui::BeginTable("scene_globalillum_table", 2, tableFlags)) {
                     ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("Intensity").x);
                     ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
-                    drawSceneProperty<Vector3>(&sceneProject, "global_illumination_color",   "Color");
-                    drawSceneProperty<float> (&sceneProject, "global_illumination_intensity", "Intensity");
+                    drawSceneProperty<Vector3>(&sceneProject, "global_illumination_color",   "Color", ScenePropertyType::COLOR_RGB);
+                    drawSceneProperty<float> (&sceneProject, "global_illumination_intensity", "Intensity", ScenePropertyType::SLIDER_FLOAT, 0.0f, 1.0f);
 
                     ImGui::EndTable();
-                }
-
-                if (sceneProject.sceneType == SceneType::SCENE_3D){
-
-                    ImGui::SeparatorText("Sun light");
-
-                    if (ImGui::BeginTable("scene_sunlight_table", 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Resizable)) {
-                        ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("Ambient Intensity").x);
-                        ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
-
-                        SceneRender3D* sceneRender3D = static_cast<SceneRender3D*>(sceneProject.sceneRender);
-                        Entity lightentity = sceneRender3D->getSunLight()->getEntity();
-
-                        drawProperty<Vector3>(&sceneProject, lightentity, ComponentType::LightComponent, "direction", "Direction");
-
-                        ImGui::EndTable();
-                    }
-
                 }
 
                 ImGui::EndPopup();
