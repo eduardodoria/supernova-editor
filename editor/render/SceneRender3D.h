@@ -16,11 +16,12 @@ namespace Supernova::Editor{
 
         ViewportGizmo viewgizmo;
 
-        std::map<Entity, Sprite*> sunIcons;
+        std::map<Entity, Sprite*> lightIcons;
 
         Vector2 linesOffset;
 
         void createLines();
+        void createOrUpdateLightIcon(Entity entity, const Transform& transform, LightType lightType);
 
     public:
         SceneRender3D(Scene* scene);

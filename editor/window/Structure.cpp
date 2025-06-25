@@ -77,15 +77,15 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent){
 
     if (ImGui::BeginMenu(ICON_FA_LIGHTBULB"  Light")){
         if (ImGui::MenuItem(ICON_FA_LIGHTBULB"  Point")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "PointLight", EntityCreationType::POINT_LIGHT, parent));
+            CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Point Light", EntityCreationType::POINT_LIGHT, parent));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_LIGHTBULB"  Directional")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "DirectionalLight", EntityCreationType::DIRECTIONAL_LIGHT, parent));
+            CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Directional Light", EntityCreationType::DIRECTIONAL_LIGHT, parent));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_LIGHTBULB"  Spot")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "SpotLight", EntityCreationType::SPOT_LIGHT, parent));
+            CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Spot Light", EntityCreationType::SPOT_LIGHT, parent));
             openParent = parent;
         }
         ImGui::EndMenu();

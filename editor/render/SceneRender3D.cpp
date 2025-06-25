@@ -7,6 +7,7 @@
 #include "resources/sky/Daylight_Box_Right_png.h"
 #include "resources/sky/Daylight_Box_Top_png.h"
 #include "resources/icons/sun-icon_png.h"
+#include "resources/icons/bulb-icon_png.h"
 
 #include "Project.h"
 
@@ -35,7 +36,7 @@ Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, tr
 
     sky->setTextures("editor:resources:default_sky", skyBack, skyFront, skyLeft, skyRight, skyTop, skyBottom);
 
-    sunIcons.clear();
+    lightIcons.clear();
 
     createLines();
 
@@ -67,10 +68,10 @@ Editor::SceneRender3D::~SceneRender3D(){
     delete sky;
     delete selLines;
 
-    for (auto& pair : sunIcons) {
+    for (auto& pair : lightIcons) {
         delete pair.second;
     }
-    sunIcons.clear();
+    lightIcons.clear();
 }
 
 void Editor::SceneRender3D::createLines(){
@@ -108,6 +109,46 @@ void Editor::SceneRender3D::createLines(){
         }
     }
     lines->addLine(Vector3(0, -gridSize, 0), Vector3(0, gridSize, 0), Vector4(0.5, 1.0, 0.5, 1.0));
+}
+
+void Editor::SceneRender3D::createOrUpdateLightIcon(Entity entity, const Transform& transform, LightType lightType) {
+    // Create light icon if it doesn't exist for this entity
+    if (lightIcons.find(entity) == lightIcons.end()) {
+        Sprite* newLightIcon = new Sprite(scene);
+
+        TextureData iconData;
+        if (lightType == LightType::DIRECTIONAL) {
+            iconData.loadTextureFromMemory(sun_icon_png, sun_icon_png_len);
+            newLightIcon->setTexture("editor:resources:sun_icon", iconData);
+        } else if (lightType == LightType::POINT) {
+            iconData.loadTextureFromMemory(bulb_icon_png, bulb_icon_png_len);
+            newLightIcon->setTexture("editor:resources:bulb_icon", iconData);
+        }
+
+        newLightIcon->setBillboard(true);
+        newLightIcon->setSize(128, 128);
+        newLightIcon->setReceiveLights(false);
+        newLightIcon->setCastShadows(false);
+        newLightIcon->setReceiveShadows(false);
+        newLightIcon->setPivotPreset(PivotPreset::CENTER);
+
+        lightIcons[entity] = newLightIcon;
+    }
+
+    // Update light icon position
+    lightIcons[entity]->setPosition(transform.worldPosition);
+
+    // Update light icon scale
+    CameraComponent& cameracomp = scene->getComponent<CameraComponent>(camera->getEntity());
+    float lightIconScale = 0.25f;
+    float scale = lightIconScale * zoom;
+
+    if (cameracomp.type == CameraType::CAMERA_PERSPECTIVE){
+        float dist = (lightIcons[entity]->getPosition() - camera->getWorldPosition()).length();
+        scale = std::tan(cameracomp.yfov) * dist * (lightIconScale / (float)framebuffer.getHeight());
+    }
+
+    lightIcons[entity]->setScale(scale);
 }
 
 void Editor::SceneRender3D::activate(){
@@ -173,7 +214,7 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
 
     viewgizmo.applyRotation(camera);
 
-    std::set<Entity> currentDirectionalLights;
+    std::set<Entity> currentIconLights;
 
     for (Entity& entity: entities){
         Signature signature = scene->getSignature(entity);
@@ -183,50 +224,21 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
             Transform& transform = scene->getComponent<Transform>(entity);
 
             if (light.type == LightType::DIRECTIONAL){
-                currentDirectionalLights.insert(entity);
-
-                // Create sun icon if it doesn't exist for this entity
-                if (sunIcons.find(entity) == sunIcons.end()) {
-                    Sprite* newSunIcon = new Sprite(scene);
-
-                    TextureData sunIconData;
-                    sunIconData.loadTextureFromMemory(sun_icon_png, sun_icon_png_len);
-
-                    newSunIcon->setTexture("editor:resources:sun_icon", sunIconData);
-                    newSunIcon->setBillboard(true);
-                    newSunIcon->setSize(128, 128);
-                    newSunIcon->setReceiveLights(false);
-                    newSunIcon->setCastShadows(false);
-                    newSunIcon->setReceiveShadows(false);
-                    newSunIcon->setPivotPreset(PivotPreset::CENTER);
-
-                    sunIcons[entity] = newSunIcon;
-                }
-
-                // Update sun icon position
-                sunIcons[entity]->setPosition(transform.worldPosition);
-
-                // Update sun icon scale
-                CameraComponent& cameracomp = scene->getComponent<CameraComponent>(camera->getEntity());
-                float sunIconScale = 0.25f;
-                float scale = sunIconScale * zoom;
-
-                if (cameracomp.type == CameraType::CAMERA_PERSPECTIVE){
-                    float dist = (sunIcons[entity]->getPosition() - camera->getWorldPosition()).length();
-                    scale = std::tan(cameracomp.yfov) * dist * (sunIconScale / (float)framebuffer.getHeight());
-                }
-
-                sunIcons[entity]->setScale(scale);
+                currentIconLights.insert(entity);
+                createOrUpdateLightIcon(entity, transform, LightType::DIRECTIONAL);
+            }else if (light.type == LightType::POINT){
+                currentIconLights.insert(entity);
+                createOrUpdateLightIcon(entity, transform, LightType::POINT);
             }
         }
     }
 
     // Remove sun icons for entities that are no longer directional lights
-    auto it = sunIcons.begin();
-    while (it != sunIcons.end()) {
-        if (currentDirectionalLights.find(it->first) == currentDirectionalLights.end()) {
+    auto it = lightIcons.begin();
+    while (it != lightIcons.end()) {
+        if (currentIconLights.find(it->first) == currentIconLights.end()) {
             delete it->second;
-            it = sunIcons.erase(it);
+            it = lightIcons.erase(it);
         } else {
             ++it;
         }
