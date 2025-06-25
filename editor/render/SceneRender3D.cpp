@@ -8,6 +8,7 @@
 #include "resources/sky/Daylight_Box_Top_png.h"
 #include "resources/icons/sun-icon_png.h"
 #include "resources/icons/bulb-icon_png.h"
+#include "resources/icons/spot-icon_png.h"
 
 #include "Project.h"
 
@@ -123,6 +124,9 @@ void Editor::SceneRender3D::createOrUpdateLightIcon(Entity entity, const Transfo
         } else if (lightType == LightType::POINT) {
             iconData.loadTextureFromMemory(bulb_icon_png, bulb_icon_png_len);
             newLightIcon->setTexture("editor:resources:bulb_icon", iconData);
+        } else if (lightType == LightType::SPOT) {
+            iconData.loadTextureFromMemory(spot_icon_png, spot_icon_png_len);
+            newLightIcon->setTexture("editor:resources:spot_icon", iconData);
         }
 
         newLightIcon->setBillboard(true);
@@ -223,12 +227,13 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
             LightComponent& light = scene->getComponent<LightComponent>(entity);
             Transform& transform = scene->getComponent<Transform>(entity);
 
+            currentIconLights.insert(entity);
             if (light.type == LightType::DIRECTIONAL){
-                currentIconLights.insert(entity);
                 createOrUpdateLightIcon(entity, transform, LightType::DIRECTIONAL);
             }else if (light.type == LightType::POINT){
-                currentIconLights.insert(entity);
                 createOrUpdateLightIcon(entity, transform, LightType::POINT);
+            }else if (light.type == LightType::SPOT){
+                createOrUpdateLightIcon(entity, transform, LightType::SPOT);
             }
         }
     }
