@@ -37,7 +37,7 @@ Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, tr
 
     sky->setTextures("editor:resources:default_sky", skyBack, skyFront, skyLeft, skyRight, skyTop, skyBottom);
 
-    lightIcons.clear();
+    lightObjects.clear();
 
     createLines();
 
@@ -69,10 +69,11 @@ Editor::SceneRender3D::~SceneRender3D(){
     delete sky;
     delete selLines;
 
-    for (auto& pair : lightIcons) {
-        delete pair.second;
+    for (auto& pair : lightObjects) {
+        delete pair.second.icon;
+        delete pair.second.lines;
     }
-    lightIcons.clear();
+    lightObjects.clear();
 }
 
 void Editor::SceneRender3D::createLines(){
@@ -112,35 +113,44 @@ void Editor::SceneRender3D::createLines(){
     lines->addLine(Vector3(0, -gridSize, 0), Vector3(0, gridSize, 0), Vector4(0.5, 1.0, 0.5, 1.0));
 }
 
-void Editor::SceneRender3D::createOrUpdateLightIcon(Entity entity, const Transform& transform, LightType lightType) {
-    // Create light icon if it doesn't exist for this entity
-    if (lightIcons.find(entity) == lightIcons.end()) {
-        Sprite* newLightIcon = new Sprite(scene);
+bool Editor::SceneRender3D::instanciateLightObject(Entity entity){
+    if (lightObjects.find(entity) == lightObjects.end()) {
+        lightObjects[entity].icon = new Sprite(scene);
+        lightObjects[entity].lines = new Lines(scene);
 
+        return true;
+    }
+
+    return false;
+}
+
+void Editor::SceneRender3D::createOrUpdateLightIcon(Entity entity, const Transform& transform, LightType lightType, bool newLight) {
+    LightObjects& lo = lightObjects[entity];
+
+    if (newLight) {
         TextureData iconData;
         if (lightType == LightType::DIRECTIONAL) {
             iconData.loadTextureFromMemory(sun_icon_png, sun_icon_png_len);
-            newLightIcon->setTexture("editor:resources:sun_icon", iconData);
+            lo.icon->setTexture("editor:resources:sun_icon", iconData);
         } else if (lightType == LightType::POINT) {
             iconData.loadTextureFromMemory(bulb_icon_png, bulb_icon_png_len);
-            newLightIcon->setTexture("editor:resources:bulb_icon", iconData);
+            lo.icon->setTexture("editor:resources:bulb_icon", iconData);
         } else if (lightType == LightType::SPOT) {
             iconData.loadTextureFromMemory(spot_icon_png, spot_icon_png_len);
-            newLightIcon->setTexture("editor:resources:spot_icon", iconData);
+            lo.icon->setTexture("editor:resources:spot_icon", iconData);
         }
 
-        newLightIcon->setBillboard(true);
-        newLightIcon->setSize(128, 128);
-        newLightIcon->setReceiveLights(false);
-        newLightIcon->setCastShadows(false);
-        newLightIcon->setReceiveShadows(false);
-        newLightIcon->setPivotPreset(PivotPreset::CENTER);
-
-        lightIcons[entity] = newLightIcon;
+        lo.icon->setBillboard(true);
+        lo.icon->setSize(128, 128);
+        lo.icon->setReceiveLights(false);
+        lo.icon->setCastShadows(false);
+        lo.icon->setReceiveShadows(false);
+        lo.icon->setPivotPreset(PivotPreset::CENTER);
     }
 
     // Update light icon position
-    lightIcons[entity]->setPosition(transform.worldPosition);
+    lo.icon->setPosition(transform.worldPosition);
+    lo.icon->setVisible(transform.visible);
 
     // Update light icon scale
     CameraComponent& cameracomp = scene->getComponent<CameraComponent>(camera->getEntity());
@@ -148,11 +158,100 @@ void Editor::SceneRender3D::createOrUpdateLightIcon(Entity entity, const Transfo
     float scale = lightIconScale * zoom;
 
     if (cameracomp.type == CameraType::CAMERA_PERSPECTIVE){
-        float dist = (lightIcons[entity]->getPosition() - camera->getWorldPosition()).length();
+        float dist = (lo.icon->getPosition() - camera->getWorldPosition()).length();
         scale = std::tan(cameracomp.yfov) * dist * (lightIconScale / (float)framebuffer.getHeight());
     }
 
-    lightIcons[entity]->setScale(scale);
+    lo.icon->setScale(scale);
+}
+
+void Editor::SceneRender3D::createSpotLightCones(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected) {
+    LightObjects& lo = lightObjects[entity];
+
+    lo.lines->setPosition(transform.worldPosition);
+    lo.lines->setRotation(transform.worldRotation);
+    lo.lines->setVisible(isSelected);
+
+    if (light.direction == Vector3::ZERO){
+        return;
+    }
+
+    // if light.range = 0.0 then light.shadowCameraNearFar.y is camera.farClip
+    if (lo.innerConeCos == light.innerConeCos && 
+        lo.outerConeCos == light.outerConeCos && 
+        lo.direction == light.direction && 
+        lo.range == light.shadowCameraNearFar.y) {
+        return;
+    }
+
+    lo.innerConeCos = light.innerConeCos;
+    lo.outerConeCos = light.outerConeCos;
+    lo.direction = light.direction;
+    lo.range = light.shadowCameraNearFar.y;
+
+    lo.lines->clearLines();
+
+    Vector3 position = Vector3(0,0,0);  // Start position
+
+    float range = light.shadowCameraNearFar.y;
+    //if (range <= 0.0f) range = 10.0f; // Default range if not set
+
+    // Calculate cone radii at the end of the light range
+    float innerRadius = range * std::tan(std::acos(light.innerConeCos));
+    float outerRadius = range * std::tan(std::acos(light.outerConeCos));
+
+    // Create orthonormal basis vectors perpendicular to light direction
+    Vector3 up = Vector3(0, 1, 0);
+    if (std::abs(light.direction.dotProduct(up)) > 0.9f) {
+        up = Vector3(1, 0, 0);
+    }
+    Vector3 right = light.direction.crossProduct(up).normalized();
+    up = right.crossProduct(light.direction).normalized();
+
+    // End position of the cone
+    Vector3 endPos = position + light.direction * range;
+
+    const int numSegments = 12;
+    const float angleStep = 2.0f * M_PI / numSegments;
+
+    // Colors for inner and outer cones
+    Vector4 innerConeColor = Vector4(1.0, 1.0, 0.0, 0.8); // Yellow for inner cone
+    Vector4 outerConeColor = Vector4(1.0, 0.5, 0.0, 0.6); // Orange for outer cone
+
+    // Draw outer cone
+    for (int i = 0; i < numSegments; i++) {
+        float angle1 = i * angleStep;
+        float angle2 = ((i + 1) % numSegments) * angleStep;
+
+        // Calculate points on the outer cone circle
+        Vector3 point1 = endPos + (right * std::cos(angle1) + up * std::sin(angle1)) * outerRadius;
+        Vector3 point2 = endPos + (right * std::cos(angle2) + up * std::sin(angle2)) * outerRadius;
+
+        // Lines from light position to circle points
+        lo.lines->addLine(position, point1, outerConeColor);
+
+        // Circle at the end of the cone
+        lo.lines->addLine(point1, point2, outerConeColor);
+    }
+
+    // Draw inner cone
+    for (int i = 0; i < numSegments; i++) {
+        float angle1 = i * angleStep;
+        float angle2 = ((i + 1) % numSegments) * angleStep;
+
+        // Calculate points on the inner cone circle
+        Vector3 point1 = endPos + (right * std::cos(angle1) + up * std::sin(angle1)) * innerRadius;
+        Vector3 point2 = endPos + (right * std::cos(angle2) + up * std::sin(angle2)) * innerRadius;
+
+        // Lines from light position to circle points
+        lo.lines->addLine(position, point1, innerConeColor);
+
+        // Circle at the end of the cone
+        lo.lines->addLine(point1, point2, innerConeColor);
+    }
+
+    // Draw central direction line
+    lo.lines->addLine(position, endPos, Vector4(0.8, 0.8, 0.8, 1.0));
 }
 
 void Editor::SceneRender3D::activate(){
@@ -227,23 +326,28 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
             LightComponent& light = scene->getComponent<LightComponent>(entity);
             Transform& transform = scene->getComponent<Transform>(entity);
 
+            bool isSelected = std::find(selEntities.begin(), selEntities.end(), entity) != selEntities.end();
+
             currentIconLights.insert(entity);
+            bool newLight = instanciateLightObject(entity);
             if (light.type == LightType::DIRECTIONAL){
-                createOrUpdateLightIcon(entity, transform, LightType::DIRECTIONAL);
+                createOrUpdateLightIcon(entity, transform, LightType::DIRECTIONAL, newLight);
             }else if (light.type == LightType::POINT){
-                createOrUpdateLightIcon(entity, transform, LightType::POINT);
+                createOrUpdateLightIcon(entity, transform, LightType::POINT, newLight);
             }else if (light.type == LightType::SPOT){
-                createOrUpdateLightIcon(entity, transform, LightType::SPOT);
+                createOrUpdateLightIcon(entity, transform, LightType::SPOT, newLight);
+                createSpotLightCones(entity, transform, light, isSelected);
             }
         }
     }
 
     // Remove sun icons for entities that are no longer directional lights
-    auto it = lightIcons.begin();
-    while (it != lightIcons.end()) {
+    auto it = lightObjects.begin();
+    while (it != lightObjects.end()) {
         if (currentIconLights.find(it->first) == currentIconLights.end()) {
-            delete it->second;
-            it = lightIcons.erase(it);
+            delete it->second.icon;
+            delete it->second.lines;
+            it = lightObjects.erase(it);
         } else {
             ++it;
         }

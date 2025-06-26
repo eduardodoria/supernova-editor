@@ -7,6 +7,16 @@
 
 namespace Supernova::Editor{
 
+    struct LightObjects{
+        Sprite* icon = nullptr;
+        Lines* lines = nullptr;
+
+        float innerConeCos = 0.0f;
+        float outerConeCos = 0.0f;
+        Vector3 direction = Vector3::ZERO;
+        float range = 0.0f;
+    };
+
     class SceneRender3D: public SceneRender{
     private:
 
@@ -14,14 +24,16 @@ namespace Supernova::Editor{
         Light* sun;
         SkyBox* sky;
 
-        ViewportGizmo viewgizmo;
+        std::map<Entity, LightObjects> lightObjects;
 
-        std::map<Entity, Sprite*> lightIcons;
+        ViewportGizmo viewgizmo;
 
         Vector2 linesOffset;
 
         void createLines();
-        void createOrUpdateLightIcon(Entity entity, const Transform& transform, LightType lightType);
+        bool instanciateLightObject(Entity entity);
+        void createOrUpdateLightIcon(Entity entity, const Transform& transform, LightType lightType, bool newLight);
+        void createSpotLightCones(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected);
 
     public:
         SceneRender3D(Scene* scene);

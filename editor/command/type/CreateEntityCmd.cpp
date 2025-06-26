@@ -152,6 +152,8 @@ bool Editor::CreateEntityCmd::execute(){
 
                 LightComponent& light = scenes[i].scene->getComponent<LightComponent>(entity);
                 light.type = LightType::SPOT;
+                light.direction = Vector3(0.0f, -1.0f, 0.0f);
+                light.range = 10.0f;
 
             }
 
