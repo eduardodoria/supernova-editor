@@ -116,13 +116,13 @@ OBB Editor::SceneRender::getOBB(Entity entity, bool local){
         }
 
         if (local){
-            return OBB();
+            return OBB::ZERO;
         }else{
-            return modelMatrix * OBB();
+            return modelMatrix * OBB::ZERO;
         }
     }
 
-    return OBB::ZERO;
+    return OBB(); // null OBB
 }
 
 OBB Editor::SceneRender::getFamilyOBB(Entity entity, float offset){
@@ -146,7 +146,7 @@ OBB Editor::SceneRender::getFamilyOBB(Entity entity, float offset){
 
         OBB entityOBB = getOBB(entity, false);
 
-        if (entityOBB != OBB::ZERO){
+        if (!entityOBB.isNull()){
             entityOBB.setHalfExtents(entityOBB.getHalfExtents() + Vector3(offset));
 
             obb.enclose(entityOBB);

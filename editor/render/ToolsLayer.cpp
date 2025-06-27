@@ -153,6 +153,11 @@ void Editor::ToolsLayer::setGizmoVisible(bool visible){
     if (gizmoSelected == GizmoSelected::OBJECT2D){
         oGizmo->setVisible(visible);
     }
+
+    if (!visible){
+        gizmoSideSelected = GizmoSideSelected::NONE;
+        gizmo2DSideSelected = Gizmo2DSideSelected::NONE;
+    }
 }
 
 Framebuffer* Editor::ToolsLayer::getFramebuffer(){

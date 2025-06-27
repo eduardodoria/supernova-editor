@@ -587,6 +587,9 @@ bool Editor::Project::selectObjectsByRect(uint32_t sceneId, Vector2 start, Vecto
         }else if (signature.test(scenedata->scene->getComponentId<UIComponent>())){
             UIComponent& ui = scenedata->scene->getComponent<UIComponent>(entity);
             aabb = ui.aabb;
+        }else if (signature.test(scenedata->scene->getComponentId<LightComponent>())){
+            Transform& transform = scenedata->scene->getComponent<Transform>(entity);
+            aabb = AABB::ZERO; // just a point
         }
 
         if (!aabb.isNull() && !aabb.isInfinite()){
