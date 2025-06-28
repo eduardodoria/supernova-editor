@@ -165,6 +165,132 @@ void Editor::SceneRender3D::createOrUpdateLightIcon(Entity entity, const Transfo
     lo.icon->setScale(scale);
 }
 
+void Editor::SceneRender3D::createDirectionalLightArrow(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected) {
+    LightObjects& lo = lightObjects[entity];
+
+    lo.lines->setPosition(transform.worldPosition);
+    lo.lines->setRotation(transform.worldRotation);
+    lo.lines->setVisible(isSelected);
+
+    if (light.direction == Vector3::ZERO){
+        return;
+    }
+
+    // Check if we need to update the arrow (direction changed)
+    if (lo.direction == light.direction) {
+        return;
+    }
+
+    lo.direction = light.direction;
+
+    lo.lines->clearLines();
+
+    Vector3 position = Vector3(0, 0, 0);  // Start position
+    float arrowLength = 1.4f;  // Length of the main arrow shaft
+    float arrowHeadLength = 0.6f;  // Length of the arrow head
+    float arrowHeadWidth = 0.3f;   // Width of the arrow head
+
+    Vector4 arrowColor = Vector4(1.0, 1.0, 0.0, 1.0); // Yellow color for directional light
+
+    // Main arrow shaft
+    Vector3 endPos = position + light.direction * arrowLength;
+    lo.lines->addLine(position, endPos, arrowColor);
+
+    // Create orthonormal basis vectors perpendicular to light direction
+    Vector3 up = Vector3(0, 1, 0);
+    if (std::abs(light.direction.dotProduct(up)) > 0.9f) {
+        up = Vector3(1, 0, 0);
+    }
+    Vector3 right = light.direction.crossProduct(up).normalized();
+    up = right.crossProduct(light.direction).normalized();
+
+    // Arrow head base position
+    Vector3 arrowHeadBase = endPos - light.direction * arrowHeadLength;
+
+    // Arrow head vertices (4 points forming a diamond shape)
+    Vector3 arrowHead1 = arrowHeadBase + right * arrowHeadWidth;
+    Vector3 arrowHead2 = arrowHeadBase + up * arrowHeadWidth;
+    Vector3 arrowHead3 = arrowHeadBase - right * arrowHeadWidth;
+    Vector3 arrowHead4 = arrowHeadBase - up * arrowHeadWidth;
+
+    // Draw arrow head lines
+    lo.lines->addLine(endPos, arrowHead1, arrowColor);
+    lo.lines->addLine(endPos, arrowHead2, arrowColor);
+    lo.lines->addLine(endPos, arrowHead3, arrowColor);
+    lo.lines->addLine(endPos, arrowHead4, arrowColor);
+
+    // Connect arrow head base points to form a diamond
+    lo.lines->addLine(arrowHead1, arrowHead2, arrowColor);
+    lo.lines->addLine(arrowHead2, arrowHead3, arrowColor);
+    lo.lines->addLine(arrowHead3, arrowHead4, arrowColor);
+    lo.lines->addLine(arrowHead4, arrowHead1, arrowColor);
+
+    // Optional: Add some additional lines for better visualization
+    lo.lines->addLine(arrowHead1, arrowHead3, arrowColor * 0.7f); // Cross lines with slightly dimmer color
+    lo.lines->addLine(arrowHead2, arrowHead4, arrowColor * 0.7f);
+}
+
+void Editor::SceneRender3D::createPointLightSphere(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected) {
+    LightObjects& lo = lightObjects[entity];
+
+    lo.lines->setPosition(transform.worldPosition);
+    lo.lines->setRotation(transform.worldRotation);
+    lo.lines->setVisible(isSelected);
+
+    float range = light.shadowCameraNearFar.y;
+    if (range <= 0.0f) return;
+
+    // Check if we need to update the sphere (range changed)
+    if (lo.range == range) {
+        return;
+    }
+
+    lo.range = range;
+
+    lo.lines->clearLines();
+
+    Vector3 position = Vector3(0, 0, 0);  // Start position
+    Vector4 sphereColor = Vector4(0.0, 1.0, 1.0, 0.8); // Cyan color for point light
+
+    const int numSegments = 16;
+    const float angleStep = 2.0f * M_PI / numSegments;
+
+    // Draw three orthogonal circles to represent the sphere
+
+    // XY plane circle
+    for (int i = 0; i < numSegments; i++) {
+        float angle1 = i * angleStep;
+        float angle2 = ((i + 1) % numSegments) * angleStep;
+
+        Vector3 point1 = position + Vector3(std::cos(angle1) * range, std::sin(angle1) * range, 0);
+        Vector3 point2 = position + Vector3(std::cos(angle2) * range, std::sin(angle2) * range, 0);
+
+        lo.lines->addLine(point1, point2, sphereColor);
+    }
+
+    // XZ plane circle
+    for (int i = 0; i < numSegments; i++) {
+        float angle1 = i * angleStep;
+        float angle2 = ((i + 1) % numSegments) * angleStep;
+
+        Vector3 point1 = position + Vector3(std::cos(angle1) * range, 0, std::sin(angle1) * range);
+        Vector3 point2 = position + Vector3(std::cos(angle2) * range, 0, std::sin(angle2) * range);
+
+        lo.lines->addLine(point1, point2, sphereColor);
+    }
+
+    // YZ plane circle
+    for (int i = 0; i < numSegments; i++) {
+        float angle1 = i * angleStep;
+        float angle2 = ((i + 1) % numSegments) * angleStep;
+
+        Vector3 point1 = position + Vector3(0, std::cos(angle1) * range, std::sin(angle1) * range);
+        Vector3 point2 = position + Vector3(0, std::cos(angle2) * range, std::sin(angle2) * range);
+
+        lo.lines->addLine(point1, point2, sphereColor);
+    }
+}
+
 void Editor::SceneRender3D::createSpotLightCones(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected) {
     LightObjects& lo = lightObjects[entity];
 
@@ -332,8 +458,10 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
             bool newLight = instanciateLightObject(entity);
             if (light.type == LightType::DIRECTIONAL){
                 createOrUpdateLightIcon(entity, transform, LightType::DIRECTIONAL, newLight);
+                createDirectionalLightArrow(entity, transform, light, isSelected);
             }else if (light.type == LightType::POINT){
                 createOrUpdateLightIcon(entity, transform, LightType::POINT, newLight);
+                createPointLightSphere(entity, transform, light, isSelected);
             }else if (light.type == LightType::SPOT){
                 createOrUpdateLightIcon(entity, transform, LightType::SPOT, newLight);
                 createSpotLightCones(entity, transform, light, isSelected);

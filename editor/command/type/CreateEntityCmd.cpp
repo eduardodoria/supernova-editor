@@ -144,6 +144,7 @@ bool Editor::CreateEntityCmd::execute(){
 
                 LightComponent& light = scenes[i].scene->getComponent<LightComponent>(entity);
                 light.type = LightType::POINT;
+                light.range = 10.0f;
 
             }else if (type == EntityCreationType::SPOT_LIGHT){
 

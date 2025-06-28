@@ -33,6 +33,8 @@ namespace Supernova::Editor{
         void createLines();
         bool instanciateLightObject(Entity entity);
         void createOrUpdateLightIcon(Entity entity, const Transform& transform, LightType lightType, bool newLight);
+        void createDirectionalLightArrow(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected);
+        void createPointLightSphere(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected);
         void createSpotLightCones(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected);
 
     public:
