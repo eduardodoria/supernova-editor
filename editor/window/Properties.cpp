@@ -681,12 +681,15 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             ImGui::PopStyleColor();
         //ImGui::SetItemTooltip("%s", prop.label.c_str());
 
-    }else if (prop.type == PropertyType::Float || prop.type == PropertyType::Float_0_1){
+    }else if (prop.type == PropertyType::Float || prop.type == PropertyType::Float_0_1 || prop.type == PropertyType::HalfCone){
         float* value = nullptr;
         std::map<Entity, float> eValue;
         bool dif = false;
         for (Entity& entity : entities){
             eValue[entity] = *Catalog::getPropertyRef<float>(sceneProject->scene, entity, cpType, id);
+            if (prop.type == PropertyType::HalfCone){
+                eValue[entity] = Angle::radToDefault(std::acos(eValue[entity]) * 2);
+            }
             if (value){
                 if (*value != eValue[entity])
                     dif = true;
@@ -698,7 +701,12 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         bool defChanged = false;
         if (prop.def){
-            defChanged = (newValue != *static_cast<float*>(prop.def));
+            if (prop.type == PropertyType::HalfCone){
+                float def = *static_cast<float*>(prop.def);
+                defChanged = (newValue != Angle::radToDefault(std::acos(def) * 2));
+            }else{
+                defChanged = (newValue != *static_cast<float*>(prop.def));
+            }
         }
         if (propertyHeader(label, secondColSize, defChanged, child)){
             for (Entity& entity : entities){
@@ -718,7 +726,11 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         if (ImGui::DragFloat(("##input_float_"+id).c_str(), &newValue, stepSize, v_min, v_max, "%.2f")){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<float>(sceneProject, entity, cpType, id, prop.updateFlags, newValue);
+                if (prop.type == PropertyType::HalfCone){
+                    cmd = new PropertyCmd<float>(sceneProject, entity, cpType, id, prop.updateFlags, cos(Angle::defaultToRad(newValue / 2)));
+                }else{
+                    cmd = new PropertyCmd<float>(sceneProject, entity, cpType, id, prop.updateFlags, newValue);
+                }
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
@@ -1500,12 +1512,14 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, std::map<std:
 }
 
 void Editor::Properties::drawLightComponent(ComponentType cpType, std::map<std::string, PropertyData> props, SceneProject* sceneProject, std::vector<Entity> entities){
-    beginTable(cpType, getLabelSize("Direction"));
+    beginTable(cpType, getLabelSize("Outer Cone"));
 
     propertyRow(cpType, props, "direction", "Direction", sceneProject, entities);
     propertyRow(cpType, props, "shadows", "Shadows", sceneProject, entities);
-    propertyRow(cpType, props, "intensity", "Intensity", sceneProject, entities);
+    propertyRow(cpType, props, "intensity", "Intensity", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
     propertyRow(cpType, props, "color", "Color", sceneProject, entities);
+    propertyRow(cpType, props, "innerConeCos", "Inner Cone", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
+    propertyRow(cpType, props, "outerConeCos", "Outer Cone", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
 
     endTable();
 }

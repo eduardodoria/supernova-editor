@@ -83,6 +83,7 @@ namespace Supernova::Editor{
         UInt,
         Material,
         Texture,
+        HalfCone,
         Enum
     };
 

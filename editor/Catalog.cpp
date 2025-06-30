@@ -201,6 +201,8 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["shadows"] = {PropertyType::Bool, UpdateFlags_Scene_Mesh_Reload, (void*)&def->shadows, (compRef) ? (void*)&comp->shadows : nullptr};
         ps["intensity"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->intensity, (compRef) ? (void*)&comp->intensity : nullptr};
         ps["color"] = {PropertyType::Color3L, UpdateFlags_None, (void*)&def->color, (compRef) ? (void*)&comp->color : nullptr};
+        ps["innerConeCos"] = {PropertyType::HalfCone, UpdateFlags_None, (void*)&def->innerConeCos, (compRef) ? (void*)&comp->innerConeCos : nullptr};
+        ps["outerConeCos"] = {PropertyType::HalfCone, UpdateFlags_None, (void*)&def->outerConeCos, (compRef) ? (void*)&comp->outerConeCos : nullptr};
     }
 
     return ps;
