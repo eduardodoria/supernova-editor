@@ -570,13 +570,23 @@ void Editor::SceneWindow::show() {
                                     tempImage->setPosition(rreturn.point);
                                 }
                                 if (payload->IsDelivery()) {
-                                    CreateEntityCmd* cmd = new CreateEntityCmd(project, sceneProject.id, "Image", EntityCreationType::IMAGE, NULL_ENTITY);
+                                    CreateEntityCmd* cmd = nullptr;
 
-                                    cmd->addProperty<Vector3>(ComponentType::Transform, "position", rreturn.point, UpdateFlags_Transform);
-                                    cmd->addProperty<Texture>(ComponentType::UIComponent, "texture", Texture(receivedStrings[0]), UpdateFlags_UI_Texture);
-                                    cmd->addProperty<unsigned int>(ComponentType::UILayoutComponent, "width", tempImage->getWidth(), UpdateFlags_Layout_Sizes);
-                                    cmd->addProperty<unsigned int>(ComponentType::UILayoutComponent, "height", tempImage->getHeight(), UpdateFlags_Layout_Sizes);
+                                    if (sceneProject.sceneType == SceneType::SCENE_2D){
+                                        cmd = new CreateEntityCmd(project, sceneProject.id, "Sprite", EntityCreationType::SPRITE, NULL_ENTITY);
 
+                                        cmd->addProperty<Vector3>(ComponentType::Transform, "position", rreturn.point, UpdateFlags_Transform);
+                                        cmd->addProperty<Texture>(ComponentType::MeshComponent, "submeshes[0].material.basecolortexture", Texture(receivedStrings[0]), UpdateFlags_Mesh_Texture);
+                                        cmd->addProperty<unsigned int>(ComponentType::SpriteComponent, "width", tempImage->getWidth(), UpdateFlags_Sprite);
+                                        cmd->addProperty<unsigned int>(ComponentType::SpriteComponent, "height", tempImage->getHeight(), UpdateFlags_Sprite);
+                                    }else{
+                                        cmd = new CreateEntityCmd(project, sceneProject.id, "Image", EntityCreationType::IMAGE, NULL_ENTITY);
+
+                                        cmd->addProperty<Vector3>(ComponentType::Transform, "position", rreturn.point, UpdateFlags_Transform);
+                                        cmd->addProperty<Texture>(ComponentType::UIComponent, "texture", Texture(receivedStrings[0]), UpdateFlags_UI_Texture);
+                                        cmd->addProperty<unsigned int>(ComponentType::UILayoutComponent, "width", tempImage->getWidth(), UpdateFlags_Layout_Sizes);
+                                        cmd->addProperty<unsigned int>(ComponentType::UILayoutComponent, "height", tempImage->getHeight(), UpdateFlags_Layout_Sizes);
+                                    }
                                     cmd->setNoMerge();
 
                                     CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
