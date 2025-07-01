@@ -18,7 +18,7 @@ Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, tr
     linesOffset = Vector2(0, 0);
 
     lines = new Lines(scene);
-    sun = new Light(scene);
+    //sun = new Light(scene);
     sky = new SkyBox(scene);
 
     TextureData skyBack;
@@ -48,11 +48,11 @@ Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, tr
     //camera->setRenderToTexture(true);
     //camera->setUseFramebufferSizes(false);
 
-    sun->setType(LightType::DIRECTIONAL);
-    sun->setDirection(-0.2, -0.5, 0.3);
-    sun->setIntensity(4.0);
-    sun->setShadows(true);
-    sun->setRange(100);
+    //sun->setType(LightType::DIRECTIONAL);
+    //sun->setDirection(-0.2, -0.5, 0.3);
+    //sun->setIntensity(4.0);
+    //sun->setShadows(true);
+    //sun->setRange(100);
 
     scene->setGlobalIllumination(0.2);
     scene->setBackgroundColor(Vector4(0.25, 0.45, 0.65, 1.0));
@@ -65,7 +65,7 @@ Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, tr
 
 Editor::SceneRender3D::~SceneRender3D(){
     delete lines;
-    delete sun;
+    //delete sun;
     delete sky;
     delete selLines;
 
@@ -176,7 +176,6 @@ void Editor::SceneRender3D::createDirectionalLightArrow(Entity entity, const Tra
         return;
     }
 
-    // Check if we need to update the arrow (direction changed)
     if (lo.direction == light.direction) {
         return;
     }
@@ -237,10 +236,8 @@ void Editor::SceneRender3D::createPointLightSphere(Entity entity, const Transfor
     lo.lines->setRotation(transform.worldRotation);
     lo.lines->setVisible(isSelected);
 
-    float range = light.shadowCameraNearFar.y;
-    if (range <= 0.0f) return;
+    float range = (light.range > 0.0f) ? light.range : camera->getFarClip();
 
-    // Check if we need to update the sphere (range changed)
     if (lo.range == range) {
         return;
     }
@@ -302,25 +299,24 @@ void Editor::SceneRender3D::createSpotLightCones(Entity entity, const Transform&
         return;
     }
 
+    float range = (light.range > 0.0f) ? light.range : camera->getFarClip();
+
     // if light.range = 0.0 then light.shadowCameraNearFar.y is camera.farClip
     if (lo.innerConeCos == light.innerConeCos && 
         lo.outerConeCos == light.outerConeCos && 
         lo.direction == light.direction && 
-        lo.range == light.shadowCameraNearFar.y) {
+        lo.range == range) {
         return;
     }
 
     lo.innerConeCos = light.innerConeCos;
     lo.outerConeCos = light.outerConeCos;
     lo.direction = light.direction;
-    lo.range = light.shadowCameraNearFar.y;
+    lo.range = range;
 
     lo.lines->clearLines();
 
     Vector3 position = Vector3(0,0,0);  // Start position
-
-    float range = light.shadowCameraNearFar.y;
-    //if (range <= 0.0f) range = 10.0f; // Default range if not set
 
     // Calculate cone radii at the end of the light range
     float innerRadius = range * std::tan(std::acos(light.innerConeCos));
@@ -498,9 +494,9 @@ void Editor::SceneRender3D::mouseDragEvent(float x, float y, float origX, float 
     SceneRender::mouseDragEvent(x, y, origX, origY, sceneId, sceneProject, selEntities, disableSelection);
 }
 
-Light* Editor::SceneRender3D::getSunLight(){
-    return sun;
-}
+//Light* Editor::SceneRender3D::getSunLight(){
+//    return sun;
+//}
 
 Editor::ViewportGizmo* Editor::SceneRender3D::getViewportGizmo(){
     return &viewgizmo;

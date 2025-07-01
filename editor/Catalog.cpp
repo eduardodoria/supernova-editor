@@ -198,11 +198,12 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         static LightComponent* def = new LightComponent;
 
         ps["direction"] = {PropertyType::Vector3, UpdateFlags_Transform, (void*)&def->direction, (compRef) ? (void*)&comp->direction : nullptr};
-        ps["shadows"] = {PropertyType::Bool, UpdateFlags_Scene_Mesh_Reload, (void*)&def->shadows, (compRef) ? (void*)&comp->shadows : nullptr};
+        ps["shadows"] = {PropertyType::Bool, UpdateFlags_Scene_Light_Reload, (void*)&def->shadows, (compRef) ? (void*)&comp->shadows : nullptr};
         ps["intensity"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->intensity, (compRef) ? (void*)&comp->intensity : nullptr};
+        ps["range"] = {PropertyType::Float, UpdateFlags_LightShadowMap, (void*)&def->range, (compRef) ? (void*)&comp->range : nullptr};
         ps["color"] = {PropertyType::Color3L, UpdateFlags_None, (void*)&def->color, (compRef) ? (void*)&comp->color : nullptr};
-        ps["innerConeCos"] = {PropertyType::HalfCone, UpdateFlags_None, (void*)&def->innerConeCos, (compRef) ? (void*)&comp->innerConeCos : nullptr};
-        ps["outerConeCos"] = {PropertyType::HalfCone, UpdateFlags_None, (void*)&def->outerConeCos, (compRef) ? (void*)&comp->outerConeCos : nullptr};
+        ps["innerConeCos"] = {PropertyType::HalfCone, UpdateFlags_LightShadowMap, (void*)&def->innerConeCos, (compRef) ? (void*)&comp->innerConeCos : nullptr};
+        ps["outerConeCos"] = {PropertyType::HalfCone, UpdateFlags_LightShadowMap, (void*)&def->outerConeCos, (compRef) ? (void*)&comp->outerConeCos : nullptr};
     }
 
     return ps;
@@ -394,7 +395,11 @@ void Editor::Catalog::updateEntity(Scene* scene, Entity entity, int updateFlags)
             scene->getComponent<MeshComponent>(entity).submeshes[i].needUpdateTexture = true;
         }
     }
-    if (updateFlags & UpdateFlags_Scene_Mesh_Reload){
+    if (updateFlags & UpdateFlags_LightShadowMap){
+        scene->getComponent<LightComponent>(entity).needUpdateShadowMap = true;
+    }
+    if (updateFlags & UpdateFlags_Scene_Light_Reload){
+        scene->getComponent<LightComponent>(entity).needUpdateShadowMap = true;
         auto meshes = scene->getComponentArray<MeshComponent>();
         for (int i = 0; i < meshes->size(); i++) {
             MeshComponent& mesh = meshes->getComponentFromIndex(i);

@@ -55,9 +55,14 @@ namespace Supernova::Editor{
         Entity getEntity();
 
         template<typename T>
-        void addProperty(ComponentType componentType, const std::string& propertyName, T value, int updateFlags = 0) {
-            this->updateFlags |= updateFlags;
+        void addProperty(ComponentType componentType, const std::string& propertyName, T value) {
             Scene* scene = project->getScene(sceneId)->scene;
+
+            auto properties = Catalog::getProperties(componentType, nullptr);
+            auto it = properties.find(propertyName);
+            if (it != properties.end()) {
+                this->updateFlags |= it->second.updateFlags;
+            }
 
             propertySetters[componentType][propertyName] = [value, scene, propertyName, componentType](Entity entity) {
                 T* valueRef = Catalog::getPropertyRef<T>(scene, entity, componentType, propertyName);

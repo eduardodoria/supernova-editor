@@ -21,7 +21,7 @@ namespace Supernova::Editor{
     private:
 
         Lines* lines;
-        Light* sun;
+        //Light* sun;
         SkyBox* sky;
 
         std::map<Entity, LightObjects> lightObjects;
@@ -50,7 +50,7 @@ namespace Supernova::Editor{
         virtual void mouseReleaseEvent(float x, float y);
         virtual void mouseDragEvent(float x, float y, float origX, float origY, size_t sceneId, SceneProject* sceneProject, std::vector<Entity> selEntities, bool disableSelection);
 
-        Light* getSunLight();
+        //Light* getSunLight();
         ViewportGizmo* getViewportGizmo();
     };
 
