@@ -17,7 +17,8 @@ namespace Supernova::Editor {
         DRAG_FLOAT,
         SLIDER_FLOAT,
         COLOR_RGB,
-        COLOR_RGBA
+        COLOR_RGBA,
+        COMBO
     };
 
     class SceneWindow {
@@ -92,6 +93,16 @@ namespace Supernova::Editor {
                 case ScenePropertyType::COLOR_RGBA:
                     if constexpr (std::is_same_v<T, Vector4>) {
                         changed = ImGui::ColorEdit4(("##" + propertyName).c_str(), (float*)&value.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf);
+                    }
+                    break;
+                case ScenePropertyType::COMBO:
+                    if constexpr (std::is_same_v<T, LightState>) {
+                        const char* lightStateNames[] = { "Off", "On", "Auto" };
+                        int currentItem = static_cast<int>(value);
+                        changed = ImGui::Combo(("##" + propertyName).c_str(), &currentItem, lightStateNames, IM_ARRAYSIZE(lightStateNames));
+                        if (changed) {
+                            value = static_cast<LightState>(currentItem);
+                        }
                     }
                     break;
             }
