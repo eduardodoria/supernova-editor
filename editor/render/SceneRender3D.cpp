@@ -153,6 +153,9 @@ void Editor::SceneRender3D::createOrUpdateLightIcon(Entity entity, const Transfo
     if (cameracomp.type == CameraType::CAMERA_PERSPECTIVE){
         float dist = (lo.icon->getPosition() - camera->getWorldPosition()).length();
         scale = std::tan(cameracomp.yfov) * dist * (lightIconScale / (float)framebuffer.getHeight());
+        if (!std::isfinite(scale) || scale <= 0.0f) {
+            scale = 1.0f;
+        }
     }
 
     lo.icon->setScale(scale);

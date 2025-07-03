@@ -230,6 +230,9 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities, std::vector<En
         if (cameracomp.type == CameraType::CAMERA_PERSPECTIVE){
             float dist = (gizmoPosition - camera->getWorldPosition()).length();
             scale = std::tan(cameracomp.yfov) * dist * (gizmoScale / (float)framebuffer.getHeight());
+            if (!std::isfinite(scale) || scale <= 0.0f) {
+                scale = 1.0f;
+            }
         }
 
         toolslayer.updateGizmo(camera, gizmoPosition, gizmoRotation, scale, totalSelBB, mouseRay, mouseClicked);
