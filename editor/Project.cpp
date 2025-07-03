@@ -730,7 +730,7 @@ fs::path Editor::Project::getThumbnailPath(const fs::path& originalPath) const {
     // Include file size and modification time in hash for uniqueness
     auto fileSize = fs::file_size(originalPath);
     auto modTime = fs::last_write_time(originalPath).time_since_epoch().count();
-    std::string hashInput = relPathStr + "_" + std::to_string(fileSize) + "_" + std::to_string(modTime);
+    std::string hashInput = relPathStr + "_" + std::to_string(static_cast<uint64_t>(fileSize)) + "_" + std::to_string(static_cast<int64_t>(modTime));
 
     // Hash the combined string
     std::string hash = SHA1::hash(hashInput);
