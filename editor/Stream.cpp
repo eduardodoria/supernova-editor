@@ -793,6 +793,7 @@ YAML::Node Editor::Stream::encodeLightComponent(const LightComponent& light) {
     node["innerConeCos"] = light.innerConeCos;
     node["outerConeCos"] = light.outerConeCos;
     node["shadows"] = light.shadows;
+    node["automaticShadowCamera"] = light.automaticShadowCamera;
     node["shadowBias"] = light.shadowBias;
     node["mapResolution"] = light.mapResolution;
     node["shadowCameraNearFar"] = encodeVector2(light.shadowCameraNearFar);
@@ -813,6 +814,7 @@ LightComponent Editor::Stream::decodeLightComponent(const YAML::Node& node) {
     light.innerConeCos = node["innerConeCos"].as<float>();
     light.outerConeCos = node["outerConeCos"].as<float>();
     light.shadows = node["shadows"].as<bool>();
+    light.automaticShadowCamera = node["automaticShadowCamera"].as<bool>();
     light.shadowBias = node["shadowBias"].as<float>();
     light.mapResolution = node["mapResolution"].as<unsigned int>();
     light.shadowCameraNearFar = decodeVector2(node["shadowCameraNearFar"]);

@@ -896,6 +896,63 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             ImGui::PopStyleColor();
         //ImGui::SetItemTooltip("%s", prop.label.c_str());
 
+    }else if (prop.type == PropertyType::Po2Slider){
+
+        unsigned int* value = nullptr;
+        std::map<Entity, unsigned int> eValue;
+        bool dif = false;
+        for (Entity& entity : entities){
+            eValue[entity] = *Catalog::getPropertyRef<unsigned int>(sceneProject->scene, entity, cpType, id);
+            if (value){
+                if (*value != eValue[entity])
+                    dif = true;
+            }
+            value = &eValue[entity];
+        }
+
+        unsigned int newValue = *value;
+
+        bool defChanged = false;
+        if (prop.def){
+            defChanged = (newValue != *static_cast<unsigned int*>(prop.def));
+        }
+        if (propertyHeader(label, secondColSize, defChanged, child)){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<unsigned int>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<unsigned int*>(prop.def));
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
+            }
+        }
+
+        // Convert value to slider position (power of 2 index)
+        int sliderPos = 0;
+        if (newValue > 0) {
+            // Find the power of 2: log2(value)
+            sliderPos = static_cast<int>(std::log2(newValue));
+        }
+
+        // Limit the range (e.g., 2^4 to 2^14 = 16 to 16384)
+        const int minPower = 4;
+        const int maxPower = 14;
+        sliderPos = std::max(minPower, std::min(maxPower, sliderPos));
+
+        if (dif)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+
+        // Create format string with current values
+        char formatStr[32];
+        snprintf(formatStr, sizeof(formatStr), "%d", (1 << sliderPos));
+
+        if (ImGui::SliderInt(("##po2slider_"+id).c_str(), &sliderPos, minPower, maxPower, formatStr)) {
+            unsigned int newPo2Value = 1 << sliderPos;  // 2^sliderPos
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<unsigned int>(sceneProject, entity, cpType, id, prop.updateFlags, newPo2Value);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
+            }
+        }
+
+        if (dif)
+            ImGui::PopStyleColor();
+
     }else if (prop.type == PropertyType::Enum && prop.enumEntries) {
         int* value = nullptr;
         std::map<Entity, int> eValue;
@@ -1512,15 +1569,16 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, std::map<std:
 }
 
 void Editor::Properties::drawLightComponent(ComponentType cpType, std::map<std::string, PropertyData> props, SceneProject* sceneProject, std::vector<Entity> entities){
-    beginTable(cpType, getLabelSize("Outer Cone"));
+    beginTable(cpType, getLabelSize("Map Resolution"));
 
     propertyRow(cpType, props, "direction", "Direction", sceneProject, entities);
     propertyRow(cpType, props, "shadows", "Shadows", sceneProject, entities);
     propertyRow(cpType, props, "intensity", "Intensity", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
     propertyRow(cpType, props, "range", "Range", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
     propertyRow(cpType, props, "color", "Color", sceneProject, entities);
-    propertyRow(cpType, props, "innerConeCos", "Inner Cone", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
-    propertyRow(cpType, props, "outerConeCos", "Outer Cone", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
+    propertyRow(cpType, props, "inner_cone_cos", "Inner Cone", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
+    propertyRow(cpType, props, "outer_cone_cos", "Outer Cone", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
+    propertyRow(cpType, props, "map_resolution", "Map Resolution", sceneProject, entities);
 
     endTable();
 }
