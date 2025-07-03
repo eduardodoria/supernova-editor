@@ -1516,11 +1516,11 @@ void Editor::Properties::drawLightComponent(ComponentType cpType, std::map<std::
 
     propertyRow(cpType, props, "direction", "Direction", sceneProject, entities);
     propertyRow(cpType, props, "shadows", "Shadows", sceneProject, entities);
-    propertyRow(cpType, props, "intensity", "Intensity", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
-    propertyRow(cpType, props, "range", "Range", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
+    propertyRow(cpType, props, "intensity", "Intensity", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
+    propertyRow(cpType, props, "range", "Range", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
     propertyRow(cpType, props, "color", "Color", sceneProject, entities);
-    propertyRow(cpType, props, "innerConeCos", "Inner Cone", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
-    propertyRow(cpType, props, "outerConeCos", "Outer Cone", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
+    propertyRow(cpType, props, "innerConeCos", "Inner Cone", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
+    propertyRow(cpType, props, "outerConeCos", "Outer Cone", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
 
     endTable();
 }

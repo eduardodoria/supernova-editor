@@ -18,7 +18,6 @@ Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, tr
     linesOffset = Vector2(0, 0);
 
     lines = new Lines(scene);
-    //sun = new Light(scene);
     sky = new SkyBox(scene);
 
     TextureData skyBack;
@@ -48,12 +47,6 @@ Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, tr
     //camera->setRenderToTexture(true);
     //camera->setUseFramebufferSizes(false);
 
-    //sun->setType(LightType::DIRECTIONAL);
-    //sun->setDirection(-0.2, -0.5, 0.3);
-    //sun->setIntensity(4.0);
-    //sun->setShadows(true);
-    //sun->setRange(100);
-
     scene->setLightState(LightState::ON);
     scene->setGlobalIllumination(0.2);
     scene->setBackgroundColor(Vector4(0.25, 0.45, 0.65, 1.0));
@@ -66,7 +59,6 @@ Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, tr
 
 Editor::SceneRender3D::~SceneRender3D(){
     delete lines;
-    //delete sun;
     delete sky;
     delete selLines;
 
@@ -186,9 +178,9 @@ void Editor::SceneRender3D::createDirectionalLightArrow(Entity entity, const Tra
     lo.lines->clearLines();
 
     Vector3 position = Vector3(0, 0, 0);  // Start position
-    float arrowLength = 1.4f;  // Length of the main arrow shaft
-    float arrowHeadLength = 0.6f;  // Length of the arrow head
-    float arrowHeadWidth = 0.3f;   // Width of the arrow head
+    float arrowLength = 4.0f;  // Length of the main arrow shaft
+    float arrowHeadLength = 3.6f;  // Length of the arrow head
+    float arrowHeadWidth = 1.0f;   // Width of the arrow head
 
     Vector4 arrowColor = Vector4(1.0, 1.0, 0.0, 1.0); // Yellow color for directional light
 
@@ -494,10 +486,6 @@ void Editor::SceneRender3D::mouseReleaseEvent(float x, float y){
 void Editor::SceneRender3D::mouseDragEvent(float x, float y, float origX, float origY, size_t sceneId, SceneProject* sceneProject, std::vector<Entity> selEntities, bool disableSelection){
     SceneRender::mouseDragEvent(x, y, origX, origY, sceneId, sceneProject, selEntities, disableSelection);
 }
-
-//Light* Editor::SceneRender3D::getSunLight(){
-//    return sun;
-//}
 
 Editor::ViewportGizmo* Editor::SceneRender3D::getViewportGizmo(){
     return &viewgizmo;

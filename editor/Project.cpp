@@ -18,6 +18,8 @@
 #include "util/SHA1.h"
 #include "util/GraphicUtils.h"
 
+#include "command/type/CreateEntityCmd.h"
+
 using namespace Supernova;
 
 Editor::Project::Project(){
@@ -82,11 +84,21 @@ uint32_t Editor::Project::createNewScene(std::string sceneName, SceneType type){
 
     scenes.push_back(data);
 
-    setSelectedSceneId(scenes.back().id);
+    setSelectedSceneId(data.id);
 
-    Backend::getApp().addNewSceneToDock(scenes.back().id);
+    CreateEntityCmd sunCreator(this, data.id, "Sun", EntityCreationType::DIRECTIONAL_LIGHT);
+    sunCreator.addProperty<Vector3>(ComponentType::Transform, "position", Vector3(0.0f, 10.0f, 0.0f));
+    sunCreator.addProperty<float>(ComponentType::LightComponent, "intensity", 4.0f);
+    sunCreator.addProperty<Vector3>(ComponentType::LightComponent, "direction", Vector3(-0.2f, -0.5f, 0.3f));
+    sunCreator.addProperty<bool>(ComponentType::LightComponent, "shadows", true);
+    sunCreator.addProperty<float>(ComponentType::LightComponent, "range", 100);
+    sunCreator.execute();
 
-    return scenes.back().id;
+    clearSelectedEntities(data.id);
+
+    Backend::getApp().addNewSceneToDock(data.id);
+
+    return data.id;
 }
 
 void Editor::Project::openScene(fs::path filepath){

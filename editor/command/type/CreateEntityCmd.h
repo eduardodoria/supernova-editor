@@ -45,6 +45,7 @@ namespace Supernova::Editor{
 
     public:
         CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName);
+        CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type);
         CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type, Entity parent);
 
         virtual bool execute();

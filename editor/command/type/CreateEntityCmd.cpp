@@ -15,6 +15,16 @@ Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std
     this->updateFlags = 0;
 }
 
+Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type){
+    this->project = project;
+    this->sceneId = sceneId;
+    this->entityName = entityName;
+    this->entity = NULL_ENTITY;
+    this->parent = NULL_ENTITY;
+    this->type = type;
+    this->updateFlags = 0;
+}
+
 Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type, Entity parent){
     this->project = project;
     this->sceneId = sceneId;
@@ -136,6 +146,7 @@ bool Editor::CreateEntityCmd::execute(){
                 LightComponent& light = scenes[i].scene->getComponent<LightComponent>(entity);
                 light.type = LightType::DIRECTIONAL;
                 light.direction = Vector3(0.0f, -1.0f, 0.0f);
+                light.intensity = 4.0f;
 
             }else if (type == EntityCreationType::POINT_LIGHT){
 
@@ -145,6 +156,7 @@ bool Editor::CreateEntityCmd::execute(){
                 LightComponent& light = scenes[i].scene->getComponent<LightComponent>(entity);
                 light.type = LightType::POINT;
                 light.range = 10.0f;
+                light.intensity = 30.0f;
 
             }else if (type == EntityCreationType::SPOT_LIGHT){
 
@@ -155,6 +167,7 @@ bool Editor::CreateEntityCmd::execute(){
                 light.type = LightType::SPOT;
                 light.direction = Vector3(0.0f, -1.0f, 0.0f);
                 light.range = 10.0f;
+                light.intensity = 30.0f;
 
             }
 
