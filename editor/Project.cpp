@@ -86,15 +86,17 @@ uint32_t Editor::Project::createNewScene(std::string sceneName, SceneType type){
 
     setSelectedSceneId(data.id);
 
-    CreateEntityCmd sunCreator(this, data.id, "Sun", EntityCreationType::DIRECTIONAL_LIGHT);
-    sunCreator.addProperty<Vector3>(ComponentType::Transform, "position", Vector3(0.0f, 10.0f, 0.0f));
-    sunCreator.addProperty<float>(ComponentType::LightComponent, "intensity", 4.0f);
-    sunCreator.addProperty<Vector3>(ComponentType::LightComponent, "direction", Vector3(-0.2f, -0.5f, 0.3f));
-    sunCreator.addProperty<bool>(ComponentType::LightComponent, "shadows", true);
-    sunCreator.addProperty<float>(ComponentType::LightComponent, "range", 100);
-    sunCreator.execute();
+    if (data.sceneType == SceneType::SCENE_3D){
+        CreateEntityCmd sunCreator(this, data.id, "Sun", EntityCreationType::DIRECTIONAL_LIGHT);
+        sunCreator.addProperty<Vector3>(ComponentType::Transform, "position", Vector3(0.0f, 10.0f, 0.0f));
+        sunCreator.addProperty<float>(ComponentType::LightComponent, "intensity", 4.0f);
+        sunCreator.addProperty<Vector3>(ComponentType::LightComponent, "direction", Vector3(-0.2f, -0.5f, 0.3f));
+        sunCreator.addProperty<bool>(ComponentType::LightComponent, "shadows", true);
+        sunCreator.addProperty<float>(ComponentType::LightComponent, "range", 100);
+        sunCreator.execute();
 
-    clearSelectedEntities(data.id);
+        clearSelectedEntities(data.id);
+    }
 
     Backend::getApp().addNewSceneToDock(data.id);
 
