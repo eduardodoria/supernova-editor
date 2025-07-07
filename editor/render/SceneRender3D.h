@@ -11,6 +11,7 @@ namespace Supernova::Editor{
         Sprite* icon = nullptr;
         Lines* lines = nullptr;
 
+        LightType type;
         float innerConeCos = 0.0f;
         float outerConeCos = 0.0f;
         Vector3 direction = Vector3::ZERO;

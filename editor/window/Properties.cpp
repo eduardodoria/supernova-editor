@@ -1571,6 +1571,7 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, std::map<std:
 void Editor::Properties::drawLightComponent(ComponentType cpType, std::map<std::string, PropertyData> props, SceneProject* sceneProject, std::vector<Entity> entities){
     beginTable(cpType, getLabelSize("Map Resolution"));
 
+    propertyRow(cpType, props, "type", "Type", sceneProject, entities);
     propertyRow(cpType, props, "direction", "Direction", sceneProject, entities);
     propertyRow(cpType, props, "shadows", "Shadows", sceneProject, entities);
     propertyRow(cpType, props, "intensity", "Intensity", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());

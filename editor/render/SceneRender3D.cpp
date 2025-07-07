@@ -172,10 +172,11 @@ void Editor::SceneRender3D::createDirectionalLightArrow(Entity entity, const Tra
         return;
     }
 
-    if (lo.direction == light.direction) {
+    if (lo.type == light.type && lo.direction == light.direction) {
         return;
     }
 
+    lo.type = light.type;
     lo.direction = light.direction;
 
     lo.lines->clearLines();
@@ -234,10 +235,11 @@ void Editor::SceneRender3D::createPointLightSphere(Entity entity, const Transfor
 
     float range = (light.range > 0.0f) ? light.range : camera->getFarClip();
 
-    if (lo.range == range) {
+    if (lo.type == light.type && lo.range == range) {
         return;
     }
 
+    lo.type = light.type;
     lo.range = range;
 
     lo.lines->clearLines();
@@ -298,13 +300,15 @@ void Editor::SceneRender3D::createSpotLightCones(Entity entity, const Transform&
     float range = (light.range > 0.0f) ? light.range : camera->getFarClip();
 
     // if light.range = 0.0 then light.shadowCameraNearFar.y is camera.farClip
-    if (lo.innerConeCos == light.innerConeCos && 
+    if (lo.type == light.type && 
+        lo.innerConeCos == light.innerConeCos && 
         lo.outerConeCos == light.outerConeCos && 
         lo.direction == light.direction && 
         lo.range == range) {
         return;
     }
 
+    lo.type = light.type;
     lo.innerConeCos = light.innerConeCos;
     lo.outerConeCos = light.outerConeCos;
     lo.direction = light.direction;
@@ -447,7 +451,7 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
             bool isSelected = std::find(selEntities.begin(), selEntities.end(), entity) != selEntities.end();
 
             currentIconLights.insert(entity);
-            bool newLight = instanciateLightObject(entity);
+            bool newLight = instanciateLightObject(entity) || lightObjects[entity].type != light.type;
             if (light.type == LightType::DIRECTIONAL){
                 createOrUpdateLightIcon(entity, transform, LightType::DIRECTIONAL, newLight);
                 createDirectionalLightArrow(entity, transform, light, isSelected);

@@ -23,6 +23,12 @@ static std::vector<Editor::EnumEntry> entriesPivotPreset = {
     { (int)PivotPreset::BOTTOM_RIGHT, "Bottom Right" }
 };
 
+static std::vector<Editor::EnumEntry> entriesLightType = {
+    { (int)LightType::DIRECTIONAL, "Directional" },
+    { (int)LightType::POINT, "Point" },
+    { (int)LightType::SPOT, "Spot" }
+};
+
 Editor::Catalog::Catalog(){
 }
 
@@ -197,6 +203,7 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         LightComponent* comp = (LightComponent*)compRef;
         static LightComponent* def = new LightComponent;
 
+        ps["type"] = {PropertyType::Enum, UpdateFlags_LightShadowMap | UpdateFlags_LightShadowCamera | UpdateFlags_Scene_Mesh_Reload, nullptr, (compRef) ? (void*)&comp->type : nullptr, &entriesLightType};
         ps["direction"] = {PropertyType::Vector3, UpdateFlags_Transform, (void*)&def->direction, (compRef) ? (void*)&comp->direction : nullptr};
         ps["shadows"] = {PropertyType::Bool, UpdateFlags_LightShadowCamera | UpdateFlags_Scene_Mesh_Reload, (void*)&def->shadows, (compRef) ? (void*)&comp->shadows : nullptr};
         ps["intensity"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->intensity, (compRef) ? (void*)&comp->intensity : nullptr};
