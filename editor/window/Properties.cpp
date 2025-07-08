@@ -665,7 +665,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         if (difX)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::DragFloat(("##input_x_"+id).c_str(), &(newValue.x), stepSize, 0.0f, 0.0f, "%.2f°")){
+        if (ImGui::DragFloat(("##input_x_"+id).c_str(), &(newValue.x), stepSize, 0.0f, 0.0f, (std::string(format) + "°").c_str())){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Quaternion>(sceneProject, entity, cpType, id, prop.updateFlags, Quaternion(newValue.x, eValue[entity].y, eValue[entity].z, order));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -780,9 +780,14 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             v_max = 1.0F;
         }
 
+        std::string newFormat = format;
+        if (prop.type == PropertyType::HalfCone){
+            newFormat = std::string(format) + "°";
+        }
+
         if (dif)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::DragFloat(("##input_float_"+id).c_str(), &newValue, stepSize, v_min, v_max, format)){
+        if (ImGui::DragFloat(("##input_float_"+id).c_str(), &newValue, stepSize, v_min, v_max, newFormat.c_str())){
             for (Entity& entity : entities){
                 if (prop.type == PropertyType::HalfCone){
                     cmd = new PropertyCmd<float>(sceneProject, entity, cpType, id, prop.updateFlags, cos(Angle::defaultToRad(newValue / 2)));
@@ -954,13 +959,16 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             ImGui::PopStyleColor();
         //ImGui::SetItemTooltip("%s", prop.label.c_str());
 
-    }else if (prop.type == PropertyType::Po2Slider){
-
-        unsigned int* value = nullptr;
-        std::map<Entity, unsigned int> eValue;
+    }else if ((prop.type == PropertyType::IntSlider || prop.type == PropertyType::UIntSlider) && prop.sliderValues){
+        int* value = nullptr;
+        std::map<Entity, int> eValue;
         bool dif = false;
         for (Entity& entity : entities){
-            eValue[entity] = *Catalog::getPropertyRef<unsigned int>(sceneProject->scene, entity, cpType, id);
+            if (prop.type == PropertyType::IntSlider) {
+                eValue[entity] = *Catalog::getPropertyRef<int>(sceneProject->scene, entity, cpType, id);
+            } else {
+                eValue[entity] = *Catalog::getPropertyRef<unsigned int>(sceneProject->scene, entity, cpType, id);
+            }
             if (value){
                 if (*value != eValue[entity])
                     dif = true;
@@ -968,42 +976,51 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             value = &eValue[entity];
         }
 
-        unsigned int newValue = *value;
+        int newValue = *value;
 
         bool defChanged = false;
         if (prop.def){
-            defChanged = (newValue != *static_cast<unsigned int*>(prop.def));
+            if (prop.type == PropertyType::IntSlider) {
+                defChanged = (newValue != *static_cast<int*>(prop.def));
+            } else {
+                defChanged = (newValue != *static_cast<unsigned int*>(prop.def));
+            }
         }
         if (propertyHeader(label, secondColSize, defChanged, child)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<unsigned int>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<unsigned int*>(prop.def));
+                if (prop.type == PropertyType::IntSlider) {
+                    cmd = new PropertyCmd<int>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<int*>(prop.def));
+                } else {
+                    cmd = new PropertyCmd<unsigned int>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<unsigned int*>(prop.def));
+                }
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
 
-        // Convert value to slider position (power of 2 index)
-        int sliderPos = 0;
-        if (newValue > 0) {
-            // Find the power of 2: log2(value)
-            sliderPos = static_cast<int>(std::log2(newValue));
+        // Find current value index in the slider values array
+        int currentIndex = 0;
+        for (size_t i = 0; i < prop.sliderValues->size(); ++i) {
+            if ((*prop.sliderValues)[i] == newValue) {
+                currentIndex = static_cast<int>(i);
+                break;
+            }
         }
-
-        // Limit the range (e.g., 2^4 to 2^14 = 16 to 16384)
-        const int minPower = 4;
-        const int maxPower = 14;
-        sliderPos = std::max(minPower, std::min(maxPower, sliderPos));
 
         if (dif)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
 
-        // Create format string with current values
+        // Create format string with current value
         char formatStr[32];
-        snprintf(formatStr, sizeof(formatStr), "%d", (1 << sliderPos));
+        snprintf(formatStr, sizeof(formatStr), "%d", (*prop.sliderValues)[currentIndex]);
 
-        if (ImGui::SliderInt(("##po2slider_"+id).c_str(), &sliderPos, minPower, maxPower, formatStr)) {
-            unsigned int newPo2Value = 1 << sliderPos;  // 2^sliderPos
+        if (ImGui::SliderInt(("##intslider_"+id).c_str(), &currentIndex, 0, static_cast<int>(prop.sliderValues->size() - 1), formatStr)) {
+            int newSliderValue = (*prop.sliderValues)[currentIndex];
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<unsigned int>(sceneProject, entity, cpType, id, prop.updateFlags, newPo2Value);
+                if (prop.type == PropertyType::IntSlider) {
+                    cmd = new PropertyCmd<int>(sceneProject, entity, cpType, id, prop.updateFlags, newSliderValue);
+                } else {
+                    cmd = new PropertyCmd<unsigned int>(sceneProject, entity, cpType, id, prop.updateFlags, static_cast<unsigned int>(newSliderValue));
+                }
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
@@ -1627,24 +1644,50 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, std::map<std:
 }
 
 void Editor::Properties::drawLightComponent(ComponentType cpType, std::map<std::string, PropertyData> props, SceneProject* sceneProject, std::vector<Entity> entities){
+    LightComponent& light = sceneProject->scene->getComponent<LightComponent>(entities[0]);
+
     beginTable(cpType, getLabelSize("Inner cone"));
     propertyRow(cpType, props, "type", "Type", sceneProject, entities);
-    propertyRow(cpType, props, "direction", "Direction", sceneProject, entities);
     propertyRow(cpType, props, "intensity", "Intensity", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
     propertyRow(cpType, props, "range", "Range", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
     propertyRow(cpType, props, "color", "Color", sceneProject, entities);
-    propertyRow(cpType, props, "inner_cone_cos", "Inner Cone", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
-    propertyRow(cpType, props, "outer_cone_cos", "Outer Cone", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
+    if (light.type != LightType::POINT){
+        propertyRow(cpType, props, "direction", "Direction", sceneProject, entities);
+    }
+    if (light.type == LightType::SPOT){
+        propertyRow(cpType, props, "inner_cone_cos", "Inner Cone", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
+        propertyRow(cpType, props, "outer_cone_cos", "Outer Cone", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
+    }
     endTable();
 
     ImGui::SeparatorText("Shadow settings");
 
     beginTable(cpType, getLabelSize("Map Resolution"), "shadow_settings_table");
-    propertyRow(cpType, props, "shadows", "Enable", sceneProject, entities);
-    propertyRow(cpType, props, "shadow_bias", "Bias", sceneProject, entities, 0.001f, 6 * ImGui::GetFontSize(), false, "", "%.4f");
+    propertyRow(cpType, props, "shadows", "Enabled", sceneProject, entities);
+    propertyRow(cpType, props, "shadow_bias", "Bias", sceneProject, entities, 0.0001f, 6 * ImGui::GetFontSize(), false, "", "%.4f");
     propertyRow(cpType, props, "map_resolution", "Map Resolution", sceneProject, entities);
-    propertyRow(cpType, props, "automatic_shadow_camera", "Enable camera", sceneProject, entities);
-    propertyRow(cpType, props, "shadow_camera_near_far", "Shadow Camera", sceneProject, entities);
+    propertyRow(cpType, props, "num_shadow_cascades", "Num Cascades", sceneProject, entities);
+
+    propertyHeader("Shadow Camera");
+    if (ImGui::Button(ICON_FA_GEAR)){
+        ImGui::OpenPopup("menusettings_shadow_camera");
+    }
+
+    ImGui::SetNextWindowSizeConstraints(ImVec2(14 * ImGui::GetFontSize(), 0), ImVec2(FLT_MAX, FLT_MAX));
+    if (ImGui::BeginPopup("menusettings_shadow_camera")){
+        ImGui::Text("Shadow camera settings");
+        ImGui::Separator();
+
+        beginTable(cpType, getLabelSize("Camera Near"), "shadow_camera_popup");
+
+        propertyRow(cpType, props, "automatic_shadow_camera", "Automatic", sceneProject, entities);
+        propertyRow(cpType, props, "shadow_camera_near", "Camera Near", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
+        propertyRow(cpType, props, "shadow_camera_far", "Camera Far", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
+
+        endTable();
+
+        ImGui::EndPopup();
+    }
     endTable();
 }
 

@@ -86,7 +86,8 @@ namespace Supernova::Editor{
         Material,
         Texture,
         HalfCone,
-        Po2Slider,
+        UIntSlider,
+        IntSlider,
         Enum
     };
 
@@ -101,6 +102,7 @@ namespace Supernova::Editor{
         void* def;
         void* ref;
         std::vector<EnumEntry>* enumEntries = nullptr;
+        std::vector<int>* sliderValues = nullptr;
     };
 
     class Catalog{
