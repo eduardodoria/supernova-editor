@@ -211,7 +211,10 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["color"] = {PropertyType::Color3L, UpdateFlags_None, (void*)&def->color, (compRef) ? (void*)&comp->color : nullptr};
         ps["inner_cone_cos"] = {PropertyType::HalfCone, UpdateFlags_LightShadowCamera, (void*)&def->innerConeCos, (compRef) ? (void*)&comp->innerConeCos : nullptr};
         ps["outer_cone_cos"] = {PropertyType::HalfCone, UpdateFlags_LightShadowCamera, (void*)&def->outerConeCos, (compRef) ? (void*)&comp->outerConeCos : nullptr};
+        ps["shadow_bias"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->shadowBias, (compRef) ? (void*)&comp->shadowBias : nullptr};
         ps["map_resolution"] = {PropertyType::Po2Slider, UpdateFlags_LightShadowMap | UpdateFlags_Scene_Mesh_Reload, (void*)&def->mapResolution, (compRef) ? (void*)&comp->mapResolution : nullptr};
+        ps["automatic_shadow_camera"] = {PropertyType::Bool, UpdateFlags_LightShadowCamera, (void*)&def->automaticShadowCamera, (compRef) ? (void*)&comp->automaticShadowCamera : nullptr};
+        ps["shadow_camera_near_far"] = {PropertyType::Vector2, UpdateFlags_LightShadowCamera, nullptr, (compRef) ? (void*)&comp->shadowCameraNearFar : nullptr};
     }
 
     return ps;

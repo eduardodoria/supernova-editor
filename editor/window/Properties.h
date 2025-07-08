@@ -50,7 +50,7 @@ namespace Supernova::Editor{
         void beginTable(ComponentType cpType, float firstColSize, std::string nameAddon = "");
         void endTable();
         bool propertyHeader(std::string label, float secondColSize = -1, bool defChanged = false, bool child = false);
-        bool propertyRow(ComponentType cpType, std::map<std::string, PropertyData> props, std::string id, std::string label, SceneProject* sceneProject, std::vector<Entity> entities, float stepSize = 0.1f, float secondColSize = -1, bool child = false, std::string help = "");
+        bool propertyRow(ComponentType cpType, std::map<std::string, PropertyData> props, std::string id, std::string label, SceneProject* sceneProject, std::vector<Entity> entities, float stepSize = 0.1f, float secondColSize = -1, bool child = false, std::string help = "", const char *format = "%.2f");
 
         void drawTransform(ComponentType cpType, std::map<std::string, PropertyData> props, SceneProject* sceneProject, std::vector<Entity> entities);
         void drawMeshComponent(ComponentType cpType, std::map<std::string, PropertyData> props, SceneProject* sceneProject, std::vector<Entity> entities);

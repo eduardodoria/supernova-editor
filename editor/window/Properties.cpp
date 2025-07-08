@@ -397,7 +397,7 @@ bool Editor::Properties::propertyHeader(std::string label, float secondColSize, 
     return button;
 }
 
-bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string, PropertyData> props, std::string id, std::string label, SceneProject* sceneProject, std::vector<Entity> entities, float stepSize, float secondColSize, bool child, std::string help){
+bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string, PropertyData> props, std::string id, std::string label, SceneProject* sceneProject, std::vector<Entity> entities, float stepSize, float secondColSize, bool child, std::string help, const char *format){
     PropertyData prop = props[replaceNumberedBrackets(id)];
 
     bool result = true;
@@ -405,7 +405,65 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
     constexpr float compThreshold = 1e-4;
     constexpr float zeroThreshold = 1e-4;
 
-    if (prop.type == PropertyType::Vector3){
+    if (prop.type == PropertyType::Vector2){
+        Vector2* value = nullptr;
+        bool difX = false;
+        bool difY = false;
+        std::map<Entity, Vector2> eValue;
+        for (Entity& entity : entities){
+            eValue[entity] = *Catalog::getPropertyRef<Vector2>(sceneProject->scene, entity, cpType, id);
+            if (value){
+                if (std::fabs(value->x - eValue[entity].x) > compThreshold)
+                    difX = true;
+                if (std::fabs(value->y - eValue[entity].y) > compThreshold)
+                    difY = true;
+            }
+            value = &eValue[entity];
+        }
+
+        Vector2 newValue = *value;
+
+        bool defChanged = false;
+        if (prop.def){
+            defChanged = compareVectorFloat((float*)&newValue, static_cast<float*>(prop.def), 2, compThreshold);
+        }
+        if (propertyHeader(label, secondColSize, defChanged, child)){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<Vector2>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<Vector2*>(prop.def));
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
+            }
+        }
+
+        ImGui::BeginGroup();
+        ImGui::PushMultiItemsWidths(2, ImGui::CalcItemWidth());
+
+        if (difX)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        if (ImGui::DragFloat(("##input_x_"+id).c_str(), &(newValue.x), stepSize, 0.0f, 0.0f, format)){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<Vector2>(sceneProject, entity, cpType, id, prop.updateFlags, Vector2(newValue.x, eValue[entity].y));
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
+            }
+        }
+        if (difX)
+            ImGui::PopStyleColor();
+
+        ImGui::SameLine();
+        if (difY)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        if (ImGui::DragFloat(("##input_y_"+id).c_str(), &(newValue.y), stepSize, 0.0f, 0.0f, format)){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<Vector2>(sceneProject, entity, cpType, id, prop.updateFlags, Vector2(eValue[entity].x, newValue.y));
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
+            }
+        }
+        if (difY)
+            ImGui::PopStyleColor();
+
+        ImGui::EndGroup();
+        //ImGui::SetItemTooltip("%s (X, Y, Z)", prop.label.c_str());
+
+    }else if (prop.type == PropertyType::Vector3){
         Vector3* value = nullptr;
         bool difX = false;
         bool difY = false;
@@ -442,7 +500,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         if (difX)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::DragFloat(("##input_x_"+id).c_str(), &(newValue.x), stepSize, 0.0f, 0.0f, "%.2f")){
+        if (ImGui::DragFloat(("##input_x_"+id).c_str(), &(newValue.x), stepSize, 0.0f, 0.0f, format)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector3>(sceneProject, entity, cpType, id, prop.updateFlags, Vector3(newValue.x, eValue[entity].y, eValue[entity].z));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -454,7 +512,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         ImGui::SameLine();
         if (difY)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::DragFloat(("##input_y_"+id).c_str(), &(newValue.y), stepSize, 0.0f, 0.0f, "%.2f")){
+        if (ImGui::DragFloat(("##input_y_"+id).c_str(), &(newValue.y), stepSize, 0.0f, 0.0f, format)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector3>(sceneProject, entity, cpType, id, prop.updateFlags, Vector3(eValue[entity].x, newValue.y, eValue[entity].z));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -466,7 +524,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         ImGui::SameLine();
         if (difZ)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::DragFloat(("##input_z_"+id).c_str(), &(newValue.z), stepSize, 0.0f, 0.0f, "%.2f")){
+        if (ImGui::DragFloat(("##input_z_"+id).c_str(), &(newValue.z), stepSize, 0.0f, 0.0f, format)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector3>(sceneProject, entity, cpType, id, prop.updateFlags, Vector3(eValue[entity].x, eValue[entity].y, newValue.z));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -518,7 +576,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         if (difX)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::DragFloat(("##input_x_"+id).c_str(), &(newValue.x), stepSize, 0.0f, 0.0f, "%.2f")){
+        if (ImGui::DragFloat(("##input_x_"+id).c_str(), &(newValue.x), stepSize, 0.0f, 0.0f, format)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector4>(sceneProject, entity, cpType, id, prop.updateFlags, Vector4(newValue.x, eValue[entity].y, eValue[entity].z, eValue[entity].w));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -530,7 +588,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         ImGui::SameLine();
         if (difY)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::DragFloat(("##input_y_"+id).c_str(), &(newValue.y), stepSize, 0.0f, 0.0f, "%.2f")){
+        if (ImGui::DragFloat(("##input_y_"+id).c_str(), &(newValue.y), stepSize, 0.0f, 0.0f, format)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector4>(sceneProject, entity, cpType, id, prop.updateFlags, Vector4(eValue[entity].x, newValue.y, eValue[entity].z, eValue[entity].w));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -542,7 +600,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         ImGui::SameLine();
         if (difZ)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::DragFloat(("##input_z_"+id).c_str(), &(newValue.z), stepSize, 0.0f, 0.0f, "%.2f")){
+        if (ImGui::DragFloat(("##input_z_"+id).c_str(), &(newValue.z), stepSize, 0.0f, 0.0f, format)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector4>(sceneProject, entity, cpType, id, prop.updateFlags, Vector4(eValue[entity].x, eValue[entity].y, newValue.z, eValue[entity].w));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -554,7 +612,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         ImGui::SameLine();
         if (difW)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::DragFloat(("##input_w_"+id).c_str(), &(newValue.w), stepSize, 0.0f, 0.0f, "%.2f")){
+        if (ImGui::DragFloat(("##input_w_"+id).c_str(), &(newValue.w), stepSize, 0.0f, 0.0f, format)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector4>(sceneProject, entity, cpType, id, prop.updateFlags, Vector4(eValue[entity].x, eValue[entity].y, eValue[entity].z, newValue.w));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -724,7 +782,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         if (dif)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::DragFloat(("##input_float_"+id).c_str(), &newValue, stepSize, v_min, v_max, "%.2f")){
+        if (ImGui::DragFloat(("##input_float_"+id).c_str(), &newValue, stepSize, v_min, v_max, format)){
             for (Entity& entity : entities){
                 if (prop.type == PropertyType::HalfCone){
                     cmd = new PropertyCmd<float>(sceneProject, entity, cpType, id, prop.updateFlags, cos(Angle::defaultToRad(newValue / 2)));
@@ -1569,18 +1627,24 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, std::map<std:
 }
 
 void Editor::Properties::drawLightComponent(ComponentType cpType, std::map<std::string, PropertyData> props, SceneProject* sceneProject, std::vector<Entity> entities){
-    beginTable(cpType, getLabelSize("Map Resolution"));
-
+    beginTable(cpType, getLabelSize("Inner cone"));
     propertyRow(cpType, props, "type", "Type", sceneProject, entities);
     propertyRow(cpType, props, "direction", "Direction", sceneProject, entities);
-    propertyRow(cpType, props, "shadows", "Shadows", sceneProject, entities);
     propertyRow(cpType, props, "intensity", "Intensity", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
     propertyRow(cpType, props, "range", "Range", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
     propertyRow(cpType, props, "color", "Color", sceneProject, entities);
     propertyRow(cpType, props, "inner_cone_cos", "Inner Cone", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
     propertyRow(cpType, props, "outer_cone_cos", "Outer Cone", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
-    propertyRow(cpType, props, "map_resolution", "Map Resolution", sceneProject, entities);
+    endTable();
 
+    ImGui::SeparatorText("Shadow settings");
+
+    beginTable(cpType, getLabelSize("Map Resolution"), "shadow_settings_table");
+    propertyRow(cpType, props, "shadows", "Enable", sceneProject, entities);
+    propertyRow(cpType, props, "shadow_bias", "Bias", sceneProject, entities, 0.001f, 6 * ImGui::GetFontSize(), false, "", "%.4f");
+    propertyRow(cpType, props, "map_resolution", "Map Resolution", sceneProject, entities);
+    propertyRow(cpType, props, "automatic_shadow_camera", "Enable camera", sceneProject, entities);
+    propertyRow(cpType, props, "shadow_camera_near_far", "Shadow Camera", sceneProject, entities);
     endTable();
 }
 
