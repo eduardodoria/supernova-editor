@@ -23,7 +23,8 @@ namespace Supernova::Editor{
 
     enum class AlertType {
         Info,
-        Confirm
+        Confirm,
+        ThreeButton
     };
 
     struct AlertData{
@@ -33,6 +34,7 @@ namespace Supernova::Editor{
         AlertType type = AlertType::Info;
         std::function<void()> onYes = nullptr;
         std::function<void()> onNo = nullptr;
+        std::function<void()> onCancel = nullptr;
     };
 
     enum class SaveDialogType {
@@ -120,6 +122,7 @@ namespace Supernova::Editor{
 
         void registerAlert(std::string title, std::string message);
         void registerConfirmAlert(std::string title, std::string message, std::function<void()> onYes, std::function<void()> onNo = nullptr);
+        void registerThreeButtonAlert(std::string title, std::string message, std::function<void()> onYes, std::function<void()> onNo = nullptr, std::function<void()> onCancel = nullptr);
         void registerSaveSceneDialog(uint32_t sceneId, std::function<void()> callback = nullptr);
         void registerProjectSaveDialog(std::function<void()> callback = nullptr);
 

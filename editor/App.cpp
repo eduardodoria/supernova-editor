@@ -203,7 +203,6 @@ void Editor::App::showAlert(){
         ImVec2 center = ImGui::GetMainViewport()->GetCenter();
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
-        // Make sure we're using the correct flags
         ImGuiWindowFlags flags = ImGuiWindowFlags_AlwaysAutoResize |
                                 ImGuiWindowFlags_NoMove |
                                 ImGuiWindowFlags_NoSavedSettings |
@@ -239,6 +238,35 @@ void Editor::App::showAlert(){
                     ImGui::CloseCurrentPopup();
                     if (alert.onNo) {
                         alert.onNo();
+                    }
+                }
+            } else if (alert.type == AlertType::ThreeButton) {
+                // For three-button alerts, show Yes, No and Cancel buttons
+                float windowWidth = ImGui::GetWindowSize().x;
+                float buttonsWidth = 370; // Width for three buttons
+                ImGui::SetCursorPosX((windowWidth - buttonsWidth) * 0.5f);
+
+                if (ImGui::Button("Yes", ImVec2(120, 0))) {
+                    alert.needShow = false;
+                    ImGui::CloseCurrentPopup();
+                    if (alert.onYes) {
+                        alert.onYes();
+                    }
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("No", ImVec2(120, 0))) {
+                    alert.needShow = false;
+                    ImGui::CloseCurrentPopup();
+                    if (alert.onNo) {
+                        alert.onNo();
+                    }
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+                    alert.needShow = false;
+                    ImGui::CloseCurrentPopup();
+                    if (alert.onCancel) {
+                        alert.onCancel();
                     }
                 }
             }
@@ -695,6 +723,16 @@ void Editor::App::registerConfirmAlert(std::string title, std::string message, s
     alert.onNo = onNo;
 }
 
+void Editor::App::registerThreeButtonAlert(std::string title, std::string message, std::function<void()> onYes, std::function<void()> onNo, std::function<void()> onCancel) {
+    alert.needShow = true;
+    alert.title = title;
+    alert.message = message;
+    alert.type = AlertType::ThreeButton;
+    alert.onYes = onYes;
+    alert.onNo = onNo;
+    alert.onCancel = onCancel;
+}
+
 void Editor::App::registerSaveSceneDialog(uint32_t sceneId, std::function<void()> callback) {
     // Add scene to the save dialog queue with callback
     SaveDialogQueueItem item = {SaveDialogType::Scene, sceneId, callback};
@@ -854,7 +892,7 @@ void Editor::App::exit() {
     }
 
     if (project.hasScenesUnsavedChanges() || codeEditor->hasUnsavedChanges() || project.isTempUnsavedProject()) {
-        registerConfirmAlert(
+        registerThreeButtonAlert(
             "Unsaved Changes",
             "There are unsaved changes. Do you want to save them before exiting?",
             [this]() {
@@ -868,6 +906,10 @@ void Editor::App::exit() {
             [this]() {
                 // No callback - just exit without saving
                 closeWindow();
+            },
+            []() {
+                // Cancel callback - do nothing, just close the dialog
+                // No action needed, the dialog will close automatically
             }
         );
     } else {
