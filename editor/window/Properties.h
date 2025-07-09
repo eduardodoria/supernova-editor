@@ -3,6 +3,7 @@
 
 #include "Project.h"
 #include "render/preview/MeshPreviewRender.h"
+#include "render/preview/DirectionRender.h"
 #include "util/ShapeParameters.h"
 
 #include "imgui.h"
@@ -16,6 +17,7 @@ namespace Supernova::Editor{
 
         MaterialRender materialRender;
         MeshPreviewRender shapePreviewRender;
+        DirectionRender directionRender;
 
         // for drag and drop textures
         std::map<std::string, bool> hasTextureDrag;
@@ -38,9 +40,11 @@ namespace Supernova::Editor{
         void helpMarker(std::string desc);
 
         Texture* findThumbnail(const std::string& path);
-        void drawImageWithBorderAndRounding(Texture* texture, const ImVec2& size, float rounding = 4.0f, ImU32 border_col = IM_COL32(0, 0, 0, 255), float border_thickness = 1.0f);
+        void drawImageWithBorderAndRounding(Texture* texture, const ImVec2& size, float rounding = 4.0f, ImU32 border_col = IM_COL32(0, 0, 0, 255), float border_thickness = 1.0f, bool flipY = false);
         void dragDropResources(ComponentType cpType, std::string id, SceneProject* sceneProject, std::vector<Entity> entities, int updateFlags);
         Texture getMaterialThumbnail(const Material& material);
+
+        Texture getDirectionThumbnail(const Vector3& direction);
 
         void updateShapePreview(const ShapeParameters& shapeParams);
         void updateMeshShape(MeshComponent& meshComp, MeshSystem* meshSys, const ShapeParameters& shapeParams);

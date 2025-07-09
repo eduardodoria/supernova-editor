@@ -187,21 +187,22 @@ void Editor::SceneRender3D::createDirectionalLightArrow(Entity entity, const Tra
     float arrowHeadWidth = 1.0f;   // Width of the arrow head
 
     Vector4 arrowColor = Vector4(1.0, 1.0, 0.0, 1.0); // Yellow color for directional light
+    Vector3 direction = light.direction.normalized();
 
     // Main arrow shaft
-    Vector3 endPos = position + light.direction * arrowLength;
+    Vector3 endPos = position + direction * arrowLength;
     lo.lines->addLine(position, endPos, arrowColor);
 
     // Create orthonormal basis vectors perpendicular to light direction
     Vector3 up = Vector3(0, 1, 0);
-    if (std::abs(light.direction.dotProduct(up)) > 0.9f) {
+    if (std::abs(direction.dotProduct(up)) > 0.9f) {
         up = Vector3(1, 0, 0);
     }
-    Vector3 right = light.direction.crossProduct(up).normalized();
-    up = right.crossProduct(light.direction).normalized();
+    Vector3 right = direction.crossProduct(up).normalized();
+    up = right.crossProduct(direction).normalized();
 
     // Arrow head base position
-    Vector3 arrowHeadBase = endPos - light.direction * arrowHeadLength;
+    Vector3 arrowHeadBase = endPos - direction * arrowHeadLength;
 
     // Arrow head vertices (4 points forming a diamond shape)
     Vector3 arrowHead1 = arrowHeadBase + right * arrowHeadWidth;
@@ -317,6 +318,7 @@ void Editor::SceneRender3D::createSpotLightCones(Entity entity, const Transform&
     lo.lines->clearLines();
 
     Vector3 position = Vector3(0,0,0);  // Start position
+    Vector3 direction = light.direction.normalized();
 
     // Calculate cone radii at the end of the light range
     float innerRadius = range * std::tan(std::acos(light.innerConeCos));
@@ -324,14 +326,14 @@ void Editor::SceneRender3D::createSpotLightCones(Entity entity, const Transform&
 
     // Create orthonormal basis vectors perpendicular to light direction
     Vector3 up = Vector3(0, 1, 0);
-    if (std::abs(light.direction.dotProduct(up)) > 0.9f) {
+    if (std::abs(direction.dotProduct(up)) > 0.9f) {
         up = Vector3(1, 0, 0);
     }
-    Vector3 right = light.direction.crossProduct(up).normalized();
-    up = right.crossProduct(light.direction).normalized();
+    Vector3 right = direction.crossProduct(up).normalized();
+    up = right.crossProduct(direction).normalized();
 
     // End position of the cone
-    Vector3 endPos = position + light.direction * range;
+    Vector3 endPos = position + direction * range;
 
     const int numSegments = 12;
     const float angleStep = 2.0f * M_PI / numSegments;

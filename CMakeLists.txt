@@ -211,6 +211,7 @@ add_executable(
     ${EDITOR_DIR}/render/gizmo/Object2DGizmo.cpp
     ${EDITOR_DIR}/render/preview/MaterialRender.cpp
     ${EDITOR_DIR}/render/preview/MeshPreviewRender.cpp
+    ${EDITOR_DIR}/render/preview/DirectionRender.cpp
 
     ${EDITOR_DIR}/command/CommandHandle.cpp
     ${EDITOR_DIR}/command/CommandHistory.cpp

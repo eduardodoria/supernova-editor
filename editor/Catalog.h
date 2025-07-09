@@ -88,6 +88,7 @@ namespace Supernova::Editor{
         HalfCone,
         UIntSlider,
         IntSlider,
+        Direction,
         Enum
     };
 

@@ -107,7 +107,7 @@ Texture* Editor::Properties::findThumbnail(const std::string& path) {
     return nullptr;
 }
 
-void Editor::Properties::drawImageWithBorderAndRounding(Texture* texture, const ImVec2& size, float rounding, ImU32 border_col, float border_thickness) {
+void Editor::Properties::drawImageWithBorderAndRounding(Texture* texture, const ImVec2& size, float rounding, ImU32 border_col, float border_thickness, bool flipY) {
     if (!texture) return;
 
     ImTextureID tex_id = (ImTextureID)(intptr_t)texture->getRender()->getGLHandler();
@@ -141,6 +141,12 @@ void Editor::Properties::drawImageWithBorderAndRounding(Texture* texture, const 
         }
     }
 
+    if (flipY) {
+        float temp = uv0.y;
+        uv0.y = uv1.y;
+        uv1.y = temp;
+    }
+
     ImVec2 p_min = cursor;
     ImVec2 p_max = ImVec2(cursor.x + size.x, cursor.y + size.y);
 
@@ -155,6 +161,7 @@ void Editor::Properties::drawImageWithBorderAndRounding(Texture* texture, const 
     // Reserve space for interaction
     ImGui::InvisibleButton("##image", size);
 }
+
 
 void Editor::Properties::dragDropResources(ComponentType cpType, std::string id, SceneProject* sceneProject, std::vector<Entity> entities, int updateFlags){
     if (ImGui::BeginDragDropTarget()){
@@ -231,6 +238,15 @@ Texture Editor::Properties::getMaterialThumbnail(const Material& material){
     }
 
     return materialRender.getTexture();
+}
+
+Texture Editor::Properties::getDirectionThumbnail(const Vector3& direction){
+    if ((directionRender.getDirection() != direction) || !directionRender.getFramebuffer()->isCreated()){
+        directionRender.setDirection(direction);
+        Engine::executeSceneOnce(directionRender.getScene());
+    }
+
+    return directionRender.getTexture();
 }
 
 void Editor::Properties::updateShapePreview(const ShapeParameters& shapeParams){
@@ -463,7 +479,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         ImGui::EndGroup();
         //ImGui::SetItemTooltip("%s (X, Y, Z)", prop.label.c_str());
 
-    }else if (prop.type == PropertyType::Vector3){
+    }else if (prop.type == PropertyType::Vector3 || prop.type == PropertyType::Direction){
         Vector3* value = nullptr;
         bool difX = false;
         bool difY = false;
@@ -496,11 +512,27 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         }
 
         ImGui::BeginGroup();
+
+        float min = 0.0f;
+        float max = 0.0f;
+        if (prop.type == PropertyType::Direction){
+            min = -1.0f;
+            max = 1.0f;
+
+            Texture dirTexRender = getDirectionThumbnail(newValue);
+            float thumbSize = ImGui::GetFrameHeight() * 3;
+            ImU32 border_col = IM_COL32(128, 128, 128, 255); // Gray border
+
+            drawImageWithBorderAndRounding(&dirTexRender, ImVec2(thumbSize, thumbSize), 4.0f, border_col, 1.0f, true);
+        }
+
+        ImGui::SetNextItemWidth(secondColSize);
+
         ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
 
         if (difX)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::DragFloat(("##input_x_"+id).c_str(), &(newValue.x), stepSize, 0.0f, 0.0f, format)){
+        if (ImGui::DragFloat(("##input_x_"+id).c_str(), &(newValue.x), stepSize, min, max, format)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector3>(sceneProject, entity, cpType, id, prop.updateFlags, Vector3(newValue.x, eValue[entity].y, eValue[entity].z));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -512,7 +544,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         ImGui::SameLine();
         if (difY)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::DragFloat(("##input_y_"+id).c_str(), &(newValue.y), stepSize, 0.0f, 0.0f, format)){
+        if (ImGui::DragFloat(("##input_y_"+id).c_str(), &(newValue.y), stepSize, min, max, format)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector3>(sceneProject, entity, cpType, id, prop.updateFlags, Vector3(eValue[entity].x, newValue.y, eValue[entity].z));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -524,7 +556,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         ImGui::SameLine();
         if (difZ)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::DragFloat(("##input_z_"+id).c_str(), &(newValue.z), stepSize, 0.0f, 0.0f, format)){
+        if (ImGui::DragFloat(("##input_z_"+id).c_str(), &(newValue.z), stepSize, min, max, format)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector3>(sceneProject, entity, cpType, id, prop.updateFlags, Vector3(eValue[entity].x, eValue[entity].y, newValue.z));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -1120,7 +1152,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         ImGui::PushStyleColor(ImGuiCol_ChildBg, textureLabel);
 
-        float thumbSize = 64;
+        float thumbSize = ImGui::GetFrameHeight() * 3;
         Texture* thumbTexture = findThumbnail(newValue.getId());
         if (thumbTexture) {
             ImU32 border_col = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyle().Colors[ImGuiCol_FrameBg]);
@@ -1231,7 +1263,8 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         ImGui::BeginGroup();
 
         Texture texRender = getMaterialThumbnail(newValue);
-        ImGui::Image(texRender.getRender()->getGLHandler(), ImVec2(64, 64), ImVec2(0, 1), ImVec2(1, 0));
+        float thumbSize = ImGui::GetFrameHeight() * 3;
+        ImGui::Image(texRender.getRender()->getGLHandler(), ImVec2(thumbSize, thumbSize), ImVec2(0, 1), ImVec2(1, 0));
         if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
             materialButtonGroups[id] = !materialButtonGroups[id];
         }
@@ -1655,8 +1688,8 @@ void Editor::Properties::drawLightComponent(ComponentType cpType, std::map<std::
         propertyRow(cpType, props, "direction", "Direction", sceneProject, entities);
     }
     if (light.type == LightType::SPOT){
-        propertyRow(cpType, props, "inner_cone_cos", "Inner Cone", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
-        propertyRow(cpType, props, "outer_cone_cos", "Outer Cone", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
+        propertyRow(cpType, props, "inner_cone_cos", "Inner Cone", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize(), false, "", "%.1f");
+        propertyRow(cpType, props, "outer_cone_cos", "Outer Cone", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize(), false, "", "%.1f");
     }
     endTable();
 
