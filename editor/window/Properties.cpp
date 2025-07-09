@@ -1608,7 +1608,7 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
 
     endTable();
 
-    unsigned int numSubmeshes = 1;
+    unsigned int numSubmeshes = sceneProject->scene->getComponent<MeshComponent>(entities[0]).numSubmeshes;
     for (Entity& entity : entities){
         numSubmeshes = std::min(numSubmeshes, sceneProject->scene->getComponent<MeshComponent>(entity).numSubmeshes);
     }
