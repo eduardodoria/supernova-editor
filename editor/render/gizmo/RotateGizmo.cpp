@@ -40,7 +40,7 @@ Editor::RotateGizmo::RotateGizmo(Scene* scene, bool use2DGizmo): Object(scene){
 
     maincircle->createTorus((use2DGizmo)?center2DRadius:torusHeight, mainRadius, 32, 32);
     maincircle->setColor(Vector4(mainColor, circleAlpha));
-    maincircle->setRotation(90,0,0);
+    maincircle->setBillboardRotation(90,0,0);
     maincircle->setBillboard((!use2DGizmo), false, false);
 
     if (!use2DGizmo) {
