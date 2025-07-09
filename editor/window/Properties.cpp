@@ -1741,8 +1741,10 @@ void Editor::Properties::drawLightComponent(ComponentType cpType, std::map<std::
         beginTable(cpType, getLabelSize("Camera Near"), "shadow_camera_popup");
 
         propertyRow(cpType, props, "automatic_shadow_camera", "Automatic", sceneProject, entities);
+        ImGui::BeginDisabled(light.automaticShadowCamera);
         propertyRow(cpType, props, "shadow_camera_near", "Camera Near", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
         propertyRow(cpType, props, "shadow_camera_far", "Camera Far", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
+        ImGui::EndDisabled();
 
         endTable();
 
