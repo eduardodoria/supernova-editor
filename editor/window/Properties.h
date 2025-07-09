@@ -15,6 +15,8 @@ namespace Supernova::Editor{
         Project* project;
         Command* cmd;
 
+        bool draggingProperty;
+
         MaterialRender materialRender;
         MeshPreviewRender shapePreviewRender;
         DirectionRender directionRender;

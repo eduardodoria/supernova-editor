@@ -219,7 +219,7 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["automatic_shadow_camera"] = {PropertyType::Bool, UpdateFlags_LightShadowCamera, (void*)&def->automaticShadowCamera, (compRef) ? (void*)&comp->automaticShadowCamera : nullptr};
         ps["shadow_camera_near"] = {PropertyType::Float, UpdateFlags_LightShadowCamera, nullptr, (compRef) ? (void*)&comp->shadowCameraNearFar.x : nullptr};
         ps["shadow_camera_far"] = {PropertyType::Float, UpdateFlags_LightShadowCamera, nullptr, (compRef) ? (void*)&comp->shadowCameraNearFar.y : nullptr};
-        ps["num_shadow_cascades"] = {PropertyType::UIntSlider, UpdateFlags_LightShadowCamera, (void*)&def->numShadowCascades, (compRef) ? (void*)&comp->numShadowCascades : nullptr, nullptr, &cascadeValues};
+        ps["num_shadow_cascades"] = {PropertyType::UIntSlider, UpdateFlags_LightShadowCamera | UpdateFlags_Scene_Mesh_Reload, (void*)&def->numShadowCascades, (compRef) ? (void*)&comp->numShadowCascades : nullptr, nullptr, &cascadeValues};
     }
 
     return ps;

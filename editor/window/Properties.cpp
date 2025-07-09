@@ -20,6 +20,8 @@ using namespace Supernova;
 Editor::Properties::Properties(Project* project){
     this->project = project;
     this->cmd = nullptr;
+
+    this->draggingProperty = false;
 }
 
 std::string Editor::Properties::replaceNumberedBrackets(const std::string& input) {
@@ -524,6 +526,30 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             ImU32 border_col = IM_COL32(128, 128, 128, 255); // Gray border
 
             drawImageWithBorderAndRounding(&dirTexRender, ImVec2(thumbSize, thumbSize), 4.0f, border_col, 1.0f, true);
+
+            if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+                draggingProperty = true;
+                ImVec2 mouseDelta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
+
+                float sensitivity = 1.5f;
+
+                float yawAngle = mouseDelta.x * sensitivity;   // Horizontal movement -> roll (around Y)
+                float pitchAngle = -mouseDelta.y * sensitivity; // Vertical movement -> pitch (around X)
+
+                Quaternion rollRotation(yawAngle, Vector3(0, 0, 1));     // Roll around world Z-axis
+                Quaternion pitchRotation(pitchAngle, Vector3(1, 0, 0)); // Pitch around X-axis
+                // Combine rotations (order matters: apply roll first, then pitch)
+                Vector3 newDirection =  rollRotation * pitchRotation * newValue;
+
+                // Apply to all entities
+                for (Entity& entity : entities) {
+                    cmd = new PropertyCmd<Vector3>(sceneProject, entity, cpType, id, prop.updateFlags, newDirection);
+                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                }
+
+                newValue = newDirection;
+                ImGui::ResetMouseDragDelta(ImGuiMouseButton_Left);
+            }
         }
 
         ImGui::SetNextItemWidth(secondColSize);
@@ -1323,9 +1349,10 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         result = materialButtonGroups[id];
     }
 
-    if (ImGui::IsItemDeactivatedAfterEdit()) {
+    if (ImGui::IsItemDeactivatedAfterEdit() ||(draggingProperty && ImGui::IsMouseReleased(ImGuiMouseButton_Left))) {
         cmd->setNoMerge();
         cmd = nullptr;
+        draggingProperty = false;
     }
 
     return result;
