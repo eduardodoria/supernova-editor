@@ -23,6 +23,11 @@ namespace Supernova::Editor{
         MeshPreviewRender();
         virtual ~MeshPreviewRender();
 
+        MeshPreviewRender(const MeshPreviewRender&) = delete;
+        MeshPreviewRender& operator=(const MeshPreviewRender&) = delete;
+        MeshPreviewRender(MeshPreviewRender&&) noexcept = default;
+        MeshPreviewRender& operator=(MeshPreviewRender&&) noexcept = default;
+
         void applyMesh(YAML::Node meshData, bool updateCamera = true, bool removeMaterial = false);
         void setBackground(Vector4 color);
 

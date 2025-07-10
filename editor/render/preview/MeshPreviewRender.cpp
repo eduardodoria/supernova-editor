@@ -27,8 +27,8 @@ Editor::MeshPreviewRender::MeshPreviewRender(){
 
 Editor::MeshPreviewRender::~MeshPreviewRender(){
     delete camera;
+    delete light;
     delete mesh;
-
     delete scene;
 }
 

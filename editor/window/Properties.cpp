@@ -233,20 +233,28 @@ void Editor::Properties::dragDropResources(ComponentType cpType, std::string id,
     }
 }
 
-Texture Editor::Properties::getMaterialThumbnail(const Material& material){
+Texture Editor::Properties::getMaterialPreview(const Material& material, const std::string id){
+    MaterialRender& materialRender = materialRenders[id];
+
     if ((materialRender.getMaterial() != material) || !materialRender.getFramebuffer()->isCreated()){
         materialRender.applyMaterial(material);
         Engine::executeSceneOnce(materialRender.getScene());
     }
 
+    usedPreviewIds.insert(id);
+
     return materialRender.getTexture();
 }
 
-Texture Editor::Properties::getDirectionThumbnail(const Vector3& direction){
+Texture Editor::Properties::getDirectionPreview(const Vector3& direction, const std::string id){
+    DirectionRender& directionRender = directionRenders[id];
+
     if ((directionRender.getDirection() != direction) || !directionRender.getFramebuffer()->isCreated()){
         directionRender.setDirection(direction);
         Engine::executeSceneOnce(directionRender.getScene());
     }
+
+    usedPreviewIds.insert(id);
 
     return directionRender.getTexture();
 }
@@ -521,7 +529,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             min = -1.0f;
             max = 1.0f;
 
-            Texture dirTexRender = getDirectionThumbnail(newValue);
+            Texture dirTexRender = getDirectionPreview(newValue, id);
             float thumbSize = ImGui::GetFrameHeight() * 3;
             ImU32 border_col = IM_COL32(128, 128, 128, 255); // Gray border
 
@@ -1288,7 +1296,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         ImGui::BeginGroup();
 
-        Texture texRender = getMaterialThumbnail(newValue);
+        Texture texRender = getMaterialPreview(newValue, id);
         float thumbSize = ImGui::GetFrameHeight() * 3;
         ImGui::Image(texRender.getRender()->getGLHandler(), ImVec2(thumbSize, thumbSize), ImVec2(0, 1), ImVec2(1, 0));
         if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
@@ -1856,6 +1864,22 @@ void Editor::Properties::show(){
     }else{
         thumbnailTextures.clear();
     }
+
+    for (auto it = materialRenders.begin(); it != materialRenders.end(); ) {
+        if (usedPreviewIds.find(it->first) == usedPreviewIds.end()) {
+            it = materialRenders.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    for (auto it = directionRenders.begin(); it != directionRenders.end(); ) {
+        if (usedPreviewIds.find(it->first) == usedPreviewIds.end()) {
+            it = directionRenders.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    usedPreviewIds.clear();
 
     ImGui::End();
 }

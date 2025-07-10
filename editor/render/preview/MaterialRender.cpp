@@ -28,8 +28,8 @@ Editor::MaterialRender::MaterialRender(){
 
 Editor::MaterialRender::~MaterialRender(){
     delete camera;
+    delete light;
     delete sphere;
-
     delete scene;
 }
 

@@ -24,6 +24,11 @@ namespace Supernova::Editor{
         DirectionRender();
         virtual ~DirectionRender();
 
+        DirectionRender(const DirectionRender&) = delete;
+        DirectionRender& operator=(const DirectionRender&) = delete;
+        DirectionRender(DirectionRender&&) noexcept = default;
+        DirectionRender& operator=(DirectionRender&&) noexcept = default;
+
         void setDirection(Vector3 direction);
         void setDirection(float x, float y, float z);
         void setColor(Vector4 color);
