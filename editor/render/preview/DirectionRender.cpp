@@ -59,6 +59,14 @@ Editor::DirectionRender::~DirectionRender(){
 }
 
 void Editor::DirectionRender::setDirection(Vector3 direction){
+    this->direction = direction;
+
+    if (direction.length() == 0.0f) {
+        arrowObject->setVisible(false);
+        return;
+    }
+
+    arrowObject->setVisible(true);
     direction.normalize();
     
     // Default arrow direction (pointing up along Y axis)
@@ -88,8 +96,6 @@ void Editor::DirectionRender::setDirection(Vector3 direction){
         Quaternion rotation(angle, rotationAxis);
         arrowObject->setRotation(rotation);
     }
-
-    this->direction = direction;
 }
 
 void Editor::DirectionRender::setDirection(float x, float y, float z){
