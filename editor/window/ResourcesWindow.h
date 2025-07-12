@@ -26,7 +26,8 @@ namespace Supernova::Editor {
         NONE,
         IMAGE,
         MATERIAL,
-        SCENE
+        SCENE,
+        ENTITY
     };
 
     struct FileEntry {
@@ -137,12 +138,14 @@ namespace Supernova::Editor {
         bool isImageFile(const std::string& extension) const;
         bool isSceneFile(const std::string& extension) const;
         bool isMaterialFile(const std::string& extension) const;
+        bool isEntityFile(const std::string& extension) const;
 
         void queueThumbnailGeneration(const fs::path& filePath, FileType type);
         void thumbnailWorker();
         bool loadThumbnail(FileEntry& entry);
 
         void saveMaterialFile(const fs::path& directory, const char* materialContent, size_t contentLen);
+        void saveEntityFile(const fs::path& directory, const char* entityContent, size_t contentLen, const std::string& entityName);
 
     public:
         ResourcesWindow(Project* project, CodeEditor* codeEditor);

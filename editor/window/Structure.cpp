@@ -6,6 +6,7 @@
 #include "command/type/CreateEntityCmd.h"
 #include "command/type/EntityNameCmd.h"
 #include "command/type/SceneNameCmd.h"
+#include "Stream.h"
 
 using namespace Supernova;
 
@@ -232,6 +233,16 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
 
     if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
         ImGui::SetDragDropPayload(dragDropName.c_str(), &node, sizeof(TreeNode));
+
+        // Add entity drag drop payload for dragging to resources
+        if (!node.isScene) {
+            Scene* scene = project->getSelectedScene()->scene;
+            YAML::Node entityData = Stream::encodeEntity(node.id, scene);
+            std::string yamlString = YAML::Dump(entityData);
+
+            ImGui::SetDragDropPayload("entity", yamlString.c_str(), yamlString.size());
+        }
+
         ImGui::Text("Moving %s", node.name.c_str());
         ImGui::EndDragDropSource();
     }

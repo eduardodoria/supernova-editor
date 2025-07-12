@@ -631,6 +631,8 @@ void Editor::ResourcesWindow::scanDirectory(const fs::path& path) {
                 fileEntry.type = FileType::SCENE;
             }else if (isMaterialFile(fileEntry.extension)){
                 fileEntry.type = FileType::MATERIAL;
+            }else if (isEntityFile(fileEntry.extension)){
+                fileEntry.type = FileType::ENTITY;
             }
 
             if (fileEntry.type == FileType::IMAGE || fileEntry.type == FileType::MATERIAL) {
@@ -980,6 +982,16 @@ bool Editor::ResourcesWindow::isMaterialFile(const std::string& extension) const
     return imageExtensions.find(lowerExt) != imageExtensions.end();
 }
 
+bool Editor::ResourcesWindow::isEntityFile(const std::string& extension) const{
+    static const std::unordered_set<std::string> entityExtensions = {
+        ".entity"
+    };
+
+    std::string lowerExt = extension;
+    std::transform(lowerExt.begin(), lowerExt.end(), lowerExt.begin(), ::tolower);
+    return entityExtensions.find(lowerExt) != entityExtensions.end();
+}
+
 void Editor::ResourcesWindow::queueThumbnailGeneration(const fs::path& filePath, FileType type) {
     fs::path thumbnailPath = project->getThumbnailPath(filePath);
 
@@ -1148,6 +1160,30 @@ void Editor::ResourcesWindow::saveMaterialFile(const fs::path& directory, const 
     std::ofstream out(targetFile, std::ios::binary);
     if (out.is_open()) {
         out.write(materialContent, contentLen);
+        out.close();
+        scanDirectory(currentPath);
+    }
+}
+
+void Editor::ResourcesWindow::saveEntityFile(const fs::path& directory, const char* entityContent, size_t contentLen, const std::string& entityName) {
+    std::string baseName = entityName.empty() ? "Entity" : entityName;
+    // Replace invalid filename characters with underscores
+    for (char& c : baseName) {
+        if (c == '/' || c == '\\' || c == ':' || c == '*' || c == '?' || c == '"' || c == '<' || c == '>' || c == '|') {
+            c = '_';
+        }
+    }
+    std::string fileName = baseName + ".entity";
+    fs::path targetFile = directory / fileName;
+    int counter = 1;
+    while (fs::exists(targetFile)) {
+        fileName = baseName + "_" + std::to_string(counter) + ".entity";
+        targetFile = directory / fileName;
+        counter++;
+    }
+    std::ofstream out(targetFile, std::ios::binary);
+    if (out.is_open()) {
+        out.write(entityContent, contentLen);
         out.close();
         scanDirectory(currentPath);
     }
@@ -1357,6 +1393,19 @@ void Editor::ResourcesWindow::show() {
             size_t contentLen = payload->DataSize;
 
             saveMaterialFile(currentPath, materialContent, contentLen);
+        }
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("entity")) {
+            const char* entityContent = (const char*)payload->Data;
+            size_t contentLen = payload->DataSize;
+
+            // Parse the YAML to get the entity name
+            std::string entityName = "Entity";
+            YAML::Node entityNode = YAML::Load(std::string(entityContent, contentLen));
+            if (entityNode["name"]) {
+                entityName = entityNode["name"].as<std::string>();
+            }
+
+            saveEntityFile(currentPath, entityContent, contentLen, entityName);
         }
         ImGui::EndDragDropTarget();
     }
