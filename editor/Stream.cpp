@@ -266,6 +266,22 @@ LightType Editor::Stream::stringToLightType(const std::string& str) {
     return LightType::DIRECTIONAL; // Default
 }
 
+std::string Editor::Stream::lightStateToString(LightState state) {
+    switch (state) {
+        case LightState::OFF: return "off";
+        case LightState::ON: return "on";
+        case LightState::AUTO: return "auto";
+        default: return "auto";
+    }
+}
+
+LightState Editor::Stream::stringToLightState(const std::string& str) {
+    if (str == "off") return LightState::OFF;
+    if (str == "on") return LightState::ON;
+    if (str == "auto") return LightState::AUTO;
+    return LightState::AUTO; // Default
+}
+
 YAML::Node Editor::Stream::encodeVector2(const Vector2& vec){
     YAML::Node node;
     node.SetStyle(YAML::EmitterStyle::Flow);
@@ -913,7 +929,7 @@ void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::
 void Editor::Stream::decodeSceneProjectEntities(SceneProject* sceneProject, const YAML::Node& node) {
     auto entitiesNode = node["entities"];
 
-    Entity lastEntity = USER_LASTENTITY;
+    Entity lastEntity = NULL_ENTITY;
     for (const auto& entityNode : entitiesNode) {
         Entity entity = decodeEntity(sceneProject->scene, entityNode);
         sceneProject->entities.push_back(entity);
@@ -922,12 +938,18 @@ void Editor::Stream::decodeSceneProjectEntities(SceneProject* sceneProject, cons
             lastEntity = entity;
         }
     }
-    sceneProject->scene->setLastEntityInternal(lastEntity);
 }
 
 YAML::Node Editor::Stream::encodeScene(Scene* scene) {
     YAML::Node sceneNode;
-    //sceneNode["lastEntity"] = scene->getLastEntityInternal();
+
+    sceneNode["backgroundColor"] = encodeVector4(scene->getBackgroundColor());
+    sceneNode["shadowsPCF"] = scene->isShadowsPCF();
+    sceneNode["lightState"] = lightStateToString(scene->getLightState());
+    sceneNode["globalIlluminationIntensity"] = scene->getGlobalIlluminationIntensity();
+    sceneNode["globalIlluminationColor"] = encodeVector3(scene->getGlobalIlluminationColor());
+    sceneNode["enableUIEvents"] = scene->isEnableUIEvents();
+
     return sceneNode;
 }
 
@@ -936,16 +958,38 @@ Scene* Editor::Stream::decodeScene(Scene* scene, const YAML::Node& node) {
         scene = new Scene();
     }
 
-    //if (node["lastEntity"]) {
-    //    scene->setLastEntityInternal(node["lastEntity"].as<uint32_t>());
-    //}
+    if (node["backgroundColor"]) {
+        scene->setBackgroundColor(decodeVector4(node["backgroundColor"]));
+    }
+
+    if (node["shadowsPCF"]) {
+        scene->setShadowsPCF(node["shadowsPCF"].as<bool>());
+    }
+
+    if (node["lightState"]) {
+        scene->setLightState(stringToLightState(node["lightState"].as<std::string>()));
+    }
+
+    if (node["globalIlluminationIntensity"] && node["globalIlluminationColor"]) {
+        scene->setGlobalIllumination(
+            node["globalIlluminationIntensity"].as<float>(),
+            decodeVector3(node["globalIlluminationColor"])
+        );
+    } else if (node["globalIlluminationIntensity"]) {
+        scene->setGlobalIllumination(node["globalIlluminationIntensity"].as<float>());
+    } else if (node["globalIlluminationColor"]) {
+        scene->setGlobalIllumination(decodeVector3(node["globalIlluminationColor"]));
+    }
+
+    if (node["enableUIEvents"]) {
+        scene->setEnableUIEvents(node["enableUIEvents"].as<bool>());
+    }
 
     return scene;
 }
 
 YAML::Node Editor::Stream::encodeEntity(const Entity entity, const Scene* scene) {
     YAML::Node entityNode;
-    entityNode["entity"] = entity;
     entityNode["name"] = scene->getEntityName(entity);
 
     Signature signature = scene->getSignature(entity);
@@ -984,15 +1028,7 @@ YAML::Node Editor::Stream::encodeEntity(const Entity entity, const Scene* scene)
 }
 
 Entity Editor::Stream::decodeEntity(Scene* scene, const YAML::Node& entityNode) {
-    Entity entity = entityNode["entity"].as<Entity>();
-
-    if (!scene->isEntityCreated(entity)){
-        scene->createEntityInternal(entity);
-    }else{
-        Entity oldEntity = entity;
-        entity = scene->createEntity();
-        Editor::Out::warning("Entity '%u' already exist, creating a new one: %u", oldEntity, entity);
-    }
+    Entity entity = scene->createEntity();
 
     std::string name = entityNode["name"].as<std::string>();
 

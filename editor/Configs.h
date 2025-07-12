@@ -1,5 +1,4 @@
 #pragma once
 
 #define NULL_PROJECT_SCENE 0
-#define USER_LASTENTITY 99
 #define THUMBNAIL_SIZE 128

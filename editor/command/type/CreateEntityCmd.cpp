@@ -42,7 +42,9 @@ bool Editor::CreateEntityCmd::execute(){
             if (entity == NULL_ENTITY){
                 entity = scenes[i].scene->createEntity();
             }else{
-                entity = scenes[i].scene->createEntityInternal(entity); // recreate same entity
+                if (!scenes[i].scene->recreateEntity(entity)){
+                    entity = scenes[i].scene->createEntity();
+                }
             }
 
             unsigned int nameCount = 2;

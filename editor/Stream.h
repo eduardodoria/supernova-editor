@@ -45,6 +45,9 @@ namespace Supernova::Editor {
         static std::string lightTypeToString(LightType type);
         static LightType stringToLightType(const std::string& str);
 
+        static std::string lightStateToString(LightState state);
+        static LightState stringToLightState(const std::string& str);
+
         // ==============================
 
         static YAML::Node encodeVector2(const Vector2& vec);
