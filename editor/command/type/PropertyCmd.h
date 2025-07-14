@@ -86,6 +86,18 @@ namespace Supernova::Editor{
 
             return false;
         }
+
+        void finalize(){
+            Command::finalize();
+
+            for (auto const& [entity, value] : values){
+                Event e;
+                e.type = EventType::ComponentChanged;
+                e.entity = entity;
+                e.compType = ComponentType::Transform;
+                Project::getEventBus().publish(e);
+            }
+        }
     };
 
 }

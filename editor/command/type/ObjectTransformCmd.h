@@ -35,6 +35,8 @@ namespace Supernova::Editor{
         virtual void undo();
 
         virtual bool mergeWith(Command* otherCommand);
+
+        virtual void finalize();
     };
 
 }

@@ -68,6 +68,14 @@ namespace Supernova::Editor {
             
             return false;
         }
+
+        void finalize(){
+            Command::finalize();
+
+            for (auto& cmd : commands) {
+                cmd->finalize();
+            }
+        }
     };
 
 }

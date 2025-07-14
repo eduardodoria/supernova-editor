@@ -32,12 +32,6 @@ bool Editor::ObjectTransformCmd::execute(){
             transform->scale = property.newScale;
 
             transform->needUpdate = true;
-
-            Event e;
-            e.type = EventType::ComponentAdded;
-            e.entity = entity;
-            e.compType = ComponentType::Transform;
-            Project::getEventBus().publish(e);
         }
     }
 
@@ -82,4 +76,16 @@ bool Editor::ObjectTransformCmd::mergeWith(Editor::Command* otherCommand){
     }
 
     return false;
+}
+
+void Editor::ObjectTransformCmd::finalize(){
+    Command::finalize();
+
+    for (auto& [entity, property] : props){
+        Event e;
+        e.type = EventType::ComponentChanged;
+        e.entity = entity;
+        e.compType = ComponentType::Transform;
+        Project::getEventBus().publish(e);
+    }
 }

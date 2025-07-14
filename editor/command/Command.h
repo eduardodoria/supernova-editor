@@ -15,6 +15,8 @@ namespace Supernova::Editor{
 
         virtual bool mergeWith(Command* olderCommand) = 0;
 
+        virtual void finalize(){ setNoMerge(); }
+
         void setNoMerge() { mergeable = false; }
         bool canMerge() const { return mergeable; }
     };

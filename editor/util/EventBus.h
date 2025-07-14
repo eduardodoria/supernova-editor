@@ -30,14 +30,14 @@ namespace Supernova::Editor {
 
         // Subscribe to a specific event kind
         void subscribe(EventType type, Handler cb) {
-        handlers_[type].push_back(std::move(cb));
+            handlers_[type].push_back(std::move(cb));
         }
 
         // Broadcast an event to all subscribers of that kind
         void publish(const Event& e) {
-        auto it = handlers_.find(e.type);
-        if (it == handlers_.end()) return;
-        for (auto &h : it->second) h(e);
+            auto it = handlers_.find(e.type);
+            if (it == handlers_.end()) return;
+            for (auto &h : it->second) h(e);
         }
 
     private:

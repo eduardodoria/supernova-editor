@@ -344,7 +344,7 @@ void Editor::SceneRender::mouseReleaseEvent(float x, float y){
     toolslayer.mouseRelease();
 
     if (lastCommand){
-        lastCommand->setNoMerge();
+        lastCommand->finalize();
         lastCommand = nullptr;
     }
 }

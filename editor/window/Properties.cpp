@@ -197,7 +197,7 @@ void Editor::Properties::dragDropResources(ComponentType cpType, std::string id,
                         Texture* valueRef = Catalog::getPropertyRef<Texture>(sceneProject->scene, entity, cpType, id);
                         *valueRef = originalTex[id][entity];
                         cmd = new PropertyCmd<Texture>(sceneProject, entity, cpType, id, updateFlags, texture);
-                        cmd->setNoMerge();
+                        cmd->finalize();
                         CommandHandle::get(sceneProject->id)->addCommand(cmd);
                     }
 
@@ -1243,7 +1243,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
                     Texture texture(filePath.string());
                     for (Entity& entity : entities){
                         cmd = new PropertyCmd<Texture>(sceneProject, entity, cpType, id, prop.updateFlags, texture);
-                        cmd->setNoMerge();
+                        cmd->finalize();
                         CommandHandle::get(sceneProject->id)->addCommand(cmd);
                     }
                 }
@@ -1358,7 +1358,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
     }
 
     if (ImGui::IsItemDeactivatedAfterEdit() ||(draggingProperty && ImGui::IsMouseReleased(ImGuiMouseButton_Left))) {
-        cmd->setNoMerge();
+        cmd->finalize();
         cmd = nullptr;
         draggingProperty = false;
     }

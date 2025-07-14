@@ -218,12 +218,40 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         openParent = NULL_ENTITY;
     }
 
+    // Check if entity is shared and get shared group info
+    bool isShared = false;
+    uint32_t groupId = 0;
+    const Editor::SharedGroup* sharedGroup = nullptr;
+
+    if (!node.isScene) {
+        groupId = project->findGroupFor(project->getSelectedSceneId(), node.id);
+        isShared = (groupId != 0);
+        if (isShared) {
+            sharedGroup = project->getSharedGroup(groupId);
+        }
+    }
+
+    // Push blue color for shared entities
+    if (isShared) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.7f, 1.0f, 1.0f)); // Light blue color
+    }
+
     bool nodeOpen = ImGui::TreeNodeEx((node.icon + "  " + node.name + "###" + getNodeImGuiId(node)).c_str(), flags);
+
+    // Pop color if we pushed it
+    if (isShared) {
+        ImGui::PopStyleColor();
+    }
 
     if (node.isScene){
         ImGui::SetItemTooltip("Id: %u", node.id);
     }else{
-        ImGui::SetItemTooltip("Entity: %u", node.id);
+        if (isShared && sharedGroup) {
+            std::filesystem::path relativePath = std::filesystem::relative(sharedGroup->filepath, project->getProjectPath());
+            ImGui::SetItemTooltip("Entity: %u (Shared)\nPath: %s", node.id, relativePath.string().c_str());
+        } else {
+            ImGui::SetItemTooltip("Entity: %u", node.id);
+        }
     }
 
     std::string dragDropName = "ENTITY";
