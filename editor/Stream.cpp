@@ -902,20 +902,26 @@ void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
     }
 }
 
-YAML::Node Editor::Stream::encodeSceneProject(const SceneProject* sceneProject) {
+YAML::Node Editor::Stream::encodeSceneProject(Project* project, const SceneProject* sceneProject){
     YAML::Node root;
-
     root["id"] = sceneProject->id;
     root["name"] = sceneProject->name;
     root["scene"] = encodeScene(sceneProject->scene);
     root["sceneType"] = sceneTypeToString(sceneProject->sceneType);
 
     YAML::Node entitiesNode;
-    for (const auto& entity : sceneProject->entities) {
-        entitiesNode.push_back(encodeEntity(entity, sceneProject->scene));
+    for (Entity ent : sceneProject->entities) {
+        uint32_t gid = project->findGroupFor(sceneProject->id, ent);
+        if (gid) {
+            auto* g = project->getSharedGroup(gid);
+            YAML::Node stub;
+            stub["sharedFile"] = g->filepath.string();
+            entitiesNode.push_back(stub);
+        } else {
+            entitiesNode.push_back( encodeEntity(ent, sceneProject->scene) );
+        }
     }
     root["entities"] = entitiesNode;
-
     return root;
 }
 
@@ -926,16 +932,27 @@ void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::
     sceneProject->sceneType = stringToSceneType(node["sceneType"].as<std::string>());
 }
 
-void Editor::Stream::decodeSceneProjectEntities(SceneProject* sceneProject, const YAML::Node& node) {
+void Editor::Stream::decodeSceneProjectEntities(Project* project, SceneProject* sceneProject, const YAML::Node& node){
     auto entitiesNode = node["entities"];
+    for (const auto& en : entitiesNode){
+        if (en["sharedFile"]) {
+            std::string path = en["sharedFile"].as<std::string>();
+            YAML::Node sharedNode = YAML::LoadFile(path);
 
-    Entity lastEntity = NULL_ENTITY;
-    for (const auto& entityNode : entitiesNode) {
-        Entity entity = decodeEntity(sceneProject->scene, entityNode);
-        sceneProject->entities.push_back(entity);
+            Entity e = decodeEntity(sceneProject->scene, sharedNode);
+            sceneProject->entities.push_back(e);
 
-        if (lastEntity < entity){
-            lastEntity = entity;
+            // register in Project’s SharedGroup
+            uint32_t gid = project->findGroupFor(sceneProject->id, e);
+            if (!gid) {
+                gid = project->markEntityShared(sceneProject->id, e, path);
+            } else {
+                auto* g = project->getSharedGroup(gid);
+                if (g) g->members[sceneProject->id] = e;
+            }
+        } else {
+            Entity e = decodeEntity(sceneProject->scene, en);
+            sceneProject->entities.push_back(e);
         }
     }
 }

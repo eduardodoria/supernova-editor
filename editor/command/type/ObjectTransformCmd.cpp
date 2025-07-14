@@ -32,6 +32,12 @@ bool Editor::ObjectTransformCmd::execute(){
             transform->scale = property.newScale;
 
             transform->needUpdate = true;
+
+            Event e;
+            e.type = EventType::ComponentAdded;
+            e.entity = entity;
+            e.compType = ComponentType::Transform;
+            Project::getEventBus().publish(e);
         }
     }
 

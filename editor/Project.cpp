@@ -22,6 +22,8 @@
 
 using namespace Supernova;
 
+Editor::EventBus Editor::Project::globalEventBus;
+
 Editor::Project::Project(){
     resetConfigs();
 }
@@ -124,7 +126,7 @@ void Editor::Project::openScene(fs::path filepath){
             data.sceneRender = new SceneRender2D(data.scene, windowWidth, windowHeight, true);
         }
 
-        Stream::decodeSceneProjectEntities(&data, sceneNode);
+        Stream::decodeSceneProjectEntities(this, &data, sceneNode);
 
         if (getScene(data.id) != nullptr) {
             uint32_t old = data.id;
@@ -457,7 +459,7 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
         return;
     }
 
-    YAML::Node root = Stream::encodeSceneProject(sceneProject);
+    YAML::Node root = Stream::encodeSceneProject(this, sceneProject);
     std::ofstream fout(path.string());
     fout << YAML::Dump(root);
     fout.close();
@@ -825,6 +827,122 @@ bool Editor::Project::hasScenesUnsavedChanges() const{
         }
     }
     return false;
+}
+
+Editor::EventBus& Editor::Project::getEventBus(){
+    return globalEventBus;
+}
+
+uint32_t Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path filepath){
+    uint32_t gid = nextSharedGroupId++;
+
+    SharedGroup group;
+    group.id = gid;
+    group.filepath = filepath;
+    group.members[sceneId] = entity;
+    sharedGroups.push_back(std::move(group));
+    pathToGroupIdx[filepath.string()] = sharedGroups.size()-1;
+
+    // Subscribe to component changes for this entity
+    getEventBus().subscribe(EventType::ComponentChanged,
+        [this, gid](const Event& e) {
+            // Check if this event is for any entity in our shared group
+            const SharedGroup* group = getSharedGroup(gid);
+            if (group) {
+                for (const auto& [sceneId, entity] : group->members) {
+                    if (e.entity == entity) {
+                        // Save the shared group when any component changes
+                        saveSharedGroup(gid);
+                        break;
+                    }
+                }
+            }
+        });
+
+    // Also subscribe to component additions and removals
+    getEventBus().subscribe(EventType::ComponentAdded,
+        [this, gid](const Event& e) {
+            const SharedGroup* group = getSharedGroup(gid);
+            if (group) {
+                for (const auto& [sceneId, entity] : group->members) {
+                    if (e.entity == entity) {
+                        saveSharedGroup(gid);
+                        break;
+                    }
+                }
+            }
+        });
+
+    getEventBus().subscribe(EventType::ComponentRemoved,
+        [this, gid](const Event& e) {
+            const SharedGroup* group = getSharedGroup(gid);
+            if (group) {
+                for (const auto& [sceneId, entity] : group->members) {
+                    if (e.entity == entity) {
+                        saveSharedGroup(gid);
+                        break;
+                    }
+                }
+            }
+        });
+
+    return gid;
+}
+
+bool Editor::Project::importSharedEntity(uint32_t sceneId, const std::filesystem::path& filepath){
+    auto it = pathToGroupIdx.find(filepath.string());
+    if (it==pathToGroupIdx.end()) return false;
+    SharedGroup &group = sharedGroups[it->second];
+
+    // do not re‐import if already present
+    if (group.members.count(sceneId)) return false;
+
+    // load YAML
+    YAML::Node node = YAML::LoadFile(filepath.string());
+
+    // decode into a brand‐new local entity
+    Scene* scene = getScene(sceneId)->scene;
+    Entity localE = Stream::decodeEntity(scene, node);
+
+    // record it
+    group.members[sceneId] = localE;
+    return true;
+}
+
+void Editor::Project::saveSharedGroup(uint32_t sharedGroupId){
+    SharedGroup* g = getSharedGroup(sharedGroupId);
+    if (!g) return;
+
+    // pick one “authoritative” scene to read from
+    auto [authorSceneId, authorE] = *g->members.begin();
+    Scene* sc = getScene(authorSceneId)->scene;
+
+    // re‐serialize
+    YAML::Node node = Stream::encodeEntity(authorE, sc);
+    std::ofstream fout(g->filepath.string());
+    fout << YAML::Dump(node);
+    fout.close();
+}
+
+Editor::SharedGroup* Editor::Project::getSharedGroup(uint32_t sharedGroupId){
+    for (auto &g : sharedGroups)
+        if (g.id == sharedGroupId) return &g;
+    return nullptr;
+}
+
+const Editor::SharedGroup* Editor::Project::getSharedGroup(uint32_t sharedGroupId) const {
+    for (auto &g : sharedGroups)
+        if (g.id == sharedGroupId) return &g;
+    return nullptr;
+}
+
+uint32_t Editor::Project::findGroupFor(uint32_t sceneId, Entity e) const {
+    for (auto &g : sharedGroups){
+        auto it = g.members.find(sceneId);
+        if (it!=g.members.end() && it->second==e)
+        return g.id;
+    }
+    return 0; // none
 }
 
 void Editor::Project::build() {

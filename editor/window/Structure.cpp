@@ -238,7 +238,11 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         if (!node.isScene) {
             Scene* scene = project->getSelectedScene()->scene;
             YAML::Node entityData = Stream::encodeEntity(node.id, scene);
-            std::string yamlString = YAML::Dump(entityData);
+
+            YAML::Node wrapper;
+            wrapper["entity"] = node.id;
+            wrapper["entity_data"] = entityData;
+            std::string yamlString = YAML::Dump(wrapper);
 
             ImGui::SetDragDropPayload("entity", yamlString.c_str(), yamlString.size());
         }

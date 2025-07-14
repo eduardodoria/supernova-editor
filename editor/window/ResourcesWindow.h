@@ -145,7 +145,7 @@ namespace Supernova::Editor {
         bool loadThumbnail(FileEntry& entry);
 
         void saveMaterialFile(const fs::path& directory, const char* materialContent, size_t contentLen);
-        void saveEntityFile(const fs::path& directory, const char* entityContent, size_t contentLen, const std::string& entityName);
+        void saveEntityFile(const fs::path& directory, const char* entityContent, size_t contentLen, Entity entity, const std::string& entityName);
 
     public:
         ResourcesWindow(Project* project, CodeEditor* codeEditor);

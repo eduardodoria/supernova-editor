@@ -6,6 +6,7 @@
 #include "render/SceneRender.h"
 #include "command/CommandHistory.h"
 #include "render/preview/MaterialRender.h"
+#include "util/EventBus.h"
 #include "Conector.h"
 #include "Generator.h"
 #include "Configs.h"
@@ -33,8 +34,16 @@ namespace Supernova::Editor{
         bool isModified;
     };
 
+    struct SharedGroup {
+        uint32_t id;
+        std::filesystem::path filepath;
+        std::map<uint32_t,Entity> members; // sceneId → local Entity
+    };
+
     class Project{
     private:
+
+        static EventBus globalEventBus;
 
         Conector conector;
         Generator generator;
@@ -51,6 +60,11 @@ namespace Supernova::Editor{
 
         std::filesystem::path projectPath;
         bool resourcesFocused;
+
+        uint32_t nextSharedGroupId = 1;
+        std::vector<SharedGroup> sharedGroups;
+        // fast lookup: filepath → group index in sharedGroups
+        std::unordered_map<std::string,size_t> pathToGroupIdx;
 
         template<typename T>
         T* findScene(uint32_t sceneId) const;
@@ -125,6 +139,16 @@ namespace Supernova::Editor{
 
         bool hasSelectedSceneUnsavedChanges() const;
         bool hasScenesUnsavedChanges() const;
+
+        static EventBus& getEventBus();
+
+        uint32_t markEntityShared(uint32_t sceneId, Entity entity, fs::path filepath);
+        bool importSharedEntity(uint32_t sceneId, const std::filesystem::path& filepath);
+        void saveSharedGroup(uint32_t sharedGroupId);
+
+        SharedGroup* getSharedGroup(uint32_t sharedGroupId);
+        const SharedGroup* getSharedGroup(uint32_t sharedGroupId) const;
+        uint32_t findGroupFor(uint32_t sceneId, Entity e) const;
 
         void build();
 
