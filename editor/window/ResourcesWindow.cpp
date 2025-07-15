@@ -1165,7 +1165,19 @@ void Editor::ResourcesWindow::saveMaterialFile(const fs::path& directory, const 
     }
 }
 
-void Editor::ResourcesWindow::saveEntityFile(const fs::path& directory, const char* entityContent, size_t contentLen, Entity entity, const std::string& entityName) {
+void Editor::ResourcesWindow::saveEntityFile(const fs::path& directory, const char* entityContent, size_t contentLen) {
+    YAML::Node wrapper = YAML::Load(std::string(entityContent, contentLen));
+    Entity entity = NULL_ENTITY;
+    if (wrapper["entity"])
+        entity = wrapper["entity"].as<Entity>();
+
+    YAML::Node entityNode = wrapper["entity_data"];
+
+    std::string entityName = "Entity";
+    if (entityNode["name"]) {
+        entityName = entityNode["name"].as<std::string>();
+    }
+
     std::string baseName = entityName.empty() ? "Entity" : entityName;
     // Replace invalid filename characters with underscores
     for (char& c : baseName) {
@@ -1186,7 +1198,7 @@ void Editor::ResourcesWindow::saveEntityFile(const fs::path& directory, const ch
         out.write(entityContent, contentLen);
         out.close();
 
-        project->markEntityShared(project->getSelectedSceneId(), entity, targetFile);
+        project->markEntityShared(project->getSelectedSceneId(), entity, targetFile, entityNode);
         scanDirectory(currentPath);
     }
 }
@@ -1400,19 +1412,7 @@ void Editor::ResourcesWindow::show() {
             const char* entityContent = (const char*)payload->Data;
             size_t contentLen = payload->DataSize;
 
-            YAML::Node wrapper = YAML::Load(std::string(entityContent, contentLen));
-            Entity entity = NULL_ENTITY;
-            if (wrapper["entity"])
-                entity = wrapper["entity"].as<Entity>();
-
-            YAML::Node entityNode = wrapper["entity_data"];
-
-            std::string entityName = "Entity";
-            if (entityNode["name"]) {
-                entityName = entityNode["name"].as<std::string>();
-            }
-
-            saveEntityFile(currentPath, entityContent, contentLen, entity, entityName);
+            saveEntityFile(currentPath, entityContent, contentLen);
         }
         ImGui::EndDragDropTarget();
     }

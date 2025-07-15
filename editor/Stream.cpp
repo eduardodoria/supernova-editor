@@ -945,7 +945,7 @@ void Editor::Stream::decodeSceneProjectEntities(Project* project, SceneProject* 
             // register in Project’s SharedGroup
             uint32_t gid = project->findGroupFor(sceneProject->id, e);
             if (!gid) {
-                gid = project->markEntityShared(sceneProject->id, e, path);
+                gid = project->markEntityShared(sceneProject->id, e, path, sharedNode);
             } else {
                 auto* g = project->getSharedGroup(gid);
                 if (g) g->members[sceneProject->id] = e;

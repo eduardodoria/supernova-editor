@@ -11,6 +11,8 @@
 #include "Generator.h"
 #include "Configs.h"
 
+#include "yaml-cpp/yaml.h"
+
 #include <filesystem>
 
 namespace Supernova::Editor{
@@ -38,6 +40,8 @@ namespace Supernova::Editor{
         uint32_t id;
         std::filesystem::path filepath;
         std::map<uint32_t,Entity> members; // sceneId → local Entity
+        YAML::Node cachedYaml;
+        bool isModified = false;
     };
 
     class Project{
@@ -63,8 +67,6 @@ namespace Supernova::Editor{
 
         uint32_t nextSharedGroupId = 1;
         std::vector<SharedGroup> sharedGroups;
-        // fast lookup: filepath → group index in sharedGroups
-        std::unordered_map<std::string,size_t> pathToGroupIdx;
 
         template<typename T>
         T* findScene(uint32_t sceneId) const;
@@ -142,9 +144,11 @@ namespace Supernova::Editor{
 
         static EventBus& getEventBus();
 
-        uint32_t markEntityShared(uint32_t sceneId, Entity entity, fs::path filepath);
+        uint32_t markEntityShared(uint32_t sceneId, Entity entity, fs::path filepath, YAML::Node entityNode);
         bool importSharedEntity(uint32_t sceneId, const std::filesystem::path& filepath);
         void saveSharedGroup(uint32_t sharedGroupId);
+
+        void saveSharedGroupsToDisk();
 
         SharedGroup* getSharedGroup(uint32_t sharedGroupId);
         const SharedGroup* getSharedGroup(uint32_t sharedGroupId) const;

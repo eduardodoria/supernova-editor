@@ -2,7 +2,6 @@
 
 #include "Backend.h"
 
-#include "yaml-cpp/yaml.h"
 #include <fstream>
 
 #include "render/SceneRender2D.h"
@@ -459,6 +458,19 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
         return;
     }
 
+    // Check if this scene has entities in shared groups and save them first
+    bool hasSharedEntities = false;
+    for (const auto& group : sharedGroups) {
+        if (group.members.find(sceneId) != group.members.end()) {
+            hasSharedEntities = true;
+            break;
+        }
+    }
+
+    if (hasSharedEntities) {
+        saveSharedGroupsToDisk();
+    }
+
     YAML::Node root = Stream::encodeSceneProject(this, sceneProject);
     std::ofstream fout(path.string());
     fout << YAML::Dump(root);
@@ -826,6 +838,13 @@ bool Editor::Project::hasScenesUnsavedChanges() const{
             return true;
         }
     }
+
+    for (const auto& group : sharedGroups) {
+        if (group.isModified) {
+            return true;
+        }
+    }
+
     return false;
 }
 
@@ -833,15 +852,18 @@ Editor::EventBus& Editor::Project::getEventBus(){
     return globalEventBus;
 }
 
-uint32_t Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path filepath){
+uint32_t Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path filepath, YAML::Node entityNode){
     uint32_t gid = nextSharedGroupId++;
 
     SharedGroup group;
     group.id = gid;
     group.filepath = filepath;
     group.members[sceneId] = entity;
+
+    group.cachedYaml = entityNode;
+    group.isModified = false;
+
     sharedGroups.push_back(std::move(group));
-    pathToGroupIdx[filepath.string()] = sharedGroups.size()-1;
 
     // Subscribe to component changes for this entity
     getEventBus().subscribe(EventType::ComponentChanged,
@@ -890,15 +912,30 @@ uint32_t Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::
 }
 
 bool Editor::Project::importSharedEntity(uint32_t sceneId, const std::filesystem::path& filepath){
-    auto it = pathToGroupIdx.find(filepath.string());
-    if (it==pathToGroupIdx.end()) return false;
-    SharedGroup &group = sharedGroups[it->second];
+    // Find the SharedGroup with matching filepath
+    auto it = std::find_if(sharedGroups.begin(), sharedGroups.end(),
+        [&filepath](const SharedGroup& group) {
+            return group.filepath == filepath;
+        });
+
+    if (it == sharedGroups.end()) {
+        return false;
+    }
+
+    SharedGroup& group = *it;
 
     // do not re‐import if already present
     if (group.members.count(sceneId)) return false;
 
-    // load YAML
-    YAML::Node node = YAML::LoadFile(filepath.string());
+    YAML::Node node;
+    // Use cached YAML if available and modified, otherwise load from file
+    if (group.isModified && !group.cachedYaml.IsNull()) {  // Changed from isDirty
+        node = group.cachedYaml;
+    } else {
+        node = YAML::LoadFile(filepath.string());
+        // Cache the loaded YAML
+        group.cachedYaml = node;
+    }
 
     // decode into a brand‐new local entity
     Scene* scene = getScene(sceneId)->scene;
@@ -917,11 +954,21 @@ void Editor::Project::saveSharedGroup(uint32_t sharedGroupId){
     auto [authorSceneId, authorE] = *g->members.begin();
     Scene* sc = getScene(authorSceneId)->scene;
 
-    // re‐serialize
-    YAML::Node node = Stream::encodeEntity(authorE, sc);
-    std::ofstream fout(g->filepath.string());
-    fout << YAML::Dump(node);
-    fout.close();
+    // re‐serialize to memory cache
+    g->cachedYaml = Stream::encodeEntity(authorE, sc);
+    g->isModified = true;
+}
+
+void Editor::Project::saveSharedGroupsToDisk(){
+    for (auto& group : sharedGroups) {
+        if (group.isModified && !group.cachedYaml.IsNull()) {
+            std::ofstream fout(group.filepath.string());
+            fout << YAML::Dump(group.cachedYaml);
+            fout.close();
+
+            group.isModified = false;
+        }
+    }
 }
 
 Editor::SharedGroup* Editor::Project::getSharedGroup(uint32_t sharedGroupId){
