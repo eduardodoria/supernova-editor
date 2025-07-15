@@ -564,38 +564,87 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
 
+        // Define axis colors
+        ImU32 axisColors[3] = {
+            IM_COL32(220, 60, 60, 255),   // Red for X
+            IM_COL32(60, 220, 60, 255),   // Green for Y
+            IM_COL32(60, 60, 220, 255)    // Blue for Z
+        };
+
+        // Get draw list for drawing inside input fields
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+        float colorBarWidth = 4.0f; // Width of the colored bar
+
         if (difX)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+
+        // Store cursor position before drawing the input
+        ImVec2 inputPosX = ImGui::GetCursorScreenPos();
+
         if (ImGui::DragFloat(("##input_x_"+id).c_str(), &(newValue.x), stepSize, min, max, format)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector3>(sceneProject, entity, cpType, id, prop.updateFlags, Vector3(newValue.x, eValue[entity].y, eValue[entity].z));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
+
+        // Draw red bar inside the input field
+        float inputWidth = ImGui::GetItemRectSize().x;
+        float inputHeight = ImGui::GetItemRectSize().y;
+        drawList->AddRectFilled(
+            ImVec2(inputPosX.x + 2, inputPosX.y + 2),
+            ImVec2(inputPosX.x + 2 + colorBarWidth, inputPosX.y + inputHeight - 2),
+            axisColors[0]
+        );
+
         if (difX)
             ImGui::PopStyleColor();
 
         ImGui::SameLine();
         if (difY)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+
+        // Store cursor position before drawing the input
+        ImVec2 inputPosY = ImGui::GetCursorScreenPos();
+
         if (ImGui::DragFloat(("##input_y_"+id).c_str(), &(newValue.y), stepSize, min, max, format)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector3>(sceneProject, entity, cpType, id, prop.updateFlags, Vector3(eValue[entity].x, newValue.y, eValue[entity].z));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
+
+        // Draw green bar inside the input field
+        drawList->AddRectFilled(
+            ImVec2(inputPosY.x + 2, inputPosY.y + 2),
+            ImVec2(inputPosY.x + 2 + colorBarWidth, inputPosY.y + inputHeight - 2),
+            axisColors[1]
+        );
+
         if (difY)
             ImGui::PopStyleColor();
 
         ImGui::SameLine();
         if (difZ)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+
+        // Store cursor position before drawing the input
+        ImVec2 inputPosZ = ImGui::GetCursorScreenPos();
+
         if (ImGui::DragFloat(("##input_z_"+id).c_str(), &(newValue.z), stepSize, min, max, format)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector3>(sceneProject, entity, cpType, id, prop.updateFlags, Vector3(eValue[entity].x, eValue[entity].y, newValue.z));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
+
+        // Draw blue bar inside the input field
+        drawList->AddRectFilled(
+            ImVec2(inputPosZ.x + 2, inputPosZ.y + 2),
+            ImVec2(inputPosZ.x + 2 + colorBarWidth, inputPosZ.y + inputHeight - 2),
+            axisColors[2]
+        );
+
         if (difZ)
             ImGui::PopStyleColor();
 
