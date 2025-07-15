@@ -6,6 +6,7 @@
 #include "command/type/CreateEntityCmd.h"
 #include "command/type/EntityNameCmd.h"
 #include "command/type/SceneNameCmd.h"
+#include "Out.h"
 #include "Stream.h"
 
 using namespace Supernova;
@@ -194,6 +195,24 @@ Editor::TreeNode* Editor::Structure::findNode(Editor::TreeNode* root, Entity ent
      }
 
      return nullptr;
+}
+
+void Editor::Structure::handleEntityFilesDrop(const std::vector<std::string>& filePaths) {
+    for (const std::string& filePath : filePaths) {
+        std::filesystem::path path(filePath);
+
+        // Check if it's an entity file
+        if (path.extension() == ".entity") {
+            // Import the shared entity into the current scene
+            bool success = project->importSharedEntity(project->getSelectedSceneId(), path);
+
+            if (success) {
+                Out::info("Successfully imported entity from: %s", path.string().c_str());
+            } else {
+                Out::warning("Failed to import entity from: %s (might already exist in scene)", path.string().c_str());
+            }
+        }
+    }
 }
 
 void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
@@ -537,6 +556,29 @@ void Editor::Structure::show(){
     ImGui::BeginChild("StructureScrollRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
     showTreeNode(root);
     ImGui::EndChild();
+
+    // Handle drag and drop for entity files
+    if (ImGui::BeginDragDropTarget()) {
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
+            // Parse the dropped file paths
+            std::vector<std::string> droppedPaths;
+            const char* data = (const char*)payload->Data;
+            size_t dataSize = payload->DataSize;
+
+            // Parse null-terminated strings from the payload
+            size_t offset = 0;
+            while (offset < dataSize) {
+                std::string path(data + offset);
+                if (!path.empty()) {
+                    droppedPaths.push_back(path);
+                }
+                offset += path.size() + 1; // +1 for null terminator
+            }
+
+            handleEntityFilesDrop(droppedPaths);
+        }
+        ImGui::EndDragDropTarget();
+    }
 
     ImGui::End();
 }

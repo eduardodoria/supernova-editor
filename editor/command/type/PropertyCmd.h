@@ -93,6 +93,7 @@ namespace Supernova::Editor{
             for (auto const& [entity, value] : values){
                 Event e;
                 e.type = EventType::ComponentChanged;
+                e.sceneId = sceneProject->id;
                 e.entity = entity;
                 e.compType = ComponentType::Transform;
                 Project::getEventBus().publish(e);

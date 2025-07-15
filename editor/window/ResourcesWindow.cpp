@@ -1195,7 +1195,7 @@ void Editor::ResourcesWindow::saveEntityFile(const fs::path& directory, const ch
     }
     std::ofstream out(targetFile, std::ios::binary);
     if (out.is_open()) {
-        out.write(entityContent, contentLen);
+        out << YAML::Dump(entityNode);
         out.close();
 
         project->markEntityShared(project->getSelectedSceneId(), entity, targetFile, entityNode);

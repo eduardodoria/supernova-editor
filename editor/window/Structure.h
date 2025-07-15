@@ -6,6 +6,7 @@
 #include "imgui.h"
 #include <string>
 #include <vector>
+#include <filesystem>
 
 namespace Supernova::Editor{
 
@@ -41,6 +42,7 @@ namespace Supernova::Editor{
         void drawInsertionMarker(const ImVec2& p1, const ImVec2& p2);
         std::string getObjectIcon(Signature signature, Scene* scene);
         TreeNode* findNode(Editor::TreeNode* root, Entity entity);
+        void handleEntityFilesDrop(const std::vector<std::string>& filePaths);
 
     public:
         Structure(Project* project, SceneWindow* sceneWindow);

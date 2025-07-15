@@ -863,6 +863,10 @@ uint32_t Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::
     group.cachedYaml = entityNode;
     group.isModified = false;
 
+    if (SceneProject* sceneProject = getScene(sceneId)){
+        sceneProject->isModified = true;
+    }
+
     sharedGroups.push_back(std::move(group));
 
     // Subscribe to component changes for this entity
@@ -872,9 +876,9 @@ uint32_t Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::
             const SharedGroup* group = getSharedGroup(gid);
             if (group) {
                 for (const auto& [sceneId, entity] : group->members) {
-                    if (e.entity == entity) {
+                    if (e.entity == entity && e.sceneId == sceneId) {
                         // Save the shared group when any component changes
-                        saveSharedGroup(gid);
+                        saveSharedGroup(gid, sceneId);
                         break;
                     }
                 }
@@ -887,8 +891,8 @@ uint32_t Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::
             const SharedGroup* group = getSharedGroup(gid);
             if (group) {
                 for (const auto& [sceneId, entity] : group->members) {
-                    if (e.entity == entity) {
-                        saveSharedGroup(gid);
+                    if (e.entity == entity && e.sceneId == sceneId) {
+                        saveSharedGroup(gid, sceneId);
                         break;
                     }
                 }
@@ -900,8 +904,8 @@ uint32_t Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::
             const SharedGroup* group = getSharedGroup(gid);
             if (group) {
                 for (const auto& [sceneId, entity] : group->members) {
-                    if (e.entity == entity) {
-                        saveSharedGroup(gid);
+                    if (e.entity == entity && e.sceneId == sceneId) {
+                        saveSharedGroup(gid, sceneId);
                         break;
                     }
                 }
@@ -938,25 +942,35 @@ bool Editor::Project::importSharedEntity(uint32_t sceneId, const std::filesystem
     }
 
     // decode into a brand‐new local entity
-    Scene* scene = getScene(sceneId)->scene;
+    SceneProject* sceneProject = getScene(sceneId);
+    Scene* scene = sceneProject->scene;
     Entity localE = Stream::decodeEntity(scene, node);
+    sceneProject->entities.push_back(localE);
+    sceneProject->isModified = true;
 
     // record it
     group.members[sceneId] = localE;
     return true;
 }
 
-void Editor::Project::saveSharedGroup(uint32_t sharedGroupId){
-    SharedGroup* g = getSharedGroup(sharedGroupId);
-    if (!g) return;
+void Editor::Project::saveSharedGroup(uint32_t sharedGroupId, uint32_t sceneId){
+    SharedGroup* group = getSharedGroup(sharedGroupId);
+    if (!group) return;
 
-    // pick one “authoritative” scene to read from
-    auto [authorSceneId, authorE] = *g->members.begin();
-    Scene* sc = getScene(authorSceneId)->scene;
+    // Check if the provided sceneId is part of this shared group
+    auto it = group->members.find(sceneId);
+    if (it == group->members.end()) {
+        Out::error("Scene ID %u is not part of shared group %u", sceneId, sharedGroupId);
+        return;
+    }
+
+    // Use the provided scene as authoritative source
+    Entity authorE = it->second;
+    Scene* scene = getScene(sceneId)->scene;
 
     // re‐serialize to memory cache
-    g->cachedYaml = Stream::encodeEntity(authorE, sc);
-    g->isModified = true;
+    group->cachedYaml = Stream::encodeEntity(authorE, scene);
+    group->isModified = true;
 }
 
 void Editor::Project::saveSharedGroupsToDisk(){

@@ -20,6 +20,7 @@ namespace Supernova::Editor {
     // A generic event payload
     struct Event {
         EventType    type;
+        uint32_t sceneId;
         Entity  entity;
         ComponentType  compType;   // only meaningful for component‐events
     };

@@ -84,6 +84,7 @@ void Editor::ObjectTransformCmd::finalize(){
     for (auto& [entity, property] : props){
         Event e;
         e.type = EventType::ComponentChanged;
+        e.sceneId = sceneProject->id;
         e.entity = entity;
         e.compType = ComponentType::Transform;
         Project::getEventBus().publish(e);
