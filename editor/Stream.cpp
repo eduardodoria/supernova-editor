@@ -387,7 +387,7 @@ YAML::Node Editor::Stream::encodeTransform(const Transform& transform) {
     transformNode["normalMatrix"] = encodeMatrix4(transform.normalMatrix);
     transformNode["modelViewProjectionMatrix"] = encodeMatrix4(transform.modelViewProjectionMatrix);
     transformNode["visible"] = transform.visible;
-    transformNode["parent"] = transform.parent;
+    //transformNode["parent"] = transform.parent;
     transformNode["distanceToCamera"] = transform.distanceToCamera;
     transformNode["billboardRotation"] = encodeQuaternion(transform.billboardRotation);
     transformNode["billboard"] = transform.billboard;
@@ -413,7 +413,7 @@ Transform Editor::Stream::decodeTransform(const YAML::Node& node) {
     transform.normalMatrix = decodeMatrix4(node["normalMatrix"]);
     transform.modelViewProjectionMatrix = decodeMatrix4(node["modelViewProjectionMatrix"]);
     transform.visible = node["visible"].as<bool>();
-    transform.parent = node["parent"].as<Entity>();
+    //transform.parent = node["parent"].as<Entity>();
     transform.distanceToCamera = node["distanceToCamera"].as<float>();
     transform.billboardRotation = decodeQuaternion(node["billboardRotation"]);
     transform.billboard = node["billboard"].as<bool>();
@@ -909,20 +909,65 @@ YAML::Node Editor::Stream::encodeSceneProject(Project* project, const SceneProje
     root["scene"] = encodeScene(sceneProject->scene);
     root["sceneType"] = sceneTypeToString(sceneProject->sceneType);
 
-    YAML::Node entitiesNode;
+    // Build childrenMap
+    std::unordered_map<Entity, std::vector<Entity>> childrenMap;
     for (Entity ent : sceneProject->entities) {
-        uint32_t gid = project->findGroupFor(sceneProject->id, ent);
-        if (gid) {
-            auto* g = project->getSharedGroup(gid);
-            YAML::Node stub;
-            stub["sharedFile"] = g->filepath.string();
-            entitiesNode.push_back(stub);
-        } else {
-            entitiesNode.push_back( encodeEntity(ent, sceneProject->scene) );
+        if (Transform* transform = sceneProject->scene->findComponent<Transform>(ent)) {
+            if (transform->parent != NULL_ENTITY) {
+                childrenMap[transform->parent].push_back(ent);
+            }
         }
+    }
+
+    // Find roots (entities that are not children of any)
+    std::unordered_set<Entity> isChildSet;
+    for (auto& pair : childrenMap) {
+        for (Entity c : pair.second) {
+            isChildSet.insert(c);
+        }
+    }
+
+    std::vector<Entity> roots;
+    for (Entity ent : sceneProject->entities) {
+        if (isChildSet.find(ent) == isChildSet.end()) {
+            roots.push_back(ent);
+        }
+    }
+
+    // Encode roots recursively
+    YAML::Node entitiesNode;
+    for (Entity ent : roots) {
+        entitiesNode.push_back(encodeEntityRecursive(ent, sceneProject->scene, project, sceneProject->id, childrenMap));
     }
     root["entities"] = entitiesNode;
     return root;
+}
+
+YAML::Node Editor::Stream::encodeEntityRecursive(Entity entity, const Scene* scene, Project* project, uint32_t sceneId, const std::unordered_map<Entity, std::vector<Entity>>& childrenMap){
+    YAML::Node node;
+
+    uint32_t gid = project->findGroupFor(sceneId, entity);
+    if (gid) {
+        auto* g = project->getSharedGroup(gid);
+        node["sharedFile"] = g->filepath.string();
+    } else {
+        node = encodeEntity(entity, scene);
+        if (node["transform"]) {
+            node["transform"].remove("parent");
+        }
+    }
+
+    // Add children
+    auto it = childrenMap.find(entity);
+    if (it != childrenMap.end()) {
+        YAML::Node chNode;
+        for (Entity child : it->second) {
+            chNode.push_back(encodeEntityRecursive(child, scene, project, sceneId, childrenMap));
+        }
+        node["children"] = chNode;
+    }
+
+    return node;
 }
 
 void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::Node& node) {
@@ -933,28 +978,87 @@ void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::
 }
 
 void Editor::Stream::decodeSceneProjectEntities(Project* project, SceneProject* sceneProject, const YAML::Node& node){
+    std::vector<Entity> newEntities;
     auto entitiesNode = node["entities"];
     for (const auto& en : entitiesNode){
-        if (en["sharedFile"]) {
-            std::string path = en["sharedFile"].as<std::string>();
-            YAML::Node sharedNode = YAML::LoadFile(path);
+        decodeEntity(sceneProject->scene, en, newEntities, project, sceneProject, NULL_ENTITY);
+    }
+    sceneProject->entities = newEntities;
+}
 
-            Entity e = decodeEntity(sceneProject->scene, sharedNode);
-            sceneProject->entities.push_back(e);
+Entity Editor::Stream::decodeEntity(Scene* scene, const YAML::Node& node, std::vector<Entity>& allEntities, Project* project, SceneProject* sceneProject, Entity parent){
+    YAML::Node actualNode = node;
+    bool isShared = false;
+    std::string sharedPath;
+    if (node["sharedFile"]) {
+        isShared = true;
+        sharedPath = node["sharedFile"].as<std::string>();
+        actualNode = YAML::LoadFile(sharedPath);
+    }
 
-            // register in Project’s SharedGroup
-            uint32_t gid = project->findGroupFor(sceneProject->id, e);
-            if (!gid) {
-                gid = project->markEntityShared(sceneProject->id, e, path, sharedNode);
-            } else {
-                auto* g = project->getSharedGroup(gid);
-                if (g) g->members[sceneProject->id] = e;
-            }
-        } else {
-            Entity e = decodeEntity(sceneProject->scene, en);
-            sceneProject->entities.push_back(e);
+    Entity entity = scene->createEntity();
+    allEntities.push_back(entity);
+
+    std::string name = actualNode["name"].as<std::string>();
+    scene->setEntityName(entity, name);
+
+    if (actualNode["transform"]) {
+        Transform transform = decodeTransform(actualNode["transform"]);
+        transform.parent = parent;
+        scene->addComponent<Transform>(entity, transform);
+    }
+
+    if (actualNode["mesh"]) {
+        MeshComponent mesh = decodeMeshComponent(actualNode["mesh"]);
+        scene->addComponent<MeshComponent>(entity, mesh);
+    }
+
+    if (actualNode["ui"]) {
+        UIComponent ui = decodeUIComponent(actualNode["ui"]);
+        scene->addComponent<UIComponent>(entity, ui);
+    }
+
+    if (actualNode["layout"]) {
+        UILayoutComponent layout = decodeUILayoutComponent(actualNode["layout"]);
+        scene->addComponent<UILayoutComponent>(entity, layout);
+    }
+
+    if (actualNode["image"]) {
+        ImageComponent image = decodeImageComponent(actualNode["image"]);
+        scene->addComponent<ImageComponent>(entity, image);
+    }
+
+    if (actualNode["light"]) {
+        LightComponent light = decodeLightComponent(actualNode["light"]);
+        scene->addComponent<LightComponent>(entity, light);
+    }
+
+    // Decode children from actualNode
+    if (actualNode["children"]) {
+        for (const auto& childNode : actualNode["children"]) {
+            decodeEntity(scene, childNode, allEntities, project, sceneProject, entity);
         }
     }
+
+    // If is shared and node has additional children, decode them
+    if (isShared && node["children"]) {
+        for (const auto& childNode : node["children"]) {
+            decodeEntity(scene, childNode, allEntities, project, sceneProject, entity);
+        }
+    }
+
+    // Register shared if applicable
+    if (isShared) {
+        uint32_t gid = project->findGroupFor(sceneProject->id, entity);
+        if (!gid) {
+            gid = project->markEntityShared(sceneProject->id, entity, sharedPath, actualNode);
+        } else {
+            auto* g = project->getSharedGroup(gid);
+            if (g) g->members[sceneProject->id] = entity;
+        }
+    }
+
+    return entity;
 }
 
 YAML::Node Editor::Stream::encodeScene(Scene* scene) {
@@ -1045,6 +1149,7 @@ YAML::Node Editor::Stream::encodeEntity(const Entity entity, const Scene* scene)
 }
 
 Entity Editor::Stream::decodeEntity(Scene* scene, const YAML::Node& entityNode) {
+    // Original flat decode, but may not be used now; kept for compatibility
     Entity entity = scene->createEntity();
 
     std::string name = entityNode["name"].as<std::string>();
