@@ -279,8 +279,6 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     }
 
     if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
-        ImGui::SetDragDropPayload(dragDropName.c_str(), &node, sizeof(TreeNode));
-
         // Add entity drag drop payload for dragging to resources
         if (!node.isScene) {
             Scene* scene = project->getSelectedScene()->scene;
@@ -288,7 +286,10 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
 
             YAML::Node wrapper;
             wrapper["entity"] = node.id;
-            wrapper["entity_data"] = entityData;
+            wrapper["parent"] = node.parent;
+            wrapper["order"] = node.order;
+            wrapper["hasTransform"] = node.hasTransform;
+            wrapper["data"] = entityData;
             std::string yamlString = YAML::Dump(wrapper);
 
             ImGui::SetDragDropPayload("entity", yamlString.c_str(), yamlString.size());
@@ -305,7 +306,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         ImVec2 mousePos = ImGui::GetMousePos();
         ImVec2 itemMin = ImGui::GetItemRectMin();
         ImVec2 itemMax = ImGui::GetItemRectMax();
-        if (!node.isScene && project->getSelectedScene()->scene->findComponent<Transform>(node.id)){
+        if (!node.isScene && node.hasTransform){
             insertBefore = (mousePos.y - itemMin.y) < (itemMax.y - itemMin.y) * 0.2f;
             insertAfter = (mousePos.y - itemMin.y) > (itemMax.y - itemMin.y) * 0.8f;
         }else{
@@ -320,20 +321,28 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
             flags |= ImGuiDragDropFlags_AcceptNoDrawDefaultRect;
         }
 
-        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(dragDropName.c_str(), flags)) {
-            TreeNode* source = (TreeNode*)payload->Data;
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("entity", flags)) {
+            YAML::Node wrapper = YAML::Load(std::string((const char*)payload->Data, payload->DataSize));
+            Entity sourceEntity = wrapper["entity"].as<Entity>();
+            Entity sourceParent = wrapper["parent"].as<Entity>();
+            size_t sourceOrder = wrapper["order"].as<size_t>();
+            Entity sourceHasTransform = wrapper["hasTransform"].as<bool>();
 
-            if (node.parent == source->parent){
-                if (node.order == (source->order+1)){
+            if (node.parent == sourceParent){
+                if (node.order == (sourceOrder+1)){
                     insertBefore = false;
                 }
-                if (node.order == (source->order-1)){
+                if (node.order == (sourceOrder-1)){
                     insertAfter = false;
                 }
             }
 
-            if (!source->isScene && !node.isScene && payload->IsDelivery()){
-                //printf("Dropped: %s in %s\n", source->name.c_str(), node.name.c_str());
+            if (sourceHasTransform != node.hasTransform){
+                insertBefore = false;
+                insertAfter = false;
+            }
+
+            if (!node.isScene && payload->IsDelivery()){
                 InsertionType type;
                 if (insertBefore){
                     type = InsertionType::BEFORE;
@@ -342,7 +351,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                 }else{
                     type = InsertionType::IN;
                 }
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(new MoveEntityOrderCmd(project, project->getSelectedSceneId(), source->id, node.id, type));
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(new MoveEntityOrderCmd(project, project->getSelectedSceneId(), sourceEntity, node.id, type));
             }
 
         }

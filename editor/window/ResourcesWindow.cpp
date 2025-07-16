@@ -1171,7 +1171,7 @@ void Editor::ResourcesWindow::saveEntityFile(const fs::path& directory, const ch
     if (wrapper["entity"])
         entity = wrapper["entity"].as<Entity>();
 
-    YAML::Node entityNode = wrapper["entity_data"];
+    YAML::Node entityNode = wrapper["data"];
 
     std::string entityName = "Entity";
     if (entityNode["name"]) {
