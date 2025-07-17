@@ -17,6 +17,7 @@
 #include "util/FileDialogs.h"
 #include "util/SHA1.h"
 #include "util/GraphicUtils.h"
+#include "util/EntityPayload.h"
 
 #include "imgui_internal.h"
 
@@ -1166,12 +1167,15 @@ void Editor::ResourcesWindow::saveMaterialFile(const fs::path& directory, const 
 }
 
 void Editor::ResourcesWindow::saveEntityFile(const fs::path& directory, const char* entityContent, size_t contentLen) {
-    YAML::Node wrapper = YAML::Load(std::string(entityContent, contentLen));
     Entity entity = NULL_ENTITY;
-    if (wrapper["entity"])
-        entity = wrapper["entity"].as<Entity>();
+    std::string yamlString;
+    if (contentLen >= sizeof(EntityPayload)) {
+        const EntityPayload* p = reinterpret_cast<const EntityPayload*>(entityContent);
+        entity = p->entity;
+        yamlString = std::string(entityContent + sizeof(EntityPayload), contentLen - sizeof(EntityPayload));
+    }
 
-    YAML::Node entityNode = wrapper["data"];
+    YAML::Node entityNode = YAML::Load(yamlString);
 
     std::string entityName = "Entity";
     if (entityNode["name"]) {

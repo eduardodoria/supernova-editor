@@ -6,6 +6,7 @@
 #include "command/type/CreateEntityCmd.h"
 #include "command/type/EntityNameCmd.h"
 #include "command/type/SceneNameCmd.h"
+#include "util/EntityPayload.h"
 #include "Out.h"
 #include "Stream.h"
 
@@ -278,16 +279,20 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         if (!node.isScene) {
             Scene* scene = project->getSelectedScene()->scene;
             YAML::Node entityData = Stream::encodeEntity(node.id, scene);
+            std::string yamlString = YAML::Dump(entityData);
 
-            YAML::Node wrapper;
-            wrapper["entity"] = node.id;
-            wrapper["parent"] = node.parent;
-            wrapper["order"] = node.order;
-            wrapper["hasTransform"] = node.hasTransform;
-            wrapper["data"] = entityData;
-            std::string yamlString = YAML::Dump(wrapper);
+            size_t yamlSize = yamlString.size();
+            size_t payloadSize = sizeof(EntityPayload) + yamlSize;
+            std::vector<char> payloadData(payloadSize);
 
-            ImGui::SetDragDropPayload("entity", yamlString.c_str(), yamlString.size());
+            EntityPayload* payload = reinterpret_cast<EntityPayload*>(payloadData.data());
+            payload->entity = node.id;
+            payload->parent = node.parent;
+            payload->order = node.order;
+            payload->hasTransform = node.hasTransform;
+            memcpy(payloadData.data() + sizeof(EntityPayload), yamlString.data(), yamlSize);
+
+            ImGui::SetDragDropPayload("entity", payloadData.data(), payloadSize);
         }
 
         ImGui::Text("Moving %s", node.name.c_str());
@@ -300,10 +305,19 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     if (ImGui::BeginDragDropTarget()) {
         bool allowDragDrop = true;
         const ImGuiPayload* payload = ImGui::GetDragDropPayload();
-        YAML::Node wrapper;
+        Entity sourceEntity = 0;
+        Entity sourceParent = 0;
+        size_t sourceOrder = 0;
+        bool sourceHasTransform = false;
         if (payload && payload->IsDataType("entity")) {
-            wrapper = YAML::Load(std::string((const char*)payload->Data, payload->DataSize));
-            bool sourceHasTransform = wrapper["hasTransform"].as<bool>();
+            if (payload->DataSize >= sizeof(EntityPayload)) {
+                const EntityPayload* p = reinterpret_cast<const EntityPayload*>(payload->Data);
+                sourceEntity = p->entity;
+                sourceParent = p->parent;
+                sourceOrder = p->order;
+                sourceHasTransform = p->hasTransform;
+            }
+
             if (sourceHasTransform != node.hasTransform) {
                 allowDragDrop = false;
             }
@@ -330,11 +344,6 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
             }
 
             if (ImGui::AcceptDragDropPayload("entity", flags)) {
-                Entity sourceEntity = wrapper["entity"].as<Entity>();
-                Entity sourceParent = wrapper["parent"].as<Entity>();
-                size_t sourceOrder = wrapper["order"].as<size_t>();
-                Entity sourceHasTransform = wrapper["hasTransform"].as<bool>();
-
                 if (node.parent == sourceParent){
                     if (node.order == (sourceOrder+1)){
                         insertBefore = false;
