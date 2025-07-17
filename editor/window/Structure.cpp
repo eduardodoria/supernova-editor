@@ -273,11 +273,6 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         }
     }
 
-    std::string dragDropName = "ENTITY";
-    if (node.hasTransform){
-        dragDropName = dragDropName + "_T";
-    }
-
     if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
         // Add entity drag drop payload for dragging to resources
         if (!node.isScene) {
@@ -303,90 +298,100 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     bool insertAfter = false;
 
     if (ImGui::BeginDragDropTarget()) {
-        ImVec2 mousePos = ImGui::GetMousePos();
-        ImVec2 itemMin = ImGui::GetItemRectMin();
-        ImVec2 itemMax = ImGui::GetItemRectMax();
-        if (!node.isScene && node.hasTransform){
-            insertBefore = (mousePos.y - itemMin.y) < (itemMax.y - itemMin.y) * 0.2f;
-            insertAfter = (mousePos.y - itemMin.y) > (itemMax.y - itemMin.y) * 0.8f;
-        }else{
-            insertBefore = (mousePos.y - itemMin.y) < (itemMax.y - itemMin.y) * 0.5f;
-            insertAfter = (mousePos.y - itemMin.y) >= (itemMax.y - itemMin.y) * 0.5f;
+        bool allowDragDrop = true;
+        const ImGuiPayload* payload = ImGui::GetDragDropPayload();
+        YAML::Node wrapper;
+        if (payload && payload->IsDataType("entity")) {
+            wrapper = YAML::Load(std::string((const char*)payload->Data, payload->DataSize));
+            bool sourceHasTransform = wrapper["hasTransform"].as<bool>();
+            if (sourceHasTransform != node.hasTransform) {
+                allowDragDrop = false;
+            }
         }
 
-        //ImGuiDragDropFlags flags = 0;
-        ImGuiDragDropFlags flags = ImGuiDragDropFlags_AcceptBeforeDelivery;
+        if (allowDragDrop){
 
-        if (insertBefore || insertAfter){
-            flags |= ImGuiDragDropFlags_AcceptNoDrawDefaultRect;
+            ImVec2 mousePos = ImGui::GetMousePos();
+            ImVec2 itemMin = ImGui::GetItemRectMin();
+            ImVec2 itemMax = ImGui::GetItemRectMax();
+            if (!node.isScene && node.hasTransform){
+                insertBefore = (mousePos.y - itemMin.y) < (itemMax.y - itemMin.y) * 0.2f;
+                insertAfter = (mousePos.y - itemMin.y) > (itemMax.y - itemMin.y) * 0.8f;
+            }else{
+                insertBefore = (mousePos.y - itemMin.y) < (itemMax.y - itemMin.y) * 0.5f;
+                insertAfter = (mousePos.y - itemMin.y) >= (itemMax.y - itemMin.y) * 0.5f;
+            }
+
+            ImGuiDragDropFlags flags = 0;
+            //ImGuiDragDropFlags flags = ImGuiDragDropFlags_AcceptBeforeDelivery;
+
+            if (insertBefore || insertAfter){
+                flags |= ImGuiDragDropFlags_AcceptNoDrawDefaultRect;
+            }
+
+            if (ImGui::AcceptDragDropPayload("entity", flags)) {
+                Entity sourceEntity = wrapper["entity"].as<Entity>();
+                Entity sourceParent = wrapper["parent"].as<Entity>();
+                size_t sourceOrder = wrapper["order"].as<size_t>();
+                Entity sourceHasTransform = wrapper["hasTransform"].as<bool>();
+
+                if (node.parent == sourceParent){
+                    if (node.order == (sourceOrder+1)){
+                        insertBefore = false;
+                    }
+                    if (node.order == (sourceOrder-1)){
+                        insertAfter = false;
+                    }
+                }
+
+                if (!node.isScene && payload->IsDelivery()){
+                    InsertionType type;
+                    if (insertBefore){
+                        type = InsertionType::BEFORE;
+                    }else if (insertAfter){
+                        type = InsertionType::AFTER;
+                    }else{
+                        type = InsertionType::IN;
+                    }
+                    CommandHandle::get(project->getSelectedSceneId())->addCommand(new MoveEntityOrderCmd(project, project->getSelectedSceneId(), sourceEntity, node.id, type));
+                }
+
+            }
+
+            if (!node.isScene && insertBefore) {
+                const ImVec2& padding = ImGui::GetStyle().FramePadding;
+
+                ImVec2 lineStart = ImGui::GetCursorScreenPos();
+                ImVec2 lineEnd = lineStart;
+                lineEnd.x += ImGui::GetContentRegionAvail().x;
+
+                lineStart.y -= padding.y * 2.0;
+                lineEnd.y -= padding.y * 2.0;
+
+                ImVec2 node_size = ImGui::GetItemRectSize();
+
+                lineStart.y -= node_size.y;
+                lineEnd.y -= node_size.y;
+
+                drawInsertionMarker(lineStart, lineEnd);
+            }
+
+            if (!node.isScene && insertAfter) {
+                const ImVec2& padding = ImGui::GetStyle().FramePadding;
+
+                ImVec2 lineStart = ImGui::GetCursorScreenPos();
+                ImVec2 lineEnd = lineStart;
+                lineEnd.x += ImGui::GetContentRegionAvail().x;
+
+                lineStart.y -= padding.y;
+                lineEnd.y -= padding.y;
+
+                drawInsertionMarker(lineStart, lineEnd);
+            }
+
         }
 
-        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("entity", flags)) {
-            YAML::Node wrapper = YAML::Load(std::string((const char*)payload->Data, payload->DataSize));
-            Entity sourceEntity = wrapper["entity"].as<Entity>();
-            Entity sourceParent = wrapper["parent"].as<Entity>();
-            size_t sourceOrder = wrapper["order"].as<size_t>();
-            Entity sourceHasTransform = wrapper["hasTransform"].as<bool>();
-
-            if (node.parent == sourceParent){
-                if (node.order == (sourceOrder+1)){
-                    insertBefore = false;
-                }
-                if (node.order == (sourceOrder-1)){
-                    insertAfter = false;
-                }
-            }
-
-            if (sourceHasTransform != node.hasTransform){
-                insertBefore = false;
-                insertAfter = false;
-            }
-
-            if (!node.isScene && payload->IsDelivery()){
-                InsertionType type;
-                if (insertBefore){
-                    type = InsertionType::BEFORE;
-                }else if (insertAfter){
-                    type = InsertionType::AFTER;
-                }else{
-                    type = InsertionType::IN;
-                }
-                CommandHandle::get(project->getSelectedSceneId())->addCommand(new MoveEntityOrderCmd(project, project->getSelectedSceneId(), sourceEntity, node.id, type));
-            }
-
-        }
         ImGui::EndDragDropTarget();
-    }
-
-    if (!node.isScene && insertBefore) {
-        const ImVec2& padding = ImGui::GetStyle().FramePadding;
-
-        ImVec2 lineStart = ImGui::GetCursorScreenPos();
-        ImVec2 lineEnd = lineStart;
-        lineEnd.x += ImGui::GetContentRegionAvail().x;
-
-        lineStart.y -= padding.y * 2.0;
-        lineEnd.y -= padding.y * 2.0;
-
-        ImVec2 node_size = ImGui::GetItemRectSize();
-
-        lineStart.y -= node_size.y;
-        lineEnd.y -= node_size.y;
-
-        drawInsertionMarker(lineStart, lineEnd);
-    }
-
-    if (!node.isScene && insertAfter) {
-        const ImVec2& padding = ImGui::GetStyle().FramePadding;
-
-        ImVec2 lineStart = ImGui::GetCursorScreenPos();
-        ImVec2 lineEnd = lineStart;
-        lineEnd.x += ImGui::GetContentRegionAvail().x;
-
-        lineStart.y -= padding.y;
-        lineEnd.y -= padding.y;
-
-        drawInsertionMarker(lineStart, lineEnd);
     }
 
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered() && ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows)) {
