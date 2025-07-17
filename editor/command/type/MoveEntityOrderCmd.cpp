@@ -36,6 +36,7 @@ bool Editor::MoveEntityOrderCmd::execute(){
     Transform* transformTarget = sceneProject->scene->findComponent<Transform>(target);
 
     if (transformSource && transformTarget){
+
         if (sceneProject->scene->isParentOf(source, target)){
             Out::error("Cannot move entity to a child");
             return false;
@@ -70,9 +71,40 @@ bool Editor::MoveEntityOrderCmd::execute(){
         }
 
         sceneProject->scene->moveChildToIndex(source, targetTransformIndex, false);
-    }
 
-    sortEntitiesByTransformOrder(entities, sceneProject->scene);
+        sortEntitiesByTransformOrder(entities, sceneProject->scene);
+
+    }else{
+
+        auto itSource = std::find(entities.begin(), entities.end(), source);
+        auto itTarget = std::find(entities.begin(), entities.end(), target);
+
+        if (itSource == entities.end() || itTarget == entities.end()) {
+            Out::error("Source or Target entity not found in entities vector");
+            return false;
+        }
+
+        oldIndex = std::distance(entities.begin(), itSource);
+
+        Entity tempSource = *itSource;
+        size_t sourceIndex = std::distance(entities.begin(), itSource);
+        size_t targetIndex = std::distance(entities.begin(), itTarget);
+
+        entities.erase(itSource);
+
+        if (type == InsertionType::BEFORE) {
+            if (sourceIndex < targetIndex) targetIndex--;
+            entities.insert(entities.begin() + targetIndex, tempSource);
+        } else if (type == InsertionType::AFTER) {
+            if (sourceIndex < targetIndex) targetIndex--;
+            entities.insert(entities.begin() + targetIndex + 1, tempSource);
+        } else if (type == InsertionType::IN) {
+            // "IN" is ambiguous without hierarchy, treat as AFTER
+            if (sourceIndex < targetIndex) targetIndex--;
+            entities.insert(entities.begin() + targetIndex + 1, tempSource);
+        }
+
+    }
 
     sceneProject->isModified = true;
 
@@ -87,12 +119,32 @@ void Editor::MoveEntityOrderCmd::undo(){
     Transform* transformTarget = sceneProject->scene->findComponent<Transform>(target);
 
     if (transformSource && transformTarget){
+
         sceneProject->scene->addEntityChild(oldParent, source, true);
 
         sceneProject->scene->moveChildToIndex(source, oldTransformIndex, false);
-    }
 
-    sortEntitiesByTransformOrder(entities, sceneProject->scene);
+        sortEntitiesByTransformOrder(entities, sceneProject->scene);
+
+    }else{
+
+        auto itSource = std::find(entities.begin(), entities.end(), source);
+        if (itSource == entities.end()) {
+            Out::error("Source entity not found in entities vector for undo");
+            return;
+        }
+
+        Entity tempSource = *itSource;
+        entities.erase(itSource);
+
+        // Clamp oldIndex for safety
+        if (oldIndex > entities.size()) {
+            entities.push_back(tempSource);
+        } else {
+            entities.insert(entities.begin() + oldIndex, tempSource);
+        }
+
+    }
 
     sceneProject->isModified = wasModified;
 }
