@@ -879,7 +879,11 @@ uint32_t Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::
                     if (e.entity == entity && e.sceneId == sceneId) {
                         // Save the shared group when any component changes
                         saveSharedGroup(gid, sceneId);
-                        break;
+                    }else{
+                        // Copy changes to other scenes
+                        for (auto& property : e.properties) {
+                            Catalog::copyPropertyValue(getScene(e.sceneId)->scene, e.entity, getScene(sceneId)->scene, entity, e.compType, property);
+                        }
                     }
                 }
             }

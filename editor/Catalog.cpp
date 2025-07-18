@@ -440,3 +440,110 @@ void Editor::Catalog::updateEntity(Scene* scene, Entity entity, int updateFlags)
         scene->getComponent<SpriteComponent>(entity).needUpdateSprite = true;
     }
 }
+
+void Editor::Catalog::copyPropertyValue(Scene* sourceScene, Entity sourceEntity, 
+                                       Scene* targetScene, Entity targetEntity, 
+                                       ComponentType compType, const std::string& property) {
+
+    // Get the property data to determine the type
+    auto sourceProperties = Catalog::findEntityProperties(sourceScene, sourceEntity, compType);
+    auto propIt = sourceProperties.find(property);
+    if (propIt == sourceProperties.end()) {
+        return; // Property not found
+    }
+
+    PropertyType propType = propIt->second.type;
+
+    // Copy based on property type
+    switch (propType) {
+        case PropertyType::Bool: {
+            bool* source = Catalog::getPropertyRef<bool>(sourceScene, sourceEntity, compType, property);
+            bool* target = Catalog::getPropertyRef<bool>(targetScene, targetEntity, compType, property);
+            if (source && target) *target = *source;
+            break;
+        }
+        case PropertyType::Float:
+        case PropertyType::Float_0_1: {
+            float* source = Catalog::getPropertyRef<float>(sourceScene, sourceEntity, compType, property);
+            float* target = Catalog::getPropertyRef<float>(targetScene, targetEntity, compType, property);
+            if (source && target) *target = *source;
+            break;
+        }
+        case PropertyType::Int: {
+            int* source = Catalog::getPropertyRef<int>(sourceScene, sourceEntity, compType, property);
+            int* target = Catalog::getPropertyRef<int>(targetScene, targetEntity, compType, property);
+            if (source && target) *target = *source;
+            break;
+        }
+        case PropertyType::UInt:
+        case PropertyType::UIntSlider: {
+            unsigned int* source = Catalog::getPropertyRef<unsigned int>(sourceScene, sourceEntity, compType, property);
+            unsigned int* target = Catalog::getPropertyRef<unsigned int>(targetScene, targetEntity, compType, property);
+            if (source && target) *target = *source;
+            break;
+        }
+        case PropertyType::Vector2: {
+            Vector2* source = Catalog::getPropertyRef<Vector2>(sourceScene, sourceEntity, compType, property);
+            Vector2* target = Catalog::getPropertyRef<Vector2>(targetScene, targetEntity, compType, property);
+            if (source && target) *target = *source;
+            break;
+        }
+        case PropertyType::Vector3:
+        case PropertyType::Color3L:
+        case PropertyType::Direction: {
+            Vector3* source = Catalog::getPropertyRef<Vector3>(sourceScene, sourceEntity, compType, property);
+            Vector3* target = Catalog::getPropertyRef<Vector3>(targetScene, targetEntity, compType, property);
+            if (source && target) *target = *source;
+            break;
+        }
+        case PropertyType::Vector4:
+        case PropertyType::Color4L: {
+            Vector4* source = Catalog::getPropertyRef<Vector4>(sourceScene, sourceEntity, compType, property);
+            Vector4* target = Catalog::getPropertyRef<Vector4>(targetScene, targetEntity, compType, property);
+            if (source && target) *target = *source;
+            break;
+        }
+        case PropertyType::Quat: {
+            Quaternion* source = Catalog::getPropertyRef<Quaternion>(sourceScene, sourceEntity, compType, property);
+            Quaternion* target = Catalog::getPropertyRef<Quaternion>(targetScene, targetEntity, compType, property);
+            if (source && target) *target = *source;
+            break;
+        }
+        case PropertyType::String: {
+            std::string* source = Catalog::getPropertyRef<std::string>(sourceScene, sourceEntity, compType, property);
+            std::string* target = Catalog::getPropertyRef<std::string>(targetScene, targetEntity, compType, property);
+            if (source && target) *target = *source;
+            break;
+        }
+        case PropertyType::Material: {
+            Material* source = Catalog::getPropertyRef<Material>(sourceScene, sourceEntity, compType, property);
+            Material* target = Catalog::getPropertyRef<Material>(targetScene, targetEntity, compType, property);
+            if (source && target) *target = *source;
+            break;
+        }
+        case PropertyType::Texture: {
+            Texture* source = Catalog::getPropertyRef<Texture>(sourceScene, sourceEntity, compType, property);
+            Texture* target = Catalog::getPropertyRef<Texture>(targetScene, targetEntity, compType, property);
+            if (source && target) *target = *source;
+            break;
+        }
+        case PropertyType::HalfCone: {
+            float* source = Catalog::getPropertyRef<float>(sourceScene, sourceEntity, compType, property);
+            float* target = Catalog::getPropertyRef<float>(targetScene, targetEntity, compType, property);
+            if (source && target) *target = *source;
+            break;
+        }
+        case PropertyType::Enum: {
+            int* source = Catalog::getPropertyRef<int>(sourceScene, sourceEntity, compType, property);
+            int* target = Catalog::getPropertyRef<int>(targetScene, targetEntity, compType, property);
+            if (source && target) *target = *source;
+            break;
+        }
+        default:
+            // For any unknown/unsupported type, do nothing
+            break;
+    }
+
+    // Apply any update flags that are associated with this property
+    updateEntity(targetScene, targetEntity, propIt->second.updateFlags);
+}

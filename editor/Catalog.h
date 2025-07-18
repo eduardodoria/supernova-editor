@@ -121,6 +121,10 @@ namespace Supernova::Editor{
 
         static void updateEntity(Scene* scene, Entity entity, int updateFlags);
 
+        static void copyPropertyValue(Scene* sourceScene, Entity sourceEntity, 
+                            Scene* targetScene, Entity targetEntity, 
+                            ComponentType compType, const std::string& property);
+
         template<typename T>
         static T* getPropertyRef(Scene* scene, Entity entity, ComponentType component, std::string propertyName){
             for (auto& [name, property] : Catalog::findEntityProperties(scene, entity, component)){

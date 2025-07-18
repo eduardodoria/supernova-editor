@@ -87,6 +87,7 @@ void Editor::ObjectTransformCmd::finalize(){
         e.sceneId = sceneProject->id;
         e.entity = entity;
         e.compType = ComponentType::Transform;
+        e.properties = {"position", "rotation", "scale"};
         Project::getEventBus().publish(e);
     }
 }
