@@ -662,6 +662,56 @@ T* Editor::Project::findScene(uint32_t sceneId) const {
     return nullptr;
 }
 
+void Editor::Project::setupSharedGroupEventSubscriptions(uint32_t sharedGroupId) {
+    uint32_t gid = sharedGroupId;
+
+    // Subscribe to component changes for this entity
+    getEventBus().subscribe(EventType::ComponentChanged,
+        [this, gid](const Event& e) {
+            // Check if this event is for any entity in our shared group
+            const SharedGroup* group = getSharedGroup(gid);
+            if (group) {
+                for (const auto& [sceneId, entity] : group->members) {
+                    if (e.entity == entity && e.sceneId == sceneId) {
+                        // Save the shared group when any component changes
+                        saveSharedGroup(gid, sceneId);
+                    } else {
+                        // Copy changes to other scenes
+                        for (auto& property : e.properties) {
+                            Catalog::copyPropertyValue(getScene(e.sceneId)->scene, e.entity, getScene(sceneId)->scene, entity, e.compType, property);
+                        }
+                    }
+                }
+            }
+        });
+
+    // Also subscribe to component additions and removals
+    getEventBus().subscribe(EventType::ComponentAdded,
+        [this, gid](const Event& e) {
+            const SharedGroup* group = getSharedGroup(gid);
+            if (group) {
+                for (const auto& [sceneId, entity] : group->members) {
+                    if (e.entity == entity && e.sceneId == sceneId) {
+                        saveSharedGroup(gid, sceneId);
+                        break;
+                    }
+                }
+            }
+        });
+
+    getEventBus().subscribe(EventType::ComponentRemoved,
+        [this, gid](const Event& e) {
+            const SharedGroup* group = getSharedGroup(gid);
+            if (group) {
+                for (const auto& [sceneId, entity] : group->members) {
+                    if (e.entity == entity && e.sceneId == sceneId) {
+                        saveSharedGroup(gid, sceneId);
+                        break;
+                    }
+                }
+            }
+        });
+}
 
 // Non-const version
 Editor::SceneProject* Editor::Project::getScene(uint32_t sceneId) {
@@ -869,52 +919,8 @@ uint32_t Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::
 
     sharedGroups.push_back(std::move(group));
 
-    // Subscribe to component changes for this entity
-    getEventBus().subscribe(EventType::ComponentChanged,
-        [this, gid](const Event& e) {
-            // Check if this event is for any entity in our shared group
-            const SharedGroup* group = getSharedGroup(gid);
-            if (group) {
-                for (const auto& [sceneId, entity] : group->members) {
-                    if (e.entity == entity && e.sceneId == sceneId) {
-                        // Save the shared group when any component changes
-                        saveSharedGroup(gid, sceneId);
-                    }else{
-                        // Copy changes to other scenes
-                        for (auto& property : e.properties) {
-                            Catalog::copyPropertyValue(getScene(e.sceneId)->scene, e.entity, getScene(sceneId)->scene, entity, e.compType, property);
-                        }
-                    }
-                }
-            }
-        });
-
-    // Also subscribe to component additions and removals
-    getEventBus().subscribe(EventType::ComponentAdded,
-        [this, gid](const Event& e) {
-            const SharedGroup* group = getSharedGroup(gid);
-            if (group) {
-                for (const auto& [sceneId, entity] : group->members) {
-                    if (e.entity == entity && e.sceneId == sceneId) {
-                        saveSharedGroup(gid, sceneId);
-                        break;
-                    }
-                }
-            }
-        });
-
-    getEventBus().subscribe(EventType::ComponentRemoved,
-        [this, gid](const Event& e) {
-            const SharedGroup* group = getSharedGroup(gid);
-            if (group) {
-                for (const auto& [sceneId, entity] : group->members) {
-                    if (e.entity == entity && e.sceneId == sceneId) {
-                        saveSharedGroup(gid, sceneId);
-                        break;
-                    }
-                }
-            }
-        });
+    // Set up event subscriptions for this shared group
+    setupSharedGroupEventSubscriptions(gid);
 
     return gid;
 }
@@ -926,23 +932,42 @@ bool Editor::Project::importSharedEntity(uint32_t sceneId, const std::filesystem
             return group.filepath == filepath;
         });
 
+    SharedGroup* group = nullptr;
+    bool isNewGroup = false;
+
     if (it == sharedGroups.end()) {
-        return false;
+        // Entity doesn't exist in any scene yet - create new SharedGroup
+        SharedGroup newGroup;
+        newGroup.id = nextSharedGroupId++;
+        newGroup.filepath = filepath;
+        newGroup.isModified = false;
+
+        sharedGroups.push_back(std::move(newGroup));
+        group = &sharedGroups.back();
+        isNewGroup = true;
+    } else {
+        group = &(*it);
+
+        // do not re‐import if already present
+        if (group->members.count(sceneId)) return false;
     }
-
-    SharedGroup& group = *it;
-
-    // do not re‐import if already present
-    if (group.members.count(sceneId)) return false;
 
     YAML::Node node;
     // Use cached YAML if available and modified, otherwise load from file
-    if (group.isModified && !group.cachedYaml.IsNull()) {  // Changed from isDirty
-        node = group.cachedYaml;
+    if (group->isModified && !group->cachedYaml.IsNull()) {
+        node = group->cachedYaml;
     } else {
-        node = YAML::LoadFile(filepath.string());
-        // Cache the loaded YAML
-        group.cachedYaml = node;
+        try {
+            node = YAML::LoadFile(filepath.string());
+            // Cache the loaded YAML
+            group->cachedYaml = node;
+        } catch (const YAML::Exception& e) {
+            Out::error("Failed to load shared entity file: %s", e.what());
+            return false;
+        } catch (const std::exception& e) {
+            Out::error("Failed to load shared entity file: %s", e.what());
+            return false;
+        }
     }
 
     // decode into a brand‐new local entity
@@ -953,7 +978,13 @@ bool Editor::Project::importSharedEntity(uint32_t sceneId, const std::filesystem
     sceneProject->isModified = true;
 
     // record it
-    group.members[sceneId] = localE;
+    group->members[sceneId] = localE;
+
+    // Set up event subscriptions for new shared groups
+    if (isNewGroup) {
+        setupSharedGroupEventSubscriptions(group->id);
+    }
+
     return true;
 }
 

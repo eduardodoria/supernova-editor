@@ -71,6 +71,8 @@ namespace Supernova::Editor{
         template<typename T>
         T* findScene(uint32_t sceneId) const;
 
+        void setupSharedGroupEventSubscriptions(uint32_t sharedGroupId);
+
         Entity createNewEntity(uint32_t sceneId, std::string entityName);
         bool createNewComponent(uint32_t sceneId, Entity entity, ComponentType component);
         void deleteSceneProject(SceneProject* sceneProject);
