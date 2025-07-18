@@ -240,14 +240,14 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
 
     // Check if entity is shared and get shared group info
     bool isShared = false;
-    uint32_t groupId = 0;
+    std::filesystem::path sharedFilepath;
     const Editor::SharedGroup* sharedGroup = nullptr;
 
     if (!node.isScene) {
-        groupId = project->findGroupFor(project->getSelectedSceneId(), node.id);
-        isShared = (groupId != 0);
+        sharedFilepath = project->findGroupFor(project->getSelectedSceneId(), node.id);
+        isShared = !sharedFilepath.empty();
         if (isShared) {
-            sharedGroup = project->getSharedGroup(groupId);
+            sharedGroup = project->getSharedGroup(sharedFilepath);
         }
     }
 
@@ -267,7 +267,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         ImGui::SetItemTooltip("Id: %u", node.id);
     }else{
         if (isShared && sharedGroup) {
-            std::filesystem::path relativePath = std::filesystem::relative(sharedGroup->filepath, project->getProjectPath());
+            std::filesystem::path relativePath = std::filesystem::relative(sharedFilepath, project->getProjectPath());
             ImGui::SetItemTooltip("Entity: %u (Shared)\nPath: %s", node.id, relativePath.string().c_str());
         } else {
             ImGui::SetItemTooltip("Entity: %u", node.id);

@@ -946,10 +946,10 @@ YAML::Node Editor::Stream::encodeSceneProject(Project* project, const SceneProje
 YAML::Node Editor::Stream::encodeEntityRecursive(Entity entity, const Scene* scene, Project* project, uint32_t sceneId, const std::unordered_map<Entity, std::vector<Entity>>& childrenMap){
     YAML::Node node;
 
-    uint32_t gid = project->findGroupFor(sceneId, entity);
-    if (gid) {
-        auto* g = project->getSharedGroup(gid);
-        node["sharedFile"] = g->filepath.string();
+    std::filesystem::path filepath = project->findGroupFor(sceneId, entity);
+    if (!filepath.empty()) {
+        const SharedGroup* group = project->getSharedGroup(filepath);
+        node["sharedFile"] = filepath.string();
     } else {
         node = encodeEntity(entity, scene);
         if (node["transform"]) {
@@ -989,11 +989,11 @@ void Editor::Stream::decodeSceneProjectEntities(Project* project, SceneProject* 
 Entity Editor::Stream::decodeEntity(Scene* scene, const YAML::Node& node, std::vector<Entity>& allEntities, Project* project, SceneProject* sceneProject, Entity parent){
     YAML::Node actualNode = node;
     bool isShared = false;
-    std::string sharedPath;
+    std::filesystem::path sharedPath;
     if (node["sharedFile"]) {
         isShared = true;
         sharedPath = node["sharedFile"].as<std::string>();
-        actualNode = YAML::LoadFile(sharedPath);
+        actualNode = YAML::LoadFile(sharedPath.string());
     }
 
     Entity entity = scene->createEntity();
@@ -1049,12 +1049,14 @@ Entity Editor::Stream::decodeEntity(Scene* scene, const YAML::Node& node, std::v
 
     // Register shared if applicable
     if (isShared) {
-        uint32_t gid = project->findGroupFor(sceneProject->id, entity);
-        if (!gid) {
-            gid = project->markEntityShared(sceneProject->id, entity, sharedPath, actualNode);
+        std::filesystem::path existingFilepath = project->findGroupFor(sceneProject->id, entity);
+        if (existingFilepath.empty()) {
+            project->markEntityShared(sceneProject->id, entity, sharedPath, actualNode);
         } else {
-            auto* g = project->getSharedGroup(gid);
-            if (g) g->members[sceneProject->id] = entity;
+            SharedGroup* group = project->getSharedGroup(existingFilepath);
+            if (group) {
+                group->members[sceneProject->id] = entity;
+            }
         }
     }
 

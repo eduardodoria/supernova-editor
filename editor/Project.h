@@ -37,8 +37,6 @@ namespace Supernova::Editor{
     };
 
     struct SharedGroup {
-        uint32_t id;
-        std::filesystem::path filepath;
         std::map<uint32_t,Entity> members; // sceneId → local Entity
         YAML::Node cachedYaml;
         bool isModified = false;
@@ -65,13 +63,12 @@ namespace Supernova::Editor{
         std::filesystem::path projectPath;
         bool resourcesFocused;
 
-        uint32_t nextSharedGroupId = 1;
-        std::vector<SharedGroup> sharedGroups;
+        std::map<std::filesystem::path, SharedGroup> sharedGroups;
 
         template<typename T>
         T* findScene(uint32_t sceneId) const;
 
-        void setupSharedGroupEventSubscriptions(uint32_t sharedGroupId);
+        void setupSharedGroupEventSubscriptions(const std::filesystem::path& filepath);
 
         Entity createNewEntity(uint32_t sceneId, std::string entityName);
         bool createNewComponent(uint32_t sceneId, Entity entity, ComponentType component);
@@ -146,15 +143,15 @@ namespace Supernova::Editor{
 
         static EventBus& getEventBus();
 
-        uint32_t markEntityShared(uint32_t sceneId, Entity entity, fs::path filepath, YAML::Node entityNode);
+        bool markEntityShared(uint32_t sceneId, Entity entity, fs::path filepath, YAML::Node entityNode);
         bool importSharedEntity(uint32_t sceneId, const std::filesystem::path& filepath);
-        void saveSharedGroup(uint32_t sharedGroupId, uint32_t sceneId);
+        void saveSharedGroup(const std::filesystem::path& filepath, uint32_t sceneId);
 
         void saveSharedGroupsToDisk();
 
-        SharedGroup* getSharedGroup(uint32_t sharedGroupId);
-        const SharedGroup* getSharedGroup(uint32_t sharedGroupId) const;
-        uint32_t findGroupFor(uint32_t sceneId, Entity e) const;
+        SharedGroup* getSharedGroup(const std::filesystem::path& filepath);
+        const SharedGroup* getSharedGroup(const std::filesystem::path& filepath) const;
+        std::filesystem::path findGroupFor(uint32_t sceneId, Entity e) const;
 
         void build();
 
