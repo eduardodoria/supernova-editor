@@ -676,7 +676,9 @@ void Editor::Project::setupSharedGroupEventSubscriptions(const std::filesystem::
                         // Copy changes to other scenes
                         for (auto& [otherSceneId, otherEntity] : group->members) {
                             for (auto& property : e.properties) {
-                                Catalog::copyPropertyValue(getScene(e.sceneId)->scene, e.entity, getScene(otherSceneId)->scene, otherEntity, e.compType, property);
+                                SceneProject* otherScene = getScene(otherSceneId);
+                                otherScene->needUpdateRender = true;
+                                Catalog::copyPropertyValue(getScene(e.sceneId)->scene, e.entity, otherScene->scene, otherEntity, e.compType, property);
                             }
                         }
                     }
