@@ -95,7 +95,7 @@ namespace Supernova::Editor{
                 e.type = EventType::ComponentChanged;
                 e.sceneId = sceneProject->id;
                 e.entity = entity;
-                e.compType = ComponentType::Transform;
+                e.compType = type;
                 e.properties = {propertyName};
                 Project::getEventBus().publish(e);
             }

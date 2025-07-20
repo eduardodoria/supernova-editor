@@ -1965,14 +1965,18 @@ void Editor::Properties::show(){
 
     for (auto it = materialRenders.begin(); it != materialRenders.end(); ) {
         if (usedPreviewIds.find(it->first) == usedPreviewIds.end()) {
-            it = materialRenders.erase(it);
+            if (!Engine::isSceneRunning(it->second.getScene())){
+                it = materialRenders.erase(it);
+            }
         } else {
             ++it;
         }
     }
     for (auto it = directionRenders.begin(); it != directionRenders.end(); ) {
         if (usedPreviewIds.find(it->first) == usedPreviewIds.end()) {
-            it = directionRenders.erase(it);
+            if (!Engine::isSceneRunning(it->second.getScene())){
+                it = directionRenders.erase(it);
+            }
         } else {
             ++it;
         }
