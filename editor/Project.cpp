@@ -906,7 +906,7 @@ Editor::EventBus& Editor::Project::getEventBus(){
 bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path filepath, YAML::Node entityNode){
     SharedGroup group;
     group.members[sceneId] = entity;
-    group.cachedYaml = entityNode;
+    group.cachedYaml = std::make_shared<YAML::Node>(entityNode);
     group.isModified = false;
 
     if (SceneProject* sceneProject = getScene(sceneId)){
@@ -922,7 +922,6 @@ bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path
 }
 
 bool Editor::Project::importSharedEntity(uint32_t sceneId, const std::filesystem::path& filepath){
-    // Find the SharedGroup with matching filepath
     auto it = sharedGroups.find(filepath);
 
     SharedGroup* group = nullptr;
@@ -933,8 +932,8 @@ bool Editor::Project::importSharedEntity(uint32_t sceneId, const std::filesystem
         SharedGroup newGroup;
         newGroup.isModified = false;
 
-        sharedGroups[filepath] = std::move(newGroup);
-        group = &sharedGroups[filepath];
+        auto [newIt, inserted] = sharedGroups.emplace(filepath, std::move(newGroup));
+        group = &newIt->second;
         isNewGroup = true;
     } else {
         group = &it->second;
@@ -943,15 +942,14 @@ bool Editor::Project::importSharedEntity(uint32_t sceneId, const std::filesystem
         if (group->members.count(sceneId)) return false;
     }
 
-    YAML::Node node;
+    std::shared_ptr<YAML::Node> node;
     // Use cached YAML if available and modified, otherwise load from file
-    if (group->isModified && !group->cachedYaml.IsNull()) {
+    if (group->isModified && group->cachedYaml && !group->cachedYaml->IsNull()) {
         node = group->cachedYaml;
     } else {
         try {
-            node = YAML::LoadFile(filepath.string());
-            // Cache the loaded YAML
-            group->cachedYaml = node;
+            node = std::make_shared<YAML::Node>(YAML::LoadFile(filepath.string())); // <-- CHANGE HERE
+            group->cachedYaml = node; // cache it
         } catch (const YAML::Exception& e) {
             Out::error("Failed to load shared entity file: %s", e.what());
             return false;
@@ -964,7 +962,7 @@ bool Editor::Project::importSharedEntity(uint32_t sceneId, const std::filesystem
     // decode into a brand‐new local entity
     SceneProject* sceneProject = getScene(sceneId);
     Scene* scene = sceneProject->scene;
-    Entity localE = Stream::decodeEntity(scene, node);
+    Entity localE = Stream::decodeEntity(scene, *node); // <-- dereference shared_ptr
     sceneProject->entities.push_back(localE);
     sceneProject->isModified = true;
 
@@ -997,15 +995,15 @@ void Editor::Project::saveSharedGroup(const std::filesystem::path& filepath, uin
     Scene* scene = getScene(sceneId)->scene;
 
     // re‐serialize to memory cache
-    group->cachedYaml = Stream::encodeEntity(authorE, scene);
+    group->cachedYaml = std::make_shared<YAML::Node>(Stream::encodeEntity(authorE, scene));
     group->isModified = true;
 }
 
 void Editor::Project::saveSharedGroupsToDisk(){
     for (auto& [filepath, group] : sharedGroups) {
-        if (group.isModified && !group.cachedYaml.IsNull()) {
+        if (group.isModified && !group.cachedYaml->IsNull()) {
             std::ofstream fout(filepath.string());
-            fout << YAML::Dump(group.cachedYaml);
+            fout << YAML::Dump(*group.cachedYaml);
             fout.close();
 
             group.isModified = false;

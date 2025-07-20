@@ -38,7 +38,7 @@ namespace Supernova::Editor{
 
     struct SharedGroup {
         std::map<uint32_t,Entity> members; // sceneId → local Entity
-        YAML::Node cachedYaml;
+        std::shared_ptr<YAML::Node> cachedYaml;
         bool isModified = false;
     };
 
