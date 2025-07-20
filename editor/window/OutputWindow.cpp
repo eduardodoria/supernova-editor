@@ -104,11 +104,12 @@ void OutputWindow::rebuildBuffer() {
     lineOffsets.push_back(0);
 
     ImFont* font = ImGui::GetFont();
+    float fontSize = ImGui::GetFontSize();
 
     for (size_t logIndex = 0; logIndex < logs.size(); ++logIndex) {
         const auto& log = logs[logIndex];
         std::string prefix = getTypePrefix(log.type);
-        float prefixWidth = font->CalcTextSizeA(font->FontSize, FLT_MAX, 0.0f, prefix.c_str()).x;
+        float prefixWidth = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, prefix.c_str()).x;
 
         bool typeAllowed = false;
         switch(log.type) {
@@ -131,7 +132,7 @@ void OutputWindow::rebuildBuffer() {
         }
 
         std::string indentation(prefix.length(), ' ');
-        float indentWidth = font->CalcTextSizeA(font->FontSize, FLT_MAX, 0.0f, indentation.c_str()).x;
+        float indentWidth = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, indentation.c_str()).x;
 
         std::string currentLine = prefix;
         float currentLineWidth = prefixWidth;
@@ -139,7 +140,7 @@ void OutputWindow::rebuildBuffer() {
 
         for (size_t i = 0; i < log.message.length(); ++i) {
             char currentChar = log.message[i];
-            float charWidth = font->CalcTextSizeA(font->FontSize, FLT_MAX, 0.0f, std::string(1, currentChar).c_str()).x;
+            float charWidth = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, std::string(1, currentChar).c_str()).x;
 
             if (!isFirstLine && currentLine.empty()) {
                 currentLine = indentation;
@@ -287,7 +288,7 @@ void OutputWindow::show() {
     ImGui::PushStyleColor(ImGuiCol_FrameBg, ImGui::GetStyle().Colors[ImGuiCol_WindowBg]);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
 
-    ImGui::InputTextMultiline("##output", (char*)buf.begin(), buf.size(), 
+    ImGui::InputTextMultiline("##output", (char*)buf.begin(), buf.size() + 1, 
         ImVec2(-FLT_MIN, -FLT_MIN), 
         ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
 
