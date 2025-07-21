@@ -69,11 +69,9 @@ namespace Supernova::Editor {
             return false;
         }
 
-        void finalize(){
-            Command::finalize();
-
+        void commit(){
             for (auto& cmd : commands) {
-                cmd->finalize();
+                cmd->commit();
             }
         }
     };

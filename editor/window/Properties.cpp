@@ -1465,7 +1465,8 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
     }
 
     if (ImGui::IsItemDeactivatedAfterEdit() || finishProperty) {
-        cmd->finalize();
+        cmd->setNoMerge();
+        cmd->commit();
         cmd = nullptr;
         finishProperty = false;
     }

@@ -40,6 +40,7 @@ void Editor::CommandHistory::addCommandNoMerge(Command* cmd){
 void Editor::CommandHistory::undo(){
     if (index > 0){
         list[index-1]->undo();
+        list[index-1]->commit();
         index--;
 
         #ifdef _DEBUG
@@ -52,6 +53,7 @@ void Editor::CommandHistory::redo(){
     if (index < list.size()){
         index++;
         list[index-1]->execute();
+        list[index-1]->commit();
 
         #ifdef _DEBUG
         printf("DEBUG: redo (%zu from %zu)\n", index, list.size());

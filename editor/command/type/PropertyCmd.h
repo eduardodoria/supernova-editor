@@ -87,9 +87,7 @@ namespace Supernova::Editor{
             return false;
         }
 
-        void finalize(){
-            Command::finalize();
-
+        void commit(){
             for (auto const& [entity, value] : values){
                 Event e;
                 e.type = EventType::ComponentChanged;

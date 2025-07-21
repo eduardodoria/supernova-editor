@@ -538,8 +538,8 @@ void Editor::SceneWindow::show() {
                                         selMesh->submeshes[0].material.baseColorTexture = originalTex;
 
                                         PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(&sceneProject, selEntity, ComponentType::MeshComponent, propName, UpdateFlags_Mesh_Texture, newTex);
-                                        CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
-                                        cmd->finalize();
+                                        CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(cmd);
+                                        cmd->commit();
 
                                         selMesh = nullptr;
 
@@ -560,8 +560,8 @@ void Editor::SceneWindow::show() {
                                         selUI->texture = originalTex;
 
                                         PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(&sceneProject, selEntity, ComponentType::UIComponent, propName, UpdateFlags_UI_Texture, newTex);
-                                        CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
-                                        cmd->finalize();
+                                        CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(cmd);
+                                        cmd->commit();
 
                                         selUI = nullptr;
 
@@ -603,8 +603,8 @@ void Editor::SceneWindow::show() {
                                         cmd->addProperty<unsigned int>(ComponentType::UILayoutComponent, "height", tempImage->getHeight());
                                     }
 
-                                    CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
-                                    cmd->finalize();
+                                    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(cmd);
+                                    cmd->commit();
 
                                     delete tempImage;
                                     tempImage = nullptr;

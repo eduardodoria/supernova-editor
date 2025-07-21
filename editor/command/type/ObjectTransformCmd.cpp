@@ -78,9 +78,7 @@ bool Editor::ObjectTransformCmd::mergeWith(Editor::Command* otherCommand){
     return false;
 }
 
-void Editor::ObjectTransformCmd::finalize(){
-    Command::finalize();
-
+void Editor::ObjectTransformCmd::commit(){
     for (auto& [entity, property] : props){
         Event e;
         e.type = EventType::ComponentChanged;
