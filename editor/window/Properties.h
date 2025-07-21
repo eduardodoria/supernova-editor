@@ -14,7 +14,7 @@ namespace Supernova::Editor{
         Project* project;
         Command* cmd;
 
-        bool draggingProperty;
+        bool finishProperty;
 
         std::set<std::string> usedPreviewIds;
 

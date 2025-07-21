@@ -21,7 +21,7 @@ Editor::Properties::Properties(Project* project){
     this->project = project;
     this->cmd = nullptr;
 
-    this->draggingProperty = false;
+    this->finishProperty = false;
 }
 
 std::string Editor::Properties::replaceNumberedBrackets(const std::string& input) {
@@ -197,8 +197,10 @@ void Editor::Properties::dragDropResources(ComponentType cpType, std::string id,
                         Texture* valueRef = Catalog::getPropertyRef<Texture>(sceneProject->scene, entity, cpType, id);
                         *valueRef = originalTex[id][entity];
                         cmd = new PropertyCmd<Texture>(sceneProject, entity, cpType, id, updateFlags, texture);
-                        cmd->finalize();
                         CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                        if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)){
+                            finishProperty = true;
+                        }
                     }
 
                     ImGui::SetWindowFocus();
@@ -535,8 +537,11 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
             drawImageWithBorderAndRounding(&dirTexRender, ImVec2(thumbSize, thumbSize), 4.0f, border_col, 1.0f, true);
 
+            static bool draggingDirection = false;
+
             if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
-                draggingProperty = true;
+                draggingDirection = true;
+
                 ImVec2 mouseDelta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
 
                 float sensitivity = 1.5f;
@@ -557,6 +562,10 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
                 newValue = newDirection;
                 ImGui::ResetMouseDragDelta(ImGuiMouseButton_Left);
+            }
+
+            if (draggingDirection && ImGui::IsMouseReleased(ImGuiMouseButton_Left)){
+                finishProperty = true;
             }
         }
 
@@ -1341,8 +1350,8 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
                     Texture texture(filePath.string());
                     for (Entity& entity : entities){
                         cmd = new PropertyCmd<Texture>(sceneProject, entity, cpType, id, prop.updateFlags, texture);
-                        cmd->finalize();
                         CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                        finishProperty = true;
                     }
                 }
             }
@@ -1455,10 +1464,10 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         result = materialButtonGroups[id];
     }
 
-    if (ImGui::IsItemDeactivatedAfterEdit() ||(draggingProperty && ImGui::IsMouseReleased(ImGuiMouseButton_Left))) {
+    if (ImGui::IsItemDeactivatedAfterEdit() || finishProperty) {
         cmd->finalize();
         cmd = nullptr;
-        draggingProperty = false;
+        finishProperty = false;
     }
 
     return result;
