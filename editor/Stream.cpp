@@ -1049,15 +1049,7 @@ Entity Editor::Stream::decodeEntity(Scene* scene, const YAML::Node& node, std::v
 
     // Register shared if applicable
     if (isShared) {
-        std::filesystem::path existingFilepath = project->findGroupFor(sceneProject->id, entity);
-        if (existingFilepath.empty()) {
-            project->markEntityShared(sceneProject->id, entity, sharedPath, actualNode);
-        } else {
-            SharedGroup* group = project->getSharedGroup(existingFilepath);
-            if (group) {
-                group->members[sceneProject->id] = entity;
-            }
-        }
+        project->markEntityShared(sceneProject->id, entity, sharedPath, actualNode);
     }
 
     return entity;

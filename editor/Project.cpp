@@ -905,19 +905,27 @@ Editor::EventBus& Editor::Project::getEventBus(){
 }
 
 bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path filepath, YAML::Node entityNode){
-    SharedGroup group;
-    group.members[sceneId] = entity;
-    group.cachedYaml = std::make_shared<YAML::Node>(std::move(entityNode));
-    group.isModified = false;
+    auto it = sharedGroups.find(filepath);
+    if (it != sharedGroups.end()) {
+        // Group already exists, just add new member and update cached YAML if needed
+        it->second.members[sceneId] = entity;
+        // Update cachedYaml to the latest version
+        it->second.cachedYaml = std::make_shared<YAML::Node>(std::move(entityNode));
+        it->second.isModified = false;
+    } else {
+        // Create new group
+        SharedGroup group;
+        group.members[sceneId] = entity;
+        group.cachedYaml = std::make_shared<YAML::Node>(std::move(entityNode));
+        group.isModified = false;
+        sharedGroups.emplace(filepath, std::move(group));
+        // Set up event subscriptions for this shared group
+        setupSharedGroupEventSubscriptions(filepath);
+    }
 
     if (SceneProject* sceneProject = getScene(sceneId)){
         sceneProject->isModified = true;
     }
-
-    sharedGroups.emplace(filepath, std::move(group));
-
-    // Set up event subscriptions for this shared group
-    setupSharedGroupEventSubscriptions(filepath);
 
     return true;
 }
