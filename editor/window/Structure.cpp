@@ -205,7 +205,8 @@ void Editor::Structure::handleEntityFilesDrop(const std::vector<std::string>& fi
         // Check if it's an entity file
         if (path.extension() == ".entity") {
             // Import the shared entity into the current scene
-            bool success = project->importSharedEntity(project->getSelectedSceneId(), path);
+            std::filesystem::path relativePath = std::filesystem::relative(path, project->getProjectPath());
+            bool success = project->importSharedEntity(project->getSelectedSceneId(), relativePath);
 
             if (success) {
                 Out::info("Successfully imported entity from: %s", path.string().c_str());
@@ -267,8 +268,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         ImGui::SetItemTooltip("Id: %u", node.id);
     }else{
         if (isShared && sharedGroup) {
-            std::filesystem::path relativePath = std::filesystem::relative(sharedFilepath, project->getProjectPath());
-            ImGui::SetItemTooltip("Entity: %u (Shared)\nPath: %s", node.id, relativePath.string().c_str());
+            ImGui::SetItemTooltip("Entity: %u (Shared)\nPath: %s", node.id, sharedFilepath.string().c_str());
         } else {
             ImGui::SetItemTooltip("Entity: %u", node.id);
         }

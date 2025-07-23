@@ -993,7 +993,8 @@ Entity Editor::Stream::decodeEntity(Scene* scene, const YAML::Node& node, std::v
     if (node["sharedFile"]) {
         isShared = true;
         sharedPath = node["sharedFile"].as<std::string>();
-        actualNode = YAML::LoadFile(sharedPath.string());
+        std::filesystem::path fullSharedPath = project->getProjectPath() / sharedPath;
+        actualNode = YAML::LoadFile(fullSharedPath.string());
     }
 
     Entity entity = scene->createEntity();
@@ -1047,7 +1048,6 @@ Entity Editor::Stream::decodeEntity(Scene* scene, const YAML::Node& node, std::v
         }
     }
 
-    // Register shared if applicable
     if (isShared) {
         project->markEntityShared(sceneProject->id, entity, sharedPath, actualNode);
     }

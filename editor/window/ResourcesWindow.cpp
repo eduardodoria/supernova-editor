@@ -1208,7 +1208,8 @@ void Editor::ResourcesWindow::saveEntityFile(const fs::path& directory, const ch
         out << YAML::Dump(entityNode);
         out.close();
 
-        project->markEntityShared(project->getSelectedSceneId(), entity, targetFile, entityNode);
+        std::filesystem::path relativePath = std::filesystem::relative(targetFile, project->getProjectPath());
+        project->markEntityShared(project->getSelectedSceneId(), entity, relativePath, entityNode);
         scanDirectory(currentPath);
     }
 }

@@ -905,6 +905,11 @@ Editor::EventBus& Editor::Project::getEventBus(){
 }
 
 bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path filepath, YAML::Node entityNode){
+    if (!filepath.is_relative()) {
+        Out::error("Shared entity filepath must be relative: %s", filepath.string().c_str());
+        return false;
+    }
+
     auto it = sharedGroups.find(filepath);
     if (it != sharedGroups.end()) {
         // Group already exists, just add new member and update cached YAML if needed
@@ -931,6 +936,11 @@ bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path
 }
 
 bool Editor::Project::importSharedEntity(uint32_t sceneId, const std::filesystem::path& filepath){
+    if (!filepath.is_relative()) {
+        Out::error("Shared entity filepath must be relative: %s", filepath.string().c_str());
+        return false;
+    }
+
     auto it = sharedGroups.find(filepath);
 
     bool isNewGroup = false;
@@ -956,7 +966,8 @@ bool Editor::Project::importSharedEntity(uint32_t sceneId, const std::filesystem
         node = group.cachedYaml;
     } else {
         try {
-            YAML::Node loadedNode = YAML::LoadFile(filepath.string());
+            std::filesystem::path fullSharedPath = getProjectPath() / filepath;
+            YAML::Node loadedNode = YAML::LoadFile(fullSharedPath.string());
             node = std::make_shared<YAML::Node>(std::move(loadedNode));
             group.cachedYaml = node; // cache it
         } catch (const YAML::Exception& e) {
