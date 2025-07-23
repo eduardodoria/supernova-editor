@@ -3,6 +3,8 @@
 #include "external/IconsFontAwesome6.h"
 #include "resources/icons/folder-icon_png.h"
 #include "resources/icons/file-icon_png.h"
+#include "resources/icons/entity-icon_png.h"
+#include "resources/icons/scene-icon_png.h"
 
 #include "command/type/CopyFileCmd.h"
 #include "command/type/RenameFileCmd.h"
@@ -604,6 +606,8 @@ void Editor::ResourcesWindow::scanDirectory(const fs::path& path) {
 
     intptr_t folderIconH = (intptr_t)folderIcon.getRender()->getGLHandler();
     intptr_t fileIconH = (intptr_t)fileIcon.getRender()->getGLHandler();
+    intptr_t sceneIconH = (intptr_t)sceneIcon.getRender()->getGLHandler();
+    intptr_t entityIconH = (intptr_t)entityIcon.getRender()->getGLHandler();
 
     files.clear();
 
@@ -630,10 +634,12 @@ void Editor::ResourcesWindow::scanDirectory(const fs::path& path) {
                 fileEntry.type = FileType::IMAGE;
             }else if (isSceneFile(fileEntry.extension)){
                 fileEntry.type = FileType::SCENE;
+                fileEntry.icon = sceneIconH;
             }else if (isMaterialFile(fileEntry.extension)){
                 fileEntry.type = FileType::MATERIAL;
             }else if (isEntityFile(fileEntry.extension)){
                 fileEntry.type = FileType::ENTITY;
+                fileEntry.icon = entityIconH;
             }
 
             if (fileEntry.type == FileType::IMAGE || fileEntry.type == FileType::MATERIAL) {
@@ -1257,13 +1263,21 @@ void Editor::ResourcesWindow::show() {
 
         TextureData data;
 
-        data.loadTextureFromMemory(folder_12003793_png, folder_12003793_png_len);
+        data.loadTextureFromMemory(folder_icon_png, folder_icon_png_len);
         folderIcon.setData("editor:resources:folder_icon", data);
         folderIcon.load();
 
-        data.loadTextureFromMemory(file_2521594_png, file_2521594_png_len);
+        data.loadTextureFromMemory(file_icon_png, file_icon_png_len);
         fileIcon.setData("editor:resources:file_icon", data);
         fileIcon.load();
+
+        data.loadTextureFromMemory(scene_icon_png, scene_icon_png_len);
+        sceneIcon.setData("editor:resources:scene_icon", data);
+        sceneIcon.load();
+
+        data.loadTextureFromMemory(entity_icon_png, entity_icon_png_len);
+        entityIcon.setData("editor:resources:entity_icon", data);
+        entityIcon.load();
 
         scanDirectory(project->getProjectPath().string());
 

@@ -68,6 +68,8 @@ namespace Supernova::Editor {
 
         Texture folderIcon;
         Texture fileIcon;
+        Texture sceneIcon;
+        Texture entityIcon;
         std::unordered_map<std::string, Texture> thumbnailTextures;
 
         int iconSize;

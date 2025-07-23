@@ -459,6 +459,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector2>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<Vector2*>(prop.def));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                finishProperty = true;
             }
         }
 
@@ -520,6 +521,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector3>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<Vector3*>(prop.def));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                finishProperty = true;
             }
         }
 
@@ -692,6 +694,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector4>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<Vector4*>(prop.def));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                finishProperty = true;
             }
         }
 
@@ -781,6 +784,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Quaternion>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<Quaternion*>(prop.def));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                finishProperty = true;
             }
         }
 
@@ -897,6 +901,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<bool>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<bool*>(prop.def));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                finishProperty = true;
             }
         }
 
@@ -943,6 +948,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<float>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<float*>(prop.def));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                finishProperty = true;
             }
         }
 
@@ -1001,6 +1007,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<unsigned int>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<unsigned int*>(prop.def));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                finishProperty = true;
             }
         }
 
@@ -1039,6 +1046,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<int>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<int*>(prop.def));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                finishProperty = true;
             }
         }
 
@@ -1078,6 +1086,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector3>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<Vector3*>(prop.def));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                finishProperty = true;
             }
         }
 
@@ -1117,6 +1126,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector4>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<Vector4*>(prop.def));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                finishProperty = true;
             }
         }
 
@@ -1167,6 +1177,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
                     cmd = new PropertyCmd<unsigned int>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<unsigned int*>(prop.def));
                 }
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                finishProperty = true;
             }
         }
 
@@ -1241,6 +1252,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
                 int defValue = (*prop.enumEntries)[item_default].value;
                 cmd = new PropertyCmd<int>(sceneProject, entity, cpType, id, prop.updateFlags, defValue);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                finishProperty = true;
             }
         }
 
@@ -1285,6 +1297,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Texture>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<Texture*>(prop.def));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                finishProperty = true;
             }
         }
 
@@ -1398,6 +1411,7 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Material>(sceneProject, entity, cpType, id, prop.updateFlags, *static_cast<Material*>(prop.def));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                finishProperty = true;
             }
         }
 
