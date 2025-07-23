@@ -206,7 +206,7 @@ void Editor::Structure::handleEntityFilesDrop(const std::vector<std::string>& fi
         if (path.extension() == ".entity") {
             // Import the shared entity into the current scene
             std::filesystem::path relativePath = std::filesystem::relative(path, project->getProjectPath());
-            bool success = project->importSharedEntity(project->getSelectedSceneId(), relativePath);
+            bool success = project->importSharedEntity(project->getSelectedScene(), relativePath);
 
             if (success) {
                 Out::info("Successfully imported entity from: %s", path.string().c_str());

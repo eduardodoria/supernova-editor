@@ -978,81 +978,17 @@ void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::
 }
 
 void Editor::Stream::decodeSceneProjectEntities(Project* project, SceneProject* sceneProject, const YAML::Node& node){
-    std::vector<Entity> newEntities;
     auto entitiesNode = node["entities"];
     for (const auto& en : entitiesNode){
-        decodeEntity(sceneProject->scene, en, newEntities, project, sceneProject, NULL_ENTITY);
-    }
-    sceneProject->entities = newEntities;
-}
-
-Entity Editor::Stream::decodeEntity(Scene* scene, const YAML::Node& node, std::vector<Entity>& allEntities, Project* project, SceneProject* sceneProject, Entity parent){
-    YAML::Node actualNode = node;
-    bool isShared = false;
-    std::filesystem::path sharedPath;
-    if (node["sharedFile"]) {
-        isShared = true;
-        sharedPath = node["sharedFile"].as<std::string>();
-        std::filesystem::path fullSharedPath = project->getProjectPath() / sharedPath;
-        actualNode = YAML::LoadFile(fullSharedPath.string());
-    }
-
-    Entity entity = scene->createEntity();
-    allEntities.push_back(entity);
-
-    std::string name = actualNode["name"].as<std::string>();
-    scene->setEntityName(entity, name);
-
-    if (actualNode["transform"]) {
-        Transform transform = decodeTransform(actualNode["transform"]);
-        transform.parent = parent;
-        scene->addComponent<Transform>(entity, transform);
-    }
-
-    if (actualNode["mesh"]) {
-        MeshComponent mesh = decodeMeshComponent(actualNode["mesh"]);
-        scene->addComponent<MeshComponent>(entity, mesh);
-    }
-
-    if (actualNode["ui"]) {
-        UIComponent ui = decodeUIComponent(actualNode["ui"]);
-        scene->addComponent<UIComponent>(entity, ui);
-    }
-
-    if (actualNode["layout"]) {
-        UILayoutComponent layout = decodeUILayoutComponent(actualNode["layout"]);
-        scene->addComponent<UILayoutComponent>(entity, layout);
-    }
-
-    if (actualNode["image"]) {
-        ImageComponent image = decodeImageComponent(actualNode["image"]);
-        scene->addComponent<ImageComponent>(entity, image);
-    }
-
-    if (actualNode["light"]) {
-        LightComponent light = decodeLightComponent(actualNode["light"]);
-        scene->addComponent<LightComponent>(entity, light);
-    }
-
-    // Decode children from actualNode
-    if (actualNode["children"]) {
-        for (const auto& childNode : actualNode["children"]) {
-            decodeEntity(scene, childNode, allEntities, project, sceneProject, entity);
+        std::vector<Entity> newEntities;
+        if (en["sharedFile"]) {
+            std::filesystem::path sharedPath = en["sharedFile"].as<std::string>();
+            project->importSharedEntity(sceneProject, sharedPath, false);
+        }else{
+            std::vector<Entity> newEntities = decodeEntity(sceneProject->scene, en, NULL_ENTITY);
+            std::copy(newEntities.begin(), newEntities.end(), std::back_inserter(sceneProject->entities));
         }
     }
-
-    // If is shared and node has additional children, decode them
-    if (isShared && node["children"]) {
-        for (const auto& childNode : node["children"]) {
-            decodeEntity(scene, childNode, allEntities, project, sceneProject, entity);
-        }
-    }
-
-    if (isShared) {
-        project->markEntityShared(sceneProject->id, entity, sharedPath, actualNode);
-    }
-
-    return entity;
 }
 
 YAML::Node Editor::Stream::encodeScene(Scene* scene) {
@@ -1142,16 +1078,18 @@ YAML::Node Editor::Stream::encodeEntity(const Entity entity, const Scene* scene)
     return entityNode;
 }
 
-Entity Editor::Stream::decodeEntity(Scene* scene, const YAML::Node& entityNode) {
-    // Original flat decode, but may not be used now; kept for compatibility
+std::vector<Entity> Editor::Stream::decodeEntity(Scene* scene, const YAML::Node& entityNode, Entity parent) {
+    std::vector<Entity> allEntities;
+
     Entity entity = scene->createEntity();
+    allEntities.push_back(entity);
 
     std::string name = entityNode["name"].as<std::string>();
-
     scene->setEntityName(entity, name);
 
     if (entityNode["transform"]) {
         Transform transform = decodeTransform(entityNode["transform"]);
+        transform.parent = parent;
         scene->addComponent<Transform>(entity, transform);
     }
 
@@ -1180,7 +1118,15 @@ Entity Editor::Stream::decodeEntity(Scene* scene, const YAML::Node& entityNode) 
         scene->addComponent<LightComponent>(entity, light);
     }
 
-    return entity;
+    // Decode children from actualNode
+    if (entityNode["children"]) {
+        for (const auto& childNode : entityNode["children"]) {
+            std::vector<Entity> childEntities = decodeEntity(scene, childNode, entity);
+            std::copy(childEntities.begin(), childEntities.end(), std::back_inserter(allEntities));
+        }
+    }
+
+    return allEntities;
 }
 
 YAML::Node Editor::Stream::encodeMaterial(const Material& material) {

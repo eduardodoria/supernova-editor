@@ -53,7 +53,8 @@ void Editor::DeleteEntityCmd::undo(){
             continue;
         }
 
-        entityData.entity = Stream::decodeEntity(sceneProject->scene, entityData.data);
+        //TODO: handle shared entities properly
+        entityData.entity = Stream::decodeEntity(sceneProject->scene, entityData.data)[0];
 
         sceneProject->entities.push_back(entityData.entity);
     }
