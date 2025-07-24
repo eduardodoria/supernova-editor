@@ -7,6 +7,7 @@
 
 #include "external/IconsFontAwesome6.h"
 #include "command/CommandHandle.h"
+#include "command/type/DeleteEntityCmd.h"
 
 #include "Out.h"
 #include "AppSettings.h"
@@ -436,7 +437,12 @@ void Editor::App::show(){
         }
 
         if (ImGui::IsKeyPressed(ImGuiKey_Delete)){
-            project.deleteEntities(sceneId, project.getSelectedEntities(sceneId));
+            Command* cmd = nullptr;
+            for (const Entity& entity : project.getSelectedEntities(sceneId)){
+                cmd = new DeleteEntityCmd(&project, sceneId, entity);
+                CommandHandle::get(sceneId)->addCommand(cmd);
+            }
+            cmd->setNoMerge();
         }
     }
 

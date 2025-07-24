@@ -11,9 +11,40 @@ Editor::DeleteEntityCmd::DeleteEntityCmd(Project* project, uint32_t sceneId, Ent
 
     DeleteEntityData entityData;
     entityData.entity = entity;
+
+    SceneProject* sceneProject = project->getScene(sceneId);
+    Scene* scene = sceneProject->scene;
+
+    Signature signature = scene->getSignature(entity);
+    if (signature.test(scene->getComponentId<Transform>())) {
+        auto transforms = scene->getComponentArray<Transform>();
+	    entityData.transformIndex = transforms->getIndex(entity);
+    }
+
+    auto it = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), entity);
+    if (it != sceneProject->entities.end()) {
+        entityData.entityIndex = std::distance(sceneProject->entities.begin(), it);
+    }
+
     this->entities.push_back(entityData);
 
     this->wasModified = project->getScene(sceneId)->isModified;
+}
+
+void Editor::DeleteEntityCmd::collectEntities(const YAML::Node& entityNode, std::vector<Entity>& entities) {
+    if (!entityNode || !entityNode.IsMap())
+        return;
+
+    if (entityNode["entity"]) {
+        entities.push_back(entityNode["entity"].as<Entity>());
+    }
+
+    // Recursively process children
+    if (entityNode["children"] && entityNode["children"].IsSequence()) {
+        for (const auto& child : entityNode["children"]) {
+            collectEntities(child, entities);
+        }
+    }
 }
 
 bool Editor::DeleteEntityCmd::execute(){
@@ -21,20 +52,23 @@ bool Editor::DeleteEntityCmd::execute(){
 
     lastSelected = project->getSelectedEntities(sceneId);
 
-    for (auto it = entities.rbegin(); it != entities.rend(); ++it) {
-        DeleteEntityData& entityData = *it;
+    for (DeleteEntityData& entityData : entities){
+        entityData.data = Stream::encodeEntityBranch(entityData.entity, sceneProject, true);
 
-        entityData.data = Stream::encodeEntity(entityData.entity, sceneProject->scene);
+        std::vector<Entity> allEntities;
+        collectEntities(entityData.data, allEntities);
 
-        sceneProject->scene->destroyEntity(entityData.entity);
+        for (const Entity& entity : allEntities) {
+            sceneProject->scene->destroyEntity(entity);
 
-        auto ite = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), entityData.entity);
-        if (ite != sceneProject->entities.end()) {
-            sceneProject->entities.erase(ite);
-        }
+            auto ite = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), entity);
+            if (ite != sceneProject->entities.end()) {
+                sceneProject->entities.erase(ite);
+            }
 
-        if (project->isSelectedEntity(sceneId, entityData.entity)){
-            project->clearSelectedEntities(sceneId);
+            if (project->isSelectedEntity(sceneId, entity)){
+                project->clearSelectedEntities(sceneId);
+            }
         }
 
         sceneProject->isModified = true;
@@ -47,16 +81,12 @@ void Editor::DeleteEntityCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     for (DeleteEntityData& entityData : entities){
+        std::vector<Entity> allEntities = Stream::decodeEntity(sceneProject->scene, entityData.data);
+        entityData.entity = allEntities[0];
 
-        if (sceneProject->scene->isEntityCreated(entityData.entity)){
-            Out::error("Entity '%u' already exists", entityData.entity);
-            continue;
-        }
+        sceneProject->entities.insert(sceneProject->entities.begin() + entityData.entityIndex, allEntities.begin(), allEntities.end());
 
-        //TODO: handle shared entities properly
-        entityData.entity = Stream::decodeEntity(sceneProject->scene, entityData.data)[0];
-
-        sceneProject->entities.push_back(entityData.entity);
+        sceneProject->scene->moveChildToIndex(entityData.entity, entityData.transformIndex, false);
     }
 
     if (lastSelected.size() > 0){
@@ -79,7 +109,7 @@ bool Editor::DeleteEntityCmd::mergeWith(Editor::Command* otherCommand){
             }
 
             std::sort(entities.begin(), entities.end(), [](const DeleteEntityData& a, const DeleteEntityData& b) {
-                return a.parent < b.parent || a.transformIndex < b.transformIndex;
+                return a.transformIndex < b.transformIndex;
             });
 
             wasModified = wasModified && otherCmd->wasModified;

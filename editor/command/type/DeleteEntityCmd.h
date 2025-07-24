@@ -13,8 +13,8 @@ namespace Supernova::Editor{
     struct DeleteEntityData{
         Entity entity;
 
-        Entity parent;
         size_t transformIndex;
+        size_t entityIndex;
 
         YAML::Node data;
     };
@@ -30,6 +30,8 @@ namespace Supernova::Editor{
         std::vector<DeleteEntityData> entities;
 
         bool wasModified;
+
+        void collectEntities(const YAML::Node& entityNode, std::vector<Entity>& entities);
 
     public:
         DeleteEntityCmd(Project* project, uint32_t sceneId, Entity entity);

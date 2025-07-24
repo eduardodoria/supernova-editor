@@ -6,6 +6,7 @@
 #include "command/type/CreateEntityCmd.h"
 #include "command/type/EntityNameCmd.h"
 #include "command/type/SceneNameCmd.h"
+#include "command/type/DeleteEntityCmd.h"
 #include "util/EntityPayload.h"
 #include "Out.h"
 #include "Stream.h"
@@ -456,7 +457,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         }
         if (ImGui::MenuItem(ICON_FA_TRASH"  Delete")){
             if (!node.isScene){
-                project->deleteEntity(project->getSelectedSceneId(), node.id);
+                CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new DeleteEntityCmd(project, project->getSelectedSceneId(), node.id));
             }
         }
         if (node.hasTransform || node.isScene){
@@ -536,9 +537,9 @@ void Editor::Structure::show(){
     // hierarchical entities
     auto transforms = sceneProject->scene->getComponentArray<Transform>();
     for (int i = 0; i < transforms->size(); i++){
-		Transform& transform = transforms->getComponentFromIndex(i);
-		Entity entity = transforms->getEntity(i);
-		Signature signature = sceneProject->scene->getSignature(entity);
+        Transform& transform = transforms->getComponentFromIndex(i);
+        Entity entity = transforms->getEntity(i);
+        Signature signature = sceneProject->scene->getSignature(entity);
 
         if (std::count(sceneProject->entities.begin(), sceneProject->entities.end(), entity) > 0){
             if (applySeparator){
@@ -570,13 +571,25 @@ void Editor::Structure::show(){
     }
 
     ImGui::Begin("Structure");
-    //if (ImGui::BeginPopupContextWindow("EmptyAreaContextMenu", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)){
-    //    ImGui::Text("TODO");
-    //    ImGui::EndPopup();
-    //}
+
     showIconMenu();
     ImGui::BeginChild("StructureScrollRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
+
     showTreeNode(root);
+
+    // Handle right-click in empty space
+    if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && !ImGui::IsAnyItemHovered() && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
+        ImGui::OpenPopup("EmptySpaceContextMenu");
+    }
+
+    // Empty space context menu
+    if (ImGui::BeginPopup("EmptySpaceContextMenu")) {
+        if (ImGui::BeginMenu(ICON_FA_CIRCLE_DOT"  Create entity")) {
+            showNewEntityMenu(true, NULL_ENTITY);
+        }
+        ImGui::EndPopup();
+    }
+
     ImGui::EndChild();
 
     // Handle drag and drop for entity files

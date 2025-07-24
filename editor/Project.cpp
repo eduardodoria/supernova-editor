@@ -496,36 +496,6 @@ void Editor::Project::saveLastSelectedScene(){
     saveScene(selectedScene);
 }
 
-void Editor::Project::deleteEntity(uint32_t sceneId, Entity entity){
-    deleteEntities(sceneId, {entity});
-}
-
-void Editor::Project::deleteEntities(uint32_t sceneId, std::vector<Entity> entities){
-    DeleteEntityCmd* deleteCmd = nullptr;
-
-    Scene* scene = getScene(sceneId)->scene;
-    auto transforms = scene->getComponentArray<Transform>();
-
-     for(Entity& entity : entities){
-        size_t firstIndex = transforms->getIndex(entity);
-        size_t branchIndex = scene->findBranchLastIndex(entity);
-        for (int t = branchIndex; t >= (firstIndex + 1); t--) {
-            Entity childEntity = transforms->getEntity(t);
-            if (childEntity != NULL_ENTITY) {
-                deleteCmd = new DeleteEntityCmd(this, sceneId, childEntity);
-                CommandHandle::get(getSelectedSceneId())->addCommand(deleteCmd);
-            }
-        }
-
-        deleteCmd = new DeleteEntityCmd(this, sceneId, entity);
-        CommandHandle::get(getSelectedSceneId())->addCommand(deleteCmd);
-     }
-
-     if (deleteCmd){
-        deleteCmd->setNoMerge(); // the last
-     }
-}
-
 Entity Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
     SceneProject* scenedata = getScene(sceneId);
     Ray ray = scenedata->sceneRender->getCamera()->screenToRay(x, y);

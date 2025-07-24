@@ -992,13 +992,13 @@ Scene* Editor::Stream::decodeScene(Scene* scene, const YAML::Node& node) {
     return scene;
 }
 
-YAML::Node Editor::Stream::encodeEntityBranch(const Entity entity, const SceneProject* sceneProject) {
+YAML::Node Editor::Stream::encodeEntityBranch(const Entity entity, const SceneProject* sceneProject, bool keepId) {
     std::map<Entity, YAML::Node> entityNodes;
 
     const Scene* scene = sceneProject->scene;
 
     YAML::Node& entityNode = entityNodes[entity];
-    entityNode = encodeEntity(entity, scene);
+    entityNode = encodeEntity(entity, scene, keepId);
 
     Signature signature = scene->getSignature(entity);
 
@@ -1011,7 +1011,7 @@ YAML::Node Editor::Stream::encodeEntityBranch(const Entity entity, const ScenePr
 
             if (std::find(sceneProject->entities.begin(), sceneProject->entities.end(), currentEntity) != sceneProject->entities.end()) {
                 YAML::Node& currentNode = entityNodes[currentEntity];
-                currentNode = encodeEntity(currentEntity, scene);
+                currentNode = encodeEntity(currentEntity, scene, keepId);
 
                 Transform& transform = transforms->getComponentFromIndex(i);
 
@@ -1031,8 +1031,13 @@ YAML::Node Editor::Stream::encodeEntityBranch(const Entity entity, const ScenePr
     return entityNode;
 }
 
-YAML::Node Editor::Stream::encodeEntity(const Entity entity, const Scene* scene) {
+YAML::Node Editor::Stream::encodeEntity(const Entity entity, const Scene* scene, bool keepId) {
     YAML::Node entityNode;
+
+    if (keepId) {
+        entityNode["entity"] = entity;
+    }
+
     entityNode["name"] = scene->getEntityName(entity);
 
     Signature signature = scene->getSignature(entity);
@@ -1073,7 +1078,16 @@ YAML::Node Editor::Stream::encodeEntity(const Entity entity, const Scene* scene)
 std::vector<Entity> Editor::Stream::decodeEntity(Scene* scene, const YAML::Node& entityNode, Entity parent) {
     std::vector<Entity> allEntities;
 
-    Entity entity = scene->createEntity();
+    Entity entity = NULL_ENTITY;
+    if (entityNode["entity"]){
+        entity = entityNode["entity"].as<Entity>();
+        if (!scene->recreateEntity(entity)){
+            entity = scene->createEntity();
+        }
+    }else{
+        entity = scene->createEntity();
+    }
+
     allEntities.push_back(entity);
 
     std::string name = entityNode["name"].as<std::string>();

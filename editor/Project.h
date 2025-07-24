@@ -101,9 +101,6 @@ namespace Supernova::Editor{
         void openScene(fs::path filepath);
         void closeScene(uint32_t sceneId);
 
-        void deleteEntity(uint32_t sceneId, Entity entity);
-        void deleteEntities(uint32_t sceneId, std::vector<Entity> entities);
-
         Entity findObjectByRay(uint32_t sceneId, float x, float y);
 
         bool selectObjectByRay(uint32_t sceneId, float x, float y, bool shiftPressed);
