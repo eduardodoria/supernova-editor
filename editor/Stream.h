@@ -107,8 +107,6 @@ namespace Supernova::Editor {
         static YAML::Node encodeLightComponent(const LightComponent& light);
         static LightComponent decodeLightComponent(const YAML::Node& node);
 
-        static YAML::Node encodeEntityRecursive(Entity entity, const Scene* scene, Project* project, uint32_t sceneId, const std::unordered_map<Entity, std::vector<Entity>>& childrenMap);
-
     public:
         static YAML::Node encodeProject(Project* project);
         static void decodeProject(Project* project, const YAML::Node& node);
@@ -120,6 +118,7 @@ namespace Supernova::Editor {
         static YAML::Node encodeScene(Scene* scene);
         static Scene* decodeScene(Scene* scene, const YAML::Node& node);
 
+        static YAML::Node encodeEntityBranch(const Entity entity, const SceneProject* sceneProject);
         static YAML::Node encodeEntity(const Entity entity, const Scene* scene);
         static std::vector<Entity> decodeEntity(Scene* scene, const YAML::Node& entityNode, Entity parent = NULL_ENTITY);
 

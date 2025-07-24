@@ -909,65 +909,18 @@ YAML::Node Editor::Stream::encodeSceneProject(Project* project, const SceneProje
     root["scene"] = encodeScene(sceneProject->scene);
     root["sceneType"] = sceneTypeToString(sceneProject->sceneType);
 
-    // Build childrenMap
-    std::unordered_map<Entity, std::vector<Entity>> childrenMap;
+    YAML::Node entitiesNode;
     for (Entity ent : sceneProject->entities) {
         if (Transform* transform = sceneProject->scene->findComponent<Transform>(ent)) {
-            if (transform->parent != NULL_ENTITY) {
-                childrenMap[transform->parent].push_back(ent);
+            if (transform->parent == NULL_ENTITY) {
+                entitiesNode.push_back(encodeEntityBranch(ent, sceneProject));
             }
+        }else{
+            entitiesNode.push_back(encodeEntity(ent, sceneProject->scene));
         }
-    }
-
-    // Find roots (entities that are not children of any)
-    std::unordered_set<Entity> isChildSet;
-    for (auto& pair : childrenMap) {
-        for (Entity c : pair.second) {
-            isChildSet.insert(c);
-        }
-    }
-
-    std::vector<Entity> roots;
-    for (Entity ent : sceneProject->entities) {
-        if (isChildSet.find(ent) == isChildSet.end()) {
-            roots.push_back(ent);
-        }
-    }
-
-    // Encode roots recursively
-    YAML::Node entitiesNode;
-    for (Entity ent : roots) {
-        entitiesNode.push_back(encodeEntityRecursive(ent, sceneProject->scene, project, sceneProject->id, childrenMap));
     }
     root["entities"] = entitiesNode;
     return root;
-}
-
-YAML::Node Editor::Stream::encodeEntityRecursive(Entity entity, const Scene* scene, Project* project, uint32_t sceneId, const std::unordered_map<Entity, std::vector<Entity>>& childrenMap){
-    YAML::Node node;
-
-    std::filesystem::path filepath = project->findGroupFor(sceneId, entity);
-    if (!filepath.empty()) {
-        const SharedGroup* group = project->getSharedGroup(filepath);
-        node["sharedFile"] = filepath.string();
-    } else {
-        node = encodeEntity(entity, scene);
-        if (node["transform"]) {
-            node["transform"].remove("parent");
-        }
-    }
-
-    // Add children
-    auto it = childrenMap.find(entity);
-    if (it != childrenMap.end()) {
-        YAML::Node chNode;
-        for (Entity child : it->second) {
-            chNode.push_back(encodeEntityRecursive(child, scene, project, sceneId, childrenMap));
-        }
-        node["children"] = chNode;
-    }
-
-    return node;
 }
 
 void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::Node& node) {
@@ -1037,6 +990,45 @@ Scene* Editor::Stream::decodeScene(Scene* scene, const YAML::Node& node) {
     }
 
     return scene;
+}
+
+YAML::Node Editor::Stream::encodeEntityBranch(const Entity entity, const SceneProject* sceneProject) {
+    std::map<Entity, YAML::Node> entityNodes;
+
+    const Scene* scene = sceneProject->scene;
+
+    YAML::Node& entityNode = entityNodes[entity];
+    entityNode = encodeEntity(entity, scene);
+
+    Signature signature = scene->getSignature(entity);
+
+    if (signature.test(scene->getComponentId<Transform>())) {
+        auto transforms = scene->getComponentArray<Transform>();
+        size_t firstIndex = transforms->getIndex(entity);
+
+        for (size_t i = firstIndex+1; i < transforms->size(); ++i) {
+            Entity currentEntity = transforms->getEntity(i);
+
+            if (std::find(sceneProject->entities.begin(), sceneProject->entities.end(), currentEntity) != sceneProject->entities.end()) {
+                YAML::Node& currentNode = entityNodes[currentEntity];
+                currentNode = encodeEntity(currentEntity, scene);
+
+                Transform& transform = transforms->getComponentFromIndex(i);
+
+                if (entityNodes.find(transform.parent) != entityNodes.end()) {
+                    YAML::Node& parentNode = entityNodes[transform.parent];
+                    if (!parentNode["children"]) {
+                        parentNode["children"] = YAML::Node();
+                    }
+                    parentNode["children"].push_back(currentNode);
+                } else {
+                    break; // No more childs
+                }
+            }
+        }
+    }
+
+    return entityNode;
 }
 
 YAML::Node Editor::Stream::encodeEntity(const Entity entity, const Scene* scene) {
