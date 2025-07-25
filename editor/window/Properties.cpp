@@ -1895,6 +1895,7 @@ void Editor::Properties::show(){
     if (entities.size() > 0){
 
         // to change component view order, need change ComponentType
+        bool isFirstEntity = true;
         for (Entity& entity : entities){
             std::vector<ComponentType> newComponents = Catalog::findComponents(scene, entity);
 
@@ -1902,8 +1903,9 @@ void Editor::Properties::show(){
                 std::sort(newComponents.begin(), newComponents.end());
             }
 
-            if (components.empty()) {
+            if (isFirstEntity) {
                 components = newComponents;
+                isFirstEntity = false;
             } else {
                 std::vector<ComponentType> intersection;
                 intersection.reserve(std::min(components.size(), newComponents.size()));
