@@ -1896,28 +1896,24 @@ void Editor::Properties::show(){
 
         // to change component view order, need change ComponentType
         for (Entity& entity : entities){
-            std::vector<ComponentType> oldComponents = components;
             std::vector<ComponentType> newComponents = Catalog::findComponents(scene, entity);
 
             if (!std::is_sorted(newComponents.begin(), newComponents.end())) {
                 std::sort(newComponents.begin(), newComponents.end());
             }
 
-            if (!components.empty()){
-                components.clear();
-
-                if (!std::is_sorted(oldComponents.begin(), oldComponents.end())) {
-                    std::sort(oldComponents.begin(), oldComponents.end());
-                }
-
-                // Reserve memory for efficiency
-                components.reserve(std::min(oldComponents.size(), newComponents.size()));
-                std::set_intersection(
-                    oldComponents.begin(), oldComponents.end(),
-                    newComponents.begin(), newComponents.end(),
-                    std::back_inserter(components));
-            }else{
+            if (components.empty()) {
                 components = newComponents;
+            } else {
+                std::vector<ComponentType> intersection;
+                intersection.reserve(std::min(components.size(), newComponents.size()));
+
+                std::set_intersection(
+                    components.begin(), components.end(),
+                    newComponents.begin(), newComponents.end(),
+                    std::back_inserter(intersection));
+
+                components = std::move(intersection);
             }
         }
 

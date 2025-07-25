@@ -15,6 +15,7 @@ namespace Supernova::Editor{
 
         size_t transformIndex;
         size_t entityIndex;
+        Entity parent = NULL_ENTITY;
 
         YAML::Node data;
     };

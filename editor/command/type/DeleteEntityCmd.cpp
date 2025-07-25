@@ -17,8 +17,10 @@ Editor::DeleteEntityCmd::DeleteEntityCmd(Project* project, uint32_t sceneId, Ent
 
     Signature signature = scene->getSignature(entity);
     if (signature.test(scene->getComponentId<Transform>())) {
+        Transform& transform = scene->getComponent<Transform>(entity);
         auto transforms = scene->getComponentArray<Transform>();
-	    entityData.transformIndex = transforms->getIndex(entity);
+        entityData.transformIndex = transforms->getIndex(entity);
+        entityData.parent = transform.parent;
     }
 
     auto it = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), entity);
@@ -84,6 +86,10 @@ void Editor::DeleteEntityCmd::undo(){
         std::vector<Entity> allEntities = Stream::decodeEntity(sceneProject->scene, entityData.data);
         entityData.entity = allEntities[0];
 
+        if (entityData.parent != NULL_ENTITY) {
+            sceneProject->scene->addEntityChild(entityData.parent, entityData.entity, false);
+        }
+
         sceneProject->entities.insert(sceneProject->entities.begin() + entityData.entityIndex, allEntities.begin(), allEntities.end());
 
         sceneProject->scene->moveChildToIndex(entityData.entity, entityData.transformIndex, false);
@@ -107,10 +113,6 @@ bool Editor::DeleteEntityCmd::mergeWith(Editor::Command* otherCommand){
                 // insert at begin to keep deletion order
                 entities.push_back(otherEntityData);
             }
-
-            std::sort(entities.begin(), entities.end(), [](const DeleteEntityData& a, const DeleteEntityData& b) {
-                return a.transformIndex < b.transformIndex;
-            });
 
             wasModified = wasModified && otherCmd->wasModified;
 
