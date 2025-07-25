@@ -19,11 +19,11 @@ namespace Supernova::Editor {
 
     // A generic event payload
     struct Event {
-        EventType    type;
+        EventType type;
         uint32_t sceneId;
-        Entity  entity;
+        Entity entity;
         std::vector<std::string> properties;
-        ComponentType  compType;   // only meaningful for component‐events
+        ComponentType compType;   // only meaningful for component‐events
     };
 
     class EventBus {

@@ -37,9 +37,32 @@ namespace Supernova::Editor{
     };
 
     struct SharedGroup {
-        std::map<uint32_t,Entity> members; // sceneId → local Entity
+        std::map<uint32_t, std::vector<Entity>> members; // sceneId → list of Entities (root + children)
         std::shared_ptr<YAML::Node> cachedYaml;
         bool isModified = false;
+
+        // Helper methods
+        Entity getRootEntity(uint32_t sceneId) const {
+            auto it = members.find(sceneId);
+            if (it != members.end() && !it->second.empty()) {
+                return it->second[0]; // First entity is always the root
+            }
+            return NULL_ENTITY;
+        }
+
+        const std::vector<Entity>& getAllEntities(uint32_t sceneId) const {
+            static const std::vector<Entity> empty;
+            auto it = members.find(sceneId);
+            return (it != members.end()) ? it->second : empty;
+        }
+
+        bool containsEntity(uint32_t sceneId, Entity entity) const {
+            auto it = members.find(sceneId);
+            if (it != members.end()) {
+                return std::find(it->second.begin(), it->second.end(), entity) != it->second.end();
+            }
+            return false;
+        }
     };
 
     class Project{

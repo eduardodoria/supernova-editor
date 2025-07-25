@@ -911,6 +911,21 @@ YAML::Node Editor::Stream::encodeSceneProject(Project* project, const SceneProje
 
     YAML::Node entitiesNode;
     for (Entity ent : sceneProject->entities) {
+        std::filesystem::path sharedPath = project->findGroupFor(sceneProject->id, ent);
+        if (!sharedPath.empty()) {
+            // Check if this is the root entity of the shared group
+            const SharedGroup* group = project->getSharedGroup(sharedPath);
+            if (group && group->getRootEntity(sceneProject->id) == ent) {
+                YAML::Node sharedNode;
+                sharedNode["sharedFile"] = sharedPath.string();
+                entitiesNode.push_back(sharedNode);
+                continue;
+            } else if (group) {
+                // This is a child of a shared group, skip it (will be handled by root)
+                continue;
+            }
+        }
+
         if (Transform* transform = sceneProject->scene->findComponent<Transform>(ent)) {
             if (transform->parent == NULL_ENTITY) {
                 entitiesNode.push_back(encodeEntityBranch(ent, sceneProject));
