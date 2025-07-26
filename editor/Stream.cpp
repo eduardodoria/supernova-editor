@@ -917,7 +917,7 @@ YAML::Node Editor::Stream::encodeSceneProject(Project* project, const SceneProje
             const SharedGroup* group = project->getSharedGroup(sharedPath);
             if (group && group->getRootEntity(sceneProject->id) == ent) {
                 YAML::Node sharedNode;
-                sharedNode["sharedFile"] = sharedPath.string();
+                sharedNode["shared"] = sharedPath.string();
                 entitiesNode.push_back(sharedNode);
                 continue;
             } else if (group) {
@@ -949,8 +949,8 @@ void Editor::Stream::decodeSceneProjectEntities(Project* project, SceneProject* 
     auto entitiesNode = node["entities"];
     for (const auto& en : entitiesNode){
         std::vector<Entity> newEntities;
-        if (en["sharedFile"]) {
-            std::filesystem::path sharedPath = en["sharedFile"].as<std::string>();
+        if (en["shared"]) {
+            std::filesystem::path sharedPath = en["shared"].as<std::string>();
             project->importSharedEntity(sceneProject, sharedPath, false);
         }else{
             std::vector<Entity> newEntities = decodeEntity(sceneProject->scene, en, NULL_ENTITY);
@@ -1007,13 +1007,15 @@ Scene* Editor::Stream::decodeScene(Scene* scene, const YAML::Node& node) {
     return scene;
 }
 
-YAML::Node Editor::Stream::encodeEntityBranch(const Entity entity, const SceneProject* sceneProject, bool keepId) {
+YAML::Node Editor::Stream::encodeEntityBranch(const Entity entity, const SceneProject* sceneProject, bool keepEntity) {
     std::map<Entity, YAML::Node> entityNodes;
+
+    uint32_t entityId = 0;
 
     const Scene* scene = sceneProject->scene;
 
     YAML::Node& entityNode = entityNodes[entity];
-    entityNode = encodeEntity(entity, scene, keepId);
+    entityNode = encodeEntity(entity, scene, keepEntity, entityId++);
 
     Signature signature = scene->getSignature(entity);
 
@@ -1026,7 +1028,7 @@ YAML::Node Editor::Stream::encodeEntityBranch(const Entity entity, const ScenePr
 
             if (std::find(sceneProject->entities.begin(), sceneProject->entities.end(), currentEntity) != sceneProject->entities.end()) {
                 YAML::Node& currentNode = entityNodes[currentEntity];
-                currentNode = encodeEntity(currentEntity, scene, keepId);
+                currentNode = encodeEntity(currentEntity, scene, keepEntity, entityId++);
 
                 Transform& transform = transforms->getComponentFromIndex(i);
 
@@ -1046,13 +1048,15 @@ YAML::Node Editor::Stream::encodeEntityBranch(const Entity entity, const ScenePr
     return entityNode;
 }
 
-YAML::Node Editor::Stream::encodeEntity(const Entity entity, const Scene* scene, bool keepId) {
+YAML::Node Editor::Stream::encodeEntity(const Entity entity, const Scene* scene, bool keepEntity, uint32_t entityId) {
     YAML::Node entityNode;
 
-    if (keepId) {
+    if (keepEntity) {
         entityNode["entity"] = entity;
     }
-
+    if (entityId != 0) {
+        entityNode["id"] = entityId;
+    }
     entityNode["name"] = scene->getEntityName(entity);
 
     Signature signature = scene->getSignature(entity);
