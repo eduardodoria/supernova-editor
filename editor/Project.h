@@ -98,7 +98,8 @@ namespace Supernova::Editor{
         void deleteSceneProject(SceneProject* sceneProject);
         void resetConfigs();
 
-        void mergeEntityNodes(YAML::Node& loadedNode, const YAML::Node& extendNode);
+        size_t countEntitiesInBranch(const YAML::Node& entityNode);
+        std::vector<size_t> mergeEntityNodes(YAML::Node& loadedNode, const YAML::Node& extendNode, size_t& globalIndex);
 
     public:
         Project();

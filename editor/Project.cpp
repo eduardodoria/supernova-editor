@@ -229,9 +229,23 @@ void Editor::Project::resetConfigs() {
     //createNewScene("New Scene");
 }
 
-void Editor::Project::mergeEntityNodes(YAML::Node& loadedNode, const YAML::Node& extendNode) {
+size_t Editor::Project::countEntitiesInBranch(const YAML::Node& entityNode) {
+    size_t count = 1; // Count the entity itself
+
+    if (entityNode["children"]) {
+        for (const auto& child : entityNode["children"]) {
+            count += countEntitiesInBranch(child);
+        }
+    }
+
+    return count;
+}
+
+std::vector<size_t> Editor::Project::mergeEntityNodes(YAML::Node& loadedNode, const YAML::Node& extendNode, size_t& globalIndex) {
+    std::vector<size_t> indicesOfExtend;
+
     if (!loadedNode.IsMap() || !extendNode.IsMap()) {
-        return;
+        return indicesOfExtend;
     }
 
     // Handle children merging
@@ -253,15 +267,25 @@ void Editor::Project::mergeEntityNodes(YAML::Node& loadedNode, const YAML::Node&
             if (extendType == "Entity") {
                 // Add the Entity from extendNode
                 newChildren.push_back(YAML::Clone(extendChildren[extendIndex]));
+
+                size_t startIndex = globalIndex;
+                size_t entityCount = countEntitiesInBranch(extendChildren[extendIndex]);
+                for (size_t i = 0; i < entityCount; ++i) {
+                    indicesOfExtend.push_back(startIndex + i);
+                }
+                globalIndex += entityCount;
             } else if (extendType == "SharedEntityChild") {
                 // Use the corresponding entity from loadedNode if available
                 if (loadedIndex < loadedChildren.size()) {
                     YAML::Node childNode = YAML::Clone(loadedChildren[loadedIndex]);
                     // Recursively merge in case the child has its own children
-                    mergeEntityNodes(childNode, extendChildren[extendIndex]);
+                    std::vector<size_t> newIndices = mergeEntityNodes(childNode, extendChildren[extendIndex], globalIndex);
+                    std::copy(newIndices.begin(), newIndices.end(), std::back_inserter(indicesOfExtend));
+
                     newChildren.push_back(childNode);
                     loadedIndex++;
                 }
+                globalIndex++;
             }
             extendIndex++;
         }
@@ -269,12 +293,18 @@ void Editor::Project::mergeEntityNodes(YAML::Node& loadedNode, const YAML::Node&
         // Add any remaining children from loadedNode that weren't processed
         while (loadedIndex < loadedChildren.size()) {
             newChildren.push_back(YAML::Clone(loadedChildren[loadedIndex]));
+
+            size_t entityCount = countEntitiesInBranch(loadedChildren[loadedIndex]);
+            globalIndex += entityCount;
+
             loadedIndex++;
         }
 
         // Replace the children array in loadedNode
         loadedNode["children"] = newChildren;
     }
+
+    return indicesOfExtend;
 }
 
 bool Editor::Project::createTempProject(std::string projectName, bool deleteIfExists) {
@@ -1016,11 +1046,14 @@ bool Editor::Project::importSharedEntity(SceneProject* sceneProject, const std::
         }
     }
 
+    std::vector<size_t> indicesOfExtend;
+
     // Merge extendNode with loadedNode if extendNode is provided
     if (extendNode && !extendNode.IsNull()) {
         // Create a copy of the loaded node for merging
         YAML::Node mergedNode = YAML::Clone(*node);
-        mergeEntityNodes(mergedNode, extendNode);
+        size_t globalIndex = 1;
+        indicesOfExtend = mergeEntityNodes(mergedNode, extendNode, globalIndex);
         node = std::make_shared<YAML::Node>(std::move(mergedNode));
     }
 
@@ -1028,6 +1061,17 @@ bool Editor::Project::importSharedEntity(SceneProject* sceneProject, const std::
     Scene* scene = sceneProject->scene;
     std::vector<Entity> newEntities = Stream::decodeEntity(scene, *node);
     std::copy(newEntities.begin(), newEntities.end(), std::back_inserter(sceneProject->entities));
+
+    // Remove from newEntities all elements whose index is in indicesOfExtend
+    if (!indicesOfExtend.empty()) {
+        // Sort indices in descending order to avoid invalidating indices when erasing
+        std::sort(indicesOfExtend.rbegin(), indicesOfExtend.rend());
+        for (size_t idx : indicesOfExtend) {
+            if (idx < newEntities.size()) {
+                newEntities.erase(newEntities.begin() + idx);
+            }
+        }
+    }
 
     // Store all entities in the shared group
     group.members[sceneProject->id] = newEntities;
