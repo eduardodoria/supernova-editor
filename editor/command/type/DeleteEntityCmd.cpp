@@ -55,7 +55,7 @@ bool Editor::DeleteEntityCmd::execute(){
     lastSelected = project->getSelectedEntities(sceneId);
 
     for (DeleteEntityData& entityData : entities){
-        entityData.data = Stream::encodeEntityBranch(entityData.entity, sceneProject, true);
+        entityData.data = Stream::encodeEntityBranch(entityData.entity, project, sceneProject, true);
 
         std::vector<Entity> allEntities;
         collectEntities(entityData.data, allEntities);

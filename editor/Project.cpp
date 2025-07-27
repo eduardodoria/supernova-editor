@@ -229,6 +229,54 @@ void Editor::Project::resetConfigs() {
     //createNewScene("New Scene");
 }
 
+void Editor::Project::mergeEntityNodes(YAML::Node& loadedNode, const YAML::Node& extendNode) {
+    if (!loadedNode.IsMap() || !extendNode.IsMap()) {
+        return;
+    }
+
+    // Handle children merging
+    if (extendNode["children"] && loadedNode["children"]) {
+        auto extendChildren = extendNode["children"];
+        auto loadedChildren = loadedNode["children"];
+
+        // Create a new children array to hold the merged result
+        YAML::Node newChildren(YAML::NodeType::Sequence);
+
+        size_t loadedIndex = 0;
+        size_t extendIndex = 0;
+
+        // Process all children from extendNode
+        while (extendIndex < extendChildren.size()) {
+            std::string extendType = extendChildren[extendIndex]["type"] ? 
+                extendChildren[extendIndex]["type"].as<std::string>() : "";
+
+            if (extendType == "Entity") {
+                // Add the Entity from extendNode
+                newChildren.push_back(YAML::Clone(extendChildren[extendIndex]));
+            } else if (extendType == "SharedEntityChild") {
+                // Use the corresponding entity from loadedNode if available
+                if (loadedIndex < loadedChildren.size()) {
+                    YAML::Node childNode = YAML::Clone(loadedChildren[loadedIndex]);
+                    // Recursively merge in case the child has its own children
+                    mergeEntityNodes(childNode, extendChildren[extendIndex]);
+                    newChildren.push_back(childNode);
+                    loadedIndex++;
+                }
+            }
+            extendIndex++;
+        }
+
+        // Add any remaining children from loadedNode that weren't processed
+        while (loadedIndex < loadedChildren.size()) {
+            newChildren.push_back(YAML::Clone(loadedChildren[loadedIndex]));
+            loadedIndex++;
+        }
+
+        // Replace the children array in loadedNode
+        loadedNode["children"] = newChildren;
+    }
+}
+
 bool Editor::Project::createTempProject(std::string projectName, bool deleteIfExists) {
     try {
         resetConfigs();
@@ -925,7 +973,7 @@ bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path
     return true;
 }
 
-bool Editor::Project::importSharedEntity(SceneProject* sceneProject, const std::filesystem::path& filepath, bool needSaveScene) {
+bool Editor::Project::importSharedEntity(SceneProject* sceneProject, const std::filesystem::path& filepath, bool needSaveScene, YAML::Node extendNode) {
     if (!filepath.is_relative()) {
         Out::error("Shared entity filepath must be relative: %s", filepath.string().c_str());
         return false;
@@ -968,6 +1016,14 @@ bool Editor::Project::importSharedEntity(SceneProject* sceneProject, const std::
         }
     }
 
+    // Merge extendNode with loadedNode if extendNode is provided
+    if (extendNode && !extendNode.IsNull()) {
+        // Create a copy of the loaded node for merging
+        YAML::Node mergedNode = YAML::Clone(*node);
+        mergeEntityNodes(mergedNode, extendNode);
+        node = std::make_shared<YAML::Node>(std::move(mergedNode));
+    }
+
     // decode into brand‐new local entities (root + children)
     Scene* scene = sceneProject->scene;
     std::vector<Entity> newEntities = Stream::decodeEntity(scene, *node);
@@ -1004,7 +1060,7 @@ void Editor::Project::saveSharedGroup(const std::filesystem::path& filepath, uin
     Scene* scene = getScene(sceneId)->scene;
 
     // Re‐serialize the entire branch to memory cache
-    YAML::Node encodedNode = Stream::encodeEntityBranch(rootEntity, getScene(sceneId));
+    YAML::Node encodedNode = Stream::encodeEntityBranch(rootEntity, this, getScene(sceneId));
     group.cachedYaml = std::make_shared<YAML::Node>(std::move(encodedNode));
     group.isModified = true;
 }
@@ -1042,7 +1098,7 @@ const Editor::SharedGroup* Editor::Project::getSharedGroup(const std::filesystem
     return nullptr;
 }
 
-std::filesystem::path Editor::Project::findGroupFor(uint32_t sceneId, Entity e) const {
+std::filesystem::path Editor::Project::findGroupPathFor(uint32_t sceneId, Entity e) const {
     for (const auto& [filepath, group] : sharedGroups){
         if (group.containsEntity(sceneId, e)) {
             return filepath;

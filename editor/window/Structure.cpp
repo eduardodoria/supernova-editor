@@ -246,7 +246,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     const Editor::SharedGroup* sharedGroup = nullptr;
 
     if (!node.isScene) {
-        sharedFilepath = project->findGroupFor(project->getSelectedSceneId(), node.id);
+        sharedFilepath = project->findGroupPathFor(project->getSelectedSceneId(), node.id);
         isShared = !sharedFilepath.empty();
         if (isShared) {
             sharedGroup = project->getSharedGroup(sharedFilepath);
@@ -278,7 +278,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
         // Add entity drag drop payload for dragging to resources
         if (!node.isScene) {
-            YAML::Node entityData = Stream::encodeEntityBranch(node.id, project->getSelectedScene());
+            YAML::Node entityData = Stream::encodeEntityBranch(node.id, project, project->getSelectedScene());
             std::string yamlString = YAML::Dump(entityData);
 
             size_t yamlSize = yamlString.size();

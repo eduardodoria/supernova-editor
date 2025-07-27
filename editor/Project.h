@@ -98,6 +98,8 @@ namespace Supernova::Editor{
         void deleteSceneProject(SceneProject* sceneProject);
         void resetConfigs();
 
+        void mergeEntityNodes(YAML::Node& loadedNode, const YAML::Node& extendNode);
+
     public:
         Project();
 
@@ -164,14 +166,14 @@ namespace Supernova::Editor{
         static EventBus& getEventBus();
 
         bool markEntityShared(uint32_t sceneId, Entity entity, fs::path filepath, YAML::Node entityNode);
-        bool importSharedEntity(SceneProject* sceneProject, const std::filesystem::path& filepath, bool needSaveScene = true);
+        bool importSharedEntity(SceneProject* sceneProject, const std::filesystem::path& filepath, bool needSaveScene = true, YAML::Node extendNode = YAML::Node());
         void saveSharedGroup(const std::filesystem::path& filepath, uint32_t sceneId);
 
         void saveSharedGroupsToDisk();
 
         SharedGroup* getSharedGroup(const std::filesystem::path& filepath);
         const SharedGroup* getSharedGroup(const std::filesystem::path& filepath) const;
-        std::filesystem::path findGroupFor(uint32_t sceneId, Entity e) const;
+        std::filesystem::path findGroupPathFor(uint32_t sceneId, Entity e) const;
 
         void build();
 

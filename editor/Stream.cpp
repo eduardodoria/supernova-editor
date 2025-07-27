@@ -902,7 +902,7 @@ void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
     }
 }
 
-YAML::Node Editor::Stream::encodeSceneProject(Project* project, const SceneProject* sceneProject){
+YAML::Node Editor::Stream::encodeSceneProject(const Project* project, const SceneProject* sceneProject){
     YAML::Node root;
     root["id"] = sceneProject->id;
     root["name"] = sceneProject->name;
@@ -911,27 +911,12 @@ YAML::Node Editor::Stream::encodeSceneProject(Project* project, const SceneProje
 
     YAML::Node entitiesNode;
     for (Entity ent : sceneProject->entities) {
-        std::filesystem::path sharedPath = project->findGroupFor(sceneProject->id, ent);
-        if (!sharedPath.empty()) {
-            // Check if this is the root entity of the shared group
-            const SharedGroup* group = project->getSharedGroup(sharedPath);
-            if (group && group->getRootEntity(sceneProject->id) == ent) {
-                YAML::Node sharedNode;
-                sharedNode["shared"] = sharedPath.string();
-                entitiesNode.push_back(sharedNode);
-                continue;
-            } else if (group) {
-                // This is a child of a shared group, skip it (will be handled by root)
-                continue;
-            }
-        }
-
         if (Transform* transform = sceneProject->scene->findComponent<Transform>(ent)) {
             if (transform->parent == NULL_ENTITY) {
-                entitiesNode.push_back(encodeEntityBranch(ent, sceneProject));
+                entitiesNode.push_back(encodeEntityBranch(ent, project, sceneProject));
             }
         }else{
-            entitiesNode.push_back(encodeEntity(ent, sceneProject->scene));
+            entitiesNode.push_back(encodeEntityBranch(ent, project, sceneProject));
         }
     }
     root["entities"] = entitiesNode;
@@ -947,13 +932,14 @@ void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::
 
 void Editor::Stream::decodeSceneProjectEntities(Project* project, SceneProject* sceneProject, const YAML::Node& node){
     auto entitiesNode = node["entities"];
-    for (const auto& en : entitiesNode){
+    for (const auto& entityNode : entitiesNode){
         std::vector<Entity> newEntities;
-        if (en["shared"]) {
-            std::filesystem::path sharedPath = en["shared"].as<std::string>();
-            project->importSharedEntity(sceneProject, sharedPath, false);
-        }else{
-            std::vector<Entity> newEntities = decodeEntity(sceneProject->scene, en, NULL_ENTITY);
+        std::string entityType = entityNode["type"].as<std::string>();
+        if (entityType == "SharedEntity") {
+            std::filesystem::path sharedPath = entityNode["path"].as<std::string>();
+            project->importSharedEntity(sceneProject, sharedPath, false, entityNode);
+        }else if (entityType == "Entity") {
+            std::vector<Entity> newEntities = decodeEntity(sceneProject->scene, entityNode, NULL_ENTITY);
             std::copy(newEntities.begin(), newEntities.end(), std::back_inserter(sceneProject->entities));
         }
     }
@@ -1007,15 +993,13 @@ Scene* Editor::Stream::decodeScene(Scene* scene, const YAML::Node& node) {
     return scene;
 }
 
-YAML::Node Editor::Stream::encodeEntityBranch(const Entity entity, const SceneProject* sceneProject, bool keepEntity) {
+YAML::Node Editor::Stream::encodeEntityBranch(const Entity entity, const Project* project, const SceneProject* sceneProject, bool keepEntity) {
     std::map<Entity, YAML::Node> entityNodes;
-
-    uint32_t entityId = 0;
+    YAML::Node& entityNode = entityNodes[entity];
 
     const Scene* scene = sceneProject->scene;
 
-    YAML::Node& entityNode = entityNodes[entity];
-    entityNode = encodeEntity(entity, scene, keepEntity, entityId++);
+    entityNode = encodeEntity(entity, project, sceneProject, keepEntity);
 
     Signature signature = scene->getSignature(entity);
 
@@ -1028,7 +1012,7 @@ YAML::Node Editor::Stream::encodeEntityBranch(const Entity entity, const ScenePr
 
             if (std::find(sceneProject->entities.begin(), sceneProject->entities.end(), currentEntity) != sceneProject->entities.end()) {
                 YAML::Node& currentNode = entityNodes[currentEntity];
-                currentNode = encodeEntity(currentEntity, scene, keepEntity, entityId++);
+                currentNode = encodeEntity(currentEntity, project, sceneProject, keepEntity);
 
                 Transform& transform = transforms->getComponentFromIndex(i);
 
@@ -1048,47 +1032,61 @@ YAML::Node Editor::Stream::encodeEntityBranch(const Entity entity, const ScenePr
     return entityNode;
 }
 
-YAML::Node Editor::Stream::encodeEntity(const Entity entity, const Scene* scene, bool keepEntity, uint32_t entityId) {
+YAML::Node Editor::Stream::encodeEntity(const Entity entity, const Project* project, const SceneProject* sceneProject, bool keepEntity) {
     YAML::Node entityNode;
+    std::filesystem::path sharedPath = project->findGroupPathFor(sceneProject->id, entity);
+    if (!sharedPath.empty()) {
+        const SharedGroup* group = project->getSharedGroup(sharedPath);
+        // Check if this is the root entity of the shared group
+        if (group->getRootEntity(sceneProject->id) == entity) {
+            entityNode["type"] = "SharedEntity";
+            entityNode["path"] = sharedPath.string();
+        }else{
+            entityNode["type"] = "SharedEntityChild";
+        }
 
-    if (keepEntity) {
-        entityNode["entity"] = entity;
-    }
-    if (entityId != 0) {
-        entityNode["id"] = entityId;
-    }
-    entityNode["name"] = scene->getEntityName(entity);
+    }else{
+        entityNode["type"] = "Entity";
 
-    Signature signature = scene->getSignature(entity);
+        const Scene* scene = sceneProject->scene;
 
-    if (signature.test(scene->getComponentId<Transform>())) {
-        Transform transform = scene->getComponent<Transform>(entity);
-        entityNode["transform"] = encodeTransform(transform);
-    }
+        if (keepEntity) {
+            entityNode["entity"] = entity;
+        }
+        entityNode["name"] = scene->getEntityName(entity);
 
-    if (signature.test(scene->getComponentId<MeshComponent>())) {
-        MeshComponent mesh = scene->getComponent<MeshComponent>(entity);
-        entityNode["mesh"] = encodeMeshComponent(mesh);
-    }
+        Signature signature = scene->getSignature(entity);
 
-    if (signature.test(scene->getComponentId<UIComponent>())) {
-        UIComponent ui = scene->getComponent<UIComponent>(entity);
-        entityNode["ui"] = encodeUIComponent(ui);
-    }
+        if (signature.test(scene->getComponentId<Transform>())) {
+            Transform transform = scene->getComponent<Transform>(entity);
+            entityNode["transform"] = encodeTransform(transform);
+        }
 
-    if (signature.test(scene->getComponentId<UILayoutComponent>())) {
-        UILayoutComponent layout = scene->getComponent<UILayoutComponent>(entity);
-        entityNode["layout"] = encodeUILayoutComponent(layout);
-    }
+        if (signature.test(scene->getComponentId<MeshComponent>())) {
+            MeshComponent mesh = scene->getComponent<MeshComponent>(entity);
+            entityNode["mesh"] = encodeMeshComponent(mesh);
+        }
 
-    if (signature.test(scene->getComponentId<ImageComponent>())) {
-        ImageComponent image = scene->getComponent<ImageComponent>(entity);
-        entityNode["image"] = encodeImageComponent(image);
-    }
+        if (signature.test(scene->getComponentId<UIComponent>())) {
+            UIComponent ui = scene->getComponent<UIComponent>(entity);
+            entityNode["ui"] = encodeUIComponent(ui);
+        }
 
-    if (signature.test(scene->getComponentId<LightComponent>())) {
-        LightComponent light = scene->getComponent<LightComponent>(entity);
-        entityNode["light"] = encodeLightComponent(light);
+        if (signature.test(scene->getComponentId<UILayoutComponent>())) {
+            UILayoutComponent layout = scene->getComponent<UILayoutComponent>(entity);
+            entityNode["layout"] = encodeUILayoutComponent(layout);
+        }
+
+        if (signature.test(scene->getComponentId<ImageComponent>())) {
+            ImageComponent image = scene->getComponent<ImageComponent>(entity);
+            entityNode["image"] = encodeImageComponent(image);
+        }
+
+        if (signature.test(scene->getComponentId<LightComponent>())) {
+            LightComponent light = scene->getComponent<LightComponent>(entity);
+            entityNode["light"] = encodeLightComponent(light);
+        }
+
     }
 
     return entityNode;
