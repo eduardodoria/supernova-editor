@@ -933,15 +933,8 @@ void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::
 void Editor::Stream::decodeSceneProjectEntities(Project* project, SceneProject* sceneProject, const YAML::Node& node){
     auto entitiesNode = node["entities"];
     for (const auto& entityNode : entitiesNode){
-        std::vector<Entity> newEntities;
-        std::string entityType = entityNode["type"].as<std::string>();
-        if (entityType == "SharedEntity") {
-            std::filesystem::path sharedPath = entityNode["path"].as<std::string>();
-            project->importSharedEntity(sceneProject, sharedPath, false, entityNode);
-        }else if (entityType == "Entity") {
-            std::vector<Entity> newEntities = decodeEntity(sceneProject->scene, entityNode, NULL_ENTITY);
-            std::copy(newEntities.begin(), newEntities.end(), std::back_inserter(sceneProject->entities));
-        }
+        std::vector<Entity> newEntities = decodeEntity(project, sceneProject, entityNode, NULL_ENTITY);
+        std::copy(newEntities.begin(), newEntities.end(), std::back_inserter(sceneProject->entities));
     }
 }
 
@@ -1092,61 +1085,73 @@ YAML::Node Editor::Stream::encodeEntity(const Entity entity, const Project* proj
     return entityNode;
 }
 
-std::vector<Entity> Editor::Stream::decodeEntity(Scene* scene, const YAML::Node& entityNode, Entity parent) {
+std::vector<Entity> Editor::Stream::decodeEntity(Project* project, SceneProject* sceneProject, const YAML::Node& entityNode, Entity parent) {
     std::vector<Entity> allEntities;
 
-    Entity entity = NULL_ENTITY;
-    if (entityNode["entity"]){
-        entity = entityNode["entity"].as<Entity>();
-        if (!scene->recreateEntity(entity)){
+    std::string entityType = entityNode["type"].as<std::string>();
+    Scene* scene = sceneProject->scene;
+
+    if (entityType == "SharedEntity") {
+
+        std::filesystem::path sharedPath = entityNode["path"].as<std::string>();
+        allEntities = project->importSharedEntity(sceneProject, sharedPath, parent, false, entityNode);
+
+    }else if (entityType == "Entity") {
+
+        Entity entity = NULL_ENTITY;
+        if (entityNode["entity"]){
+            entity = entityNode["entity"].as<Entity>();
+            if (!scene->recreateEntity(entity)){
+                entity = scene->createEntity();
+            }
+        }else{
             entity = scene->createEntity();
         }
-    }else{
-        entity = scene->createEntity();
-    }
 
-    allEntities.push_back(entity);
+        allEntities.push_back(entity);
 
-    std::string name = entityNode["name"].as<std::string>();
-    scene->setEntityName(entity, name);
+        std::string name = entityNode["name"].as<std::string>();
+        scene->setEntityName(entity, name);
 
-    if (entityNode["transform"]) {
-        Transform transform = decodeTransform(entityNode["transform"]);
-        transform.parent = parent;
-        scene->addComponent<Transform>(entity, transform);
-    }
-
-    if (entityNode["mesh"]) {
-        MeshComponent mesh = decodeMeshComponent(entityNode["mesh"]);
-        scene->addComponent<MeshComponent>(entity, mesh);
-    }
-
-    if (entityNode["ui"]) {
-        UIComponent ui = decodeUIComponent(entityNode["ui"]);
-        scene->addComponent<UIComponent>(entity, ui);
-    }
-
-    if (entityNode["layout"]) {
-        UILayoutComponent layout = decodeUILayoutComponent(entityNode["layout"]);
-        scene->addComponent<UILayoutComponent>(entity, layout);
-    }
-
-    if (entityNode["image"]) {
-        ImageComponent image = decodeImageComponent(entityNode["image"]);
-        scene->addComponent<ImageComponent>(entity, image);
-    }
-
-    if (entityNode["light"]) {
-        LightComponent light = decodeLightComponent(entityNode["light"]);
-        scene->addComponent<LightComponent>(entity, light);
-    }
-
-    // Decode children from actualNode
-    if (entityNode["children"]) {
-        for (const auto& childNode : entityNode["children"]) {
-            std::vector<Entity> childEntities = decodeEntity(scene, childNode, entity);
-            std::copy(childEntities.begin(), childEntities.end(), std::back_inserter(allEntities));
+        if (entityNode["transform"]) {
+            Transform transform = decodeTransform(entityNode["transform"]);
+            transform.parent = parent;
+            scene->addComponent<Transform>(entity, transform);
         }
+
+        if (entityNode["mesh"]) {
+            MeshComponent mesh = decodeMeshComponent(entityNode["mesh"]);
+            scene->addComponent<MeshComponent>(entity, mesh);
+        }
+
+        if (entityNode["ui"]) {
+            UIComponent ui = decodeUIComponent(entityNode["ui"]);
+            scene->addComponent<UIComponent>(entity, ui);
+        }
+
+        if (entityNode["layout"]) {
+            UILayoutComponent layout = decodeUILayoutComponent(entityNode["layout"]);
+            scene->addComponent<UILayoutComponent>(entity, layout);
+        }
+
+        if (entityNode["image"]) {
+            ImageComponent image = decodeImageComponent(entityNode["image"]);
+            scene->addComponent<ImageComponent>(entity, image);
+        }
+
+        if (entityNode["light"]) {
+            LightComponent light = decodeLightComponent(entityNode["light"]);
+            scene->addComponent<LightComponent>(entity, light);
+        }
+
+        // Decode children from actualNode
+        if (entityNode["children"]) {
+            for (const auto& childNode : entityNode["children"]) {
+                std::vector<Entity> childEntities = decodeEntity(project, sceneProject, childNode, entity);
+                std::copy(childEntities.begin(), childEntities.end(), std::back_inserter(allEntities));
+            }
+        }
+
     }
 
     return allEntities;

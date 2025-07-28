@@ -207,9 +207,10 @@ void Editor::Structure::handleEntityFilesDrop(const std::vector<std::string>& fi
         if (path.extension() == ".entity") {
             // Import the shared entity into the current scene
             std::filesystem::path relativePath = std::filesystem::relative(path, project->getProjectPath());
-            bool success = project->importSharedEntity(project->getSelectedScene(), relativePath);
+            std::vector<Entity> newEntities = project->importSharedEntity(project->getSelectedScene(), relativePath);
+            std::copy(newEntities.begin(), newEntities.end(), std::back_inserter(project->getSelectedScene()->entities));
 
-            if (success) {
+            if (newEntities.size() > 0) {
                 Out::info("Successfully imported entity from: %s", path.string().c_str());
             } else {
                 Out::warning("Failed to import entity from: %s (might already exist in scene)", path.string().c_str());

@@ -120,7 +120,7 @@ namespace Supernova::Editor {
 
         static YAML::Node encodeEntityBranch(const Entity entity, const Project* project, const SceneProject* sceneProject, bool keepEntity = false);
         static YAML::Node encodeEntity(const Entity entity, const Project* project, const SceneProject* sceneProject, bool keepEntity = false);
-        static std::vector<Entity> decodeEntity(Scene* scene, const YAML::Node& entityNode, Entity parent = NULL_ENTITY);
+        static std::vector<Entity> decodeEntity(Project* project, SceneProject* sceneProject, const YAML::Node& entityNode, Entity parent = NULL_ENTITY);
 
         static YAML::Node encodeMaterial(const Material& material);
         static Material decodeMaterial(const YAML::Node& node);

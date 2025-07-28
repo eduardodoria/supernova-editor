@@ -269,13 +269,17 @@ std::vector<size_t> Editor::Project::mergeEntityNodes(YAML::Node& loadedNode, co
                         tempChildren.push_back(loadedNode["children"][j]);
                     }
 
-                    loadedChildrenSize++;
                     loadedNode["children"] = tempChildren;
                 }else{
                     loadedNode["children"] = YAML::Node(YAML::NodeType::Sequence);
                     loadedNode["children"].push_back(newChild);
                 }
-                extendedIndices.push_back(index);
+                loadedChildrenSize++;
+
+                size_t entityCount = countEntitiesInBranch(newChild);
+                for (size_t i = 0; i < entityCount; ++i) {
+                    extendedIndices.push_back(index + i);
+                }
             }
 
             YAML::Node loadedChild = loadedNode["children"][i];
@@ -995,10 +999,10 @@ bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path
     return true;
 }
 
-bool Editor::Project::importSharedEntity(SceneProject* sceneProject, const std::filesystem::path& filepath, bool needSaveScene, YAML::Node extendNode) {
+std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProject, const std::filesystem::path& filepath, Entity parent, bool needSaveScene, YAML::Node extendNode) {
     if (!filepath.is_relative()) {
         Out::error("Shared entity filepath must be relative: %s", filepath.string().c_str());
-        return false;
+        return {};
     }
 
     auto it = sharedGroups.find(filepath);
@@ -1014,7 +1018,7 @@ bool Editor::Project::importSharedEntity(SceneProject* sceneProject, const std::
         isNewGroup = true;
     } else {
         // do not re‐import if already present
-        if (it->second.members.count(sceneProject->id)) return false;
+        if (it->second.members.count(sceneProject->id)) return {};
     }
 
     auto& group = it->second;
@@ -1031,10 +1035,10 @@ bool Editor::Project::importSharedEntity(SceneProject* sceneProject, const std::
             group.cachedYaml = node; // cache it
         } catch (const YAML::Exception& e) {
             Out::error("Failed to load shared entity file: %s", e.what());
-            return false;
+            return {};
         } catch (const std::exception& e) {
             Out::error("Failed to load shared entity file: %s", e.what());
-            return false;
+            return {};
         }
     }
 
@@ -1051,22 +1055,23 @@ bool Editor::Project::importSharedEntity(SceneProject* sceneProject, const std::
 
     // decode into brand‐new local entities (root + children)
     Scene* scene = sceneProject->scene;
-    std::vector<Entity> newEntities = Stream::decodeEntity(scene, *node);
-    std::copy(newEntities.begin(), newEntities.end(), std::back_inserter(sceneProject->entities));
+    std::vector<Entity> newEntities = Stream::decodeEntity(this, sceneProject, *node);
+    scene->addEntityChild(parent, newEntities[0], false);
 
+    std::vector<Entity> membersEntities = newEntities;
     // Remove from newEntities all elements whose index is in indicesOfExtend
     if (!indicesOfExtend.empty()) {
         // Sort indices in descending order to avoid invalidating indices when erasing
         std::sort(indicesOfExtend.rbegin(), indicesOfExtend.rend());
         for (size_t idx : indicesOfExtend) {
-            if (idx < newEntities.size()) {
-                newEntities.erase(newEntities.begin() + idx);
+            if (idx < membersEntities.size()) {
+                membersEntities.erase(membersEntities.begin() + idx);
             }
         }
     }
 
     // Store all entities in the shared group
-    group.members[sceneProject->id] = newEntities;
+    group.members[sceneProject->id] = membersEntities;
 
     sceneProject->isModified = needSaveScene;
 
@@ -1075,7 +1080,7 @@ bool Editor::Project::importSharedEntity(SceneProject* sceneProject, const std::
         setupSharedGroupEventSubscriptions(filepath);
     }
 
-    return true;
+    return newEntities;
 }
 
 void Editor::Project::saveSharedGroup(const std::filesystem::path& filepath, uint32_t sceneId){
