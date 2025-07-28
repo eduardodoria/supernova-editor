@@ -241,6 +241,28 @@ size_t Editor::Project::countEntitiesInBranch(const YAML::Node& entityNode) {
     return count;
 }
 
+void Editor::Project::insertNewChild(YAML::Node& node, YAML::Node child, size_t index){
+    if (node["children"]){
+        size_t childrenSize = node["children"].size();
+        // To insert at position i, we need to rebuild the sequence
+        YAML::Node tempChildren = YAML::Node(YAML::NodeType::Sequence);
+        // Copy elements before position i
+        for (size_t j = 0; j < index && j < childrenSize; j++) {
+            tempChildren.push_back(node["children"][j]);
+        }
+        // Insert the new child
+        tempChildren.push_back(child);
+        // Copy remaining elements
+        for (size_t j = index; j < childrenSize; j++) {
+            tempChildren.push_back(node["children"][j]);
+        }
+        node["children"] = tempChildren;
+    }else{
+        node["children"] = YAML::Node(YAML::NodeType::Sequence);
+        node["children"].push_back(child);
+    }
+}
+
 std::vector<size_t> Editor::Project::mergeEntityNodes(YAML::Node& loadedNode, const YAML::Node& extendNode, size_t& index){
     std::vector<size_t> extendedIndices;
     index++;
@@ -254,26 +276,7 @@ std::vector<size_t> Editor::Project::mergeEntityNodes(YAML::Node& loadedNode, co
 
             if (extendType == "Entity"){
                 YAML::Node newChild = YAML::Clone(extendNode["children"][i]);
-                if (loadedNode["children"]){
-                    // To insert at position i, we need to rebuild the sequence
-                    YAML::Node tempChildren = YAML::Node(YAML::NodeType::Sequence);
-
-                    // Copy elements before position i
-                    for (size_t j = 0; j < i && j < loadedChildrenSize; j++) {
-                        tempChildren.push_back(loadedNode["children"][j]);
-                    }
-                    // Insert the new child
-                    tempChildren.push_back(newChild);
-                    // Copy remaining elements
-                    for (size_t j = i; j < loadedChildrenSize; j++) {
-                        tempChildren.push_back(loadedNode["children"][j]);
-                    }
-
-                    loadedNode["children"] = tempChildren;
-                }else{
-                    loadedNode["children"] = YAML::Node(YAML::NodeType::Sequence);
-                    loadedNode["children"].push_back(newChild);
-                }
+                insertNewChild(loadedNode, newChild, i);
                 loadedChildrenSize++;
 
                 size_t entityCount = countEntitiesInBranch(newChild);
@@ -290,9 +293,28 @@ std::vector<size_t> Editor::Project::mergeEntityNodes(YAML::Node& loadedNode, co
     }else{
         for (size_t i = 0; i < loadedChildrenSize; i++) {
             YAML::Node loadedChild = loadedNode["children"][i];
+
             YAML::Node extendChild = YAML::Node();
             if (extendChildrenSize > 0){
-                size_t extendedIndex = i < extendChildrenSize ? i : extendChildrenSize - 1;
+                size_t extendedIndex = extendChildrenSize - 1;
+
+                if (i < extendChildrenSize){
+                    //std::string extendType = extendNode["children"][i]["type"] ? extendNode["children"][i]["type"].as<std::string>() : "";
+
+                    //if (extendType == "Entity"){
+                    //    YAML::Node newChild = YAML::Clone(extendNode["children"][i]);
+                    //    insertNewChild(loadedNode, newChild, i);
+                    //    loadedChildrenSize++;
+
+                    //    size_t entityCount = countEntitiesInBranch(newChild);
+                    //    for (size_t i = 0; i < entityCount; ++i) {
+                    //        extendedIndices.push_back(index + i);
+                    //    }
+                    //}
+
+                    extendedIndex = i;
+                }
+
                 extendChild = extendNode["children"][extendedIndex];
             }
             std::vector<size_t> newIndices = mergeEntityNodes(loadedChild, extendChild, index);

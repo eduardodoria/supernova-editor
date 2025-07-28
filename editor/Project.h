@@ -99,6 +99,7 @@ namespace Supernova::Editor{
         void resetConfigs();
 
         size_t countEntitiesInBranch(const YAML::Node& entityNode);
+        void insertNewChild(YAML::Node& node, YAML::Node child, size_t index);
         std::vector<size_t> mergeEntityNodes(YAML::Node& loadedNode, const YAML::Node& extendNode, size_t& index);
 
     public:
