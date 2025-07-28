@@ -244,18 +244,23 @@ size_t Editor::Project::countEntitiesInBranch(const YAML::Node& entityNode) {
 void Editor::Project::insertNewChild(YAML::Node& node, YAML::Node child, size_t index){
     if (node["children"]){
         size_t childrenSize = node["children"].size();
+
         // To insert at position i, we need to rebuild the sequence
         YAML::Node tempChildren = YAML::Node(YAML::NodeType::Sequence);
+
         // Copy elements before position i
         for (size_t j = 0; j < index && j < childrenSize; j++) {
             tempChildren.push_back(node["children"][j]);
         }
+
         // Insert the new child
         tempChildren.push_back(child);
+
         // Copy remaining elements
         for (size_t j = index; j < childrenSize; j++) {
             tempChildren.push_back(node["children"][j]);
         }
+
         node["children"] = tempChildren;
     }else{
         node["children"] = YAML::Node(YAML::NodeType::Sequence);
@@ -265,62 +270,33 @@ void Editor::Project::insertNewChild(YAML::Node& node, YAML::Node child, size_t 
 
 std::vector<size_t> Editor::Project::mergeEntityNodes(YAML::Node& loadedNode, const YAML::Node& extendNode, size_t& index){
     std::vector<size_t> extendedIndices;
-    index++;
 
     size_t loadedChildrenSize = loadedNode["children"]  ? loadedNode["children"].size() : 0;
     size_t extendChildrenSize = extendNode["children"]  ? extendNode["children"].size() : 0;
 
-    if (loadedChildrenSize < extendChildrenSize){
-        for (size_t i = 0; i < extendChildrenSize; i++) {
-            std::string extendType = extendNode["children"][i]["type"] ? extendNode["children"][i]["type"].as<std::string>() : "";
+    for (size_t i = 0; i < extendChildrenSize; i++) {
+        index++;
+        std::string extendType = extendNode["children"][i]["type"] ? extendNode["children"][i]["type"].as<std::string>() : "";
 
-            if (extendType == "Entity"){
-                YAML::Node newChild = YAML::Clone(extendNode["children"][i]);
-                insertNewChild(loadedNode, newChild, i);
-                loadedChildrenSize++;
+        if (extendType == "Entity"){
+            YAML::Node newChild = YAML::Clone(extendNode["children"][i]);
+            insertNewChild(loadedNode, newChild, i);
+            loadedChildrenSize++;
 
-                size_t entityCount = countEntitiesInBranch(newChild);
-                for (size_t i = 0; i < entityCount; ++i) {
-                    extendedIndices.push_back(index + i);
-                }
+            size_t entityCount = countEntitiesInBranch(newChild);
+            for (size_t c = 0; c < entityCount; ++c) {
+                extendedIndices.push_back(index + c);
             }
-
+            index += entityCount - 1;
+        }else{
             YAML::Node loadedChild = loadedNode["children"][i];
             YAML::Node extendChild = extendNode["children"][i];
             std::vector<size_t> newIndices = mergeEntityNodes(loadedChild, extendChild, index);
             std::copy(newIndices.begin(), newIndices.end(), std::back_inserter(extendedIndices));
         }
-    }else{
-        for (size_t i = 0; i < loadedChildrenSize; i++) {
-            YAML::Node loadedChild = loadedNode["children"][i];
 
-            YAML::Node extendChild = YAML::Node();
-            if (extendChildrenSize > 0){
-                size_t extendedIndex = extendChildrenSize - 1;
-
-                if (i < extendChildrenSize){
-                    //std::string extendType = extendNode["children"][i]["type"] ? extendNode["children"][i]["type"].as<std::string>() : "";
-
-                    //if (extendType == "Entity"){
-                    //    YAML::Node newChild = YAML::Clone(extendNode["children"][i]);
-                    //    insertNewChild(loadedNode, newChild, i);
-                    //    loadedChildrenSize++;
-
-                    //    size_t entityCount = countEntitiesInBranch(newChild);
-                    //    for (size_t i = 0; i < entityCount; ++i) {
-                    //        extendedIndices.push_back(index + i);
-                    //    }
-                    //}
-
-                    extendedIndex = i;
-                }
-
-                extendChild = extendNode["children"][extendedIndex];
-            }
-            std::vector<size_t> newIndices = mergeEntityNodes(loadedChild, extendChild, index);
-            std::copy(newIndices.begin(), newIndices.end(), std::back_inserter(extendedIndices));
-        }
     }
+    index += loadedChildrenSize - extendChildrenSize;
 
     return extendedIndices;
 }
