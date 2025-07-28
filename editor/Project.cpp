@@ -241,70 +241,62 @@ size_t Editor::Project::countEntitiesInBranch(const YAML::Node& entityNode) {
     return count;
 }
 
-std::vector<size_t> Editor::Project::mergeEntityNodes(YAML::Node& loadedNode, const YAML::Node& extendNode, size_t& globalIndex) {
-    std::vector<size_t> indicesOfExtend;
+std::vector<size_t> Editor::Project::mergeEntityNodes(YAML::Node& loadedNode, const YAML::Node& extendNode, size_t& index){
+    std::vector<size_t> extendedIndices;
+    index++;
 
-    if (!loadedNode.IsMap() || !extendNode.IsMap()) {
-        return indicesOfExtend;
-    }
+    size_t loadedChildrenSize = loadedNode["children"]  ? loadedNode["children"].size() : 0;
+    size_t extendChildrenSize = extendNode["children"]  ? extendNode["children"].size() : 0;
 
-    // Handle children merging
-    if (extendNode["children"] && loadedNode["children"]) {
-        auto extendChildren = extendNode["children"];
-        auto loadedChildren = loadedNode["children"];
+    if (loadedChildrenSize < extendChildrenSize){
+        for (size_t i = 0; i < extendChildrenSize; i++) {
+            std::string extendType = extendNode["children"][i]["type"] ? extendNode["children"][i]["type"].as<std::string>() : "";
 
-        // Create a new children array to hold the merged result
-        YAML::Node newChildren(YAML::NodeType::Sequence);
+            if (extendType == "Entity"){
+                YAML::Node newChild = YAML::Clone(extendNode["children"][i]);
+                if (loadedNode["children"]){
+                    // To insert at position i, we need to rebuild the sequence
+                    YAML::Node tempChildren = YAML::Node(YAML::NodeType::Sequence);
 
-        size_t loadedIndex = 0;
-        size_t extendIndex = 0;
+                    // Copy elements before position i
+                    for (size_t j = 0; j < i && j < loadedChildrenSize; j++) {
+                        tempChildren.push_back(loadedNode["children"][j]);
+                    }
+                    // Insert the new child
+                    tempChildren.push_back(newChild);
+                    // Copy remaining elements
+                    for (size_t j = i; j < loadedChildrenSize; j++) {
+                        tempChildren.push_back(loadedNode["children"][j]);
+                    }
 
-        // Process all children from extendNode
-        while (extendIndex < extendChildren.size()) {
-            std::string extendType = extendChildren[extendIndex]["type"] ? 
-                extendChildren[extendIndex]["type"].as<std::string>() : "";
-
-            if (extendType == "Entity") {
-                // Add the Entity from extendNode
-                newChildren.push_back(YAML::Clone(extendChildren[extendIndex]));
-
-                size_t startIndex = globalIndex;
-                size_t entityCount = countEntitiesInBranch(extendChildren[extendIndex]);
-                for (size_t i = 0; i < entityCount; ++i) {
-                    indicesOfExtend.push_back(startIndex + i);
+                    loadedChildrenSize++;
+                    loadedNode["children"] = tempChildren;
+                }else{
+                    loadedNode["children"] = YAML::Node(YAML::NodeType::Sequence);
+                    loadedNode["children"].push_back(newChild);
                 }
-                globalIndex += entityCount;
-            } else if (extendType == "SharedEntityChild") {
-                // Use the corresponding entity from loadedNode if available
-                if (loadedIndex < loadedChildren.size()) {
-                    YAML::Node childNode = YAML::Clone(loadedChildren[loadedIndex]);
-                    // Recursively merge in case the child has its own children
-                    std::vector<size_t> newIndices = mergeEntityNodes(childNode, extendChildren[extendIndex], globalIndex);
-                    std::copy(newIndices.begin(), newIndices.end(), std::back_inserter(indicesOfExtend));
-
-                    newChildren.push_back(childNode);
-                    loadedIndex++;
-                }
-                globalIndex++;
+                extendedIndices.push_back(index);
             }
-            extendIndex++;
+
+            YAML::Node loadedChild = loadedNode["children"][i];
+            YAML::Node extendChild = extendNode["children"][i];
+            std::vector<size_t> newIndices = mergeEntityNodes(loadedChild, extendChild, index);
+            std::copy(newIndices.begin(), newIndices.end(), std::back_inserter(extendedIndices));
         }
-
-        // Add any remaining children from loadedNode that weren't processed
-        while (loadedIndex < loadedChildren.size()) {
-            newChildren.push_back(YAML::Clone(loadedChildren[loadedIndex]));
-
-            size_t entityCount = countEntitiesInBranch(loadedChildren[loadedIndex]);
-            globalIndex += entityCount;
-
-            loadedIndex++;
+    }else{
+        for (size_t i = 0; i < loadedChildrenSize; i++) {
+            YAML::Node loadedChild = loadedNode["children"][i];
+            YAML::Node extendChild = YAML::Node();
+            if (extendChildrenSize > 0){
+                size_t extendedIndex = i < extendChildrenSize ? i : extendChildrenSize - 1;
+                extendChild = extendNode["children"][extendedIndex];
+            }
+            std::vector<size_t> newIndices = mergeEntityNodes(loadedChild, extendChild, index);
+            std::copy(newIndices.begin(), newIndices.end(), std::back_inserter(extendedIndices));
         }
-
-        // Replace the children array in loadedNode
-        loadedNode["children"] = newChildren;
     }
 
-    return indicesOfExtend;
+    return extendedIndices;
 }
 
 bool Editor::Project::createTempProject(std::string projectName, bool deleteIfExists) {
@@ -1052,7 +1044,7 @@ bool Editor::Project::importSharedEntity(SceneProject* sceneProject, const std::
     if (extendNode && !extendNode.IsNull()) {
         // Create a copy of the loaded node for merging
         YAML::Node mergedNode = YAML::Clone(*node);
-        size_t globalIndex = 1;
+        size_t globalIndex = 0;
         indicesOfExtend = mergeEntityNodes(mergedNode, extendNode, globalIndex);
         node = std::make_shared<YAML::Node>(std::move(mergedNode));
     }
