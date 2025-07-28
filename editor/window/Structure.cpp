@@ -199,7 +199,7 @@ Editor::TreeNode* Editor::Structure::findNode(Editor::TreeNode* root, Entity ent
      return nullptr;
 }
 
-void Editor::Structure::handleEntityFilesDrop(const std::vector<std::string>& filePaths) {
+void Editor::Structure::handleEntityFilesDrop(const std::vector<std::string>& filePaths, Entity parent) {
     for (const std::string& filePath : filePaths) {
         std::filesystem::path path(filePath);
 
@@ -207,7 +207,7 @@ void Editor::Structure::handleEntityFilesDrop(const std::vector<std::string>& fi
         if (path.extension() == ".entity") {
             // Import the shared entity into the current scene
             std::filesystem::path relativePath = std::filesystem::relative(path, project->getProjectPath());
-            std::vector<Entity> newEntities = project->importSharedEntity(project->getSelectedScene(), relativePath);
+            std::vector<Entity> newEntities = project->importSharedEntity(project->getSelectedScene(), relativePath, parent);
             std::copy(newEntities.begin(), newEntities.end(), std::back_inserter(project->getSelectedScene()->entities));
 
             if (newEntities.size() > 0) {
@@ -304,7 +304,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     bool insertAfter = false;
 
     if (ImGui::BeginDragDropTarget()) {
-        bool allowDragDrop = true;
+        bool allowEntityDragDrop = false;
         const ImGuiPayload* payload = ImGui::GetDragDropPayload();
         Entity sourceEntity = 0;
         Entity sourceParent = 0;
@@ -312,6 +312,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         bool sourceHasTransform = false;
         if (payload && payload->IsDataType("entity")) {
             if (payload->DataSize >= sizeof(EntityPayload)) {
+                allowEntityDragDrop = true;
                 const EntityPayload* p = reinterpret_cast<const EntityPayload*>(payload->Data);
                 sourceEntity = p->entity;
                 sourceParent = p->parent;
@@ -320,11 +321,11 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
             }
 
             if (sourceHasTransform != node.hasTransform) {
-                allowDragDrop = false;
+                allowEntityDragDrop = false;
             }
         }
 
-        if (allowDragDrop){
+        if (allowEntityDragDrop){
 
             ImVec2 mousePos = ImGui::GetMousePos();
             ImVec2 itemMin = ImGui::GetItemRectMin();
@@ -399,6 +400,34 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                 drawInsertionMarker(lineStart, lineEnd);
             }
 
+        }
+
+        if (ImGui::AcceptDragDropPayload("resource_files")) {
+            // Parse the dropped file paths
+            std::vector<std::string> droppedPaths;
+            const char* data = (const char*)payload->Data;
+            size_t dataSize = payload->DataSize;
+
+            // Parse null-terminated strings from the payload
+            size_t offset = 0;
+            while (offset < dataSize) {
+                std::string path(data + offset);
+                if (!path.empty()) {
+                    droppedPaths.push_back(path);
+                }
+                offset += path.size() + 1; // +1 for null terminator
+            }
+
+            // Determine the parent entity for the drop
+            Entity parentEntity = NULL_ENTITY;
+            if (!node.isScene) {
+                // If dropping on an entity, use it as parent if it has transform, otherwise use its parent
+                if (node.hasTransform) {
+                    parentEntity = node.id;
+                }
+            }
+
+            handleEntityFilesDrop(droppedPaths, parentEntity);
         }
 
         ImGui::EndDragDropTarget();
