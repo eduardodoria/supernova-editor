@@ -47,6 +47,10 @@ bool Editor::MoveEntityOrderCmd::execute(){
         size_t sourceTransformIndex = transforms->getIndex(source);
         size_t targetTransformIndex = transforms->getIndex(target);
 
+        // Need to be before addEntityChild
+        size_t sizeOfSourceBranch = sceneProject->scene->findBranchLastIndex(source) - sourceTransformIndex + 1;
+        bool needAdjustBranch = (sourceTransformIndex < targetTransformIndex);
+
         Entity newParent = NULL_ENTITY;
         if (type == InsertionType::IN){
             newParent = target;
@@ -66,8 +70,8 @@ bool Editor::MoveEntityOrderCmd::execute(){
         if (type == InsertionType::AFTER || type == InsertionType::IN){
             targetTransformIndex++;
         }
-        if (sourceTransformIndex < targetTransformIndex){
-            --targetTransformIndex;
+        if (needAdjustBranch){
+            targetTransformIndex = targetTransformIndex - sizeOfSourceBranch;
         }
 
         sceneProject->scene->moveChildToIndex(source, targetTransformIndex, false);
