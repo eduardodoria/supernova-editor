@@ -726,11 +726,14 @@ void Editor::Project::setupSharedGroupEventSubscriptions(const std::filesystem::
                     for (const auto& [otherSceneId, otherEntities] : group->members) {
                         if (otherSceneId != e.sceneId && entityIndex < otherEntities.size()) {
                             Entity otherEntity = otherEntities[entityIndex];
-                            SceneProject* otherScene = getScene(otherSceneId);
-                            if (otherScene) {
-                                otherScene->needUpdateRender = true;
-                                for (const auto& property : e.properties) {
-                                    Catalog::copyPropertyValue(getScene(e.sceneId)->scene, e.entity, otherScene->scene, otherEntity, e.compType, property);
+
+                            if (!group->hasComponentOverride(otherSceneId, otherEntity, e.compType)) {
+                                SceneProject* otherScene = getScene(otherSceneId);
+                                if (otherScene) {
+                                    otherScene->needUpdateRender = true;
+                                    for (const auto& property : e.properties) {
+                                        Catalog::copyPropertyValue(getScene(e.sceneId)->scene, e.entity, otherScene->scene, otherEntity, e.compType, property);
+                                    }
                                 }
                             }
                         }
@@ -988,6 +991,13 @@ bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path
     group.members[sceneId] = branchEntities;
     group.cachedYaml = std::make_shared<YAML::Node>(std::move(entityNode));
     group.isModified = false;
+
+    // Mark Transform component of root entity as overridden for this scene
+    // This allows each scene to position the shared entity independently
+    if (scene->findComponent<Transform>(entity)) {
+        group.setComponentOverride(sceneId, entity, ComponentType::Transform);
+    }
+
     sharedGroups.emplace(filepath, std::move(group));
 
     // Set up event subscriptions for this shared group
@@ -1070,6 +1080,13 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
 
     // Store all entities in the shared group
     group.members[sceneProject->id] = membersEntities;
+
+    // Mark Transform component of root entity as overridden for this scene
+    // This allows each scene to position the shared entity independently
+    Entity rootEntity = newEntities[0];
+    if (scene->findComponent<Transform>(rootEntity)) {
+        group.setComponentOverride(sceneProject->id, rootEntity, ComponentType::Transform);
+    }
 
     sceneProject->isModified = needSaveScene;
 

@@ -38,6 +38,7 @@ namespace Supernova::Editor{
 
     struct SharedGroup {
         std::map<uint32_t, std::vector<Entity>> members; // sceneId → list of Entities (root + children)
+        std::map<uint32_t, std::map<Entity, uint64_t>> overrides; // sceneId → entityId → bitmask of overridden ComponentTypes
         std::shared_ptr<YAML::Node> cachedYaml;
         bool isModified = false;
 
@@ -62,6 +63,87 @@ namespace Supernova::Editor{
                 return std::find(it->second.begin(), it->second.end(), entity) != it->second.end();
             }
             return false;
+        }
+
+        // New methods for override management using ComponentType bit operations
+        void setComponentOverride(uint32_t sceneId, Entity entity, ComponentType componentType) {
+            uint64_t bit = 1ULL << static_cast<int>(componentType);
+            overrides[sceneId][entity] |= bit;
+        }
+
+        void clearComponentOverride(uint32_t sceneId, Entity entity, ComponentType componentType) {
+            auto sceneIt = overrides.find(sceneId);
+            if (sceneIt != overrides.end()) {
+                auto entityIt = sceneIt->second.find(entity);
+                if (entityIt != sceneIt->second.end()) {
+                    uint64_t bit = 1ULL << static_cast<int>(componentType);
+                    entityIt->second &= ~bit;
+                    // Remove entity entry if no overrides remain
+                    if (entityIt->second == 0) {
+                        sceneIt->second.erase(entityIt);
+                    }
+                    // Remove scene entry if no entities have overrides
+                    if (sceneIt->second.empty()) {
+                        overrides.erase(sceneIt);
+                    }
+                }
+            }
+        }
+
+        bool hasComponentOverride(uint32_t sceneId, Entity entity, ComponentType componentType) const {
+            auto sceneIt = overrides.find(sceneId);
+            if (sceneIt != overrides.end()) {
+                auto entityIt = sceneIt->second.find(entity);
+                if (entityIt != sceneIt->second.end()) {
+                    uint64_t bit = 1ULL << static_cast<int>(componentType);
+                    return (entityIt->second & bit) != 0;
+                }
+            }
+            return false;
+        }
+
+        uint64_t getEntityOverrides(uint32_t sceneId, Entity entity) const {
+            auto sceneIt = overrides.find(sceneId);
+            if (sceneIt != overrides.end()) {
+                auto entityIt = sceneIt->second.find(entity);
+                if (entityIt != sceneIt->second.end()) {
+                    return entityIt->second;
+                }
+            }
+            return 0; // No overrides
+        }
+
+        void clearAllOverrides(uint32_t sceneId, Entity entity) {
+            auto sceneIt = overrides.find(sceneId);
+            if (sceneIt != overrides.end()) {
+                sceneIt->second.erase(entity);
+                if (sceneIt->second.empty()) {
+                    overrides.erase(sceneIt);
+                }
+            }
+        }
+
+        void clearAllSceneOverrides(uint32_t sceneId) {
+            overrides.erase(sceneId);
+        }
+
+        // Helper method to check if any components are overridden for an entity
+        bool hasAnyOverrides(uint32_t sceneId, Entity entity) const {
+            return getEntityOverrides(sceneId, entity) != 0;
+        }
+
+        // Helper method to get all overridden component types for an entity
+        std::vector<ComponentType> getOverriddenComponents(uint32_t sceneId, Entity entity) const {
+            std::vector<ComponentType> result;
+            uint64_t overrideMask = getEntityOverrides(sceneId, entity);
+
+            for (int i = 0; i < 64; ++i) {
+                if (overrideMask & (1ULL << i)) {
+                    result.push_back(static_cast<ComponentType>(i));
+                }
+            }
+
+            return result;
         }
     };
 
