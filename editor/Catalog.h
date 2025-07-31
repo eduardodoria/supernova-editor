@@ -113,6 +113,8 @@ namespace Supernova::Editor{
         Catalog();
 
         static std::string getComponentName(ComponentType component);
+        static ComponentId getComponentId(const Scene* scene, ComponentType compType);
+        static Signature componentTypeMaskToSignature(const Scene* scene, uint64_t mask);
 
         static std::map<std::string, PropertyData> getProperties(ComponentType component, void* compRef);
 

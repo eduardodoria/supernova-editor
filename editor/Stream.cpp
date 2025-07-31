@@ -839,6 +839,71 @@ LightComponent Editor::Stream::decodeLightComponent(const YAML::Node& node) {
     return light;
 }
 
+void Editor::Stream::encodeComponentsAux(YAML::Node& entityNode, const Entity entity, const Scene* scene, Signature signature) {
+    if (signature.test(scene->getComponentId<Transform>())) {
+        Transform transform = scene->getComponent<Transform>(entity);
+        entityNode["transform"] = encodeTransform(transform);
+    }
+
+    if (signature.test(scene->getComponentId<MeshComponent>())) {
+        MeshComponent mesh = scene->getComponent<MeshComponent>(entity);
+        entityNode["mesh"] = encodeMeshComponent(mesh);
+    }
+
+    if (signature.test(scene->getComponentId<UIComponent>())) {
+        UIComponent ui = scene->getComponent<UIComponent>(entity);
+        entityNode["ui"] = encodeUIComponent(ui);
+    }
+
+    if (signature.test(scene->getComponentId<UILayoutComponent>())) {
+        UILayoutComponent layout = scene->getComponent<UILayoutComponent>(entity);
+        entityNode["layout"] = encodeUILayoutComponent(layout);
+    }
+
+    if (signature.test(scene->getComponentId<ImageComponent>())) {
+        ImageComponent image = scene->getComponent<ImageComponent>(entity);
+        entityNode["image"] = encodeImageComponent(image);
+    }
+
+    if (signature.test(scene->getComponentId<LightComponent>())) {
+        LightComponent light = scene->getComponent<LightComponent>(entity);
+        entityNode["light"] = encodeLightComponent(light);
+    }
+}
+
+void Editor::Stream::decodeComponentsAux(Entity entity, Entity parent, Scene* scene, const YAML::Node& entityNode){
+    if (entityNode["transform"]) {
+        Transform transform = decodeTransform(entityNode["transform"]);
+        transform.parent = parent;
+        scene->addComponent<Transform>(entity, transform);
+    }
+
+    if (entityNode["mesh"]) {
+        MeshComponent mesh = decodeMeshComponent(entityNode["mesh"]);
+        scene->addComponent<MeshComponent>(entity, mesh);
+    }
+
+    if (entityNode["ui"]) {
+        UIComponent ui = decodeUIComponent(entityNode["ui"]);
+        scene->addComponent<UIComponent>(entity, ui);
+    }
+
+    if (entityNode["layout"]) {
+        UILayoutComponent layout = decodeUILayoutComponent(entityNode["layout"]);
+        scene->addComponent<UILayoutComponent>(entity, layout);
+    }
+
+    if (entityNode["image"]) {
+        ImageComponent image = decodeImageComponent(entityNode["image"]);
+        scene->addComponent<ImageComponent>(entity, image);
+    }
+
+    if (entityNode["light"]) {
+        LightComponent light = decodeLightComponent(entityNode["light"]);
+        scene->addComponent<LightComponent>(entity, light);
+    }
+}
+
 YAML::Node Editor::Stream::encodeProject(Project* project) {
     YAML::Node root;
 
@@ -1027,6 +1092,9 @@ YAML::Node Editor::Stream::encodeEntityBranch(const Entity entity, const Project
 
 YAML::Node Editor::Stream::encodeEntity(const Entity entity, const Project* project, const SceneProject* sceneProject, bool keepEntity) {
     YAML::Node entityNode;
+
+    const Scene* scene = sceneProject->scene;
+
     std::filesystem::path sharedPath = project->findGroupPathFor(sceneProject->id, entity);
     if (!sharedPath.empty()) {
         const SharedGroup* group = project->getSharedGroup(sharedPath);
@@ -1038,10 +1106,11 @@ YAML::Node Editor::Stream::encodeEntity(const Entity entity, const Project* proj
             entityNode["type"] = "SharedEntityChild";
         }
 
+        Signature signature = Catalog::componentTypeMaskToSignature(scene, group->getEntityOverrides(sceneProject->id, entity));
+        encodeComponentsAux(entityNode, entity, scene, signature);
+
     }else{
         entityNode["type"] = "Entity";
-
-        const Scene* scene = sceneProject->scene;
 
         if (keepEntity) {
             entityNode["entity"] = entity;
@@ -1049,36 +1118,7 @@ YAML::Node Editor::Stream::encodeEntity(const Entity entity, const Project* proj
         entityNode["name"] = scene->getEntityName(entity);
 
         Signature signature = scene->getSignature(entity);
-
-        if (signature.test(scene->getComponentId<Transform>())) {
-            Transform transform = scene->getComponent<Transform>(entity);
-            entityNode["transform"] = encodeTransform(transform);
-        }
-
-        if (signature.test(scene->getComponentId<MeshComponent>())) {
-            MeshComponent mesh = scene->getComponent<MeshComponent>(entity);
-            entityNode["mesh"] = encodeMeshComponent(mesh);
-        }
-
-        if (signature.test(scene->getComponentId<UIComponent>())) {
-            UIComponent ui = scene->getComponent<UIComponent>(entity);
-            entityNode["ui"] = encodeUIComponent(ui);
-        }
-
-        if (signature.test(scene->getComponentId<UILayoutComponent>())) {
-            UILayoutComponent layout = scene->getComponent<UILayoutComponent>(entity);
-            entityNode["layout"] = encodeUILayoutComponent(layout);
-        }
-
-        if (signature.test(scene->getComponentId<ImageComponent>())) {
-            ImageComponent image = scene->getComponent<ImageComponent>(entity);
-            entityNode["image"] = encodeImageComponent(image);
-        }
-
-        if (signature.test(scene->getComponentId<LightComponent>())) {
-            LightComponent light = scene->getComponent<LightComponent>(entity);
-            entityNode["light"] = encodeLightComponent(light);
-        }
+        encodeComponentsAux(entityNode, entity, scene, signature);
 
     }
 
@@ -1113,36 +1153,7 @@ std::vector<Entity> Editor::Stream::decodeEntity(Project* project, SceneProject*
         std::string name = entityNode["name"].as<std::string>();
         scene->setEntityName(entity, name);
 
-        if (entityNode["transform"]) {
-            Transform transform = decodeTransform(entityNode["transform"]);
-            transform.parent = parent;
-            scene->addComponent<Transform>(entity, transform);
-        }
-
-        if (entityNode["mesh"]) {
-            MeshComponent mesh = decodeMeshComponent(entityNode["mesh"]);
-            scene->addComponent<MeshComponent>(entity, mesh);
-        }
-
-        if (entityNode["ui"]) {
-            UIComponent ui = decodeUIComponent(entityNode["ui"]);
-            scene->addComponent<UIComponent>(entity, ui);
-        }
-
-        if (entityNode["layout"]) {
-            UILayoutComponent layout = decodeUILayoutComponent(entityNode["layout"]);
-            scene->addComponent<UILayoutComponent>(entity, layout);
-        }
-
-        if (entityNode["image"]) {
-            ImageComponent image = decodeImageComponent(entityNode["image"]);
-            scene->addComponent<ImageComponent>(entity, image);
-        }
-
-        if (entityNode["light"]) {
-            LightComponent light = decodeLightComponent(entityNode["light"]);
-            scene->addComponent<LightComponent>(entity, light);
-        }
+        decodeComponentsAux(entity, parent, scene, entityNode);
 
         // Decode children from actualNode
         if (entityNode["children"]) {

@@ -131,6 +131,116 @@ std::string Editor::Catalog::getComponentName(ComponentType component){
     return "";
 }
 
+ComponentId Editor::Catalog::getComponentId(const Scene* scene, ComponentType compType) {
+    using namespace Supernova;
+    switch (compType) {
+        case ComponentType::Transform:
+            return scene->getComponentId<Transform>();
+        case ComponentType::MeshComponent:
+            return scene->getComponentId<MeshComponent>();
+        case ComponentType::UIComponent:
+            return scene->getComponentId<UIComponent>();
+        case ComponentType::UILayoutComponent:
+            return scene->getComponentId<UILayoutComponent>();
+        case ComponentType::ActionComponent:
+            return scene->getComponentId<ActionComponent>();
+        case ComponentType::AlphaActionComponent:
+            return scene->getComponentId<AlphaActionComponent>();
+        case ComponentType::AnimationComponent:
+            return scene->getComponentId<AnimationComponent>();
+        case ComponentType::AudioComponent:
+            return scene->getComponentId<AudioComponent>();
+        case ComponentType::Body2DComponent:
+            return scene->getComponentId<Body2DComponent>();
+        case ComponentType::Body3DComponent:
+            return scene->getComponentId<Body3DComponent>();
+        case ComponentType::BoneComponent:
+            return scene->getComponentId<BoneComponent>();
+        case ComponentType::ButtonComponent:
+            return scene->getComponentId<ButtonComponent>();
+        case ComponentType::CameraComponent:
+            return scene->getComponentId<CameraComponent>();
+        case ComponentType::ColorActionComponent:
+            return scene->getComponentId<ColorActionComponent>();
+        case ComponentType::FogComponent:
+            return scene->getComponentId<FogComponent>();
+        case ComponentType::ImageComponent:
+            return scene->getComponentId<ImageComponent>();
+        case ComponentType::InstancedMeshComponent:
+            return scene->getComponentId<InstancedMeshComponent>();
+        case ComponentType::Joint2DComponent:
+            return scene->getComponentId<Joint2DComponent>();
+        case ComponentType::Joint3DComponent:
+            return scene->getComponentId<Joint3DComponent>();
+        case ComponentType::KeyframeTracksComponent:
+            return scene->getComponentId<KeyframeTracksComponent>();
+        case ComponentType::LightComponent:
+            return scene->getComponentId<LightComponent>();
+        case ComponentType::LinesComponent:
+            return scene->getComponentId<LinesComponent>();
+        case ComponentType::MeshPolygonComponent:
+            return scene->getComponentId<MeshPolygonComponent>();
+        case ComponentType::ModelComponent:
+            return scene->getComponentId<ModelComponent>();
+        case ComponentType::MorphTracksComponent:
+            return scene->getComponentId<MorphTracksComponent>();
+        case ComponentType::PanelComponent:
+            return scene->getComponentId<PanelComponent>();
+        case ComponentType::ParticlesComponent:
+            return scene->getComponentId<ParticlesComponent>();
+        case ComponentType::PointsComponent:
+            return scene->getComponentId<PointsComponent>();
+        case ComponentType::PolygonComponent:
+            return scene->getComponentId<PolygonComponent>();
+        case ComponentType::PositionActionComponent:
+            return scene->getComponentId<PositionActionComponent>();
+        case ComponentType::RotateTracksComponent:
+            return scene->getComponentId<RotateTracksComponent>();
+        case ComponentType::RotationActionComponent:
+            return scene->getComponentId<RotationActionComponent>();
+        case ComponentType::ScaleActionComponent:
+            return scene->getComponentId<ScaleActionComponent>();
+        case ComponentType::ScaleTracksComponent:
+            return scene->getComponentId<ScaleTracksComponent>();
+        case ComponentType::ScrollbarComponent:
+            return scene->getComponentId<ScrollbarComponent>();
+        case ComponentType::SkyComponent:
+            return scene->getComponentId<SkyComponent>();
+        case ComponentType::SpriteAnimationComponent:
+            return scene->getComponentId<SpriteAnimationComponent>();
+        case ComponentType::SpriteComponent:
+            return scene->getComponentId<SpriteComponent>();
+        case ComponentType::TerrainComponent:
+            return scene->getComponentId<TerrainComponent>();
+        case ComponentType::TextComponent:
+            return scene->getComponentId<TextComponent>();
+        case ComponentType::TextEditComponent:
+            return scene->getComponentId<TextEditComponent>();
+        case ComponentType::TilemapComponent:
+            return scene->getComponentId<TilemapComponent>();
+        case ComponentType::TimedActionComponent:
+            return scene->getComponentId<TimedActionComponent>();
+        case ComponentType::TranslateTracksComponent:
+            return scene->getComponentId<TranslateTracksComponent>();
+        case ComponentType::UIContainerComponent:
+            return scene->getComponentId<UIContainerComponent>();
+        default:
+            return 0;
+    }
+}
+
+Signature Editor::Catalog::componentTypeMaskToSignature(const Scene* scene, uint64_t mask) {
+    Signature signature;
+    for (int i = 0; i < 64; ++i) {
+        if ((mask >> i) & 1) {
+            auto compType = static_cast<ComponentType>(i);
+            ComponentId cid = getComponentId(scene, compType);
+            signature.set(cid, true);
+        }
+    }
+    return signature;
+}
+
 std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(ComponentType component, void* compRef){
     std::map<std::string, Editor::PropertyData> ps;
     if(component == ComponentType::Transform){

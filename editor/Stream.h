@@ -107,6 +107,9 @@ namespace Supernova::Editor {
         static YAML::Node encodeLightComponent(const LightComponent& light);
         static LightComponent decodeLightComponent(const YAML::Node& node);
 
+        static void encodeComponentsAux(YAML::Node& entityNode, const Entity entity, const Scene* scene, Signature signature);
+        static void decodeComponentsAux(Entity entity, Entity parent, Scene* scene, const YAML::Node& entityNode);
+
     public:
         static YAML::Node encodeProject(Project* project);
         static void decodeProject(Project* project, const YAML::Node& node);
