@@ -989,6 +989,7 @@ bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path
     // Create new group
     SharedGroup group;
     group.members[sceneId] = branchEntities;
+    group.entityContainer = std::make_unique<EntityContainer>();
     group.cachedYaml = std::make_shared<YAML::Node>(std::move(entityNode));
     group.isModified = false;
 
