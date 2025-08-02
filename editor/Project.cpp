@@ -738,6 +738,10 @@ void Editor::Project::setupSharedGroupEventSubscriptions(const std::filesystem::
                             }
                         }
                     }
+
+                    //size_t entityDefault = entityIndex + NULL_ENTITY + 1;
+                    //EntityContainer* container = group->entityContainer.get();
+
                 }
             }
         });
@@ -992,6 +996,8 @@ bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path
     group.entityContainer = std::make_unique<EntityContainer>();
     group.cachedYaml = std::make_shared<YAML::Node>(std::move(entityNode));
     group.isModified = false;
+
+    std::vector<Entity> teste = Stream::decodeLocalEntity(group.entityContainer.get(), *group.cachedYaml, entity);
 
     // Mark Transform component of root entity as overridden for this scene
     // This allows each scene to position the shared entity independently

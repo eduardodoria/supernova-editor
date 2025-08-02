@@ -839,68 +839,68 @@ LightComponent Editor::Stream::decodeLightComponent(const YAML::Node& node) {
     return light;
 }
 
-void Editor::Stream::encodeComponentsAux(YAML::Node& entityNode, const Entity entity, const Scene* scene, Signature signature) {
-    if (signature.test(scene->getComponentId<Transform>())) {
-        Transform transform = scene->getComponent<Transform>(entity);
+void Editor::Stream::encodeComponentsAux(YAML::Node& entityNode, const Entity entity, const EntityContainer* container, Signature signature) {
+    if (signature.test(container->getComponentId<Transform>())) {
+        Transform transform = container->getComponent<Transform>(entity);
         entityNode["transform"] = encodeTransform(transform);
     }
 
-    if (signature.test(scene->getComponentId<MeshComponent>())) {
-        MeshComponent mesh = scene->getComponent<MeshComponent>(entity);
+    if (signature.test(container->getComponentId<MeshComponent>())) {
+        MeshComponent mesh = container->getComponent<MeshComponent>(entity);
         entityNode["mesh"] = encodeMeshComponent(mesh);
     }
 
-    if (signature.test(scene->getComponentId<UIComponent>())) {
-        UIComponent ui = scene->getComponent<UIComponent>(entity);
+    if (signature.test(container->getComponentId<UIComponent>())) {
+        UIComponent ui = container->getComponent<UIComponent>(entity);
         entityNode["ui"] = encodeUIComponent(ui);
     }
 
-    if (signature.test(scene->getComponentId<UILayoutComponent>())) {
-        UILayoutComponent layout = scene->getComponent<UILayoutComponent>(entity);
+    if (signature.test(container->getComponentId<UILayoutComponent>())) {
+        UILayoutComponent layout = container->getComponent<UILayoutComponent>(entity);
         entityNode["layout"] = encodeUILayoutComponent(layout);
     }
 
-    if (signature.test(scene->getComponentId<ImageComponent>())) {
-        ImageComponent image = scene->getComponent<ImageComponent>(entity);
+    if (signature.test(container->getComponentId<ImageComponent>())) {
+        ImageComponent image = container->getComponent<ImageComponent>(entity);
         entityNode["image"] = encodeImageComponent(image);
     }
 
-    if (signature.test(scene->getComponentId<LightComponent>())) {
-        LightComponent light = scene->getComponent<LightComponent>(entity);
+    if (signature.test(container->getComponentId<LightComponent>())) {
+        LightComponent light = container->getComponent<LightComponent>(entity);
         entityNode["light"] = encodeLightComponent(light);
     }
 }
 
-void Editor::Stream::decodeComponentsAux(Entity entity, Entity parent, Scene* scene, const YAML::Node& entityNode){
+void Editor::Stream::decodeComponentsAux(Entity entity, Entity parent, EntityContainer* container, const YAML::Node& entityNode){
     if (entityNode["transform"]) {
         Transform transform = decodeTransform(entityNode["transform"]);
         transform.parent = parent;
-        scene->addComponent<Transform>(entity, transform);
+        container->addComponent<Transform>(entity, transform);
     }
 
     if (entityNode["mesh"]) {
         MeshComponent mesh = decodeMeshComponent(entityNode["mesh"]);
-        scene->addComponent<MeshComponent>(entity, mesh);
+        container->addComponent<MeshComponent>(entity, mesh);
     }
 
     if (entityNode["ui"]) {
         UIComponent ui = decodeUIComponent(entityNode["ui"]);
-        scene->addComponent<UIComponent>(entity, ui);
+        container->addComponent<UIComponent>(entity, ui);
     }
 
     if (entityNode["layout"]) {
         UILayoutComponent layout = decodeUILayoutComponent(entityNode["layout"]);
-        scene->addComponent<UILayoutComponent>(entity, layout);
+        container->addComponent<UILayoutComponent>(entity, layout);
     }
 
     if (entityNode["image"]) {
         ImageComponent image = decodeImageComponent(entityNode["image"]);
-        scene->addComponent<ImageComponent>(entity, image);
+        container->addComponent<ImageComponent>(entity, image);
     }
 
     if (entityNode["light"]) {
         LightComponent light = decodeLightComponent(entityNode["light"]);
-        scene->addComponent<LightComponent>(entity, light);
+        container->addComponent<LightComponent>(entity, light);
     }
 }
 
@@ -1138,31 +1138,39 @@ std::vector<Entity> Editor::Stream::decodeEntity(Project* project, SceneProject*
 
     }else if (entityType == "Entity") {
 
-        Entity entity = NULL_ENTITY;
-        if (entityNode["entity"]){
-            entity = entityNode["entity"].as<Entity>();
-            if (!scene->recreateEntity(entity)){
-                entity = scene->createEntity();
-            }
-        }else{
-            entity = scene->createEntity();
+        allEntities = decodeLocalEntity(scene, entityNode, NULL_ENTITY);
+
+    }
+
+    return allEntities;
+}
+
+std::vector<Entity> Editor::Stream::decodeLocalEntity(EntityContainer* container, const YAML::Node& entityNode, Entity parent) {
+    std::vector<Entity> allEntities;
+
+    Entity entity = NULL_ENTITY;
+    if (entityNode["entity"]){
+        entity = entityNode["entity"].as<Entity>();
+        if (!container->recreateEntity(entity)){
+            entity = container->createEntity();
         }
+    }else{
+        entity = container->createEntity();
+    }
 
-        allEntities.push_back(entity);
+    allEntities.push_back(entity);
 
-        std::string name = entityNode["name"].as<std::string>();
-        scene->setEntityName(entity, name);
+    std::string name = entityNode["name"].as<std::string>();
+    container->setEntityName(entity, name);
 
-        decodeComponentsAux(entity, parent, scene, entityNode);
+    decodeComponentsAux(entity, parent, container, entityNode);
 
-        // Decode children from actualNode
-        if (entityNode["children"]) {
-            for (const auto& childNode : entityNode["children"]) {
-                std::vector<Entity> childEntities = decodeEntity(project, sceneProject, childNode, entity);
-                std::copy(childEntities.begin(), childEntities.end(), std::back_inserter(allEntities));
-            }
+    // Decode children from actualNode
+    if (entityNode["children"]) {
+        for (const auto& childNode : entityNode["children"]) {
+            std::vector<Entity> childEntities = decodeLocalEntity(container, childNode, entity);
+            std::copy(childEntities.begin(), childEntities.end(), std::back_inserter(allEntities));
         }
-
     }
 
     return allEntities;
