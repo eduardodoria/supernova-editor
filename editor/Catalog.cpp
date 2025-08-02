@@ -131,110 +131,110 @@ std::string Editor::Catalog::getComponentName(ComponentType component){
     return "";
 }
 
-ComponentId Editor::Catalog::getComponentId(const Scene* scene, ComponentType compType) {
+ComponentId Editor::Catalog::getComponentId(const EntityRegistry* registry, ComponentType compType) {
     using namespace Supernova;
     switch (compType) {
         case ComponentType::Transform:
-            return scene->getComponentId<Transform>();
+            return registry->getComponentId<Transform>();
         case ComponentType::MeshComponent:
-            return scene->getComponentId<MeshComponent>();
+            return registry->getComponentId<MeshComponent>();
         case ComponentType::UIComponent:
-            return scene->getComponentId<UIComponent>();
+            return registry->getComponentId<UIComponent>();
         case ComponentType::UILayoutComponent:
-            return scene->getComponentId<UILayoutComponent>();
+            return registry->getComponentId<UILayoutComponent>();
         case ComponentType::ActionComponent:
-            return scene->getComponentId<ActionComponent>();
+            return registry->getComponentId<ActionComponent>();
         case ComponentType::AlphaActionComponent:
-            return scene->getComponentId<AlphaActionComponent>();
+            return registry->getComponentId<AlphaActionComponent>();
         case ComponentType::AnimationComponent:
-            return scene->getComponentId<AnimationComponent>();
+            return registry->getComponentId<AnimationComponent>();
         case ComponentType::AudioComponent:
-            return scene->getComponentId<AudioComponent>();
+            return registry->getComponentId<AudioComponent>();
         case ComponentType::Body2DComponent:
-            return scene->getComponentId<Body2DComponent>();
+            return registry->getComponentId<Body2DComponent>();
         case ComponentType::Body3DComponent:
-            return scene->getComponentId<Body3DComponent>();
+            return registry->getComponentId<Body3DComponent>();
         case ComponentType::BoneComponent:
-            return scene->getComponentId<BoneComponent>();
+            return registry->getComponentId<BoneComponent>();
         case ComponentType::ButtonComponent:
-            return scene->getComponentId<ButtonComponent>();
+            return registry->getComponentId<ButtonComponent>();
         case ComponentType::CameraComponent:
-            return scene->getComponentId<CameraComponent>();
+            return registry->getComponentId<CameraComponent>();
         case ComponentType::ColorActionComponent:
-            return scene->getComponentId<ColorActionComponent>();
+            return registry->getComponentId<ColorActionComponent>();
         case ComponentType::FogComponent:
-            return scene->getComponentId<FogComponent>();
+            return registry->getComponentId<FogComponent>();
         case ComponentType::ImageComponent:
-            return scene->getComponentId<ImageComponent>();
+            return registry->getComponentId<ImageComponent>();
         case ComponentType::InstancedMeshComponent:
-            return scene->getComponentId<InstancedMeshComponent>();
+            return registry->getComponentId<InstancedMeshComponent>();
         case ComponentType::Joint2DComponent:
-            return scene->getComponentId<Joint2DComponent>();
+            return registry->getComponentId<Joint2DComponent>();
         case ComponentType::Joint3DComponent:
-            return scene->getComponentId<Joint3DComponent>();
+            return registry->getComponentId<Joint3DComponent>();
         case ComponentType::KeyframeTracksComponent:
-            return scene->getComponentId<KeyframeTracksComponent>();
+            return registry->getComponentId<KeyframeTracksComponent>();
         case ComponentType::LightComponent:
-            return scene->getComponentId<LightComponent>();
+            return registry->getComponentId<LightComponent>();
         case ComponentType::LinesComponent:
-            return scene->getComponentId<LinesComponent>();
+            return registry->getComponentId<LinesComponent>();
         case ComponentType::MeshPolygonComponent:
-            return scene->getComponentId<MeshPolygonComponent>();
+            return registry->getComponentId<MeshPolygonComponent>();
         case ComponentType::ModelComponent:
-            return scene->getComponentId<ModelComponent>();
+            return registry->getComponentId<ModelComponent>();
         case ComponentType::MorphTracksComponent:
-            return scene->getComponentId<MorphTracksComponent>();
+            return registry->getComponentId<MorphTracksComponent>();
         case ComponentType::PanelComponent:
-            return scene->getComponentId<PanelComponent>();
+            return registry->getComponentId<PanelComponent>();
         case ComponentType::ParticlesComponent:
-            return scene->getComponentId<ParticlesComponent>();
+            return registry->getComponentId<ParticlesComponent>();
         case ComponentType::PointsComponent:
-            return scene->getComponentId<PointsComponent>();
+            return registry->getComponentId<PointsComponent>();
         case ComponentType::PolygonComponent:
-            return scene->getComponentId<PolygonComponent>();
+            return registry->getComponentId<PolygonComponent>();
         case ComponentType::PositionActionComponent:
-            return scene->getComponentId<PositionActionComponent>();
+            return registry->getComponentId<PositionActionComponent>();
         case ComponentType::RotateTracksComponent:
-            return scene->getComponentId<RotateTracksComponent>();
+            return registry->getComponentId<RotateTracksComponent>();
         case ComponentType::RotationActionComponent:
-            return scene->getComponentId<RotationActionComponent>();
+            return registry->getComponentId<RotationActionComponent>();
         case ComponentType::ScaleActionComponent:
-            return scene->getComponentId<ScaleActionComponent>();
+            return registry->getComponentId<ScaleActionComponent>();
         case ComponentType::ScaleTracksComponent:
-            return scene->getComponentId<ScaleTracksComponent>();
+            return registry->getComponentId<ScaleTracksComponent>();
         case ComponentType::ScrollbarComponent:
-            return scene->getComponentId<ScrollbarComponent>();
+            return registry->getComponentId<ScrollbarComponent>();
         case ComponentType::SkyComponent:
-            return scene->getComponentId<SkyComponent>();
+            return registry->getComponentId<SkyComponent>();
         case ComponentType::SpriteAnimationComponent:
-            return scene->getComponentId<SpriteAnimationComponent>();
+            return registry->getComponentId<SpriteAnimationComponent>();
         case ComponentType::SpriteComponent:
-            return scene->getComponentId<SpriteComponent>();
+            return registry->getComponentId<SpriteComponent>();
         case ComponentType::TerrainComponent:
-            return scene->getComponentId<TerrainComponent>();
+            return registry->getComponentId<TerrainComponent>();
         case ComponentType::TextComponent:
-            return scene->getComponentId<TextComponent>();
+            return registry->getComponentId<TextComponent>();
         case ComponentType::TextEditComponent:
-            return scene->getComponentId<TextEditComponent>();
+            return registry->getComponentId<TextEditComponent>();
         case ComponentType::TilemapComponent:
-            return scene->getComponentId<TilemapComponent>();
+            return registry->getComponentId<TilemapComponent>();
         case ComponentType::TimedActionComponent:
-            return scene->getComponentId<TimedActionComponent>();
+            return registry->getComponentId<TimedActionComponent>();
         case ComponentType::TranslateTracksComponent:
-            return scene->getComponentId<TranslateTracksComponent>();
+            return registry->getComponentId<TranslateTracksComponent>();
         case ComponentType::UIContainerComponent:
-            return scene->getComponentId<UIContainerComponent>();
+            return registry->getComponentId<UIContainerComponent>();
         default:
             return 0;
     }
 }
 
-Signature Editor::Catalog::componentTypeMaskToSignature(const Scene* scene, uint64_t mask) {
+Signature Editor::Catalog::componentTypeMaskToSignature(const EntityRegistry* registry, uint64_t mask) {
     Signature signature;
     for (int i = 0; i < 64; ++i) {
         if ((mask >> i) & 1) {
             auto compType = static_cast<ComponentType>(i);
-            ComponentId cid = getComponentId(scene, compType);
+            ComponentId cid = getComponentId(registry, compType);
             signature.set(cid, true);
         }
     }
@@ -335,172 +335,172 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
     return ps;
 }
 
-std::vector<Editor::ComponentType> Editor::Catalog::findComponents(Scene* scene, Entity entity){
+std::vector<Editor::ComponentType> Editor::Catalog::findComponents(EntityRegistry* registry, Entity entity){
     std::vector<Editor::ComponentType> ret;
 
-    if (scene->findComponent<ActionComponent>(entity)){
+    if (registry->findComponent<ActionComponent>(entity)){
         ret.push_back(ComponentType::ActionComponent);
     }
-    if (scene->findComponent<AlphaActionComponent>(entity)){
+    if (registry->findComponent<AlphaActionComponent>(entity)){
         ret.push_back(ComponentType::AlphaActionComponent);
     }
-    if (scene->findComponent<AudioComponent>(entity)){
+    if (registry->findComponent<AudioComponent>(entity)){
         ret.push_back(ComponentType::AudioComponent);
     }
-    if (scene->findComponent<Body2DComponent>(entity)){
+    if (registry->findComponent<Body2DComponent>(entity)){
         ret.push_back(ComponentType::Body2DComponent);
     }
-    if (scene->findComponent<Body3DComponent>(entity)){
+    if (registry->findComponent<Body3DComponent>(entity)){
         ret.push_back(ComponentType::Body3DComponent);
     }
-    if (scene->findComponent<BoneComponent>(entity)){
+    if (registry->findComponent<BoneComponent>(entity)){
         ret.push_back(ComponentType::BoneComponent);
     }
-    if (scene->findComponent<ButtonComponent>(entity)){
+    if (registry->findComponent<ButtonComponent>(entity)){
         ret.push_back(ComponentType::ButtonComponent);
     }
-    if (scene->findComponent<CameraComponent>(entity)){
+    if (registry->findComponent<CameraComponent>(entity)){
         ret.push_back(ComponentType::CameraComponent);
     }
-    if (scene->findComponent<ColorActionComponent>(entity)){
+    if (registry->findComponent<ColorActionComponent>(entity)){
         ret.push_back(ComponentType::ColorActionComponent);
     }
-    if (scene->findComponent<FogComponent>(entity)){
+    if (registry->findComponent<FogComponent>(entity)){
         ret.push_back(ComponentType::FogComponent);
     }
-    if (scene->findComponent<ImageComponent>(entity)){
+    if (registry->findComponent<ImageComponent>(entity)){
         ret.push_back(ComponentType::ImageComponent);
     }
-    if (scene->findComponent<InstancedMeshComponent>(entity)){
+    if (registry->findComponent<InstancedMeshComponent>(entity)){
         ret.push_back(ComponentType::InstancedMeshComponent);
     }
-    if (scene->findComponent<Joint2DComponent>(entity)){
+    if (registry->findComponent<Joint2DComponent>(entity)){
         ret.push_back(ComponentType::Joint2DComponent);
     }
-    if (scene->findComponent<Joint3DComponent>(entity)){
+    if (registry->findComponent<Joint3DComponent>(entity)){
         ret.push_back(ComponentType::Joint3DComponent);
     }
-    if (scene->findComponent<KeyframeTracksComponent>(entity)){
+    if (registry->findComponent<KeyframeTracksComponent>(entity)){
         ret.push_back(ComponentType::KeyframeTracksComponent);
     }
-    if (scene->findComponent<LightComponent>(entity)){
+    if (registry->findComponent<LightComponent>(entity)){
         ret.push_back(ComponentType::LightComponent);
     }
-    if (scene->findComponent<LinesComponent>(entity)){
+    if (registry->findComponent<LinesComponent>(entity)){
         ret.push_back(ComponentType::LinesComponent);
     }
-    if (scene->findComponent<MeshComponent>(entity)){
+    if (registry->findComponent<MeshComponent>(entity)){
         ret.push_back(ComponentType::MeshComponent);
     }
-    if (scene->findComponent<MeshPolygonComponent>(entity)){
+    if (registry->findComponent<MeshPolygonComponent>(entity)){
         ret.push_back(ComponentType::MeshPolygonComponent);
     }
-    if (scene->findComponent<ModelComponent>(entity)){
+    if (registry->findComponent<ModelComponent>(entity)){
         ret.push_back(ComponentType::ModelComponent);
     }
-    if (scene->findComponent<MorphTracksComponent>(entity)){
+    if (registry->findComponent<MorphTracksComponent>(entity)){
         ret.push_back(ComponentType::MorphTracksComponent);
     }
-    if (scene->findComponent<PanelComponent>(entity)){
+    if (registry->findComponent<PanelComponent>(entity)){
         ret.push_back(ComponentType::PanelComponent);
     }
-    if (scene->findComponent<ParticlesComponent>(entity)){
+    if (registry->findComponent<ParticlesComponent>(entity)){
         ret.push_back(ComponentType::ParticlesComponent);
     }
-    if (scene->findComponent<PointsComponent>(entity)){
+    if (registry->findComponent<PointsComponent>(entity)){
         ret.push_back(ComponentType::PointsComponent);
     }
-    if (scene->findComponent<PolygonComponent>(entity)){
+    if (registry->findComponent<PolygonComponent>(entity)){
         ret.push_back(ComponentType::PolygonComponent);
     }
-    if (scene->findComponent<PositionActionComponent>(entity)){
+    if (registry->findComponent<PositionActionComponent>(entity)){
         ret.push_back(ComponentType::PositionActionComponent);
     }
-    if (scene->findComponent<RotateTracksComponent>(entity)){
+    if (registry->findComponent<RotateTracksComponent>(entity)){
         ret.push_back(ComponentType::RotateTracksComponent);
     }
-    if (scene->findComponent<RotationActionComponent>(entity)){
+    if (registry->findComponent<RotationActionComponent>(entity)){
         ret.push_back(ComponentType::RotationActionComponent);
     }
-    if (scene->findComponent<ScaleActionComponent>(entity)){
+    if (registry->findComponent<ScaleActionComponent>(entity)){
         ret.push_back(ComponentType::ScaleActionComponent);
     }
-    if (scene->findComponent<ScaleTracksComponent>(entity)){
+    if (registry->findComponent<ScaleTracksComponent>(entity)){
         ret.push_back(ComponentType::ScaleTracksComponent);
     }
-    if (scene->findComponent<ScrollbarComponent>(entity)){
+    if (registry->findComponent<ScrollbarComponent>(entity)){
         ret.push_back(ComponentType::ScrollbarComponent);
     }
-    if (scene->findComponent<SkyComponent>(entity)){
+    if (registry->findComponent<SkyComponent>(entity)){
         ret.push_back(ComponentType::SkyComponent);
     }
-    if (scene->findComponent<SpriteAnimationComponent>(entity)){
+    if (registry->findComponent<SpriteAnimationComponent>(entity)){
         ret.push_back(ComponentType::SpriteAnimationComponent);
     }
-    if (scene->findComponent<SpriteComponent>(entity)){
+    if (registry->findComponent<SpriteComponent>(entity)){
         ret.push_back(ComponentType::SpriteComponent);
     }
-    if (scene->findComponent<TerrainComponent>(entity)){
+    if (registry->findComponent<TerrainComponent>(entity)){
         ret.push_back(ComponentType::TerrainComponent);
     }
-    if (scene->findComponent<TextComponent>(entity)){
+    if (registry->findComponent<TextComponent>(entity)){
         ret.push_back(ComponentType::TextComponent);
     }
-    if (scene->findComponent<TextEditComponent>(entity)){
+    if (registry->findComponent<TextEditComponent>(entity)){
         ret.push_back(ComponentType::TextEditComponent);
     }
-    if (scene->findComponent<TilemapComponent>(entity)){
+    if (registry->findComponent<TilemapComponent>(entity)){
         ret.push_back(ComponentType::TilemapComponent);
     }
-    if (scene->findComponent<TimedActionComponent>(entity)){
+    if (registry->findComponent<TimedActionComponent>(entity)){
         ret.push_back(ComponentType::TimedActionComponent);
     }
-    if (scene->findComponent<Transform>(entity)){
+    if (registry->findComponent<Transform>(entity)){
         ret.push_back(ComponentType::Transform);
     }
-    if (scene->findComponent<TranslateTracksComponent>(entity)){
+    if (registry->findComponent<TranslateTracksComponent>(entity)){
         ret.push_back(ComponentType::TranslateTracksComponent);
     }
-    if (scene->findComponent<UIComponent>(entity)){
+    if (registry->findComponent<UIComponent>(entity)){
         ret.push_back(ComponentType::UIComponent);
     }
-    if (scene->findComponent<UIContainerComponent>(entity)){
+    if (registry->findComponent<UIContainerComponent>(entity)){
         ret.push_back(ComponentType::UIContainerComponent);
     }
-    if (scene->findComponent<UILayoutComponent>(entity)){
+    if (registry->findComponent<UILayoutComponent>(entity)){
         ret.push_back(ComponentType::UILayoutComponent);
     }
 
     return ret;
 }
 
-std::map<std::string, Editor::PropertyData> Editor::Catalog::findEntityProperties(Scene* scene, Entity entity, ComponentType component){
+std::map<std::string, Editor::PropertyData> Editor::Catalog::findEntityProperties(EntityRegistry* registry, Entity entity, ComponentType component){
     if(component == ComponentType::Transform){
-        if (Transform* compRef = scene->findComponent<Transform>(entity)){
+        if (Transform* compRef = registry->findComponent<Transform>(entity)){
             return getProperties(component, compRef);
         }
     }else if (component == ComponentType::MeshComponent){
-        if (MeshComponent* compRef = scene->findComponent<MeshComponent>(entity)){
+        if (MeshComponent* compRef = registry->findComponent<MeshComponent>(entity)){
             return getProperties(component, compRef);
         }
     }else if (component == ComponentType::UIComponent){
-        if (UIComponent* compRef = scene->findComponent<UIComponent>(entity)){
+        if (UIComponent* compRef = registry->findComponent<UIComponent>(entity)){
             return getProperties(component, compRef);
         }
     }else if (component == ComponentType::UILayoutComponent){
-        if (UILayoutComponent* compRef = scene->findComponent<UILayoutComponent>(entity)){
+        if (UILayoutComponent* compRef = registry->findComponent<UILayoutComponent>(entity)){
             return getProperties(component, compRef);
         }
     }else if (component == ComponentType::ImageComponent){
-        if (ImageComponent* compRef = scene->findComponent<ImageComponent>(entity)){
+        if (ImageComponent* compRef = registry->findComponent<ImageComponent>(entity)){
             return getProperties(component, compRef);
         }
     }else if (component == ComponentType::SpriteComponent){
-        if (SpriteComponent* compRef = scene->findComponent<SpriteComponent>(entity)){
+        if (SpriteComponent* compRef = registry->findComponent<SpriteComponent>(entity)){
             return getProperties(component, compRef);
         }
     }else if (component == ComponentType::LightComponent){
-        if (LightComponent* compRef = scene->findComponent<LightComponent>(entity)){
+        if (LightComponent* compRef = registry->findComponent<LightComponent>(entity)){
             return getProperties(component, compRef);
         }
     }
@@ -508,55 +508,55 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::findEntityPropertie
     return std::map<std::string, Editor::PropertyData>();
 }
 
-void Editor::Catalog::updateEntity(Scene* scene, Entity entity, int updateFlags){
+void Editor::Catalog::updateEntity(EntityRegistry* registry, Entity entity, int updateFlags){
     if (updateFlags & UpdateFlags_Transform){
-        scene->getComponent<Transform>(entity).needUpdate = true;
+        registry->getComponent<Transform>(entity).needUpdate = true;
     }
     if (updateFlags & UpdateFlags_Scene_Mesh_Reload){
-        auto meshes = scene->getComponentArray<MeshComponent>();
+        auto meshes = registry->getComponentArray<MeshComponent>();
         for (int i = 0; i < meshes->size(); i++) {
             MeshComponent& mesh = meshes->getComponentFromIndex(i);
             mesh.needReload = true;
         }
     }
     if (updateFlags & UpdateFlags_Mesh_Reload){
-        scene->getComponent<MeshComponent>(entity).needReload = true;
+        registry->getComponent<MeshComponent>(entity).needReload = true;
     }
     if (updateFlags & UpdateFlags_Mesh_Texture){
-        unsigned int numSubmeshes = scene->getComponent<MeshComponent>(entity).numSubmeshes;
+        unsigned int numSubmeshes = registry->getComponent<MeshComponent>(entity).numSubmeshes;
         for (unsigned int i = 0; i < numSubmeshes; i++){
-            scene->getComponent<MeshComponent>(entity).submeshes[i].needUpdateTexture = true;
+            registry->getComponent<MeshComponent>(entity).submeshes[i].needUpdateTexture = true;
         }
     }
     if (updateFlags & UpdateFlags_LightShadowMap){
-        scene->getComponent<LightComponent>(entity).needUpdateShadowMap = true;
+        registry->getComponent<LightComponent>(entity).needUpdateShadowMap = true;
     }
     if (updateFlags & UpdateFlags_LightShadowCamera){
-        scene->getComponent<LightComponent>(entity).needUpdateShadowCamera = true;
+        registry->getComponent<LightComponent>(entity).needUpdateShadowCamera = true;
     }
     if (updateFlags & UpdateFlags_UI_Reload){
-        scene->getComponent<UIComponent>(entity).needReload = true;
+        registry->getComponent<UIComponent>(entity).needReload = true;
     }
     if (updateFlags & UpdateFlags_UI_Texture){
-        scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
+        registry->getComponent<UIComponent>(entity).needUpdateTexture = true;
     }
     if (updateFlags & UpdateFlags_Image_Patches){
-        scene->getComponent<ImageComponent>(entity).needUpdatePatches = true;
+        registry->getComponent<ImageComponent>(entity).needUpdatePatches = true;
     }
     if (updateFlags & UpdateFlags_Layout_Sizes){
-        scene->getComponent<UILayoutComponent>(entity).needUpdateSizes = true;
+        registry->getComponent<UILayoutComponent>(entity).needUpdateSizes = true;
     }
     if (updateFlags & UpdateFlags_Sprite){
-        scene->getComponent<SpriteComponent>(entity).needUpdateSprite = true;
+        registry->getComponent<SpriteComponent>(entity).needUpdateSprite = true;
     }
 }
 
-void Editor::Catalog::copyPropertyValue(Scene* sourceScene, Entity sourceEntity, 
-                                       Scene* targetScene, Entity targetEntity, 
+void Editor::Catalog::copyPropertyValue(EntityRegistry* sourceRegistry, Entity sourceEntity, 
+                                       EntityRegistry* targetRegistry, Entity targetEntity, 
                                        ComponentType compType, const std::string& property) {
 
     // Get the property data to determine the type
-    auto sourceProperties = Catalog::findEntityProperties(sourceScene, sourceEntity, compType);
+    auto sourceProperties = Catalog::findEntityProperties(sourceRegistry, sourceEntity, compType);
     auto propIt = sourceProperties.find(property);
     if (propIt == sourceProperties.end()) {
         return; // Property not found
@@ -567,85 +567,85 @@ void Editor::Catalog::copyPropertyValue(Scene* sourceScene, Entity sourceEntity,
     // Copy based on property type
     switch (propType) {
         case PropertyType::Bool: {
-            bool* source = Catalog::getPropertyRef<bool>(sourceScene, sourceEntity, compType, property);
-            bool* target = Catalog::getPropertyRef<bool>(targetScene, targetEntity, compType, property);
+            bool* source = Catalog::getPropertyRef<bool>(sourceRegistry, sourceEntity, compType, property);
+            bool* target = Catalog::getPropertyRef<bool>(targetRegistry, targetEntity, compType, property);
             if (source && target) *target = *source;
             break;
         }
         case PropertyType::Float:
         case PropertyType::Float_0_1: {
-            float* source = Catalog::getPropertyRef<float>(sourceScene, sourceEntity, compType, property);
-            float* target = Catalog::getPropertyRef<float>(targetScene, targetEntity, compType, property);
+            float* source = Catalog::getPropertyRef<float>(sourceRegistry, sourceEntity, compType, property);
+            float* target = Catalog::getPropertyRef<float>(targetRegistry, targetEntity, compType, property);
             if (source && target) *target = *source;
             break;
         }
         case PropertyType::Int: {
-            int* source = Catalog::getPropertyRef<int>(sourceScene, sourceEntity, compType, property);
-            int* target = Catalog::getPropertyRef<int>(targetScene, targetEntity, compType, property);
+            int* source = Catalog::getPropertyRef<int>(sourceRegistry, sourceEntity, compType, property);
+            int* target = Catalog::getPropertyRef<int>(targetRegistry, targetEntity, compType, property);
             if (source && target) *target = *source;
             break;
         }
         case PropertyType::UInt:
         case PropertyType::UIntSlider: {
-            unsigned int* source = Catalog::getPropertyRef<unsigned int>(sourceScene, sourceEntity, compType, property);
-            unsigned int* target = Catalog::getPropertyRef<unsigned int>(targetScene, targetEntity, compType, property);
+            unsigned int* source = Catalog::getPropertyRef<unsigned int>(sourceRegistry, sourceEntity, compType, property);
+            unsigned int* target = Catalog::getPropertyRef<unsigned int>(targetRegistry, targetEntity, compType, property);
             if (source && target) *target = *source;
             break;
         }
         case PropertyType::Vector2: {
-            Vector2* source = Catalog::getPropertyRef<Vector2>(sourceScene, sourceEntity, compType, property);
-            Vector2* target = Catalog::getPropertyRef<Vector2>(targetScene, targetEntity, compType, property);
+            Vector2* source = Catalog::getPropertyRef<Vector2>(sourceRegistry, sourceEntity, compType, property);
+            Vector2* target = Catalog::getPropertyRef<Vector2>(targetRegistry, targetEntity, compType, property);
             if (source && target) *target = *source;
             break;
         }
         case PropertyType::Vector3:
         case PropertyType::Color3L:
         case PropertyType::Direction: {
-            Vector3* source = Catalog::getPropertyRef<Vector3>(sourceScene, sourceEntity, compType, property);
-            Vector3* target = Catalog::getPropertyRef<Vector3>(targetScene, targetEntity, compType, property);
+            Vector3* source = Catalog::getPropertyRef<Vector3>(sourceRegistry, sourceEntity, compType, property);
+            Vector3* target = Catalog::getPropertyRef<Vector3>(targetRegistry, targetEntity, compType, property);
             if (source && target) *target = *source;
             break;
         }
         case PropertyType::Vector4:
         case PropertyType::Color4L: {
-            Vector4* source = Catalog::getPropertyRef<Vector4>(sourceScene, sourceEntity, compType, property);
-            Vector4* target = Catalog::getPropertyRef<Vector4>(targetScene, targetEntity, compType, property);
+            Vector4* source = Catalog::getPropertyRef<Vector4>(sourceRegistry, sourceEntity, compType, property);
+            Vector4* target = Catalog::getPropertyRef<Vector4>(targetRegistry, targetEntity, compType, property);
             if (source && target) *target = *source;
             break;
         }
         case PropertyType::Quat: {
-            Quaternion* source = Catalog::getPropertyRef<Quaternion>(sourceScene, sourceEntity, compType, property);
-            Quaternion* target = Catalog::getPropertyRef<Quaternion>(targetScene, targetEntity, compType, property);
+            Quaternion* source = Catalog::getPropertyRef<Quaternion>(sourceRegistry, sourceEntity, compType, property);
+            Quaternion* target = Catalog::getPropertyRef<Quaternion>(targetRegistry, targetEntity, compType, property);
             if (source && target) *target = *source;
             break;
         }
         case PropertyType::String: {
-            std::string* source = Catalog::getPropertyRef<std::string>(sourceScene, sourceEntity, compType, property);
-            std::string* target = Catalog::getPropertyRef<std::string>(targetScene, targetEntity, compType, property);
+            std::string* source = Catalog::getPropertyRef<std::string>(sourceRegistry, sourceEntity, compType, property);
+            std::string* target = Catalog::getPropertyRef<std::string>(targetRegistry, targetEntity, compType, property);
             if (source && target) *target = *source;
             break;
         }
         case PropertyType::Material: {
-            Material* source = Catalog::getPropertyRef<Material>(sourceScene, sourceEntity, compType, property);
-            Material* target = Catalog::getPropertyRef<Material>(targetScene, targetEntity, compType, property);
+            Material* source = Catalog::getPropertyRef<Material>(sourceRegistry, sourceEntity, compType, property);
+            Material* target = Catalog::getPropertyRef<Material>(targetRegistry, targetEntity, compType, property);
             if (source && target) *target = *source;
             break;
         }
         case PropertyType::Texture: {
-            Texture* source = Catalog::getPropertyRef<Texture>(sourceScene, sourceEntity, compType, property);
-            Texture* target = Catalog::getPropertyRef<Texture>(targetScene, targetEntity, compType, property);
+            Texture* source = Catalog::getPropertyRef<Texture>(sourceRegistry, sourceEntity, compType, property);
+            Texture* target = Catalog::getPropertyRef<Texture>(targetRegistry, targetEntity, compType, property);
             if (source && target) *target = *source;
             break;
         }
         case PropertyType::HalfCone: {
-            float* source = Catalog::getPropertyRef<float>(sourceScene, sourceEntity, compType, property);
-            float* target = Catalog::getPropertyRef<float>(targetScene, targetEntity, compType, property);
+            float* source = Catalog::getPropertyRef<float>(sourceRegistry, sourceEntity, compType, property);
+            float* target = Catalog::getPropertyRef<float>(targetRegistry, targetEntity, compType, property);
             if (source && target) *target = *source;
             break;
         }
         case PropertyType::Enum: {
-            int* source = Catalog::getPropertyRef<int>(sourceScene, sourceEntity, compType, property);
-            int* target = Catalog::getPropertyRef<int>(targetScene, targetEntity, compType, property);
+            int* source = Catalog::getPropertyRef<int>(sourceRegistry, sourceEntity, compType, property);
+            int* target = Catalog::getPropertyRef<int>(targetRegistry, targetEntity, compType, property);
             if (source && target) *target = *source;
             break;
         }
@@ -655,5 +655,5 @@ void Editor::Catalog::copyPropertyValue(Scene* sourceScene, Entity sourceEntity,
     }
 
     // Apply any update flags that are associated with this property
-    updateEntity(targetScene, targetEntity, propIt->second.updateFlags);
+    updateEntity(targetRegistry, targetEntity, propIt->second.updateFlags);
 }

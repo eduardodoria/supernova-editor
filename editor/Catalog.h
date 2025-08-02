@@ -113,23 +113,23 @@ namespace Supernova::Editor{
         Catalog();
 
         static std::string getComponentName(ComponentType component);
-        static ComponentId getComponentId(const Scene* scene, ComponentType compType);
-        static Signature componentTypeMaskToSignature(const Scene* scene, uint64_t mask);
+        static ComponentId getComponentId(const EntityRegistry* registry, ComponentType compType);
+        static Signature componentTypeMaskToSignature(const EntityRegistry* registry, uint64_t mask);
 
         static std::map<std::string, PropertyData> getProperties(ComponentType component, void* compRef);
 
-        static std::vector<ComponentType> findComponents(Scene* scene, Entity entity);
-        static std::map<std::string, PropertyData> findEntityProperties(Scene* scene, Entity entity, ComponentType component);
+        static std::vector<ComponentType> findComponents(EntityRegistry* registry, Entity entity);
+        static std::map<std::string, PropertyData> findEntityProperties(EntityRegistry* registry, Entity entity, ComponentType component);
 
-        static void updateEntity(Scene* scene, Entity entity, int updateFlags);
+        static void updateEntity(EntityRegistry* registry, Entity entity, int updateFlags);
 
-        static void copyPropertyValue(Scene* sourceScene, Entity sourceEntity, 
-                            Scene* targetScene, Entity targetEntity, 
-                            ComponentType compType, const std::string& property);
+        static void copyPropertyValue(EntityRegistry* sourceRegistry, Entity sourceEntity, 
+                                    EntityRegistry* targetRegistry, Entity targetEntity, 
+                                    ComponentType compType, const std::string& property);
 
         template<typename T>
-        static T* getPropertyRef(Scene* scene, Entity entity, ComponentType component, std::string propertyName){
-            for (auto& [name, property] : Catalog::findEntityProperties(scene, entity, component)){
+        static T* getPropertyRef(EntityRegistry* registry, Entity entity, ComponentType component, std::string propertyName){
+            for (auto& [name, property] : Catalog::findEntityProperties(registry, entity, component)){
                 if (name == propertyName){
                     return static_cast<T*>(property.ref);
                 }

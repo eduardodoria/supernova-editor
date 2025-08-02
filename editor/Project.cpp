@@ -712,36 +712,38 @@ void Editor::Project::setupSharedGroupEventSubscriptions(const std::filesystem::
             // Check if this event is for any entity in our shared group
             const SharedGroup* group = getSharedGroup(filepath);
             if (group) {
-                if (group->containsEntity(e.sceneId, e.entity)){
-                    saveSharedGroup(filepath, e.sceneId);
-                }
+                if (!group->hasComponentOverride(e.sceneId, e.entity, e.compType)){
+                    const auto& entities = group->getAllEntities(e.sceneId);
+                    auto it = std::find(entities.begin(), entities.end(), e.entity);
+                    if (it != entities.end()) { // containsEntity
+                        size_t entityIndex = std::distance(entities.begin(), it);
 
-                // Copy changes to corresponding entities in other scenes
-                const std::vector<Entity>& sourceEntities = group->getAllEntities(e.sceneId);
-                auto sourceIt = std::find(sourceEntities.begin(), sourceEntities.end(), e.entity);
-                if (sourceIt != sourceEntities.end()) {
-                    size_t entityIndex = std::distance(sourceEntities.begin(), sourceIt);
+                        // Updating default entity
+                        size_t entityDefault = entityIndex + NULL_ENTITY + 1;
+                        EntityRegistry* registry = group->registry.get();
+                        for (const auto& property : e.properties) {
+                            Catalog::copyPropertyValue(getScene(e.sceneId)->scene, e.entity, registry, entityDefault, e.compType, property);
+                        }
 
-                    // Copy to corresponding entity in other scenes
-                    for (const auto& [otherSceneId, otherEntities] : group->members) {
-                        if (otherSceneId != e.sceneId && entityIndex < otherEntities.size()) {
-                            Entity otherEntity = otherEntities[entityIndex];
+                        // Copy to corresponding entity in other scenes
+                        for (const auto& [otherSceneId, otherEntities] : group->members) {
+                            if (otherSceneId != e.sceneId && entityIndex < otherEntities.size()) {
+                                Entity otherEntity = otherEntities[entityIndex];
 
-                            if (!group->hasComponentOverride(otherSceneId, otherEntity, e.compType)) {
-                                SceneProject* otherScene = getScene(otherSceneId);
-                                if (otherScene) {
-                                    otherScene->needUpdateRender = true;
-                                    for (const auto& property : e.properties) {
-                                        Catalog::copyPropertyValue(getScene(e.sceneId)->scene, e.entity, otherScene->scene, otherEntity, e.compType, property);
+                                if (!group->hasComponentOverride(otherSceneId, otherEntity, e.compType)) {
+                                    SceneProject* otherScene = getScene(otherSceneId);
+                                    if (otherScene) {
+                                        otherScene->needUpdateRender = true;
+                                        for (const auto& property : e.properties) {
+                                            Catalog::copyPropertyValue(getScene(e.sceneId)->scene, e.entity, otherScene->scene, otherEntity, e.compType, property);
+                                        }
                                     }
                                 }
                             }
                         }
+
+                        saveSharedGroup(filepath, e.sceneId);
                     }
-
-                    //size_t entityDefault = entityIndex + NULL_ENTITY + 1;
-                    //EntityRegistry* registry = group->entityContainer.get();
-
                 }
             }
         });
