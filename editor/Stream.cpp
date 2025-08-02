@@ -839,68 +839,68 @@ LightComponent Editor::Stream::decodeLightComponent(const YAML::Node& node) {
     return light;
 }
 
-void Editor::Stream::encodeComponentsAux(YAML::Node& entityNode, const Entity entity, const EntityContainer* container, Signature signature) {
-    if (signature.test(container->getComponentId<Transform>())) {
-        Transform transform = container->getComponent<Transform>(entity);
+void Editor::Stream::encodeComponentsAux(YAML::Node& entityNode, const Entity entity, const EntityRegistry* registry, Signature signature) {
+    if (signature.test(registry->getComponentId<Transform>())) {
+        Transform transform = registry->getComponent<Transform>(entity);
         entityNode["transform"] = encodeTransform(transform);
     }
 
-    if (signature.test(container->getComponentId<MeshComponent>())) {
-        MeshComponent mesh = container->getComponent<MeshComponent>(entity);
+    if (signature.test(registry->getComponentId<MeshComponent>())) {
+        MeshComponent mesh = registry->getComponent<MeshComponent>(entity);
         entityNode["mesh"] = encodeMeshComponent(mesh);
     }
 
-    if (signature.test(container->getComponentId<UIComponent>())) {
-        UIComponent ui = container->getComponent<UIComponent>(entity);
+    if (signature.test(registry->getComponentId<UIComponent>())) {
+        UIComponent ui = registry->getComponent<UIComponent>(entity);
         entityNode["ui"] = encodeUIComponent(ui);
     }
 
-    if (signature.test(container->getComponentId<UILayoutComponent>())) {
-        UILayoutComponent layout = container->getComponent<UILayoutComponent>(entity);
+    if (signature.test(registry->getComponentId<UILayoutComponent>())) {
+        UILayoutComponent layout = registry->getComponent<UILayoutComponent>(entity);
         entityNode["layout"] = encodeUILayoutComponent(layout);
     }
 
-    if (signature.test(container->getComponentId<ImageComponent>())) {
-        ImageComponent image = container->getComponent<ImageComponent>(entity);
+    if (signature.test(registry->getComponentId<ImageComponent>())) {
+        ImageComponent image = registry->getComponent<ImageComponent>(entity);
         entityNode["image"] = encodeImageComponent(image);
     }
 
-    if (signature.test(container->getComponentId<LightComponent>())) {
-        LightComponent light = container->getComponent<LightComponent>(entity);
+    if (signature.test(registry->getComponentId<LightComponent>())) {
+        LightComponent light = registry->getComponent<LightComponent>(entity);
         entityNode["light"] = encodeLightComponent(light);
     }
 }
 
-void Editor::Stream::decodeComponentsAux(Entity entity, Entity parent, EntityContainer* container, const YAML::Node& entityNode){
+void Editor::Stream::decodeComponentsAux(Entity entity, Entity parent, EntityRegistry* registry, const YAML::Node& entityNode){
     if (entityNode["transform"]) {
         Transform transform = decodeTransform(entityNode["transform"]);
         transform.parent = parent;
-        container->addComponent<Transform>(entity, transform);
+        registry->addComponent<Transform>(entity, transform);
     }
 
     if (entityNode["mesh"]) {
         MeshComponent mesh = decodeMeshComponent(entityNode["mesh"]);
-        container->addComponent<MeshComponent>(entity, mesh);
+        registry->addComponent<MeshComponent>(entity, mesh);
     }
 
     if (entityNode["ui"]) {
         UIComponent ui = decodeUIComponent(entityNode["ui"]);
-        container->addComponent<UIComponent>(entity, ui);
+        registry->addComponent<UIComponent>(entity, ui);
     }
 
     if (entityNode["layout"]) {
         UILayoutComponent layout = decodeUILayoutComponent(entityNode["layout"]);
-        container->addComponent<UILayoutComponent>(entity, layout);
+        registry->addComponent<UILayoutComponent>(entity, layout);
     }
 
     if (entityNode["image"]) {
         ImageComponent image = decodeImageComponent(entityNode["image"]);
-        container->addComponent<ImageComponent>(entity, image);
+        registry->addComponent<ImageComponent>(entity, image);
     }
 
     if (entityNode["light"]) {
         LightComponent light = decodeLightComponent(entityNode["light"]);
-        container->addComponent<LightComponent>(entity, light);
+        registry->addComponent<LightComponent>(entity, light);
     }
 }
 
@@ -1145,30 +1145,30 @@ std::vector<Entity> Editor::Stream::decodeEntity(Project* project, SceneProject*
     return allEntities;
 }
 
-std::vector<Entity> Editor::Stream::decodeLocalEntity(EntityContainer* container, const YAML::Node& entityNode, Entity parent) {
+std::vector<Entity> Editor::Stream::decodeLocalEntity(EntityRegistry* registry, const YAML::Node& entityNode, Entity parent) {
     std::vector<Entity> allEntities;
 
     Entity entity = NULL_ENTITY;
     if (entityNode["entity"]){
         entity = entityNode["entity"].as<Entity>();
-        if (!container->recreateEntity(entity)){
-            entity = container->createEntity();
+        if (!registry->recreateEntity(entity)){
+            entity = registry->createEntity();
         }
     }else{
-        entity = container->createEntity();
+        entity = registry->createEntity();
     }
 
     allEntities.push_back(entity);
 
     std::string name = entityNode["name"].as<std::string>();
-    container->setEntityName(entity, name);
+    registry->setEntityName(entity, name);
 
-    decodeComponentsAux(entity, parent, container, entityNode);
+    decodeComponentsAux(entity, parent, registry, entityNode);
 
     // Decode children from actualNode
     if (entityNode["children"]) {
         for (const auto& childNode : entityNode["children"]) {
-            std::vector<Entity> childEntities = decodeLocalEntity(container, childNode, entity);
+            std::vector<Entity> childEntities = decodeLocalEntity(registry, childNode, entity);
             std::copy(childEntities.begin(), childEntities.end(), std::back_inserter(allEntities));
         }
     }
