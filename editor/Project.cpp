@@ -1125,7 +1125,8 @@ void Editor::Project::saveSharedGroup(const std::filesystem::path& filepath, uin
     Scene* scene = getScene(sceneId)->scene;
 
     // Re‐serialize the entire branch to memory cache
-    YAML::Node encodedNode = Stream::encodeEntityBranch(rootEntity, getScene(sceneId)->scene, this, sceneId);
+    SceneProject* sceneProject = getScene(sceneId);
+    YAML::Node encodedNode = Stream::encodeEntity(rootEntity, sceneProject->scene, this, sceneProject);
     group.cachedYaml = std::make_shared<YAML::Node>(std::move(encodedNode));
     group.isModified = true;
 }

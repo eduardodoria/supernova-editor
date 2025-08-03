@@ -110,6 +110,8 @@ namespace Supernova::Editor {
         static void encodeComponentsAux(YAML::Node& entityNode, const Entity entity, const EntityRegistry* container, Signature signature);
         static void decodeComponentsAux(Entity entity, Entity parent, EntityRegistry* container, const YAML::Node& entityNode);
 
+        static YAML::Node encodeEntityAux(const Entity entity, const EntityRegistry* registry, const Project* project = nullptr, const SceneProject* sceneProject = nullptr, bool keepEntity = false);
+
     public:
         static YAML::Node encodeProject(Project* project);
         static void decodeProject(Project* project, const YAML::Node& node);
@@ -121,8 +123,7 @@ namespace Supernova::Editor {
         static YAML::Node encodeScene(Scene* scene);
         static Scene* decodeScene(Scene* scene, const YAML::Node& node);
 
-        static YAML::Node encodeEntityBranch(const Entity entity, const EntityRegistry* registry, const Project* project = nullptr, uint32_t sceneId = NULL_PROJECT_SCENE, bool keepEntity = false);
-        static YAML::Node encodeEntity(const Entity entity, const EntityRegistry* registry, const Project* project = nullptr, uint32_t sceneId = NULL_PROJECT_SCENE, bool keepEntity = false);
+        static YAML::Node encodeEntity(const Entity entity, const EntityRegistry* registry, const Project* project = nullptr, const SceneProject* sceneProject = nullptr, bool keepEntity = false);
         static std::vector<Entity> decodeEntity(EntityRegistry* registry, const YAML::Node& entityNode, Project* project = nullptr, SceneProject* sceneProject = nullptr, Entity parent = NULL_ENTITY);
 
         static YAML::Node encodeMaterial(const Material& material);

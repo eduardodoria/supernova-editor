@@ -280,7 +280,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         // Add entity drag drop payload for dragging to resources
         if (!node.isScene) {
             SceneProject* sceneProject = project->getSelectedScene();
-            YAML::Node entityData = Stream::encodeEntityBranch(node.id, sceneProject->scene, project, sceneProject->id);
+            YAML::Node entityData = Stream::encodeEntity(node.id, sceneProject->scene, project, sceneProject);
             std::string yamlString = YAML::Dump(entityData);
 
             size_t yamlSize = yamlString.size();
