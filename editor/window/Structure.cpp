@@ -279,7 +279,8 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
         // Add entity drag drop payload for dragging to resources
         if (!node.isScene) {
-            YAML::Node entityData = Stream::encodeEntityBranch(node.id, project, project->getSelectedScene());
+            SceneProject* sceneProject = project->getSelectedScene();
+            YAML::Node entityData = Stream::encodeEntityBranch(node.id, sceneProject->scene, project, sceneProject->id);
             std::string yamlString = YAML::Dump(entityData);
 
             size_t yamlSize = yamlString.size();

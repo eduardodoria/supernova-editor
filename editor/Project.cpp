@@ -999,7 +999,7 @@ bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path
     group.cachedYaml = std::make_shared<YAML::Node>(std::move(entityNode));
     group.isModified = false;
 
-    Stream::decodeLocalEntity(group.registry.get(), *group.cachedYaml, entity);
+    Stream::decodeEntity(group.registry.get(), *group.cachedYaml);
 
     // Mark Transform component of root entity as overridden for this scene
     // This allows each scene to position the shared entity independently
@@ -1072,7 +1072,7 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
 
     // decode into brand‐new local entities (root + children)
     Scene* scene = sceneProject->scene;
-    std::vector<Entity> newEntities = Stream::decodeEntity(this, sceneProject, *node);
+    std::vector<Entity> newEntities = Stream::decodeEntity(scene, *node, this, sceneProject);
     scene->addEntityChild(parent, newEntities[0], false);
 
     std::vector<Entity> membersEntities = newEntities;
@@ -1125,7 +1125,7 @@ void Editor::Project::saveSharedGroup(const std::filesystem::path& filepath, uin
     Scene* scene = getScene(sceneId)->scene;
 
     // Re‐serialize the entire branch to memory cache
-    YAML::Node encodedNode = Stream::encodeEntityBranch(rootEntity, this, getScene(sceneId));
+    YAML::Node encodedNode = Stream::encodeEntityBranch(rootEntity, getScene(sceneId)->scene, this, sceneId);
     group.cachedYaml = std::make_shared<YAML::Node>(std::move(encodedNode));
     group.isModified = true;
 }
