@@ -996,15 +996,16 @@ bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path
     SharedGroup group;
     group.members[sceneId] = branchEntities;
     group.registry = std::make_unique<EntityRegistry>();
-    group.cachedYaml = std::make_shared<YAML::Node>(std::move(entityNode));
     group.isModified = false;
 
-    Stream::decodeEntity(group.registry.get(), *group.cachedYaml);
+    Stream::decodeEntity(group.registry.get(), entityNode);
 
     // Mark Transform component of root entity as overridden for this scene
     // This allows each scene to position the shared entity independently
     if (scene->findComponent<Transform>(entity)) {
         group.setComponentOverride(sceneId, entity, ComponentType::Transform);
+
+        group.registry->getComponent<Transform>(NULL_ENTITY + 1) = {};
     }
 
     sharedGroups.emplace(filepath, std::move(group));
@@ -1040,16 +1041,14 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
 
     auto& group = it->second;
 
-    std::shared_ptr<YAML::Node> node;
-    // Use cached YAML if available and modified, otherwise load from file
-    if (group.isModified && group.cachedYaml && !group.cachedYaml->IsNull()) {
-        node = group.cachedYaml;
+    YAML::Node node;
+    // Use registry if modified, otherwise load from file
+    if (group.isModified) {
+        node = Stream::encodeEntity(NULL_ENTITY + 1, group.registry.get());
     } else {
         try {
             std::filesystem::path fullSharedPath = getProjectPath() / filepath;
-            YAML::Node loadedNode = YAML::LoadFile(fullSharedPath.string());
-            node = std::make_shared<YAML::Node>(std::move(loadedNode));
-            group.cachedYaml = node; // cache it
+            node = YAML::LoadFile(fullSharedPath.string());
         } catch (const YAML::Exception& e) {
             Out::error("Failed to load shared entity file: %s", e.what());
             return {};
@@ -1064,15 +1063,13 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
     // Merge extendNode with loadedNode if extendNode is provided
     if (extendNode && !extendNode.IsNull()) {
         // Create a copy of the loaded node for merging
-        YAML::Node mergedNode = YAML::Clone(*node);
         size_t globalIndex = 0;
-        indicesOfExtend = mergeEntityNodes(mergedNode, extendNode, globalIndex);
-        node = std::make_shared<YAML::Node>(std::move(mergedNode));
+        indicesOfExtend = mergeEntityNodes(node, extendNode, globalIndex);
     }
 
     // decode into brand‐new local entities (root + children)
     Scene* scene = sceneProject->scene;
-    std::vector<Entity> newEntities = Stream::decodeEntity(scene, *node, this, sceneProject);
+    std::vector<Entity> newEntities = Stream::decodeEntity(scene, node, this, sceneProject);
     scene->addEntityChild(parent, newEntities[0], false);
 
     std::vector<Entity> membersEntities = newEntities;
@@ -1124,21 +1121,18 @@ void Editor::Project::saveSharedGroup(const std::filesystem::path& filepath, uin
     Entity rootEntity = memberIt->second[0]; // First entity is always the root
     Scene* scene = getScene(sceneId)->scene;
 
-    // Re‐serialize the entire branch to memory cache
-    SceneProject* sceneProject = getScene(sceneId);
-    YAML::Node encodedNode = Stream::encodeEntity(rootEntity, sceneProject->scene, this, sceneProject);
-    group.cachedYaml = std::make_shared<YAML::Node>(std::move(encodedNode));
     group.isModified = true;
 }
 
 void Editor::Project::saveSharedGroupsToDisk(){
     for (auto& [filepath, group] : sharedGroups) {
         // Add proper null checks
-        if (group.isModified && group.cachedYaml && !group.cachedYaml->IsNull()) {
+        YAML::Node encodedNode = Stream::encodeEntity(NULL_ENTITY + 1, group.registry.get());
+        if (group.isModified && encodedNode && !encodedNode.IsNull()) {
             std::filesystem::path fullSharedPath = getProjectPath() / filepath;
             std::ofstream fout(fullSharedPath.string());
             if (fout.is_open()) {  // Check if file opened successfully
-                fout << YAML::Dump(*group.cachedYaml);
+                fout << YAML::Dump(encodedNode);
                 fout.close();
                 group.isModified = false;
             } else {

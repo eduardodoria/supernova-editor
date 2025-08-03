@@ -40,7 +40,6 @@ namespace Supernova::Editor{
         std::map<uint32_t, std::vector<Entity>> members; // sceneId → list of Entities (root + children)
         std::map<uint32_t, std::map<Entity, uint64_t>> overrides; // sceneId → entityId → bitmask of overridden ComponentTypes
         std::unique_ptr<EntityRegistry> registry;
-        std::shared_ptr<YAML::Node> cachedYaml;
         bool isModified = false;
 
         // Helper methods
