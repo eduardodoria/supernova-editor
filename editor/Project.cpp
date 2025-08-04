@@ -271,6 +271,13 @@ void Editor::Project::insertNewChild(YAML::Node& node, YAML::Node child, size_t 
 std::vector<size_t> Editor::Project::mergeEntityNodes(YAML::Node& loadedNode, const YAML::Node& extendNode, size_t& index){
     std::vector<size_t> extendedIndices;
 
+    if (extendNode["components"] && extendNode["components"].IsMap()) {
+        for (auto it = extendNode["components"].begin(); it != extendNode["components"].end(); ++it) {
+            std::string key = it->first.as<std::string>();
+            loadedNode["components"][key] = it->second;
+        }
+    }
+
     size_t loadedChildrenSize = loadedNode["children"]  ? loadedNode["children"].size() : 0;
     size_t extendChildrenSize = extendNode["children"]  ? extendNode["children"].size() : 0;
 
@@ -741,8 +748,6 @@ void Editor::Project::setupSharedGroupEventSubscriptions(const std::filesystem::
                                 }
                             }
                         }
-
-                        saveSharedGroup(filepath, e.sceneId);
                     }
                 }
             }
@@ -753,7 +758,7 @@ void Editor::Project::setupSharedGroupEventSubscriptions(const std::filesystem::
         [this, filepath](const Event& e) {
             const SharedGroup* group = getSharedGroup(filepath);
             if (group && group->containsEntity(e.sceneId, e.entity)){
-                saveSharedGroup(filepath, e.sceneId);
+
             }
         });
 
@@ -761,7 +766,7 @@ void Editor::Project::setupSharedGroupEventSubscriptions(const std::filesystem::
         [this, filepath](const Event& e) {
             const SharedGroup* group = getSharedGroup(filepath);
             if (group && group->containsEntity(e.sceneId, e.entity)){
-                saveSharedGroup(filepath, e.sceneId);
+
             }
         });
 }
@@ -996,7 +1001,7 @@ bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path
     SharedGroup group;
     group.members[sceneId] = branchEntities;
     group.registry = std::make_unique<EntityRegistry>();
-    group.isModified = false;
+    group.isModified = true;
 
     Stream::decodeEntity(group.registry.get(), entityNode);
 
@@ -1012,6 +1017,7 @@ bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path
 
     // Set up event subscriptions for this shared group
     setupSharedGroupEventSubscriptions(filepath);
+    saveSharedGroupsToDisk();
 
     sceneProject->isModified = true;
     return true;
@@ -1029,6 +1035,7 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
     if (it == sharedGroups.end()) {
         // Entity doesn't exist in any scene yet - create new SharedGroup
         SharedGroup newGroup;
+        newGroup.registry = std::make_unique<EntityRegistry>();
         newGroup.isModified = false;
 
         auto [newIt, inserted] = sharedGroups.emplace(filepath, std::move(newGroup));
@@ -1043,12 +1050,14 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
 
     YAML::Node node;
     // Use registry if modified, otherwise load from file
-    if (group.isModified) {
+    if (group.isModified && (group.registry->getLastEntity() > NULL_ENTITY)) {
         node = Stream::encodeEntity(NULL_ENTITY + 1, group.registry.get());
     } else {
         try {
             std::filesystem::path fullSharedPath = getProjectPath() / filepath;
             node = YAML::LoadFile(fullSharedPath.string());
+            group.registry->clear();
+            Stream::decodeEntity(group.registry.get(), node);
         } catch (const YAML::Exception& e) {
             Out::error("Failed to load shared entity file: %s", e.what());
             return {};
@@ -1069,7 +1078,7 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
 
     // decode into brand‐new local entities (root + children)
     Scene* scene = sceneProject->scene;
-    std::vector<Entity> newEntities = Stream::decodeEntity(scene, node, this, sceneProject);
+    std::vector<Entity> newEntities = Stream::decodeEntity(scene, node);
     scene->addEntityChild(parent, newEntities[0], false);
 
     std::vector<Entity> membersEntities = newEntities;
@@ -1102,26 +1111,6 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
     }
 
     return newEntities;
-}
-
-void Editor::Project::saveSharedGroup(const std::filesystem::path& filepath, uint32_t sceneId){
-    auto it = sharedGroups.find(filepath);
-    if (it == sharedGroups.end()) return;
-
-    auto& group = it->second;
-
-    // Check if the provided sceneId is part of this shared group
-    auto memberIt = group.members.find(sceneId);
-    if (memberIt == group.members.end() || memberIt->second.empty()) {
-        Out::error("Scene ID %u is not part of shared group at %s", sceneId, filepath.string().c_str());
-        return;
-    }
-
-    // Use the root entity from the provided scene as authoritative source
-    Entity rootEntity = memberIt->second[0]; // First entity is always the root
-    Scene* scene = getScene(sceneId)->scene;
-
-    group.isModified = true;
 }
 
 void Editor::Project::saveSharedGroupsToDisk(){

@@ -251,7 +251,6 @@ namespace Supernova::Editor{
 
         bool markEntityShared(uint32_t sceneId, Entity entity, fs::path filepath, YAML::Node entityNode);
         std::vector<Entity> importSharedEntity(SceneProject* sceneProject, const std::filesystem::path& filepath, Entity parent = NULL_ENTITY, bool needSaveScene = true, YAML::Node extendNode = YAML::Node());
-        void saveSharedGroup(const std::filesystem::path& filepath, uint32_t sceneId);
 
         void saveSharedGroupsToDisk();
 

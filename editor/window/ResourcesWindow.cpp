@@ -1203,15 +1203,10 @@ void Editor::ResourcesWindow::saveEntityFile(const fs::path& directory, const ch
         targetFile = directory / fileName;
         counter++;
     }
-    std::ofstream out(targetFile, std::ios::binary);
-    if (out.is_open()) {
-        out << YAML::Dump(entityNode);
-        out.close();
 
-        std::filesystem::path relativePath = std::filesystem::relative(targetFile, project->getProjectPath());
-        project->markEntityShared(project->getSelectedSceneId(), entity, relativePath, entityNode);
-        scanDirectory(currentPath);
-    }
+    std::filesystem::path relativePath = std::filesystem::relative(targetFile, project->getProjectPath());
+    project->markEntityShared(project->getSelectedSceneId(), entity, relativePath, entityNode);
+    scanDirectory(currentPath);
 }
 
 void Editor::ResourcesWindow::cleanupThumbnails() {
