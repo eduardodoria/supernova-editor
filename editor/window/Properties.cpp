@@ -1854,7 +1854,7 @@ void Editor::Properties::drawLightComponent(ComponentType cpType, std::map<std::
 
     beginTable(cpType, getLabelSize("Map Resolution"), "shadow_settings_table");
     propertyRow(cpType, props, "shadows", "Enabled", sceneProject, entities);
-    propertyRow(cpType, props, "shadow_bias", "Bias", sceneProject, entities, 0.0001f, 6 * ImGui::GetFontSize(), false, "", "%.4f");
+    propertyRow(cpType, props, "shadow_bias", "Bias", sceneProject, entities, 0.000001f, 6 * ImGui::GetFontSize(), false, "", "%.6f");
     propertyRow(cpType, props, "map_resolution", "Map Resolution", sceneProject, entities);
     propertyRow(cpType, props, "num_shadow_cascades", "Num Cascades", sceneProject, entities);
 
