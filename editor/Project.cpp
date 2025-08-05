@@ -539,16 +539,11 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
     }
 
     // Check if this scene has entities in shared groups and save them first
-    bool hasSharedEntities = false;
     for (const auto& [filepath, group] : sharedGroups) {
         if (group.members.find(sceneId) != group.members.end()) {
-            hasSharedEntities = true;
+            saveSharedGroupToDisk(filepath);
             break;
         }
-    }
-
-    if (hasSharedEntities) {
-        saveSharedGroupsToDisk();
     }
 
     YAML::Node root = Stream::encodeSceneProject(this, sceneProject);
@@ -717,7 +712,7 @@ void Editor::Project::setupSharedGroupEventSubscriptions(const std::filesystem::
     getEventBus().subscribe(EventType::ComponentChanged,
         [this, filepath](const Event& e) {
             // Check if this event is for any entity in our shared group
-            const SharedGroup* group = getSharedGroup(filepath);
+            SharedGroup* group = getSharedGroup(filepath);
             if (group) {
                 if (!group->hasComponentOverride(e.sceneId, e.entity, e.compType)){
                     const auto& entities = group->getAllEntities(e.sceneId);
@@ -750,23 +745,24 @@ void Editor::Project::setupSharedGroupEventSubscriptions(const std::filesystem::
                         }
                     }
                 }
+                group->isModified = true;
             }
         });
 
     // Also subscribe to component additions and removals
     getEventBus().subscribe(EventType::ComponentAdded,
         [this, filepath](const Event& e) {
-            const SharedGroup* group = getSharedGroup(filepath);
+            SharedGroup* group = getSharedGroup(filepath);
             if (group && group->containsEntity(e.sceneId, e.entity)){
-
+                group->isModified = true;
             }
         });
 
     getEventBus().subscribe(EventType::ComponentRemoved,
         [this, filepath](const Event& e) {
-            const SharedGroup* group = getSharedGroup(filepath);
+            SharedGroup* group = getSharedGroup(filepath);
             if (group && group->containsEntity(e.sceneId, e.entity)){
-
+                group->isModified = true;
             }
         });
 }
@@ -1017,7 +1013,7 @@ bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path
 
     // Set up event subscriptions for this shared group
     setupSharedGroupEventSubscriptions(filepath);
-    saveSharedGroupsToDisk();
+    saveSharedGroupToDisk(filepath);
 
     sceneProject->isModified = true;
     return true;
@@ -1113,20 +1109,18 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
     return newEntities;
 }
 
-void Editor::Project::saveSharedGroupsToDisk(){
-    for (auto& [filepath, group] : sharedGroups) {
-        // Add proper null checks
-        YAML::Node encodedNode = Stream::encodeEntity(NULL_ENTITY + 1, group.registry.get());
-        if (group.isModified && encodedNode && !encodedNode.IsNull()) {
-            std::filesystem::path fullSharedPath = getProjectPath() / filepath;
-            std::ofstream fout(fullSharedPath.string());
-            if (fout.is_open()) {  // Check if file opened successfully
-                fout << YAML::Dump(encodedNode);
-                fout.close();
-                group.isModified = false;
-            } else {
-                Out::error("Failed to open file for writing: %s", fullSharedPath.string().c_str());
-            }
+void Editor::Project::saveSharedGroupToDisk(const std::filesystem::path& filepath) {
+    SharedGroup* group = getSharedGroup(filepath);
+    YAML::Node encodedNode = Stream::encodeEntity(NULL_ENTITY + 1, group->registry.get());
+    if (group->isModified && encodedNode && !encodedNode.IsNull()) {
+        std::filesystem::path fullSharedPath = getProjectPath() / filepath;
+        std::ofstream fout(fullSharedPath.string());
+        if (fout.is_open()) {  // Check if file opened successfully
+            fout << YAML::Dump(encodedNode);
+            fout.close();
+            group->isModified = false;
+        } else {
+            Out::error("Failed to open file for writing: %s", fullSharedPath.string().c_str());
         }
     }
 }
