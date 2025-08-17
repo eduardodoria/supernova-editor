@@ -37,6 +37,11 @@ void Editor::CommandHistory::addCommandNoMerge(Command* cmd){
     addCommand(cmd);
 }
 
+void Editor::CommandHistory::addCommandCommit(Command* cmd){
+    addCommandNoMerge(cmd);
+    cmd->commit();
+}
+
 void Editor::CommandHistory::undo(){
     if (index > 0){
         list[index-1]->undo();

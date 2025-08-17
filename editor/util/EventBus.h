@@ -22,8 +22,10 @@ namespace Supernova::Editor {
         EventType type;
         uint32_t sceneId;
         Entity entity;
+        std::string entityName; // for entity‐events
+        Entity parent; // for entity‐events
         std::vector<std::string> properties;
-        ComponentType compType;   // only meaningful for component‐events
+        ComponentType compType;   // for component‐events
     };
 
     class EventBus {

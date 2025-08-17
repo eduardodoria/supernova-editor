@@ -11,6 +11,12 @@
 
 namespace Supernova::Editor{
 
+    enum class CreationState{
+        NONE,
+        CREATED,
+        DELETED
+    };
+
     enum class EntityCreationType{
         EMPTY,
         OBJECT,
@@ -38,6 +44,7 @@ namespace Supernova::Editor{
         Entity parent;
         EntityCreationType type;
         std::vector<Entity> lastSelected;
+        CreationState state;
 
         // Component type -> property name -> property setter function
         std::unordered_map<ComponentType, std::unordered_map<std::string, std::function<void(Entity)>>> propertySetters;
@@ -48,10 +55,12 @@ namespace Supernova::Editor{
         CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type);
         CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type, Entity parent);
 
-        virtual bool execute();
-        virtual void undo();
+        bool execute() override;
+        void undo() override;
 
-        virtual bool mergeWith(Command* otherCommand);
+        bool mergeWith(Command* otherCommand) override;
+
+        void commit() override;
 
         Entity getEntity();
 

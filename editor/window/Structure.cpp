@@ -24,40 +24,40 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent){
         parent = NULL_ENTITY;
 
         if (ImGui::MenuItem(ICON_FA_CIRCLE_DOT"  Empty entity")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Entity"));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(new CreateEntityCmd(project, project->getSelectedSceneId(), "Entity"));
         }
     }
 
     ImGui::Separator();
 
     if (ImGui::MenuItem(ICON_FA_SITEMAP"  Empty object")){
-        CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Object", EntityCreationType::OBJECT, parent));
+        CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(new CreateEntityCmd(project, project->getSelectedSceneId(), "Object", EntityCreationType::OBJECT, parent));
         openParent = parent;
     }
 
     if (ImGui::BeginMenu(ICON_FA_CUBE"  Basic shape")){
         if (ImGui::MenuItem(ICON_FA_CUBE"  Box")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Box", EntityCreationType::BOX, parent));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(new CreateEntityCmd(project, project->getSelectedSceneId(), "Box", EntityCreationType::BOX, parent));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_CUBE"  Plane")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Plane", EntityCreationType::PLANE, parent));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(new CreateEntityCmd(project, project->getSelectedSceneId(), "Plane", EntityCreationType::PLANE, parent));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_CUBE"  Sphere")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Sphere", EntityCreationType::SPHERE, parent));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(new CreateEntityCmd(project, project->getSelectedSceneId(), "Sphere", EntityCreationType::SPHERE, parent));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_CUBE"  Cylinder")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Cylinder", EntityCreationType::CYLINDER, parent));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(new CreateEntityCmd(project, project->getSelectedSceneId(), "Cylinder", EntityCreationType::CYLINDER, parent));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_CUBE"  Capsule")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Capsule", EntityCreationType::CAPSULE, parent));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(new CreateEntityCmd(project, project->getSelectedSceneId(), "Capsule", EntityCreationType::CAPSULE, parent));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_CUBE"  Torus")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Torus", EntityCreationType::TORUS, parent));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(new CreateEntityCmd(project, project->getSelectedSceneId(), "Torus", EntityCreationType::TORUS, parent));
             openParent = parent;
         }
         ImGui::EndMenu();
@@ -65,7 +65,7 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent){
 
     if (ImGui::BeginMenu(ICON_FA_CUBES_STACKED"  2D")){
         if (ImGui::MenuItem(ICON_FA_IMAGE"  Sprite")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Sprite", EntityCreationType::SPRITE, parent));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(new CreateEntityCmd(project, project->getSelectedSceneId(), "Sprite", EntityCreationType::SPRITE, parent));
             openParent = parent;
         }
         ImGui::EndMenu();
@@ -73,7 +73,7 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent){
 
     if (ImGui::BeginMenu(ICON_FA_WINDOW_RESTORE"  UI")){
         if (ImGui::MenuItem(ICON_FA_IMAGE"  Image")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Image", EntityCreationType::IMAGE, parent));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(new CreateEntityCmd(project, project->getSelectedSceneId(), "Image", EntityCreationType::IMAGE, parent));
             openParent = parent;
         }
         ImGui::EndMenu();
@@ -81,15 +81,15 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent){
 
     if (ImGui::BeginMenu(ICON_FA_LIGHTBULB"  Light")){
         if (ImGui::MenuItem(ICON_FA_LIGHTBULB"  Point")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Point Light", EntityCreationType::POINT_LIGHT, parent));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(new CreateEntityCmd(project, project->getSelectedSceneId(), "Point Light", EntityCreationType::POINT_LIGHT, parent));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_LIGHTBULB"  Directional")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Directional Light", EntityCreationType::DIRECTIONAL_LIGHT, parent));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(new CreateEntityCmd(project, project->getSelectedSceneId(), "Directional Light", EntityCreationType::DIRECTIONAL_LIGHT, parent));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_LIGHTBULB"  Spot")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommand(new CreateEntityCmd(project, project->getSelectedSceneId(), "Spot Light", EntityCreationType::SPOT_LIGHT, parent));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(new CreateEntityCmd(project, project->getSelectedSceneId(), "Spot Light", EntityCreationType::SPOT_LIGHT, parent));
             openParent = parent;
         }
         ImGui::EndMenu();

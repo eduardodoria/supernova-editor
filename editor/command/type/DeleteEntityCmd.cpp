@@ -83,14 +83,12 @@ void Editor::DeleteEntityCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     for (DeleteEntityData& entityData : entities){
-        std::vector<Entity> allEntities = Stream::decodeEntity(sceneProject->scene, entityData.data, project, sceneProject);
+        std::vector<Entity> allEntities = Stream::decodeEntity(entityData.data, sceneProject->scene, project, sceneProject);
         entityData.entity = allEntities[0];
 
         if (entityData.parent != NULL_ENTITY) {
             sceneProject->scene->addEntityChild(entityData.parent, entityData.entity, false);
         }
-
-        sceneProject->entities.insert(sceneProject->entities.begin() + entityData.entityIndex, allEntities.begin(), allEntities.end());
 
         sceneProject->scene->moveChildToIndex(entityData.entity, entityData.transformIndex, false);
     }
