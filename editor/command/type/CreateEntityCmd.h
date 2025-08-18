@@ -45,15 +45,16 @@ namespace Supernova::Editor{
         EntityCreationType type;
         std::vector<Entity> lastSelected;
         CreationState state;
+        bool addToShared;
 
         // Component type -> property name -> property setter function
         std::unordered_map<ComponentType, std::unordered_map<std::string, std::function<void(Entity)>>> propertySetters;
         int updateFlags;
 
     public:
-        CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName);
-        CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type);
-        CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type, Entity parent);
+        CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, bool addToShared = false);
+        CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type, bool addToShared = false);
+        CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type, Entity parent, bool addToShared = false);
 
         bool execute() override;
         void undo() override;

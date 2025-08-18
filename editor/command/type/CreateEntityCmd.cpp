@@ -5,7 +5,7 @@
 
 using namespace Supernova;
 
-Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName){
+Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, bool addToShared){
     this->project = project;
     this->sceneId = sceneId;
     this->entityName = entityName;
@@ -13,10 +13,11 @@ Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std
     this->parent = NULL_ENTITY;
     this->type = EntityCreationType::EMPTY;
     this->state = CreationState::NONE;
+    this->addToShared = addToShared;
     this->updateFlags = 0;
 }
 
-Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type){
+Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type, bool addToShared){
     this->project = project;
     this->sceneId = sceneId;
     this->entityName = entityName;
@@ -24,10 +25,11 @@ Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std
     this->parent = NULL_ENTITY;
     this->type = type;
     this->state = CreationState::NONE;
+    this->addToShared = addToShared;
     this->updateFlags = 0;
 }
 
-Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type, Entity parent){
+Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type, Entity parent, bool addToShared){
     this->project = project;
     this->sceneId = sceneId;
     this->entityName = entityName;
@@ -35,6 +37,7 @@ Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std
     this->parent = parent;
     this->type = type;
     this->state = CreationState::NONE;
+    this->addToShared = addToShared;
     this->updateFlags = 0;
 }
 
@@ -243,23 +246,27 @@ void Editor::CreateEntityCmd::commit(){
 
         ImGui::SetWindowFocus(("###Scene" + std::to_string(sceneId)).c_str());
 
-        Event e;
-        e.type = EventType::EntityCreated;
-        e.sceneId = sceneId;
-        e.entity = entity;
-        e.entityName = entityName;
-        e.parent = parent;
-        Project::getEventBus().publish(e);
+        if (addToShared){
+            Event e;
+            e.type = EventType::EntityCreated;
+            e.sceneId = sceneId;
+            e.entity = entity;
+            e.entityName = entityName;
+            e.parent = parent;
+            Project::getEventBus().publish(e);
+        }
 
     }else if (state == CreationState::DELETED){
 
-        Event e;
-        e.type = EventType::EntityDestroyed;
-        e.sceneId = sceneId;
-        e.entity = entity;
-        e.entityName = entityName;
-        e.parent = parent;
-        Project::getEventBus().publish(e);
+        if (addToShared){
+            Event e;
+            e.type = EventType::EntityDestroyed;
+            e.sceneId = sceneId;
+            e.entity = entity;
+            e.entityName = entityName;
+            e.parent = parent;
+            Project::getEventBus().publish(e);
+        }
 
     }
 }

@@ -768,65 +768,7 @@ void Editor::Project::setupSharedGroupEventSubscriptions(const std::filesystem::
 
     getEventBus().subscribe(EventType::EntityCreated,
         [this, filepath](const Event& e) {
-            SharedGroup* group = getSharedGroup(filepath);
-            if (group && group->containsEntity(e.sceneId, e.parent)) {
-                // Find the parent's position in the shared group members
-                auto& members = group->members[e.sceneId];
-                auto parentIt = std::find(members.begin(), members.end(), e.parent);
-                size_t parentIndex = std::distance(members.begin(), parentIt);
-
-                if (parentIt != members.end()) {
-                    // Get the scene to access entities order
-                    SceneProject* sceneProject = getScene(e.sceneId);
-                    if (sceneProject) {
-                        // Find where the new entity should be inserted based on sceneProject->entities order
-                        auto& sceneEntities = sceneProject->entities;
-                        auto newEntityIt = std::find(sceneEntities.begin(), sceneEntities.end(), e.entity);
-
-                        if (newEntityIt != sceneEntities.end()) {
-                            // Find the correct insertion position in members
-                            size_t insertPos = members.size(); // Default to end
-
-                            // Look for the first entity in members that comes after e.entity in sceneEntities
-                            for (size_t i = 0; i < members.size(); ++i) {
-                                auto memberInSceneIt = std::find(sceneEntities.begin(), sceneEntities.end(), members[i]);
-                                if (memberInSceneIt != sceneEntities.end() && memberInSceneIt > newEntityIt) {
-                                    insertPos = i;
-                                    break;
-                                }
-                            }
-
-                            // Insert the new entity at the correct position
-                            members.insert(members.begin() + insertPos, e.entity);
-
-                            YAML::Node node = Stream::encodeEntity(e.entity, sceneProject->scene);
-
-                            // Create corresponding entities in other scenes that have this shared group
-                            for (auto& [otherSceneId, otherEntities] : group->members) {
-                                if (otherSceneId != e.sceneId) {
-                                    // Find the corresponding parent in the other scene
-                                    if (parentIndex < otherEntities.size()) {
-                                        Entity otherParent = otherEntities[parentIndex];
-
-                                        std::vector<Entity> newOtherEntities = Stream::decodeEntity(node, getScene(otherSceneId)->scene, nullptr, getScene(otherSceneId));
-                                        getScene(otherSceneId)->scene->addEntityChild(otherParent, newOtherEntities[0], false);
-
-                                        for (int e = 0; e < newOtherEntities.size(); e++) {
-                                            Entity newOtherEntity = newOtherEntities[e];
-                                            otherEntities.insert(otherEntities.begin() + insertPos + e, newOtherEntity);
-                                        }
-                                    }
-                                }
-                            }
-
-                            std::vector<Entity> newRegEntities = Stream::decodeEntity(node, group->registry.get());
-                            group->registry->addEntityChild(parentIndex + NULL_ENTITY + 1, newRegEntities[0], false);
-
-                            group->isModified = true;
-                        }
-                    }
-                }
-            }
+            addEntityToSharedGroup(e.sceneId, e.entity, e.parent, filepath);
         });
 }
 
@@ -1170,6 +1112,73 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
     }
 
     return newEntities;
+}
+
+bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Entity entity, Entity parent, const std::filesystem::path& filepath){
+    SharedGroup* group = getSharedGroup(filepath);
+    if (!group) {
+        return false;
+    }
+    if (group && group->containsEntity(sceneId, parent)) {
+        // Find the parent's position in the shared group members
+        auto& members = group->members[sceneId];
+        auto parentIt = std::find(members.begin(), members.end(), parent);
+        size_t parentIndex = std::distance(members.begin(), parentIt);
+
+        if (parentIt != members.end()) {
+            // Get the scene to access entities order
+            SceneProject* sceneProject = getScene(sceneId);
+            if (sceneProject) {
+                // Find where the new entity should be inserted based on sceneProject->entities order
+                auto& sceneEntities = sceneProject->entities;
+                auto newEntityIt = std::find(sceneEntities.begin(), sceneEntities.end(), entity);
+
+                if (newEntityIt != sceneEntities.end()) {
+                    // Find the correct insertion position in members
+                    size_t insertPos = members.size(); // Default to end
+
+                    // Look for the first entity in members that comes after e.entity in sceneEntities
+                    for (size_t i = 0; i < members.size(); ++i) {
+                        auto memberInSceneIt = std::find(sceneEntities.begin(), sceneEntities.end(), members[i]);
+                        if (memberInSceneIt != sceneEntities.end() && memberInSceneIt > newEntityIt) {
+                            insertPos = i;
+                            break;
+                        }
+                    }
+
+                    // Insert the new entity at the correct position
+                    members.insert(members.begin() + insertPos, entity);
+
+                    YAML::Node node = Stream::encodeEntity(entity, sceneProject->scene);
+
+                    // Create corresponding entities in other scenes that have this shared group
+                    for (auto& [otherSceneId, otherEntities] : group->members) {
+                        if (otherSceneId != sceneId) {
+                            // Find the corresponding parent in the other scene
+                            if (parentIndex < otherEntities.size()) {
+                                Entity otherParent = otherEntities[parentIndex];
+
+                                std::vector<Entity> newOtherEntities = Stream::decodeEntity(node, getScene(otherSceneId)->scene, nullptr, getScene(otherSceneId));
+                                getScene(otherSceneId)->scene->addEntityChild(otherParent, newOtherEntities[0], false);
+
+                                for (int e = 0; e < newOtherEntities.size(); e++) {
+                                    Entity newOtherEntity = newOtherEntities[e];
+                                    otherEntities.insert(otherEntities.begin() + insertPos + e, newOtherEntity);
+                                }
+                            }
+                        }
+                    }
+
+                    std::vector<Entity> newRegEntities = Stream::decodeEntity(node, group->registry.get());
+                    group->registry->addEntityChild(parentIndex + NULL_ENTITY + 1, newRegEntities[0], false);
+
+                    group->isModified = true;
+                }
+            }
+        }
+    }
+
+    return true;
 }
 
 void Editor::Project::saveSharedGroupToDisk(const std::filesystem::path& filepath) {

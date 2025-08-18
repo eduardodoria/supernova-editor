@@ -14,6 +14,7 @@ namespace Supernova::Editor{
         std::string icon;
         std::string name;
         bool isScene;
+        bool isShared;
         bool separator;
         bool hasTransform;
         uint32_t id;
@@ -35,7 +36,7 @@ namespace Supernova::Editor{
 
         Entity openParent;
 
-        void showNewEntityMenu(bool isScene, Entity parent);
+        void showNewEntityMenu(bool isScene, Entity parent, bool addToShared);
         void showIconMenu();
         void showTreeNode(TreeNode& node);
         std::string getNodeImGuiId(TreeNode& node);
