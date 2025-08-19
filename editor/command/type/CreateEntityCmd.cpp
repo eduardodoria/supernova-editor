@@ -12,7 +12,6 @@ Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std
     this->entity = NULL_ENTITY;
     this->parent = NULL_ENTITY;
     this->type = EntityCreationType::EMPTY;
-    this->state = CreationState::NONE;
     this->addToShared = addToShared;
     this->updateFlags = 0;
 }
@@ -24,7 +23,6 @@ Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std
     this->entity = NULL_ENTITY;
     this->parent = NULL_ENTITY;
     this->type = type;
-    this->state = CreationState::NONE;
     this->addToShared = addToShared;
     this->updateFlags = 0;
 }
@@ -36,7 +34,6 @@ Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std
     this->entity = NULL_ENTITY;
     this->parent = parent;
     this->type = type;
-    this->state = CreationState::NONE;
     this->addToShared = addToShared;
     this->updateFlags = 0;
 }
@@ -206,9 +203,20 @@ bool Editor::CreateEntityCmd::execute(){
 
     sceneProject->isModified = true;
 
+    ImGui::SetWindowFocus(("###Scene" + std::to_string(sceneId)).c_str());
+
+    if (addToShared){
+        Event e;
+        e.type = EventType::EntityCreated;
+        e.sceneId = sceneId;
+        e.entity = entity;
+        e.entityName = entityName;
+        e.parent = parent;
+        Project::getEventBus().publish(e);
+    }
+
     Editor::Out::info("Created entity '%s' at scene '%s'", entityName.c_str(), sceneProject->name.c_str());
 
-    state = CreationState::CREATED;
     return true;
 }
 
@@ -216,6 +224,16 @@ void Editor::CreateEntityCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     if (sceneProject){
+        if (addToShared){
+            Event e;
+            e.type = EventType::EntityDestroyed;
+            e.sceneId = sceneId;
+            e.entity = entity;
+            e.entityName = entityName;
+            e.parent = parent;
+            Project::getEventBus().publish(e);
+        }
+
         sceneProject->scene->destroyEntity(entity);
 
         auto it = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), entity);
@@ -229,7 +247,6 @@ void Editor::CreateEntityCmd::undo(){
 
         sceneProject->isModified = true;
 
-        state = CreationState::DELETED;
     }
 }
 
@@ -239,34 +256,4 @@ bool Editor::CreateEntityCmd::mergeWith(Editor::Command* otherCommand){
 
 Entity Editor::CreateEntityCmd::getEntity(){
     return entity;
-}
-
-void Editor::CreateEntityCmd::commit(){
-    if (state == CreationState::CREATED){
-
-        ImGui::SetWindowFocus(("###Scene" + std::to_string(sceneId)).c_str());
-
-        if (addToShared){
-            Event e;
-            e.type = EventType::EntityCreated;
-            e.sceneId = sceneId;
-            e.entity = entity;
-            e.entityName = entityName;
-            e.parent = parent;
-            Project::getEventBus().publish(e);
-        }
-
-    }else if (state == CreationState::DELETED){
-
-        if (addToShared){
-            Event e;
-            e.type = EventType::EntityDestroyed;
-            e.sceneId = sceneId;
-            e.entity = entity;
-            e.entityName = entityName;
-            e.parent = parent;
-            Project::getEventBus().publish(e);
-        }
-
-    }
 }

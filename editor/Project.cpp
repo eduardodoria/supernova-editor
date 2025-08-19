@@ -770,6 +770,11 @@ void Editor::Project::setupSharedGroupEventSubscriptions(const std::filesystem::
         [this, filepath](const Event& e) {
             addEntityToSharedGroup(e.sceneId, e.entity, e.parent, filepath);
         });
+
+    getEventBus().subscribe(EventType::EntityDestroyed,
+        [this, filepath](const Event& e) {
+            removeEntityFromSharedGroup(e.sceneId, e.entity, filepath);
+        });
 }
 
 // Non-const version
@@ -1177,6 +1182,131 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Entity entity, En
             }
         }
     }
+
+    return true;
+}
+
+bool Editor::Project::removeEntityFromSharedGroup(uint32_t sceneId, Entity entity, const std::filesystem::path& filepath){
+    SharedGroup* group = getSharedGroup(filepath);
+    if (!group) {
+        return false;
+    }
+
+    if (!group->containsEntity(sceneId, entity)) {
+        return false;
+    }
+
+    SceneProject* sceneProject = getScene(sceneId);
+    if (!sceneProject) {
+        return false;
+    }
+
+    // Get all entities that will be removed (entity + its children)
+    std::vector<Entity> entitiesToRemove;
+    entitiesToRemove.push_back(entity);
+
+    // Add all children if the entity has Transform component
+    Scene* scene = sceneProject->scene;
+    if (scene->getSignature(entity).test(scene->getComponentId<Transform>())) {
+        auto transforms = scene->getComponentArray<Transform>();
+        size_t firstIndex = transforms->getIndex(entity);
+        size_t branchIndex = scene->findBranchLastIndex(entity);
+
+        for (size_t i = firstIndex + 1; i <= branchIndex; i++) {
+            Entity childEntity = transforms->getEntity(i);
+            // Only add if it's part of the shared group
+            if (group->containsEntity(sceneId, childEntity)) {
+                entitiesToRemove.push_back(childEntity);
+            }
+        }
+    }
+
+    // Find the entity's position in the shared group members
+    auto& members = group->members[sceneId];
+    auto entityIt = std::find(members.begin(), members.end(), entity);
+    if (entityIt == members.end()) {
+        return false;
+    }
+
+    size_t entityIndex = std::distance(members.begin(), entityIt);
+
+    // Remove entities from this scene's shared group
+    for (Entity entityToRemove : entitiesToRemove) {
+        auto it = std::find(members.begin(), members.end(), entityToRemove);
+        if (it != members.end()) {
+            members.erase(it);
+        }
+
+        // Clear any component overrides for this entity
+        group->clearAllOverrides(sceneId, entityToRemove);
+    }
+
+    // Remove corresponding entities from other scenes that have this shared group
+    for (auto& [otherSceneId, otherEntities] : group->members) {
+        if (otherSceneId != sceneId) {
+            // Remove entities starting from the same index
+            size_t removeCount = entitiesToRemove.size();
+            if (entityIndex < otherEntities.size()) {
+                SceneProject* otherSceneProject = getScene(otherSceneId);
+                if (otherSceneProject) {
+                    // Destroy entities in reverse order to maintain indices
+                    for (size_t i = 0; i < removeCount && (entityIndex + i) < otherEntities.size(); ++i) {
+                        size_t removeIndex = entityIndex + removeCount - 1 - i;
+                        Entity entityToDestroy = otherEntities[removeIndex];
+
+                        otherSceneProject->scene->destroyEntity(entityToDestroy);
+
+                        // Remove from scene's entity list
+                        auto sceneIt = std::find(otherSceneProject->entities.begin(), otherSceneProject->entities.end(), entityToDestroy);
+                        if (sceneIt != otherSceneProject->entities.end()) {
+                            otherSceneProject->entities.erase(sceneIt);
+                        }
+
+                        // Clear selection if this entity was selected
+                        if (isSelectedEntity(otherSceneId, entityToDestroy)) {
+                            clearSelectedEntities(otherSceneId);
+                        }
+                    }
+
+                    // Remove from shared group members
+                    otherEntities.erase(otherEntities.begin() + entityIndex, otherEntities.begin() + entityIndex + removeCount);
+
+                    otherSceneProject->isModified = true;
+                }
+            }
+        }
+    }
+
+    // Remove corresponding entities from the registry
+    if (entityIndex < group->registry->getLastEntity()) {
+        Entity registryEntity = entityIndex + NULL_ENTITY + 1;
+
+        // Get all entities to remove from registry (entity + children)
+        std::vector<Entity> registryEntitiesToRemove;
+        registryEntitiesToRemove.push_back(registryEntity);
+
+        // Add children from registry
+        auto regTransforms = group->registry->getComponentArray<Transform>();
+        if (regTransforms && group->registry->getSignature(registryEntity).test(group->registry->getComponentId<Transform>())) {
+            size_t regFirstIndex = regTransforms->getIndex(registryEntity);
+            size_t regBranchIndex = group->registry->findBranchLastIndex(registryEntity);
+
+            for (size_t i = regFirstIndex + 1; i <= regBranchIndex; i++) {
+                if (i < regTransforms->size()) {
+                    Entity regChildEntity = regTransforms->getEntity(i);
+                    registryEntitiesToRemove.push_back(regChildEntity);
+                }
+            }
+        }
+
+        // Destroy entities from registry
+        for (Entity regEntity : registryEntitiesToRemove) {
+            group->registry->destroyEntity(regEntity);
+        }
+    }
+
+    group->isModified = true;
+    sceneProject->isModified = true;
 
     return true;
 }

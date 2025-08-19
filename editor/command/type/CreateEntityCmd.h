@@ -11,12 +11,6 @@
 
 namespace Supernova::Editor{
 
-    enum class CreationState{
-        NONE,
-        CREATED,
-        DELETED
-    };
-
     enum class EntityCreationType{
         EMPTY,
         OBJECT,
@@ -44,7 +38,6 @@ namespace Supernova::Editor{
         Entity parent;
         EntityCreationType type;
         std::vector<Entity> lastSelected;
-        CreationState state;
         bool addToShared;
 
         // Component type -> property name -> property setter function
@@ -60,8 +53,6 @@ namespace Supernova::Editor{
         void undo() override;
 
         bool mergeWith(Command* otherCommand) override;
-
-        void commit() override;
 
         Entity getEntity();
 
