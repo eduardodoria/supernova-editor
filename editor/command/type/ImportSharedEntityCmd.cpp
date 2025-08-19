@@ -40,11 +40,6 @@ bool Editor::ImportSharedEntityCmd::execute(){
         return false;
     }
 
-    // Add imported entities to scene's entity list
-    for (Entity entity : importedEntities) {
-        sceneProject->entities.push_back(entity);
-    }
-
     // Select the root imported entity
     if (!importedEntities.empty()) {
         project->setSelectedEntity(sceneId, importedEntities[0]);
@@ -59,45 +54,20 @@ bool Editor::ImportSharedEntityCmd::execute(){
 
 void Editor::ImportSharedEntityCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
-
-    if (sceneProject){
-        Scene* scene = sceneProject->scene;
-
-        // Remove entities from shared group
-        SharedGroup* group = project->getSharedGroup(filepath);
-        if (group) {
-            group->members.erase(sceneId);
-            
-            // If this was the last scene using this shared group, clean it up
-            if (group->members.empty()) {
-                // Note: We don't actually remove the shared group here as it might be needed
-                // for redo operations. The group will be cleaned up when appropriate.
-            }
-        }
-
-        // Destroy all imported entities
-        for (Entity entity : importedEntities) {
-            scene->destroyEntity(entity);
-
-            // Remove from scene's entity list
-            auto it = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), entity);
-            if (it != sceneProject->entities.end()) {
-                sceneProject->entities.erase(it);
-            }
-
-            // Clear selection if this entity was selected
-            if (project->isSelectedEntity(sceneId, entity)){
-                project->clearSelectedEntities(sceneId);
-            }
-        }
-
-        // Restore previous selection
-        if (lastSelected.size() > 0){
-            project->replaceSelectedEntities(sceneId, lastSelected);
-        }
-
-        sceneProject->isModified = wasModified;
+    if (!sceneProject) {
+        return;
     }
+
+    // Unimport the shared entity
+    project->unimportSharedEntity(sceneId, filepath, importedEntities);
+
+    // Restore previous selection
+    if (!lastSelected.empty()) {
+        project->replaceSelectedEntities(sceneId, lastSelected);
+    }
+
+    // Restore modified state
+    sceneProject->isModified = wasModified;
 }
 
 bool Editor::ImportSharedEntityCmd::mergeWith(Editor::Command* otherCommand){

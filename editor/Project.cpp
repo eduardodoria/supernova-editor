@@ -1116,7 +1116,54 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
         setupSharedGroupEventSubscriptions(filepath);
     }
 
+    // Add imported entities to scene's entity list
+    for (Entity entity : newEntities) {
+        sceneProject->entities.push_back(entity);
+    }
+
     return newEntities;
+}
+
+bool Editor::Project::unimportSharedEntity(uint32_t sceneId, const std::filesystem::path& filepath, const std::vector<Entity>& entities) {
+    SceneProject* sceneProject = getScene(sceneId);
+    if (!sceneProject) {
+        return false;
+    }
+
+    Scene* scene = sceneProject->scene;
+
+    // Remove from shared group
+    SharedGroup* group = getSharedGroup(filepath);
+    if (group) {
+        // Remove this scene from the group's members
+        group->members.erase(sceneId);
+
+        // Clear all overrides for this scene
+        group->clearAllSceneOverrides(sceneId);
+
+        // Mark as modified if group still has members
+        if (!group->members.empty()) {
+            group->isModified = true;
+        }
+    }
+
+    // Destroy all imported entities
+    for (Entity entity : entities) {
+        scene->destroyEntity(entity);
+
+        // Remove from scene's entity list
+        auto it = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), entity);
+        if (it != sceneProject->entities.end()) {
+            sceneProject->entities.erase(it);
+        }
+
+        // Clear selection if this entity was selected
+        if (isSelectedEntity(sceneId, entity)) {
+            clearSelectedEntities(sceneId);
+        }
+    }
+
+    return true;
 }
 
 bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Entity entity, Entity parent, const std::filesystem::path& filepath){

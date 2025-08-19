@@ -1140,8 +1140,6 @@ std::vector<Entity> Editor::Stream::decodeEntity(const YAML::Node& entityNode, E
         if (project && sceneProject){
             std::filesystem::path sharedPath = entityNode["path"].as<std::string>();
             allEntities = project->importSharedEntity(sceneProject, sharedPath, parent, false, entityNode);
-
-            std::copy(allEntities.begin(), allEntities.end(), std::back_inserter(sceneProject->entities));
         }
 
     }else if (entityType == "Entity") {
