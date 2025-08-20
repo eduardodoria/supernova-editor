@@ -1029,6 +1029,37 @@ bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path
     return true;
 }
 
+bool Editor::Project::removeSharedGroup(const std::filesystem::path& filepath) {
+    SharedGroup* group = getSharedGroup(filepath);
+    if (group) {
+        // Create a copy of the members to avoid modifying the map while iterating
+        auto membersCopy = group->members;
+
+        bool firstMember = true;
+        for (const auto& [otherSceneId, otherEntities] : membersCopy) {
+            if (!otherEntities.empty()) {
+                unimportSharedEntity(otherSceneId, filepath, otherEntities, !firstMember);
+                firstMember = false;
+            }
+        }
+    }
+
+    auto it = sharedGroups.find(filepath);
+    if (it != sharedGroups.end()) {
+        // Clear the shared group's registry
+        if (it->second.registry) {
+            it->second.registry->clear();
+        }
+
+        // Remove from the map
+        sharedGroups.erase(it);
+
+        Editor::Out::info("Removed shared group: %s", filepath.string().c_str());
+        return true;
+    }
+    return false;
+}
+
 std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProject, const std::filesystem::path& filepath, Entity parent, bool needSaveScene, YAML::Node extendNode) {
     if (!filepath.is_relative()) {
         Out::error("Shared entity filepath must be relative: %s", filepath.string().c_str());
@@ -1124,7 +1155,7 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
     return newEntities;
 }
 
-bool Editor::Project::unimportSharedEntity(uint32_t sceneId, const std::filesystem::path& filepath, const std::vector<Entity>& entities) {
+bool Editor::Project::unimportSharedEntity(uint32_t sceneId, const std::filesystem::path& filepath, const std::vector<Entity>& entities, bool destroyEntities) {
     SceneProject* sceneProject = getScene(sceneId);
     if (!sceneProject) {
         return false;
@@ -1147,19 +1178,21 @@ bool Editor::Project::unimportSharedEntity(uint32_t sceneId, const std::filesyst
         }
     }
 
-    // Destroy all imported entities
-    for (Entity entity : entities) {
-        scene->destroyEntity(entity);
+    if (destroyEntities){
+        // Destroy all imported entities
+        for (Entity entity : entities) {
+            scene->destroyEntity(entity);
 
-        // Remove from scene's entity list
-        auto it = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), entity);
-        if (it != sceneProject->entities.end()) {
-            sceneProject->entities.erase(it);
-        }
+            // Remove from scene's entity list
+            auto it = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), entity);
+            if (it != sceneProject->entities.end()) {
+                sceneProject->entities.erase(it);
+            }
 
-        // Clear selection if this entity was selected
-        if (isSelectedEntity(sceneId, entity)) {
-            clearSelectedEntities(sceneId);
+            // Clear selection if this entity was selected
+            if (isSelectedEntity(sceneId, entity)) {
+                clearSelectedEntities(sceneId);
+            }
         }
     }
 

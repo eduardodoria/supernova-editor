@@ -10,6 +10,7 @@
 #include "command/type/RenameFileCmd.h"
 #include "command/type/CreateDirCmd.h"
 #include "command/type/DeleteFileCmd.h"
+#include "command/type/MarkEntitySharedCmd.h"
 
 #include "window/Widgets.h"
 
@@ -1205,7 +1206,11 @@ void Editor::ResourcesWindow::saveEntityFile(const fs::path& directory, const ch
     }
 
     std::filesystem::path relativePath = std::filesystem::relative(targetFile, project->getProjectPath());
-    project->markEntityShared(project->getSelectedSceneId(), entity, relativePath, entityNode);
+
+    // Use the command instead of calling markEntityShared directly
+    MarkEntitySharedCmd* markSharedCmd = new MarkEntitySharedCmd(project, project->getSelectedSceneId(), entity, relativePath);
+    CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(markSharedCmd);
+
     scanDirectory(currentPath);
 }
 
