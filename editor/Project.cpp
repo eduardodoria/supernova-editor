@@ -1030,20 +1030,6 @@ bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path
 }
 
 bool Editor::Project::removeSharedGroup(const std::filesystem::path& filepath) {
-    SharedGroup* group = getSharedGroup(filepath);
-    if (group) {
-        // Create a copy of the members to avoid modifying the map while iterating
-        auto membersCopy = group->members;
-
-        bool firstMember = true;
-        for (const auto& [otherSceneId, otherEntities] : membersCopy) {
-            if (!otherEntities.empty()) {
-                unimportSharedEntity(otherSceneId, filepath, otherEntities, !firstMember);
-                firstMember = false;
-            }
-        }
-    }
-
     auto it = sharedGroups.find(filepath);
     if (it != sharedGroups.end()) {
         // Clear the shared group's registry
