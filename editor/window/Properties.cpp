@@ -235,6 +235,56 @@ void Editor::Properties::dragDropResources(ComponentType cpType, std::string id,
     }
 }
 
+bool Editor::Properties::isEntityShared(SceneProject* sceneProject, Entity entity, std::filesystem::path& outPath) {
+    outPath = project->findGroupPathFor(sceneProject->id, entity);
+    return !outPath.empty();
+}
+
+void Editor::Properties::handleComponentOverrideMenu(SceneProject* sceneProject, Entity entity, ComponentType cpType, const std::filesystem::path& sharedPath) {
+    SharedGroup* sharedGroup = project->getSharedGroup(sharedPath);
+    if (!sharedGroup) return;
+
+    bool isOverridden = sharedGroup->hasComponentOverride(sceneProject->id, entity, cpType);
+
+    if (ImGui::BeginPopupContextItem(("override_menu_" + std::to_string(static_cast<int>(cpType))).c_str())) {
+        ImGui::TextDisabled("Component Override");
+        ImGui::Separator();
+
+        if (isOverridden) {
+            if (ImGui::MenuItem(ICON_FA_LINK " Revert to Shared")) {
+                // Clear the override and copy values from the shared registry
+                sharedGroup->clearComponentOverride(sceneProject->id, entity, cpType);
+
+                // Find entity index in the shared group
+                const auto& entities = sharedGroup->getAllEntities(sceneProject->id);
+                auto it = std::find(entities.begin(), entities.end(), entity);
+                if (it != entities.end()) {
+                    size_t entityIndex = std::distance(entities.begin(), it);
+                    Entity registryEntity = entityIndex + NULL_ENTITY + 1;
+
+                    // Copy all properties from registry to scene entity
+                    auto props = Catalog::getProperties(cpType, nullptr);
+                    for (const auto& [propId, propData] : props) {
+                        Catalog::copyPropertyValue(sharedGroup->registry.get(), registryEntity, sceneProject->scene, entity, cpType, propId);
+                    }
+                }
+
+                sceneProject->needUpdateRender = true;
+                sceneProject->isModified = true;
+            }
+
+        } else {
+            if (ImGui::MenuItem(ICON_FA_LOCK_OPEN " Make Unique")) {
+                // Mark as overridden
+                sharedGroup->setComponentOverride(sceneProject->id, entity, cpType);
+                sceneProject->isModified = true;
+            }
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
 Texture Editor::Properties::getMaterialPreview(const Material& material, const std::string id){
     MaterialRender& materialRender = materialRenders[id];
 
@@ -1894,6 +1944,13 @@ void Editor::Properties::show(){
 
     if (entities.size() > 0){
 
+        // Check if any selected entity is part of a shared group
+        std::filesystem::path sharedGroupPath;
+        bool isShared = false;
+        if (entities.size() == 1) {
+            isShared = isEntityShared(sceneProject, entities[0], sharedGroupPath);
+        }
+
         // to change component view order, need change ComponentType
         bool isFirstEntity = true;
         for (Entity& entity : entities){
@@ -1959,9 +2016,60 @@ void Editor::Properties::show(){
 
         for (ComponentType& cpType : components){
 
-            ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-            if (ImGui::CollapsingHeader(Catalog::getComponentName(cpType).c_str())){
+            // Check if this component is overridden for shared entities
+            bool isComponentOverridden = false;
+            SharedGroup* sharedGroup = nullptr;
+            if (isShared && entities.size() == 1) {
+                sharedGroup = project->getSharedGroup(sharedGroupPath);
+                if (sharedGroup) {
+                    isComponentOverridden = sharedGroup->hasComponentOverride(sceneProject->id, entities[0], cpType);
+                }
+            }
 
+            // Create header with appropriate styling
+            ImGui::PushID(static_cast<int>(cpType));
+
+            // Build header text with icon
+            std::string headerText;
+
+            // Only apply special styling and icons for shared (non-overridden) components
+            if (isShared && !isComponentOverridden) {
+                // Shared components - blue color with link icon
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.6f, 1.0f, 1.0f));
+                headerText = ICON_FA_LINK " ";
+            }
+            headerText += Catalog::getComponentName(cpType);
+
+            ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+            bool headerOpen = ImGui::CollapsingHeader(headerText.c_str());
+
+            if (isShared && !isComponentOverridden) {
+                ImGui::PopStyleColor();
+            }
+
+            // Handle right-click context menu for shared entities
+            if (isShared && entities.size() == 1) {
+                handleComponentOverrideMenu(sceneProject, entities[0], cpType, sharedGroupPath);
+            }
+
+            // Add hover tooltip only for shared components
+            if (isShared && ImGui::IsItemHovered()) {
+                ImGui::BeginTooltip();
+                if (isComponentOverridden) {
+                    ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.4f, 1.0f), ICON_FA_LOCK_OPEN " Unique Component");
+                    ImGui::Text("This component is unique to this instance.");
+                    ImGui::TextDisabled("Right-click to revert to shared.");
+                } else {
+                    ImGui::TextColored(ImVec4(0.4f, 0.6f, 1.0f, 1.0f), ICON_FA_LINK " Shared Component");
+                    ImGui::Text("This component is shared across all instances.");
+                    ImGui::TextDisabled("Right-click to make unique.");
+                }
+                ImGui::EndTooltip();
+            }
+
+            ImGui::PopID();
+
+            if (headerOpen){
                 if (cpType == ComponentType::Transform){
                     drawTransform(cpType, Catalog::getProperties(cpType, nullptr), sceneProject, entities);
                 }else if (cpType == ComponentType::MeshComponent){
@@ -1977,7 +2085,6 @@ void Editor::Properties::show(){
                 }else if (cpType == ComponentType::LightComponent){
                     drawLightComponent(cpType, Catalog::getProperties(cpType, nullptr), sceneProject, entities);
                 }
-
             }
         }
 
@@ -1985,6 +2092,7 @@ void Editor::Properties::show(){
         thumbnailTextures.clear();
     }
 
+    // Clean up unused material renders
     for (auto it = materialRenders.begin(); it != materialRenders.end(); ) {
         if (usedPreviewIds.find(it->first) == usedPreviewIds.end()) {
             if (!Engine::isSceneRunning(it->second.getScene())){
@@ -1994,6 +2102,8 @@ void Editor::Properties::show(){
             ++it;
         }
     }
+
+    // Clean up unused direction renders
     for (auto it = directionRenders.begin(); it != directionRenders.end(); ) {
         if (usedPreviewIds.find(it->first) == usedPreviewIds.end()) {
             if (!Engine::isSceneRunning(it->second.getScene())){
