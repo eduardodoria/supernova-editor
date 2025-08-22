@@ -1240,7 +1240,9 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Entity entity, En
                         }
                     }
 
-                    std::vector<Entity> newRegEntities = Stream::decodeEntity(node, group->registry.get());
+                    YAML::Node registryNode = YAML::Clone(node);
+                    registryNode["entity"] = insertPos + NULL_ENTITY + 1;
+                    std::vector<Entity> newRegEntities = Stream::decodeEntity(registryNode, group->registry.get());
                     group->registry->addEntityChild(parentIndex + NULL_ENTITY + 1, newRegEntities[0], false);
 
                     group->isModified = true;
