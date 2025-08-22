@@ -1064,7 +1064,7 @@ YAML::Node Editor::Stream::encodeEntity(const Entity entity, const EntityRegistr
 
             std::vector<Entity> entities;
             bool hasCurrentEntity = true;
-            if (project && sceneProject){
+            if (sceneProject){
                 std::vector<Entity> entities = sceneProject->entities;
                 hasCurrentEntity = std::find(entities.begin(), entities.end(), currentEntity) != entities.end();
             }

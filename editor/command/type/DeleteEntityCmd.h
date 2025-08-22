@@ -18,6 +18,10 @@ namespace Supernova::Editor{
         Entity parent = NULL_ENTITY;
 
         YAML::Node data;
+
+        // Track if entity was part of a shared group
+        bool wasShared = false;
+        fs::path sharedGroupPath;
     };
 
     class DeleteEntityCmd: public Command{

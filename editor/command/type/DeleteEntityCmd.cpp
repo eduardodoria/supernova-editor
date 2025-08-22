@@ -55,10 +55,28 @@ bool Editor::DeleteEntityCmd::execute(){
     lastSelected = project->getSelectedEntities(sceneId);
 
     for (DeleteEntityData& entityData : entities){
-        entityData.data = Stream::encodeEntity(entityData.entity, sceneProject->scene, project, sceneProject, true);
+        entityData.data = Stream::encodeEntity(entityData.entity, sceneProject->scene, nullptr, sceneProject, true);
 
         std::vector<Entity> allEntities;
         collectEntities(entityData.data, allEntities);
+
+        // Check if this entity is part of a shared group
+        fs::path sharedGroupPath = project->findGroupPathFor(sceneId, entityData.entity);
+        entityData.wasShared = !sharedGroupPath.empty();
+        if (entityData.wasShared) {
+            entityData.sharedGroupPath = sharedGroupPath;
+        }
+
+        // Publish event if entity was part of a shared group
+        if (entityData.wasShared) {
+            Event e;
+            e.type = EventType::EntityDestroyed;
+            e.sceneId = sceneId;
+            e.entity = entityData.entity;
+            e.entityName = sceneProject->scene->getEntityName(entityData.entity);
+            e.parent = entityData.parent;
+            Project::getEventBus().publish(e);
+        }
 
         for (const Entity& entity : allEntities) {
             sceneProject->scene->destroyEntity(entity);
@@ -91,6 +109,17 @@ void Editor::DeleteEntityCmd::undo(){
         }
 
         sceneProject->scene->moveChildToIndex(entityData.entity, entityData.transformIndex, false);
+
+        // Publish event if entity was part of a shared group
+        if (entityData.wasShared) {
+            Event e;
+            e.type = EventType::EntityCreated;
+            e.sceneId = sceneId;
+            e.entity = entityData.entity;
+            e.entityName = sceneProject->scene->getEntityName(entityData.entity);
+            e.parent = entityData.parent;
+            Project::getEventBus().publish(e);
+        }
     }
 
     if (lastSelected.size() > 0){
