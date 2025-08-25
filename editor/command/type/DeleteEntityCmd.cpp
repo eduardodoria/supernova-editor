@@ -33,18 +33,21 @@ Editor::DeleteEntityCmd::DeleteEntityCmd(Project* project, uint32_t sceneId, Ent
     this->wasModified = project->getScene(sceneId)->isModified;
 }
 
-void Editor::DeleteEntityCmd::collectEntities(const YAML::Node& entityNode, std::vector<Entity>& entities) {
+void Editor::DeleteEntityCmd::collectEntities(const YAML::Node& entityNode, std::vector<Entity>& allEntities, std::vector<Entity>& sharedEntities) {
     if (!entityNode || !entityNode.IsMap())
         return;
 
     if (entityNode["entity"]) {
-        entities.push_back(entityNode["entity"].as<Entity>());
+        allEntities.push_back(entityNode["entity"].as<Entity>());
+        if (entityNode["type"] && entityNode["type"].as<std::string>() != "Entity") {
+            sharedEntities.push_back(entityNode["entity"].as<Entity>());
+        }
     }
 
     // Recursively process children
     if (entityNode["children"] && entityNode["children"].IsSequence()) {
         for (const auto& child : entityNode["children"]) {
-            collectEntities(child, entities);
+            collectEntities(child, allEntities, sharedEntities);
         }
     }
 }
@@ -55,27 +58,25 @@ bool Editor::DeleteEntityCmd::execute(){
     lastSelected = project->getSelectedEntities(sceneId);
 
     for (DeleteEntityData& entityData : entities){
-        entityData.data = Stream::encodeEntity(entityData.entity, sceneProject->scene, nullptr, sceneProject, true);
+        entityData.data = Stream::encodeEntity(entityData.entity, sceneProject->scene, project, sceneProject, true);
 
         std::vector<Entity> allEntities;
-        collectEntities(entityData.data, allEntities);
+        std::vector<Entity> sharedEntities;
+        collectEntities(entityData.data, allEntities, sharedEntities);
 
-        // Check if this entity is part of a shared group
-        fs::path sharedGroupPath = project->findGroupPathFor(sceneId, entityData.entity);
-        entityData.wasShared = !sharedGroupPath.empty();
-        if (entityData.wasShared) {
-            entityData.sharedGroupPath = sharedGroupPath;
-        }
+        if (sharedEntities.size() > 0) {
+            Entity entity = sharedEntities[0];
 
-        // Publish event if entity was part of a shared group
-        if (entityData.wasShared) {
-            Event e;
-            e.type = EventType::EntityDestroyed;
-            e.sceneId = sceneId;
-            e.entity = entityData.entity;
-            e.entityName = sceneProject->scene->getEntityName(entityData.entity);
-            e.parent = entityData.parent;
-            Project::getEventBus().publish(e);
+            fs::path sharedGroupPath = project->findGroupPathFor(sceneId, entity);
+            SharedGroup* group = project->getSharedGroup(sharedGroupPath);
+
+            if (entity == group->getRootEntity(sceneId)) {
+                project->unimportSharedEntity(sceneId, sharedGroupPath, sharedEntities, false);
+            }else{
+                project->removeEntityFromSharedGroup(sceneId, entity, sharedGroupPath);
+                entityData.wasSharedChild = true;
+                entityData.sharedGroupPath = sharedGroupPath;
+            }
         }
 
         for (const Entity& entity : allEntities) {
@@ -109,17 +110,6 @@ void Editor::DeleteEntityCmd::undo(){
         }
 
         sceneProject->scene->moveChildToIndex(entityData.entity, entityData.transformIndex, false);
-
-        // Publish event if entity was part of a shared group
-        if (entityData.wasShared) {
-            Event e;
-            e.type = EventType::EntityCreated;
-            e.sceneId = sceneId;
-            e.entity = entityData.entity;
-            e.entityName = sceneProject->scene->getEntityName(entityData.entity);
-            e.parent = entityData.parent;
-            Project::getEventBus().publish(e);
-        }
     }
 
     if (lastSelected.size() > 0){

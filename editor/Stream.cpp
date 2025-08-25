@@ -1109,6 +1109,10 @@ YAML::Node Editor::Stream::encodeEntityAux(const Entity entity, const EntityRegi
             entityNode["type"] = "SharedEntityChild";
         }
 
+        if (keepEntity) {
+            entityNode["entity"] = entity;
+        }
+
         Signature signature = Catalog::componentTypeMaskToSignature(registry, group->getEntityOverrides(sceneProject->id, entity));
         YAML::Node compNode = entityNode["components"];
         encodeComponentsAux(compNode, entity, registry, signature);

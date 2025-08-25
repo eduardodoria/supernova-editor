@@ -271,6 +271,10 @@ void Editor::Project::insertNewChild(YAML::Node& node, YAML::Node child, size_t 
 std::vector<size_t> Editor::Project::mergeEntityNodes(YAML::Node& loadedNode, const YAML::Node& extendNode, size_t& index){
     std::vector<size_t> extendedIndices;
 
+    if (extendNode["entity"] && extendNode["entity"].IsScalar()) {
+        loadedNode["entity"] = extendNode["entity"];
+    }
+
     if (extendNode["components"] && extendNode["components"].IsMap()) {
         for (auto it = extendNode["components"].begin(); it != extendNode["components"].end(); ++it) {
             std::string key = it->first.as<std::string>();
