@@ -74,6 +74,7 @@ bool Editor::DeleteEntityCmd::execute(){
                 project->unimportSharedEntity(sceneId, sharedGroupPath, sharedEntities, false);
             }else{
                 project->removeEntityFromSharedGroup(sceneId, entity, sharedGroupPath);
+                entityData.data = Stream::encodeEntity(entityData.entity, sceneProject->scene, project, sceneProject, true);
                 entityData.wasSharedChild = true;
                 entityData.sharedGroupPath = sharedGroupPath;
             }
@@ -110,6 +111,10 @@ void Editor::DeleteEntityCmd::undo(){
         }
 
         sceneProject->scene->moveChildToIndex(entityData.entity, entityData.transformIndex, false);
+
+        if (entityData.wasSharedChild){
+            project->addEntityToSharedGroup(sceneId, entityData.entity, entityData.parent, entityData.sharedGroupPath);
+        }
     }
 
     if (lastSelected.size() > 0){
