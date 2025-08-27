@@ -269,9 +269,9 @@ namespace Supernova::Editor{
         bool unimportSharedEntity(uint32_t sceneId, const std::filesystem::path& filepath, const std::vector<Entity>& entities, bool destroyEntities = true);
 
         bool addEntityToSharedGroup(uint32_t sceneId, Entity entity, Entity parent, const std::filesystem::path& filepath);
-        bool addEntityToSharedGroup2(uint32_t sceneId, std::map<uint32_t, YAML::Node> entityData, Entity parent, const std::filesystem::path& filepath);
+        bool addEntityToSharedGroup2(uint32_t sceneId, std::map<uint32_t, std::pair<YAML::Node, std::vector<size_t>>> entityData, Entity parent, const std::filesystem::path& filepath);
         bool removeEntityFromSharedGroup(uint32_t sceneId, Entity entity, const std::filesystem::path& filepath);
-        std::map<uint32_t, YAML::Node> removeEntityFromSharedGroup2(uint32_t sceneId, Entity entity, const std::filesystem::path& filepath);
+        std::map<uint32_t, std::pair<YAML::Node, std::vector<size_t>>> removeEntityFromSharedGroup2(uint32_t sceneId, Entity entity, const std::filesystem::path& filepath);
 
         void saveSharedGroupToDisk(const std::filesystem::path& filepath);
 

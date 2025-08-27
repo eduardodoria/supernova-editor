@@ -1257,7 +1257,7 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Entity entity, En
     return true;
 }
 
-bool Editor::Project::addEntityToSharedGroup2(uint32_t sceneId, std::map<uint32_t, YAML::Node> entityData, Entity parent, const std::filesystem::path& filepath){
+bool Editor::Project::addEntityToSharedGroup2(uint32_t sceneId, std::map<uint32_t, std::pair<YAML::Node, std::vector<size_t>>> entityData, Entity parent, const std::filesystem::path& filepath){
     SharedGroup* group = getSharedGroup(filepath);
     if (!group) {
         return false;
@@ -1277,7 +1277,7 @@ bool Editor::Project::addEntityToSharedGroup2(uint32_t sceneId, std::map<uint32_
     auto parentIt = std::find(members.begin(), members.end(), parent);
     size_t parentIndex = std::distance(members.begin(), parentIt);
 
-    std::vector<Entity> regEntities =  Stream::decodeEntity(entityData[NULL_PROJECT_SCENE], group->registry.get());
+    std::vector<Entity> regEntities =  Stream::decodeEntity(entityData[NULL_PROJECT_SCENE].first, group->registry.get());
     group->registry->addEntityChild(NULL_ENTITY + 1 + parentIndex, regEntities[0], false);
 
     for (auto& [otherSceneId, otherEntities] : group->members) {
@@ -1285,14 +1285,26 @@ bool Editor::Project::addEntityToSharedGroup2(uint32_t sceneId, std::map<uint32_
             Entity otherParent = otherEntities[parentIndex];
 
             YAML::Node data;
+            std::vector<size_t> indicesNotShared;
             if (entityData.find(otherSceneId) != entityData.end()) {
-                data = entityData[otherSceneId];
+                data = entityData[otherSceneId].first;
+                indicesNotShared = entityData[otherSceneId].second;
             }else{
                 data = Stream::encodeEntity(NULL_ENTITY + parentIndex + 2, group->registry.get());
             }
 
             std::vector<Entity> newOtherEntities = Stream::decodeEntity(data, getScene(otherSceneId)->scene, nullptr, getScene(otherSceneId));
             getScene(otherSceneId)->scene->addEntityChild(otherParent, newOtherEntities[0], false);
+
+            if (!indicesNotShared.empty()) {
+                // Sort indices in descending order to avoid invalidating indices when erasing
+                std::sort(indicesNotShared.rbegin(), indicesNotShared.rend());
+                for (size_t idx : indicesNotShared) {
+                    if (idx < newOtherEntities.size()) {
+                        newOtherEntities.erase(newOtherEntities.begin() + idx);
+                    }
+                }
+            }
 
             for (int e = 0; e < newOtherEntities.size(); e++) {
                 Entity newOtherEntity = newOtherEntities[e];
@@ -1429,7 +1441,7 @@ bool Editor::Project::removeEntityFromSharedGroup(uint32_t sceneId, Entity entit
     return true;
 }
 
-std::map<uint32_t, YAML::Node> Editor::Project::removeEntityFromSharedGroup2(uint32_t sceneId, Entity entity, const std::filesystem::path& filepath){
+std::map<uint32_t, std::pair<YAML::Node, std::vector<size_t>>> Editor::Project::removeEntityFromSharedGroup2(uint32_t sceneId, Entity entity, const std::filesystem::path& filepath){
     SharedGroup* group = getSharedGroup(filepath);
     if (!group) {
         return {};
@@ -1460,8 +1472,8 @@ std::map<uint32_t, YAML::Node> Editor::Project::removeEntityFromSharedGroup2(uin
     }
     size_t entityIndex = std::distance(members.begin(), entityIt);
 
-    std::map<uint32_t, YAML::Node> nodeRecovery;
-    nodeRecovery[NULL_PROJECT_SCENE] = YAML::Clone(regData);
+    std::map<uint32_t, std::pair<YAML::Node, std::vector<size_t>>> recovery;
+    recovery[NULL_PROJECT_SCENE] = std::make_pair(YAML::Clone(regData), std::vector<size_t>{});
 
     for (auto& [otherSceneId, otherEntities] : group->members) {
         Entity other = otherEntities[entityIndex];
@@ -1472,8 +1484,10 @@ std::map<uint32_t, YAML::Node> Editor::Project::removeEntityFromSharedGroup2(uin
         std::vector<Entity> sharedEntities;
         collectEntities(nodeExtend, allEntities, sharedEntities);
 
-        nodeRecovery[otherSceneId] = YAML::Clone(regData);
-        mergeEntityNodes(nodeRecovery[otherSceneId], nodeExtend);
+        YAML::Node node = YAML::Clone(regData);
+        std::vector<size_t> indicesNotShared = mergeEntityNodes(node, nodeExtend);
+
+        recovery[otherSceneId] = std::make_pair(node, indicesNotShared);
 
         for (const Entity& sharedE : sharedEntities) {
             auto itRem = std::find(otherEntities.begin(), otherEntities.end(), sharedE);
@@ -1532,7 +1546,7 @@ std::map<uint32_t, YAML::Node> Editor::Project::removeEntityFromSharedGroup2(uin
 
     group->isModified = true;
 
-    return nodeRecovery;
+    return recovery;
 }
 
 void Editor::Project::saveSharedGroupToDisk(const std::filesystem::path& filepath) {
