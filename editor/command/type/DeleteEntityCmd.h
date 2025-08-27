@@ -22,6 +22,7 @@ namespace Supernova::Editor{
         // Track if entity was part of a shared group
         bool wasSharedChild = false;
         fs::path sharedGroupPath;
+        std::map<uint32_t, YAML::Node> sharedData;
     };
 
     class DeleteEntityCmd: public Command{
@@ -35,8 +36,6 @@ namespace Supernova::Editor{
         std::vector<DeleteEntityData> entities;
 
         bool wasModified;
-
-        void collectEntities(const YAML::Node& entityNode, std::vector<Entity>& allEntities, std::vector<Entity>& sharedEntities);
 
     public:
         DeleteEntityCmd(Project* project, uint32_t sceneId, Entity entity);

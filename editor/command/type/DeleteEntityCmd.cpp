@@ -33,25 +33,6 @@ Editor::DeleteEntityCmd::DeleteEntityCmd(Project* project, uint32_t sceneId, Ent
     this->wasModified = project->getScene(sceneId)->isModified;
 }
 
-void Editor::DeleteEntityCmd::collectEntities(const YAML::Node& entityNode, std::vector<Entity>& allEntities, std::vector<Entity>& sharedEntities) {
-    if (!entityNode || !entityNode.IsMap())
-        return;
-
-    if (entityNode["entity"]) {
-        allEntities.push_back(entityNode["entity"].as<Entity>());
-        if (entityNode["type"] && entityNode["type"].as<std::string>() != "Entity") {
-            sharedEntities.push_back(entityNode["entity"].as<Entity>());
-        }
-    }
-
-    // Recursively process children
-    if (entityNode["children"] && entityNode["children"].IsSequence()) {
-        for (const auto& child : entityNode["children"]) {
-            collectEntities(child, allEntities, sharedEntities);
-        }
-    }
-}
-
 bool Editor::DeleteEntityCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
@@ -62,7 +43,7 @@ bool Editor::DeleteEntityCmd::execute(){
 
         std::vector<Entity> allEntities;
         std::vector<Entity> sharedEntities;
-        collectEntities(entityData.data, allEntities, sharedEntities);
+        project->collectEntities(entityData.data, allEntities, sharedEntities);
 
         if (sharedEntities.size() > 0) {
             Entity entity = sharedEntities[0];
@@ -71,15 +52,27 @@ bool Editor::DeleteEntityCmd::execute(){
             SharedGroup* group = project->getSharedGroup(sharedGroupPath);
 
             if (entity == group->getRootEntity(sceneId)) {
+
                 project->unimportSharedEntity(sceneId, sharedGroupPath, sharedEntities, false);
+
             }else{
-                project->removeEntityFromSharedGroup(sceneId, entity, sharedGroupPath);
-                entityData.data = Stream::encodeEntity(entityData.entity, sceneProject->scene, project, sceneProject, true);
+
+                //Entity regEntity = group->getRegistryEntity(sceneId, entity);
+                //if (regEntity == NULL_ENTITY) {
+                //    Out::error("Failed to find registry entity for shared entity %u in scene %u", entity, sceneId);
+                //    continue;
+                //}
+                //YAML::Node extendNode = YAML::Clone(entityData.data);
+                //entityData.data = Stream::encodeEntity(regEntity, group->registry.get());
+
+                //std::vector<size_t> indicesNotShared = project->mergeEntityNodes(entityData.data, extendNode);
                 entityData.wasSharedChild = true;
                 entityData.sharedGroupPath = sharedGroupPath;
+                entityData.sharedData = project->removeEntityFromSharedGroup2(sceneId, entity, sharedGroupPath);
+
             }
         }
-
+/*
         for (const Entity& entity : allEntities) {
             sceneProject->scene->destroyEntity(entity);
 
@@ -92,7 +85,7 @@ bool Editor::DeleteEntityCmd::execute(){
                 project->clearSelectedEntities(sceneId);
             }
         }
-
+*/
         sceneProject->isModified = true;
     }
 
@@ -103,17 +96,17 @@ void Editor::DeleteEntityCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     for (DeleteEntityData& entityData : entities){
-        std::vector<Entity> allEntities = Stream::decodeEntity(entityData.data, sceneProject->scene, project, sceneProject);
-        entityData.entity = allEntities[0];
+        //std::vector<Entity> allEntities = Stream::decodeEntity(entityData.data, sceneProject->scene, project, sceneProject);
+        //entityData.entity = allEntities[0];
 
-        if (entityData.parent != NULL_ENTITY) {
-            sceneProject->scene->addEntityChild(entityData.parent, entityData.entity, false);
-        }
+        //if (entityData.parent != NULL_ENTITY) {
+        //    sceneProject->scene->addEntityChild(entityData.parent, entityData.entity, false);
+        //}
 
-        sceneProject->scene->moveChildToIndex(entityData.entity, entityData.transformIndex, false);
+        //sceneProject->scene->moveChildToIndex(entityData.entity, entityData.transformIndex, false);
 
         if (entityData.wasSharedChild){
-            project->addEntityToSharedGroup(sceneId, entityData.entity, entityData.parent, entityData.sharedGroupPath);
+            project->addEntityToSharedGroup2(sceneId, entityData.sharedData, entityData.parent, entityData.sharedGroupPath);
         }
     }
 

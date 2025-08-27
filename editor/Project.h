@@ -57,6 +57,19 @@ namespace Supernova::Editor{
             return (it != members.end()) ? it->second : empty;
         }
 
+        // Get registry entity based on other scene entity
+        Entity getRegistryEntity(uint32_t sceneId, Entity entity) const {
+            auto it = members.find(sceneId);
+            if (it != members.end()) {
+                auto entIt = std::find(it->second.begin(), it->second.end(), entity);
+                if (entIt != it->second.end()) {
+                    size_t index = std::distance(it->second.begin(), entIt);
+                    return index + NULL_ENTITY + 1; // Registry entities start from NULL_ENTITY + 1
+                }
+            }
+            return NULL_ENTITY;
+        }
+
         bool containsEntity(uint32_t sceneId, Entity entity) const {
             auto it = members.find(sceneId);
             if (it != members.end()) {
@@ -182,7 +195,7 @@ namespace Supernova::Editor{
 
         size_t countEntitiesInBranch(const YAML::Node& entityNode);
         void insertNewChild(YAML::Node& node, YAML::Node child, size_t index);
-        std::vector<size_t> mergeEntityNodes(YAML::Node& loadedNode, const YAML::Node& extendNode, size_t& index);
+        std::vector<size_t> mergeEntityNodesImpl(YAML::Node& loadedNode, const YAML::Node& extendNode, size_t& index);
 
     public:
         Project();
@@ -256,13 +269,19 @@ namespace Supernova::Editor{
         bool unimportSharedEntity(uint32_t sceneId, const std::filesystem::path& filepath, const std::vector<Entity>& entities, bool destroyEntities = true);
 
         bool addEntityToSharedGroup(uint32_t sceneId, Entity entity, Entity parent, const std::filesystem::path& filepath);
+        bool addEntityToSharedGroup2(uint32_t sceneId, std::map<uint32_t, YAML::Node> entityData, Entity parent, const std::filesystem::path& filepath);
         bool removeEntityFromSharedGroup(uint32_t sceneId, Entity entity, const std::filesystem::path& filepath);
+        std::map<uint32_t, YAML::Node> removeEntityFromSharedGroup2(uint32_t sceneId, Entity entity, const std::filesystem::path& filepath);
 
         void saveSharedGroupToDisk(const std::filesystem::path& filepath);
 
         SharedGroup* getSharedGroup(const std::filesystem::path& filepath);
         const SharedGroup* getSharedGroup(const std::filesystem::path& filepath) const;
         std::filesystem::path findGroupPathFor(uint32_t sceneId, Entity e) const;
+
+        std::vector<size_t> mergeEntityNodes(YAML::Node& loadedNode, const YAML::Node& extendNode);
+
+        void collectEntities(const YAML::Node& entityNode, std::vector<Entity>& allEntities, std::vector<Entity>& sharedEntities);
 
         void build();
 

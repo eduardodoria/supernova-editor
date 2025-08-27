@@ -268,7 +268,7 @@ void Editor::Project::insertNewChild(YAML::Node& node, YAML::Node child, size_t 
     }
 }
 
-std::vector<size_t> Editor::Project::mergeEntityNodes(YAML::Node& loadedNode, const YAML::Node& extendNode, size_t& index){
+std::vector<size_t> Editor::Project::mergeEntityNodesImpl(YAML::Node& loadedNode, const YAML::Node& extendNode, size_t& index){
     std::vector<size_t> extendedIndices;
 
     if (extendNode["entity"] && extendNode["entity"].IsScalar()) {
@@ -302,7 +302,7 @@ std::vector<size_t> Editor::Project::mergeEntityNodes(YAML::Node& loadedNode, co
         }else{
             YAML::Node loadedChild = loadedNode["children"][i];
             YAML::Node extendChild = extendNode["children"][i];
-            std::vector<size_t> newIndices = mergeEntityNodes(loadedChild, extendChild, index);
+            std::vector<size_t> newIndices = mergeEntityNodesImpl(loadedChild, extendChild, index);
             std::copy(newIndices.begin(), newIndices.end(), std::back_inserter(extendedIndices));
         }
 
@@ -1094,13 +1094,12 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
         }
     }
 
-    std::vector<size_t> indicesOfExtend;
+    std::vector<size_t> indicesNotShared;
 
     // Merge extendNode with loadedNode if extendNode is provided
     if (extendNode && !extendNode.IsNull()) {
         // Create a copy of the loaded node for merging
-        size_t globalIndex = 0;
-        indicesOfExtend = mergeEntityNodes(node, extendNode, globalIndex);
+        indicesNotShared = mergeEntityNodes(node, extendNode);
     }
 
     // decode into brand‐new local entities (root + children)
@@ -1109,11 +1108,11 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
     scene->addEntityChild(parent, newEntities[0], false);
 
     std::vector<Entity> membersEntities = newEntities;
-    // Remove from newEntities all elements whose index is in indicesOfExtend
-    if (!indicesOfExtend.empty()) {
+    // Remove from newEntities all elements whose index is in indicesNotShared
+    if (!indicesNotShared.empty()) {
         // Sort indices in descending order to avoid invalidating indices when erasing
-        std::sort(indicesOfExtend.rbegin(), indicesOfExtend.rend());
-        for (size_t idx : indicesOfExtend) {
+        std::sort(indicesNotShared.rbegin(), indicesNotShared.rend());
+        for (size_t idx : indicesNotShared) {
             if (idx < membersEntities.size()) {
                 membersEntities.erase(membersEntities.begin() + idx);
             }
@@ -1224,7 +1223,7 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Entity entity, En
                     // Insert the new entity at the correct position
                     members.insert(members.begin() + insertPos, entity);
 
-                    YAML::Node node = Stream::encodeEntity(entity, sceneProject->scene);
+                    YAML::Node node = Stream::encodeEntity(entity, sceneProject->scene, nullptr, sceneProject);
 
                     // Create corresponding entities in other scenes that have this shared group
                     for (auto& [otherSceneId, otherEntities] : group->members) {
@@ -1251,6 +1250,53 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Entity entity, En
 
                     group->isModified = true;
                 }
+            }
+        }
+    }
+
+    return true;
+}
+
+bool Editor::Project::addEntityToSharedGroup2(uint32_t sceneId, std::map<uint32_t, YAML::Node> entityData, Entity parent, const std::filesystem::path& filepath){
+    SharedGroup* group = getSharedGroup(filepath);
+    if (!group) {
+        return false;
+    }
+
+    if (!group->containsEntity(sceneId, parent)) {
+        Out::error("Parent entity is not part of the shared group");
+        return false;
+    }
+
+    SceneProject* sceneProject = getScene(sceneId);
+    if (!sceneProject) {
+        return false;
+    }
+
+    auto& members = group->members[sceneId];
+    auto parentIt = std::find(members.begin(), members.end(), parent);
+    size_t parentIndex = std::distance(members.begin(), parentIt);
+
+    std::vector<Entity> regEntities =  Stream::decodeEntity(entityData[NULL_PROJECT_SCENE], group->registry.get());
+    group->registry->addEntityChild(NULL_ENTITY + 1 + parentIndex, regEntities[0], false);
+
+    for (auto& [otherSceneId, otherEntities] : group->members) {
+        if (parentIndex < otherEntities.size()) {
+            Entity otherParent = otherEntities[parentIndex];
+
+            YAML::Node data;
+            if (entityData.find(otherSceneId) != entityData.end()) {
+                data = entityData[otherSceneId];
+            }else{
+                data = Stream::encodeEntity(NULL_ENTITY + parentIndex + 2, group->registry.get());
+            }
+
+            std::vector<Entity> newOtherEntities = Stream::decodeEntity(data, getScene(otherSceneId)->scene, nullptr, getScene(otherSceneId));
+            getScene(otherSceneId)->scene->addEntityChild(otherParent, newOtherEntities[0], false);
+
+            for (int e = 0; e < newOtherEntities.size(); e++) {
+                Entity newOtherEntity = newOtherEntities[e];
+                otherEntities.insert(otherEntities.begin() + parentIndex + 1 + e, newOtherEntity);
             }
         }
     }
@@ -1383,6 +1429,112 @@ bool Editor::Project::removeEntityFromSharedGroup(uint32_t sceneId, Entity entit
     return true;
 }
 
+std::map<uint32_t, YAML::Node> Editor::Project::removeEntityFromSharedGroup2(uint32_t sceneId, Entity entity, const std::filesystem::path& filepath){
+    SharedGroup* group = getSharedGroup(filepath);
+    if (!group) {
+        return {};
+    }
+
+    if (!group->containsEntity(sceneId, entity)) {
+        Out::error("Entity %u is not part of shared group %s", entity, filepath.string().c_str());
+        return {};
+    }
+
+    SceneProject* sceneProject = getScene(sceneId);
+    if (!sceneProject) {
+        return {};
+    }
+
+    Entity regEntity = group->getRegistryEntity(sceneId, entity);
+    if (regEntity == NULL_ENTITY) {
+        Out::error("Failed to find registry entity for shared entity %u in scene %u", entity, sceneId);
+        return {};
+    }
+    YAML::Node regData = Stream::encodeEntity(regEntity, group->registry.get(), nullptr, nullptr, true);
+
+    // Find the entity's position in the shared group members
+    auto& members = group->members[sceneId];
+    auto entityIt = std::find(members.begin(), members.end(), entity);
+    if (entityIt == members.end()) {
+        return {};
+    }
+    size_t entityIndex = std::distance(members.begin(), entityIt);
+
+    std::map<uint32_t, YAML::Node> nodeRecovery;
+    nodeRecovery[NULL_PROJECT_SCENE] = YAML::Clone(regData);
+
+    for (auto& [otherSceneId, otherEntities] : group->members) {
+        Entity other = otherEntities[entityIndex];
+        SceneProject* otherScene = getScene(otherSceneId);
+        YAML::Node nodeExtend = Stream::encodeEntity(other, otherScene->scene, this, otherScene, true);
+
+        std::vector<Entity> allEntities;
+        std::vector<Entity> sharedEntities;
+        collectEntities(nodeExtend, allEntities, sharedEntities);
+
+        nodeRecovery[otherSceneId] = YAML::Clone(regData);
+        mergeEntityNodes(nodeRecovery[otherSceneId], nodeExtend);
+
+        for (const Entity& sharedE : sharedEntities) {
+            auto itRem = std::find(otherEntities.begin(), otherEntities.end(), sharedE);
+            if (itRem != otherEntities.end()) {
+                otherEntities.erase(itRem);
+            }
+
+            group->clearAllOverrides(otherSceneId, sharedE);
+        }
+
+        for (const Entity& entityToDestroy : allEntities) {
+            otherScene->scene->destroyEntity(entityToDestroy);
+
+            // Remove from scene's entity list
+            auto sceneIt = std::find(otherScene->entities.begin(), otherScene->entities.end(), entityToDestroy);
+            if (sceneIt != otherScene->entities.end()) {
+                otherScene->entities.erase(sceneIt);
+            }
+
+            // Clear selection if this entity was selected
+            if (isSelectedEntity(otherSceneId, entityToDestroy)) {
+                clearSelectedEntities(otherSceneId);
+            }
+        }
+
+        otherScene->isModified = true;
+    }
+
+    // Remove corresponding entities from the registry
+    if (entityIndex < group->registry->getLastEntity()) {
+        Entity registryEntity = entityIndex + NULL_ENTITY + 1;
+
+        // Get all entities to remove from registry (entity + children)
+        std::vector<Entity> registryEntitiesToRemove;
+        registryEntitiesToRemove.push_back(registryEntity);
+
+        // Add children from registry
+        auto regTransforms = group->registry->getComponentArray<Transform>();
+        if (regTransforms && group->registry->getSignature(registryEntity).test(group->registry->getComponentId<Transform>())) {
+            size_t regFirstIndex = regTransforms->getIndex(registryEntity);
+            size_t regBranchIndex = group->registry->findBranchLastIndex(registryEntity);
+
+            for (size_t i = regFirstIndex + 1; i <= regBranchIndex; i++) {
+                if (i < regTransforms->size()) {
+                    Entity regChildEntity = regTransforms->getEntity(i);
+                    registryEntitiesToRemove.push_back(regChildEntity);
+                }
+            }
+        }
+
+        // Destroy entities from registry
+        for (Entity regEntity : registryEntitiesToRemove) {
+            group->registry->destroyEntity(regEntity);
+        }
+    }
+
+    group->isModified = true;
+
+    return nodeRecovery;
+}
+
 void Editor::Project::saveSharedGroupToDisk(const std::filesystem::path& filepath) {
     SharedGroup* group = getSharedGroup(filepath);
     YAML::Node encodedNode = Stream::encodeEntity(NULL_ENTITY + 1, group->registry.get());
@@ -1422,6 +1574,30 @@ std::filesystem::path Editor::Project::findGroupPathFor(uint32_t sceneId, Entity
         }
     }
     return std::filesystem::path(); // empty path for none
+}
+
+std::vector<size_t> Editor::Project::mergeEntityNodes(YAML::Node& loadedNode, const YAML::Node& extendNode) {
+    size_t index = 0;
+    return mergeEntityNodesImpl(loadedNode, extendNode, index);
+}
+
+void Editor::Project::collectEntities(const YAML::Node& entityNode, std::vector<Entity>& allEntities, std::vector<Entity>& sharedEntities) {
+    if (!entityNode || !entityNode.IsMap())
+        return;
+
+    if (entityNode["entity"]) {
+        allEntities.push_back(entityNode["entity"].as<Entity>());
+        if (entityNode["type"] && entityNode["type"].as<std::string>() != "Entity") {
+            sharedEntities.push_back(entityNode["entity"].as<Entity>());
+        }
+    }
+
+    // Recursively process children
+    if (entityNode["children"] && entityNode["children"].IsSequence()) {
+        for (const auto& child : entityNode["children"]) {
+            collectEntities(child, allEntities, sharedEntities);
+        }
+    }
 }
 
 void Editor::Project::build() {
