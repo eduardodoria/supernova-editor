@@ -772,7 +772,11 @@ void Editor::Project::setupSharedGroupEventSubscriptions(const std::filesystem::
 
     getEventBus().subscribe(EventType::EntityCreated,
         [this, filepath](const Event& e) {
-            addEntityToSharedGroup(e.sceneId, e.entity, e.parent, filepath);
+            NodeRecovery entityData;
+            entityData[e.sceneId].node = Stream::encodeEntity(e.entity, getScene(e.sceneId)->scene, nullptr, getScene(e.sceneId), true);
+            entityData[NULL_PROJECT_SCENE].node = YAML::Clone(entityData[e.sceneId].node);
+            entityData[NULL_PROJECT_SCENE].node.remove("entity");
+            addEntityToSharedGroup(e.sceneId, entityData, e.parent, filepath, false);
         });
 
     getEventBus().subscribe(EventType::EntityDestroyed,
@@ -1188,76 +1192,7 @@ bool Editor::Project::unimportSharedEntity(uint32_t sceneId, const std::filesyst
     return true;
 }
 
-bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Entity entity, Entity parent, const std::filesystem::path& filepath){
-    SharedGroup* group = getSharedGroup(filepath);
-    if (!group) {
-        return false;
-    }
-    if (group && group->containsEntity(sceneId, parent)) {
-        // Find the parent's position in the shared group members
-        auto& members = group->members[sceneId];
-        auto parentIt = std::find(members.begin(), members.end(), parent);
-        size_t parentIndex = std::distance(members.begin(), parentIt);
-
-        if (parentIt != members.end()) {
-            // Get the scene to access entities order
-            SceneProject* sceneProject = getScene(sceneId);
-            if (sceneProject) {
-                // Find where the new entity should be inserted based on sceneProject->entities order
-                auto& sceneEntities = sceneProject->entities;
-                auto newEntityIt = std::find(sceneEntities.begin(), sceneEntities.end(), entity);
-
-                if (newEntityIt != sceneEntities.end()) {
-                    // Find the correct insertion position in members
-                    size_t insertPos = members.size(); // Default to end
-
-                    // Look for the first entity in members that comes after e.entity in sceneEntities
-                    for (size_t i = 0; i < members.size(); ++i) {
-                        auto memberInSceneIt = std::find(sceneEntities.begin(), sceneEntities.end(), members[i]);
-                        if (memberInSceneIt != sceneEntities.end() && memberInSceneIt > newEntityIt) {
-                            insertPos = i;
-                            break;
-                        }
-                    }
-
-                    // Insert the new entity at the correct position
-                    members.insert(members.begin() + insertPos, entity);
-
-                    YAML::Node node = Stream::encodeEntity(entity, sceneProject->scene, nullptr, sceneProject);
-
-                    // Create corresponding entities in other scenes that have this shared group
-                    for (auto& [otherSceneId, otherEntities] : group->members) {
-                        if (otherSceneId != sceneId) {
-                            // Find the corresponding parent in the other scene
-                            if (parentIndex < otherEntities.size()) {
-                                Entity otherParent = otherEntities[parentIndex];
-
-                                std::vector<Entity> newOtherEntities = Stream::decodeEntity(node, getScene(otherSceneId)->scene, nullptr, getScene(otherSceneId));
-                                getScene(otherSceneId)->scene->addEntityChild(otherParent, newOtherEntities[0], false);
-
-                                for (int e = 0; e < newOtherEntities.size(); e++) {
-                                    Entity newOtherEntity = newOtherEntities[e];
-                                    otherEntities.insert(otherEntities.begin() + insertPos + e, newOtherEntity);
-                                }
-                            }
-                        }
-                    }
-
-                    YAML::Node registryNode = YAML::Clone(node);
-                    registryNode["entity"] = insertPos + NULL_ENTITY + 1;
-                    std::vector<Entity> newRegEntities = Stream::decodeEntity(registryNode, group->registry.get());
-                    group->registry->addEntityChild(parentIndex + NULL_ENTITY + 1, newRegEntities[0], false);
-
-                    group->isModified = true;
-                }
-            }
-        }
-    }
-
-    return true;
-}
-
-bool Editor::Project::addEntityToSharedGroup2(uint32_t sceneId, std::map<uint32_t, std::pair<YAML::Node, std::vector<size_t>>> entityData, Entity parent, const std::filesystem::path& filepath){
+bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Editor::NodeRecovery entityData, Entity parent, const std::filesystem::path& filepath, bool createItself){
     SharedGroup* group = getSharedGroup(filepath);
     if (!group) {
         return false;
@@ -1277,24 +1212,29 @@ bool Editor::Project::addEntityToSharedGroup2(uint32_t sceneId, std::map<uint32_
     auto parentIt = std::find(members.begin(), members.end(), parent);
     size_t parentIndex = std::distance(members.begin(), parentIt);
 
-    std::vector<Entity> regEntities =  Stream::decodeEntity(entityData[NULL_PROJECT_SCENE].first, group->registry.get());
+    std::vector<Entity> regEntities =  Stream::decodeEntity(entityData[NULL_PROJECT_SCENE].node, group->registry.get());
     group->registry->addEntityChild(NULL_ENTITY + 1 + parentIndex, regEntities[0], false);
 
     for (auto& [otherSceneId, otherEntities] : group->members) {
         if (parentIndex < otherEntities.size()) {
-            Entity otherParent = otherEntities[parentIndex];
-
             YAML::Node data;
             std::vector<size_t> indicesNotShared;
             if (entityData.find(otherSceneId) != entityData.end()) {
-                data = entityData[otherSceneId].first;
-                indicesNotShared = entityData[otherSceneId].second;
+                data = entityData[otherSceneId].node;
+                indicesNotShared = entityData[otherSceneId].indicesNotShared;
             }else{
                 data = Stream::encodeEntity(NULL_ENTITY + parentIndex + 2, group->registry.get());
             }
 
-            std::vector<Entity> newOtherEntities = Stream::decodeEntity(data, getScene(otherSceneId)->scene, nullptr, getScene(otherSceneId));
-            getScene(otherSceneId)->scene->addEntityChild(otherParent, newOtherEntities[0], false);
+            std::vector<Entity> newOtherEntities;
+            if (otherSceneId != sceneId || createItself) {
+                Entity otherParent = otherEntities[parentIndex];
+
+                newOtherEntities = Stream::decodeEntity(data, getScene(otherSceneId)->scene, nullptr, getScene(otherSceneId));
+                getScene(otherSceneId)->scene->addEntityChild(otherParent, newOtherEntities[0], false);
+            }else{
+                collectEntities(data, newOtherEntities, std::vector<Entity>());
+            }
 
             if (!indicesNotShared.empty()) {
                 // Sort indices in descending order to avoid invalidating indices when erasing
@@ -1316,132 +1256,7 @@ bool Editor::Project::addEntityToSharedGroup2(uint32_t sceneId, std::map<uint32_
     return true;
 }
 
-bool Editor::Project::removeEntityFromSharedGroup(uint32_t sceneId, Entity entity, const std::filesystem::path& filepath){
-    SharedGroup* group = getSharedGroup(filepath);
-    if (!group) {
-        return false;
-    }
-
-    if (!group->containsEntity(sceneId, entity)) {
-        return false;
-    }
-
-    SceneProject* sceneProject = getScene(sceneId);
-    if (!sceneProject) {
-        return false;
-    }
-
-    // Get all entities that will be removed (entity + its children)
-    std::vector<Entity> entitiesToRemove;
-    entitiesToRemove.push_back(entity);
-
-    // Add all children if the entity has Transform component
-    Scene* scene = sceneProject->scene;
-    if (scene->getSignature(entity).test(scene->getComponentId<Transform>())) {
-        auto transforms = scene->getComponentArray<Transform>();
-        size_t firstIndex = transforms->getIndex(entity);
-        size_t branchIndex = scene->findBranchLastIndex(entity);
-
-        for (size_t i = firstIndex + 1; i <= branchIndex; i++) {
-            Entity childEntity = transforms->getEntity(i);
-            // Only add if it's part of the shared group
-            if (group->containsEntity(sceneId, childEntity)) {
-                entitiesToRemove.push_back(childEntity);
-            }
-        }
-    }
-
-    // Find the entity's position in the shared group members
-    auto& members = group->members[sceneId];
-    auto entityIt = std::find(members.begin(), members.end(), entity);
-    if (entityIt == members.end()) {
-        return false;
-    }
-
-    size_t entityIndex = std::distance(members.begin(), entityIt);
-
-    // Remove entities from this scene's shared group
-    for (Entity entityToRemove : entitiesToRemove) {
-        auto it = std::find(members.begin(), members.end(), entityToRemove);
-        if (it != members.end()) {
-            members.erase(it);
-        }
-
-        // Clear any component overrides for this entity
-        group->clearAllOverrides(sceneId, entityToRemove);
-    }
-
-    // Remove corresponding entities from other scenes that have this shared group
-    for (auto& [otherSceneId, otherEntities] : group->members) {
-        if (otherSceneId != sceneId) {
-            // Remove entities starting from the same index
-            size_t removeCount = entitiesToRemove.size();
-            if (entityIndex < otherEntities.size()) {
-                SceneProject* otherSceneProject = getScene(otherSceneId);
-                if (otherSceneProject) {
-                    // Destroy entities in reverse order to maintain indices
-                    for (size_t i = 0; i < removeCount && (entityIndex + i) < otherEntities.size(); ++i) {
-                        size_t removeIndex = entityIndex + removeCount - 1 - i;
-                        Entity entityToDestroy = otherEntities[removeIndex];
-
-                        otherSceneProject->scene->destroyEntity(entityToDestroy);
-
-                        // Remove from scene's entity list
-                        auto sceneIt = std::find(otherSceneProject->entities.begin(), otherSceneProject->entities.end(), entityToDestroy);
-                        if (sceneIt != otherSceneProject->entities.end()) {
-                            otherSceneProject->entities.erase(sceneIt);
-                        }
-
-                        // Clear selection if this entity was selected
-                        if (isSelectedEntity(otherSceneId, entityToDestroy)) {
-                            clearSelectedEntities(otherSceneId);
-                        }
-                    }
-
-                    // Remove from shared group members
-                    otherEntities.erase(otherEntities.begin() + entityIndex, otherEntities.begin() + entityIndex + removeCount);
-
-                    otherSceneProject->isModified = true;
-                }
-            }
-        }
-    }
-
-    // Remove corresponding entities from the registry
-    if (entityIndex < group->registry->getLastEntity()) {
-        Entity registryEntity = entityIndex + NULL_ENTITY + 1;
-
-        // Get all entities to remove from registry (entity + children)
-        std::vector<Entity> registryEntitiesToRemove;
-        registryEntitiesToRemove.push_back(registryEntity);
-
-        // Add children from registry
-        auto regTransforms = group->registry->getComponentArray<Transform>();
-        if (regTransforms && group->registry->getSignature(registryEntity).test(group->registry->getComponentId<Transform>())) {
-            size_t regFirstIndex = regTransforms->getIndex(registryEntity);
-            size_t regBranchIndex = group->registry->findBranchLastIndex(registryEntity);
-
-            for (size_t i = regFirstIndex + 1; i <= regBranchIndex; i++) {
-                if (i < regTransforms->size()) {
-                    Entity regChildEntity = regTransforms->getEntity(i);
-                    registryEntitiesToRemove.push_back(regChildEntity);
-                }
-            }
-        }
-
-        // Destroy entities from registry
-        for (Entity regEntity : registryEntitiesToRemove) {
-            group->registry->destroyEntity(regEntity);
-        }
-    }
-
-    group->isModified = true;
-    sceneProject->isModified = true;
-
-    return true;
-}
-
-std::map<uint32_t, std::pair<YAML::Node, std::vector<size_t>>> Editor::Project::removeEntityFromSharedGroup2(uint32_t sceneId, Entity entity, const std::filesystem::path& filepath){
+Editor::NodeRecovery Editor::Project::removeEntityFromSharedGroup(uint32_t sceneId, Entity entity, const std::filesystem::path& filepath, bool destroyItself) {
     SharedGroup* group = getSharedGroup(filepath);
     if (!group) {
         return {};
@@ -1472,8 +1287,8 @@ std::map<uint32_t, std::pair<YAML::Node, std::vector<size_t>>> Editor::Project::
     }
     size_t entityIndex = std::distance(members.begin(), entityIt);
 
-    std::map<uint32_t, std::pair<YAML::Node, std::vector<size_t>>> recovery;
-    recovery[NULL_PROJECT_SCENE] = std::make_pair(YAML::Clone(regData), std::vector<size_t>{});
+    NodeRecovery recovery;
+    recovery[NULL_PROJECT_SCENE] = {YAML::Clone(regData), std::vector<size_t>{}};
 
     for (auto& [otherSceneId, otherEntities] : group->members) {
         Entity other = otherEntities[entityIndex];
@@ -1487,7 +1302,7 @@ std::map<uint32_t, std::pair<YAML::Node, std::vector<size_t>>> Editor::Project::
         YAML::Node node = YAML::Clone(regData);
         std::vector<size_t> indicesNotShared = mergeEntityNodes(node, nodeExtend);
 
-        recovery[otherSceneId] = std::make_pair(node, indicesNotShared);
+        recovery[otherSceneId] = {node, indicesNotShared};
 
         for (const Entity& sharedE : sharedEntities) {
             auto itRem = std::find(otherEntities.begin(), otherEntities.end(), sharedE);
@@ -1498,22 +1313,24 @@ std::map<uint32_t, std::pair<YAML::Node, std::vector<size_t>>> Editor::Project::
             group->clearAllOverrides(otherSceneId, sharedE);
         }
 
-        for (const Entity& entityToDestroy : allEntities) {
-            otherScene->scene->destroyEntity(entityToDestroy);
+        if (otherSceneId != sceneId || destroyItself) {
+            for (const Entity& entityToDestroy : allEntities) {
+                otherScene->scene->destroyEntity(entityToDestroy);
 
-            // Remove from scene's entity list
-            auto sceneIt = std::find(otherScene->entities.begin(), otherScene->entities.end(), entityToDestroy);
-            if (sceneIt != otherScene->entities.end()) {
-                otherScene->entities.erase(sceneIt);
+                // Remove from scene's entity list
+                auto sceneIt = std::find(otherScene->entities.begin(), otherScene->entities.end(), entityToDestroy);
+                if (sceneIt != otherScene->entities.end()) {
+                    otherScene->entities.erase(sceneIt);
+                }
+
+                // Clear selection if this entity was selected
+                if (isSelectedEntity(otherSceneId, entityToDestroy)) {
+                    clearSelectedEntities(otherSceneId);
+                }
             }
 
-            // Clear selection if this entity was selected
-            if (isSelectedEntity(otherSceneId, entityToDestroy)) {
-                clearSelectedEntities(otherSceneId);
-            }
+            otherScene->isModified = true;
         }
-
-        otherScene->isModified = true;
     }
 
     // Remove corresponding entities from the registry

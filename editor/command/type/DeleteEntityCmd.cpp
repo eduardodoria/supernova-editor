@@ -68,7 +68,7 @@ bool Editor::DeleteEntityCmd::execute(){
                 //std::vector<size_t> indicesNotShared = project->mergeEntityNodes(entityData.data, extendNode);
                 entityData.wasSharedChild = true;
                 entityData.sharedGroupPath = sharedGroupPath;
-                entityData.sharedData = project->removeEntityFromSharedGroup2(sceneId, entity, sharedGroupPath);
+                entityData.recoverySharedData = project->removeEntityFromSharedGroup(sceneId, entity, sharedGroupPath);
 
             }
         }
@@ -106,7 +106,7 @@ void Editor::DeleteEntityCmd::undo(){
         //sceneProject->scene->moveChildToIndex(entityData.entity, entityData.transformIndex, false);
 
         if (entityData.wasSharedChild){
-            project->addEntityToSharedGroup2(sceneId, entityData.sharedData, entityData.parent, entityData.sharedGroupPath);
+            project->addEntityToSharedGroup(sceneId, entityData.recoverySharedData, entityData.parent, entityData.sharedGroupPath);
         }
     }
 
