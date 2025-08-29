@@ -57,35 +57,28 @@ bool Editor::DeleteEntityCmd::execute(){
 
             }else{
 
-                //Entity regEntity = group->getRegistryEntity(sceneId, entity);
-                //if (regEntity == NULL_ENTITY) {
-                //    Out::error("Failed to find registry entity for shared entity %u in scene %u", entity, sceneId);
-                //    continue;
-                //}
-                //YAML::Node extendNode = YAML::Clone(entityData.data);
-                //entityData.data = Stream::encodeEntity(regEntity, group->registry.get());
-
-                //std::vector<size_t> indicesNotShared = project->mergeEntityNodes(entityData.data, extendNode);
                 entityData.wasSharedChild = true;
                 entityData.sharedGroupPath = sharedGroupPath;
                 entityData.recoverySharedData = project->removeEntityFromSharedGroup(sceneId, entity, sharedGroupPath);
 
             }
         }
-/*
-        for (const Entity& entity : allEntities) {
-            sceneProject->scene->destroyEntity(entity);
 
-            auto ite = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), entity);
-            if (ite != sceneProject->entities.end()) {
-                sceneProject->entities.erase(ite);
-            }
+        if (!entityData.wasSharedChild){
+            for (const Entity& entity : allEntities) {
+                sceneProject->scene->destroyEntity(entity);
 
-            if (project->isSelectedEntity(sceneId, entity)){
-                project->clearSelectedEntities(sceneId);
+                auto ite = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), entity);
+                if (ite != sceneProject->entities.end()) {
+                    sceneProject->entities.erase(ite);
+                }
+
+                if (project->isSelectedEntity(sceneId, entity)){
+                    project->clearSelectedEntities(sceneId);
+                }
             }
         }
-*/
+
         sceneProject->isModified = true;
     }
 
@@ -96,17 +89,21 @@ void Editor::DeleteEntityCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     for (DeleteEntityData& entityData : entities){
-        //std::vector<Entity> allEntities = Stream::decodeEntity(entityData.data, sceneProject->scene, project, sceneProject);
-        //entityData.entity = allEntities[0];
+        if (!entityData.wasSharedChild){
 
-        //if (entityData.parent != NULL_ENTITY) {
-        //    sceneProject->scene->addEntityChild(entityData.parent, entityData.entity, false);
-        //}
+            std::vector<Entity> allEntities = Stream::decodeEntity(entityData.data, sceneProject->scene, project, sceneProject);
+            entityData.entity = allEntities[0];
 
-        //sceneProject->scene->moveChildToIndex(entityData.entity, entityData.transformIndex, false);
+            if (entityData.parent != NULL_ENTITY) {
+                sceneProject->scene->addEntityChild(entityData.parent, entityData.entity, false);
+            }
 
-        if (entityData.wasSharedChild){
+            sceneProject->scene->moveChildToIndex(entityData.entity, entityData.transformIndex, false);
+
+        }else{
+
             project->addEntityToSharedGroup(sceneId, entityData.recoverySharedData, entityData.parent, entityData.sharedGroupPath);
+
         }
     }
 

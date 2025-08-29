@@ -774,8 +774,7 @@ void Editor::Project::setupSharedGroupEventSubscriptions(const std::filesystem::
         [this, filepath](const Event& e) {
             NodeRecovery entityData;
             entityData[e.sceneId].node = Stream::encodeEntity(e.entity, getScene(e.sceneId)->scene, nullptr, getScene(e.sceneId), true);
-            entityData[NULL_PROJECT_SCENE].node = YAML::Clone(entityData[e.sceneId].node);
-            entityData[NULL_PROJECT_SCENE].node.remove("entity");
+            entityData[NULL_PROJECT_SCENE].node = clearEntitiesIdNode(YAML::Clone(entityData[e.sceneId].node));
             addEntityToSharedGroup(e.sceneId, entityData, e.parent, filepath, false);
         });
 
@@ -1233,7 +1232,8 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Editor::NodeRecov
                 newOtherEntities = Stream::decodeEntity(data, getScene(otherSceneId)->scene, nullptr, getScene(otherSceneId));
                 getScene(otherSceneId)->scene->addEntityChild(otherParent, newOtherEntities[0], false);
             }else{
-                collectEntities(data, newOtherEntities, std::vector<Entity>());
+                std::vector<Entity> sharedEntities;
+                collectEntities(data, newOtherEntities, sharedEntities);
             }
 
             if (!indicesNotShared.empty()) {
@@ -1410,6 +1410,21 @@ std::filesystem::path Editor::Project::findGroupPathFor(uint32_t sceneId, Entity
 std::vector<size_t> Editor::Project::mergeEntityNodes(YAML::Node& loadedNode, const YAML::Node& extendNode) {
     size_t index = 0;
     return mergeEntityNodesImpl(loadedNode, extendNode, index);
+}
+
+YAML::Node Editor::Project::clearEntitiesIdNode(YAML::Node node) {
+    if (!node || !node.IsMap())
+        return node;
+
+    node.remove("entity");
+
+    if (node["children"] && node["children"].IsSequence()) {
+        for (size_t i = 0; i < node["children"].size(); ++i) {
+            node["children"][i] = clearEntitiesIdNode(node["children"][i]);
+        }
+    }
+
+    return node;
 }
 
 void Editor::Project::collectEntities(const YAML::Node& entityNode, std::vector<Entity>& allEntities, std::vector<Entity>& sharedEntities) {
