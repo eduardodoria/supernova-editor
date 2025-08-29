@@ -769,12 +769,11 @@ void Editor::Project::setupSharedGroupEventSubscriptions(const std::filesystem::
                 group->isModified = true;
             }
         });
-
+/*
     getEventBus().subscribe(EventType::EntityCreated,
         [this, filepath](const Event& e) {
             NodeRecovery entityData;
             entityData[e.sceneId].node = Stream::encodeEntity(e.entity, getScene(e.sceneId)->scene, nullptr, getScene(e.sceneId), true);
-            entityData[NULL_PROJECT_SCENE].node = clearEntitiesIdNode(YAML::Clone(entityData[e.sceneId].node));
             addEntityToSharedGroup(e.sceneId, entityData, e.parent, filepath, false);
         });
 
@@ -782,6 +781,7 @@ void Editor::Project::setupSharedGroupEventSubscriptions(const std::filesystem::
         [this, filepath](const Event& e) {
             removeEntityFromSharedGroup(e.sceneId, e.entity, filepath);
         });
+*/
 }
 
 // Non-const version
@@ -1210,6 +1210,15 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Editor::NodeRecov
     auto& members = group->members[sceneId];
     auto parentIt = std::find(members.begin(), members.end(), parent);
     size_t parentIndex = std::distance(members.begin(), parentIt);
+
+    if (entityData.find(NULL_PROJECT_SCENE) == entityData.end()) {
+        if (entityData.find(sceneId) == entityData.end()) {
+            Out::error("No default entity data provided for adding to shared group");
+            return false;
+        }else{
+            entityData[NULL_PROJECT_SCENE].node = clearEntitiesIdNode(YAML::Clone(entityData[sceneId].node));
+        }
+    }
 
     std::vector<Entity> regEntities =  Stream::decodeEntity(entityData[NULL_PROJECT_SCENE].node, group->registry.get());
     group->registry->addEntityChild(NULL_ENTITY + 1 + parentIndex, regEntities[0], false);

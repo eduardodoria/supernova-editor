@@ -2,6 +2,7 @@
 
 #include "editor/Out.h"
 #include "util/ShapeParameters.h"
+#include "Stream.h"
 
 using namespace Supernova;
 
@@ -203,17 +204,16 @@ bool Editor::CreateEntityCmd::execute(){
 
     sceneProject->isModified = true;
 
-    ImGui::SetWindowFocus(("###Scene" + std::to_string(sceneId)).c_str());
-
     if (addToShared){
-        Event e;
-        e.type = EventType::EntityCreated;
-        e.sceneId = sceneId;
-        e.entity = entity;
-        e.entityName = entityName;
-        e.parent = parent;
-        Project::getEventBus().publish(e);
+        std::filesystem::path sharedPath = project->findGroupPathFor(sceneId, parent);
+        if (!sharedPath.empty()){
+            NodeRecovery entityData;
+            entityData[sceneId].node = Stream::encodeEntity(entity, scene, nullptr, sceneProject, true);
+            project->addEntityToSharedGroup(sceneId, entityData, parent, sharedPath, false);
+        }
     }
+
+    ImGui::SetWindowFocus(("###Scene" + std::to_string(sceneId)).c_str());
 
     Editor::Out::info("Created entity '%s' at scene '%s'", entityName.c_str(), sceneProject->name.c_str());
 
@@ -225,13 +225,10 @@ void Editor::CreateEntityCmd::undo(){
 
     if (sceneProject){
         if (addToShared){
-            Event e;
-            e.type = EventType::EntityDestroyed;
-            e.sceneId = sceneId;
-            e.entity = entity;
-            e.entityName = entityName;
-            e.parent = parent;
-            Project::getEventBus().publish(e);
+            std::filesystem::path sharedPath = project->findGroupPathFor(sceneId, entity);
+            if (!sharedPath.empty()){
+                project->removeEntityFromSharedGroup(sceneId, entity, sharedPath);
+            }
         }
 
         sceneProject->scene->destroyEntity(entity);
