@@ -286,7 +286,8 @@ namespace Supernova::Editor{
 
         std::vector<size_t> mergeEntityNodes(YAML::Node& loadedNode, const YAML::Node& extendNode);
 
-        YAML::Node clearEntitiesIdNode(YAML::Node node);
+        YAML::Node clearEntitiesNode(YAML::Node node);
+        YAML::Node changeEntitiesNode(Entity& firstEntity, YAML::Node node);
         void collectEntities(const YAML::Node& entityNode, std::vector<Entity>& allEntities, std::vector<Entity>& sharedEntities);
 
         void build();

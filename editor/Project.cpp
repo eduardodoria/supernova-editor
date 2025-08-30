@@ -1216,12 +1216,17 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Editor::NodeRecov
             Out::error("No default entity data provided for adding to shared group");
             return false;
         }else{
-            entityData[NULL_PROJECT_SCENE].node = clearEntitiesIdNode(YAML::Clone(entityData[sceneId].node));
+            entityData[NULL_PROJECT_SCENE].node = clearEntitiesNode(YAML::Clone(entityData[sceneId].node));
         }
     }
 
     std::vector<Entity> regEntities =  Stream::decodeEntity(entityData[NULL_PROJECT_SCENE].node, group->registry.get());
     group->registry->addEntityChild(NULL_ENTITY + 1 + parentIndex, regEntities[0], false);
+
+    // Rebuild registry to ensure entity IDs are contiguous
+    YAML::Node encodedNode = Stream::encodeEntity(NULL_ENTITY + 1, group->registry.get());
+    group->registry->clear();
+    regEntities =  Stream::decodeEntity(encodedNode, group->registry.get());
 
     for (auto& [otherSceneId, otherEntities] : group->members) {
         if (parentIndex < otherEntities.size()) {
@@ -1231,15 +1236,17 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Editor::NodeRecov
                 data = entityData[otherSceneId].node;
                 indicesNotShared = entityData[otherSceneId].indicesNotShared;
             }else{
-                data = Stream::encodeEntity(NULL_ENTITY + parentIndex + 2, group->registry.get());
+                data = Stream::encodeEntity(NULL_ENTITY + 1 + parentIndex + 1, group->registry.get());
             }
+
+            SceneProject* otherScene = getScene(otherSceneId);
 
             std::vector<Entity> newOtherEntities;
             if (otherSceneId != sceneId || createItself) {
                 Entity otherParent = otherEntities[parentIndex];
 
-                newOtherEntities = Stream::decodeEntity(data, getScene(otherSceneId)->scene, nullptr, getScene(otherSceneId));
-                getScene(otherSceneId)->scene->addEntityChild(otherParent, newOtherEntities[0], false);
+                newOtherEntities = Stream::decodeEntity(data, otherScene->scene, nullptr, otherScene);
+                otherScene->scene->addEntityChild(otherParent, newOtherEntities[0], false);
             }else{
                 std::vector<Entity> sharedEntities;
                 collectEntities(data, newOtherEntities, sharedEntities);
@@ -1259,8 +1266,13 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Editor::NodeRecov
                 Entity newOtherEntity = newOtherEntities[e];
                 otherEntities.insert(otherEntities.begin() + parentIndex + 1 + e, newOtherEntity);
             }
+
+            otherScene->isModified = true;
+
         }
     }
+
+    group->isModified = true;
 
     return true;
 }
@@ -1340,6 +1352,8 @@ Editor::NodeRecovery Editor::Project::removeEntityFromSharedGroup(uint32_t scene
 
             otherScene->isModified = true;
         }
+
+        group->isModified = true;
     }
 
     // Remove corresponding entities from the registry
@@ -1369,6 +1383,11 @@ Editor::NodeRecovery Editor::Project::removeEntityFromSharedGroup(uint32_t scene
             group->registry->destroyEntity(regEntity);
         }
     }
+
+    // Rebuild registry to ensure entity IDs are contiguous
+    YAML::Node encodedNode = Stream::encodeEntity(NULL_ENTITY + 1, group->registry.get());
+    group->registry->clear();
+    Stream::decodeEntity(encodedNode, group->registry.get());
 
     group->isModified = true;
 
@@ -1421,7 +1440,7 @@ std::vector<size_t> Editor::Project::mergeEntityNodes(YAML::Node& loadedNode, co
     return mergeEntityNodesImpl(loadedNode, extendNode, index);
 }
 
-YAML::Node Editor::Project::clearEntitiesIdNode(YAML::Node node) {
+YAML::Node Editor::Project::clearEntitiesNode(YAML::Node node) {
     if (!node || !node.IsMap())
         return node;
 
@@ -1429,7 +1448,24 @@ YAML::Node Editor::Project::clearEntitiesIdNode(YAML::Node node) {
 
     if (node["children"] && node["children"].IsSequence()) {
         for (size_t i = 0; i < node["children"].size(); ++i) {
-            node["children"][i] = clearEntitiesIdNode(node["children"][i]);
+            node["children"][i] = clearEntitiesNode(node["children"][i]);
+        }
+    }
+
+    return node;
+}
+
+YAML::Node Editor::Project::changeEntitiesNode(Entity& firstEntity, YAML::Node node) {
+    if (!node || !node.IsMap())
+        return node;
+
+    // Assign the current entity ID
+    node["entity"] = firstEntity++;
+
+    // Recursively process children
+    if (node["children"] && node["children"].IsSequence()) {
+        for (size_t i = 0; i < node["children"].size(); ++i) {
+            node["children"][i] = changeEntitiesNode(firstEntity, node["children"][i]);
         }
     }
 
