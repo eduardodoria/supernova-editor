@@ -713,6 +713,7 @@ T* Editor::Project::findScene(uint32_t sceneId) const {
 
 void Editor::Project::setupSharedGroupEventSubscriptions(const std::filesystem::path& filepath) {
     // Subscribe to component changes for this entity
+/*
     getEventBus().subscribe(EventType::ComponentChanged,
         [this, filepath](const Event& e) {
             // Check if this event is for any entity in our shared group
@@ -768,18 +769,6 @@ void Editor::Project::setupSharedGroupEventSubscriptions(const std::filesystem::
             if (group && group->containsEntity(e.sceneId, e.entity)){
                 group->isModified = true;
             }
-        });
-/*
-    getEventBus().subscribe(EventType::EntityCreated,
-        [this, filepath](const Event& e) {
-            NodeRecovery entityData;
-            entityData[e.sceneId].node = Stream::encodeEntity(e.entity, getScene(e.sceneId)->scene, nullptr, getScene(e.sceneId), true);
-            addEntityToSharedGroup(e.sceneId, entityData, e.parent, filepath, false);
-        });
-
-    getEventBus().subscribe(EventType::EntityDestroyed,
-        [this, filepath](const Event& e) {
-            removeEntityFromSharedGroup(e.sceneId, e.entity, filepath);
         });
 */
 }
@@ -992,31 +981,19 @@ bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path
     }
 
     std::vector<Entity> branchEntities;
-    branchEntities.push_back(entity); // Root entity first
-
-    // Add all children if the entity has Transform component
-    Scene* scene = sceneProject->scene;
-    if (scene->getSignature(entity).test(scene->getComponentId<Transform>())) {
-        auto transforms = scene->getComponentArray<Transform>();
-        size_t firstIndex = transforms->getIndex(entity);
-        size_t branchIndex = scene->findBranchLastIndex(entity);
-
-        for (size_t i = firstIndex + 1; i <= branchIndex; i++) {
-            Entity childEntity = transforms->getEntity(i);
-            // Only add if it's part of this scene's entities
-            if (std::find(sceneProject->entities.begin(), sceneProject->entities.end(), childEntity) != sceneProject->entities.end()) {
-                branchEntities.push_back(childEntity);
-            }
-        }
-    }
+    std::vector<Entity> sharedEntities;
+    collectEntities(entityNode, branchEntities, sharedEntities);
 
     // Create new group
     SharedGroup group;
-    group.members[sceneId] = branchEntities;
     group.registry = std::make_unique<EntityRegistry>();
     group.isModified = true;
+    std::vector<Entity> regEntities = Stream::decodeEntity(clearEntitiesNode(entityNode), group.registry.get());
+    for (int i = 0; i < regEntities.size(); i++) {
+        group.members[sceneId].push_back({branchEntities[i], regEntities[i]});
+    }
 
-    Stream::decodeEntity(entityNode, group.registry.get());
+    Scene* scene = sceneProject->scene;
 
     // Mark Transform component of root entity as overridden for this scene
     // This allows each scene to position the shared entity independently
@@ -1033,6 +1010,7 @@ bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path
     saveSharedGroupToDisk(filepath);
 
     sceneProject->isModified = true;
+
     return true;
 }
 
@@ -1122,8 +1100,16 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
         }
     }
 
-    // Store all entities in the shared group
-    group.members[sceneProject->id] = membersEntities;
+    std::vector<Entity> regEntities = group.registry->getEntityList();
+
+    if (membersEntities.size() != regEntities.size()) {
+        Out::error("Mismatch in shared entity count when importing from %s", filepath.string().c_str());
+        return {};
+    }
+
+    for (int i = 0; i < membersEntities.size(); i++) {
+        group.members[sceneProject->id].push_back({membersEntities[i], regEntities[i]});
+    }
 
     // Mark Transform component of root entity as overridden for this scene
     // This allows each scene to position the shared entity independently
@@ -1192,6 +1178,7 @@ bool Editor::Project::unimportSharedEntity(uint32_t sceneId, const std::filesyst
 }
 
 bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Editor::NodeRecovery entityData, Entity parent, const std::filesystem::path& filepath, bool createItself){
+/*
     SharedGroup* group = getSharedGroup(filepath);
     if (!group) {
         return false;
@@ -1273,11 +1260,12 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Editor::NodeRecov
     }
 
     group->isModified = true;
-
+*/
     return true;
 }
 
 Editor::NodeRecovery Editor::Project::removeEntityFromSharedGroup(uint32_t sceneId, Entity entity, const std::filesystem::path& filepath, bool destroyItself) {
+/*
     SharedGroup* group = getSharedGroup(filepath);
     if (!group) {
         return {};
@@ -1391,6 +1379,9 @@ Editor::NodeRecovery Editor::Project::removeEntityFromSharedGroup(uint32_t scene
 
     group->isModified = true;
 
+    return recovery;
+*/
+    NodeRecovery recovery;
     return recovery;
 }
 

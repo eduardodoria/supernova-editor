@@ -37,7 +37,13 @@ namespace Supernova::Editor{
     };
 
     struct SharedGroup {
-        std::map<uint32_t, std::vector<Entity>> members; // sceneId → list of Entities (root + children)
+
+        struct EntityMember {
+            Entity localEntity;    // Entity in the scene
+            Entity registryEntity; // Corresponding entity in the shared registry
+        };
+
+        std::map<uint32_t, std::vector<EntityMember>> members; // sceneId → list of local entity to registry entity (root + children)
         std::map<uint32_t, std::map<Entity, uint64_t>> overrides; // sceneId → entityId → bitmask of overridden ComponentTypes
         std::unique_ptr<EntityRegistry> registry;
         bool isModified = false;
@@ -46,25 +52,29 @@ namespace Supernova::Editor{
         Entity getRootEntity(uint32_t sceneId) const {
             auto it = members.find(sceneId);
             if (it != members.end() && !it->second.empty()) {
-                return it->second[0]; // First entity is always the root
+                return it->second[0].localEntity; // First EntityMember's localEntity is the root local entity
             }
             return NULL_ENTITY;
         }
 
-        const std::vector<Entity>& getAllEntities(uint32_t sceneId) const {
-            static const std::vector<Entity> empty;
+        // Return only the local entities as before
+        std::vector<Entity> getAllEntities(uint32_t sceneId) const {
             auto it = members.find(sceneId);
-            return (it != members.end()) ? it->second : empty;
+            if (it == members.end()) return {};
+            std::vector<Entity> result;
+            result.reserve(it->second.size());
+            for (const auto &member : it->second) result.push_back(member.localEntity);
+            return result;
         }
 
         // Get registry entity based on other scene entity
         Entity getRegistryEntity(uint32_t sceneId, Entity entity) const {
             auto it = members.find(sceneId);
             if (it != members.end()) {
-                auto entIt = std::find(it->second.begin(), it->second.end(), entity);
-                if (entIt != it->second.end()) {
-                    size_t index = std::distance(it->second.begin(), entIt);
-                    return index + NULL_ENTITY + 1; // Registry entities start from NULL_ENTITY + 1
+                for (const auto &member : it->second) {
+                    if (member.localEntity == entity) {
+                        return member.registryEntity;
+                    }
                 }
             }
             return NULL_ENTITY;
@@ -73,7 +83,8 @@ namespace Supernova::Editor{
         bool containsEntity(uint32_t sceneId, Entity entity) const {
             auto it = members.find(sceneId);
             if (it != members.end()) {
-                return std::find(it->second.begin(), it->second.end(), entity) != it->second.end();
+                return std::any_of(it->second.begin(), it->second.end(),
+                                   [&](const EntityMember& member){ return member.localEntity == entity; });
             }
             return false;
         }

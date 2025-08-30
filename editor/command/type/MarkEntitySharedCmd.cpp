@@ -50,7 +50,7 @@ bool Editor::MarkEntitySharedCmd::execute(){
     if (providedEntityNode && !providedEntityNode.IsNull()) {
         savedEntityNode = providedEntityNode;
     } else {
-        savedEntityNode = Stream::encodeEntity(entity, sceneProject->scene);
+        savedEntityNode = Stream::encodeEntity(entity, sceneProject->scene, nullptr, sceneProject, true);
     }
 
     // Mark the entity as shared (this will also save it to disk)
