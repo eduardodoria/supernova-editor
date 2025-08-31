@@ -96,7 +96,7 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
                 mouseLeftDraggedInside = true;
             }
             if (mouseLeftDraggedInside){
-                sceneProject->sceneRender->mouseDragEvent(x, y, mouseLeftStartPos.x, mouseLeftStartPos.y, sceneId, sceneProject, project->getSelectedEntities(sceneId), disableSelection);
+                sceneProject->sceneRender->mouseDragEvent(x, y, mouseLeftStartPos.x, mouseLeftStartPos.y, project, sceneId, project->getSelectedEntities(sceneId), disableSelection);
             }
         }
 
@@ -537,7 +537,7 @@ void Editor::SceneWindow::show() {
                                         std::string propName = "submeshes[0].material.basecolortexture";
                                         selMesh->submeshes[0].material.baseColorTexture = originalTex;
 
-                                        PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(&sceneProject, selEntity, ComponentType::MeshComponent, propName, UpdateFlags_Mesh_Texture, newTex);
+                                        PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(project, sceneProject.id, selEntity, ComponentType::MeshComponent, propName, UpdateFlags_Mesh_Texture, newTex);
                                         CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(cmd);
                                         cmd->commit();
 
@@ -559,7 +559,7 @@ void Editor::SceneWindow::show() {
                                         std::string propName = "texture";
                                         selUI->texture = originalTex;
 
-                                        PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(&sceneProject, selEntity, ComponentType::UIComponent, propName, UpdateFlags_UI_Texture, newTex);
+                                        PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(project, sceneProject.id, selEntity, ComponentType::UIComponent, propName, UpdateFlags_UI_Texture, newTex);
                                         CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(cmd);
                                         cmd->commit();
 

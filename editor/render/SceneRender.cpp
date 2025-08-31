@@ -1,5 +1,6 @@
 #include "SceneRender.h"
 
+#include "Project.h"
 #include "command/CommandHandle.h"
 #include "command/type/ObjectTransformCmd.h"
 #include "command/type/PropertyCmd.h"
@@ -350,7 +351,7 @@ void Editor::SceneRender::mouseReleaseEvent(float x, float y){
     }
 }
 
-void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float origY, size_t sceneId, SceneProject* sceneProject, std::vector<Entity> selEntities, bool disableSelection){
+void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float origY, Project* project, size_t sceneId, std::vector<Entity> selEntities, bool disableSelection){
     if (!disableSelection){
         uilayer.setRectVisible(true);
         uilayer.updateRect(Vector2(origX, origY), Vector2(x, y) - Vector2(origX, origY));
@@ -363,6 +364,8 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
         Transform* transform = scene->findComponent<Transform>(entity);
         if (transform){
             RayReturn rretrun = mouseRay.intersects(cursorPlane);
+
+            SceneProject* sceneProject = project->getScene(sceneId);
 
             if (rretrun){
 
@@ -396,7 +399,7 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                     }
 
                     if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
-                        lastCommand = new ObjectTransformCmd(sceneProject, entity, objMatrix);
+                        lastCommand = new ObjectTransformCmd(project, sceneProject->id, entity, objMatrix);
                     }
                 }
 
@@ -424,7 +427,7 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                     }
 
                     if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
-                        lastCommand = new ObjectTransformCmd(sceneProject, entity, objMatrix);
+                        lastCommand = new ObjectTransformCmd(project, sceneProject->id, entity, objMatrix);
                     }
                 }
 
@@ -466,7 +469,7 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                     }
 
                     if (toolslayer.getGizmoSideSelected() != GizmoSideSelected::NONE){
-                        lastCommand = new ObjectTransformCmd(sceneProject, entity, objMatrix);
+                        lastCommand = new ObjectTransformCmd(project, sceneProject->id, entity, objMatrix);
                     }
                 }
 
@@ -528,13 +531,13 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                     if (toolslayer.getGizmo2DSideSelected() != Gizmo2DSideSelected::NONE){
                         MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
                         if (isLayout){
-                            multiCmd->addPropertyCmd<unsigned int>(sceneProject, entity, ComponentType::UILayoutComponent, "width", UpdateFlags_Layout_Sizes, static_cast<unsigned int>(size.x));
-                            multiCmd->addPropertyCmd<unsigned int>(sceneProject, entity, ComponentType::UILayoutComponent, "height", UpdateFlags_Layout_Sizes, static_cast<unsigned int>(size.y));
+                            multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entity, ComponentType::UILayoutComponent, "width", UpdateFlags_Layout_Sizes, static_cast<unsigned int>(size.x));
+                            multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entity, ComponentType::UILayoutComponent, "height", UpdateFlags_Layout_Sizes, static_cast<unsigned int>(size.y));
                         }else if (isSprite){
-                            multiCmd->addPropertyCmd<unsigned int>(sceneProject, entity, ComponentType::SpriteComponent, "width", UpdateFlags_Sprite, static_cast<unsigned int>(size.x));
-                            multiCmd->addPropertyCmd<unsigned int>(sceneProject, entity, ComponentType::SpriteComponent, "height", UpdateFlags_Sprite, static_cast<unsigned int>(size.y));
+                            multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entity, ComponentType::SpriteComponent, "width", UpdateFlags_Sprite, static_cast<unsigned int>(size.x));
+                            multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entity, ComponentType::SpriteComponent, "height", UpdateFlags_Sprite, static_cast<unsigned int>(size.y));
                         }
-                        multiCmd->addPropertyCmd<Vector3>(sceneProject, entity, ComponentType::Transform, "position", UpdateFlags_Transform, pos);
+                        multiCmd->addPropertyCmd<Vector3>(project, sceneProject->id, entity, ComponentType::Transform, "position", UpdateFlags_Transform, pos);
                         lastCommand = multiCmd;
                     }
                 }

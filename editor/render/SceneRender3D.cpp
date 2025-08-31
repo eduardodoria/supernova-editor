@@ -492,8 +492,8 @@ void Editor::SceneRender3D::mouseReleaseEvent(float x, float y){
     SceneRender::mouseReleaseEvent(x, y);
 }
 
-void Editor::SceneRender3D::mouseDragEvent(float x, float y, float origX, float origY, size_t sceneId, SceneProject* sceneProject, std::vector<Entity> selEntities, bool disableSelection){
-    SceneRender::mouseDragEvent(x, y, origX, origY, sceneId, sceneProject, selEntities, disableSelection);
+void Editor::SceneRender3D::mouseDragEvent(float x, float y, float origX, float origY, Project* project, size_t sceneId, std::vector<Entity> selEntities, bool disableSelection){
+    SceneRender::mouseDragEvent(x, y, origX, origY, project, sceneId, selEntities, disableSelection);
 }
 
 Editor::ViewportGizmo* Editor::SceneRender3D::getViewportGizmo(){

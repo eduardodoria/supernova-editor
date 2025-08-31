@@ -21,8 +21,6 @@
 
 using namespace Supernova;
 
-Editor::EventBus Editor::Project::globalEventBus;
-
 Editor::Project::Project(){
     resetConfigs();
 }
@@ -711,68 +709,6 @@ T* Editor::Project::findScene(uint32_t sceneId) const {
     return nullptr;
 }
 
-void Editor::Project::setupSharedGroupEventSubscriptions(const std::filesystem::path& filepath) {
-    // Subscribe to component changes for this entity
-/*
-    getEventBus().subscribe(EventType::ComponentChanged,
-        [this, filepath](const Event& e) {
-            // Check if this event is for any entity in our shared group
-            SharedGroup* group = getSharedGroup(filepath);
-            if (group) {
-                if (!group->hasComponentOverride(e.sceneId, e.entity, e.compType)){
-                    const auto& entities = group->getAllEntities(e.sceneId);
-                    auto it = std::find(entities.begin(), entities.end(), e.entity);
-                    if (it != entities.end()) { // containsEntity
-                        size_t entityIndex = std::distance(entities.begin(), it);
-
-                        // Updating default entity
-                        size_t entityDefault = entityIndex + NULL_ENTITY + 1;
-                        EntityRegistry* registry = group->registry.get();
-                        for (const auto& property : e.properties) {
-                            Catalog::copyPropertyValue(getScene(e.sceneId)->scene, e.entity, registry, entityDefault, e.compType, property);
-                        }
-
-                        // Copy to corresponding entity in other scenes
-                        for (const auto& [otherSceneId, otherEntities] : group->members) {
-                            if (otherSceneId != e.sceneId && entityIndex < otherEntities.size()) {
-                                Entity otherEntity = otherEntities[entityIndex];
-
-                                if (!group->hasComponentOverride(otherSceneId, otherEntity, e.compType)) {
-                                    SceneProject* otherScene = getScene(otherSceneId);
-                                    if (otherScene) {
-                                        otherScene->needUpdateRender = true;
-                                        for (const auto& property : e.properties) {
-                                            Catalog::copyPropertyValue(getScene(e.sceneId)->scene, e.entity, otherScene->scene, otherEntity, e.compType, property);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                group->isModified = true;
-            }
-        });
-
-    // Also subscribe to component additions and removals
-    getEventBus().subscribe(EventType::ComponentAdded,
-        [this, filepath](const Event& e) {
-            SharedGroup* group = getSharedGroup(filepath);
-            if (group && group->containsEntity(e.sceneId, e.entity)){
-                group->isModified = true;
-            }
-        });
-
-    getEventBus().subscribe(EventType::ComponentRemoved,
-        [this, filepath](const Event& e) {
-            SharedGroup* group = getSharedGroup(filepath);
-            if (group && group->containsEntity(e.sceneId, e.entity)){
-                group->isModified = true;
-            }
-        });
-*/
-}
-
 // Non-const version
 Editor::SceneProject* Editor::Project::getScene(uint32_t sceneId) {
     return findScene<Editor::SceneProject>(sceneId);
@@ -958,10 +894,6 @@ bool Editor::Project::hasScenesUnsavedChanges() const{
     return false;
 }
 
-Editor::EventBus& Editor::Project::getEventBus(){
-    return globalEventBus;
-}
-
 bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path filepath, YAML::Node entityNode){
     if (!filepath.is_relative()) {
         Out::error("Shared entity filepath must be relative: %s", filepath.string().c_str());
@@ -1005,7 +937,6 @@ bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path
     sharedGroups.emplace(filepath, std::move(group));
 
     // Set up event subscriptions for this shared group
-    setupSharedGroupEventSubscriptions(filepath);
     saveSharedGroupToDisk(filepath);
 
     sceneProject->isModified = true;
@@ -1037,7 +968,6 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
     }
 
     auto it = sharedGroups.find(filepath);
-    bool isNewGroup = false;
 
     if (it == sharedGroups.end()) {
         // Entity doesn't exist in any scene yet - create new SharedGroup
@@ -1047,7 +977,6 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
 
         auto [newIt, inserted] = sharedGroups.emplace(filepath, std::move(newGroup));
         it = newIt;
-        isNewGroup = true;
     } else {
         // do not re‐import if already present
         if (it->second.members.count(sceneProject->id)) return {};
@@ -1118,11 +1047,6 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
     }
 
     sceneProject->isModified = needSaveScene;
-
-    // Set up event subscriptions for new shared groups
-    if (isNewGroup) {
-        setupSharedGroupEventSubscriptions(filepath);
-    }
 
     // Add imported entities to scene's entity list
     for (Entity entity : newEntities) {
@@ -1459,6 +1383,50 @@ void Editor::Project::collectEntities(const YAML::Node& entityNode, std::vector<
             collectEntities(child, allEntities, sharedEntities);
         }
     }
+}
+
+bool Editor::Project::sharedGroupComponentChanged(uint32_t sceneId, Entity entity, ComponentType componentType, std::vector<std::string> properties){
+    fs::path filepath = findGroupPathFor(sceneId, entity);
+
+    if (filepath.empty()) {
+        Out::error("Entity %u in scene %u is not part of any shared group", entity, sceneId);
+        return false;
+    }
+
+    SharedGroup* group = getSharedGroup(filepath);
+    if (!group->hasComponentOverride(sceneId, entity, componentType)){
+        // Updating default entity
+        Entity registryEntity = group->getRegistryEntity(sceneId, entity);
+        if (registryEntity == NULL_ENTITY) {
+            Out::error("Failed to find registry entity for shared entity %u in scene %u", entity, sceneId);
+            return false;
+        }
+        EntityRegistry* registry = group->registry.get();
+        for (const auto& property : properties) {
+            Catalog::copyPropertyValue(getScene(sceneId)->scene, entity, registry, registryEntity, componentType, property);
+        }
+
+        // Copy to corresponding entity in other scenes
+        for (const auto& [otherSceneId, otherEntities] : group->members) {
+            if (otherSceneId != sceneId) {
+                Entity otherEntity = group->getLocalEntity(otherSceneId, registryEntity);
+
+                if (!group->hasComponentOverride(otherSceneId, otherEntity, componentType)) {
+                    SceneProject* otherScene = getScene(otherSceneId);
+                    if (otherScene) {
+                        otherScene->needUpdateRender = true;
+                        for (const auto& property : properties) {
+                            Catalog::copyPropertyValue(getScene(sceneId)->scene, entity, otherScene->scene, otherEntity, componentType, property);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    group->isModified = true;
+
+    return true;
 }
 
 void Editor::Project::build() {

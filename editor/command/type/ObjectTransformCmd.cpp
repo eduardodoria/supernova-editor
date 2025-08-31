@@ -2,25 +2,31 @@
 
 using namespace Supernova;
 
-Editor::ObjectTransformCmd::ObjectTransformCmd(SceneProject* sceneProject, Entity entity, Matrix4 localMatrix){
-    this->sceneProject = sceneProject;
+Editor::ObjectTransformCmd::ObjectTransformCmd(Project* project, size_t sceneId, Entity entity, Matrix4 localMatrix){
+    this->project = project;
+    this->sceneId = sceneId;
     
     localMatrix.decomposeStandard(props[entity].newPosition, props[entity].newScale, props[entity].newRotation);
 
-    this->wasModified = sceneProject->isModified;
+    this->wasModified = project->getScene(sceneId)->isModified;
 }
 
-Editor::ObjectTransformCmd::ObjectTransformCmd(SceneProject* sceneProject, Entity entity, Vector3 position, Quaternion rotation, Vector3 scale){
-    this->sceneProject = sceneProject;
+Editor::ObjectTransformCmd::ObjectTransformCmd(Project* project, size_t sceneId, Entity entity, Vector3 position, Quaternion rotation, Vector3 scale){
+    this->project = project;
+    this->sceneId = sceneId;
 
     props[entity].newPosition = position;
     props[entity].newRotation = rotation;
     props[entity].newScale = scale;
 
-    this->wasModified = sceneProject->isModified;
+    this->wasModified = project->getScene(sceneId)->isModified;
 }
 
 bool Editor::ObjectTransformCmd::execute(){
+    SceneProject* sceneProject = project->getScene(sceneId);
+    if (!sceneProject){
+        return false;
+    }
     for (auto& [entity, property] : props){
         if (Transform* transform = sceneProject->scene->findComponent<Transform>(entity)){
             property.oldPosition = transform->position;
@@ -41,6 +47,10 @@ bool Editor::ObjectTransformCmd::execute(){
 }
 
 void Editor::ObjectTransformCmd::undo(){
+    SceneProject* sceneProject = project->getScene(sceneId);
+    if (!sceneProject){
+        return;
+    }
     for (auto const& [entity, property] : props){
         if (Transform* transform = sceneProject->scene->findComponent<Transform>(entity)){
             transform->position = property.oldPosition;
@@ -57,7 +67,7 @@ void Editor::ObjectTransformCmd::undo(){
 bool Editor::ObjectTransformCmd::mergeWith(Editor::Command* otherCommand){
     ObjectTransformCmd* otherCmd = dynamic_cast<ObjectTransformCmd*>(otherCommand);
     if (otherCmd != nullptr){
-        if (sceneProject == otherCmd->sceneProject){
+        if (sceneId == otherCmd->sceneId){
 
             for (auto const& [otherEntity, otherProperty] : otherCmd->props){
                 if (props.find(otherEntity) != props.end()) {
@@ -80,12 +90,6 @@ bool Editor::ObjectTransformCmd::mergeWith(Editor::Command* otherCommand){
 
 void Editor::ObjectTransformCmd::commit(){
     for (auto& [entity, property] : props){
-        Event e;
-        e.type = EventType::ComponentChanged;
-        e.sceneId = sceneProject->id;
-        e.entity = entity;
-        e.compType = ComponentType::Transform;
-        e.properties = {"position", "rotation", "scale"};
-        Project::getEventBus().publish(e);
+        project->sharedGroupComponentChanged(sceneId, entity, ComponentType::Transform, {"position", "rotation", "scale"});
     }
 }

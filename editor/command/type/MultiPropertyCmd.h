@@ -16,10 +16,10 @@ namespace Supernova::Editor {
         }
 
         template<typename T>
-        void addPropertyCmd(SceneProject* sceneProject, Entity entity, ComponentType type, 
+        void addPropertyCmd(Project* project, uint32_t sceneId, Entity entity, ComponentType type, 
                            std::string propertyName, int updateFlags, T newValue) {
             commands.push_back(std::make_unique<PropertyCmd<T>>(
-                sceneProject, entity, type, propertyName, updateFlags, newValue));
+                project, sceneId, entity, type, propertyName, updateFlags, newValue));
         }
 
         void addCommand(std::unique_ptr<Command> command) {

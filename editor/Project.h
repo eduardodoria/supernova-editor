@@ -6,7 +6,6 @@
 #include "render/SceneRender.h"
 #include "command/CommandHistory.h"
 #include "render/preview/MaterialRender.h"
-#include "util/EventBus.h"
 #include "Conector.h"
 #include "Generator.h"
 #include "Configs.h"
@@ -194,8 +193,6 @@ namespace Supernova::Editor{
     class Project{
     private:
 
-        static EventBus globalEventBus;
-
         Conector conector;
         Generator generator;
 
@@ -216,8 +213,6 @@ namespace Supernova::Editor{
 
         template<typename T>
         T* findScene(uint32_t sceneId) const;
-
-        void setupSharedGroupEventSubscriptions(const std::filesystem::path& filepath);
 
         Entity createNewEntity(uint32_t sceneId, std::string entityName);
         bool createNewComponent(uint32_t sceneId, Entity entity, ComponentType component);
@@ -291,8 +286,6 @@ namespace Supernova::Editor{
         bool hasSelectedSceneUnsavedChanges() const;
         bool hasScenesUnsavedChanges() const;
 
-        static EventBus& getEventBus();
-
         bool markEntityShared(uint32_t sceneId, Entity entity, fs::path filepath, YAML::Node entityNode);
         bool removeSharedGroup(const std::filesystem::path& filepath);
 
@@ -315,6 +308,8 @@ namespace Supernova::Editor{
 
         void collectEntities(const YAML::Node& entityNode, std::vector<Entity>& allEntities);
         void collectEntities(const YAML::Node& entityNode, std::vector<Entity>& allEntities, std::vector<Entity>& sharedEntities);
+
+        bool sharedGroupComponentChanged(uint32_t sceneId, Entity entity, ComponentType componentType, std::vector<std::string> properties);
 
         void build();
 

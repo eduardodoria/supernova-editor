@@ -20,7 +20,8 @@ namespace Supernova::Editor{
     class PropertyCmd: public Command{
 
     private:
-        SceneProject* sceneProject;
+        Project* project;
+        uint32_t sceneId;
         ComponentType type;
         std::string propertyName;
         int updateFlags;
@@ -30,17 +31,22 @@ namespace Supernova::Editor{
 
     public:
 
-        PropertyCmd(SceneProject* sceneProject, Entity entity, ComponentType type, std::string propertyName, int updateFlags, T newValue){
-            this->sceneProject = sceneProject;
+        PropertyCmd(Project* project, uint32_t sceneId, Entity entity, ComponentType type, std::string propertyName, int updateFlags, T newValue){
+            this->project = project;
+            this->sceneId = sceneId;
             this->type = type;
             this->propertyName = propertyName;
             this->updateFlags = updateFlags;
 
             this->values[entity].newValue = newValue;
-            this->wasModified = sceneProject->isModified;
+            this->wasModified = project->getScene(sceneId)->isModified;
         }
 
         bool execute(){
+            SceneProject* sceneProject = project->getScene(sceneId);
+            if (!sceneProject){
+                return false;
+            }
             for (auto& [entity, value] : values){
                 T* valueRef = Catalog::getPropertyRef<T>(sceneProject->scene, entity, type, propertyName);
 
@@ -56,6 +62,10 @@ namespace Supernova::Editor{
         }
 
         void undo(){
+            SceneProject* sceneProject = project->getScene(sceneId);
+            if (!sceneProject){
+                return;
+            }
             for (auto const& [entity, value] : values){
                 T* valueRef = Catalog::getPropertyRef<T>(sceneProject->scene, entity, type, propertyName);
 
@@ -70,7 +80,7 @@ namespace Supernova::Editor{
         bool mergeWith(Editor::Command* otherCommand){
             PropertyCmd* otherCmd = dynamic_cast<PropertyCmd*>(otherCommand);
             if (otherCmd != nullptr){
-                if (sceneProject->scene == otherCmd->sceneProject->scene && propertyName == otherCmd->propertyName){
+                if (sceneId == otherCmd->sceneId && propertyName == otherCmd->propertyName){
                     for (auto const& [otherEntity, otherValue] : otherCmd->values){
                         if (values.find(otherEntity) != values.end()) {
                             values[otherEntity].oldValue = otherValue.oldValue;
@@ -89,13 +99,7 @@ namespace Supernova::Editor{
 
         void commit(){
             for (auto const& [entity, value] : values){
-                Event e;
-                e.type = EventType::ComponentChanged;
-                e.sceneId = sceneProject->id;
-                e.entity = entity;
-                e.compType = type;
-                e.properties = {propertyName};
-                Project::getEventBus().publish(e);
+                project->sharedGroupComponentChanged(sceneId, entity, type, {propertyName});
             }
         }
     };
