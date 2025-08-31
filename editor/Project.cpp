@@ -266,50 +266,6 @@ void Editor::Project::insertNewChild(YAML::Node& node, YAML::Node child, size_t 
     }
 }
 
-std::vector<size_t> Editor::Project::mergeEntityNodesImpl(YAML::Node& loadedNode, const YAML::Node& extendNode, size_t& index){
-    std::vector<size_t> extendedIndices;
-
-    if (extendNode["entity"] && extendNode["entity"].IsScalar()) {
-        loadedNode["entity"] = extendNode["entity"];
-    }
-
-    if (extendNode["components"] && extendNode["components"].IsMap()) {
-        for (auto it = extendNode["components"].begin(); it != extendNode["components"].end(); ++it) {
-            std::string key = it->first.as<std::string>();
-            loadedNode["components"][key] = it->second;
-        }
-    }
-
-    size_t loadedChildrenSize = loadedNode["children"]  ? loadedNode["children"].size() : 0;
-    size_t extendChildrenSize = extendNode["children"]  ? extendNode["children"].size() : 0;
-
-    for (size_t i = 0; i < extendChildrenSize; i++) {
-        index++;
-        std::string extendType = extendNode["children"][i]["type"] ? extendNode["children"][i]["type"].as<std::string>() : "";
-
-        if (extendType == "Entity"){
-            YAML::Node newChild = YAML::Clone(extendNode["children"][i]);
-            insertNewChild(loadedNode, newChild, i);
-            loadedChildrenSize++;
-
-            size_t entityCount = countEntitiesInBranch(newChild);
-            for (size_t c = 0; c < entityCount; ++c) {
-                extendedIndices.push_back(index + c);
-            }
-            index += entityCount - 1;
-        }else{
-            YAML::Node loadedChild = loadedNode["children"][i];
-            YAML::Node extendChild = extendNode["children"][i];
-            std::vector<size_t> newIndices = mergeEntityNodesImpl(loadedChild, extendChild, index);
-            std::copy(newIndices.begin(), newIndices.end(), std::back_inserter(extendedIndices));
-        }
-
-    }
-    index += loadedChildrenSize - extendChildrenSize;
-
-    return extendedIndices;
-}
-
 bool Editor::Project::createTempProject(std::string projectName, bool deleteIfExists) {
     try {
         resetConfigs();
@@ -1006,9 +962,9 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
     std::vector<size_t> indicesNotShared;
 
     // Merge extendNode with loadedNode if extendNode is provided
+    std::vector<MergeResult> mergeResults;
     if (extendNode && !extendNode.IsNull()) {
-        // Create a copy of the loaded node for merging
-        indicesNotShared = mergeEntityNodes(node, extendNode);
+        mergeResults = mergeEntityNodes(extendNode, node);
     }
 
     // decode into brand‐new local entities (root + children)
@@ -1016,14 +972,13 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
     std::vector<Entity> newEntities = Stream::decodeEntity(node, scene);
     scene->addEntityChild(parent, newEntities[0], false);
 
-    std::vector<Entity> membersEntities = newEntities;
-    // Remove from newEntities all elements whose index is in indicesNotShared
-    if (!indicesNotShared.empty()) {
-        // Sort indices in descending order to avoid invalidating indices when erasing
-        std::sort(indicesNotShared.rbegin(), indicesNotShared.rend());
-        for (size_t idx : indicesNotShared) {
-            if (idx < membersEntities.size()) {
-                membersEntities.erase(membersEntities.begin() + idx);
+    std::vector<Entity> membersEntities;
+    if (mergeResults.empty()){
+        membersEntities = newEntities;
+    }else{
+        for (int i = 0; i < newEntities.size(); i++) {
+            if (mergeResults[i].isShared){
+                membersEntities.push_back(newEntities[i]);
             }
         }
     }
@@ -1136,10 +1091,10 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Editor::NodeRecov
 
     for (auto& [otherSceneId, otherEntities] : group->members) {
         YAML::Node data;
-        std::vector<size_t> indicesNotShared;
+        std::vector<MergeResult> mergeResults;
         if (entityData.find(otherSceneId) != entityData.end()) {
             data = entityData[otherSceneId].node;
-            indicesNotShared = entityData[otherSceneId].indicesNotShared;
+            mergeResults = entityData[otherSceneId].mergeResults;
         }else{
             data = Stream::encodeEntity(regEntities[0], group->registry.get());
         }
@@ -1156,23 +1111,24 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Editor::NodeRecov
             collectEntities(data, newOtherEntities);
         }
 
-        if (!indicesNotShared.empty()) {
-            // Sort indices in descending order to avoid invalidating indices when erasing
-            std::sort(indicesNotShared.rbegin(), indicesNotShared.rend());
-            for (size_t idx : indicesNotShared) {
-                if (idx < newOtherEntities.size()) {
-                    newOtherEntities.erase(newOtherEntities.begin() + idx);
+        std::vector<Entity> membersEntities;
+        if (mergeResults.empty()){
+            membersEntities = newOtherEntities;
+        }else{
+            for (int i = 0; i < newOtherEntities.size(); i++) {
+                if (mergeResults[i].isShared){
+                    membersEntities.push_back(newOtherEntities[i]);
                 }
             }
         }
 
-        if (regEntities.size() != newOtherEntities.size()) {
+        if (regEntities.size() != membersEntities.size()) {
             Out::error("Mismatch in shared entity count when adding to shared group %s", filepath.string().c_str());
             return false;
         }
 
-        for (int e = 0; e < newOtherEntities.size(); e++) {
-            otherEntities.push_back({newOtherEntities[e], regEntities[e]});
+        for (int e = 0; e < membersEntities.size(); e++) {
+            otherEntities.push_back({membersEntities[e], regEntities[e]});
         }
 
         otherScene->isModified = true;
@@ -1208,7 +1164,7 @@ Editor::NodeRecovery Editor::Project::removeEntityFromSharedGroup(uint32_t scene
     YAML::Node regData = Stream::encodeEntity(registryEntity, group->registry.get(), nullptr, nullptr, true);
 
     NodeRecovery recovery;
-    recovery[NULL_PROJECT_SCENE] = {YAML::Clone(regData), std::vector<size_t>{}};
+    recovery[NULL_PROJECT_SCENE] = {YAML::Clone(regData), std::vector<MergeResult>{}};
 
     for (auto& [otherSceneId, otherEntities] : group->members) {
         Entity other = group->getLocalEntity(otherSceneId, registryEntity);
@@ -1220,9 +1176,9 @@ Editor::NodeRecovery Editor::Project::removeEntityFromSharedGroup(uint32_t scene
         collectEntities(nodeExtend, allEntities, sharedEntities);
 
         YAML::Node node = YAML::Clone(regData);
-        std::vector<size_t> indicesNotShared = mergeEntityNodes(node, nodeExtend);
+        std::vector<MergeResult> mergeResults = mergeEntityNodes(nodeExtend, node);
 
-        recovery[otherSceneId] = {node, indicesNotShared};
+        recovery[otherSceneId] = {node, mergeResults};
 
         for (const Entity& sharedE : sharedEntities) {
             // Find the EntityMember whose localEntity matches sharedE
@@ -1313,9 +1269,45 @@ std::filesystem::path Editor::Project::findGroupPathFor(uint32_t sceneId, Entity
     return std::filesystem::path(); // empty path for none
 }
 
-std::vector<size_t> Editor::Project::mergeEntityNodes(YAML::Node& loadedNode, const YAML::Node& extendNode) {
-    size_t index = 0;
-    return mergeEntityNodesImpl(loadedNode, extendNode, index);
+std::vector<Editor::MergeResult> Editor::Project::mergeEntityNodes(const YAML::Node& extendNode, YAML::Node& outputNode) {
+    std::vector<Editor::MergeResult> result;
+
+    if (extendNode["entity"] && extendNode["entity"].IsScalar()) {
+        outputNode["entity"] = extendNode["entity"];
+    }
+
+    if (extendNode["components"] && extendNode["components"].IsMap()) {
+        for (auto it = extendNode["components"].begin(); it != extendNode["components"].end(); ++it) {
+            std::string key = it->first.as<std::string>();
+            outputNode["components"][key] = it->second;
+        }
+    }
+
+    result.push_back({true, 0});
+
+    size_t extendChildrenSize = extendNode["children"]  ? extendNode["children"].size() : 0;
+
+    for (size_t i = 0; i < extendChildrenSize; i++) {
+        std::string extendType = extendNode["children"][i]["type"] ? extendNode["children"][i]["type"].as<std::string>() : "";
+
+        if (extendType == "Entity"){
+            YAML::Node newChild = YAML::Clone(extendNode["children"][i]);
+            insertNewChild(outputNode, newChild, i);
+
+            size_t entityCount = countEntitiesInBranch(newChild);
+            for (size_t c = 0; c < entityCount; ++c) {
+                result.push_back({false, 0});
+            }
+        }else{
+            YAML::Node outputChild = outputNode["children"][i];
+            YAML::Node extendChild = extendNode["children"][i];
+            std::vector<Editor::MergeResult> newResults = mergeEntityNodes(extendChild, outputChild);
+            std::copy(newResults.begin(), newResults.end(), std::back_inserter(result));
+        }
+
+    }
+
+    return result;
 }
 
 YAML::Node Editor::Project::clearEntitiesNode(YAML::Node node) {

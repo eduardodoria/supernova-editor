@@ -35,6 +35,11 @@ namespace Supernova::Editor{
         bool isModified;
     };
 
+    struct MergeResult {
+        bool isShared; // Whether the entity was already part of a shared group
+        uint64_t overriddenComponents; // Bitmask of overridden ComponentTypes for each entity
+    };
+
     struct SharedGroup {
 
         struct EntityMember {
@@ -185,7 +190,7 @@ namespace Supernova::Editor{
 
     struct NodeRecoveryEntry {
         YAML::Node node;
-        std::vector<size_t> indicesNotShared;
+        std::vector<MergeResult> mergeResults;
     };
 
     using NodeRecovery = std::map<uint32_t, NodeRecoveryEntry>;
@@ -221,7 +226,6 @@ namespace Supernova::Editor{
 
         size_t countEntitiesInBranch(const YAML::Node& entityNode);
         void insertNewChild(YAML::Node& node, YAML::Node child, size_t index);
-        std::vector<size_t> mergeEntityNodesImpl(YAML::Node& loadedNode, const YAML::Node& extendNode, size_t& index);
 
     public:
         Project();
@@ -301,7 +305,7 @@ namespace Supernova::Editor{
         const SharedGroup* getSharedGroup(const std::filesystem::path& filepath) const;
         std::filesystem::path findGroupPathFor(uint32_t sceneId, Entity e) const;
 
-        std::vector<size_t> mergeEntityNodes(YAML::Node& loadedNode, const YAML::Node& extendNode);
+        std::vector<MergeResult> mergeEntityNodes(const YAML::Node& extendNode, YAML::Node& outputNode);
 
         YAML::Node clearEntitiesNode(YAML::Node node);
         YAML::Node changeEntitiesNode(Entity& firstEntity, YAML::Node node);
