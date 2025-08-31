@@ -67,13 +67,26 @@ namespace Supernova::Editor{
             return result;
         }
 
-        // Get registry entity based on other scene entity
+        // Get registry entity based on other scene local entity
         Entity getRegistryEntity(uint32_t sceneId, Entity entity) const {
             auto it = members.find(sceneId);
             if (it != members.end()) {
                 for (const auto &member : it->second) {
                     if (member.localEntity == entity) {
                         return member.registryEntity;
+                    }
+                }
+            }
+            return NULL_ENTITY;
+        }
+
+        // Get local entity based on registry entity
+        Entity getLocalEntity(uint32_t sceneId, Entity entity) const {
+            auto it = members.find(sceneId);
+            if (it != members.end()) {
+                for (const auto &member : it->second) {
+                    if (member.registryEntity == entity) {
+                        return member.localEntity;
                     }
                 }
             }
@@ -299,6 +312,8 @@ namespace Supernova::Editor{
 
         YAML::Node clearEntitiesNode(YAML::Node node);
         YAML::Node changeEntitiesNode(Entity& firstEntity, YAML::Node node);
+
+        void collectEntities(const YAML::Node& entityNode, std::vector<Entity>& allEntities);
         void collectEntities(const YAML::Node& entityNode, std::vector<Entity>& allEntities, std::vector<Entity>& sharedEntities);
 
         void build();
