@@ -1301,14 +1301,20 @@ std::vector<Editor::MergeResult> Editor::Project::mergeEntityNodes(const YAML::N
         outputNode["entity"] = extendNode["entity"];
     }
 
+    uint64_t overriddenComponents = 0;
+
     if (extendNode["components"] && extendNode["components"].IsMap()) {
         for (auto it = extendNode["components"].begin(); it != extendNode["components"].end(); ++it) {
             std::string key = it->first.as<std::string>();
             outputNode["components"][key] = it->second;
+
+            ComponentType compType = Catalog::getComponentType(key);
+            uint64_t bit = 1ULL << static_cast<int>(compType);
+            overriddenComponents |= bit;
         }
     }
 
-    result.push_back({true, 0});
+    result.push_back({true, overriddenComponents});
 
     size_t extendChildrenSize = extendNode["children"]  ? extendNode["children"].size() : 0;
 

@@ -229,6 +229,24 @@ ComponentId Editor::Catalog::getComponentId(const EntityRegistry* registry, Comp
     }
 }
 
+Editor::ComponentType Editor::Catalog::getComponentType(const std::string& componentName) {
+    if (componentName == "transform") {
+        return ComponentType::Transform;
+    } else if (componentName == "mesh") {
+        return ComponentType::MeshComponent;
+    } else if (componentName == "ui") {
+        return ComponentType::UIComponent;
+    } else if (componentName == "layout") {
+        return ComponentType::UILayoutComponent;
+    } else if (componentName == "image") {
+        return ComponentType::ImageComponent;
+    } else if (componentName == "light") {
+        return ComponentType::LightComponent;
+    }
+
+    return ComponentType::Transform;
+}
+
 Signature Editor::Catalog::componentTypeMaskToSignature(const EntityRegistry* registry, uint64_t mask) {
     Signature signature;
     for (int i = 0; i < 64; ++i) {
