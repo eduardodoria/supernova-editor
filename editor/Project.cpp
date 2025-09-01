@@ -850,6 +850,17 @@ bool Editor::Project::hasScenesUnsavedChanges() const{
     return false;
 }
 
+size_t Editor::Project::getTransformIndex(EntityRegistry* registry, Entity entity) const{
+    Signature signature = registry->getSignature(entity);
+    if (signature.test(registry->getComponentId<Transform>())) {
+        Transform& transform = registry->getComponent<Transform>(entity);
+        auto transforms = registry->getComponentArray<Transform>();
+        return transforms->getIndex(entity);
+    }
+
+    return 0;
+}
+
 bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path filepath, YAML::Node entityNode){
     if (!filepath.is_relative()) {
         Out::error("Shared entity filepath must be relative: %s", filepath.string().c_str());
@@ -1055,7 +1066,7 @@ bool Editor::Project::unimportSharedEntity(uint32_t sceneId, const std::filesyst
     return true;
 }
 
-bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Editor::NodeRecovery entityData, Entity parent, const std::filesystem::path& filepath, bool createItself){
+bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Editor::NodeRecovery recoveryData, Entity parent, const std::filesystem::path& filepath, bool createItself){
     SharedGroup* group = getSharedGroup(filepath);
     if (!group) {
         return false;
@@ -1077,24 +1088,31 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Editor::NodeRecov
         return false;
     }
 
-    if (entityData.find(NULL_PROJECT_SCENE) == entityData.end()) {
-        if (entityData.find(sceneId) == entityData.end()) {
+    bool hasRegRecoveryData = true;
+    if (recoveryData.find(NULL_PROJECT_SCENE) == recoveryData.end()) {
+        hasRegRecoveryData = false;
+        if (recoveryData.find(sceneId) == recoveryData.end()) {
             Out::error("No default entity data provided for adding to shared group");
             return false;
         }else{
-            entityData[NULL_PROJECT_SCENE].node = clearEntitiesNode(YAML::Clone(entityData[sceneId].node));
+            recoveryData[NULL_PROJECT_SCENE].node = clearEntitiesNode(YAML::Clone(recoveryData[sceneId].node));
         }
     }
 
-    std::vector<Entity> regEntities =  Stream::decodeEntity(entityData[NULL_PROJECT_SCENE].node, group->registry.get());
+    std::vector<Entity> regEntities =  Stream::decodeEntity(recoveryData[NULL_PROJECT_SCENE].node, group->registry.get());
     group->registry->addEntityChild(registryParent, regEntities[0], false);
+    if (hasRegRecoveryData){
+        group->registry->moveChildToIndex(regEntities[0], recoveryData[NULL_PROJECT_SCENE].transformIndex, false);
+    }
 
     for (auto& [otherSceneId, otherEntities] : group->members) {
         YAML::Node data;
         std::vector<MergeResult> mergeResults;
-        if (entityData.find(otherSceneId) != entityData.end()) {
-            data = entityData[otherSceneId].node;
-            mergeResults = entityData[otherSceneId].mergeResults;
+        bool hasRecoveryData = false;
+        if (recoveryData.find(otherSceneId) != recoveryData.end()) {
+            hasRecoveryData = true;
+            data = recoveryData[otherSceneId].node;
+            mergeResults = recoveryData[otherSceneId].mergeResults;
         }else{
             data = Stream::encodeEntity(regEntities[0], group->registry.get());
         }
@@ -1107,6 +1125,9 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Editor::NodeRecov
 
             newOtherEntities = Stream::decodeEntity(data, otherScene->scene, nullptr, otherScene);
             otherScene->scene->addEntityChild(otherParent, newOtherEntities[0], false);
+            if (hasRecoveryData){
+                otherScene->scene->moveChildToIndex(newOtherEntities[0], recoveryData[otherSceneId].transformIndex, false);
+            }
         }else{
             collectEntities(data, newOtherEntities);
         }
@@ -1163,8 +1184,11 @@ Editor::NodeRecovery Editor::Project::removeEntityFromSharedGroup(uint32_t scene
     }
     YAML::Node regData = Stream::encodeEntity(registryEntity, group->registry.get(), nullptr, nullptr, true);
 
+    size_t transformIndex;
     NodeRecovery recovery;
-    recovery[NULL_PROJECT_SCENE] = {YAML::Clone(regData), std::vector<MergeResult>{}};
+
+    transformIndex = getTransformIndex(group->registry.get(), registryEntity);
+    recovery[NULL_PROJECT_SCENE] = {YAML::Clone(regData), std::vector<MergeResult>{}, transformIndex};
 
     for (auto& [otherSceneId, otherEntities] : group->members) {
         Entity other = group->getLocalEntity(otherSceneId, registryEntity);
@@ -1178,7 +1202,8 @@ Editor::NodeRecovery Editor::Project::removeEntityFromSharedGroup(uint32_t scene
         YAML::Node node = YAML::Clone(regData);
         std::vector<MergeResult> mergeResults = mergeEntityNodes(nodeExtend, node);
 
-        recovery[otherSceneId] = {node, mergeResults};
+        transformIndex = getTransformIndex(otherScene->scene, other);
+        recovery[otherSceneId] = {node, mergeResults, transformIndex};
 
         for (const Entity& sharedE : sharedEntities) {
             // Find the EntityMember whose localEntity matches sharedE

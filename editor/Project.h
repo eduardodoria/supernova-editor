@@ -191,6 +191,7 @@ namespace Supernova::Editor{
     struct NodeRecoveryEntry {
         YAML::Node node;
         std::vector<MergeResult> mergeResults;
+        size_t transformIndex;
     };
 
     using NodeRecovery = std::map<uint32_t, NodeRecoveryEntry>;
@@ -290,13 +291,15 @@ namespace Supernova::Editor{
         bool hasSelectedSceneUnsavedChanges() const;
         bool hasScenesUnsavedChanges() const;
 
+        size_t getTransformIndex(EntityRegistry* registry, Entity entity) const;
+
         bool markEntityShared(uint32_t sceneId, Entity entity, fs::path filepath, YAML::Node entityNode);
         bool removeSharedGroup(const std::filesystem::path& filepath);
 
         std::vector<Entity> importSharedEntity(SceneProject* sceneProject, const std::filesystem::path& filepath, Entity parent = NULL_ENTITY, bool needSaveScene = true, YAML::Node extendNode = YAML::Node());
         bool unimportSharedEntity(uint32_t sceneId, const std::filesystem::path& filepath, const std::vector<Entity>& entities, bool destroyEntities = true);
 
-        bool addEntityToSharedGroup(uint32_t sceneId, NodeRecovery entityData, Entity parent, const std::filesystem::path& filepath, bool createItself = true);
+        bool addEntityToSharedGroup(uint32_t sceneId, NodeRecovery recoveryData, Entity parent, const std::filesystem::path& filepath, bool createItself = true);
         NodeRecovery removeEntityFromSharedGroup(uint32_t sceneId, Entity entity, const std::filesystem::path& filepath, bool destroyItself = true);
 
         void saveSharedGroupToDisk(const std::filesystem::path& filepath);
