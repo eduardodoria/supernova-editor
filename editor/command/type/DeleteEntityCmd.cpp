@@ -91,7 +91,7 @@ void Editor::DeleteEntityCmd::undo(){
     for (DeleteEntityData& entityData : entities){
         if (!entityData.wasSharedChild){
 
-            std::vector<Entity> allEntities = Stream::decodeEntity(entityData.data, sceneProject->scene, project, sceneProject);
+            std::vector<Entity> allEntities = Stream::decodeEntity(entityData.data, sceneProject->scene, &sceneProject->entities, project, sceneProject);
             entityData.entity = allEntities[0];
 
             if (entityData.parent != NULL_ENTITY) {

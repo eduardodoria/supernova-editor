@@ -12,12 +12,12 @@
 #include "subsystem/MeshSystem.h"
 #include "command/CommandHandle.h"
 #include "command/type/DeleteEntityCmd.h"
+#include "command/type/CreateEntityCmd.h"
+#include "command/type/MoveEntityOrderCmd.h"
 #include "Stream.h"
 #include "util/FileDialogs.h"
 #include "util/SHA1.h"
 #include "util/GraphicUtils.h"
-
-#include "command/type/CreateEntityCmd.h"
 
 using namespace Supernova;
 
@@ -886,7 +886,7 @@ bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path
     SharedGroup group;
     group.registry = std::make_unique<EntityRegistry>();
     group.isModified = true;
-    std::vector<Entity> regEntities = Stream::decodeEntity(clearEntitiesNode(entityNode), group.registry.get());
+    std::vector<Entity> regEntities = Stream::decodeEntity(clearEntitiesNode(entityNode), group.registry.get(), &group.registryEntities);
     for (int i = 0; i < regEntities.size(); i++) {
         group.members[sceneId].push_back({branchEntities[i], regEntities[i]});
     }
@@ -960,7 +960,7 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
             std::filesystem::path fullSharedPath = getProjectPath() / filepath;
             node = YAML::LoadFile(fullSharedPath.string());
             group.registry->clear();
-            Stream::decodeEntity(node, group.registry.get());
+            Stream::decodeEntity(node, group.registry.get(), &group.registryEntities);
         } catch (const YAML::Exception& e) {
             Out::error("Failed to load shared entity file: %s", e.what());
             return {};
@@ -980,7 +980,7 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
 
     // decode into brand‐new local entities (root + children)
     Scene* scene = sceneProject->scene;
-    std::vector<Entity> newEntities = Stream::decodeEntity(node, scene);
+    std::vector<Entity> newEntities = Stream::decodeEntity(node, scene, &sceneProject->entities);
     scene->addEntityChild(parent, newEntities[0], false);
 
     std::vector<Entity> membersEntities;
@@ -1014,11 +1014,6 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
     }
 
     sceneProject->isModified = needSaveScene;
-
-    // Add imported entities to scene's entity list
-    for (Entity entity : newEntities) {
-        sceneProject->entities.push_back(entity);
-    }
 
     return newEntities;
 }
@@ -1100,7 +1095,7 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Editor::NodeRecov
         }
     }
 
-    std::vector<Entity> regEntities =  Stream::decodeEntity(recoveryData[NULL_PROJECT_SCENE].node, group->registry.get());
+    std::vector<Entity> regEntities =  Stream::decodeEntity(recoveryData[NULL_PROJECT_SCENE].node, group->registry.get(), &group->registryEntities);
     group->registry->addEntityChild(registryParent, regEntities[0], false);
     if (hasRegRecoveryData){
         group->registry->moveChildToIndex(regEntities[0], recoveryData[NULL_PROJECT_SCENE].transformIndex, false);
@@ -1124,7 +1119,7 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Editor::NodeRecov
         if (otherSceneId != sceneId || createItself) {
             Entity otherParent = group->getLocalEntity(otherSceneId, registryParent);
 
-            newOtherEntities = Stream::decodeEntity(data, otherScene->scene, nullptr, otherScene);
+            newOtherEntities = Stream::decodeEntity(data, otherScene->scene, &otherScene->entities);
             otherScene->scene->addEntityChild(otherParent, newOtherEntities[0], false);
             if (hasRecoveryData){
                 otherScene->scene->moveChildToIndex(newOtherEntities[0], recoveryData[otherSceneId].transformIndex, false);
@@ -1248,6 +1243,12 @@ Editor::NodeRecovery Editor::Project::removeEntityFromSharedGroup(uint32_t scene
     // Destroy entities from registry
     for (Entity regEntity : registryEntitiesToRemove) {
         group->registry->destroyEntity(regEntity);
+
+        // Remove from scene's entity list
+        auto sceneIt = std::find(group->registryEntities.begin(), group->registryEntities.end(), regEntity);
+        if (sceneIt != group->registryEntities.end()) {
+            group->registryEntities.erase(sceneIt);
+        }
     }
 
     group->isModified = true;
@@ -1450,6 +1451,47 @@ bool Editor::Project::sharedGroupComponentChanged(uint32_t sceneId, Entity entit
     }
 
     group->isModified = true;
+
+    return true;
+}
+
+bool Editor::Project::sharedGroupMoveEntityOrder(uint32_t sceneId, Entity entity, Entity target, InsertionType type, bool moveItself){
+    fs::path filepath = findGroupPathFor(sceneId, entity);
+    if (filepath.empty()) {
+        Out::error("Entity %u in scene %u is not part of any shared group", entity, sceneId);
+        return false;
+    }
+
+    SharedGroup* group = getSharedGroup(filepath);
+
+    Entity registryEntity = group->getRegistryEntity(sceneId, entity);
+    Entity registryTarget = group->getRegistryEntity(sceneId, target);
+    if (registryEntity == NULL_ENTITY || registryTarget == NULL_ENTITY) {
+        Out::error("Failed to find registry entities for shared entities %u or %u in scene %u", entity, target, sceneId);
+        return false;
+    }
+
+    Supernova::Entity oldParent;
+    size_t oldIndex;
+    size_t oldTransformIndex;
+    MoveEntityOrderCmd::changeEntityOrder(group->registry.get(), group->registryEntities, registryEntity, registryTarget, type, oldParent, oldIndex, oldTransformIndex);
+
+    for (const auto& [otherSceneId, otherEntities] : group->members) {
+        if (otherSceneId != sceneId || moveItself) {
+            Entity otherEntity = group->getLocalEntity(otherSceneId, registryEntity);
+            Entity otherTarget = group->getLocalEntity(otherSceneId, registryTarget);
+
+            if (otherEntity != NULL_ENTITY && otherTarget != NULL_ENTITY) {
+                SceneProject* otherScene = getScene(otherSceneId);
+                if (otherScene) {
+                    Supernova::Entity otherOldParent;
+                    size_t otherOldIndex;
+                    size_t otherOldTransformIndex;
+                    MoveEntityOrderCmd::changeEntityOrder(otherScene->scene, otherScene->entities, otherEntity, otherTarget, type, otherOldParent, otherOldIndex, otherOldTransformIndex);
+                }
+            }
+        }
+    }
 
     return true;
 }

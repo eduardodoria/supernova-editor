@@ -14,8 +14,8 @@ Editor::MoveEntityOrderCmd::MoveEntityOrderCmd(Project* project, uint32_t sceneI
     this->wasModified = project->getScene(sceneId)->isModified;
 }
 
-void Editor::MoveEntityOrderCmd::sortEntitiesByTransformOrder(std::vector<Entity>& entities, Scene* scene) {
-    auto transforms = scene->getComponentArray<Transform>();
+void Editor::MoveEntityOrderCmd::sortEntitiesByTransformOrder(std::vector<Entity>& entities, EntityRegistry* registry) {
+    auto transforms = registry->getComponentArray<Transform>();
     std::unordered_map<Entity, size_t> transformOrder;
     for (size_t i = 0; i < transforms->size(); ++i) {
         Entity ent = transforms->getEntity(i);
@@ -28,27 +28,24 @@ void Editor::MoveEntityOrderCmd::sortEntitiesByTransformOrder(std::vector<Entity
     );
 }
 
-bool Editor::MoveEntityOrderCmd::execute(){
-    SceneProject* sceneProject = project->getScene(sceneId);
-    std::vector<Entity>& entities = sceneProject->entities;
-
-    Transform* transformSource = sceneProject->scene->findComponent<Transform>(source);
-    Transform* transformTarget = sceneProject->scene->findComponent<Transform>(target);
+bool Editor::MoveEntityOrderCmd::changeEntityOrder(EntityRegistry* registry, std::vector<Entity>& entities, Entity source, Entity target, InsertionType type, Entity& oldParent, size_t& oldIndex, size_t& oldTransformIndex) {
+    Transform* transformSource = registry->findComponent<Transform>(source);
+    Transform* transformTarget = registry->findComponent<Transform>(target);
 
     if (transformSource && transformTarget){
 
-        if (sceneProject->scene->isParentOf(source, target)){
+        if (registry->isParentOf(source, target)){
             Out::error("Cannot move entity to a child");
             return false;
         }
 
-        auto transforms = sceneProject->scene->getComponentArray<Transform>();
+        auto transforms = registry->getComponentArray<Transform>();
 
         size_t sourceTransformIndex = transforms->getIndex(source);
         size_t targetTransformIndex = transforms->getIndex(target);
 
         // Need to be before addEntityChild
-        size_t sizeOfSourceBranch = sceneProject->scene->findBranchLastIndex(source) - sourceTransformIndex + 1;
+        size_t sizeOfSourceBranch = registry->findBranchLastIndex(source) - sourceTransformIndex + 1;
         bool needAdjustBranch = (sourceTransformIndex < targetTransformIndex);
 
         Entity newParent = NULL_ENTITY;
@@ -59,13 +56,13 @@ bool Editor::MoveEntityOrderCmd::execute(){
         }
 
         oldParent = transformSource->parent;
-        sceneProject->scene->addEntityChild(newParent, source, true);
+        registry->addEntityChild(newParent, source, true);
 
         oldTransformIndex = sourceTransformIndex;
 
         if (type == InsertionType::AFTER){
             // if position target has children, move them to the end of the list
-            targetTransformIndex = sceneProject->scene->findBranchLastIndex(target);
+            targetTransformIndex = registry->findBranchLastIndex(target);
         }
         if (type == InsertionType::AFTER || type == InsertionType::IN){
             targetTransformIndex++;
@@ -74,9 +71,9 @@ bool Editor::MoveEntityOrderCmd::execute(){
             targetTransformIndex = targetTransformIndex - sizeOfSourceBranch;
         }
 
-        sceneProject->scene->moveChildToIndex(source, targetTransformIndex, false);
+        registry->moveChildToIndex(source, targetTransformIndex, false);
 
-        sortEntitiesByTransformOrder(entities, sceneProject->scene);
+        sortEntitiesByTransformOrder(entities, registry);
 
     }else{
 
@@ -108,6 +105,18 @@ bool Editor::MoveEntityOrderCmd::execute(){
             entities.insert(entities.begin() + targetIndex + 1, tempSource);
         }
 
+    }
+
+    return true;
+}
+
+bool Editor::MoveEntityOrderCmd::execute(){
+    SceneProject* sceneProject = project->getScene(sceneId);
+
+    changeEntityOrder(sceneProject->scene, sceneProject->entities, source, target, type, oldParent, oldIndex, oldTransformIndex);
+
+    if (!project->findGroupPathFor(sceneId, source).empty() && !project->findGroupPathFor(sceneId, source).empty()){
+        project->sharedGroupMoveEntityOrder(sceneId, source, target, type, false);
     }
 
     sceneProject->isModified = true;

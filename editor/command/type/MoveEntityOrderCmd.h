@@ -8,13 +8,9 @@
 
 namespace Supernova::Editor{
 
-    enum class InsertionType{
-        BEFORE,
-        AFTER,
-        IN
-    };
-
     class MoveEntityOrderCmd: public Command{
+
+    friend class Project;
 
     private:
         Project* project;
@@ -30,7 +26,8 @@ namespace Supernova::Editor{
 
         bool wasModified;
 
-        void sortEntitiesByTransformOrder(std::vector<Entity>& entities, Scene* scene);
+        static void sortEntitiesByTransformOrder(std::vector<Entity>& entities, EntityRegistry* registry);
+        static bool changeEntityOrder(EntityRegistry* registry, std::vector<Entity>& entities, Entity source, Entity target, InsertionType type, Entity& oldParent, size_t& oldIndex, size_t& oldTransformIndex);
 
     public:
         MoveEntityOrderCmd(Project* project, uint32_t sceneId, Entity source, Entity target, InsertionType type);

@@ -22,6 +22,12 @@ namespace Supernova::Editor{
         SCENE_UI
     };
 
+    enum class InsertionType{
+        BEFORE,
+        AFTER,
+        IN
+    };
+
     struct SceneProject{
         uint32_t id;
         std::string name;
@@ -50,6 +56,7 @@ namespace Supernova::Editor{
         std::map<uint32_t, std::vector<EntityMember>> members; // sceneId → list of local entity to registry entity (root + children)
         std::map<uint32_t, std::map<Entity, uint64_t>> overrides; // sceneId → entityId → bitmask of overridden ComponentTypes
         std::unique_ptr<EntityRegistry> registry;
+        std::vector<Entity> registryEntities;
         bool isModified = false;
 
         // Helper methods
@@ -317,6 +324,7 @@ namespace Supernova::Editor{
         void collectEntities(const YAML::Node& entityNode, std::vector<Entity>& allEntities, std::vector<Entity>& sharedEntities);
 
         bool sharedGroupComponentChanged(uint32_t sceneId, Entity entity, ComponentType componentType, std::vector<std::string> properties);
+        bool sharedGroupMoveEntityOrder(uint32_t sceneId, Entity entity, Entity target, InsertionType type, bool moveItself = true);
 
         void build();
 
