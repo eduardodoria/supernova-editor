@@ -109,10 +109,12 @@ namespace Supernova::Editor{
     class Catalog{
     private:
 
+        static std::string removeComponentSuffix(std::string str);
+
     public:
         Catalog();
 
-        static std::string getComponentName(ComponentType component);
+        static std::string getComponentName(ComponentType component, bool removeSuffix = false);
         static ComponentId getComponentId(const EntityRegistry* registry, ComponentType compType);
         static ComponentType getComponentType(const std::string& componentName);
         static Signature componentTypeMaskToSignature(const EntityRegistry* registry, uint64_t mask);

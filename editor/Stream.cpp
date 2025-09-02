@@ -842,64 +842,72 @@ LightComponent Editor::Stream::decodeLightComponent(const YAML::Node& node) {
 void Editor::Stream::encodeComponentsAux(YAML::Node& compNode, const Entity entity, const EntityRegistry* registry, Signature signature) {
     if (signature.test(registry->getComponentId<Transform>())) {
         Transform transform = registry->getComponent<Transform>(entity);
-        compNode["transform"] = encodeTransform(transform);
+        compNode[Catalog::getComponentName(ComponentType::Transform, true)] = encodeTransform(transform);
     }
 
     if (signature.test(registry->getComponentId<MeshComponent>())) {
         MeshComponent mesh = registry->getComponent<MeshComponent>(entity);
-        compNode["mesh"] = encodeMeshComponent(mesh);
+        compNode[Catalog::getComponentName(ComponentType::MeshComponent, true)] = encodeMeshComponent(mesh);
     }
 
     if (signature.test(registry->getComponentId<UIComponent>())) {
         UIComponent ui = registry->getComponent<UIComponent>(entity);
-        compNode["ui"] = encodeUIComponent(ui);
+        compNode[Catalog::getComponentName(ComponentType::UIComponent, true)] = encodeUIComponent(ui);
     }
 
     if (signature.test(registry->getComponentId<UILayoutComponent>())) {
         UILayoutComponent layout = registry->getComponent<UILayoutComponent>(entity);
-        compNode["layout"] = encodeUILayoutComponent(layout);
+        compNode[Catalog::getComponentName(ComponentType::UILayoutComponent, true)] = encodeUILayoutComponent(layout);
     }
 
     if (signature.test(registry->getComponentId<ImageComponent>())) {
         ImageComponent image = registry->getComponent<ImageComponent>(entity);
-        compNode["image"] = encodeImageComponent(image);
+        compNode[Catalog::getComponentName(ComponentType::ImageComponent, true)] = encodeImageComponent(image);
     }
 
     if (signature.test(registry->getComponentId<LightComponent>())) {
         LightComponent light = registry->getComponent<LightComponent>(entity);
-        compNode["light"] = encodeLightComponent(light);
+        compNode[Catalog::getComponentName(ComponentType::LightComponent, true)] = encodeLightComponent(light);
     }
 }
 
 void Editor::Stream::decodeComponentsAux(Entity entity, Entity parent, EntityRegistry* registry, const YAML::Node& compNode){
-    if (compNode["transform"]) {
-        Transform transform = decodeTransform(compNode["transform"]);
+    std::string compName;
+
+    compName = Catalog::getComponentName(ComponentType::Transform, true);
+    if (compNode[compName]) {
+        Transform transform = decodeTransform(compNode[compName]);
         transform.parent = parent;
         registry->addComponent<Transform>(entity, transform);
     }
 
-    if (compNode["mesh"]) {
-        MeshComponent mesh = decodeMeshComponent(compNode["mesh"]);
+    compName = Catalog::getComponentName(ComponentType::MeshComponent, true);
+    if (compNode[compName]) {
+        MeshComponent mesh = decodeMeshComponent(compNode[compName]);
         registry->addComponent<MeshComponent>(entity, mesh);
     }
 
-    if (compNode["ui"]) {
-        UIComponent ui = decodeUIComponent(compNode["ui"]);
+    compName = Catalog::getComponentName(ComponentType::UIComponent, true);
+    if (compNode[compName]) {
+        UIComponent ui = decodeUIComponent(compNode[compName]);
         registry->addComponent<UIComponent>(entity, ui);
     }
 
-    if (compNode["layout"]) {
-        UILayoutComponent layout = decodeUILayoutComponent(compNode["layout"]);
+    compName = Catalog::getComponentName(ComponentType::UILayoutComponent, true);
+    if (compNode[compName]) {
+        UILayoutComponent layout = decodeUILayoutComponent(compNode[compName]);
         registry->addComponent<UILayoutComponent>(entity, layout);
     }
 
-    if (compNode["image"]) {
-        ImageComponent image = decodeImageComponent(compNode["image"]);
+    compName = Catalog::getComponentName(ComponentType::ImageComponent, true);
+    if (compNode[compName]) {
+        ImageComponent image = decodeImageComponent(compNode[compName]);
         registry->addComponent<ImageComponent>(entity, image);
     }
 
-    if (compNode["light"]) {
-        LightComponent light = decodeLightComponent(compNode["light"]);
+    compName = Catalog::getComponentName(ComponentType::LightComponent, true);
+    if (compNode[compName]) {
+        LightComponent light = decodeLightComponent(compNode[compName]);
         registry->addComponent<LightComponent>(entity, light);
     }
 }

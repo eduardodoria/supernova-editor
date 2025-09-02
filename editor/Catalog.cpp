@@ -35,100 +35,123 @@ static std::vector<int> po2Values = { 16, 32, 64, 128, 256, 512, 1024, 2048, 409
 Editor::Catalog::Catalog(){
 }
 
-std::string Editor::Catalog::getComponentName(ComponentType component){
-    if(component == ComponentType::ActionComponent){
-        return "ActionComponent";
-    }else if(component == ComponentType::AlphaActionComponent){
-        return "AlphaActionComponent";
-    }else if(component == ComponentType::AnimationComponent){
-        return "AnimationComponent";
-    }else if(component == ComponentType::AudioComponent){
-        return "AudioComponent";
-    }else if(component == ComponentType::Body2DComponent){
-        return "Body2DComponent";
-    }else if(component == ComponentType::Body3DComponent){
-        return "Body3DComponent";
-    }else if(component == ComponentType::BoneComponent){
-        return "BoneComponent";
-    }else if(component == ComponentType::ButtonComponent){
-        return "ButtonComponent";
-    }else if(component == ComponentType::CameraComponent){
-        return "CameraComponent";
-    }else if(component == ComponentType::ColorActionComponent){
-        return "ColorActionComponent";
-    }else if(component == ComponentType::FogComponent){
-        return "FogComponent";
-    }else if(component == ComponentType::ImageComponent){
-        return "ImageComponent";
-    }else if(component == ComponentType::InstancedMeshComponent){
-        return "InstancedMeshComponent";
-    }else if(component == ComponentType::Joint2DComponent){
-        return "Joint2DComponent";
-    }else if(component == ComponentType::Joint3DComponent){
-        return "Joint3DComponent";
-    }else if(component == ComponentType::KeyframeTracksComponent){
-        return "KeyframeTracksComponent";
-    }else if(component == ComponentType::LightComponent){
-        return "LightComponent";
-    }else if(component == ComponentType::LinesComponent){
-        return "LinesComponent";
-    }else if(component == ComponentType::MeshComponent){
-        return "MeshComponent";
-    }else if(component == ComponentType::MeshPolygonComponent){
-        return "MeshPolygonComponent";
-    }else if(component == ComponentType::ModelComponent){
-        return "ModelComponent";
-    }else if(component == ComponentType::MorphTracksComponent){
-        return "MorphTracksComponent";
-    }else if(component == ComponentType::PanelComponent){
-        return "PanelComponent";
-    }else if(component == ComponentType::ParticlesComponent){
-        return "ParticlesComponent";
-    }else if(component == ComponentType::PointsComponent){
-        return "PointsComponent";
-    }else if(component == ComponentType::PolygonComponent){
-        return "PolygonComponent";
-    }else if(component == ComponentType::PositionActionComponent){
-        return "PositionActionComponent";
-    }else if(component == ComponentType::RotateTracksComponent){
-        return "RotateTracksComponent";
-    }else if(component == ComponentType::RotationActionComponent){
-        return "RotationActionComponent";
-    }else if(component == ComponentType::ScaleActionComponent){
-        return "ScaleActionComponent";
-    }else if(component == ComponentType::ScaleTracksComponent){
-        return "ScaleTracksComponent";
-    }else if(component == ComponentType::ScrollbarComponent){
-        return "ScrollbarComponent";
-    }else if(component == ComponentType::SkyComponent){
-        return "SkyComponent";
-    }else if(component == ComponentType::SpriteAnimationComponent){
-        return "SpriteAnimationComponent";
-    }else if(component == ComponentType::SpriteComponent){
-        return "SpriteComponent";
-    }else if(component == ComponentType::TerrainComponent){
-        return "TerrainComponent";
-    }else if(component == ComponentType::TextComponent){
-        return "TextComponent";
-    }else if(component == ComponentType::TextEditComponent){
-        return "TextEditComponent";
-    }else if(component == ComponentType::TilemapComponent){
-        return "TilemapComponent";
-    }else if(component == ComponentType::TimedActionComponent){
-        return "TimedActionComponent";
-    }else if(component == ComponentType::Transform){
-        return "Transform";
-    }else if(component == ComponentType::TranslateTracksComponent){
-        return "TranslateTracksComponent";
-    }else if(component == ComponentType::UIComponent){
-        return "UIComponent";
-    }else if(component == ComponentType::UIContainerComponent){
-        return "UIContainerComponent";
-    }else if(component == ComponentType::UILayoutComponent){
-        return "UILayoutComponent";
+std::string Editor::Catalog::removeComponentSuffix(std::string str) {
+    // Convert to lowercase first
+    std::transform(str.begin(), str.end(), str.begin(), 
+                   [](unsigned char c) { return std::tolower(c); });
+
+    // Check if string ends with "component"
+    const std::string suffix = "component";
+    if (str.length() >= suffix.length() && 
+        str.substr(str.length() - suffix.length()) == suffix) {
+        str.erase(str.length() - suffix.length());
     }
 
-    return "";
+    return str;
+}
+
+std::string Editor::Catalog::getComponentName(ComponentType component, bool removeSuffix){
+    std::string name;
+
+    if(component == ComponentType::ActionComponent){
+        name = "ActionComponent";
+    }else if(component == ComponentType::AlphaActionComponent){
+        name = "AlphaActionComponent";
+    }else if(component == ComponentType::AnimationComponent){
+        name = "AnimationComponent";
+    }else if(component == ComponentType::AudioComponent){
+        name = "AudioComponent";
+    }else if(component == ComponentType::Body2DComponent){
+        name = "Body2DComponent";
+    }else if(component == ComponentType::Body3DComponent){
+        name = "Body3DComponent";
+    }else if(component == ComponentType::BoneComponent){
+        name = "BoneComponent";
+    }else if(component == ComponentType::ButtonComponent){
+        name = "ButtonComponent";
+    }else if(component == ComponentType::CameraComponent){
+        name = "CameraComponent";
+    }else if(component == ComponentType::ColorActionComponent){
+        name = "ColorActionComponent";
+    }else if(component == ComponentType::FogComponent){
+        name = "FogComponent";
+    }else if(component == ComponentType::ImageComponent){
+        name = "ImageComponent";
+    }else if(component == ComponentType::InstancedMeshComponent){
+        name = "InstancedMeshComponent";
+    }else if(component == ComponentType::Joint2DComponent){
+        name = "Joint2DComponent";
+    }else if(component == ComponentType::Joint3DComponent){
+        name = "Joint3DComponent";
+    }else if(component == ComponentType::KeyframeTracksComponent){
+        name = "KeyframeTracksComponent";
+    }else if(component == ComponentType::LightComponent){
+        name = "LightComponent";
+    }else if(component == ComponentType::LinesComponent){
+        name = "LinesComponent";
+    }else if(component == ComponentType::MeshComponent){
+        name = "MeshComponent";
+    }else if(component == ComponentType::MeshPolygonComponent){
+        name = "MeshPolygonComponent";
+    }else if(component == ComponentType::ModelComponent){
+        name = "ModelComponent";
+    }else if(component == ComponentType::MorphTracksComponent){
+        name = "MorphTracksComponent";
+    }else if(component == ComponentType::PanelComponent){
+        name = "PanelComponent";
+    }else if(component == ComponentType::ParticlesComponent){
+        name = "ParticlesComponent";
+    }else if(component == ComponentType::PointsComponent){
+        name = "PointsComponent";
+    }else if(component == ComponentType::PolygonComponent){
+        name = "PolygonComponent";
+    }else if(component == ComponentType::PositionActionComponent){
+        name = "PositionActionComponent";
+    }else if(component == ComponentType::RotateTracksComponent){
+        name = "RotateTracksComponent";
+    }else if(component == ComponentType::RotationActionComponent){
+        name = "RotationActionComponent";
+    }else if(component == ComponentType::ScaleActionComponent){
+        name = "ScaleActionComponent";
+    }else if(component == ComponentType::ScaleTracksComponent){
+        name = "ScaleTracksComponent";
+    }else if(component == ComponentType::ScrollbarComponent){
+        name = "ScrollbarComponent";
+    }else if(component == ComponentType::SkyComponent){
+        name = "SkyComponent";
+    }else if(component == ComponentType::SpriteAnimationComponent){
+        name = "SpriteAnimationComponent";
+    }else if(component == ComponentType::SpriteComponent){
+        name = "SpriteComponent";
+    }else if(component == ComponentType::TerrainComponent){
+        name = "TerrainComponent";
+    }else if(component == ComponentType::TextComponent){
+        name = "TextComponent";
+    }else if(component == ComponentType::TextEditComponent){
+        name = "TextEditComponent";
+    }else if(component == ComponentType::TilemapComponent){
+        name = "TilemapComponent";
+    }else if(component == ComponentType::TimedActionComponent){
+        name = "TimedActionComponent";
+    }else if(component == ComponentType::Transform){
+        name = "Transform";
+    }else if(component == ComponentType::TranslateTracksComponent){
+        name = "TranslateTracksComponent";
+    }else if(component == ComponentType::UIComponent){
+        name = "UIComponent";
+    }else if(component == ComponentType::UIContainerComponent){
+        name = "UIContainerComponent";
+    }else if(component == ComponentType::UILayoutComponent){
+        name = "UILayoutComponent";
+    }else{
+        return "";
+    }
+
+    if(removeSuffix){
+        return removeComponentSuffix(name);
+    }
+
+    return name;
 }
 
 ComponentId Editor::Catalog::getComponentId(const EntityRegistry* registry, ComponentType compType) {
@@ -230,21 +253,101 @@ ComponentId Editor::Catalog::getComponentId(const EntityRegistry* registry, Comp
 }
 
 Editor::ComponentType Editor::Catalog::getComponentType(const std::string& componentName) {
-    if (componentName == "transform") {
-        return ComponentType::Transform;
-    } else if (componentName == "mesh") {
-        return ComponentType::MeshComponent;
-    } else if (componentName == "ui") {
-        return ComponentType::UIComponent;
-    } else if (componentName == "layout") {
-        return ComponentType::UILayoutComponent;
-    } else if (componentName == "image") {
+    std::string normalizedName = removeComponentSuffix(componentName);
+
+    if(normalizedName == "action"){
+        return ComponentType::ActionComponent;
+    }else if(normalizedName == "alphaaction"){
+        return ComponentType::AlphaActionComponent;
+    }else if(normalizedName == "animation"){
+        return ComponentType::AnimationComponent;
+    }else if(normalizedName == "audio"){
+        return ComponentType::AudioComponent;
+    }else if(normalizedName == "body2d"){
+        return ComponentType::Body2DComponent;
+    }else if(normalizedName == "body3d"){
+        return ComponentType::Body3DComponent;
+    }else if(normalizedName == "bone"){
+        return ComponentType::BoneComponent;
+    }else if(normalizedName == "button"){
+        return ComponentType::ButtonComponent;
+    }else if(normalizedName == "camera"){
+        return ComponentType::CameraComponent;
+    }else if(normalizedName == "coloraction"){
+        return ComponentType::ColorActionComponent;
+    }else if(normalizedName == "fog"){
+        return ComponentType::FogComponent;
+    }else if(normalizedName == "image"){
         return ComponentType::ImageComponent;
-    } else if (componentName == "light") {
+    }else if(normalizedName == "instancedmesh"){
+        return ComponentType::InstancedMeshComponent;
+    }else if(normalizedName == "joint2d"){
+        return ComponentType::Joint2DComponent;
+    }else if(normalizedName == "joint3d"){
+        return ComponentType::Joint3DComponent;
+    }else if(normalizedName == "keyframetracks"){
+        return ComponentType::KeyframeTracksComponent;
+    }else if(normalizedName == "light"){
         return ComponentType::LightComponent;
+    }else if(normalizedName == "lines"){
+        return ComponentType::LinesComponent;
+    }else if(normalizedName == "mesh"){
+        return ComponentType::MeshComponent;
+    }else if(normalizedName == "meshpolygon"){
+        return ComponentType::MeshPolygonComponent;
+    }else if(normalizedName == "model"){
+        return ComponentType::ModelComponent;
+    }else if(normalizedName == "morphtracks"){
+        return ComponentType::MorphTracksComponent;
+    }else if(normalizedName == "panel"){
+        return ComponentType::PanelComponent;
+    }else if(normalizedName == "particles"){
+        return ComponentType::ParticlesComponent;
+    }else if(normalizedName == "points"){
+        return ComponentType::PointsComponent;
+    }else if(normalizedName == "polygon"){
+        return ComponentType::PolygonComponent;
+    }else if(normalizedName == "positionaction"){
+        return ComponentType::PositionActionComponent;
+    }else if(normalizedName == "rotatetracks"){
+        return ComponentType::RotateTracksComponent;
+    }else if(normalizedName == "rotationaction"){
+        return ComponentType::RotationActionComponent;
+    }else if(normalizedName == "scaleaction"){
+        return ComponentType::ScaleActionComponent;
+    }else if(normalizedName == "scaletracks"){
+        return ComponentType::ScaleTracksComponent;
+    }else if(normalizedName == "scrollbar"){
+        return ComponentType::ScrollbarComponent;
+    }else if(normalizedName == "sky"){
+        return ComponentType::SkyComponent;
+    }else if(normalizedName == "spriteanimation"){
+        return ComponentType::SpriteAnimationComponent;
+    }else if(normalizedName == "sprite"){
+        return ComponentType::SpriteComponent;
+    }else if(normalizedName == "terrain"){
+        return ComponentType::TerrainComponent;
+    }else if(normalizedName == "text"){
+        return ComponentType::TextComponent;
+    }else if(normalizedName == "textedit"){
+        return ComponentType::TextEditComponent;
+    }else if(normalizedName == "tilemap"){
+        return ComponentType::TilemapComponent;
+    }else if(normalizedName == "timedaction"){
+        return ComponentType::TimedActionComponent;
+    }else if(normalizedName == "transform"){
+        return ComponentType::Transform;
+    }else if(normalizedName == "translatetracks"){
+        return ComponentType::TranslateTracksComponent;
+    }else if(normalizedName == "ui"){
+        return ComponentType::UIComponent;
+    }else if(normalizedName == "uicontainer"){
+        return ComponentType::UIContainerComponent;
+    }else if(normalizedName == "uilayout"){
+        return ComponentType::UILayoutComponent;
     }
 
-    return ComponentType::Transform;
+    throw std::invalid_argument("Unknown component type: " + componentName);
 }
 
 Signature Editor::Catalog::componentTypeMaskToSignature(const EntityRegistry* registry, uint64_t mask) {
