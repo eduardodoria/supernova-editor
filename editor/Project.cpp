@@ -990,6 +990,7 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
         for (int i = 0; i < newEntities.size(); i++) {
             if (mergeResults[i].isShared){
                 membersEntities.push_back(newEntities[i]);
+                group.overrides[sceneProject->id][newEntities[i]] = mergeResults[i].overrides;
             }
         }
     }
@@ -1139,6 +1140,7 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Editor::NodeRecov
             for (int i = 0; i < newOtherEntities.size(); i++) {
                 if (mergeResults[i].isShared){
                     membersEntities.push_back(newOtherEntities[i]);
+                    group->overrides[otherSceneId][newOtherEntities[i]] = mergeResults[i].overrides;
                 }
             }
         }
@@ -1301,7 +1303,7 @@ std::vector<Editor::MergeResult> Editor::Project::mergeEntityNodes(const YAML::N
         outputNode["entity"] = extendNode["entity"];
     }
 
-    uint64_t overriddenComponents = 0;
+    uint64_t overrides = 0;
 
     if (extendNode["components"] && extendNode["components"].IsMap()) {
         for (auto it = extendNode["components"].begin(); it != extendNode["components"].end(); ++it) {
@@ -1310,11 +1312,11 @@ std::vector<Editor::MergeResult> Editor::Project::mergeEntityNodes(const YAML::N
 
             ComponentType compType = Catalog::getComponentType(key);
             uint64_t bit = 1ULL << static_cast<int>(compType);
-            overriddenComponents |= bit;
+            overrides |= bit;
         }
     }
 
-    result.push_back({true, overriddenComponents});
+    result.push_back({true, overrides});
 
     size_t extendChildrenSize = extendNode["children"]  ? extendNode["children"].size() : 0;
 

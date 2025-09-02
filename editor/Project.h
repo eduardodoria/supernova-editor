@@ -37,7 +37,7 @@ namespace Supernova::Editor{
 
     struct MergeResult {
         bool isShared; // Whether the entity was already part of a shared group
-        uint64_t overriddenComponents; // Bitmask of overridden ComponentTypes for each entity
+        uint64_t overrides; // Bitmask of overridden ComponentTypes for each entity
     };
 
     struct SharedGroup {
