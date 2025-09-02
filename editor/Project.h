@@ -203,6 +203,14 @@ namespace Supernova::Editor{
 
     using NodeRecovery = std::map<uint32_t, NodeRecoveryEntry>;
 
+    struct SharedMoveRecoveryEntry {
+        Entity oldParent;
+        size_t oldIndex;
+        size_t oldTransformIndex;
+    };
+
+    using SharedMoveRecovery = std::map<uint32_t, SharedMoveRecoveryEntry>;
+
     class Project{
     private:
 
@@ -306,14 +314,15 @@ namespace Supernova::Editor{
         std::vector<Entity> importSharedEntity(SceneProject* sceneProject, const std::filesystem::path& filepath, Entity parent = NULL_ENTITY, bool needSaveScene = true, YAML::Node extendNode = YAML::Node());
         bool unimportSharedEntity(uint32_t sceneId, const std::filesystem::path& filepath, const std::vector<Entity>& entities, bool destroyEntities = true);
 
-        bool addEntityToSharedGroup(uint32_t sceneId, NodeRecovery recoveryData, Entity parent, const std::filesystem::path& filepath, bool createItself = true);
+        bool addEntityToSharedGroup(uint32_t sceneId, const NodeRecovery& recoveryData, Entity parent, const std::filesystem::path& filepath, bool createItself = true);
         NodeRecovery removeEntityFromSharedGroup(uint32_t sceneId, Entity entity, const std::filesystem::path& filepath, bool destroyItself = true);
 
         void saveSharedGroupToDisk(const std::filesystem::path& filepath);
 
         SharedGroup* getSharedGroup(const std::filesystem::path& filepath);
         const SharedGroup* getSharedGroup(const std::filesystem::path& filepath) const;
-        std::filesystem::path findGroupPathFor(uint32_t sceneId, Entity e) const;
+        std::filesystem::path findGroupPathFor(uint32_t sceneId, Entity entity) const;
+        bool isEntityShared(uint32_t sceneId, Entity entity) const;
 
         std::vector<MergeResult> mergeEntityNodes(const YAML::Node& extendNode, YAML::Node& outputNode);
 
@@ -324,7 +333,9 @@ namespace Supernova::Editor{
         void collectEntities(const YAML::Node& entityNode, std::vector<Entity>& allEntities, std::vector<Entity>& sharedEntities);
 
         bool sharedGroupComponentChanged(uint32_t sceneId, Entity entity, ComponentType componentType, std::vector<std::string> properties);
-        bool sharedGroupMoveEntityOrder(uint32_t sceneId, Entity entity, Entity target, InsertionType type, bool moveItself = true);
+
+        SharedMoveRecovery moveEntityFromSharedGroup(uint32_t sceneId, Entity entity, Entity target, InsertionType type, bool moveItself = true);
+        bool undoMoveEntityInSharedGroup(uint32_t sceneId, Entity entity, Entity target, const SharedMoveRecovery& recovery, bool moveItself = true);
 
         void build();
 
