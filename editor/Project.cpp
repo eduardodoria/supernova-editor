@@ -1062,16 +1062,14 @@ bool Editor::Project::unimportSharedEntity(uint32_t sceneId, const std::filesyst
     return true;
 }
 
-bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, const Editor::NodeRecovery& recoveryData, Entity parent, const std::filesystem::path& filepath, bool createItself){
-    SharedGroup* group = getSharedGroup(filepath);
-    if (!group) {
-        return false;
+bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, const Editor::NodeRecovery& recoveryData, Entity parent, bool createItself){
+    fs::path filepath = findGroupPathFor(sceneId, parent);
+    if (filepath.empty()) {
+        Out::error("Entity parent %u in scene %u is not part of any shared group", parent, sceneId);
+        return {};
     }
 
-    if (!group->containsEntity(sceneId, parent)) {
-        Out::error("Parent entity is not part of the shared group");
-        return false;
-    }
+    SharedGroup* group = getSharedGroup(filepath);
 
     SceneProject* sceneProject = getScene(sceneId);
     if (!sceneProject) {
@@ -1085,10 +1083,11 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, const Editor::Nod
     }
 
     YAML::Node nodeRegData;
-    bool hasRegRecoveryData = true;
-    nodeRegData = recoveryData.at(NULL_PROJECT_SCENE).node;
-    if (recoveryData.find(NULL_PROJECT_SCENE) == recoveryData.end()) {
-        hasRegRecoveryData = false;
+    bool hasRegRecoveryData = false;
+    if (recoveryData.find(NULL_PROJECT_SCENE) != recoveryData.end()) {
+        hasRegRecoveryData = true;
+        nodeRegData = recoveryData.at(NULL_PROJECT_SCENE).node;
+    }else{
         if (recoveryData.find(sceneId) == recoveryData.end()) {
             Out::error("No default entity data provided for adding to shared group");
             return false;
@@ -1160,16 +1159,14 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, const Editor::Nod
     return true;
 }
 
-Editor::NodeRecovery Editor::Project::removeEntityFromSharedGroup(uint32_t sceneId, Entity entity, const std::filesystem::path& filepath, bool destroyItself) {
-    SharedGroup* group = getSharedGroup(filepath);
-    if (!group) {
+Editor::NodeRecovery Editor::Project::removeEntityFromSharedGroup(uint32_t sceneId, Entity entity, bool destroyItself) {
+    fs::path filepath = findGroupPathFor(sceneId, entity);
+    if (filepath.empty()) {
+        Out::error("Entity %u in scene %u is not part of any shared group", entity, sceneId);
         return {};
     }
 
-    if (!group->containsEntity(sceneId, entity)) {
-        Out::error("Entity %u is not part of shared group %s", entity, filepath.string().c_str());
-        return {};
-    }
+    SharedGroup* group = getSharedGroup(filepath);
 
     SceneProject* sceneProject = getScene(sceneId);
     if (!sceneProject) {
@@ -1256,6 +1253,132 @@ Editor::NodeRecovery Editor::Project::removeEntityFromSharedGroup(uint32_t scene
     group->isModified = true;
 
     return recovery;
+}
+
+Editor::SharedMoveRecovery Editor::Project::moveEntityFromSharedGroup(uint32_t sceneId, Entity entity, Entity target, InsertionType type, bool moveItself){
+    fs::path filepath = findGroupPathFor(sceneId, entity);
+    if (filepath.empty()) {
+        Out::error("Entity %u in scene %u is not part of any shared group", entity, sceneId);
+        return {};
+    }
+
+    SharedGroup* group = getSharedGroup(filepath);
+
+    if (!isEntityShared(sceneId, target)){
+        auto& entities = getScene(sceneId)->entities;
+        auto entityIt = std::find(entities.begin(), entities.end(), entity);
+        auto targetIt = std::find(entities.begin(), entities.end(), target);
+
+        if (entityIt != entities.end() && targetIt != entities.end()) {
+            Entity nextShared = NULL_ENTITY;
+
+            if (entityIt < targetIt) {
+                for (auto it = targetIt - 1; it > entityIt; --it) {
+                    if (isEntityShared(sceneId, *it)) {
+                        nextShared = *it;
+                        break;
+                    }
+                }
+            } else {
+                for (auto it = targetIt + 1; it < entityIt; ++it) {
+                    if (isEntityShared(sceneId, *it)) {
+                        nextShared = *it;
+                        break;
+                    }
+                }
+            }
+
+            if (nextShared != NULL_ENTITY) {
+                target = nextShared;
+            }else{
+                // Not need to move entity in other scenes and registry if target is not shared
+                return {};
+            }
+        }
+    }
+
+    Entity registryEntity = group->getRegistryEntity(sceneId, entity);
+    Entity registryTarget = group->getRegistryEntity(sceneId, target);
+    if (registryEntity == NULL_ENTITY || registryTarget == NULL_ENTITY) {
+        Out::error("Failed to find registry entities for shared entities %u or %u in scene %u", entity, target, sceneId);
+        return {};
+    }
+
+    SharedMoveRecovery recovery;
+
+    Entity oldParent;
+    size_t oldIndex;
+    size_t oldTransformIndex;
+    MoveEntityOrderCmd::changeEntityOrder(group->registry.get(), group->registryEntities, registryEntity, registryTarget, type, oldParent, oldIndex, oldTransformIndex);
+    recovery[NULL_PROJECT_SCENE] = {oldParent, oldIndex, oldTransformIndex};
+
+    for (const auto& [otherSceneId, otherEntities] : group->members) {
+        if (otherSceneId != sceneId || moveItself) {
+            Entity otherEntity = group->getLocalEntity(otherSceneId, registryEntity);
+            Entity otherTarget = group->getLocalEntity(otherSceneId, registryTarget);
+
+            if (otherEntity != NULL_ENTITY && otherTarget != NULL_ENTITY) {
+                SceneProject* otherScene = getScene(otherSceneId);
+                if (otherScene) {
+
+                    Entity otherOldParent;
+                    size_t otherOldIndex;
+                    size_t otherOldTransformIndex;
+                    MoveEntityOrderCmd::changeEntityOrder(otherScene->scene, otherScene->entities, otherEntity, otherTarget, type, otherOldParent, otherOldIndex, otherOldTransformIndex);
+                    recovery[otherSceneId] = {otherOldParent, otherOldIndex, otherOldTransformIndex};
+
+                    otherScene->isModified = true;
+                }
+            }
+        }
+    }
+
+    return recovery;
+}
+
+bool Editor::Project::undoMoveEntityInSharedGroup(uint32_t sceneId, Entity entity, Entity target, const SharedMoveRecovery& recovery, bool moveItself){
+    fs::path filepath = findGroupPathFor(sceneId, entity);
+    if (filepath.empty()) {
+        Out::error("Entity %u in scene %u is not part of any shared group", entity, sceneId);
+        return false;
+    }
+
+    SharedGroup* group = getSharedGroup(filepath);
+
+    if (recovery.find(NULL_PROJECT_SCENE) == recovery.end()) {
+        Out::error("No recovery data provided for undoing move of entity %u in scene %u", entity, sceneId);
+        return false;
+    }
+
+    Entity registryEntity = group->getRegistryEntity(sceneId, entity);
+    Entity registryTarget = group->getRegistryEntity(sceneId, target);
+    if (registryEntity == NULL_ENTITY || registryTarget == NULL_ENTITY) {
+        Out::error("Failed to find registry entities for shared entities %u or %u in scene %u", entity, target, sceneId);
+        return {};
+    }
+
+    MoveEntityOrderCmd::undoEntityOrder(group->registry.get(), group->registryEntities, registryEntity, registryTarget, recovery.at(NULL_PROJECT_SCENE).oldParent, recovery.at(NULL_PROJECT_SCENE).oldIndex, recovery.at(NULL_PROJECT_SCENE).oldTransformIndex);
+
+    for (const auto& [otherSceneId, otherEntities] : group->members) {
+        if (otherSceneId != sceneId || moveItself) {
+            if (recovery.find(otherSceneId) != recovery.end()) {
+                Entity otherEntity = group->getLocalEntity(otherSceneId, registryEntity);
+                Entity otherTarget = group->getLocalEntity(otherSceneId, registryTarget);
+                if (otherEntity != NULL_ENTITY && otherTarget != NULL_ENTITY) {
+                    SceneProject* otherScene = getScene(otherSceneId);
+                    if (otherScene) {
+
+                        MoveEntityOrderCmd::undoEntityOrder(otherScene->scene, otherScene->entities, otherEntity, otherTarget, recovery.at(otherSceneId).oldParent, recovery.at(otherSceneId).oldIndex, recovery.at(otherSceneId).oldTransformIndex);
+
+                    }
+                }
+            }
+        }
+
+
+    }
+
+    return true;
 }
 
 void Editor::Project::saveSharedGroupToDisk(const std::filesystem::path& filepath) {
@@ -1462,132 +1585,6 @@ bool Editor::Project::sharedGroupComponentChanged(uint32_t sceneId, Entity entit
     }
 
     group->isModified = true;
-
-    return true;
-}
-
-Editor::SharedMoveRecovery Editor::Project::moveEntityFromSharedGroup(uint32_t sceneId, Entity entity, Entity target, InsertionType type, bool moveItself){
-    fs::path filepath = findGroupPathFor(sceneId, entity);
-    if (filepath.empty()) {
-        Out::error("Entity %u in scene %u is not part of any shared group", entity, sceneId);
-        return {};
-    }
-
-    SharedGroup* group = getSharedGroup(filepath);
-
-    if (!isEntityShared(sceneId, target)){
-        auto& entities = getScene(sceneId)->entities;
-        auto entityIt = std::find(entities.begin(), entities.end(), entity);
-        auto targetIt = std::find(entities.begin(), entities.end(), target);
-
-        if (entityIt != entities.end() && targetIt != entities.end()) {
-            Entity nextShared = NULL_ENTITY;
-
-            if (entityIt < targetIt) {
-                for (auto it = targetIt - 1; it > entityIt; --it) {
-                    if (isEntityShared(sceneId, *it)) {
-                        nextShared = *it;
-                        break;
-                    }
-                }
-            } else {
-                for (auto it = targetIt + 1; it < entityIt; ++it) {
-                    if (isEntityShared(sceneId, *it)) {
-                        nextShared = *it;
-                        break;
-                    }
-                }
-            }
-
-            if (nextShared != NULL_ENTITY) {
-                target = nextShared;
-            }else{
-                // Not need to move entity in other scenes and registry if target is not shared
-                return {};
-            }
-        }
-    }
-
-    Entity registryEntity = group->getRegistryEntity(sceneId, entity);
-    Entity registryTarget = group->getRegistryEntity(sceneId, target);
-    if (registryEntity == NULL_ENTITY || registryTarget == NULL_ENTITY) {
-        Out::error("Failed to find registry entities for shared entities %u or %u in scene %u", entity, target, sceneId);
-        return {};
-    }
-
-    SharedMoveRecovery recovery;
-
-    Entity oldParent;
-    size_t oldIndex;
-    size_t oldTransformIndex;
-    MoveEntityOrderCmd::changeEntityOrder(group->registry.get(), group->registryEntities, registryEntity, registryTarget, type, oldParent, oldIndex, oldTransformIndex);
-    recovery[NULL_PROJECT_SCENE] = {oldParent, oldIndex, oldTransformIndex};
-
-    for (const auto& [otherSceneId, otherEntities] : group->members) {
-        if (otherSceneId != sceneId || moveItself) {
-            Entity otherEntity = group->getLocalEntity(otherSceneId, registryEntity);
-            Entity otherTarget = group->getLocalEntity(otherSceneId, registryTarget);
-
-            if (otherEntity != NULL_ENTITY && otherTarget != NULL_ENTITY) {
-                SceneProject* otherScene = getScene(otherSceneId);
-                if (otherScene) {
-
-                    Entity otherOldParent;
-                    size_t otherOldIndex;
-                    size_t otherOldTransformIndex;
-                    MoveEntityOrderCmd::changeEntityOrder(otherScene->scene, otherScene->entities, otherEntity, otherTarget, type, otherOldParent, otherOldIndex, otherOldTransformIndex);
-                    recovery[otherSceneId] = {otherOldParent, otherOldIndex, otherOldTransformIndex};
-
-                    otherScene->isModified = true;
-                }
-            }
-        }
-    }
-
-    return recovery;
-}
-
-bool Editor::Project::undoMoveEntityInSharedGroup(uint32_t sceneId, Entity entity, Entity target, const SharedMoveRecovery& recovery, bool moveItself){
-    fs::path filepath = findGroupPathFor(sceneId, entity);
-    if (filepath.empty()) {
-        Out::error("Entity %u in scene %u is not part of any shared group", entity, sceneId);
-        return false;
-    }
-
-    SharedGroup* group = getSharedGroup(filepath);
-
-    if (recovery.find(NULL_PROJECT_SCENE) == recovery.end()) {
-        Out::error("No recovery data provided for undoing move of entity %u in scene %u", entity, sceneId);
-        return false;
-    }
-
-    Entity registryEntity = group->getRegistryEntity(sceneId, entity);
-    Entity registryTarget = group->getRegistryEntity(sceneId, target);
-    if (registryEntity == NULL_ENTITY || registryTarget == NULL_ENTITY) {
-        Out::error("Failed to find registry entities for shared entities %u or %u in scene %u", entity, target, sceneId);
-        return {};
-    }
-
-    MoveEntityOrderCmd::undoEntityOrder(group->registry.get(), group->registryEntities, registryEntity, registryTarget, recovery.at(NULL_PROJECT_SCENE).oldParent, recovery.at(NULL_PROJECT_SCENE).oldIndex, recovery.at(NULL_PROJECT_SCENE).oldTransformIndex);
-
-    for (const auto& [otherSceneId, otherEntities] : group->members) {
-        if (otherSceneId != sceneId || moveItself) {
-            if (recovery.find(otherSceneId) != recovery.end()) {
-                Entity otherEntity = group->getLocalEntity(otherSceneId, registryEntity);
-                Entity otherTarget = group->getLocalEntity(otherSceneId, registryTarget);
-                if (otherEntity != NULL_ENTITY && otherTarget != NULL_ENTITY) {
-                    SceneProject* otherScene = getScene(otherSceneId);
-                    if (otherScene) {
-
-                        MoveEntityOrderCmd::undoEntityOrder(otherScene->scene, otherScene->entities, otherEntity, otherTarget, recovery.at(otherSceneId).oldParent, recovery.at(otherSceneId).oldIndex, recovery.at(otherSceneId).oldTransformIndex);
-
-                    }
-                }
-            }
-        }
-
-
-    }
 
     return true;
 }

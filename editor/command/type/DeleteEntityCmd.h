@@ -20,8 +20,6 @@ namespace Supernova::Editor{
         YAML::Node data;
 
         // Track if entity was part of a shared group
-        bool wasSharedChild = false;
-        fs::path sharedGroupPath;
         NodeRecovery recoverySharedData;
     };
 

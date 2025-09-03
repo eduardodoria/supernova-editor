@@ -57,14 +57,12 @@ bool Editor::DeleteEntityCmd::execute(){
 
             }else{
 
-                entityData.wasSharedChild = true;
-                entityData.sharedGroupPath = sharedGroupPath;
-                entityData.recoverySharedData = project->removeEntityFromSharedGroup(sceneId, entity, sharedGroupPath);
+                entityData.recoverySharedData = project->removeEntityFromSharedGroup(sceneId, entity, true);
 
             }
         }
 
-        if (!entityData.wasSharedChild){
+        if (entityData.recoverySharedData.size() == 0){
             for (const Entity& entity : allEntities) {
                 sceneProject->scene->destroyEntity(entity);
 
@@ -89,7 +87,7 @@ void Editor::DeleteEntityCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     for (DeleteEntityData& entityData : entities){
-        if (!entityData.wasSharedChild){
+        if (entityData.recoverySharedData.size() == 0){
 
             std::vector<Entity> allEntities = Stream::decodeEntity(entityData.data, sceneProject->scene, &sceneProject->entities, project, sceneProject);
             entityData.entity = allEntities[0];
@@ -102,7 +100,7 @@ void Editor::DeleteEntityCmd::undo(){
 
         }else{
 
-            project->addEntityToSharedGroup(sceneId, entityData.recoverySharedData, entityData.parent, entityData.sharedGroupPath);
+            project->addEntityToSharedGroup(sceneId, entityData.recoverySharedData, entityData.parent, true);
 
         }
     }

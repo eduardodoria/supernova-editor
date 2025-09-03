@@ -205,12 +205,9 @@ bool Editor::CreateEntityCmd::execute(){
     sceneProject->isModified = true;
 
     if (addToShared){
-        std::filesystem::path sharedPath = project->findGroupPathFor(sceneId, parent);
-        if (!sharedPath.empty()){
-            NodeRecovery entityData;
-            entityData[sceneId].node = Stream::encodeEntity(entity, scene, nullptr, sceneProject, true);
-            project->addEntityToSharedGroup(sceneId, entityData, parent, sharedPath, false);
-        }
+        NodeRecovery entityData;
+        entityData[sceneId].node = Stream::encodeEntity(entity, scene, nullptr, sceneProject, true);
+        project->addEntityToSharedGroup(sceneId, entityData, parent, false);
     }
 
     ImGui::SetWindowFocus(("###Scene" + std::to_string(sceneId)).c_str());
@@ -225,10 +222,7 @@ void Editor::CreateEntityCmd::undo(){
 
     if (sceneProject){
         if (addToShared){
-            std::filesystem::path sharedPath = project->findGroupPathFor(sceneId, entity);
-            if (!sharedPath.empty()){
-                project->removeEntityFromSharedGroup(sceneId, entity, sharedPath);
-            }
+            project->removeEntityFromSharedGroup(sceneId, entity, false);
         }
 
         sceneProject->scene->destroyEntity(entity);
