@@ -3,6 +3,7 @@
 #include "editor/Out.h"
 #include "util/ShapeParameters.h"
 #include "Stream.h"
+#include "command/type/DeleteEntityCmd.h"
 
 using namespace Supernova;
 
@@ -225,16 +226,7 @@ void Editor::CreateEntityCmd::undo(){
             project->removeEntityFromSharedGroup(sceneId, entity, false);
         }
 
-        sceneProject->scene->destroyEntity(entity);
-
-        auto it = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), entity);
-        if (it != sceneProject->entities.end()) {
-            sceneProject->entities.erase(it);
-        }
-
-        if (project->isSelectedEntity(sceneId, entity)){
-            project->replaceSelectedEntities(sceneId, lastSelected);
-        }
+        DeleteEntityCmd::destroyEntity(sceneProject->scene, entity, sceneProject->entities, project, sceneId);
 
         sceneProject->isModified = true;
 

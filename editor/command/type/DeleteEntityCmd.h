@@ -25,6 +25,9 @@ namespace Supernova::Editor{
 
     class DeleteEntityCmd: public Command{
 
+    friend class Project;
+    friend class CreateEntityCmd;
+
     private:
         Project* project;
         uint32_t sceneId;
@@ -34,6 +37,8 @@ namespace Supernova::Editor{
         std::vector<DeleteEntityData> entities;
 
         bool wasModified;
+
+        static void destroyEntity(EntityRegistry* registry, Entity entity, std::vector<Entity>& entities, Project* project = nullptr, uint32_t sceneId = NULL_PROJECT_SCENE);
 
     public:
         DeleteEntityCmd(Project* project, uint32_t sceneId, Entity entity);

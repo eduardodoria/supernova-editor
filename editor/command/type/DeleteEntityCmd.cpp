@@ -33,6 +33,21 @@ Editor::DeleteEntityCmd::DeleteEntityCmd(Project* project, uint32_t sceneId, Ent
     this->wasModified = project->getScene(sceneId)->isModified;
 }
 
+void Editor::DeleteEntityCmd::destroyEntity(EntityRegistry* registry, Entity entity, std::vector<Entity>& entities, Project* project, uint32_t sceneId){
+    registry->destroyEntity(entity);
+
+    auto ite = std::find(entities.begin(), entities.end(), entity);
+    if (ite != entities.end()) {
+        entities.erase(ite);
+    }
+
+    if (project){
+        if (project->isSelectedEntity(sceneId, entity)){
+            project->clearSelectedEntities(sceneId);
+        }
+    }
+}
+
 bool Editor::DeleteEntityCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
@@ -64,16 +79,9 @@ bool Editor::DeleteEntityCmd::execute(){
 
         if (entityData.recoverySharedData.size() == 0){
             for (const Entity& entity : allEntities) {
-                sceneProject->scene->destroyEntity(entity);
 
-                auto ite = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), entity);
-                if (ite != sceneProject->entities.end()) {
-                    sceneProject->entities.erase(ite);
-                }
+                destroyEntity(sceneProject->scene, entity, sceneProject->entities, project, sceneId);
 
-                if (project->isSelectedEntity(sceneId, entity)){
-                    project->clearSelectedEntities(sceneId);
-                }
             }
         }
 

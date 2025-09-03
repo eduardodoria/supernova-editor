@@ -1044,18 +1044,7 @@ bool Editor::Project::unimportSharedEntity(uint32_t sceneId, const std::filesyst
     if (destroyEntities){
         // Destroy all imported entities
         for (Entity entity : entities) {
-            scene->destroyEntity(entity);
-
-            // Remove from scene's entity list
-            auto it = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), entity);
-            if (it != sceneProject->entities.end()) {
-                sceneProject->entities.erase(it);
-            }
-
-            // Clear selection if this entity was selected
-            if (isSelectedEntity(sceneId, entity)) {
-                clearSelectedEntities(sceneId);
-            }
+            DeleteEntityCmd::destroyEntity(scene, entity, sceneProject->entities, this, sceneId);
         }
     }
 
@@ -1216,18 +1205,7 @@ Editor::NodeRecovery Editor::Project::removeEntityFromSharedGroup(uint32_t scene
 
         if (otherSceneId != sceneId || destroyItself) {
             for (const Entity& entityToDestroy : allEntities) {
-                otherScene->scene->destroyEntity(entityToDestroy);
-
-                // Remove from scene's entity list
-                auto sceneIt = std::find(otherScene->entities.begin(), otherScene->entities.end(), entityToDestroy);
-                if (sceneIt != otherScene->entities.end()) {
-                    otherScene->entities.erase(sceneIt);
-                }
-
-                // Clear selection if this entity was selected
-                if (isSelectedEntity(otherSceneId, entityToDestroy)) {
-                    clearSelectedEntities(otherSceneId);
-                }
+                DeleteEntityCmd::destroyEntity(otherScene->scene, entityToDestroy, otherScene->entities, this, otherSceneId);
             }
 
             otherScene->isModified = true;
@@ -1241,13 +1219,7 @@ Editor::NodeRecovery Editor::Project::removeEntityFromSharedGroup(uint32_t scene
 
     // Destroy entities from registry
     for (Entity regEntity : registryEntitiesToRemove) {
-        group->registry->destroyEntity(regEntity);
-
-        // Remove from scene's entity list
-        auto sceneIt = std::find(group->registryEntities.begin(), group->registryEntities.end(), regEntity);
-        if (sceneIt != group->registryEntities.end()) {
-            group->registryEntities.erase(sceneIt);
-        }
+        DeleteEntityCmd::destroyEntity(group->registry.get(), regEntity, group->registryEntities);
     }
 
     group->isModified = true;
