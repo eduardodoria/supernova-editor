@@ -147,11 +147,10 @@ void Editor::MoveEntityOrderCmd::undoEntityOrder(EntityRegistry* registry, std::
 bool Editor::MoveEntityOrderCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
-    if (project->isEntityShared(sceneId, source) && project->isEntityShared(sceneId, target)){
-        sharedMoveRecovery = project->moveEntityFromSharedGroup(sceneId, source, target, type, true);
-    }else{
-        changeEntityOrder(sceneProject->scene, sceneProject->entities, source, target, type, oldParent, oldIndex, oldTransformIndex);
+    if (project->isEntityShared(sceneId, source)){
+        sharedMoveRecovery = project->moveEntityFromSharedGroup(sceneId, source, target, type, false);
     }
+    changeEntityOrder(sceneProject->scene, sceneProject->entities, source, target, type, oldParent, oldIndex, oldTransformIndex);
 
     sceneProject->isModified = true;
 
@@ -162,10 +161,9 @@ void Editor::MoveEntityOrderCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     if (sharedMoveRecovery.size() > 0){
-        project->undoMoveEntityInSharedGroup(sceneId, source, target, sharedMoveRecovery);
-    }else{
-        undoEntityOrder(sceneProject->scene, sceneProject->entities, source, target, oldParent, oldIndex, oldTransformIndex);
+        project->undoMoveEntityInSharedGroup(sceneId, source, target, sharedMoveRecovery, false);
     }
+    undoEntityOrder(sceneProject->scene, sceneProject->entities, source, target, oldParent, oldIndex, oldTransformIndex);
 
     sceneProject->isModified = wasModified;
 }

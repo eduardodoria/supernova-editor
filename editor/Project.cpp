@@ -1475,6 +1475,39 @@ Editor::SharedMoveRecovery Editor::Project::moveEntityFromSharedGroup(uint32_t s
 
     SharedGroup* group = getSharedGroup(filepath);
 
+    if (!isEntityShared(sceneId, target)){
+        auto& entities = getScene(sceneId)->entities;
+        auto entityIt = std::find(entities.begin(), entities.end(), entity);
+        auto targetIt = std::find(entities.begin(), entities.end(), target);
+
+        if (entityIt != entities.end() && targetIt != entities.end()) {
+            Entity nextShared = NULL_ENTITY;
+
+            if (entityIt < targetIt) {
+                for (auto it = targetIt - 1; it > entityIt; --it) {
+                    if (isEntityShared(sceneId, *it)) {
+                        nextShared = *it;
+                        break;
+                    }
+                }
+            } else {
+                for (auto it = targetIt + 1; it < entityIt; ++it) {
+                    if (isEntityShared(sceneId, *it)) {
+                        nextShared = *it;
+                        break;
+                    }
+                }
+            }
+
+            if (nextShared != NULL_ENTITY) {
+                target = nextShared;
+            }else{
+                // Not need to move entity in other scenes and registry if target is not shared
+                return {};
+            }
+        }
+    }
+
     Entity registryEntity = group->getRegistryEntity(sceneId, entity);
     Entity registryTarget = group->getRegistryEntity(sceneId, target);
     if (registryEntity == NULL_ENTITY || registryTarget == NULL_ENTITY) {
