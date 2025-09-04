@@ -248,13 +248,13 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     // Check if entity is shared and get shared group info
     node.isShared = false;
     std::filesystem::path sharedFilepath;
-    const Editor::SharedGroup* sharedGroup = nullptr;
 
     if (!node.isScene) {
         sharedFilepath = project->findGroupPathFor(project->getSelectedSceneId(), node.id);
         node.isShared = !sharedFilepath.empty();
-        if (node.isShared) {
-            sharedGroup = project->getSharedGroup(sharedFilepath);
+
+        if (node.parent != NULL_ENTITY) {
+            node.isParentShared = project->isEntityShared(project->getSelectedSceneId(), node.parent);
         }
     }
 
@@ -273,7 +273,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     if (node.isScene){
         ImGui::SetItemTooltip("Id: %u", node.id);
     }else{
-        if (node.isShared && sharedGroup) {
+        if (node.isShared) {
             ImGui::SetItemTooltip("Entity: %u (Shared)\nPath: %s", node.id, sharedFilepath.string().c_str());
         } else {
             ImGui::SetItemTooltip("Entity: %u", node.id);
@@ -495,12 +495,25 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                 CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new DeleteEntityCmd(project, project->getSelectedSceneId(), node.id));
             }
         }
+        if (node.isParentShared){
+            ImGui::Separator();
+            if (ImGui::MenuItem(ICON_FA_LOCK_OPEN"  Make this entity local", nullptr, false, node.isShared)){
+                if (node.isShared){
+                    project->removeEntityFromSharedGroup(project->getSelectedSceneId(), node.id, false);
+                }
+            }
+            if (ImGui::MenuItem(ICON_FA_LINK"  Make this entity shared", nullptr, false, !node.isShared)){
+                if (!node.isShared){
+                    project->addEntityToSharedGroup(project->getSelectedSceneId(), node.id, node.parent, false);
+                }
+            }
+        }
         if (node.hasTransform || node.isScene){
             ImGui::Separator();
             static bool createSharedChild = false;
             if (node.isShared){
                 ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(ImGui::GetStyle().FramePadding.x, ImGui::GetStyle().FramePadding.y * 0.5f));
-                ImGui::Checkbox("New entity shared", &createSharedChild);
+                ImGui::Checkbox("Create new shared", &createSharedChild);
                 ImGui::PopStyleVar(1);
             }
             if (ImGui::BeginMenu(ICON_FA_CIRCLE_DOT"  Create child")){
@@ -545,10 +558,12 @@ void Editor::Structure::show(){
     root.icon = ICON_FA_TV;
     root.id = sceneProject->id;
     root.isScene = true;
+    root.isShared = false;
+    root.isParentShared = false;
     root.separator = false;
     root.hasTransform = false;
     root.order = order++;
-    root.parent = 0;
+    root.parent = NULL_ENTITY;
     root.name = sceneProject->name;
 
     // non-hierarchical entities
@@ -560,10 +575,12 @@ void Editor::Structure::show(){
             child.icon = getObjectIcon(signature, sceneProject->scene);
             child.id = entity;
             child.isScene = false;
+            child.isShared = false;
+            child.isParentShared = false;
             child.separator = false;
             child.hasTransform = false;
             child.order = order++;
-            child.parent = 0;
+            child.parent = NULL_ENTITY;
             child.name = sceneProject->scene->getEntityName(entity);
 
             root.children.push_back(child);
@@ -592,10 +609,12 @@ void Editor::Structure::show(){
             child.icon = getObjectIcon(signature, sceneProject->scene);
             child.id = entity;
             child.isScene = false;
+            child.isShared = false;
+            child.isParentShared = false;
             child.separator = false;
             child.hasTransform = true;
             child.order = order++;
-            child.parent = 0;
+            child.parent = NULL_ENTITY;
             child.name = sceneProject->scene->getEntityName(entity);
             if (transform.parent == NULL_ENTITY){
                 root.children.push_back(child);

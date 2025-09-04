@@ -13,13 +13,14 @@ namespace Supernova::Editor{
     struct TreeNode {
         std::string icon;
         std::string name;
-        bool isScene;
-        bool isShared;
-        bool separator;
-        bool hasTransform;
-        uint32_t id;
-        size_t order;
-        uint32_t parent;
+        bool isScene = false;
+        bool isShared = false;
+        bool isParentShared = false;
+        bool separator = false;
+        bool hasTransform = false;
+        uint32_t id = 0;
+        size_t order = 0;
+        uint32_t parent = 0;
         std::vector<TreeNode> children;
     };
 

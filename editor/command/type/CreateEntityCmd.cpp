@@ -206,9 +206,7 @@ bool Editor::CreateEntityCmd::execute(){
     sceneProject->isModified = true;
 
     if (addToShared){
-        NodeRecovery entityData;
-        entityData[sceneId].node = Stream::encodeEntity(entity, scene, nullptr, sceneProject, true);
-        project->addEntityToSharedGroup(sceneId, entityData, parent, false);
+        project->addEntityToSharedGroup(sceneId, entity, parent, false);
     }
 
     ImGui::SetWindowFocus(("###Scene" + std::to_string(sceneId)).c_str());

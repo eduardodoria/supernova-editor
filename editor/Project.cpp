@@ -1051,6 +1051,21 @@ bool Editor::Project::unimportSharedEntity(uint32_t sceneId, const std::filesyst
     return true;
 }
 
+bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Entity entity, Entity parent, bool createItself){
+    SceneProject* sceneProject = getScene(sceneId);
+
+    if (!sceneProject){
+        return false;
+    }
+
+    Scene* scene = sceneProject->scene;
+
+    NodeRecovery entityData;
+    entityData[sceneId].node = Stream::encodeEntity(entity, scene, nullptr, sceneProject, true);
+
+    return addEntityToSharedGroup(sceneId, entityData, parent, createItself);
+}
+
 bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, const Editor::NodeRecovery& recoveryData, Entity parent, bool createItself){
     fs::path filepath = findGroupPathFor(sceneId, parent);
     if (filepath.empty()) {
