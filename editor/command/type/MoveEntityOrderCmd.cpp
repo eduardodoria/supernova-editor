@@ -148,6 +148,12 @@ bool Editor::MoveEntityOrderCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     if (project->isEntityShared(sceneId, source)){
+
+        if (type == InsertionType::IN && !project->isEntityShared(sceneId, target)){
+            Out::error("Cannot move shared entity %u into target %u", source, target);
+            return false;
+        }
+
         sharedMoveRecovery = project->moveEntityFromSharedGroup(sceneId, source, target, type, false);
     }
     changeEntityOrder(sceneProject->scene, sceneProject->entities, source, target, type, oldParent, oldIndex, oldTransformIndex);

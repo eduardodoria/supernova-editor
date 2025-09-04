@@ -1237,6 +1237,11 @@ Editor::SharedMoveRecovery Editor::Project::moveEntityFromSharedGroup(uint32_t s
     SharedGroup* group = getSharedGroup(filepath);
 
     if (!isEntityShared(sceneId, target)){
+        if (type == InsertionType::IN){
+            Out::error("Cannot move shared entity %u into non-shared target %u in scene %u", entity, target, sceneId);
+            return {};
+        }
+
         auto& entities = getScene(sceneId)->entities;
         auto entityIt = std::find(entities.begin(), entities.end(), entity);
         auto targetIt = std::find(entities.begin(), entities.end(), target);
