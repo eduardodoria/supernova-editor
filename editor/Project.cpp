@@ -1060,10 +1060,44 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Entity entity, En
 
     Scene* scene = sceneProject->scene;
 
+    // Find the insertion position relative to other shared entities
+    Entity beforeSharedEntity = NULL_ENTITY;
+    Entity afterSharedEntity = NULL_ENTITY;
+
+    // Find the entity in the entities list
+    auto entityIt = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), entity);
+    if (entityIt != sceneProject->entities.end()) {
+        // Look backwards for a shared entity
+        for (auto it = entityIt - 1; it != sceneProject->entities.begin(); --it) {
+            if (isEntityShared(sceneId, *it)) {
+                beforeSharedEntity = *it;
+                break;
+            }
+        }
+        // Look forwards for a shared entity
+        for (auto it = entityIt + 1; it != sceneProject->entities.end(); ++it) {
+            if (isEntityShared(sceneId, *it)) {
+                afterSharedEntity = *it;
+                break;
+            }
+        }
+    }
+
     NodeRecovery entityData;
     entityData[sceneId].node = Stream::encodeEntity(entity, scene, nullptr, sceneProject, true);
 
-    return addEntityToSharedGroup(sceneId, entityData, parent, createItself);
+    if (addEntityToSharedGroup(sceneId, entityData, parent, createItself)){
+
+        if (beforeSharedEntity != NULL_ENTITY){
+            moveEntityFromSharedGroup(sceneId, entity, beforeSharedEntity, InsertionType::BEFORE, false);
+        }else if (afterSharedEntity != NULL_ENTITY){
+            moveEntityFromSharedGroup(sceneId, entity, afterSharedEntity, InsertionType::AFTER, false);
+        }
+
+        return true;
+    }
+
+    return false;
 }
 
 bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, const Editor::NodeRecovery& recoveryData, Entity parent, bool createItself){
