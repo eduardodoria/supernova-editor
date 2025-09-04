@@ -1083,6 +1083,37 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Entity entity, En
         }
     }
 
+    Signature signature = scene->getSignature(entity);
+
+    if (beforeSharedEntity != NULL_ENTITY){
+        Signature signatureB = scene->getSignature(beforeSharedEntity);
+        if (signature.test(scene->getComponentId<Transform>())){
+            if (signatureB.test(scene->getComponentId<Transform>())){
+                Transform& transform = scene->getComponent<Transform>(entity);
+                Transform& transformB = scene->getComponent<Transform>(beforeSharedEntity);
+                if (transform.parent != transformB.parent){
+                    beforeSharedEntity = NULL_ENTITY;
+                }
+            }else{
+                beforeSharedEntity = NULL_ENTITY;
+            }
+        }
+    }
+    if (afterSharedEntity != NULL_ENTITY){
+        Signature signatureA = scene->getSignature(afterSharedEntity);
+        if (signature.test(scene->getComponentId<Transform>())){
+            if (signatureA.test(scene->getComponentId<Transform>())){
+                Transform& transform = scene->getComponent<Transform>(entity);
+                Transform& transformA = scene->getComponent<Transform>(afterSharedEntity);
+                if (transform.parent != transformA.parent){
+                    afterSharedEntity = NULL_ENTITY;
+                }
+            }else{
+                afterSharedEntity = NULL_ENTITY;
+            }
+        }
+    }
+
     NodeRecovery entityData;
     entityData[sceneId].node = Stream::encodeEntity(entity, scene, nullptr, sceneProject, true);
 
