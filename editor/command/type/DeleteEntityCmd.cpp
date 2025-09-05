@@ -106,6 +106,8 @@ void Editor::DeleteEntityCmd::undo(){
 
             sceneProject->scene->moveChildToIndex(entityData.entity, entityData.transformIndex, false);
 
+            Project::sortEntitiesByTransformOrder(sceneProject->scene, sceneProject->entities);
+
         }else{
 
             project->addEntityToSharedGroup(sceneId, entityData.recoverySharedData, entityData.parent, true);

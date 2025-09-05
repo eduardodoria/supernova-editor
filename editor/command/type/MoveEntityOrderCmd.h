@@ -21,17 +21,16 @@ namespace Supernova::Editor{
         InsertionType type;
 
         size_t oldIndex;
-        size_t oldTransformIndex;
+        bool hasTransform;
         Entity oldParent;
 
         SharedMoveRecovery sharedMoveRecovery;
 
         bool wasModified;
 
-        static void sortEntitiesByTransformOrder(std::vector<Entity>& entities, EntityRegistry* registry);
-
-        static bool changeEntityOrder(EntityRegistry* registry, std::vector<Entity>& entities, Entity source, Entity target, InsertionType type, Entity& oldParent, size_t& oldIndex, size_t& oldTransformIndex);
-        static void undoEntityOrder(EntityRegistry* registry, std::vector<Entity>& entities, Entity source, Entity target, Entity oldParent, size_t oldIndex, size_t oldTransformIndex);
+        static bool moveEntityOrderByTarget(EntityRegistry* registry, std::vector<Entity>& entities, Entity source, Entity target, InsertionType type, Entity& oldParent, size_t& oldIndex, bool& hasTransform);
+        static void moveEntityOrderByIndex(EntityRegistry* registry, std::vector<Entity>& entities, Entity source, Entity target, Entity oldParent, size_t oldIndex, bool hasTransform);
+        static void moveEntityOrderByTransform(EntityRegistry* registry, std::vector<Entity>& entities, Entity source, Entity parent, size_t transformIndex, bool enableMove = true);
 
     public:
         MoveEntityOrderCmd(Project* project, uint32_t sceneId, Entity source, Entity target, InsertionType type);

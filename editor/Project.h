@@ -206,7 +206,7 @@ namespace Supernova::Editor{
     struct SharedMoveRecoveryEntry {
         Entity oldParent;
         size_t oldIndex;
-        size_t oldTransformIndex;
+        size_t hasTransform;
     };
 
     using SharedMoveRecovery = std::map<uint32_t, SharedMoveRecoveryEntry>;
@@ -306,7 +306,8 @@ namespace Supernova::Editor{
         bool hasSelectedSceneUnsavedChanges() const;
         bool hasScenesUnsavedChanges() const;
 
-        size_t getTransformIndex(EntityRegistry* registry, Entity entity) const;
+        static size_t getTransformIndex(EntityRegistry* registry, Entity entity);
+        static void sortEntitiesByTransformOrder(EntityRegistry* registry, std::vector<Entity>& entities);
 
         //=== Shared Entities part ===
 

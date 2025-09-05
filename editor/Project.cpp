@@ -850,7 +850,7 @@ bool Editor::Project::hasScenesUnsavedChanges() const{
     return false;
 }
 
-size_t Editor::Project::getTransformIndex(EntityRegistry* registry, Entity entity) const{
+size_t Editor::Project::getTransformIndex(EntityRegistry* registry, Entity entity){
     Signature signature = registry->getSignature(entity);
     if (signature.test(registry->getComponentId<Transform>())) {
         Transform& transform = registry->getComponent<Transform>(entity);
@@ -859,6 +859,20 @@ size_t Editor::Project::getTransformIndex(EntityRegistry* registry, Entity entit
     }
 
     return 0;
+}
+
+void Editor::Project::sortEntitiesByTransformOrder(EntityRegistry* registry, std::vector<Entity>& entities) {
+    auto transforms = registry->getComponentArray<Transform>();
+    std::unordered_map<Entity, size_t> transformOrder;
+    for (size_t i = 0; i < transforms->size(); ++i) {
+        Entity ent = transforms->getEntity(i);
+        transformOrder[ent] = i;
+    }
+    std::sort(entities.begin(), entities.end(),
+        [&transformOrder](const Entity& a, const Entity& b) {
+            return transformOrder[a] < transformOrder[b];
+        }
+    );
 }
 
 bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path filepath, YAML::Node entityNode){
@@ -1152,10 +1166,12 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, const Editor::Nod
     }
 
     YAML::Node nodeRegData;
+    size_t regTransformIndex = 0;
     bool hasRegRecoveryData = false;
     if (recoveryData.find(NULL_PROJECT_SCENE) != recoveryData.end()) {
         hasRegRecoveryData = true;
         nodeRegData = recoveryData.at(NULL_PROJECT_SCENE).node;
+        regTransformIndex = recoveryData.at(NULL_PROJECT_SCENE).transformIndex;
     }else{
         if (recoveryData.find(sceneId) == recoveryData.end()) {
             Out::error("No default entity data provided for adding to shared group");
@@ -1166,18 +1182,17 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, const Editor::Nod
     }
 
     std::vector<Entity> regEntities =  Stream::decodeEntity(nodeRegData, group->registry.get(), &group->registryEntities);
-    group->registry->addEntityChild(registryParent, regEntities[0], false);
-    if (hasRegRecoveryData){
-        group->registry->moveChildToIndex(regEntities[0], recoveryData.at(NULL_PROJECT_SCENE).transformIndex, false);
-    }
+    MoveEntityOrderCmd::moveEntityOrderByTransform(group->registry.get(), group->registryEntities, regEntities[0], registryParent, regTransformIndex, hasRegRecoveryData);
 
     for (auto& [otherSceneId, otherEntities] : group->members) {
         YAML::Node nodeData;
+        size_t transformIndex = 0;
         std::vector<MergeResult> mergeResults;
         bool hasRecoveryData = false;
         if (recoveryData.find(otherSceneId) != recoveryData.end()) {
             hasRecoveryData = true;
             nodeData = recoveryData.at(otherSceneId).node;
+            transformIndex = recoveryData.at(otherSceneId).transformIndex;
             mergeResults = recoveryData.at(otherSceneId).mergeResults;
         }else{
             nodeData = Stream::encodeEntity(regEntities[0], group->registry.get());
@@ -1190,10 +1205,7 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, const Editor::Nod
             Entity otherParent = group->getLocalEntity(otherSceneId, registryParent);
 
             newOtherEntities = Stream::decodeEntity(nodeData, otherScene->scene, &otherScene->entities);
-            otherScene->scene->addEntityChild(otherParent, newOtherEntities[0], false);
-            if (hasRecoveryData){
-                otherScene->scene->moveChildToIndex(newOtherEntities[0], recoveryData.at(otherSceneId).transformIndex, false);
-            }
+            MoveEntityOrderCmd::moveEntityOrderByTransform(otherScene->scene, otherScene->entities, newOtherEntities[0], otherParent, transformIndex, hasRecoveryData);
         }else{
             collectEntities(nodeData, newOtherEntities);
         }
@@ -1365,9 +1377,9 @@ Editor::SharedMoveRecovery Editor::Project::moveEntityFromSharedGroup(uint32_t s
 
     Entity oldParent;
     size_t oldIndex;
-    size_t oldTransformIndex;
-    MoveEntityOrderCmd::changeEntityOrder(group->registry.get(), group->registryEntities, registryEntity, registryTarget, type, oldParent, oldIndex, oldTransformIndex);
-    recovery[NULL_PROJECT_SCENE] = {oldParent, oldIndex, oldTransformIndex};
+    bool hasTransform;
+    MoveEntityOrderCmd::moveEntityOrderByTarget(group->registry.get(), group->registryEntities, registryEntity, registryTarget, type, oldParent, oldIndex, hasTransform);
+    recovery[NULL_PROJECT_SCENE] = {oldParent, oldIndex, hasTransform};
 
     for (const auto& [otherSceneId, otherEntities] : group->members) {
         if (otherSceneId != sceneId || moveItself) {
@@ -1380,9 +1392,9 @@ Editor::SharedMoveRecovery Editor::Project::moveEntityFromSharedGroup(uint32_t s
 
                     Entity otherOldParent;
                     size_t otherOldIndex;
-                    size_t otherOldTransformIndex;
-                    MoveEntityOrderCmd::changeEntityOrder(otherScene->scene, otherScene->entities, otherEntity, otherTarget, type, otherOldParent, otherOldIndex, otherOldTransformIndex);
-                    recovery[otherSceneId] = {otherOldParent, otherOldIndex, otherOldTransformIndex};
+                    bool otherHasTransform;
+                    MoveEntityOrderCmd::moveEntityOrderByTarget(otherScene->scene, otherScene->entities, otherEntity, otherTarget, type, otherOldParent, otherOldIndex, otherHasTransform);
+                    recovery[otherSceneId] = {otherOldParent, otherOldIndex, otherHasTransform};
 
                     otherScene->isModified = true;
                 }
@@ -1414,7 +1426,7 @@ bool Editor::Project::undoMoveEntityInSharedGroup(uint32_t sceneId, Entity entit
         return {};
     }
 
-    MoveEntityOrderCmd::undoEntityOrder(group->registry.get(), group->registryEntities, registryEntity, registryTarget, recovery.at(NULL_PROJECT_SCENE).oldParent, recovery.at(NULL_PROJECT_SCENE).oldIndex, recovery.at(NULL_PROJECT_SCENE).oldTransformIndex);
+    MoveEntityOrderCmd::moveEntityOrderByIndex(group->registry.get(), group->registryEntities, registryEntity, registryTarget, recovery.at(NULL_PROJECT_SCENE).oldParent, recovery.at(NULL_PROJECT_SCENE).oldIndex, recovery.at(NULL_PROJECT_SCENE).hasTransform);
 
     for (const auto& [otherSceneId, otherEntities] : group->members) {
         if (otherSceneId != sceneId || moveItself) {
@@ -1425,7 +1437,7 @@ bool Editor::Project::undoMoveEntityInSharedGroup(uint32_t sceneId, Entity entit
                     SceneProject* otherScene = getScene(otherSceneId);
                     if (otherScene) {
 
-                        MoveEntityOrderCmd::undoEntityOrder(otherScene->scene, otherScene->entities, otherEntity, otherTarget, recovery.at(otherSceneId).oldParent, recovery.at(otherSceneId).oldIndex, recovery.at(otherSceneId).oldTransformIndex);
+                        MoveEntityOrderCmd::moveEntityOrderByIndex(otherScene->scene, otherScene->entities, otherEntity, otherTarget, recovery.at(otherSceneId).oldParent, recovery.at(otherSceneId).oldIndex, recovery.at(otherSceneId).hasTransform);
 
                     }
                 }

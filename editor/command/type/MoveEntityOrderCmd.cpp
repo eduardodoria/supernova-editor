@@ -14,25 +14,12 @@ Editor::MoveEntityOrderCmd::MoveEntityOrderCmd(Project* project, uint32_t sceneI
     this->wasModified = project->getScene(sceneId)->isModified;
 }
 
-void Editor::MoveEntityOrderCmd::sortEntitiesByTransformOrder(std::vector<Entity>& entities, EntityRegistry* registry) {
-    auto transforms = registry->getComponentArray<Transform>();
-    std::unordered_map<Entity, size_t> transformOrder;
-    for (size_t i = 0; i < transforms->size(); ++i) {
-        Entity ent = transforms->getEntity(i);
-        transformOrder[ent] = i;
-    }
-    std::sort(entities.begin(), entities.end(),
-        [&transformOrder](const Entity& a, const Entity& b) {
-            return transformOrder[a] < transformOrder[b];
-        }
-    );
-}
-
-bool Editor::MoveEntityOrderCmd::changeEntityOrder(EntityRegistry* registry, std::vector<Entity>& entities, Entity source, Entity target, InsertionType type, Entity& oldParent, size_t& oldIndex, size_t& oldTransformIndex) {
+bool Editor::MoveEntityOrderCmd::moveEntityOrderByTarget(EntityRegistry* registry, std::vector<Entity>& entities, Entity source, Entity target, InsertionType type, Entity& oldParent, size_t& oldIndex, bool& hasTransform) {
     Transform* transformSource = registry->findComponent<Transform>(source);
     Transform* transformTarget = registry->findComponent<Transform>(target);
 
     if (transformSource && transformTarget){
+        hasTransform = true;
 
         if (registry->isParentOf(source, target)){
             Out::error("Cannot move entity to a child");
@@ -56,9 +43,7 @@ bool Editor::MoveEntityOrderCmd::changeEntityOrder(EntityRegistry* registry, std
         }
 
         oldParent = transformSource->parent;
-        registry->addEntityChild(newParent, source, true);
-
-        oldTransformIndex = sourceTransformIndex;
+        oldIndex = sourceTransformIndex;
 
         if (type == InsertionType::AFTER){
             // if position target has children, move them to the end of the list
@@ -71,11 +56,11 @@ bool Editor::MoveEntityOrderCmd::changeEntityOrder(EntityRegistry* registry, std
             targetTransformIndex = targetTransformIndex - sizeOfSourceBranch;
         }
 
-        registry->moveChildToIndex(source, targetTransformIndex, false);
-
-        sortEntitiesByTransformOrder(entities, registry);
+        moveEntityOrderByTransform(registry, entities, source, newParent, targetTransformIndex);
 
     }else{
+
+        hasTransform = false;
 
         auto itSource = std::find(entities.begin(), entities.end(), source);
         auto itTarget = std::find(entities.begin(), entities.end(), target);
@@ -110,17 +95,10 @@ bool Editor::MoveEntityOrderCmd::changeEntityOrder(EntityRegistry* registry, std
     return true;
 }
 
-void Editor::MoveEntityOrderCmd::undoEntityOrder(EntityRegistry* registry, std::vector<Entity>& entities, Entity source, Entity target, Entity oldParent, size_t oldIndex, size_t oldTransformIndex){
-    Transform* transformSource = registry->findComponent<Transform>(source);
-    Transform* transformTarget = registry->findComponent<Transform>(target);
+void Editor::MoveEntityOrderCmd::moveEntityOrderByIndex(EntityRegistry* registry, std::vector<Entity>& entities, Entity source, Entity target, Entity parent, size_t index, bool hasTransform){
+    if (hasTransform){
 
-    if (transformSource && transformTarget){
-
-        registry->addEntityChild(oldParent, source, true);
-
-        registry->moveChildToIndex(source, oldTransformIndex, false);
-
-        sortEntitiesByTransformOrder(entities, registry);
+        moveEntityOrderByTransform(registry, entities, source, parent, index);
 
     }else{
 
@@ -133,14 +111,26 @@ void Editor::MoveEntityOrderCmd::undoEntityOrder(EntityRegistry* registry, std::
         Entity tempSource = *itSource;
         entities.erase(itSource);
 
-        // Clamp oldIndex for safety
-        if (oldIndex > entities.size()) {
+        // Clamp index for safety
+        if (index > entities.size()) {
             entities.push_back(tempSource);
         } else {
-            entities.insert(entities.begin() + oldIndex, tempSource);
+            entities.insert(entities.begin() + index, tempSource);
         }
 
     }
+}
+
+void Editor::MoveEntityOrderCmd::moveEntityOrderByTransform(EntityRegistry* registry, std::vector<Entity>& entities, Entity source, Entity parent, size_t transformIndex, bool enableMove){
+    if (parent != NULL_ENTITY) {
+        registry->addEntityChild(parent, source, true);
+    }
+
+    if (enableMove){
+        registry->moveChildToIndex(source, transformIndex, false);
+    }
+
+    Project::sortEntitiesByTransformOrder(registry, entities);
 }
 
 
@@ -156,7 +146,7 @@ bool Editor::MoveEntityOrderCmd::execute(){
 
         sharedMoveRecovery = project->moveEntityFromSharedGroup(sceneId, source, target, type, false);
     }
-    changeEntityOrder(sceneProject->scene, sceneProject->entities, source, target, type, oldParent, oldIndex, oldTransformIndex);
+    moveEntityOrderByTarget(sceneProject->scene, sceneProject->entities, source, target, type, oldParent, oldIndex, hasTransform);
 
     sceneProject->isModified = true;
 
@@ -169,7 +159,7 @@ void Editor::MoveEntityOrderCmd::undo(){
     if (sharedMoveRecovery.size() > 0){
         project->undoMoveEntityInSharedGroup(sceneId, source, target, sharedMoveRecovery, false);
     }
-    undoEntityOrder(sceneProject->scene, sceneProject->entities, source, target, oldParent, oldIndex, oldTransformIndex);
+    moveEntityOrderByIndex(sceneProject->scene, sceneProject->entities, source, target, oldParent, oldIndex, hasTransform);
 
     sceneProject->isModified = wasModified;
 }
