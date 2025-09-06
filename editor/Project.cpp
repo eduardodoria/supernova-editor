@@ -1614,7 +1614,7 @@ void Editor::Project::collectEntities(const YAML::Node& entityNode, std::vector<
     }
 }
 
-bool Editor::Project::sharedGroupComponentChanged(uint32_t sceneId, Entity entity, ComponentType componentType, std::vector<std::string> properties){
+bool Editor::Project::sharedGroupComponentChanged(uint32_t sceneId, Entity entity, ComponentType componentType, std::vector<std::string> properties, bool renderAllScenes){
     fs::path filepath = findGroupPathFor(sceneId, entity);
 
     if (filepath.empty()) {
@@ -1643,7 +1643,9 @@ bool Editor::Project::sharedGroupComponentChanged(uint32_t sceneId, Entity entit
                 if (!group->hasComponentOverride(otherSceneId, otherEntity, componentType)) {
                     SceneProject* otherScene = getScene(otherSceneId);
                     if (otherScene) {
-                        otherScene->needUpdateRender = true;
+                        if (renderAllScenes){
+                            otherScene->needUpdateRender = true;
+                        }
                         for (const auto& property : properties) {
                             Catalog::copyPropertyValue(getScene(sceneId)->scene, entity, otherScene->scene, otherEntity, componentType, property);
                         }

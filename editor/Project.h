@@ -339,7 +339,7 @@ namespace Supernova::Editor{
         void collectEntities(const YAML::Node& entityNode, std::vector<Entity>& allEntities);
         void collectEntities(const YAML::Node& entityNode, std::vector<Entity>& allEntities, std::vector<Entity>& sharedEntities);
 
-        bool sharedGroupComponentChanged(uint32_t sceneId, Entity entity, ComponentType componentType, std::vector<std::string> properties);
+        bool sharedGroupComponentChanged(uint32_t sceneId, Entity entity, ComponentType componentType, std::vector<std::string> properties, bool renderAllScenes = true);
 
         //=== end Shared Entities part ===
 

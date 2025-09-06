@@ -161,7 +161,7 @@ void Editor::SceneRender::activate(){
     Engine::setFramebuffer(&framebuffer);
     Engine::setScene(scene);
 
-    Engine::removeAllSceneLayers();
+    Engine::removeAllSceneLayers(false);
 
     Engine::addSceneLayer(toolslayer.getScene());
     Engine::addSceneLayer(uilayer.getScene());
