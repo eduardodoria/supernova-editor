@@ -137,9 +137,22 @@ bool Editor::MoveEntityOrderCmd::execute(){
 
     if (project->isEntityShared(sceneId, source)){
 
-        if (type == InsertionType::IN && !project->isEntityShared(sceneId, target)){
-            Out::error("Cannot move shared entity %u into target %u", source, target);
-            return false;
+        if (type == InsertionType::IN){
+            if (!project->isEntityShared(sceneId, target)){
+                Out::error("Cannot move shared entity %u into target %u", source, target);
+                return false;
+            }
+        }else{
+            Transform* transformTarget = sceneProject->scene->findComponent<Transform>(target);
+            if (transformTarget){
+                std::string parentSharedPath = project->findGroupPathFor(sceneId, transformTarget->parent);
+                std::string sourceSharedPath = project->findGroupPathFor(sceneId, source);
+
+                if (parentSharedPath != sourceSharedPath){
+                    Out::error("Cannot move shared entity %u outside shared group", source);
+                    return false;
+                }
+            }
         }
 
         sharedMoveRecovery = project->moveEntityFromSharedGroup(sceneId, source, target, type, false);
