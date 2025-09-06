@@ -2,6 +2,7 @@
 
 #include "Stream.h"
 #include "Out.h"
+#include "command/type/MoveEntityOrderCmd.h"
 
 using namespace Supernova;
 
@@ -17,15 +18,17 @@ Editor::DeleteEntityCmd::DeleteEntityCmd(Project* project, uint32_t sceneId, Ent
 
     Signature signature = scene->getSignature(entity);
     if (signature.test(scene->getComponentId<Transform>())) {
+        entityData.hasTransform = true;
         Transform& transform = scene->getComponent<Transform>(entity);
         auto transforms = scene->getComponentArray<Transform>();
-        entityData.transformIndex = transforms->getIndex(entity);
+        entityData.entityIndex = transforms->getIndex(entity);
         entityData.parent = transform.parent;
-    }
-
-    auto it = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), entity);
-    if (it != sceneProject->entities.end()) {
-        entityData.entityIndex = std::distance(sceneProject->entities.begin(), it);
+    }else{
+        entityData.hasTransform = false;
+        auto it = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), entity);
+        if (it != sceneProject->entities.end()) {
+            entityData.entityIndex = std::distance(sceneProject->entities.begin(), it);
+        }
     }
 
     this->entities.push_back(entityData);
@@ -100,13 +103,7 @@ void Editor::DeleteEntityCmd::undo(){
             std::vector<Entity> allEntities = Stream::decodeEntity(entityData.data, sceneProject->scene, &sceneProject->entities, project, sceneProject);
             entityData.entity = allEntities[0];
 
-            if (entityData.parent != NULL_ENTITY) {
-                sceneProject->scene->addEntityChild(entityData.parent, entityData.entity, false);
-            }
-
-            sceneProject->scene->moveChildToIndex(entityData.entity, entityData.transformIndex, false);
-
-            Project::sortEntitiesByTransformOrder(sceneProject->scene, sceneProject->entities);
+            MoveEntityOrderCmd::moveEntityOrderByIndex(sceneProject->scene, sceneProject->entities, entityData.entity, entityData.parent, entityData.entityIndex, entityData.hasTransform);
 
         }else{
 

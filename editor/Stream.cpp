@@ -1061,36 +1061,45 @@ Scene* Editor::Stream::decodeScene(Scene* scene, const YAML::Node& node) {
 YAML::Node Editor::Stream::encodeEntity(const Entity entity, const EntityRegistry* registry, const Project* project, const SceneProject* sceneProject, bool keepEntity) {
     std::map<Entity, YAML::Node> entityNodes;
 
-    Signature signature = registry->getSignature(entity);
+    bool hasCurrentEntity = true;
+    if (sceneProject){
+        std::vector<Entity> entities = sceneProject->entities;
+        hasCurrentEntity = std::find(entities.begin(), entities.end(), entity) != entities.end();
+    }
 
-    if (signature.test(registry->getComponentId<Transform>())) {
-        auto transforms = registry->getComponentArray<Transform>();
-        size_t firstIndex = transforms->getIndex(entity);
+    if (hasCurrentEntity) {
+        YAML::Node& currentNode = entityNodes[entity];
+        currentNode = encodeEntityAux(entity, registry, project, sceneProject, keepEntity);
 
-        for (size_t i = firstIndex; i < transforms->size(); ++i) {
-            Entity currentEntity = transforms->getEntity(i);
+        Signature signature = registry->getSignature(entity);
 
-            std::vector<Entity> entities;
-            bool hasCurrentEntity = true;
-            if (sceneProject){
-                std::vector<Entity> entities = sceneProject->entities;
-                hasCurrentEntity = std::find(entities.begin(), entities.end(), currentEntity) != entities.end();
-            }
+        if (signature.test(registry->getComponentId<Transform>())) {
+            auto transforms = registry->getComponentArray<Transform>();
+            size_t firstIndex = transforms->getIndex(entity);
 
-            if (hasCurrentEntity) {
-                YAML::Node& currentNode = entityNodes[currentEntity];
-                currentNode = encodeEntityAux(currentEntity, registry, project, sceneProject, keepEntity);
+            for (size_t i = firstIndex + 1; i < transforms->size(); ++i) {
+                Entity currentEntity = transforms->getEntity(i);
 
-                Transform& transform = transforms->getComponentFromIndex(i);
+                if (sceneProject){
+                    std::vector<Entity> entities = sceneProject->entities;
+                    hasCurrentEntity = std::find(entities.begin(), entities.end(), currentEntity) != entities.end();
+                }
 
-                if (entityNodes.find(transform.parent) != entityNodes.end()) {
-                    YAML::Node& parentNode = entityNodes[transform.parent];
-                    if (!parentNode["children"]) {
-                        parentNode["children"] = YAML::Node();
+                if (hasCurrentEntity) {
+                    YAML::Node& currentNode = entityNodes[currentEntity];
+                    currentNode = encodeEntityAux(currentEntity, registry, project, sceneProject, keepEntity);
+
+                    Transform& transform = transforms->getComponentFromIndex(i);
+
+                    if (entityNodes.find(transform.parent) != entityNodes.end()) {
+                        YAML::Node& parentNode = entityNodes[transform.parent];
+                        if (!parentNode["children"]) {
+                            parentNode["children"] = YAML::Node();
+                        }
+                        parentNode["children"].push_back(currentNode);
+                    } else {
+                        break; // No more childs
                     }
-                    parentNode["children"].push_back(currentNode);
-                } else if (i > firstIndex) { // If this is not the first entity
-                    break; // No more childs
                 }
             }
         }
@@ -1177,7 +1186,9 @@ std::vector<Entity> Editor::Stream::decodeEntity(const YAML::Node& entityNode, E
         std::string name = entityNode["name"].as<std::string>();
         registry->setEntityName(entity, name);
 
-        decodeComponentsAux(entity, parent, registry, entityNode["components"]);
+        if (entityNode["components"]){
+            decodeComponentsAux(entity, parent, registry, entityNode["components"]);
+        }
 
         // Decode children from actualNode
         if (entityNode["children"]) {

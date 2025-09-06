@@ -1426,7 +1426,7 @@ bool Editor::Project::undoMoveEntityInSharedGroup(uint32_t sceneId, Entity entit
         return {};
     }
 
-    MoveEntityOrderCmd::moveEntityOrderByIndex(group->registry.get(), group->registryEntities, registryEntity, registryTarget, recovery.at(NULL_PROJECT_SCENE).oldParent, recovery.at(NULL_PROJECT_SCENE).oldIndex, recovery.at(NULL_PROJECT_SCENE).hasTransform);
+    MoveEntityOrderCmd::moveEntityOrderByIndex(group->registry.get(), group->registryEntities, registryEntity, recovery.at(NULL_PROJECT_SCENE).oldParent, recovery.at(NULL_PROJECT_SCENE).oldIndex, recovery.at(NULL_PROJECT_SCENE).hasTransform);
 
     for (const auto& [otherSceneId, otherEntities] : group->members) {
         if (otherSceneId != sceneId || moveItself) {
@@ -1437,7 +1437,7 @@ bool Editor::Project::undoMoveEntityInSharedGroup(uint32_t sceneId, Entity entit
                     SceneProject* otherScene = getScene(otherSceneId);
                     if (otherScene) {
 
-                        MoveEntityOrderCmd::moveEntityOrderByIndex(otherScene->scene, otherScene->entities, otherEntity, otherTarget, recovery.at(otherSceneId).oldParent, recovery.at(otherSceneId).oldIndex, recovery.at(otherSceneId).hasTransform);
+                        MoveEntityOrderCmd::moveEntityOrderByIndex(otherScene->scene, otherScene->entities, otherEntity, recovery.at(otherSceneId).oldParent, recovery.at(otherSceneId).oldIndex, recovery.at(otherSceneId).hasTransform);
 
                     }
                 }

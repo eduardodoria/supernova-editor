@@ -330,19 +330,27 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
             }
         }
 
-        if (allowEntityDragDrop){
+        ImVec2 mousePos = ImGui::GetMousePos();
+        ImVec2 itemMin = ImGui::GetItemRectMin();
+        ImVec2 itemMax = ImGui::GetItemRectMax();
+        if (!node.isScene && node.hasTransform){
+            insertBefore = (mousePos.y - itemMin.y) < (itemMax.y - itemMin.y) * 0.2f;
+            insertAfter = (mousePos.y - itemMin.y) > (itemMax.y - itemMin.y) * 0.8f;
+        }else{
+            insertBefore = (mousePos.y - itemMin.y) < (itemMax.y - itemMin.y) * 0.5f;
+            insertAfter = (mousePos.y - itemMin.y) >= (itemMax.y - itemMin.y) * 0.5f;
+        }
 
-            ImVec2 mousePos = ImGui::GetMousePos();
-            ImVec2 itemMin = ImGui::GetItemRectMin();
-            ImVec2 itemMax = ImGui::GetItemRectMax();
-            if (!node.isScene && node.hasTransform){
-                insertBefore = (mousePos.y - itemMin.y) < (itemMax.y - itemMin.y) * 0.2f;
-                insertAfter = (mousePos.y - itemMin.y) > (itemMax.y - itemMin.y) * 0.8f;
-            }else{
-                insertBefore = (mousePos.y - itemMin.y) < (itemMax.y - itemMin.y) * 0.5f;
-                insertAfter = (mousePos.y - itemMin.y) >= (itemMax.y - itemMin.y) * 0.5f;
+        if (node.parent == sourceParent){
+            if (node.order == (sourceOrder+1) && insertBefore){
+                allowEntityDragDrop = false;
             }
+            if (node.order == (sourceOrder-1) && insertAfter){
+                allowEntityDragDrop = false;
+            }
+        }
 
+        if (allowEntityDragDrop){
             ImGuiDragDropFlags flags = 0;
             //ImGuiDragDropFlags flags = ImGuiDragDropFlags_AcceptBeforeDelivery;
 
@@ -351,14 +359,6 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
             }
 
             if (ImGui::AcceptDragDropPayload("entity", flags)) {
-                if (node.parent == sourceParent){
-                    if (node.order == (sourceOrder+1)){
-                        insertBefore = false;
-                    }
-                    if (node.order == (sourceOrder-1)){
-                        insertAfter = false;
-                    }
-                }
 
                 if (!node.isScene && payload->IsDelivery()){
                     InsertionType type;

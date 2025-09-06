@@ -45,10 +45,10 @@ bool Editor::MoveEntityOrderCmd::moveEntityOrderByTarget(EntityRegistry* registr
         oldParent = transformSource->parent;
         oldIndex = sourceTransformIndex;
 
-        if (type == InsertionType::AFTER){
+        //if (type == InsertionType::AFTER){
             // if position target has children, move them to the end of the list
-            targetTransformIndex = registry->findBranchLastIndex(target);
-        }
+            //targetTransformIndex = registry->findBranchLastIndex(target);
+        //}
         if (type == InsertionType::AFTER || type == InsertionType::IN){
             targetTransformIndex++;
         }
@@ -95,7 +95,7 @@ bool Editor::MoveEntityOrderCmd::moveEntityOrderByTarget(EntityRegistry* registr
     return true;
 }
 
-void Editor::MoveEntityOrderCmd::moveEntityOrderByIndex(EntityRegistry* registry, std::vector<Entity>& entities, Entity source, Entity target, Entity parent, size_t index, bool hasTransform){
+void Editor::MoveEntityOrderCmd::moveEntityOrderByIndex(EntityRegistry* registry, std::vector<Entity>& entities, Entity source, Entity parent, size_t index, bool hasTransform){
     if (hasTransform){
 
         moveEntityOrderByTransform(registry, entities, source, parent, index);
@@ -122,9 +122,7 @@ void Editor::MoveEntityOrderCmd::moveEntityOrderByIndex(EntityRegistry* registry
 }
 
 void Editor::MoveEntityOrderCmd::moveEntityOrderByTransform(EntityRegistry* registry, std::vector<Entity>& entities, Entity source, Entity parent, size_t transformIndex, bool enableMove){
-    if (parent != NULL_ENTITY) {
-        registry->addEntityChild(parent, source, true);
-    }
+    registry->addEntityChild(parent, source, true);
 
     if (enableMove){
         registry->moveChildToIndex(source, transformIndex, false);
@@ -159,7 +157,7 @@ void Editor::MoveEntityOrderCmd::undo(){
     if (sharedMoveRecovery.size() > 0){
         project->undoMoveEntityInSharedGroup(sceneId, source, target, sharedMoveRecovery, false);
     }
-    moveEntityOrderByIndex(sceneProject->scene, sceneProject->entities, source, target, oldParent, oldIndex, hasTransform);
+    moveEntityOrderByIndex(sceneProject->scene, sceneProject->entities, source, oldParent, oldIndex, hasTransform);
 
     sceneProject->isModified = wasModified;
 }

@@ -13,8 +13,8 @@ namespace Supernova::Editor{
     struct DeleteEntityData{
         Entity entity;
 
-        size_t transformIndex;
         size_t entityIndex;
+        bool hasTransform = false;
         Entity parent = NULL_ENTITY;
 
         YAML::Node data;
