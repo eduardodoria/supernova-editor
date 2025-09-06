@@ -224,6 +224,8 @@ add_executable(
     ${EDITOR_DIR}/command/type/ObjectTransformCmd.cpp
     ${EDITOR_DIR}/command/type/EntityNameCmd.cpp
     ${EDITOR_DIR}/command/type/ImportSharedEntityCmd.cpp
+    ${EDITOR_DIR}/command/type/MakeEntityLocalCmd.cpp
+    ${EDITOR_DIR}/command/type/MakeEntitySharedCmd.cpp
     ${EDITOR_DIR}/command/type/MarkEntitySharedCmd.cpp
     ${EDITOR_DIR}/command/type/MeshChangeCmd.cpp
     ${EDITOR_DIR}/command/type/SceneNameCmd.cpp

@@ -1,5 +1,4 @@
-#ifndef MOVEENTITYORDERCMD_H
-#define MOVEENTITYORDERCMD_H
+#pragma once
 
 #include "command/Command.h"
 #include "Project.h"
@@ -43,5 +42,3 @@ namespace Supernova::Editor{
     };
 
 }
-
-#endif /* MOVEENTITYORDERCMD_H */

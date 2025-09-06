@@ -7,19 +7,18 @@
 
 namespace Supernova::Editor{
 
-    class SceneNameCmd: public Command{
+    class MakeEntitySharedCmd: public Command{
 
     private:
-        std::string oldName;
-        std::string newName;
-
         Project* project;
         uint32_t sceneId;
+        Entity entity;
+        Entity parent;
 
         bool wasModified;
 
     public:
-        SceneNameCmd(Project* project, uint32_t sceneId, std::string name);
+        MakeEntitySharedCmd(Project* project, uint32_t sceneId, Entity entity, Entity parent);
 
         virtual bool execute();
         virtual void undo();

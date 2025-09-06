@@ -1,5 +1,4 @@
-#ifndef DELETEENTITYCMD_H
-#define DELETEENTITYCMD_H
+#pragma once
 
 #include "command/Command.h"
 #include "Project.h"
@@ -50,5 +49,3 @@ namespace Supernova::Editor{
     };
 
 }
-
-#endif /* DELETEENTITYCMD_H */

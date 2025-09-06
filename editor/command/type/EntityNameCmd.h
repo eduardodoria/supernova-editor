@@ -1,5 +1,4 @@
-#ifndef CHANGEENTITYNAMECMD_H
-#define CHANGEENTITYNAMECMD_H
+#pragma once
 
 #include "command/Command.h"
 #include "Project.h"
@@ -29,5 +28,3 @@ namespace Supernova::Editor{
     };
 
 }
-
-#endif /* CHANGEENTITYNAMECMD_H */

@@ -7,19 +7,20 @@
 
 namespace Supernova::Editor{
 
-    class SceneNameCmd: public Command{
+    class MakeEntityLocalCmd: public Command{
 
     private:
-        std::string oldName;
-        std::string newName;
-
         Project* project;
         uint32_t sceneId;
+        Entity entity;
+        Entity parent;
 
         bool wasModified;
 
+        NodeRecovery recovery;
+
     public:
-        SceneNameCmd(Project* project, uint32_t sceneId, std::string name);
+        MakeEntityLocalCmd(Project* project, uint32_t sceneId, Entity entity, Entity parent);
 
         virtual bool execute();
         virtual void undo();

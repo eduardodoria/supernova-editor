@@ -1,5 +1,4 @@
-#ifndef CHANGEOBJTRANSFCMD_H
-#define CHANGEOBJTRANSFCMD_H
+#pragma once
 
 #include "command/Command.h"
 #include "Project.h"
@@ -41,5 +40,3 @@ namespace Supernova::Editor{
     };
 
 }
-
-#endif /* CHANGEOBJTRANSFCMD_H */

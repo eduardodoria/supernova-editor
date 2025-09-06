@@ -1,5 +1,4 @@
-#ifndef CREATEENTITYCMD_H
-#define CREATEENTITYCMD_H
+#pragma once
 
 #include "command/Command.h"
 #include "Project.h"
@@ -76,5 +75,3 @@ namespace Supernova::Editor{
     };
 
 }
-
-#endif /* CREATEENTITYCMD_H */

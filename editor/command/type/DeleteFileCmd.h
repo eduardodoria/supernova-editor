@@ -1,5 +1,4 @@
-#ifndef DELETEFILECMD_H
-#define DELETEFILECMD_H
+#pragma once
 
 #include "command/Command.h"
 #include <vector>
@@ -34,5 +33,3 @@ namespace Supernova::Editor{
     };
 
 }
-
-#endif /* DELETEFILECMD_H */

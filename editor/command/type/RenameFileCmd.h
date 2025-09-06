@@ -1,5 +1,4 @@
-#ifndef RENAMEFILECMD_H
-#define RENAMEFILECMD_H
+#pragma once
 
 #include "command/Command.h"
 #include <vector>
@@ -28,5 +27,3 @@ namespace Supernova::Editor{
     };
 
 }
-
-#endif /* RENAMEFILECMD_H */

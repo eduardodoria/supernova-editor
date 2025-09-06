@@ -8,6 +8,8 @@
 #include "command/type/SceneNameCmd.h"
 #include "command/type/DeleteEntityCmd.h"
 #include "command/type/ImportSharedEntityCmd.h"
+#include "command/type/MakeEntityLocalCmd.h"
+#include "command/type/MakeEntitySharedCmd.h"
 #include "util/EntityPayload.h"
 #include "Out.h"
 #include "Stream.h"
@@ -499,12 +501,12 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
             ImGui::Separator();
             if (ImGui::MenuItem(ICON_FA_LOCK_OPEN"  Make this entity local", nullptr, false, node.isShared)){
                 if (node.isShared){
-                    project->removeEntityFromSharedGroup(project->getSelectedSceneId(), node.id, false);
+                    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new MakeEntityLocalCmd(project, project->getSelectedSceneId(), node.id, node.parent));
                 }
             }
             if (ImGui::MenuItem(ICON_FA_LINK"  Make this entity shared", nullptr, false, !node.isShared)){
                 if (!node.isShared){
-                    project->addEntityToSharedGroup(project->getSelectedSceneId(), node.id, node.parent, false);
+                    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new MakeEntitySharedCmd(project, project->getSelectedSceneId(), node.id, node.parent));
                 }
             }
         }
