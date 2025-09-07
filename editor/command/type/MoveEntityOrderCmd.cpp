@@ -145,8 +145,8 @@ bool Editor::MoveEntityOrderCmd::execute(){
         }else{
             Transform* transformTarget = sceneProject->scene->findComponent<Transform>(target);
             if (transformTarget){
-                std::string parentSharedPath = project->findGroupPathFor(sceneId, transformTarget->parent);
-                std::string sourceSharedPath = project->findGroupPathFor(sceneId, source);
+                fs::path parentSharedPath = project->findGroupPathFor(sceneId, transformTarget->parent);
+                fs::path sourceSharedPath = project->findGroupPathFor(sceneId, source);
 
                 if (parentSharedPath != sourceSharedPath){
                     Out::error("Cannot move shared entity %u outside shared group", source);
