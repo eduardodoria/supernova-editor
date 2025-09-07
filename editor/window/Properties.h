@@ -31,6 +31,12 @@ namespace Supernova::Editor{
 
         std::unordered_map<std::string, Texture> thumbnailTextures;
 
+        // For component menu
+        char componentSearchBuffer[128] = "";
+        int hoveredComponentIndex = -1;
+        bool addComponentModalOpen = false;
+        bool componentMenuJustOpened = false;
+
         const ImU32 textureLabel = IM_COL32(50, 50, 50, 255);
 
         // replace [number] with []
@@ -49,6 +55,9 @@ namespace Supernova::Editor{
 
         bool isEntityShared(SceneProject* sceneProject, Entity entity, std::filesystem::path& outPath);
         void handleComponentOverrideMenu(SceneProject* sceneProject, Entity entity, ComponentType cpType, const std::filesystem::path& sharedPath);
+
+        bool canAddComponent(SceneProject* sceneProject, Entity entity, ComponentType cpType);
+        void addComponentToEntity(SceneProject* sceneProject, Entity entity, ComponentType cpType);
 
         Texture getMaterialPreview(const Material& material, const std::string id);
         Texture getDirectionPreview(const Vector3& direction, const std::string id);
