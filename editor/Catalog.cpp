@@ -117,6 +117,8 @@ std::string Editor::Catalog::getComponentName(ComponentType component, bool remo
         name = "ScaleActionComponent";
     }else if(component == ComponentType::ScaleTracksComponent){
         name = "ScaleTracksComponent";
+    }else if(component == ComponentType::ScriptComponent){
+        name = "ScriptComponent";
     }else if(component == ComponentType::ScrollbarComponent){
         name = "ScrollbarComponent";
     }else if(component == ComponentType::SkyComponent){
@@ -227,6 +229,8 @@ ComponentId Editor::Catalog::getComponentId(const EntityRegistry* registry, Comp
             return registry->getComponentId<ScaleActionComponent>();
         case ComponentType::ScaleTracksComponent:
             return registry->getComponentId<ScaleTracksComponent>();
+        case ComponentType::ScriptComponent:
+            return registry->getComponentId<ScriptComponent>();
         case ComponentType::ScrollbarComponent:
             return registry->getComponentId<ScrollbarComponent>();
         case ComponentType::SkyComponent:
@@ -319,6 +323,8 @@ Editor::ComponentType Editor::Catalog::getComponentType(const std::string& compo
         return ComponentType::ScaleActionComponent;
     }else if(normalizedName == "scaletracks"){
         return ComponentType::ScaleTracksComponent;
+    }else if(normalizedName == "script"){
+        return ComponentType::ScriptComponent;
     }else if(normalizedName == "scrollbar"){
         return ComponentType::ScrollbarComponent;
     }else if(normalizedName == "sky"){
@@ -453,6 +459,11 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["shadow_camera_near"] = {PropertyType::Float, UpdateFlags_LightShadowCamera, nullptr, (compRef) ? (void*)&comp->shadowCameraNearFar.x : nullptr};
         ps["shadow_camera_far"] = {PropertyType::Float, UpdateFlags_LightShadowCamera, nullptr, (compRef) ? (void*)&comp->shadowCameraNearFar.y : nullptr};
         ps["num_shadow_cascades"] = {PropertyType::UIntSlider, UpdateFlags_LightShadowCamera | UpdateFlags_Scene_Mesh_Reload, (void*)&def->numShadowCascades, (compRef) ? (void*)&comp->numShadowCascades : nullptr, nullptr, &cascadeValues};
+    }else if (component == ComponentType::ScriptComponent){
+        ScriptComponent* comp = (ScriptComponent*)compRef;
+        static ScriptComponent* def = new ScriptComponent;
+
+        ps["script_path"] = {PropertyType::Script, UpdateFlags_None, nullptr, (compRef) ? (void*)&comp->scriptPath : nullptr};
     }
 
     return ps;
@@ -551,6 +562,9 @@ std::vector<Editor::ComponentType> Editor::Catalog::findComponents(EntityRegistr
     if (registry->findComponent<ScaleTracksComponent>(entity)){
         ret.push_back(ComponentType::ScaleTracksComponent);
     }
+    if (registry->findComponent<ScriptComponent>(entity)){
+        ret.push_back(ComponentType::ScriptComponent);
+    }
     if (registry->findComponent<ScrollbarComponent>(entity)){
         ret.push_back(ComponentType::ScrollbarComponent);
     }
@@ -624,6 +638,10 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::findEntityPropertie
         }
     }else if (component == ComponentType::LightComponent){
         if (LightComponent* compRef = registry->findComponent<LightComponent>(entity)){
+            return getProperties(component, compRef);
+        }
+    }else if (component == ComponentType::ScriptComponent){
+        if (ScriptComponent* compRef = registry->findComponent<ScriptComponent>(entity)){
             return getProperties(component, compRef);
         }
     }

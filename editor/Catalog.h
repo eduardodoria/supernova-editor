@@ -57,6 +57,7 @@ namespace Supernova::Editor{
         RotationActionComponent,
         ScaleActionComponent,
         ScaleTracksComponent,
+        ScriptComponent,
         ScrollbarComponent,
         SkyComponent,
         SpriteAnimationComponent,
@@ -89,7 +90,8 @@ namespace Supernova::Editor{
         UIntSlider,
         IntSlider,
         Direction,
-        Enum
+        Enum,
+        Script
     };
 
     struct EnumEntry {

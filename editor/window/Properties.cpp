@@ -1526,6 +1526,127 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
         }
 
         result = materialButtonGroups[id];
+
+    }else if (prop.type == PropertyType::Script){
+        std::string* value = nullptr;
+        std::map<Entity, std::string> eValue;
+        bool dif = false;
+        for (Entity& entity : entities){
+            eValue[entity] = *Catalog::getPropertyRef<std::string>(sceneProject->scene, entity, cpType, id);
+            if (value){
+                if (*value != eValue[entity])
+                    dif = true;
+            }
+            value = &eValue[entity];
+        }
+
+        std::string newValue = *value;
+
+        bool defChanged = false;
+        if (prop.def){
+            defChanged = (newValue != *static_cast<std::string*>(prop.def));
+        }
+        if (propertyHeader(label, secondColSize, defChanged, child)){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<std::string>(project, sceneProject->id, entity, cpType, id, prop.updateFlags, *static_cast<std::string*>(prop.def));
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                finishProperty = true;
+            }
+        }
+
+        // Use the same UI as texture for consistency
+        ImGui::BeginGroup();
+        ImGui::PushID(("script_"+id).c_str());
+
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, textureLabel);
+
+        ImGui::BeginChild("scriptframe", ImVec2(- ImGui::CalcTextSize(ICON_FA_FILE_IMPORT).x - ImGui::GetStyle().ItemSpacing.x * 2 - ImGui::GetStyle().FramePadding.x * 2, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2), 
+            false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+
+        std::string scriptName = newValue;
+        if (std::filesystem::exists(scriptName)) {
+            scriptName = std::filesystem::path(scriptName).filename().string();
+        }
+        if (scriptName.empty()) {
+            scriptName = "< No script >";
+        }
+
+        float textWidth = ImGui::CalcTextSize(scriptName.c_str()).x;
+        float availWidth = ImGui::GetContentRegionAvail().x;
+        ImGui::SetCursorPosX(availWidth - textWidth - 2);
+        ImGui::SetCursorPosY(ImGui::GetStyle().FramePadding.y);
+        if (dif)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        ImGui::Text("%s", scriptName.c_str());
+        if (dif)
+            ImGui::PopStyleColor();
+
+        ImGui::EndChild();
+        if (!newValue.empty()){
+            ImGui::SetItemTooltip("%s", newValue.c_str());
+        }
+        ImGui::PopStyleColor();
+
+        ImGui::SameLine();
+
+        if (ImGui::Button(ICON_FA_FILE_IMPORT)) {
+            std::string path = Editor::FileDialogs::openFileDialog(project->getProjectPath().string(), true, 
+                "Lua Scripts (*.lua)\0*.lua\0All Files (*.*)\0*.*\0");
+            if (!path.empty()) {
+                std::filesystem::path projectPath = project->getProjectPath();
+                std::filesystem::path filePath = std::filesystem::absolute(path);
+
+                // Check if file path is within project directory
+                std::error_code ec;
+                auto relative = std::filesystem::relative(filePath, projectPath, ec);
+                if (ec || relative.string().find("..") != std::string::npos) {
+                    ImGui::OpenPopup("Script Import Error");
+                }else{
+                    for (Entity& entity : entities){
+                        cmd = new PropertyCmd<std::string>(project, sceneProject->id, entity, cpType, id, prop.updateFlags, filePath.string());
+                        CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                        finishProperty = true;
+                    }
+                }
+            }
+        }
+
+        // Error popup modal
+        if (ImGui::BeginPopupModal("Script Import Error", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("Selected script file must be within the project directory.");
+            ImGui::Separator();
+
+            float buttonWidth = 120;
+            float windowWidth = ImGui::GetWindowSize().x;
+            ImGui::SetCursorPosX((windowWidth - buttonWidth) * 0.5f);
+            if (ImGui::Button("OK", ImVec2(120, 0))) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+
+        ImGui::PopID();
+        ImGui::EndGroup();
+
+        // Drag and drop support
+        if (ImGui::BeginDragDropTarget()){
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
+                std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
+                if (receivedStrings.size() > 0){
+                    std::filesystem::path scriptPath(receivedStrings[0]);
+                    // Check if it's a Lua file
+                    if (scriptPath.extension() == ".lua") {
+                        for (Entity& entity : entities){
+                            cmd = new PropertyCmd<std::string>(project, sceneProject->id, entity, cpType, id, prop.updateFlags, receivedStrings[0]);
+                            CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                            finishProperty = true;
+                        }
+                    }
+                }
+            }
+            ImGui::EndDragDropTarget();
+        }
+
     }
 
     if (ImGui::IsItemDeactivatedAfterEdit() || finishProperty) {
@@ -1933,6 +2054,14 @@ void Editor::Properties::drawLightComponent(ComponentType cpType, std::map<std::
     endTable();
 }
 
+void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std::string, PropertyData> props, SceneProject* sceneProject, std::vector<Entity> entities){
+    beginTable(cpType, getLabelSize("Script Path"));
+
+    propertyRow(cpType, props, "script_path", "Script Path", sceneProject, entities);
+
+    endTable();
+}
+
 void Editor::Properties::show(){
     ImGui::Begin("Properties");
 
@@ -2084,6 +2213,8 @@ void Editor::Properties::show(){
                     drawSpriteComponent(cpType, Catalog::getProperties(cpType, nullptr), sceneProject, entities);
                 }else if (cpType == ComponentType::LightComponent){
                     drawLightComponent(cpType, Catalog::getProperties(cpType, nullptr), sceneProject, entities);
+                }else if (cpType == ComponentType::ScriptComponent){
+                    drawScriptComponent(cpType, Catalog::getProperties(cpType, nullptr), sceneProject, entities);
                 }
             }
         }
