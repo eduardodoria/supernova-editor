@@ -42,10 +42,10 @@ namespace Supernova::Editor{
     public:
         DeleteEntityCmd(Project* project, uint32_t sceneId, Entity entity);
 
-        virtual bool execute();
-        virtual void undo();
+        bool execute() override;
+        void undo() override;
 
-        virtual bool mergeWith(Command* otherCommand);
+        bool mergeWith(Command* otherCommand) override;
     };
 
 }

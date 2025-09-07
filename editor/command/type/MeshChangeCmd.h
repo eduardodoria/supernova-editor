@@ -13,18 +13,21 @@ namespace Supernova::Editor{
         YAML::Node oldMesh;
         YAML::Node newMesh;
 
-        SceneProject* sceneProject;
+        Project* project;
+        uint32_t sceneId;
         Entity entity;
 
         bool wasModified;
 
     public:
-        MeshChangeCmd(SceneProject* sceneProject, Entity entity, MeshComponent mesh);
+        MeshChangeCmd(Project* project, uint32_t sceneId, Entity entity, MeshComponent mesh);
 
-        virtual bool execute();
-        virtual void undo();
+        bool execute() override;
+        void undo() override;
 
-        virtual bool mergeWith(Command* otherCommand);
+        bool mergeWith(Command* otherCommand) override;
+
+        void commit() override;
     };
 
 }

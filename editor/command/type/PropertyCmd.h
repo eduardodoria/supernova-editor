@@ -42,7 +42,7 @@ namespace Supernova::Editor{
             this->wasModified = project->getScene(sceneId)->isModified;
         }
 
-        bool execute(){
+        bool execute() override{
             SceneProject* sceneProject = project->getScene(sceneId);
             if (!sceneProject){
                 return false;
@@ -61,7 +61,7 @@ namespace Supernova::Editor{
             return true;
         }
 
-        void undo(){
+        void undo() override{
             SceneProject* sceneProject = project->getScene(sceneId);
             if (!sceneProject){
                 return;
@@ -77,7 +77,7 @@ namespace Supernova::Editor{
             sceneProject->isModified = wasModified;
         }
 
-        bool mergeWith(Editor::Command* otherCommand){
+        bool mergeWith(Editor::Command* otherCommand) override{
             PropertyCmd* otherCmd = dynamic_cast<PropertyCmd*>(otherCommand);
             if (otherCmd != nullptr){
                 if (sceneId == otherCmd->sceneId && propertyName == otherCmd->propertyName){
@@ -97,7 +97,7 @@ namespace Supernova::Editor{
             return false;
         }
 
-        void commit(){
+        void commit() override{
             for (auto const& [entity, value] : values){
                 project->sharedGroupComponentChanged(sceneId, entity, type, {propertyName});
             }

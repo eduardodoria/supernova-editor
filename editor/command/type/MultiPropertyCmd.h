@@ -69,7 +69,7 @@ namespace Supernova::Editor {
             return false;
         }
 
-        void commit(){
+        void commit() override{
             for (auto& cmd : commands) {
                 cmd->commit();
             }

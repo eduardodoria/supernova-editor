@@ -71,9 +71,6 @@ namespace Supernova::Editor {
         static YAML::Node encodeMatrix4(const Matrix4& mat);
         static Matrix4 decodeMatrix4(const YAML::Node& node);
 
-        static YAML::Node encodeTransform(const Transform& transform);
-        static Transform decodeTransform(const YAML::Node& node);
-
         static YAML::Node encodeTexture(const Texture& texture);
         static Texture decodeTexture(const YAML::Node& node);
 
@@ -94,18 +91,6 @@ namespace Supernova::Editor {
 
         static YAML::Node encodeAABB(const AABB& aabb);
         static AABB decodeAABB(const YAML::Node& node);
-
-        static YAML::Node encodeUIComponent(const UIComponent& ui);
-        static UIComponent decodeUIComponent(const YAML::Node& node);
-
-        static YAML::Node encodeUILayoutComponent(const UILayoutComponent& layout);
-        static UILayoutComponent decodeUILayoutComponent(const YAML::Node& node);
-
-        static YAML::Node encodeImageComponent(const ImageComponent& image);
-        static ImageComponent decodeImageComponent(const YAML::Node& node);
-
-        static YAML::Node encodeLightComponent(const LightComponent& light);
-        static LightComponent decodeLightComponent(const YAML::Node& node);
 
         static void encodeComponentsAux(YAML::Node& compNode, const Entity entity, const EntityRegistry* container, Signature signature);
         static void decodeComponentsAux(Entity entity, Entity parent, EntityRegistry* container, const YAML::Node& compNode);
@@ -129,7 +114,22 @@ namespace Supernova::Editor {
         static YAML::Node encodeMaterial(const Material& material);
         static Material decodeMaterial(const YAML::Node& node);
 
+        static YAML::Node encodeTransform(const Transform& transform);
+        static Transform decodeTransform(const YAML::Node& node);
+
         static YAML::Node encodeMeshComponent(const MeshComponent& mesh);
         static MeshComponent decodeMeshComponent(const YAML::Node& node);
+
+        static YAML::Node encodeUIComponent(const UIComponent& ui);
+        static UIComponent decodeUIComponent(const YAML::Node& node);
+
+        static YAML::Node encodeUILayoutComponent(const UILayoutComponent& layout);
+        static UILayoutComponent decodeUILayoutComponent(const YAML::Node& node);
+
+        static YAML::Node encodeImageComponent(const ImageComponent& image);
+        static ImageComponent decodeImageComponent(const YAML::Node& node);
+
+        static YAML::Node encodeLightComponent(const LightComponent& light);
+        static LightComponent decodeLightComponent(const YAML::Node& node);
     };
 }

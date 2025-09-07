@@ -1,6 +1,8 @@
 #include "Catalog.h"
 
 #include "Scene.h"
+#include "yaml-cpp/yaml.h"
+#include "Stream.h"
 
 using namespace Supernova;
 
@@ -669,6 +671,59 @@ void Editor::Catalog::updateEntity(EntityRegistry* registry, Entity entity, int 
     }
     if (updateFlags & UpdateFlags_Sprite){
         registry->getComponent<SpriteComponent>(entity).needUpdateSprite = true;
+    }
+}
+
+void Editor::Catalog::copyComponent(EntityRegistry* sourceRegistry, Entity sourceEntity,
+                                   EntityRegistry* targetRegistry, Entity targetEntity,
+                                   ComponentType compType) {
+
+    switch (compType) {
+        case ComponentType::Transform: {
+            YAML::Node encoded = Stream::encodeTransform(sourceRegistry->getComponent<Transform>(sourceEntity));
+            targetRegistry->getComponent<Transform>(targetEntity) = Stream::decodeTransform(encoded);
+            break;
+        }
+
+        case ComponentType::MeshComponent: {
+            YAML::Node encoded = Stream::encodeMeshComponent(sourceRegistry->getComponent<MeshComponent>(sourceEntity));
+            targetRegistry->getComponent<MeshComponent>(targetEntity) = Stream::decodeMeshComponent(encoded);
+            break;
+        }
+
+        case ComponentType::UIComponent: {
+            YAML::Node encoded = Stream::encodeUIComponent(sourceRegistry->getComponent<UIComponent>(sourceEntity));
+            targetRegistry->getComponent<UIComponent>(targetEntity) = Stream::decodeUIComponent(encoded);
+            break;
+        }
+
+        case ComponentType::UILayoutComponent: {
+            YAML::Node encoded = Stream::encodeUILayoutComponent(sourceRegistry->getComponent<UILayoutComponent>(sourceEntity));
+            targetRegistry->getComponent<UILayoutComponent>(targetEntity) = Stream::decodeUILayoutComponent(encoded);
+            break;
+        }
+
+        case ComponentType::ImageComponent: {
+            YAML::Node encoded = Stream::encodeImageComponent(sourceRegistry->getComponent<ImageComponent>(sourceEntity));
+            targetRegistry->getComponent<ImageComponent>(targetEntity) = Stream::decodeImageComponent(encoded);
+            break;
+        }
+
+        case ComponentType::LightComponent: {
+            YAML::Node encoded = Stream::encodeLightComponent(sourceRegistry->getComponent<LightComponent>(sourceEntity));
+            targetRegistry->getComponent<LightComponent>(targetEntity) = Stream::decodeLightComponent(encoded);
+            break;
+        }
+
+        //case ComponentType::SpriteComponent: {
+            //YAML::Node encoded = Stream::encodeSpriteComponent(sourceRegistry->getComponent<SpriteComponent>(sourceEntity));
+            //targetRegistry->getComponent<SpriteComponent>(targetEntity) = Stream::decodeSpriteComponent(encoded);
+            //break;
+        //}
+
+        default:
+            printf("WARNING: Unsupported component type for copying: %s\n", getComponentName(compType).c_str());
+            break;
     }
 }
 

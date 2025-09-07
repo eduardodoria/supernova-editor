@@ -126,6 +126,9 @@ namespace Supernova::Editor{
 
         static void updateEntity(EntityRegistry* registry, Entity entity, int updateFlags);
 
+        static void copyComponent(EntityRegistry* sourceRegistry, Entity sourceEntity,
+                                EntityRegistry* targetRegistry, Entity targetEntity,
+                                ComponentType compType);
         static void copyPropertyValue(EntityRegistry* sourceRegistry, Entity sourceEntity, 
                                     EntityRegistry* targetRegistry, Entity targetEntity, 
                                     ComponentType compType, const std::string& property);

@@ -21,10 +21,10 @@ namespace Supernova::Editor{
     public:
         SceneNameCmd(Project* project, uint32_t sceneId, std::string name);
 
-        virtual bool execute();
-        virtual void undo();
+        bool execute() override;
+        void undo() override;
 
-        virtual bool mergeWith(Command* otherCommand);
+        bool mergeWith(Command* otherCommand) override;
     };
 
 }

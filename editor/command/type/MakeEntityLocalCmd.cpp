@@ -12,16 +12,17 @@ Editor::MakeEntityLocalCmd::MakeEntityLocalCmd(Project* project, uint32_t sceneI
 }
 
 bool Editor::MakeEntityLocalCmd::execute(){
-
     recovery = project->removeEntityFromSharedGroup(sceneId, entity, false);
+
+    project->getScene(sceneId)->isModified = true;
 
     return true;
 }
 
 void Editor::MakeEntityLocalCmd::undo(){
-
     project->addEntityToSharedGroup(sceneId, recovery, parent, false);
 
+    project->getScene(sceneId)->isModified = wasModified;
 }
 
 bool Editor::MakeEntityLocalCmd::mergeWith(Editor::Command* otherCommand){

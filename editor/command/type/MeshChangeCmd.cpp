@@ -4,15 +4,18 @@
 
 using namespace Supernova;
 
-Editor::MeshChangeCmd::MeshChangeCmd(SceneProject* sceneProject, Entity entity, MeshComponent mesh){
-    this->sceneProject = sceneProject;
+Editor::MeshChangeCmd::MeshChangeCmd(Project* project, uint32_t sceneId, Entity entity, MeshComponent mesh){
+    this->project = project;
+    this->sceneId = sceneId;
     this->entity = entity;
     this->newMesh = Stream::encodeMeshComponent(mesh);
 
-    this->wasModified = sceneProject->isModified;
+    this->wasModified = project->getScene(sceneId)->isModified;
 }
 
 bool Editor::MeshChangeCmd::execute(){
+    SceneProject* sceneProject = project->getScene(sceneId);
+
     oldMesh = Stream::encodeMeshComponent(sceneProject->scene->getComponent<MeshComponent>(entity));
     sceneProject->scene->getComponent<MeshComponent>(entity) = Stream::decodeMeshComponent(newMesh);
 
@@ -22,6 +25,8 @@ bool Editor::MeshChangeCmd::execute(){
 }
 
 void Editor::MeshChangeCmd::undo(){
+    SceneProject* sceneProject = project->getScene(sceneId);
+
     sceneProject->scene->getComponent<MeshComponent>(entity) = Stream::decodeMeshComponent(oldMesh);
 
     sceneProject->isModified = wasModified;
@@ -30,7 +35,7 @@ void Editor::MeshChangeCmd::undo(){
 bool Editor::MeshChangeCmd::mergeWith(Editor::Command* otherCommand){
     MeshChangeCmd* otherCmd = dynamic_cast<MeshChangeCmd*>(otherCommand);
     if (otherCmd != nullptr){
-        if (sceneProject == otherCmd->sceneProject && entity == otherCmd->entity){
+        if (sceneId == otherCmd->sceneId && entity == otherCmd->entity){
             this->oldMesh = otherCmd->oldMesh;
 
             this->wasModified = this->wasModified && otherCmd->wasModified;
@@ -38,4 +43,8 @@ bool Editor::MeshChangeCmd::mergeWith(Editor::Command* otherCommand){
         }
     }
     return false;
+}
+
+void Editor::MeshChangeCmd::commit(){
+    project->sharedGroupComponentChanged(sceneId, entity, ComponentType::MeshComponent, {});
 }

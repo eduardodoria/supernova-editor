@@ -1631,8 +1631,12 @@ bool Editor::Project::sharedGroupComponentChanged(uint32_t sceneId, Entity entit
             return false;
         }
         EntityRegistry* registry = group->registry.get();
-        for (const auto& property : properties) {
-            Catalog::copyPropertyValue(getScene(sceneId)->scene, entity, registry, registryEntity, componentType, property);
+        if (properties.size() == 0){
+            Catalog::copyComponent(getScene(sceneId)->scene, entity, registry, registryEntity, componentType);
+        }else{
+            for (const auto& property : properties) {
+                Catalog::copyPropertyValue(getScene(sceneId)->scene, entity, registry, registryEntity, componentType, property);
+            }
         }
 
         // Copy to corresponding entity in other scenes
@@ -1646,8 +1650,12 @@ bool Editor::Project::sharedGroupComponentChanged(uint32_t sceneId, Entity entit
                         if (renderAllScenes){
                             otherScene->needUpdateRender = true;
                         }
-                        for (const auto& property : properties) {
-                            Catalog::copyPropertyValue(getScene(sceneId)->scene, entity, otherScene->scene, otherEntity, componentType, property);
+                        if (properties.size() == 0){
+                            Catalog::copyComponent(getScene(sceneId)->scene, entity, otherScene->scene, otherEntity, componentType);
+                        }else{
+                            for (const auto& property : properties) {
+                                Catalog::copyPropertyValue(getScene(sceneId)->scene, entity, otherScene->scene, otherEntity, componentType, property);
+                            }
                         }
                     }
                 }

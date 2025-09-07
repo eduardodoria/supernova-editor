@@ -373,58 +373,6 @@ Matrix4 Editor::Stream::decodeMatrix4(const YAML::Node& node) {
     return mat;
 }
 
-YAML::Node Editor::Stream::encodeTransform(const Transform& transform) {
-    YAML::Node transformNode;
-
-    transformNode["position"] = encodeVector3(transform.position);
-    transformNode["rotation"] = encodeQuaternion(transform.rotation);
-    transformNode["scale"] = encodeVector3(transform.scale);
-    transformNode["worldPosition"] = encodeVector3(transform.worldPosition);
-    transformNode["worldRotation"] = encodeQuaternion(transform.worldRotation);
-    transformNode["worldScale"] = encodeVector3(transform.worldScale);
-    transformNode["localMatrix"] = encodeMatrix4(transform.localMatrix);
-    transformNode["modelMatrix"] = encodeMatrix4(transform.modelMatrix);
-    transformNode["normalMatrix"] = encodeMatrix4(transform.normalMatrix);
-    transformNode["modelViewProjectionMatrix"] = encodeMatrix4(transform.modelViewProjectionMatrix);
-    transformNode["visible"] = transform.visible;
-    //transformNode["parent"] = transform.parent;
-    transformNode["distanceToCamera"] = transform.distanceToCamera;
-    transformNode["billboardRotation"] = encodeQuaternion(transform.billboardRotation);
-    transformNode["billboard"] = transform.billboard;
-    transformNode["fakeBillboard"] = transform.fakeBillboard;
-    transformNode["cylindricalBillboard"] = transform.cylindricalBillboard;
-    //transformNode["needUpdateChildVisibility"] = transform.needUpdateChildVisibility;
-    //transformNode["needUpdate"] = transform.needUpdate;
-
-    return transformNode;
-}
-
-Transform Editor::Stream::decodeTransform(const YAML::Node& node) {
-    Transform transform;
-
-    transform.position = decodeVector3(node["position"]);
-    transform.rotation = decodeQuaternion(node["rotation"]);
-    transform.scale = decodeVector3(node["scale"]);
-    transform.worldPosition = decodeVector3(node["worldPosition"]);
-    transform.worldRotation = decodeQuaternion(node["worldRotation"]);
-    transform.worldScale = decodeVector3(node["worldScale"]);
-    transform.localMatrix = decodeMatrix4(node["localMatrix"]);
-    transform.modelMatrix = decodeMatrix4(node["modelMatrix"]);
-    transform.normalMatrix = decodeMatrix4(node["normalMatrix"]);
-    transform.modelViewProjectionMatrix = decodeMatrix4(node["modelViewProjectionMatrix"]);
-    transform.visible = node["visible"].as<bool>();
-    //transform.parent = node["parent"].as<Entity>();
-    transform.distanceToCamera = node["distanceToCamera"].as<float>();
-    transform.billboardRotation = decodeQuaternion(node["billboardRotation"]);
-    transform.billboard = node["billboard"].as<bool>();
-    transform.fakeBillboard = node["fakeBillboard"].as<bool>();
-    transform.cylindricalBillboard = node["cylindricalBillboard"].as<bool>();
-    //transform.needUpdateChildVisibility = node["needUpdateChildVisibility"].as<bool>();
-    //transform.needUpdate = node["needUpdate"].as<bool>();
-
-    return transform;
-}
-
 YAML::Node Editor::Stream::encodeTexture(const Texture& texture) {
     YAML::Node node;
     if (!texture.empty()) {
@@ -644,199 +592,6 @@ AABB Editor::Stream::decodeAABB(const YAML::Node& node) {
     Vector3 min = decodeVector3(node["min"]);
     Vector3 max = decodeVector3(node["max"]);
     return AABB(min, max);
-}
-
-YAML::Node Editor::Stream::encodeUIComponent(const UIComponent& ui) {
-    YAML::Node node;
-    //node["loaded"] = ui.loaded;
-    //node["loadCalled"] = ui.loadCalled;
-    node["buffer"] = encodeBuffer(ui.buffer);
-    node["indices"] = encodeBuffer(ui.indices);
-    node["minBufferCount"] = ui.minBufferCount;
-    node["minIndicesCount"] = ui.minIndicesCount;
-
-    //node["render"] = {}; // ObjectRender not serialized here
-    //node["shader"] = {}; // shared_ptr<ShaderRender> not serialized
-    //node["shaderProperties"] = ui.shaderProperties;
-    //node["slotVSParams"] = ui.slotVSParams;
-    //node["slotFSParams"] = ui.slotFSParams;
-
-    node["primitiveType"] = primitiveTypeToString(ui.primitiveType);
-    node["vertexCount"] = ui.vertexCount;
-
-    node["aabb"] = encodeAABB(ui.aabb);
-    node["worldAABB"] = encodeAABB(ui.worldAABB);
-
-    node["texture"] = encodeTexture(ui.texture);
-    node["color"] = encodeVector4(ui.color);
-    // FunctionSubscribe fields are not serializable
-
-    node["automaticFlipY"] = ui.automaticFlipY;
-    node["flipY"] = ui.flipY;
-
-    node["pointerMoved"] = ui.pointerMoved;
-    node["focused"] = ui.focused;
-
-    //node["needReload"] = ui.needReload;
-    //node["needUpdateAABB"] = ui.needUpdateAABB;
-    //node["needUpdateBuffer"] = ui.needUpdateBuffer;
-    //node["needUpdateTexture"] = ui.needUpdateTexture;
-
-    return node;
-}
-
-UIComponent Editor::Stream::decodeUIComponent(const YAML::Node& node) {
-    UIComponent ui;
-    //ui.loaded = node["loaded"].as<bool>();
-    //ui.loadCalled = node["loadCalled"].as<bool>();
-
-    decodeBuffer(ui.buffer, node["buffer"]);
-    decodeBuffer(ui.indices, node["indices"]);
-    ui.minBufferCount = node["minBufferCount"].as<unsigned int>();
-    ui.minIndicesCount = node["minIndicesCount"].as<unsigned int>();
-
-    // ui.render and ui.shader can't be deserialized here
-    // ui.shaderProperties = node["shaderProperties"].as<std::string>();
-    //ui.slotVSParams = node["slotVSParams"].as<int>();
-    //ui.slotFSParams = node["slotFSParams"].as<int>();
-
-    ui.primitiveType = stringToPrimitiveType(node["primitiveType"].as<std::string>());
-    ui.vertexCount = node["vertexCount"].as<unsigned int>();
-
-    ui.aabb = decodeAABB(node["aabb"]);
-    ui.worldAABB = decodeAABB(node["worldAABB"]);
-
-    ui.texture = decodeTexture(node["texture"]);
-    ui.color = decodeVector4(node["color"]);
-
-    ui.automaticFlipY = node["automaticFlipY"].as<bool>();
-    ui.flipY = node["flipY"].as<bool>();
-
-    ui.pointerMoved = node["pointerMoved"].as<bool>();
-    ui.focused = node["focused"].as<bool>();
-
-    //ui.needReload = node["needReload"].as<bool>();
-    //ui.needUpdateAABB = node["needUpdateAABB"].as<bool>();
-    //ui.needUpdateBuffer = node["needUpdateBuffer"].as<bool>();
-    //ui.needUpdateTexture = node["needUpdateTexture"].as<bool>();
-
-    return ui;
-}
-
-YAML::Node Editor::Stream::encodeUILayoutComponent(const UILayoutComponent& layout) {
-    YAML::Node node;
-    node["width"] = layout.width;
-    node["height"] = layout.height;
-    node["anchorPointLeft"] = layout.anchorPointLeft;
-    node["anchorPointTop"] = layout.anchorPointTop;
-    node["anchorPointRight"] = layout.anchorPointRight;
-    node["anchorPointBottom"] = layout.anchorPointBottom;
-    node["anchorOffsetLeft"] = layout.anchorOffsetLeft;
-    node["anchorOffsetTop"] = layout.anchorOffsetTop;
-    node["anchorOffsetRight"] = layout.anchorOffsetRight;
-    node["anchorOffsetBottom"] = layout.anchorOffsetBottom;
-    node["positionOffset"] = encodeVector2(layout.positionOffset);
-    node["anchorPreset"] = static_cast<int>(layout.anchorPreset);
-    node["usingAnchors"] = layout.usingAnchors;
-    node["panel"] = layout.panel;
-    node["containerBoxIndex"] = layout.containerBoxIndex;
-    node["scissor"] = encodeRect(layout.scissor);
-    node["ignoreScissor"] = layout.ignoreScissor;
-    node["ignoreEvents"] = layout.ignoreEvents;
-    //node["needUpdateSizes"] = layout.needUpdateSizes;
-
-    return node;
-}
-
-UILayoutComponent Editor::Stream::decodeUILayoutComponent(const YAML::Node& node) {
-    UILayoutComponent layout;
-    layout.width = node["width"].as<unsigned int>();
-    layout.height = node["height"].as<unsigned int>();
-    layout.anchorPointLeft = node["anchorPointLeft"].as<float>();
-    layout.anchorPointTop = node["anchorPointTop"].as<float>();
-    layout.anchorPointRight = node["anchorPointRight"].as<float>();
-    layout.anchorPointBottom = node["anchorPointBottom"].as<float>();
-    layout.anchorOffsetLeft = node["anchorOffsetLeft"].as<int>();
-    layout.anchorOffsetTop = node["anchorOffsetTop"].as<int>();
-    layout.anchorOffsetRight = node["anchorOffsetRight"].as<int>();
-    layout.anchorOffsetBottom = node["anchorOffsetBottom"].as<int>();
-    layout.positionOffset = decodeVector2(node["positionOffset"]);
-    layout.anchorPreset = static_cast<AnchorPreset>(node["anchorPreset"].as<int>());
-    layout.usingAnchors = node["usingAnchors"].as<bool>();
-    layout.panel = node["panel"].as<Entity>();
-    layout.containerBoxIndex = node["containerBoxIndex"].as<int>();
-    layout.scissor = decodeRect(node["scissor"]);
-    layout.ignoreScissor = node["ignoreScissor"].as<bool>();
-    layout.ignoreEvents = node["ignoreEvents"].as<bool>();
-    //layout.needUpdateSizes = node["needUpdateSizes"].as<bool>();
-
-    return layout;
-}
-
-YAML::Node Editor::Stream::encodeImageComponent(const ImageComponent& image) {
-    YAML::Node node;
-    node["patchMarginLeft"] = image.patchMarginLeft;
-    node["patchMarginRight"] = image.patchMarginRight;
-    node["patchMarginTop"] = image.patchMarginTop;
-    node["patchMarginBottom"] = image.patchMarginBottom;
-    node["textureScaleFactor"] = image.textureScaleFactor;
-    //node["needUpdatePatches"] = image.needUpdatePatches;
-
-    return node;
-}
-
-ImageComponent Editor::Stream::decodeImageComponent(const YAML::Node& node) {
-    ImageComponent image;
-    image.patchMarginLeft = node["patchMarginLeft"].as<int>();
-    image.patchMarginRight = node["patchMarginRight"].as<int>();
-    image.patchMarginTop = node["patchMarginTop"].as<int>();
-    image.patchMarginBottom = node["patchMarginBottom"].as<int>();
-    image.textureScaleFactor = node["textureScaleFactor"].as<float>();
-    //image.needUpdatePatches = node["needUpdatePatches"].as<bool>();
-
-    return image;
-}
-
-YAML::Node Editor::Stream::encodeLightComponent(const LightComponent& light) {
-    YAML::Node node;
-
-    node["type"] = lightTypeToString(light.type);
-    node["direction"] = encodeVector3(light.direction);
-    node["worldDirection"] = encodeVector3(light.worldDirection);
-    node["color"] = encodeVector3(light.color);
-    node["range"] = light.range;
-    node["intensity"] = light.intensity;
-    node["innerConeCos"] = light.innerConeCos;
-    node["outerConeCos"] = light.outerConeCos;
-    node["shadows"] = light.shadows;
-    node["automaticShadowCamera"] = light.automaticShadowCamera;
-    node["shadowBias"] = light.shadowBias;
-    node["mapResolution"] = light.mapResolution;
-    node["shadowCameraNearFar"] = encodeVector2(light.shadowCameraNearFar);
-    node["numShadowCascades"] = light.numShadowCascades;
-
-    return node;
-}
-
-LightComponent Editor::Stream::decodeLightComponent(const YAML::Node& node) {
-    LightComponent light;
-
-    light.type = stringToLightType(node["type"].as<std::string>());
-    light.direction = decodeVector3(node["direction"]);
-    light.worldDirection = decodeVector3(node["worldDirection"]);
-    light.color = decodeVector3(node["color"]);
-    light.range = node["range"].as<float>();
-    light.intensity = node["intensity"].as<float>();
-    light.innerConeCos = node["innerConeCos"].as<float>();
-    light.outerConeCos = node["outerConeCos"].as<float>();
-    light.shadows = node["shadows"].as<bool>();
-    light.automaticShadowCamera = node["automaticShadowCamera"].as<bool>();
-    light.shadowBias = node["shadowBias"].as<float>();
-    light.mapResolution = node["mapResolution"].as<unsigned int>();
-    light.shadowCameraNearFar = decodeVector2(node["shadowCameraNearFar"]);
-    light.numShadowCascades = node["numShadowCascades"].as<unsigned int>();
-
-    return light;
 }
 
 void Editor::Stream::encodeComponentsAux(YAML::Node& compNode, const Entity entity, const EntityRegistry* registry, Signature signature) {
@@ -1272,6 +1027,58 @@ Material Editor::Stream::decodeMaterial(const YAML::Node& node) {
     return material;
 }
 
+YAML::Node Editor::Stream::encodeTransform(const Transform& transform) {
+    YAML::Node transformNode;
+
+    transformNode["position"] = encodeVector3(transform.position);
+    transformNode["rotation"] = encodeQuaternion(transform.rotation);
+    transformNode["scale"] = encodeVector3(transform.scale);
+    transformNode["worldPosition"] = encodeVector3(transform.worldPosition);
+    transformNode["worldRotation"] = encodeQuaternion(transform.worldRotation);
+    transformNode["worldScale"] = encodeVector3(transform.worldScale);
+    transformNode["localMatrix"] = encodeMatrix4(transform.localMatrix);
+    transformNode["modelMatrix"] = encodeMatrix4(transform.modelMatrix);
+    transformNode["normalMatrix"] = encodeMatrix4(transform.normalMatrix);
+    transformNode["modelViewProjectionMatrix"] = encodeMatrix4(transform.modelViewProjectionMatrix);
+    transformNode["visible"] = transform.visible;
+    //transformNode["parent"] = transform.parent;
+    transformNode["distanceToCamera"] = transform.distanceToCamera;
+    transformNode["billboardRotation"] = encodeQuaternion(transform.billboardRotation);
+    transformNode["billboard"] = transform.billboard;
+    transformNode["fakeBillboard"] = transform.fakeBillboard;
+    transformNode["cylindricalBillboard"] = transform.cylindricalBillboard;
+    //transformNode["needUpdateChildVisibility"] = transform.needUpdateChildVisibility;
+    //transformNode["needUpdate"] = transform.needUpdate;
+
+    return transformNode;
+}
+
+Transform Editor::Stream::decodeTransform(const YAML::Node& node) {
+    Transform transform;
+
+    transform.position = decodeVector3(node["position"]);
+    transform.rotation = decodeQuaternion(node["rotation"]);
+    transform.scale = decodeVector3(node["scale"]);
+    transform.worldPosition = decodeVector3(node["worldPosition"]);
+    transform.worldRotation = decodeQuaternion(node["worldRotation"]);
+    transform.worldScale = decodeVector3(node["worldScale"]);
+    transform.localMatrix = decodeMatrix4(node["localMatrix"]);
+    transform.modelMatrix = decodeMatrix4(node["modelMatrix"]);
+    transform.normalMatrix = decodeMatrix4(node["normalMatrix"]);
+    transform.modelViewProjectionMatrix = decodeMatrix4(node["modelViewProjectionMatrix"]);
+    transform.visible = node["visible"].as<bool>();
+    //transform.parent = node["parent"].as<Entity>();
+    transform.distanceToCamera = node["distanceToCamera"].as<float>();
+    transform.billboardRotation = decodeQuaternion(node["billboardRotation"]);
+    transform.billboard = node["billboard"].as<bool>();
+    transform.fakeBillboard = node["fakeBillboard"].as<bool>();
+    transform.cylindricalBillboard = node["cylindricalBillboard"].as<bool>();
+    //transform.needUpdateChildVisibility = node["needUpdateChildVisibility"].as<bool>();
+    //transform.needUpdate = node["needUpdate"].as<bool>();
+
+    return transform;
+}
+
 YAML::Node Editor::Stream::encodeMeshComponent(const MeshComponent& mesh) {
     YAML::Node node;
 
@@ -1401,4 +1208,197 @@ MeshComponent Editor::Stream::decodeMeshComponent(const YAML::Node& node) {
     //mesh.needReload = node["needReload"].as<bool>();
 
     return mesh;
+}
+
+YAML::Node Editor::Stream::encodeUIComponent(const UIComponent& ui) {
+    YAML::Node node;
+    //node["loaded"] = ui.loaded;
+    //node["loadCalled"] = ui.loadCalled;
+    node["buffer"] = encodeBuffer(ui.buffer);
+    node["indices"] = encodeBuffer(ui.indices);
+    node["minBufferCount"] = ui.minBufferCount;
+    node["minIndicesCount"] = ui.minIndicesCount;
+
+    //node["render"] = {}; // ObjectRender not serialized here
+    //node["shader"] = {}; // shared_ptr<ShaderRender> not serialized
+    //node["shaderProperties"] = ui.shaderProperties;
+    //node["slotVSParams"] = ui.slotVSParams;
+    //node["slotFSParams"] = ui.slotFSParams;
+
+    node["primitiveType"] = primitiveTypeToString(ui.primitiveType);
+    node["vertexCount"] = ui.vertexCount;
+
+    node["aabb"] = encodeAABB(ui.aabb);
+    node["worldAABB"] = encodeAABB(ui.worldAABB);
+
+    node["texture"] = encodeTexture(ui.texture);
+    node["color"] = encodeVector4(ui.color);
+    // FunctionSubscribe fields are not serializable
+
+    node["automaticFlipY"] = ui.automaticFlipY;
+    node["flipY"] = ui.flipY;
+
+    node["pointerMoved"] = ui.pointerMoved;
+    node["focused"] = ui.focused;
+
+    //node["needReload"] = ui.needReload;
+    //node["needUpdateAABB"] = ui.needUpdateAABB;
+    //node["needUpdateBuffer"] = ui.needUpdateBuffer;
+    //node["needUpdateTexture"] = ui.needUpdateTexture;
+
+    return node;
+}
+
+UIComponent Editor::Stream::decodeUIComponent(const YAML::Node& node) {
+    UIComponent ui;
+    //ui.loaded = node["loaded"].as<bool>();
+    //ui.loadCalled = node["loadCalled"].as<bool>();
+
+    decodeBuffer(ui.buffer, node["buffer"]);
+    decodeBuffer(ui.indices, node["indices"]);
+    ui.minBufferCount = node["minBufferCount"].as<unsigned int>();
+    ui.minIndicesCount = node["minIndicesCount"].as<unsigned int>();
+
+    // ui.render and ui.shader can't be deserialized here
+    // ui.shaderProperties = node["shaderProperties"].as<std::string>();
+    //ui.slotVSParams = node["slotVSParams"].as<int>();
+    //ui.slotFSParams = node["slotFSParams"].as<int>();
+
+    ui.primitiveType = stringToPrimitiveType(node["primitiveType"].as<std::string>());
+    ui.vertexCount = node["vertexCount"].as<unsigned int>();
+
+    ui.aabb = decodeAABB(node["aabb"]);
+    ui.worldAABB = decodeAABB(node["worldAABB"]);
+
+    ui.texture = decodeTexture(node["texture"]);
+    ui.color = decodeVector4(node["color"]);
+
+    ui.automaticFlipY = node["automaticFlipY"].as<bool>();
+    ui.flipY = node["flipY"].as<bool>();
+
+    ui.pointerMoved = node["pointerMoved"].as<bool>();
+    ui.focused = node["focused"].as<bool>();
+
+    //ui.needReload = node["needReload"].as<bool>();
+    //ui.needUpdateAABB = node["needUpdateAABB"].as<bool>();
+    //ui.needUpdateBuffer = node["needUpdateBuffer"].as<bool>();
+    //ui.needUpdateTexture = node["needUpdateTexture"].as<bool>();
+
+    return ui;
+}
+
+YAML::Node Editor::Stream::encodeUILayoutComponent(const UILayoutComponent& layout) {
+    YAML::Node node;
+    node["width"] = layout.width;
+    node["height"] = layout.height;
+    node["anchorPointLeft"] = layout.anchorPointLeft;
+    node["anchorPointTop"] = layout.anchorPointTop;
+    node["anchorPointRight"] = layout.anchorPointRight;
+    node["anchorPointBottom"] = layout.anchorPointBottom;
+    node["anchorOffsetLeft"] = layout.anchorOffsetLeft;
+    node["anchorOffsetTop"] = layout.anchorOffsetTop;
+    node["anchorOffsetRight"] = layout.anchorOffsetRight;
+    node["anchorOffsetBottom"] = layout.anchorOffsetBottom;
+    node["positionOffset"] = encodeVector2(layout.positionOffset);
+    node["anchorPreset"] = static_cast<int>(layout.anchorPreset);
+    node["usingAnchors"] = layout.usingAnchors;
+    node["panel"] = layout.panel;
+    node["containerBoxIndex"] = layout.containerBoxIndex;
+    node["scissor"] = encodeRect(layout.scissor);
+    node["ignoreScissor"] = layout.ignoreScissor;
+    node["ignoreEvents"] = layout.ignoreEvents;
+    //node["needUpdateSizes"] = layout.needUpdateSizes;
+
+    return node;
+}
+
+UILayoutComponent Editor::Stream::decodeUILayoutComponent(const YAML::Node& node) {
+    UILayoutComponent layout;
+    layout.width = node["width"].as<unsigned int>();
+    layout.height = node["height"].as<unsigned int>();
+    layout.anchorPointLeft = node["anchorPointLeft"].as<float>();
+    layout.anchorPointTop = node["anchorPointTop"].as<float>();
+    layout.anchorPointRight = node["anchorPointRight"].as<float>();
+    layout.anchorPointBottom = node["anchorPointBottom"].as<float>();
+    layout.anchorOffsetLeft = node["anchorOffsetLeft"].as<int>();
+    layout.anchorOffsetTop = node["anchorOffsetTop"].as<int>();
+    layout.anchorOffsetRight = node["anchorOffsetRight"].as<int>();
+    layout.anchorOffsetBottom = node["anchorOffsetBottom"].as<int>();
+    layout.positionOffset = decodeVector2(node["positionOffset"]);
+    layout.anchorPreset = static_cast<AnchorPreset>(node["anchorPreset"].as<int>());
+    layout.usingAnchors = node["usingAnchors"].as<bool>();
+    layout.panel = node["panel"].as<Entity>();
+    layout.containerBoxIndex = node["containerBoxIndex"].as<int>();
+    layout.scissor = decodeRect(node["scissor"]);
+    layout.ignoreScissor = node["ignoreScissor"].as<bool>();
+    layout.ignoreEvents = node["ignoreEvents"].as<bool>();
+    //layout.needUpdateSizes = node["needUpdateSizes"].as<bool>();
+
+    return layout;
+}
+
+YAML::Node Editor::Stream::encodeImageComponent(const ImageComponent& image) {
+    YAML::Node node;
+    node["patchMarginLeft"] = image.patchMarginLeft;
+    node["patchMarginRight"] = image.patchMarginRight;
+    node["patchMarginTop"] = image.patchMarginTop;
+    node["patchMarginBottom"] = image.patchMarginBottom;
+    node["textureScaleFactor"] = image.textureScaleFactor;
+    //node["needUpdatePatches"] = image.needUpdatePatches;
+
+    return node;
+}
+
+ImageComponent Editor::Stream::decodeImageComponent(const YAML::Node& node) {
+    ImageComponent image;
+    image.patchMarginLeft = node["patchMarginLeft"].as<int>();
+    image.patchMarginRight = node["patchMarginRight"].as<int>();
+    image.patchMarginTop = node["patchMarginTop"].as<int>();
+    image.patchMarginBottom = node["patchMarginBottom"].as<int>();
+    image.textureScaleFactor = node["textureScaleFactor"].as<float>();
+    //image.needUpdatePatches = node["needUpdatePatches"].as<bool>();
+
+    return image;
+}
+
+YAML::Node Editor::Stream::encodeLightComponent(const LightComponent& light) {
+    YAML::Node node;
+
+    node["type"] = lightTypeToString(light.type);
+    node["direction"] = encodeVector3(light.direction);
+    node["worldDirection"] = encodeVector3(light.worldDirection);
+    node["color"] = encodeVector3(light.color);
+    node["range"] = light.range;
+    node["intensity"] = light.intensity;
+    node["innerConeCos"] = light.innerConeCos;
+    node["outerConeCos"] = light.outerConeCos;
+    node["shadows"] = light.shadows;
+    node["automaticShadowCamera"] = light.automaticShadowCamera;
+    node["shadowBias"] = light.shadowBias;
+    node["mapResolution"] = light.mapResolution;
+    node["shadowCameraNearFar"] = encodeVector2(light.shadowCameraNearFar);
+    node["numShadowCascades"] = light.numShadowCascades;
+
+    return node;
+}
+
+LightComponent Editor::Stream::decodeLightComponent(const YAML::Node& node) {
+    LightComponent light;
+
+    light.type = stringToLightType(node["type"].as<std::string>());
+    light.direction = decodeVector3(node["direction"]);
+    light.worldDirection = decodeVector3(node["worldDirection"]);
+    light.color = decodeVector3(node["color"]);
+    light.range = node["range"].as<float>();
+    light.intensity = node["intensity"].as<float>();
+    light.innerConeCos = node["innerConeCos"].as<float>();
+    light.outerConeCos = node["outerConeCos"].as<float>();
+    light.shadows = node["shadows"].as<bool>();
+    light.automaticShadowCamera = node["automaticShadowCamera"].as<bool>();
+    light.shadowBias = node["shadowBias"].as<float>();
+    light.mapResolution = node["mapResolution"].as<unsigned int>();
+    light.shadowCameraNearFar = decodeVector2(node["shadowCameraNearFar"]);
+    light.numShadowCascades = node["numShadowCascades"].as<unsigned int>();
+
+    return light;
 }

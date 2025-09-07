@@ -31,12 +31,12 @@ namespace Supernova::Editor{
         ObjectTransformCmd(Project* project, size_t sceneId, Entity entity, Matrix4 localMatrix);
         ObjectTransformCmd(Project* project, size_t sceneId, Entity entity, Vector3 position, Quaternion rotation, Vector3 scale);
 
-        virtual bool execute();
-        virtual void undo();
+        bool execute() override;
+        void undo() override;
 
-        virtual bool mergeWith(Command* otherCommand);
+        bool mergeWith(Command* otherCommand) override;
 
-        virtual void commit();
+        void commit() override;
     };
 
 }

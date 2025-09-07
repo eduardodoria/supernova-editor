@@ -12,16 +12,17 @@ Editor::MakeEntitySharedCmd::MakeEntitySharedCmd(Project* project, uint32_t scen
 }
 
 bool Editor::MakeEntitySharedCmd::execute(){
-
     project->addEntityToSharedGroup(sceneId, entity, parent, false);
+
+    project->getScene(sceneId)->isModified = true;
 
     return true;
 }
 
 void Editor::MakeEntitySharedCmd::undo(){
-
     project->removeEntityFromSharedGroup(sceneId, entity, false);
 
+    project->getScene(sceneId)->isModified = wasModified;
 }
 
 bool Editor::MakeEntitySharedCmd::mergeWith(Editor::Command* otherCommand){

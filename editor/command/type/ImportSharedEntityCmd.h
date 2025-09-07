@@ -31,10 +31,10 @@ namespace Supernova::Editor{
         ImportSharedEntityCmd(Project* project, uint32_t sceneId, const fs::path& filepath, Entity parent = NULL_ENTITY, bool needSaveScene = true);
         ImportSharedEntityCmd(Project* project, uint32_t sceneId, const fs::path& filepath, Entity parent, bool needSaveScene, YAML::Node extendNode);
 
-        virtual bool execute();
-        virtual void undo();
+        bool execute() override;
+        void undo() override;
 
-        virtual bool mergeWith(Command* otherCommand);
+        bool mergeWith(Command* otherCommand) override;
 
         std::vector<Entity> getImportedEntities() const;
     };

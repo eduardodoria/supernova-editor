@@ -1774,7 +1774,7 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
 
                 updateMeshShape(meshComp, meshSys.get(), shapeParams);
 
-                CommandHandle::get(sceneProject->id)->addCommandNoMerge(new MeshChangeCmd(sceneProject, entities[0], meshComp));
+                CommandHandle::get(sceneProject->id)->addCommandCommit(new MeshChangeCmd(project, sceneProject->id, entities[0], meshComp));
             }
 
             ImGui::CloseCurrentPopup();
