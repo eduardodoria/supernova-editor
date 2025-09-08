@@ -9,6 +9,8 @@
 #include "command/type/PropertyCmd.h"
 #include "command/type/EntityNameCmd.h"
 #include "command/type/MeshChangeCmd.h"
+#include "command/type/AddComponentCmd.h"
+#include "command/type/RemoveComponentCmd.h"
 #include "render/SceneRender2D.h"
 #include "util/SHA1.h"
 #include "Stream.h"
@@ -235,49 +237,49 @@ void Editor::Properties::dragDropResources(ComponentType cpType, std::string id,
     }
 }
 
-bool Editor::Properties::isEntityShared(SceneProject* sceneProject, Entity entity, std::filesystem::path& outPath) {
-    outPath = project->findGroupPathFor(sceneProject->id, entity);
-    return !outPath.empty();
-}
-
-void Editor::Properties::handleComponentOverrideMenu(SceneProject* sceneProject, Entity entity, ComponentType cpType, const std::filesystem::path& sharedPath) {
-    SharedGroup* sharedGroup = project->getSharedGroup(sharedPath);
-    if (!sharedGroup) return;
-
-    bool isOverridden = sharedGroup->hasComponentOverride(sceneProject->id, entity, cpType);
-
-    if (ImGui::BeginPopupContextItem(("override_menu_" + std::to_string(static_cast<int>(cpType))).c_str())) {
-        ImGui::TextDisabled("Component Override");
+void Editor::Properties::handleComponentMenu(SceneProject* sceneProject, Entity entity, ComponentType cpType, const std::filesystem::path& sharedPath, bool& headerOpen) {
+    if (ImGui::BeginPopupContextItem(("component_options_menu_" + std::to_string(static_cast<int>(cpType))).c_str())) {
+        ImGui::TextDisabled("Component options");
         ImGui::Separator();
 
-        if (isOverridden) {
-            if (ImGui::MenuItem(ICON_FA_LINK " Revert to Shared")) {
-                // Clear the override and copy values from the shared registry
-                sharedGroup->clearComponentOverride(sceneProject->id, entity, cpType);
+        if (ImGui::MenuItem(ICON_FA_TRASH " Remove component")) {
+            cmd = new RemoveComponentCmd(project, sceneProject->id, entity, cpType);
+            CommandHandle::get(sceneProject->id)->addCommand(cmd);
 
-                // Find entity index in the shared group
-                const auto& entities = sharedGroup->getAllEntities(sceneProject->id);
-                auto it = std::find(entities.begin(), entities.end(), entity);
-                if (it != entities.end()) {
-                    size_t entityIndex = std::distance(entities.begin(), it);
-                    Entity registryEntity = entityIndex + NULL_ENTITY + 1;
+            headerOpen = false;
+        }
 
-                    // Copy all properties from registry to scene entity
-                    auto props = Catalog::getProperties(cpType, nullptr);
-                    for (const auto& [propId, propData] : props) {
-                        Catalog::copyPropertyValue(sharedGroup->registry.get(), registryEntity, sceneProject->scene, entity, cpType, propId);
+        SharedGroup* sharedGroup = project->getSharedGroup(sharedPath);
+        if (sharedGroup){
+            if (sharedGroup->hasComponentOverride(sceneProject->id, entity, cpType)) {
+                if (ImGui::MenuItem(ICON_FA_LINK " Revert to Shared")) {
+                    // Clear the override and copy values from the shared registry
+                    sharedGroup->clearComponentOverride(sceneProject->id, entity, cpType);
+
+                    // Find entity index in the shared group
+                    const auto& entities = sharedGroup->getAllEntities(sceneProject->id);
+                    auto it = std::find(entities.begin(), entities.end(), entity);
+                    if (it != entities.end()) {
+                        size_t entityIndex = std::distance(entities.begin(), it);
+                        Entity registryEntity = entityIndex + NULL_ENTITY + 1;
+
+                        // Copy all properties from registry to scene entity
+                        auto props = Catalog::getProperties(cpType, nullptr);
+                        for (const auto& [propId, propData] : props) {
+                            Catalog::copyPropertyValue(sharedGroup->registry.get(), registryEntity, sceneProject->scene, entity, cpType, propId);
+                        }
                     }
+
+                    sceneProject->needUpdateRender = true;
+                    sceneProject->isModified = true;
                 }
 
-                sceneProject->needUpdateRender = true;
-                sceneProject->isModified = true;
-            }
-
-        } else {
-            if (ImGui::MenuItem(ICON_FA_LOCK_OPEN " Make Unique")) {
-                // Mark as overridden
-                sharedGroup->setComponentOverride(sceneProject->id, entity, cpType);
-                sceneProject->isModified = true;
+            } else {
+                if (ImGui::MenuItem(ICON_FA_LOCK_OPEN " Make Unique")) {
+                    // Mark as overridden
+                    sharedGroup->setComponentOverride(sceneProject->id, entity, cpType);
+                    sceneProject->isModified = true;
+                }
             }
         }
 
@@ -289,153 +291,6 @@ bool Editor::Properties::canAddComponent(SceneProject* sceneProject, Entity enti
     // Check if entity already has this component
     std::vector<ComponentType> existingComponents = Catalog::findComponents(sceneProject->scene, entity);
     return std::find(existingComponents.begin(), existingComponents.end(), cpType) == existingComponents.end();
-}
-
-void Editor::Properties::addComponentToEntity(SceneProject* sceneProject, Entity entity, ComponentType cpType) {
-    Scene* scene = sceneProject->scene;
-
-    switch (cpType) {
-        case ComponentType::Transform:
-            scene->addComponent<Transform>(entity, {});
-            break;
-        case ComponentType::MeshComponent:
-            scene->addComponent<MeshComponent>(entity, {});
-            break;
-        case ComponentType::UIComponent:
-            scene->addComponent<UIComponent>(entity, {});
-            break;
-        case ComponentType::UILayoutComponent:
-            scene->addComponent<UILayoutComponent>(entity, {});
-            break;
-        case ComponentType::ActionComponent:
-            scene->addComponent<ActionComponent>(entity, {});
-            break;
-        case ComponentType::AlphaActionComponent:
-            scene->addComponent<AlphaActionComponent>(entity, {});
-            break;
-        case ComponentType::AnimationComponent:
-            scene->addComponent<AnimationComponent>(entity, {});
-            break;
-        case ComponentType::AudioComponent:
-            scene->addComponent<AudioComponent>(entity, {});
-            break;
-        case ComponentType::Body2DComponent:
-            scene->addComponent<Body2DComponent>(entity, {});
-            break;
-        case ComponentType::Body3DComponent:
-            scene->addComponent<Body3DComponent>(entity, {});
-            break;
-        case ComponentType::BoneComponent:
-            scene->addComponent<BoneComponent>(entity, {});
-            break;
-        case ComponentType::ButtonComponent:
-            scene->addComponent<ButtonComponent>(entity, {});
-            break;
-        case ComponentType::CameraComponent:
-            scene->addComponent<CameraComponent>(entity, {});
-            break;
-        case ComponentType::ColorActionComponent:
-            scene->addComponent<ColorActionComponent>(entity, {});
-            break;
-        case ComponentType::FogComponent:
-            scene->addComponent<FogComponent>(entity, {});
-            break;
-        case ComponentType::ImageComponent:
-            scene->addComponent<ImageComponent>(entity, {});
-            break;
-        case ComponentType::InstancedMeshComponent:
-            scene->addComponent<InstancedMeshComponent>(entity, {});
-            break;
-        case ComponentType::Joint2DComponent:
-            scene->addComponent<Joint2DComponent>(entity, {});
-            break;
-        case ComponentType::Joint3DComponent:
-            scene->addComponent<Joint3DComponent>(entity, {});
-            break;
-        case ComponentType::KeyframeTracksComponent:
-            scene->addComponent<KeyframeTracksComponent>(entity, {});
-            break;
-        case ComponentType::LightComponent:
-            scene->addComponent<LightComponent>(entity, {});
-            break;
-        case ComponentType::LinesComponent:
-            scene->addComponent<LinesComponent>(entity, {});
-            break;
-        case ComponentType::MeshPolygonComponent:
-            scene->addComponent<MeshPolygonComponent>(entity, {});
-            break;
-        case ComponentType::ModelComponent:
-            scene->addComponent<ModelComponent>(entity, {});
-            break;
-        case ComponentType::MorphTracksComponent:
-            scene->addComponent<MorphTracksComponent>(entity, {});
-            break;
-        case ComponentType::PanelComponent:
-            scene->addComponent<PanelComponent>(entity, {});
-            break;
-        case ComponentType::ParticlesComponent:
-            scene->addComponent<ParticlesComponent>(entity, {});
-            break;
-        case ComponentType::PointsComponent:
-            scene->addComponent<PointsComponent>(entity, {});
-            break;
-        case ComponentType::PolygonComponent:
-            scene->addComponent<PolygonComponent>(entity, {});
-            break;
-        case ComponentType::PositionActionComponent:
-            scene->addComponent<PositionActionComponent>(entity, {});
-            break;
-        case ComponentType::RotateTracksComponent:
-            scene->addComponent<RotateTracksComponent>(entity, {});
-            break;
-        case ComponentType::RotationActionComponent:
-            scene->addComponent<RotationActionComponent>(entity, {});
-            break;
-        case ComponentType::ScaleActionComponent:
-            scene->addComponent<ScaleActionComponent>(entity, {});
-            break;
-        case ComponentType::ScaleTracksComponent:
-            scene->addComponent<ScaleTracksComponent>(entity, {});
-            break;
-        case ComponentType::ScriptComponent:
-            scene->addComponent<ScriptComponent>(entity, {});
-            break;
-        case ComponentType::ScrollbarComponent:
-            scene->addComponent<ScrollbarComponent>(entity, {});
-            break;
-        case ComponentType::SkyComponent:
-            scene->addComponent<SkyComponent>(entity, {});
-            break;
-        case ComponentType::SpriteAnimationComponent:
-            scene->addComponent<SpriteAnimationComponent>(entity, {});
-            break;
-        case ComponentType::SpriteComponent:
-            scene->addComponent<SpriteComponent>(entity, {});
-            break;
-        case ComponentType::TerrainComponent:
-            scene->addComponent<TerrainComponent>(entity, {});
-            break;
-        case ComponentType::TextComponent:
-            scene->addComponent<TextComponent>(entity, {});
-            break;
-        case ComponentType::TextEditComponent:
-            scene->addComponent<TextEditComponent>(entity, {});
-            break;
-        case ComponentType::TilemapComponent:
-            scene->addComponent<TilemapComponent>(entity, {});
-            break;
-        case ComponentType::TimedActionComponent:
-            scene->addComponent<TimedActionComponent>(entity, {});
-            break;
-        case ComponentType::TranslateTracksComponent:
-            scene->addComponent<TranslateTracksComponent>(entity, {});
-            break;
-        case ComponentType::UIContainerComponent:
-            scene->addComponent<UIContainerComponent>(entity, {});
-            break;
-        default:
-            break;
-    }
 }
 
 Texture Editor::Properties::getMaterialPreview(const Material& material, const std::string id){
@@ -2230,7 +2085,8 @@ void Editor::Properties::show(){
         std::filesystem::path sharedGroupPath;
         bool isShared = false;
         if (entities.size() == 1) {
-            isShared = isEntityShared(sceneProject, entities[0], sharedGroupPath);
+            sharedGroupPath = project->findGroupPathFor(sceneProject->id, entities[0]);
+            isShared = !sharedGroupPath.empty();
         }
 
         // to change component view order, need change ComponentType
@@ -2494,7 +2350,8 @@ void Editor::Properties::show(){
                         if (ImGui::InvisibleButton("##component", ImVec2(ImGui::GetContentRegionAvail().x, 40))) {
                             // Add component to all selected entities
                             for (Entity& entity : entities) {
-                                addComponentToEntity(sceneProject, entity, entry.type);
+                                cmd = new AddComponentCmd(project, sceneProject->id, entity, entry.type);
+                                CommandHandle::get(sceneProject->id)->addCommand(cmd);
                             }
 
                             // Mark scene as modified
@@ -2602,10 +2459,7 @@ void Editor::Properties::show(){
                 ImGui::PopStyleColor();
             }
 
-            // Handle right-click context menu for shared entities
-            if (isShared && entities.size() == 1) {
-                handleComponentOverrideMenu(sceneProject, entities[0], cpType, sharedGroupPath);
-            }
+            handleComponentMenu(sceneProject, entities[0], cpType, sharedGroupPath, headerOpen);
 
             // Add hover tooltip only for shared components
             if (isShared && ImGui::IsItemHovered()) {
