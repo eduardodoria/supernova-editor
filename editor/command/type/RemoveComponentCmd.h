@@ -13,7 +13,10 @@ namespace Supernova::Editor {
         Entity entity;
         ComponentType componentType;
 
-        YAML::Node oldComponent;
+        YAML::Node oldComponent; // For no shared entities and no override components
+        bool hasOverride;
+
+        ComponentRecovery recovery; // For shared entities
 
     public:
         RemoveComponentCmd(Project* project, size_t sceneId, Entity entity, ComponentType componentType);

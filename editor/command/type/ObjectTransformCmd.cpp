@@ -90,6 +90,8 @@ bool Editor::ObjectTransformCmd::mergeWith(Editor::Command* otherCommand){
 
 void Editor::ObjectTransformCmd::commit(){
     for (auto& [entity, property] : props){
-        project->sharedGroupComponentChanged(sceneId, entity, ComponentType::Transform, {"position", "rotation", "scale"});
+        if (project->isEntityShared(sceneId, entity)){
+            project->sharedGroupComponentChanged(sceneId, entity, ComponentType::Transform, {"position", "rotation", "scale"});
+        }
     }
 }

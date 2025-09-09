@@ -46,5 +46,7 @@ bool Editor::MeshChangeCmd::mergeWith(Editor::Command* otherCommand){
 }
 
 void Editor::MeshChangeCmd::commit(){
-    project->sharedGroupComponentChanged(sceneId, entity, ComponentType::MeshComponent, {});
+    if (project->isEntityShared(sceneId, entity)){
+        project->sharedGroupComponentChanged(sceneId, entity, ComponentType::MeshComponent, {});
+    }
 }

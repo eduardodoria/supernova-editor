@@ -211,6 +211,13 @@ namespace Supernova::Editor{
 
     using SharedMoveRecovery = std::map<uint32_t, SharedMoveRecoveryEntry>;
 
+    struct ComponentRecoveryEntry {
+        Entity entity;
+        YAML::Node node;
+    };
+
+    using ComponentRecovery = std::map<uint32_t, ComponentRecoveryEntry>;
+
     class Project{
     private:
 
@@ -309,6 +316,9 @@ namespace Supernova::Editor{
         static size_t getTransformIndex(EntityRegistry* registry, Entity entity);
         static void sortEntitiesByTransformOrder(EntityRegistry* registry, std::vector<Entity>& entities);
 
+        static void addEntityComponent(EntityRegistry* registry, Entity entity, ComponentType componentType, std::vector<Entity>& entities, YAML::Node componentNode = YAML::Node());
+        static YAML::Node removeEntityComponent(EntityRegistry* registry, Entity entity, ComponentType componentType, std::vector<Entity>& entities, bool encodeComponent = false);
+
         //=== Shared Entities part ===
 
         bool markEntityShared(uint32_t sceneId, Entity entity, fs::path filepath, YAML::Node entityNode);
@@ -323,6 +333,10 @@ namespace Supernova::Editor{
 
         SharedMoveRecovery moveEntityFromSharedGroup(uint32_t sceneId, Entity entity, Entity target, InsertionType type, bool moveItself = true);
         bool undoMoveEntityInSharedGroup(uint32_t sceneId, Entity entity, Entity target, const SharedMoveRecovery& recovery, bool moveItself = true);
+
+        bool addComponentToSharedGroup(uint32_t sceneId, Entity entity, ComponentType componentType, bool addToItself = true);
+        bool addComponentToSharedGroup(uint32_t sceneId, Entity entity, ComponentType componentType, const ComponentRecovery& recovery, bool addToItself = true);
+        ComponentRecovery removeComponentToSharedGroup(uint32_t sceneId, Entity entity, ComponentType componentType, bool encodeComponent = true, bool removeToItself = true);
 
         void saveSharedGroupToDisk(const std::filesystem::path& filepath);
 
