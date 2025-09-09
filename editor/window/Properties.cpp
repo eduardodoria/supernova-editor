@@ -242,14 +242,16 @@ void Editor::Properties::handleComponentMenu(SceneProject* sceneProject, Entity 
         ImGui::TextDisabled("Component options");
         ImGui::Separator();
 
-        if (ImGui::MenuItem(ICON_FA_TRASH " Remove component")) {
+        SharedGroup* sharedGroup = project->getSharedGroup(sharedPath);
+
+        bool canRemove = !(cpType == ComponentType::Transform && sharedGroup);
+        if (ImGui::MenuItem(ICON_FA_TRASH " Remove", nullptr, false, canRemove)) {
             cmd = new RemoveComponentCmd(project, sceneProject->id, entity, cpType);
             CommandHandle::get(sceneProject->id)->addCommand(cmd);
 
             headerOpen = false;
         }
 
-        SharedGroup* sharedGroup = project->getSharedGroup(sharedPath);
         if (sharedGroup){
             if (sharedGroup->hasComponentOverride(sceneProject->id, entity, cpType)) {
                 if (ImGui::MenuItem(ICON_FA_LINK " Revert to Shared")) {

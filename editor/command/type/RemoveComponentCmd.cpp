@@ -20,6 +20,7 @@ bool Editor::RemoveComponentCmd::execute() {
             case ComponentType::Transform:
                 oldComponent = Stream::encodeTransform(scene->getComponent<Transform>(entity));
                 scene->removeComponent<Transform>(entity);
+                Project::sortEntitiesByTransformOrder(scene, sceneProject->entities);
                 break;
             case ComponentType::MeshComponent:
                 oldComponent = Stream::encodeMeshComponent(scene->getComponent<MeshComponent>(entity));
@@ -179,6 +180,7 @@ void Editor::RemoveComponentCmd::undo() {
         switch (componentType) {
             case ComponentType::Transform:
                 scene->addComponent<Transform>(entity, Stream::decodeTransform(oldComponent));
+                Project::sortEntitiesByTransformOrder(scene, sceneProject->entities);
                 break;
             case ComponentType::MeshComponent:
                 scene->addComponent<MeshComponent>(entity, Stream::decodeMeshComponent(oldComponent));

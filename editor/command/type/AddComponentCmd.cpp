@@ -17,6 +17,7 @@ bool Editor::AddComponentCmd::execute() {
         switch (componentType) {
             case ComponentType::Transform:
                 scene->addComponent<Transform>(entity, {});
+                Project::sortEntitiesByTransformOrder(scene, sceneProject->entities);
                 break;
             case ComponentType::MeshComponent:
                 scene->addComponent<MeshComponent>(entity, {});
@@ -171,6 +172,7 @@ void Editor::AddComponentCmd::undo() {
         switch (componentType) {
             case ComponentType::Transform:
                 scene->removeComponent<Transform>(entity);
+                Project::sortEntitiesByTransformOrder(scene, sceneProject->entities);
                 break;
             case ComponentType::MeshComponent:
                 scene->removeComponent<MeshComponent>(entity);
