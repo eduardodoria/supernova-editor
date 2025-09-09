@@ -244,14 +244,6 @@ void Editor::Properties::handleComponentMenu(SceneProject* sceneProject, Entity 
 
         SharedGroup* sharedGroup = project->getSharedGroup(sharedPath);
 
-        bool canRemove = !(cpType == ComponentType::Transform && sharedGroup);
-        if (ImGui::MenuItem(ICON_FA_TRASH " Remove", nullptr, false, canRemove)) {
-            cmd = new RemoveComponentCmd(project, sceneProject->id, entity, cpType);
-            CommandHandle::get(sceneProject->id)->addCommand(cmd);
-
-            headerOpen = false;
-        }
-
         if (sharedGroup){
             if (sharedGroup->hasComponentOverride(sceneProject->id, entity, cpType)) {
                 if (ImGui::MenuItem(ICON_FA_LINK " Revert to Shared")) {
@@ -283,6 +275,14 @@ void Editor::Properties::handleComponentMenu(SceneProject* sceneProject, Entity 
                     sceneProject->isModified = true;
                 }
             }
+        }
+
+        bool canRemove = !(cpType == ComponentType::Transform && sharedGroup);
+        if (ImGui::MenuItem(ICON_FA_TRASH " Remove", nullptr, false, canRemove)) {
+            cmd = new RemoveComponentCmd(project, sceneProject->id, entity, cpType);
+            CommandHandle::get(sceneProject->id)->addCommand(cmd);
+
+            headerOpen = false;
         }
 
         ImGui::EndPopup();
@@ -2464,17 +2464,10 @@ void Editor::Properties::show(){
             handleComponentMenu(sceneProject, entities[0], cpType, sharedGroupPath, headerOpen);
 
             // Add hover tooltip only for shared components
-            if (isShared && ImGui::IsItemHovered()) {
+            if (isShared && !isComponentOverridden && ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
-                if (isComponentOverridden) {
-                    ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.4f, 1.0f), ICON_FA_LOCK_OPEN " Unique Component");
-                    ImGui::Text("This component is unique to this instance.");
-                    ImGui::TextDisabled("Right-click to revert to shared.");
-                } else {
-                    ImGui::TextColored(ImVec4(0.4f, 0.6f, 1.0f, 1.0f), ICON_FA_LINK " Shared Component");
-                    ImGui::Text("This component is shared across all instances.");
-                    ImGui::TextDisabled("Right-click to make unique.");
-                }
+                ImGui::TextColored(ImVec4(0.4f, 0.6f, 1.0f, 1.0f), ICON_FA_LINK " Shared Component");
+                ImGui::Text("This component is shared across all instances.");
                 ImGui::EndTooltip();
             }
 
