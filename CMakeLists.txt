@@ -219,6 +219,8 @@ add_executable(
     ${EDITOR_DIR}/command/CommandHandle.cpp
     ${EDITOR_DIR}/command/CommandHistory.cpp
     ${EDITOR_DIR}/command/type/AddComponentCmd.cpp
+    ${EDITOR_DIR}/command/type/ComponentToLocalCmd.cpp
+    ${EDITOR_DIR}/command/type/ComponentToSharedCmd.cpp
     ${EDITOR_DIR}/command/type/RemoveComponentCmd.cpp
     ${EDITOR_DIR}/command/type/CreateEntityCmd.cpp
     ${EDITOR_DIR}/command/type/DeleteEntityCmd.cpp

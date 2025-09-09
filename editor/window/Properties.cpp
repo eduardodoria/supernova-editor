@@ -264,7 +264,6 @@ void Editor::Properties::handleComponentMenu(SceneProject* sceneProject, Entity 
                         }
                     }
 
-                    sceneProject->needUpdateRender = true;
                     sceneProject->isModified = true;
                 }
 
@@ -2358,7 +2357,6 @@ void Editor::Properties::show(){
 
                             // Mark scene as modified
                             sceneProject->isModified = true;
-                            sceneProject->needUpdateRender = true;
 
                             // Clear search and reset hover
                             memset(componentSearchBuffer, 0, sizeof(componentSearchBuffer));
