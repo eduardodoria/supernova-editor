@@ -2122,6 +2122,11 @@ bool Editor::Project::addComponentToSharedGroup(uint32_t sceneId, Entity entity,
 
     SharedGroup* group = getSharedGroup(filepath);
 
+    if (group->hasComponentOverride(sceneId, entity, componentType)){
+        Out::warning("Component %s of entity %u in scene %u is overridden", Catalog::getComponentName(componentType).c_str(), entity, sceneId);
+        return false;
+    }
+
     Entity registryEntity = group->getRegistryEntity(sceneId, entity);
     if (registryEntity == NULL_ENTITY) {
         Out::error("Failed to find registry entities for shared entities %u in scene %u", entity, sceneId);
@@ -2179,6 +2184,11 @@ Editor::ComponentRecovery Editor::Project::removeComponentToSharedGroup(uint32_t
     }
 
     SharedGroup* group = getSharedGroup(filepath);
+
+    if (group->hasComponentOverride(sceneId, entity, componentType)){
+        Out::warning("Component %s of entity %u in scene %u is overridden", Catalog::getComponentName(componentType).c_str(), entity, sceneId);
+        return {};
+    }
 
     Entity registryEntity = group->getRegistryEntity(sceneId, entity);
     if (registryEntity == NULL_ENTITY) {
