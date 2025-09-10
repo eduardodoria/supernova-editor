@@ -119,7 +119,8 @@ namespace Supernova::Editor{
         static std::string getComponentName(ComponentType component, bool removeSuffix = false);
         static ComponentId getComponentId(const EntityRegistry* registry, ComponentType compType);
         static ComponentType getComponentType(const std::string& componentName);
-        static Signature componentTypeMaskToSignature(const EntityRegistry* registry, uint64_t mask);
+        static Signature componentTypeToSignature(const EntityRegistry* registry, ComponentType compType);
+        static Signature componentMaskToSignature(const EntityRegistry* registry, uint64_t mask);
 
         static std::map<std::string, PropertyData> getProperties(ComponentType component, void* compRef);
 

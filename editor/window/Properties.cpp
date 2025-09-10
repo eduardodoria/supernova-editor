@@ -11,6 +11,8 @@
 #include "command/type/MeshChangeCmd.h"
 #include "command/type/AddComponentCmd.h"
 #include "command/type/RemoveComponentCmd.h"
+#include "command/type/ComponentToSharedCmd.h"
+#include "command/type/ComponentToLocalCmd.h"
 #include "render/SceneRender2D.h"
 #include "util/SHA1.h"
 #include "Stream.h"
@@ -247,31 +249,14 @@ void Editor::Properties::handleComponentMenu(SceneProject* sceneProject, Entity 
         if (sharedGroup){
             if (sharedGroup->hasComponentOverride(sceneProject->id, entity, cpType)) {
                 if (ImGui::MenuItem(ICON_FA_LINK " Revert to Shared")) {
-                    // Clear the override and copy values from the shared registry
-                    sharedGroup->clearComponentOverride(sceneProject->id, entity, cpType);
-
-                    // Find entity index in the shared group
-                    const auto& entities = sharedGroup->getAllEntities(sceneProject->id);
-                    auto it = std::find(entities.begin(), entities.end(), entity);
-                    if (it != entities.end()) {
-                        size_t entityIndex = std::distance(entities.begin(), it);
-                        Entity registryEntity = entityIndex + NULL_ENTITY + 1;
-
-                        // Copy all properties from registry to scene entity
-                        auto props = Catalog::getProperties(cpType, nullptr);
-                        for (const auto& [propId, propData] : props) {
-                            Catalog::copyPropertyValue(sharedGroup->registry.get(), registryEntity, sceneProject->scene, entity, cpType, propId);
-                        }
-                    }
-
-                    sceneProject->isModified = true;
+                    cmd = new ComponentToSharedCmd(project, sceneProject->id, entity, cpType);
+                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
                 }
 
             } else {
                 if (ImGui::MenuItem(ICON_FA_LOCK_OPEN " Make Unique")) {
-                    // Mark as overridden
-                    sharedGroup->setComponentOverride(sceneProject->id, entity, cpType);
-                    sceneProject->isModified = true;
+                    cmd = new ComponentToLocalCmd(project, sceneProject->id, entity, cpType);
+                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
                 }
             }
         }

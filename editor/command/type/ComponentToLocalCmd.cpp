@@ -1,5 +1,7 @@
 #include "ComponentToLocalCmd.h"
 
+#include "Stream.h"
+
 using namespace Supernova;
 
 Editor::ComponentToLocalCmd::ComponentToLocalCmd(Project* project, uint32_t sceneId, Entity entity, ComponentType componentType){
@@ -11,14 +13,11 @@ Editor::ComponentToLocalCmd::ComponentToLocalCmd(Project* project, uint32_t scen
 
 bool Editor::ComponentToLocalCmd::execute() {
     SceneProject* sceneProject = project->getScene(sceneId);
-    if (sceneProject) {
-        Scene* scene = sceneProject->scene;
+    fs::path filepath = project->findGroupPathFor(sceneId, entity);
+    if (sceneProject && !filepath.empty()) {
+        SharedGroup* group = project->getSharedGroup(filepath);
 
-        //Project::addEntityComponent(scene, entity, componentType, sceneProject->entities);
-
-        //if (project->isEntityShared(sceneId, entity)){
-        //    project->addComponentToSharedGroup(sceneId, entity, componentType, false);
-        //}
+        group->setComponentOverride(sceneProject->id, entity, componentType);
 
         sceneProject->isModified = true;
     }
@@ -28,14 +27,14 @@ bool Editor::ComponentToLocalCmd::execute() {
 
 void Editor::ComponentToLocalCmd::undo() {
     SceneProject* sceneProject = project->getScene(sceneId);
-    if (sceneProject) {
-        Scene* scene = sceneProject->scene;
+    fs::path filepath = project->findGroupPathFor(sceneId, entity);
+    if (sceneProject && !filepath.empty()) {
+        SharedGroup* group = project->getSharedGroup(filepath);
 
-        //Project::removeEntityComponent(scene, entity, componentType, sceneProject->entities);
+        group->clearComponentOverride(sceneProject->id, entity, componentType);
 
-        //if (project->isEntityShared(sceneId, entity)){
-        //    project->removeComponentToSharedGroup(sceneId, entity, componentType, false, false);
-        //}
+        Entity registryEntity = group->getRegistryEntity(sceneId, entity);
+        Catalog::copyComponent(group->registry.get(), registryEntity, sceneProject->scene, entity, componentType);
 
         sceneProject->isModified = true;
     }

@@ -358,7 +358,14 @@ Editor::ComponentType Editor::Catalog::getComponentType(const std::string& compo
     throw std::invalid_argument("Unknown component type: " + componentName);
 }
 
-Signature Editor::Catalog::componentTypeMaskToSignature(const EntityRegistry* registry, uint64_t mask) {
+Signature Editor::Catalog::componentTypeToSignature(const EntityRegistry* registry, ComponentType compType) {
+    Signature signature;
+    ComponentId cid = getComponentId(registry, compType);
+    signature.set(cid, true);
+    return signature;
+}
+
+Signature Editor::Catalog::componentMaskToSignature(const EntityRegistry* registry, uint64_t mask) {
     Signature signature;
     for (int i = 0; i < 64; ++i) {
         if ((mask >> i) & 1) {
@@ -698,8 +705,10 @@ void Editor::Catalog::copyComponent(EntityRegistry* sourceRegistry, Entity sourc
 
     switch (compType) {
         case ComponentType::Transform: {
+            Entity parent = targetRegistry->getComponent<Transform>(targetEntity).parent;
             YAML::Node encoded = Stream::encodeTransform(sourceRegistry->getComponent<Transform>(sourceEntity));
             targetRegistry->getComponent<Transform>(targetEntity) = Stream::decodeTransform(encoded);
+            targetRegistry->getComponent<Transform>(targetEntity).parent = parent; // not need to re-order because it is same parent
             break;
         }
 

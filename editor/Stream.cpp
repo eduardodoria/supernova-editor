@@ -812,7 +812,7 @@ YAML::Node Editor::Stream::encodeEntityAux(const Entity entity, const EntityRegi
             entityNode["entity"] = entity;
         }
 
-        Signature signature = Catalog::componentTypeMaskToSignature(registry, group->getEntityOverrides(sceneProject->id, entity));
+        Signature signature = Catalog::componentMaskToSignature(registry, group->getEntityOverrides(sceneProject->id, entity));
         entityNode["components"] = encodeComponents(entity, registry, signature);
 
     }else{
@@ -1000,6 +1000,7 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
         if (!signature.test(registry->getComponentId<Transform>())){
             registry->addComponent<Transform>(entity, transform);
         }else{
+            registry->addEntityChild(transform.parent, entity, false);
             registry->getComponent<Transform>(entity) = transform;
         }
     }
