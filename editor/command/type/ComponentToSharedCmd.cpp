@@ -11,40 +11,25 @@ Editor::ComponentToSharedCmd::ComponentToSharedCmd(Project* project, uint32_t sc
 
 bool Editor::ComponentToSharedCmd::execute() {
     SceneProject* sceneProject = project->getScene(sceneId);
-    if (sceneProject) {
-        Scene* scene = sceneProject->scene;
+    fs::path filepath = project->findGroupPathFor(sceneId, entity);
+    if (sceneProject && !filepath.empty()) {
+        //Scene* scene = sceneProject->scene;
+        SharedGroup* group = project->getSharedGroup(filepath);
 
-        //Stream::encodeCo
-
-        fs::path filepath = project->findGroupPathFor(sceneId, entity);
-        SharedGroup* sharedGroup = project->getSharedGroup(filepath);
-
-        recovery = Project::removeEntityComponent(scene, entity, componentType, sceneProject->entities, true);
+        //recovery = Project::removeEntityComponent(scene, entity, componentType, sceneProject->entities, true);
 
         // Clear the override and copy values from the shared registry
-        sharedGroup->clearComponentOverride(sceneProject->id, entity, componentType);
+        group->clearComponentOverride(sceneProject->id, entity, componentType);
 
-        // Find entity index in the shared group
-        const auto& entities = sharedGroup->getAllEntities(sceneProject->id);
-        auto it = std::find(entities.begin(), entities.end(), entity);
-        if (it != entities.end()) {
-            size_t entityIndex = std::distance(entities.begin(), it);
-            Entity registryEntity = entityIndex + NULL_ENTITY + 1;
+        Entity registryEntity = group->getRegistryEntity(sceneId, entity);
 
-            // Copy all properties from registry to scene entity
-            auto props = Catalog::getProperties(componentType, nullptr);
-            for (const auto& [propId, propData] : props) {
-                Catalog::copyPropertyValue(sharedGroup->registry.get(), registryEntity, sceneProject->scene, entity, componentType, propId);
-            }
+        // Copy all properties from registry to scene entity
+        auto props = Catalog::getProperties(componentType, nullptr);
+        for (const auto& [propId, propData] : props) {
+            Catalog::copyPropertyValue(group->registry.get(), registryEntity, sceneProject->scene, entity, componentType, propId);
         }
 
         sceneProject->isModified = true;
-
-        //Project::addEntityComponent(scene, entity, componentType, sceneProject->entities);
-
-        //if (project->isEntityShared(sceneId, entity)){
-        //    project->addComponentToSharedGroup(sceneId, entity, componentType, false);
-        //}
     }
 
     return true;
@@ -52,14 +37,11 @@ bool Editor::ComponentToSharedCmd::execute() {
 
 void Editor::ComponentToSharedCmd::undo() {
     SceneProject* sceneProject = project->getScene(sceneId);
-    if (sceneProject) {
-        Scene* scene = sceneProject->scene;
+    fs::path filepath = project->findGroupPathFor(sceneId, entity);
+    if (sceneProject && !filepath.empty()) {
+        SharedGroup* group = project->getSharedGroup(filepath);
 
-        //Project::removeEntityComponent(scene, entity, componentType, sceneProject->entities);
-
-        //if (project->isEntityShared(sceneId, entity)){
-        //    project->removeComponentToSharedGroup(sceneId, entity, componentType, false, false);
-        //}
+        group->setComponentOverride(sceneProject->id, entity, componentType);
 
         sceneProject->isModified = true;
     }

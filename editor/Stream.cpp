@@ -594,79 +594,6 @@ AABB Editor::Stream::decodeAABB(const YAML::Node& node) {
     return AABB(min, max);
 }
 
-void Editor::Stream::encodeComponentsAux(YAML::Node& compNode, const Entity entity, const EntityRegistry* registry, Signature signature) {
-    if (signature.test(registry->getComponentId<Transform>())) {
-        Transform transform = registry->getComponent<Transform>(entity);
-        compNode[Catalog::getComponentName(ComponentType::Transform, true)] = encodeTransform(transform);
-    }
-
-    if (signature.test(registry->getComponentId<MeshComponent>())) {
-        MeshComponent mesh = registry->getComponent<MeshComponent>(entity);
-        compNode[Catalog::getComponentName(ComponentType::MeshComponent, true)] = encodeMeshComponent(mesh);
-    }
-
-    if (signature.test(registry->getComponentId<UIComponent>())) {
-        UIComponent ui = registry->getComponent<UIComponent>(entity);
-        compNode[Catalog::getComponentName(ComponentType::UIComponent, true)] = encodeUIComponent(ui);
-    }
-
-    if (signature.test(registry->getComponentId<UILayoutComponent>())) {
-        UILayoutComponent layout = registry->getComponent<UILayoutComponent>(entity);
-        compNode[Catalog::getComponentName(ComponentType::UILayoutComponent, true)] = encodeUILayoutComponent(layout);
-    }
-
-    if (signature.test(registry->getComponentId<ImageComponent>())) {
-        ImageComponent image = registry->getComponent<ImageComponent>(entity);
-        compNode[Catalog::getComponentName(ComponentType::ImageComponent, true)] = encodeImageComponent(image);
-    }
-
-    if (signature.test(registry->getComponentId<LightComponent>())) {
-        LightComponent light = registry->getComponent<LightComponent>(entity);
-        compNode[Catalog::getComponentName(ComponentType::LightComponent, true)] = encodeLightComponent(light);
-    }
-}
-
-void Editor::Stream::decodeComponentsAux(Entity entity, Entity parent, EntityRegistry* registry, const YAML::Node& compNode){
-    std::string compName;
-
-    compName = Catalog::getComponentName(ComponentType::Transform, true);
-    if (compNode[compName]) {
-        Transform transform = decodeTransform(compNode[compName]);
-        transform.parent = parent;
-        registry->addComponent<Transform>(entity, transform);
-    }
-
-    compName = Catalog::getComponentName(ComponentType::MeshComponent, true);
-    if (compNode[compName]) {
-        MeshComponent mesh = decodeMeshComponent(compNode[compName]);
-        registry->addComponent<MeshComponent>(entity, mesh);
-    }
-
-    compName = Catalog::getComponentName(ComponentType::UIComponent, true);
-    if (compNode[compName]) {
-        UIComponent ui = decodeUIComponent(compNode[compName]);
-        registry->addComponent<UIComponent>(entity, ui);
-    }
-
-    compName = Catalog::getComponentName(ComponentType::UILayoutComponent, true);
-    if (compNode[compName]) {
-        UILayoutComponent layout = decodeUILayoutComponent(compNode[compName]);
-        registry->addComponent<UILayoutComponent>(entity, layout);
-    }
-
-    compName = Catalog::getComponentName(ComponentType::ImageComponent, true);
-    if (compNode[compName]) {
-        ImageComponent image = decodeImageComponent(compNode[compName]);
-        registry->addComponent<ImageComponent>(entity, image);
-    }
-
-    compName = Catalog::getComponentName(ComponentType::LightComponent, true);
-    if (compNode[compName]) {
-        LightComponent light = decodeLightComponent(compNode[compName]);
-        registry->addComponent<LightComponent>(entity, light);
-    }
-}
-
 YAML::Node Editor::Stream::encodeProject(Project* project) {
     YAML::Node root;
 
@@ -886,8 +813,7 @@ YAML::Node Editor::Stream::encodeEntityAux(const Entity entity, const EntityRegi
         }
 
         Signature signature = Catalog::componentTypeMaskToSignature(registry, group->getEntityOverrides(sceneProject->id, entity));
-        YAML::Node compNode = entityNode["components"];
-        encodeComponentsAux(compNode, entity, registry, signature);
+        entityNode["components"] = encodeComponents(entity, registry, signature);
 
     }else{
         entityNode["type"] = "Entity";
@@ -898,8 +824,7 @@ YAML::Node Editor::Stream::encodeEntityAux(const Entity entity, const EntityRegi
         entityNode["name"] = registry->getEntityName(entity);
 
         Signature signature = registry->getSignature(entity);
-        YAML::Node compNode = entityNode["components"];
-        encodeComponentsAux(compNode, entity, registry, signature);
+        entityNode["components"] = encodeComponents(entity, registry, signature);
 
     }
 
@@ -942,7 +867,7 @@ std::vector<Entity> Editor::Stream::decodeEntity(const YAML::Node& entityNode, E
         registry->setEntityName(entity, name);
 
         if (entityNode["components"]){
-            decodeComponentsAux(entity, parent, registry, entityNode["components"]);
+            decodeComponents(entity, parent, registry, entityNode["components"]);
         }
 
         // Decode children from actualNode
@@ -1025,6 +950,109 @@ Material Editor::Stream::decodeMaterial(const YAML::Node& node) {
     material.name = node["name"].as<std::string>();
 
     return material;
+}
+
+YAML::Node Editor::Stream::encodeComponents(const Entity entity, const EntityRegistry* registry, Signature signature) {
+    YAML::Node compNode;
+
+    if (signature.test(registry->getComponentId<Transform>())) {
+        Transform transform = registry->getComponent<Transform>(entity);
+        compNode[Catalog::getComponentName(ComponentType::Transform, true)] = encodeTransform(transform);
+    }
+
+    if (signature.test(registry->getComponentId<MeshComponent>())) {
+        MeshComponent mesh = registry->getComponent<MeshComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::MeshComponent, true)] = encodeMeshComponent(mesh);
+    }
+
+    if (signature.test(registry->getComponentId<UIComponent>())) {
+        UIComponent ui = registry->getComponent<UIComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::UIComponent, true)] = encodeUIComponent(ui);
+    }
+
+    if (signature.test(registry->getComponentId<UILayoutComponent>())) {
+        UILayoutComponent layout = registry->getComponent<UILayoutComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::UILayoutComponent, true)] = encodeUILayoutComponent(layout);
+    }
+
+    if (signature.test(registry->getComponentId<ImageComponent>())) {
+        ImageComponent image = registry->getComponent<ImageComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::ImageComponent, true)] = encodeImageComponent(image);
+    }
+
+    if (signature.test(registry->getComponentId<LightComponent>())) {
+        LightComponent light = registry->getComponent<LightComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::LightComponent, true)] = encodeLightComponent(light);
+    }
+
+    return compNode;
+}
+
+void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegistry* registry, const YAML::Node& compNode){
+    std::string compName;
+
+    Signature signature = registry->getSignature(entity);
+
+    compName = Catalog::getComponentName(ComponentType::Transform, true);
+    if (compNode[compName]) {
+        Transform transform = decodeTransform(compNode[compName]);
+        transform.parent = parent;
+        if (!signature.test(registry->getComponentId<Transform>())){
+            registry->addComponent<Transform>(entity, transform);
+        }else{
+            registry->getComponent<Transform>(entity) = transform;
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::MeshComponent, true);
+    if (compNode[compName]) {
+        MeshComponent mesh = decodeMeshComponent(compNode[compName]);
+        if (!signature.test(registry->getComponentId<MeshComponent>())){
+            registry->addComponent<MeshComponent>(entity, mesh);
+        }else{
+            registry->getComponent<MeshComponent>(entity) = mesh;
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::UIComponent, true);
+    if (compNode[compName]) {
+        UIComponent ui = decodeUIComponent(compNode[compName]);
+        if (!signature.test(registry->getComponentId<UIComponent>())){
+            registry->addComponent<UIComponent>(entity, ui);
+        }else{
+            registry->getComponent<UIComponent>(entity) = ui;
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::UILayoutComponent, true);
+    if (compNode[compName]) {
+        UILayoutComponent layout = decodeUILayoutComponent(compNode[compName]);
+        if (!signature.test(registry->getComponentId<UILayoutComponent>())){
+            registry->addComponent<UILayoutComponent>(entity, layout);
+        }else{
+            registry->getComponent<UILayoutComponent>(entity) = layout;
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::ImageComponent, true);
+    if (compNode[compName]) {
+        ImageComponent image = decodeImageComponent(compNode[compName]);
+        if (!signature.test(registry->getComponentId<ImageComponent>())){
+            registry->addComponent<ImageComponent>(entity, image);
+        }else{
+            registry->getComponent<ImageComponent>(entity) = image;
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::LightComponent, true);
+    if (compNode[compName]) {
+        LightComponent light = decodeLightComponent(compNode[compName]);
+        if (!signature.test(registry->getComponentId<LightComponent>())){
+            registry->addComponent<LightComponent>(entity, light);
+        }else{
+            registry->getComponent<LightComponent>(entity) = light;
+        }
+    }
 }
 
 YAML::Node Editor::Stream::encodeTransform(const Transform& transform) {

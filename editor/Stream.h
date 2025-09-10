@@ -92,9 +92,6 @@ namespace Supernova::Editor {
         static YAML::Node encodeAABB(const AABB& aabb);
         static AABB decodeAABB(const YAML::Node& node);
 
-        static void encodeComponentsAux(YAML::Node& compNode, const Entity entity, const EntityRegistry* container, Signature signature);
-        static void decodeComponentsAux(Entity entity, Entity parent, EntityRegistry* container, const YAML::Node& compNode);
-
         static YAML::Node encodeEntityAux(const Entity entity, const EntityRegistry* registry, const Project* project = nullptr, const SceneProject* sceneProject = nullptr, bool keepEntity = false);
 
     public:
@@ -113,6 +110,9 @@ namespace Supernova::Editor {
 
         static YAML::Node encodeMaterial(const Material& material);
         static Material decodeMaterial(const YAML::Node& node);
+
+        static YAML::Node encodeComponents(const Entity entity, const EntityRegistry* container, Signature signature);
+        static void decodeComponents(Entity entity, Entity parent, EntityRegistry* container, const YAML::Node& compNode);
 
         static YAML::Node encodeTransform(const Transform& transform);
         static Transform decodeTransform(const YAML::Node& node);
