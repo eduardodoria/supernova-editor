@@ -20,6 +20,7 @@ namespace Supernova::Editor{
 
         // Track if entity was part of a shared group
         NodeRecovery recoverySharedData;
+        uint32_t instanceId;
     };
 
     class DeleteEntityCmd: public Command{

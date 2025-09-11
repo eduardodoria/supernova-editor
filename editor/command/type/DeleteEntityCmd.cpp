@@ -68,8 +68,9 @@ bool Editor::DeleteEntityCmd::execute(){
 
             fs::path sharedGroupPath = project->findGroupPathFor(sceneId, entity);
             SharedGroup* group = project->getSharedGroup(sharedGroupPath);
+            entityData.instanceId = group->getInstanceId(sceneId, entity);
 
-            if (entity == group->getRootEntity(sceneId)) {
+            if (entity == group->getRootEntity(sceneId, entityData.instanceId)) {
 
                 project->unimportSharedEntity(sceneId, sharedGroupPath, sharedEntities, false);
 
@@ -107,7 +108,7 @@ void Editor::DeleteEntityCmd::undo(){
 
         }else{
 
-            project->addEntityToSharedGroup(sceneId, entityData.recoverySharedData, entityData.parent, true);
+            project->addEntityToSharedGroup(sceneId, entityData.recoverySharedData, entityData.parent, entityData.instanceId, true);
 
         }
     }

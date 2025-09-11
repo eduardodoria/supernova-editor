@@ -53,96 +53,241 @@ namespace Supernova::Editor{
             Entity registryEntity; // Corresponding entity in the shared registry
         };
 
-        std::map<uint32_t, std::vector<EntityMember>> members; // sceneId → list of local entity to registry entity (root + children)
-        std::map<uint32_t, std::map<Entity, uint64_t>> overrides; // sceneId → entityId → bitmask of overridden ComponentTypes
+        struct Instance {
+            uint32_t instanceId;
+            std::vector<EntityMember> members;
+            std::map<Entity, uint64_t> overrides; // entityId → bitmask of overridden ComponentTypes
+        };
+
+        // sceneId → list of instances
+        std::map<uint32_t, std::vector<Instance>> instances;
+
         std::unique_ptr<EntityRegistry> registry;
         std::vector<Entity> registryEntities;
         bool isModified = false;
 
+        uint32_t nextInstanceId = 1;
+
         // Helper methods
-        Entity getRootEntity(uint32_t sceneId) const {
-            auto it = members.find(sceneId);
-            if (it != members.end() && !it->second.empty()) {
-                return it->second[0].localEntity; // First EntityMember's localEntity is the root local entity
+        Entity getRootEntity(uint32_t sceneId, uint32_t instanceId) const {
+            auto it = instances.find(sceneId);
+            if (it != instances.end()) {
+                for (const auto& instance : it->second) {
+                    if (instance.instanceId == instanceId && !instance.members.empty()) {
+                        return instance.members[0].localEntity;
+                    }
+                }
             }
             return NULL_ENTITY;
         }
 
-        // Return only the local entities as before
-        std::vector<Entity> getAllEntities(uint32_t sceneId) const {
-            auto it = members.find(sceneId);
-            if (it == members.end()) return {};
-            std::vector<Entity> result;
-            result.reserve(it->second.size());
-            for (const auto &member : it->second) result.push_back(member.localEntity);
+        // Get all local entities for a specific instance
+        std::vector<Entity> getAllEntities(uint32_t sceneId, uint32_t instanceId) const {
+            auto it = instances.find(sceneId);
+            if (it == instances.end()) return {};
+
+            for (const auto& instance : it->second) {
+                if (instance.instanceId == instanceId) {
+                    std::vector<Entity> result;
+                    result.reserve(instance.members.size());
+                    for (const auto& member : instance.members) {
+                        result.push_back(member.localEntity);
+                    }
+                    return result;
+                }
+            }
+            return {};
+        }
+
+        // Get all instances for a scene
+        std::vector<uint32_t> getInstanceIds(uint32_t sceneId) const {
+            std::vector<uint32_t> result;
+            auto it = instances.find(sceneId);
+            if (it != instances.end()) {
+                for (const auto& instance : it->second) {
+                    result.push_back(instance.instanceId);
+                }
+            }
             return result;
         }
 
-        // Get registry entity based on other scene local entity
+        // Get the instance ID for a given entity
+        uint32_t getInstanceId(uint32_t sceneId, Entity entity) const {
+            auto it = instances.find(sceneId);
+            if (it != instances.end()) {
+                for (const auto& instance : it->second) {
+                    for (const auto& member : instance.members) {
+                        if (member.localEntity == entity) {
+                            return instance.instanceId;
+                        }
+                    }
+                }
+            }
+            return 0; // Invalid instance ID
+        }
+
+        // Get registry entity based on local entity (searches all instances)
         Entity getRegistryEntity(uint32_t sceneId, Entity entity) const {
-            auto it = members.find(sceneId);
-            if (it != members.end()) {
-                for (const auto &member : it->second) {
-                    if (member.localEntity == entity) {
-                        return member.registryEntity;
+            auto it = instances.find(sceneId);
+            if (it != instances.end()) {
+                for (const auto& instance : it->second) {
+                    for (const auto& member : instance.members) {
+                        if (member.localEntity == entity) {
+                            return member.registryEntity;
+                        }
                     }
                 }
             }
             return NULL_ENTITY;
         }
 
-        // Get local entity based on registry entity
-        Entity getLocalEntity(uint32_t sceneId, Entity entity) const {
-            auto it = members.find(sceneId);
-            if (it != members.end()) {
-                for (const auto &member : it->second) {
-                    if (member.registryEntity == entity) {
-                        return member.localEntity;
+        // Get local entity based on registry entity for a specific instance
+        Entity getLocalEntity(uint32_t sceneId, uint32_t instanceId, Entity registryEntity) const {
+            auto it = instances.find(sceneId);
+            if (it != instances.end()) {
+                for (const auto& instance : it->second) {
+                    if (instance.instanceId == instanceId) {
+                        for (const auto& member : instance.members) {
+                            if (member.registryEntity == registryEntity) {
+                                return member.localEntity;
+                            }
+                        }
                     }
                 }
             }
             return NULL_ENTITY;
         }
 
+        // Check if entity exists in any instance
         bool containsEntity(uint32_t sceneId, Entity entity) const {
-            auto it = members.find(sceneId);
-            if (it != members.end()) {
-                return std::any_of(it->second.begin(), it->second.end(),
-                                   [&](const EntityMember& member){ return member.localEntity == entity; });
+            auto it = instances.find(sceneId);
+            if (it != instances.end()) {
+                for (const auto& instance : it->second) {
+                    for (const auto& member : instance.members) {
+                        if (member.localEntity == entity) {
+                            return true;
+                        }
+                    }
+                }
             }
             return false;
         }
 
-        // New methods for override management using ComponentType bit operations
-        void setComponentOverride(uint32_t sceneId, Entity entity, ComponentType componentType) {
-            uint64_t bit = 1ULL << static_cast<int>(componentType);
-            overrides[sceneId][entity] |= bit;
+        // Get instance pointer by entity (non-const version)
+        Instance* getInstance(uint32_t sceneId, Entity entity) {
+            auto it = instances.find(sceneId);
+            if (it != instances.end()) {
+                for (auto& instance : it->second) {
+                    for (const auto& member : instance.members) {
+                        if (member.localEntity == entity) {
+                            return &instance;
+                        }
+                    }
+                }
+            }
+            return nullptr;
         }
 
-        void clearComponentOverride(uint32_t sceneId, Entity entity, ComponentType componentType) {
-            auto sceneIt = overrides.find(sceneId);
-            if (sceneIt != overrides.end()) {
-                auto entityIt = sceneIt->second.find(entity);
-                if (entityIt != sceneIt->second.end()) {
+        // Get instance pointer by entity (const version)
+        const Instance* getInstance(uint32_t sceneId, Entity entity) const {
+            auto it = instances.find(sceneId);
+            if (it != instances.end()) {
+                for (const auto& instance : it->second) {
+                    for (const auto& member : instance.members) {
+                        if (member.localEntity == entity) {
+                            return &instance;
+                        }
+                    }
+                }
+            }
+            return nullptr;
+        }
+
+        // Get instance pointer by ID
+        Instance* getInstanceById(uint32_t sceneId, uint32_t instanceId) {
+            auto it = instances.find(sceneId);
+            if (it != instances.end()) {
+                for (auto& instance : it->second) {
+                    if (instance.instanceId == instanceId) {
+                        return &instance;
+                    }
+                }
+            }
+            return nullptr;
+        }
+
+        const Instance* getInstanceById(uint32_t sceneId, uint32_t instanceId) const {
+            auto it = instances.find(sceneId);
+            if (it != instances.end()) {
+                for (const auto& instance : it->second) {
+                    if (instance.instanceId == instanceId) {
+                        return &instance;
+                    }
+                }
+            }
+            return nullptr;
+        }
+
+        // Remove a specific instance
+        void removeInstance(uint32_t sceneId, uint32_t instanceId) {
+            auto it = instances.find(sceneId);
+            if (it != instances.end()) {
+                auto& sceneInstances = it->second;
+                sceneInstances.erase(
+                    std::remove_if(sceneInstances.begin(), sceneInstances.end(),
+                        [instanceId](const Instance& inst) { return inst.instanceId == instanceId; }),
+                    sceneInstances.end()
+                );
+
+                if (sceneInstances.empty()) {
+                    instances.erase(it);
+                }
+            }
+        }
+
+        // Override management methods
+        void setComponentOverride(uint32_t sceneId, uint32_t instanceId, Entity entity, ComponentType componentType) {
+            Instance* instance = getInstanceById(sceneId, instanceId);
+            if (instance) {
+                uint64_t bit = 1ULL << static_cast<int>(componentType);
+                instance->overrides[entity] |= bit;
+            }
+        }
+
+        void setComponentOverride(uint32_t sceneId, Entity entity, ComponentType componentType) {
+            uint32_t instanceId = getInstanceId(sceneId, entity);
+            if (instanceId != 0) {
+                setComponentOverride(sceneId, instanceId, entity, componentType);
+            }
+        }
+
+        void clearComponentOverride(uint32_t sceneId, uint32_t instanceId, Entity entity, ComponentType componentType) {
+            Instance* instance = getInstanceById(sceneId, instanceId);
+            if (instance) {
+                auto entityIt = instance->overrides.find(entity);
+                if (entityIt != instance->overrides.end()) {
                     uint64_t bit = 1ULL << static_cast<int>(componentType);
                     entityIt->second &= ~bit;
                     // Remove entity entry if no overrides remain
                     if (entityIt->second == 0) {
-                        sceneIt->second.erase(entityIt);
-                    }
-                    // Remove scene entry if no entities have overrides
-                    if (sceneIt->second.empty()) {
-                        overrides.erase(sceneIt);
+                        instance->overrides.erase(entityIt);
                     }
                 }
             }
         }
 
-        bool hasComponentOverride(uint32_t sceneId, Entity entity, ComponentType componentType) const {
-            auto sceneIt = overrides.find(sceneId);
-            if (sceneIt != overrides.end()) {
-                auto entityIt = sceneIt->second.find(entity);
-                if (entityIt != sceneIt->second.end()) {
+        void clearComponentOverride(uint32_t sceneId, Entity entity, ComponentType componentType) {
+            uint32_t instanceId = getInstanceId(sceneId, entity);
+            if (instanceId != 0) {
+                clearComponentOverride(sceneId, instanceId, entity, componentType);
+            }
+        }
+
+        bool hasComponentOverride(uint32_t sceneId, uint32_t instanceId, Entity entity, ComponentType componentType) const {
+            const Instance* instance = getInstanceById(sceneId, instanceId);
+            if (instance) {
+                auto entityIt = instance->overrides.find(entity);
+                if (entityIt != instance->overrides.end()) {
                     uint64_t bit = 1ULL << static_cast<int>(componentType);
                     return (entityIt->second & bit) != 0;
                 }
@@ -150,40 +295,76 @@ namespace Supernova::Editor{
             return false;
         }
 
-        uint64_t getEntityOverrides(uint32_t sceneId, Entity entity) const {
-            auto sceneIt = overrides.find(sceneId);
-            if (sceneIt != overrides.end()) {
-                auto entityIt = sceneIt->second.find(entity);
-                if (entityIt != sceneIt->second.end()) {
+        bool hasComponentOverride(uint32_t sceneId, Entity entity, ComponentType componentType) const {
+            uint32_t instanceId = getInstanceId(sceneId, entity);
+            if (instanceId != 0) {
+                return hasComponentOverride(sceneId, instanceId, entity, componentType);
+            }
+            return false;
+        }
+
+        uint64_t getEntityOverrides(uint32_t sceneId, uint32_t instanceId, Entity entity) const {
+            const Instance* instance = getInstanceById(sceneId, instanceId);
+            if (instance) {
+                auto entityIt = instance->overrides.find(entity);
+                if (entityIt != instance->overrides.end()) {
                     return entityIt->second;
                 }
             }
             return 0; // No overrides
         }
 
+        uint64_t getEntityOverrides(uint32_t sceneId, Entity entity) const {
+            uint32_t instanceId = getInstanceId(sceneId, entity);
+            if (instanceId != 0) {
+                return getEntityOverrides(sceneId, instanceId, entity);
+            }
+            return 0;
+        }
+
+        void clearAllOverrides(uint32_t sceneId, uint32_t instanceId, Entity entity) {
+            Instance* instance = getInstanceById(sceneId, instanceId);
+            if (instance) {
+                instance->overrides.erase(entity);
+            }
+        }
+
         void clearAllOverrides(uint32_t sceneId, Entity entity) {
-            auto sceneIt = overrides.find(sceneId);
-            if (sceneIt != overrides.end()) {
-                sceneIt->second.erase(entity);
-                if (sceneIt->second.empty()) {
-                    overrides.erase(sceneIt);
-                }
+            uint32_t instanceId = getInstanceId(sceneId, entity);
+            if (instanceId != 0) {
+                clearAllOverrides(sceneId, instanceId, entity);
+            }
+        }
+
+        void clearAllInstanceOverrides(uint32_t sceneId, uint32_t instanceId) {
+            Instance* instance = getInstanceById(sceneId, instanceId);
+            if (instance) {
+                instance->overrides.clear();
             }
         }
 
         void clearAllSceneOverrides(uint32_t sceneId) {
-            overrides.erase(sceneId);
+            auto it = instances.find(sceneId);
+            if (it != instances.end()) {
+                for (auto& instance : it->second) {
+                    instance.overrides.clear();
+                }
+            }
         }
 
         // Helper method to check if any components are overridden for an entity
+        bool hasAnyOverrides(uint32_t sceneId, uint32_t instanceId, Entity entity) const {
+            return getEntityOverrides(sceneId, instanceId, entity) != 0;
+        }
+
         bool hasAnyOverrides(uint32_t sceneId, Entity entity) const {
             return getEntityOverrides(sceneId, entity) != 0;
         }
 
         // Helper method to get all overridden component types for an entity
-        std::vector<ComponentType> getOverriddenComponents(uint32_t sceneId, Entity entity) const {
+        std::vector<ComponentType> getOverriddenComponents(uint32_t sceneId, uint32_t instanceId, Entity entity) const {
             std::vector<ComponentType> result;
-            uint64_t overrideMask = getEntityOverrides(sceneId, entity);
+            uint64_t overrideMask = getEntityOverrides(sceneId, instanceId, entity);
 
             for (int i = 0; i < 64; ++i) {
                 if (overrideMask & (1ULL << i)) {
@@ -191,6 +372,43 @@ namespace Supernova::Editor{
                 }
             }
 
+            return result;
+        }
+
+        std::vector<ComponentType> getOverriddenComponents(uint32_t sceneId, Entity entity) const {
+            uint32_t instanceId = getInstanceId(sceneId, entity);
+            if (instanceId != 0) {
+                return getOverriddenComponents(sceneId, instanceId, entity);
+            }
+            return {};
+        }
+
+        // Check if scene has any instances
+        bool hasInstances(uint32_t sceneId) const {
+            auto it = instances.find(sceneId);
+            return it != instances.end() && !it->second.empty();
+        }
+
+        // Get total number of instances across all scenes
+        size_t getTotalInstanceCount() const {
+            size_t count = 0;
+            for (const auto& [sceneId, sceneInstances] : instances) {
+                count += sceneInstances.size();
+            }
+            return count;
+        }
+
+        // Get all entities from all instances in a scene
+        std::vector<Entity> getAllSceneEntities(uint32_t sceneId) const {
+            std::vector<Entity> result;
+            auto it = instances.find(sceneId);
+            if (it != instances.end()) {
+                for (const auto& instance : it->second) {
+                    for (const auto& member : instance.members) {
+                        result.push_back(member.localEntity);
+                    }
+                }
+            }
             return result;
         }
     };
@@ -328,7 +546,7 @@ namespace Supernova::Editor{
         bool unimportSharedEntity(uint32_t sceneId, const std::filesystem::path& filepath, const std::vector<Entity>& entities, bool destroyEntities = true);
 
         bool addEntityToSharedGroup(uint32_t sceneId, Entity entity, Entity parent, bool createItself = true);
-        bool addEntityToSharedGroup(uint32_t sceneId, const NodeRecovery& recoveryData, Entity parent, bool createItself = true);
+        bool addEntityToSharedGroup(uint32_t sceneId, const NodeRecovery& recoveryData, Entity parent, uint32_t instanceId = 0, bool createItself = true);
         NodeRecovery removeEntityFromSharedGroup(uint32_t sceneId, Entity entity, bool destroyItself = true);
 
         SharedMoveRecovery moveEntityFromSharedGroup(uint32_t sceneId, Entity entity, Entity target, InsertionType type, bool moveItself = true);

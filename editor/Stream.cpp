@@ -800,8 +800,9 @@ YAML::Node Editor::Stream::encodeEntityAux(const Entity entity, const EntityRegi
 
     if (!sharedPath.empty()) {
         const SharedGroup* group = project->getSharedGroup(sharedPath);
+        const uint32_t instanceId = group->getInstanceId(sceneProject->id, entity);
         // Check if this is the root entity of the shared group
-        if (group->getRootEntity(sceneProject->id) == entity) {
+        if (group->getRootEntity(sceneProject->id, instanceId) == entity) {
             entityNode["type"] = "SharedEntity";
             entityNode["path"] = sharedPath.string();
         }else{
