@@ -419,7 +419,7 @@ namespace Supernova::Editor{
         size_t transformIndex;
     };
 
-    using NodeRecovery = std::map<uint32_t, NodeRecoveryEntry>;
+    using NodeRecovery = std::map<std::string, NodeRecoveryEntry>;
 
     struct SharedMoveRecoveryEntry {
         Entity oldParent;
@@ -427,14 +427,14 @@ namespace Supernova::Editor{
         size_t hasTransform;
     };
 
-    using SharedMoveRecovery = std::map<uint32_t, SharedMoveRecoveryEntry>;
+    using SharedMoveRecovery = std::map<std::string, SharedMoveRecoveryEntry>;
 
     struct ComponentRecoveryEntry {
         Entity entity;
         YAML::Node node;
     };
 
-    using ComponentRecovery = std::map<uint32_t, ComponentRecoveryEntry>;
+    using ComponentRecovery = std::map<std::string, ComponentRecoveryEntry>;
 
     class Project{
     private:
