@@ -2166,9 +2166,10 @@ void Editor::Properties::show(){
             ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_FrameBgHovered));
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGui::GetStyleColorVec4(ImGuiCol_FrameBgActive));
-            if (ImGui::Button(ICON_FA_MAGNIFYING_GLASS))
-            {
-                // Button logic here
+            if (ImGui::Button(ICON_FA_MAGNIFYING_GLASS)){
+                if (strlen(componentSearchBuffer) > 0) {
+                    componentSearchBuffer[0] = '\0';
+                }
             }
             ImGui::PopStyleColor(3);
 

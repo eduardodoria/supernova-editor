@@ -13,6 +13,8 @@
 #include "util/EntityPayload.h"
 #include "Out.h"
 #include "Stream.h"
+#include <algorithm>
+#include <cctype>
 
 using namespace Supernova;
 
@@ -123,6 +125,12 @@ void Editor::Structure::showIconMenu(){
 
     // Input text
     ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - buttonSize.x);
+
+    // Clear search when ESC is pressed
+    if (ImGui::IsKeyPressed(ImGuiKey_Escape) && ImGui::IsWindowFocused()) {
+        searchBuffer[0] = '\0';
+    }
+
     ImGui::InputText("##structure_search", searchBuffer, IM_ARRAYSIZE(searchBuffer));
 
     // Button inside input with same color as input background
@@ -130,9 +138,11 @@ void Editor::Structure::showIconMenu(){
     ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_FrameBgHovered));
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGui::GetStyleColorVec4(ImGuiCol_FrameBgActive));
-    if (ImGui::Button(ICON_FA_MAGNIFYING_GLASS))
-    {
-        // Button logic here
+    if (ImGui::Button(ICON_FA_MAGNIFYING_GLASS)){
+        // Clear search on button click if there's text, otherwise could trigger search
+        if (strlen(searchBuffer) > 0) {
+            searchBuffer[0] = '\0';
+        }
     }
     ImGui::PopStyleColor(3);
 
@@ -225,7 +235,48 @@ void Editor::Structure::handleEntityFilesDrop(const std::vector<std::string>& fi
     }
 }
 
+bool Editor::Structure::nodeMatchesSearch(const TreeNode& node, const std::string& searchLower) {
+    // Convert node name to lowercase for case-insensitive search
+    std::string nodeLower = node.name;
+    std::transform(nodeLower.begin(), nodeLower.end(), nodeLower.begin(), ::tolower);
+
+    // Check if the node name contains the search string
+    return nodeLower.find(searchLower) != std::string::npos;
+}
+
+bool Editor::Structure::hasMatchingDescendant(const TreeNode& node, const std::string& searchLower) {
+    // Check if any child matches
+    for (const auto& child : node.children) {
+        if (nodeMatchesSearch(child, searchLower)) {
+            return true;
+        }
+        // Recursively check descendants
+        if (hasMatchingDescendant(child, searchLower)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void Editor::Structure::markMatchingNodes(TreeNode& node, const std::string& searchLower) {
+    node.matchesSearch = nodeMatchesSearch(node, searchLower);
+    node.hasMatchingDescendant = false;
+
+    for (auto& child : node.children) {
+        markMatchingNodes(child, searchLower);
+        if (child.matchesSearch || child.hasMatchingDescendant) {
+            node.hasMatchingDescendant = true;
+        }
+    }
+}
+
 void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
+    // Skip nodes that don't match search and don't have matching descendants
+    bool hasSearch = strlen(searchBuffer) > 0;
+    if (hasSearch && !node.matchesSearch && !node.hasMatchingDescendant) {
+        return;
+    }
+
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
 
     if (node.children.empty()) {
@@ -240,7 +291,12 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         flags |= ImGuiTreeNodeFlags_Selected;
     }
 
-    ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+    // Auto-expand nodes when searching to show matches
+    if (hasSearch && node.hasMatchingDescendant) {
+        ImGui::SetNextItemOpen(true);
+    } else if (!hasSearch) {
+        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+    }
 
     if(!node.isScene && openParent == node.id) {
         ImGui::SetNextItemOpen(true);
@@ -260,15 +316,22 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         }
     }
 
-    // Push blue color for shared entities
-    if (node.isShared) {
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.7f, 1.0f, 1.0f)); // Light blue color
+    // Push colors for visual feedback
+    bool pushedHighlightColor = false;
+
+    // Highlight matching nodes when searching
+    if (hasSearch && node.matchesSearch) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 0.5f, 1.0f)); // Yellow for search matches
+        pushedHighlightColor = true;
+    } else if (node.isShared) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.7f, 1.0f, 1.0f)); // Light blue for shared
+        pushedHighlightColor = true;
     }
 
     bool nodeOpen = ImGui::TreeNodeEx((node.icon + "  " + node.name + "###" + getNodeImGuiId(node)).c_str(), flags);
 
     // Pop color if we pushed it
-    if (node.isShared) {
+    if (pushedHighlightColor) {
         ImGui::PopStyleColor();
     }
 
@@ -567,6 +630,8 @@ void Editor::Structure::show(){
     root.order = order++;
     root.parent = NULL_ENTITY;
     root.name = sceneProject->name;
+    root.matchesSearch = false;
+    root.hasMatchingDescendant = false;
 
     // non-hierarchical entities
     for (auto& entity : sceneProject->entities) {
@@ -584,6 +649,8 @@ void Editor::Structure::show(){
             child.order = order++;
             child.parent = NULL_ENTITY;
             child.name = sceneProject->scene->getEntityName(entity);
+            child.matchesSearch = false;
+            child.hasMatchingDescendant = false;
 
             root.children.push_back(child);
         }
@@ -618,6 +685,8 @@ void Editor::Structure::show(){
             child.order = order++;
             child.parent = NULL_ENTITY;
             child.name = sceneProject->scene->getEntityName(entity);
+            child.matchesSearch = false;
+            child.hasMatchingDescendant = false;
             if (transform.parent == NULL_ENTITY){
                 root.children.push_back(child);
             }else{
@@ -636,6 +705,13 @@ void Editor::Structure::show(){
 
     showIconMenu();
     ImGui::BeginChild("StructureScrollRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
+
+    // Apply search filtering if there's a search term
+    if (strlen(searchBuffer) > 0) {
+        std::string searchLower = searchBuffer;
+        std::transform(searchLower.begin(), searchLower.end(), searchLower.begin(), ::tolower);
+        markMatchingNodes(root, searchLower);
+    }
 
     showTreeNode(root);
 

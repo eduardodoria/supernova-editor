@@ -18,6 +18,8 @@ namespace Supernova::Editor{
         bool isParentShared = false;
         bool separator = false;
         bool hasTransform = false;
+        bool matchesSearch = false;         // Node matches search term
+        bool hasMatchingDescendant = false; // Has a descendant that matches search
         uint32_t id = 0;
         size_t order = 0;
         uint32_t parent = 0;
@@ -45,6 +47,11 @@ namespace Supernova::Editor{
         std::string getObjectIcon(Signature signature, Scene* scene);
         TreeNode* findNode(Editor::TreeNode* root, Entity entity);
         void handleEntityFilesDrop(const std::vector<std::string>& filePaths, Entity parent = NULL_ENTITY);
+
+        // Search-related methods
+        bool nodeMatchesSearch(const TreeNode& node, const std::string& searchLower);
+        bool hasMatchingDescendant(const TreeNode& node, const std::string& searchLower);
+        void markMatchingNodes(TreeNode& node, const std::string& searchLower);
 
     public:
         Structure(Project* project, SceneWindow* sceneWindow);
