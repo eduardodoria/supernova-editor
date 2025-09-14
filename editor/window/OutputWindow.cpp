@@ -273,6 +273,7 @@ void OutputWindow::show() {
     if (anyFilterDisabled || filter.IsActive()) {
         ImGui::PopStyleColor();
     }
+    ImGui::SetNextWindowSize(ImVec2(200.0f, 0.0f));
     if (ImGui::BeginPopup("FilterPopup")) {
         bool filterChanged = false;
 
@@ -286,10 +287,45 @@ void OutputWindow::show() {
 
         ImGui::Separator();
 
-        // Text filter
-        if (filter.Draw("##filter", 200.0f)) {
+        // Text filter with Structure-like search layout
+        float inputHeight = ImGui::GetFrameHeight();
+        ImVec2 buttonSize = ImGui::CalcTextSize(ICON_FA_MAGNIFYING_GLASS);
+        buttonSize.x += ImGui::GetStyle().FramePadding.x * 2.0f;
+        buttonSize.y = inputHeight;
+
+        ImGui::BeginGroup();
+
+        // ESC clears filter
+        if (ImGui::IsKeyPressed(ImGuiKey_Escape) && ImGui::IsWindowFocused()) {
+            filter.InputBuf[0] = '\0';
+            filter.Build();           // IMPORTANT: rebuild internal tokens
             needsRebuild = true;
         }
+
+        ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - buttonSize.x);
+        if (ImGui::InputText("##output_search", filter.InputBuf, IM_ARRAYSIZE(filter.InputBuf))) {
+            filter.Build();           // IMPORTANT: keep filter logic in sync
+            needsRebuild = true;
+        }
+        ImGui::PopItemWidth();
+
+        ImGui::SameLine(0, 0);
+        ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_FrameBgHovered));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGui::GetStyleColorVec4(ImGuiCol_FrameBgActive));
+        if (ImGui::Button(ICON_FA_MAGNIFYING_GLASS)) {
+            if (filter.InputBuf[0] != '\0') {
+                filter.InputBuf[0] = '\0';
+                filter.Build();
+                needsRebuild = true;
+            }
+        }
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Clear");
+        }
+        ImGui::PopStyleColor(3);
+
+        ImGui::EndGroup();
 
         if (filterChanged) {
             needsRebuild = true;

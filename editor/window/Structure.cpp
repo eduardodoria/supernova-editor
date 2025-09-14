@@ -139,10 +139,12 @@ void Editor::Structure::showIconMenu(){
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_FrameBgHovered));
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGui::GetStyleColorVec4(ImGuiCol_FrameBgActive));
     if (ImGui::Button(ICON_FA_MAGNIFYING_GLASS)){
-        // Clear search on button click if there's text, otherwise could trigger search
         if (strlen(searchBuffer) > 0) {
             searchBuffer[0] = '\0';
         }
+    }
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Clear");
     }
     ImGui::PopStyleColor(3);
 

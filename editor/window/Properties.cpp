@@ -2171,6 +2171,9 @@ void Editor::Properties::show(){
                     componentSearchBuffer[0] = '\0';
                 }
             }
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Clear");
+            }
             ImGui::PopStyleColor(3);
 
             ImGui::PopItemWidth();
