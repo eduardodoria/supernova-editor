@@ -2135,6 +2135,9 @@ void Editor::Properties::show(){
 
         if (ImGui::Button(ICON_FA_PLUS" New component", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
             addComponentModalOpen = true;
+            componentMenuJustOpened = true;
+            memset(componentSearchBuffer, 0, sizeof(componentSearchBuffer));  // Clear search buffer
+            hoveredComponentIndex = -1;  // Reset hover
             ImGui::OpenPopup("Add new component");
         }
 
@@ -2248,7 +2251,7 @@ void Editor::Properties::show(){
                 }},
                 {"Audio & Script", ICON_FA_CODE, ImVec4(0.6f, 0.6f, 0.6f, 1.0f), {
                     {ComponentType::AudioComponent, ICON_FA_VOLUME_HIGH, "Audio", "Sound player", ImVec4(0.4f, 0.7f, 0.9f, 1.0f)},
-                    {ComponentType::ScriptComponent, ICON_FA_CODE, "Script", "Lua script", ImVec4(0.7f, 0.5f, 0.8f, 1.0f)}
+                    {ComponentType::ScriptComponent, ICON_FA_CODE, "Script", "C++ or Lua script", ImVec4(0.7f, 0.5f, 0.8f, 1.0f)}
                 }}
             };
 
@@ -2346,6 +2349,7 @@ void Editor::Properties::show(){
                             // Clear search and reset hover
                             memset(componentSearchBuffer, 0, sizeof(componentSearchBuffer));
                             hoveredComponentIndex = -1;
+                            componentMenuJustOpened = false;
 
                             // Close popup
                             ImGui::CloseCurrentPopup();
@@ -2404,6 +2408,7 @@ void Editor::Properties::show(){
                 // Clear search and reset hover
                 memset(componentSearchBuffer, 0, sizeof(componentSearchBuffer));
                 hoveredComponentIndex = -1;
+                componentMenuJustOpened = false;
                 ImGui::CloseCurrentPopup();
             }
             ImGui::PopStyleColor(2);
