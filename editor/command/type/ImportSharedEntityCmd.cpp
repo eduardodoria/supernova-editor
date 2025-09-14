@@ -58,6 +58,9 @@ void Editor::ImportSharedEntityCmd::undo(){
         return;
     }
 
+    // Get entity info to recover same ids
+    extendNode = Stream::encodeEntity(importedEntities[0], sceneProject->scene, project, sceneProject, true);
+
     // Unimport the shared entity
     project->unimportSharedEntity(sceneId, filepath, importedEntities);
 
@@ -71,7 +74,7 @@ void Editor::ImportSharedEntityCmd::undo(){
 }
 
 bool Editor::ImportSharedEntityCmd::mergeWith(Editor::Command* otherCommand){
-    // Import commands typically don't merge with each other
+
     return false;
 }
 
