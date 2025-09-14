@@ -23,17 +23,23 @@ namespace Supernova::Editor {
     private:
         ImGuiTextBuffer buf;
         ImGuiTextFilter filter;
-        ImVector<int> lineOffsets;
+        ImVector<int> lineOffsets;           // Start index of each line in buf (size = lines + 1)
         std::vector<LogData> logs;
+        std::vector<LogType> lineTypes;      // One per displayed line
+
         bool autoScrollLocked;
         bool autoScroll;
         bool needsRebuild;
         unsigned int scrollStartCount;
         float menuWidth;
         bool hasScrollbar;
-        int selectionStart;
-        int selectionEnd;
+
+        // Character-level selection (global indices into buf)
+        int selectionStart;                  // inclusive
+        int selectionEnd;                    // exclusive
         bool hasStoredSelection;
+        bool isSelecting;                    // dragging selection?
+
         bool typeFilters[5];
 
         void rebuildBuffer();

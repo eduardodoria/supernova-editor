@@ -4,10 +4,23 @@
 #include <iomanip>
 #include <sstream>
 #include <cmath>
+#include <algorithm>
 
 #include "imgui_internal.h"
 
 using namespace Supernova::Editor;
+
+static ImVec4 GetLogTypeColor(LogType type) {
+    // Tune to taste
+    switch (type) {
+        case LogType::Info:    return ImVec4(0.90f, 0.90f, 0.95f, 1.00f); // light gray-blue
+        case LogType::Warning: return ImVec4(1.00f, 0.85f, 0.40f, 1.00f); // amber
+        case LogType::Error:   return ImVec4(1.00f, 0.45f, 0.45f, 1.00f); // red
+        case LogType::Success: return ImVec4(0.55f, 1.00f, 0.55f, 1.00f); // green
+        case LogType::Build:   return ImVec4(0.60f, 0.85f, 1.00f, 1.00f); // sky
+        default:               return ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
+    }
+}
 
 OutputWindow::OutputWindow() {
     autoScroll = true;
@@ -19,6 +32,7 @@ OutputWindow::OutputWindow() {
     selectionStart = -1;
     selectionEnd = -1;
     hasStoredSelection = false;
+    isSelecting = false;
     for (int i = 0; i < 5; i++) {
         typeFilters[i] = true;
     }
@@ -30,7 +44,11 @@ void OutputWindow::clear() {
     logs.clear();
     lineOffsets.clear();
     lineOffsets.push_back(0);
+    lineTypes.clear();
     needsRebuild = false;
+    selectionStart = selectionEnd = -1;
+    hasStoredSelection = false;
+    isSelecting = false;
 }
 
 void OutputWindow::addLog(LogType type, const char* fmt, ...) {
@@ -51,7 +69,7 @@ void OutputWindow::addLog(LogType type, const std::string& message) {
     // Mark that we need to rebuild
     needsRebuild = true;
 
-    // Basic formatting for initial display
+    // Basic formatting for initial display (append quickly for incremental feel)
     std::string typeStr;
     switch(type) {
         case LogType::Error: typeStr = "Error"; break;
@@ -60,10 +78,9 @@ void OutputWindow::addLog(LogType type, const std::string& message) {
         case LogType::Warning: typeStr = "Warning"; break;
         case LogType::Build: typeStr = "Build"; break;
     }
-
     std::string formattedMessage = "[" + typeStr + "] " + message + "\n";
 
-    // Add to ImGui buffer
+    // Append raw for immediate feedback (will be rebuilt and recolored on next frame)
     int oldSize = buf.size();
     buf.append(formattedMessage.c_str());
     for (int newSize = buf.size(); oldSize < newSize; oldSize++)
@@ -75,7 +92,7 @@ void OutputWindow::addLog(LogType type, const std::string& message) {
     }
 }
 
-std::string getTypePrefix(LogType type) {
+static std::string getTypePrefixString(LogType type) {
     switch(type) {
         case LogType::Error: return "[Error] ";
         case LogType::Success: return "[Success] ";
@@ -102,13 +119,14 @@ void OutputWindow::rebuildBuffer() {
     buf.clear();
     lineOffsets.clear();
     lineOffsets.push_back(0);
+    lineTypes.clear();
 
     ImFont* font = ImGui::GetFont();
     float fontSize = ImGui::GetFontSize();
 
     for (size_t logIndex = 0; logIndex < logs.size(); ++logIndex) {
         const auto& log = logs[logIndex];
-        std::string prefix = getTypePrefix(log.type);
+        std::string prefix = getTypePrefixString(log.type);
         float prefixWidth = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, prefix.c_str()).x;
 
         bool typeAllowed = false;
@@ -127,6 +145,7 @@ void OutputWindow::rebuildBuffer() {
                     buf.append("\n");
                 }
                 lineOffsets.push_back(buf.size());
+                lineTypes.push_back(log.type);
             }
             continue;
         }
@@ -152,6 +171,7 @@ void OutputWindow::rebuildBuffer() {
                     buf.append(currentLine.c_str());
                     buf.append("\n");
                     lineOffsets.push_back(buf.size());
+                    lineTypes.push_back(log.type);
                 }
                 currentLine = indentation + currentChar;
                 currentLineWidth = indentWidth + charWidth;
@@ -168,6 +188,7 @@ void OutputWindow::rebuildBuffer() {
                         buf.append("\n");
                     }
                     lineOffsets.push_back(buf.size());
+                    lineTypes.push_back(log.type);
                 }
                 currentLine.clear();
                 currentLineWidth = 0;
@@ -182,8 +203,16 @@ void OutputWindow::rebuildBuffer() {
                     buf.append("\n");
                 }
                 lineOffsets.push_back(buf.size());
+                lineTypes.push_back(log.type);
             }
         }
+    }
+
+    // Reset selection if buffer changed drastically (optional; keep it if you want)
+    if (selectionStart >= buf.size() || selectionEnd > buf.size()) {
+        selectionStart = selectionEnd = -1;
+        hasStoredSelection = false;
+        isSelecting = false;
     }
 }
 
@@ -207,7 +236,7 @@ void OutputWindow::show() {
     if (needsRebuild || std::abs(lastContentWidth - currentContentWidth) > 1.0f || lastHasScrollbar != currentlastScrollbar) {
         lastContentWidth = currentContentWidth;
         lastHasScrollbar = currentlastScrollbar;
-        if (currentContentWidth > 0) {  // Only rebuild if we have a valid size
+        if (currentContentWidth > 0) {
             rebuildBuffer();
             needsRebuild = false;
         }
@@ -285,69 +314,193 @@ void OutputWindow::show() {
     // Main content area
     ImGui::SameLine(menuWidth);
 
-    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImGui::GetStyle().Colors[ImGuiCol_WindowBg]);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+    // Custom colored, selectable log viewer
+    ImGui::BeginChild("##output", ImVec2(-FLT_MIN, -FLT_MIN), false, ImGuiWindowFlags_NoNav);
 
-    ImGui::InputTextMultiline("##output", (char*)buf.begin(), buf.size() + 1, 
-        ImVec2(-FLT_MIN, -FLT_MIN), 
-        ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
+    // Keyboard shortcuts
+    const bool winFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
+    const ImGuiIO& io = ImGui::GetIO();
+    if (winFocused) {
+        if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_A, false)) {
+            // Select all
+            selectionStart = 0;
+            selectionEnd = buf.size();
+            hasStoredSelection = (selectionEnd > selectionStart);
+        }
+        if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_C, false)) {
+            // Copy selection
+            if (hasStoredSelection && selectionStart >= 0 && selectionEnd > selectionStart && selectionEnd <= buf.size()) {
+                std::string selected_text(buf.begin() + selectionStart, buf.begin() + selectionEnd);
+                ImGui::SetClipboardText(selected_text.c_str());
+            }
+        }
+    }
 
-    // Store selection before context menu opens
-    if (ImGui::IsItemFocused()) {
-        ImGuiInputTextState* state = ImGui::GetInputTextState(ImGui::GetID("##output"));
-        if (state && state->HasSelection()) {
-            selectionStart = state->GetSelectionStart();
-            selectionEnd = state->GetSelectionEnd();
+    // Compute measurements
+    ImFont* font = ImGui::GetFont();
+    const float fontSize = ImGui::GetFontSize();
+    const float lineHeight = ImGui::GetTextLineHeight();
+    const int totalLines = (lineOffsets.Size > 0) ? (lineOffsets.Size - 1) : 0;
+    if ((int)lineTypes.size() != totalLines) {
+        // Safety: if out of sync, rebuild.
+        rebuildBuffer();
+    }
+
+    // Helper lambdas
+    auto lineStartIndex = [&](int line)->int { return (line >= 0 && line < lineOffsets.Size) ? lineOffsets[line] : 0; };
+    auto lineEndIndexExcl = [&](int line)->int {
+        if (line < 0 || line + 1 >= lineOffsets.Size) return buf.size();
+        int end = lineOffsets[line + 1];
+        // Exclude the newline if present
+        if (end > 0 && end <= buf.size() && buf[end - 1] == '\n') end -= 1;
+        return end;
+    };
+
+    // Map mouse to buffer index (character-precise)
+    auto bufferIndexFromMouse = [&](const ImVec2& originScreen)->int {
+        // Convert mouse position to local content coordinates inside this child
+        float localX = ImGui::GetMousePos().x - originScreen.x;
+        float localY = ImGui::GetMousePos().y - originScreen.y + ImGui::GetScrollY();
+        int line = (int)std::floor(localY / lineHeight);
+        line = std::max(0, std::min(line, totalLines - 1));
+
+        int ls = lineStartIndex(line);
+        int le = lineEndIndexExcl(line);
+
+        // Clamp
+        if (ls >= le) return ls;
+
+        // Find character position in line by accumulating width
+        const char* s = buf.begin() + ls;
+        const char* e = buf.begin() + le;
+
+        float x = 0.0f;
+        int idx = ls;
+        for (const char* p = s; p < e; ) {
+            // ImGui uses UTF-8; advance by one code-point
+            unsigned int c;
+            int c_len = ImTextCharFromUtf8(&c, p, e);
+            if (c_len <= 0) break;
+
+            float cw = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, p, p + c_len).x;
+            if (localX < x + cw * 0.5f) {
+                return idx;
+            }
+            x += cw;
+            p += c_len;
+            idx += c_len;
+        }
+        return le; // past end of line
+    };
+
+    // Handle mouse selection
+    ImVec2 originScreen = ImGui::GetCursorScreenPos();
+    if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup)) {
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+            int idx = bufferIndexFromMouse(originScreen);
+            selectionStart = selectionEnd = idx;
             hasStoredSelection = true;
+            isSelecting = true;
+        } else if (isSelecting && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+            int idx = bufferIndexFromMouse(originScreen);
+            selectionEnd = idx;
+            hasStoredSelection = (selectionStart != selectionEnd);
+        } else if (isSelecting && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+            isSelecting = false;
         }
     }
 
     // Context menu for copying selected text
-    if (ImGui::BeginPopupContextItem("##output_context")) {
-        if (ImGui::MenuItem(ICON_FA_COPY"  Copy", NULL, false, hasStoredSelection)) {
-            if (hasStoredSelection) {
-                int select_start = selectionStart;
-                int select_end = selectionEnd;
-                if (select_start > select_end)
-                    std::swap(select_start, select_end);
-
-                std::string selected_text(buf.begin() + select_start, buf.begin() + select_end);
+    if (ImGui::BeginPopupContextWindow("##output_context", ImGuiPopupFlags_MouseButtonRight)) {
+        bool canCopy = hasStoredSelection && selectionStart >= 0 && selectionEnd > selectionStart && selectionEnd <= buf.size();
+        if (ImGui::MenuItem(ICON_FA_COPY "  Copy", NULL, false, canCopy)) {
+            if (canCopy) {
+                int a = selectionStart, b = selectionEnd;
+                if (a > b) std::swap(a, b);
+                std::string selected_text(buf.begin() + a, buf.begin() + b);
                 ImGui::SetClipboardText(selected_text.c_str());
             }
         }
+        if (ImGui::MenuItem("Select All")) {
+            selectionStart = 0;
+            selectionEnd = buf.size();
+            hasStoredSelection = selectionEnd > selectionStart;
+        }
         ImGui::EndPopup();
     }
-    else {
-        // Reset stored selection when context menu is closed
-        if (!ImGui::IsPopupOpen("##output_context")) {
-            hasStoredSelection = false;
-        }
-    }
 
-    ImGui::PopStyleVar();
-    ImGui::PopStyleColor();
+    // Draw with clipping (fast for large logs)
+    ImVec2 baseCursorPos = ImGui::GetCursorPos();
+    ImGuiListClipper clipper;
+    clipper.Begin(totalLines, lineHeight);
 
-    // Handle auto-scrolling
-    ImGuiContext& g = *GImGui;
-    const char* child_window_name = NULL;
-    ImFormatStringToTempBuffer(&child_window_name, NULL, "%s/%s_%08X", g.CurrentWindow->Name, "##output", ImGui::GetID("##output"));
-    if (ImGuiWindow* child_window = ImGui::FindWindowByName(child_window_name)){
-        hasScrollbar = child_window->ScrollbarY;
-        if (child_window->ScrollMax.y > 0.0f) {
-            if (child_window->Scroll.y < child_window->ScrollMax.y) {
-                autoScroll = false;
-            } else {
-                autoScroll = true;
+    const ImU32 selBgCol = ImGui::GetColorU32(ImGui::GetStyle().Colors[ImGuiCol_TextSelectedBg]);
+
+    // Ensure selection indices are ordered
+    int selA = selectionStart, selB = selectionEnd;
+    if (selA > selB) std::swap(selA, selB);
+
+    while (clipper.Step()) {
+        ImGui::SetCursorPosY(baseCursorPos.y + clipper.DisplayStart * lineHeight);
+
+        for (int line = clipper.DisplayStart; line < clipper.DisplayEnd; ++line) {
+            int ls = lineStartIndex(line);
+            int le = lineEndIndexExcl(line);
+
+            ImVec2 linePos = ImGui::GetCursorScreenPos();
+
+            // Selection highlight for the portion of this line that is selected
+            if (hasStoredSelection && selA >= 0 && selB >= 0 && selB > selA) {
+                int hlStart = std::max(ls, selA);
+                int hlEnd   = std::min(le, selB);
+                if (hlStart < hlEnd) {
+                    // Compute x offsets by measuring text width
+                    const char* s0 = buf.begin() + ls;
+                    const char* s1 = buf.begin() + hlStart;
+                    const char* s2 = buf.begin() + hlEnd;
+
+                    float x0 = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, s0, s1).x;
+                    float x1 = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, s1, s2).x;
+
+                    ImGui::GetWindowDrawList()->AddRectFilled(
+                        ImVec2(linePos.x + x0, linePos.y),
+                        ImVec2(linePos.x + x0 + x1, linePos.y + lineHeight),
+                        selBgCol);
+                }
             }
 
+            // Colored text by type
+            ImVec4 color = (line >= 0 && line < (int)lineTypes.size()) ? GetLogTypeColor(lineTypes[line])
+                                                                       : ImVec4(1,1,1,1);
+            ImGui::PushStyleColor(ImGuiCol_Text, color);
+            if (ls < le) {
+                ImGui::TextUnformatted(buf.begin() + ls, buf.begin() + le);
+            } else {
+                ImGui::TextUnformatted(""); // empty line
+            }
+            ImGui::PopStyleColor();
+        }
+    }
+    clipper.End();
+
+    // Auto-scroll handling (inside child)
+    {
+        float maxY = ImGui::GetScrollMaxY();
+        float curY = ImGui::GetScrollY();
+        hasScrollbar = maxY > 0.0f;
+
+        if (maxY > 0.0f) {
+            autoScroll = (curY >= maxY - 1.0f);
             if (autoScrollLocked) {
-                if (scrollStartCount < 8) { // keep scroll in 8 frames
+                if (scrollStartCount < 8) { // keep scroll pinned for a few frames
                     scrollStartCount++;
-                    ImGui::SetScrollY(child_window, child_window->ScrollMax.y);
+                    ImGui::SetScrollY(maxY);
                 }
             }
         }
     }
+
+    ImGui::EndChild();
 
     ImGui::End();
 }
