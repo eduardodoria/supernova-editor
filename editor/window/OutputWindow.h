@@ -44,6 +44,12 @@ namespace Supernova::Editor {
 
         void rebuildBuffer();
 
+        // Helpers for selection
+        int clampIndexToCodepointBoundary(int idx) const;
+        bool isWordChar(unsigned int cp);
+        void selectWordAt(int bufferIndex);
+        void selectLineAt(int bufferIndex);
+
     public:
         OutputWindow();
         void clear();

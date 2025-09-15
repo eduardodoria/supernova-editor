@@ -216,6 +216,105 @@ void OutputWindow::rebuildBuffer() {
     }
 }
 
+// Ensure index is at a UTF-8 code-point boundary inside [0, buf.size()]
+int OutputWindow::clampIndexToCodepointBoundary(int idx) const {
+    idx = std::max(0, std::min(idx, (int)buf.size()));
+    // Move backward until at boundary (0xxxxxxx or 11xxxxxx start)
+    while (idx > 0) {
+        unsigned char c = (unsigned char)buf[idx];
+        if ((c & 0xC0) != 0x80) break; // not a continuation byte
+        idx--;
+    }
+    return idx;
+}
+
+bool OutputWindow::isWordChar(unsigned int cp) {
+    // Consider letters, digits, underscore as word chars. Others are delimiters.
+    if (cp == '_') return true;
+    if (cp >= '0' && cp <= '9') return true;
+    if (cp >= 'A' && cp <= 'Z') return true;
+    if (cp >= 'a' && cp <= 'z') return true;
+    // Basic non-ASCII letters could be treated as word chars. Heuristic:
+    if (cp > 127 && (ImCharIsBlankW((ImWchar)cp) == false)) return true;
+    return false;
+}
+
+void OutputWindow::selectWordAt(int bufferIndex) {
+    if (buf.empty()) return;
+    int n = (int)buf.size();
+    int idx = clampIndexToCodepointBoundary(bufferIndex);
+    if (idx >= n) idx = n - 1;
+    if (idx < 0) return;
+
+    // Determine codepoint at idx (if idx points to end of a character, move back one)
+    int cp_start = idx;
+    // If idx equals n, back up
+    if (cp_start >= n) cp_start = n - 1;
+    // Ensure cp_start at boundary
+    cp_start = clampIndexToCodepointBoundary(cp_start);
+
+    // Decode codepoint at cp_start
+    const char* begin = buf.begin();
+    const char* s = begin + cp_start;
+    const char* e = begin + n;
+    unsigned int cp = 0;
+    int len = ImTextCharFromUtf8(&cp, s, e);
+    if (len <= 0) {
+        // Fallback: select single char
+        selectionStart = cp_start;
+        selectionEnd = std::min(cp_start + 1, n);
+        hasStoredSelection = selectionEnd > selectionStart;
+        return;
+    }
+
+    bool wordChar = isWordChar(cp);
+
+    // Expand left
+    int left = cp_start;
+    while (left > 0) {
+        int prev = left;
+        // step one codepoint back
+        do { prev--; } while (prev > 0 && ((unsigned char)buf[prev] & 0xC0) == 0x80);
+        unsigned int cp2 = 0;
+        int l2 = ImTextCharFromUtf8(&cp2, begin + prev, begin + n);
+        if (l2 <= 0) break;
+        if (isWordChar(cp2) != wordChar) break;
+        left = prev;
+    }
+
+    // Expand right
+    int right = cp_start + len;
+    while (right < n) {
+        unsigned int cp2 = 0;
+        int l2 = ImTextCharFromUtf8(&cp2, begin + right, begin + n);
+        if (l2 <= 0) break;
+        if (isWordChar(cp2) != wordChar) break;
+        right += l2;
+    }
+
+    selectionStart = left;
+    selectionEnd = right;
+    hasStoredSelection = selectionEnd > selectionStart;
+}
+
+void OutputWindow::selectLineAt(int bufferIndex) {
+    if (buf.empty()) return;
+    int n = (int)buf.size();
+    int idx = std::max(0, std::min(bufferIndex, n));
+
+    // Find start of line (after previous '\n' or 0)
+    int start = idx;
+    while (start > 0 && buf[start - 1] != '\n') start--;
+
+    // Find end of line (position of '\n' or n)
+    int end = idx;
+    while (end < n && buf[end] != '\n') end++;
+
+    selectionStart = start;
+    selectionEnd = end; // exclude '\n' to match common editors
+    hasStoredSelection = selectionEnd > selectionStart;
+}
+
 void OutputWindow::show() {
     if (!ImGui::Begin("Output")) {
         ImGui::End();
@@ -353,6 +452,10 @@ void OutputWindow::show() {
     // Custom colored, selectable log viewer
     ImGui::BeginChild("##output", ImVec2(-FLT_MIN, -FLT_MIN), false, ImGuiWindowFlags_NoNav);
 
+    if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup)) {
+        ImGui::SetMouseCursor(ImGuiMouseCursor_TextInput);
+    }
+
     // Keyboard shortcuts
     const bool winFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
     const ImGuiIO& io = ImGui::GetIO();
@@ -429,14 +532,29 @@ void OutputWindow::show() {
         return le; // past end of line
     };
 
-    // Handle mouse selection
+    // Handle mouse selection (click/drag/double/triple)
     ImVec2 originScreen = ImGui::GetCursorScreenPos();
     if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup)) {
+        // Multi-click detection via Dear ImGui
+        // 1 click: start drag-selection
+        // 2 clicks: word selection
+        // 3 clicks: line selection
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
             int idx = bufferIndexFromMouse(originScreen);
-            selectionStart = selectionEnd = idx;
-            hasStoredSelection = true;
-            isSelecting = true;
+            int clicks = ImGui::GetIO().MouseClickedCount[ImGuiMouseButton_Left];
+
+            if (clicks >= 3) {
+                selectLineAt(idx);
+                isSelecting = false; // finalize
+            } else if (clicks == 2) {
+                selectWordAt(idx);
+                isSelecting = false; // finalize
+            } else {
+                // single click -> start drag selection
+                selectionStart = selectionEnd = idx;
+                hasStoredSelection = true;
+                isSelecting = true;
+            }
         } else if (isSelecting && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
             int idx = bufferIndexFromMouse(originScreen);
             selectionEnd = idx;
