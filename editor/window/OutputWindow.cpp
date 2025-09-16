@@ -452,8 +452,22 @@ void OutputWindow::show() {
     // Custom colored, selectable log viewer
     ImGui::BeginChild("##output", ImVec2(-FLT_MIN, -FLT_MIN), false, ImGuiWindowFlags_NoNav);
 
+    // Cursor: I-beam over content, default over scrollbar
     if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup)) {
-        ImGui::SetMouseCursor(ImGuiMouseCursor_TextInput);
+        // Compute content rect in screen space (excludes scrollbars)
+        ImVec2 content_min = ImGui::GetWindowContentRegionMin();
+        ImVec2 content_max = ImGui::GetWindowContentRegionMax();
+        ImVec2 win_pos     = ImGui::GetWindowPos();
+        ImRect content_rect(
+            ImVec2(win_pos.x + content_min.x, win_pos.y + content_min.y),
+            ImVec2(win_pos.x + content_max.x, win_pos.y + content_max.y)
+        );
+
+        // If mouse is inside the content rect, show text cursor.
+        // Otherwise (e.g., over scrollbar), leave default cursor.
+        if (content_rect.Contains(ImGui::GetMousePos())) {
+            ImGui::SetMouseCursor(ImGuiMouseCursor_TextInput);
+        }
     }
 
     // Keyboard shortcuts
