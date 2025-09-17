@@ -27,12 +27,8 @@ namespace Supernova::Editor {
         std::vector<LogData> logs;
         std::vector<LogType> lineTypes;      // One per displayed line
 
-        bool autoScrollLocked;
-        bool autoScroll;
         bool needsRebuild;
-        unsigned int scrollStartCount;
         float menuWidth;
-        bool hasScrollbar;
 
         // Character-level selection (global indices into buf)
         int selectionStart;                  // inclusive
@@ -42,7 +38,12 @@ namespace Supernova::Editor {
 
         bool typeFilters[5];
 
-        void rebuildBuffer();
+        // Auto-scroll
+        bool autoScroll;                // when true, keep pinned to bottom
+        bool autoScrollLockedButton;    // the button state
+        float lastScrollY;              // track last scroll position to detect manual scrolling
+
+        void rebuildBuffer(float wrapWidth); // accept wrap width
 
         // Helpers for selection
         int clampIndexToCodepointBoundary(int idx) const;

@@ -23,16 +23,15 @@ static ImVec4 GetLogTypeColor(LogType type) {
 }
 
 OutputWindow::OutputWindow() {
-    autoScroll = true;
-    autoScrollLocked = true;
-    scrollStartCount = 0;
     needsRebuild = false;
     menuWidth = 0;
-    hasScrollbar = false;
     selectionStart = -1;
     selectionEnd = -1;
     hasStoredSelection = false;
     isSelecting = false;
+    autoScroll = true; // default: stick to bottom
+    autoScrollLockedButton = autoScroll;
+    lastScrollY = 0.0f;      // initialize scroll tracking
     for (int i = 0; i < 5; i++) {
         typeFilters[i] = true;
     }
@@ -49,6 +48,7 @@ void OutputWindow::clear() {
     selectionStart = selectionEnd = -1;
     hasStoredSelection = false;
     isSelecting = false;
+    lastScrollY = 0.0f;
 }
 
 void OutputWindow::addLog(LogType type, const char* fmt, ...) {
@@ -86,10 +86,6 @@ void OutputWindow::addLog(LogType type, const std::string& message) {
     for (int newSize = buf.size(); oldSize < newSize; oldSize++)
         if (buf[oldSize] == '\n')
             lineOffsets.push_back(oldSize + 1);
-
-    if (autoScrollLocked && autoScroll) {
-        scrollStartCount = 0;
-    }
 }
 
 static std::string getTypePrefixString(LogType type) {
@@ -103,18 +99,16 @@ static std::string getTypePrefixString(LogType type) {
     }
 }
 
-void OutputWindow::rebuildBuffer() {
+void OutputWindow::rebuildBuffer(float wrapWidth) {
     if (!ImGui::GetCurrentContext() || !ImGui::GetCurrentWindow()) {
         return;
     }
 
-    float wrapWidth = ImGui::GetContentRegionAvail().x;
-    if (wrapWidth <= 0) return;
-
-    if (hasScrollbar) {
-        wrapWidth -= ImGui::GetStyle().ScrollbarSize;
+    // Fallback if caller didn't provide a sane width
+    if (wrapWidth <= 0.0f) {
+        float w = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
+        wrapWidth = ImMax(1.0f, w);
     }
-    wrapWidth -= menuWidth - ImGui::GetStyle().ItemSpacing.x;
 
     buf.clear();
     lineOffsets.clear();
@@ -248,9 +242,7 @@ void OutputWindow::selectWordAt(int bufferIndex) {
 
     // Determine codepoint at idx (if idx points to end of a character, move back one)
     int cp_start = idx;
-    // If idx equals n, back up
     if (cp_start >= n) cp_start = n - 1;
-    // Ensure cp_start at boundary
     cp_start = clampIndexToCodepointBoundary(cp_start);
 
     // Decode codepoint at cp_start
@@ -260,7 +252,6 @@ void OutputWindow::selectWordAt(int bufferIndex) {
     unsigned int cp = 0;
     int len = ImTextCharFromUtf8(&cp, s, e);
     if (len <= 0) {
-        // Fallback: select single char
         selectionStart = cp_start;
         selectionEnd = std::min(cp_start + 1, n);
         hasStoredSelection = selectionEnd > selectionStart;
@@ -273,7 +264,6 @@ void OutputWindow::selectWordAt(int bufferIndex) {
     int left = cp_start;
     while (left > 0) {
         int prev = left;
-        // step one codepoint back
         do { prev--; } while (prev > 0 && ((unsigned char)buf[prev] & 0xC0) == 0x80);
         unsigned int cp2 = 0;
         int l2 = ImTextCharFromUtf8(&cp2, begin + prev, begin + n);
@@ -325,34 +315,18 @@ void OutputWindow::show() {
     menuWidth = ImGui::CalcTextSize(ICON_FA_LOCK).x + ImGui::GetStyle().ItemSpacing.x * 2 + ImGui::GetStyle().FramePadding.x * 2;
     const ImVec2 windowSize = ImGui::GetContentRegionAvail();
 
-    static float lastContentWidth = 0.0f;
-    float currentContentWidth = ImGui::GetContentRegionAvail().x;
-
-    static bool lastHasScrollbar = false;
-    bool currentlastScrollbar = hasScrollbar;
-
-    // Check if we need to rebuild the buffer
-    if (needsRebuild || std::abs(lastContentWidth - currentContentWidth) > 1.0f || lastHasScrollbar != currentlastScrollbar) {
-        lastContentWidth = currentContentWidth;
-        lastHasScrollbar = currentlastScrollbar;
-        if (currentContentWidth > 0) {
-            rebuildBuffer();
-            needsRebuild = false;
-        }
-    }
-
     // Begin vertical menu
     ImGui::BeginChild("VerticalMenu", ImVec2(menuWidth, windowSize.y), true);
 
-    // Lock button (lock/unlock icon) controlling autoScroll
-    if (ImGui::Button(autoScrollLocked ? ICON_FA_LOCK : ICON_FA_LOCK_OPEN, ImVec2(ImGui::CalcTextSize(ICON_FA_LOCK).x + ImGui::GetStyle().FramePadding.x * 2, 0.0f))) {
-        autoScrollLocked = !autoScrollLocked;
-        if (autoScrollLocked) {
-            scrollStartCount = 0;
+    // Auto-scroll lock button
+    {
+        float w = ImGui::CalcTextSize(ICON_FA_LOCK).x + ImGui::GetStyle().FramePadding.x * 2.0f;
+        if (ImGui::Button(autoScrollLockedButton ? ICON_FA_LOCK : ICON_FA_LOCK_OPEN, ImVec2(w, 0.0f))) {
+            autoScrollLockedButton = !autoScrollLockedButton;
         }
-    }
-    if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip(autoScrollLocked ? "Disable Auto-scroll" : "Enable Auto-scroll");
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip(autoScrollLockedButton ? "Disable Auto-scroll" : "Enable Auto-scroll");
+        }
     }
 
     // Filter button (filter icon)
@@ -450,24 +424,19 @@ void OutputWindow::show() {
     ImGui::SameLine(menuWidth);
 
     // Custom colored, selectable log viewer
-    ImGui::BeginChild("##output", ImVec2(-FLT_MIN, -FLT_MIN), false, ImGuiWindowFlags_NoNav);
+    ImGui::BeginChild("##output", ImVec2(0, 0), false,
+                      ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysVerticalScrollbar);
 
-    // Cursor: I-beam over content, default over scrollbar
-    if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup)) {
-        // Compute content rect in screen space (excludes scrollbars)
-        ImVec2 content_min = ImGui::GetWindowContentRegionMin();
-        ImVec2 content_max = ImGui::GetWindowContentRegionMax();
-        ImVec2 win_pos     = ImGui::GetWindowPos();
-        ImRect content_rect(
-            ImVec2(win_pos.x + content_min.x, win_pos.y + content_min.y),
-            ImVec2(win_pos.x + content_max.x, win_pos.y + content_max.y)
-        );
+    // Compute effective wrap width inside this child (use content width directly)
+    static float lastWrapW = -1.0f;
+    float content_w = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
+    float wrapW = ImMax(1.0f, content_w);
 
-        // If mouse is inside the content rect, show text cursor.
-        // Otherwise (e.g., over scrollbar), leave default cursor.
-        if (content_rect.Contains(ImGui::GetMousePos())) {
-            ImGui::SetMouseCursor(ImGuiMouseCursor_TextInput);
-        }
+    // If logs/filters changed or width changed, rebuild
+    if (needsRebuild || (lastWrapW < 0.0f) || (fabsf(lastWrapW - wrapW) > 0.5f)) {
+        rebuildBuffer(wrapW);
+        needsRebuild = false;
+        lastWrapW = wrapW;
     }
 
     // Keyboard shortcuts
@@ -475,13 +444,11 @@ void OutputWindow::show() {
     const ImGuiIO& io = ImGui::GetIO();
     if (winFocused) {
         if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_A, false)) {
-            // Select all
             selectionStart = 0;
             selectionEnd = buf.size();
             hasStoredSelection = (selectionEnd > selectionStart);
         }
         if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_C, false)) {
-            // Copy selection
             if (hasStoredSelection && selectionStart >= 0 && selectionEnd > selectionStart && selectionEnd <= buf.size()) {
                 std::string selected_text(buf.begin() + selectionStart, buf.begin() + selectionEnd);
                 ImGui::SetClipboardText(selected_text.c_str());
@@ -489,14 +456,14 @@ void OutputWindow::show() {
         }
     }
 
-    // Compute measurements
+    // Measurements
     ImFont* font = ImGui::GetFont();
     const float fontSize = ImGui::GetFontSize();
-    const float lineHeight = ImGui::GetTextLineHeight();
+    const float lineBoxHeight = ImGui::GetTextLineHeight(); // text box height
+    const float lineAdvance  = lineBoxHeight + ImGui::GetStyle().ItemSpacing.y; // exact row-to-row advance
     const int totalLines = (lineOffsets.Size > 0) ? (lineOffsets.Size - 1) : 0;
     if ((int)lineTypes.size() != totalLines) {
-        // Safety: if out of sync, rebuild.
-        rebuildBuffer();
+        rebuildBuffer(wrapW);
     }
 
     // Helper lambdas
@@ -504,73 +471,142 @@ void OutputWindow::show() {
     auto lineEndIndexExcl = [&](int line)->int {
         if (line < 0 || line + 1 >= lineOffsets.Size) return buf.size();
         int end = lineOffsets[line + 1];
-        // Exclude the newline if present
         if (end > 0 && end <= buf.size() && buf[end - 1] == '\n') end -= 1;
         return end;
     };
 
-    // Map mouse to buffer index (character-precise)
-    auto bufferIndexFromMouse = [&](const ImVec2& originScreen)->int {
-        // Convert mouse position to local content coordinates inside this child
-        float localX = ImGui::GetMousePos().x - originScreen.x;
-        float localY = ImGui::GetMousePos().y - originScreen.y + ImGui::GetScrollY();
-        int line = (int)std::floor(localY / lineHeight);
-        line = std::max(0, std::min(line, totalLines - 1));
+    // Prepare hover info for this frame (determined inside clipper while drawing)
+    int   hoveredLine   = -1;
+    float hoveredLocalX = 0.0f;
 
+    // Draw with clipping (fast for large logs)
+    ImGuiListClipper clipper;
+    clipper.Begin(totalLines, lineAdvance);
+
+    const ImU32 selBgCol = ImGui::GetColorU32(ImGui::GetStyle().Colors[ImGuiCol_TextSelectedBg]);
+
+    int selA = selectionStart, selB = selectionEnd;
+    if (selA > selB) std::swap(selA, selB);
+
+    while (clipper.Step()) {
+        for (int line = clipper.DisplayStart; line < clipper.DisplayEnd; ++line) {
+            int ls = lineStartIndex(line);
+            int le = lineEndIndexExcl(line);
+
+            ImVec2 linePos = ImGui::GetCursorScreenPos();
+
+            // Hit-test for this visual row (use full row advance so spacing clicks count)
+            ImRect lineHitRect(
+                ImVec2(linePos.x, linePos.y),
+                ImVec2(linePos.x + wrapW, linePos.y + lineAdvance)
+            );
+            if (hoveredLine == -1 && ImGui::IsMouseHoveringRect(lineHitRect.Min, lineHitRect.Max)) {
+                hoveredLine   = line;
+                hoveredLocalX = ImGui::GetMousePos().x - linePos.x;
+            }
+
+            // Selection highlight for the portion of this line that is selected
+            if (hasStoredSelection && selA >= 0 && selB >= 0 && selB > selA) {
+                int hlStart = std::max(ls, selA);
+                int hlEnd   = std::min(le, selB);
+                if (hlStart < hlEnd) {
+                    const char* s0 = buf.begin() + ls;
+                    const char* s1 = buf.begin() + hlStart;
+                    const char* s2 = buf.begin() + hlEnd;
+
+                    float x0 = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, s0, s1).x;
+                    float x1 = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, s1, s2).x;
+
+                    ImGui::GetWindowDrawList()->AddRectFilled(
+                        ImVec2(linePos.x + x0, linePos.y),
+                        ImVec2(linePos.x + x0 + x1, linePos.y + lineBoxHeight),
+                        selBgCol
+                    );
+                }
+            }
+
+            // Colored text by type
+            ImVec4 color = (line >= 0 && line < (int)lineTypes.size()) ? GetLogTypeColor(lineTypes[line])
+                                                                       : ImVec4(1,1,1,1);
+            ImGui::PushStyleColor(ImGuiCol_Text, color);
+            if (ls < le) {
+                ImGui::TextUnformatted(buf.begin() + ls, buf.begin() + le);
+            } else {
+                ImGui::TextUnformatted(""); // empty line
+            }
+            ImGui::PopStyleColor();
+        }
+    }
+    clipper.End();
+
+    // Map (line, localX) to buffer index (character-precise)
+    auto indexFromLineAndLocalX = [&](int line, float localX)->int {
+        if (line < 0 || totalLines <= 0) return 0;
         int ls = lineStartIndex(line);
         int le = lineEndIndexExcl(line);
-
-        // Clamp
         if (ls >= le) return ls;
 
-        // Find character position in line by accumulating width
         const char* s = buf.begin() + ls;
         const char* e = buf.begin() + le;
 
         float x = 0.0f;
         int idx = ls;
         for (const char* p = s; p < e; ) {
-            // ImGui uses UTF-8; advance by one code-point
             unsigned int c;
             int c_len = ImTextCharFromUtf8(&c, p, e);
             if (c_len <= 0) break;
 
             float cw = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, p, p + c_len).x;
-            if (localX < x + cw * 0.5f) {
+            if (localX < x + cw * 0.5f)
                 return idx;
-            }
-            x += cw;
-            p += c_len;
+
+            x   += cw;
+            p   += c_len;
             idx += c_len;
         }
         return le; // past end of line
     };
 
-    // Handle mouse selection (click/drag/double/triple)
-    ImVec2 originScreen = ImGui::GetCursorScreenPos();
+    // Handle mouse selection using the hovered row computed from actual drawn rectangles
     if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup)) {
+        if (hoveredLine >= 0) {
+            ImGui::SetMouseCursor(ImGuiMouseCursor_TextInput);
+        }
+
+        // If cursor didn't hover a drawn row (e.g., outside vertically), derive nearest row from Y
+        int   lineForMouse = hoveredLine;
+        float xForMouse    = hoveredLocalX;
+        if (lineForMouse < 0 && totalLines > 0) {
+            ImVec2 innerMin(ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMin().x,
+                            ImGui::GetWindowPos().y + ImGui::GetWindowContentRegionMin().y);
+            float localY = ImGui::GetMousePos().y - innerMin.y + ImGui::GetScrollY();
+            lineForMouse = (int)std::floor(localY / lineAdvance);
+            lineForMouse = std::max(0, std::min(lineForMouse, totalLines - 1));
+            // Snap X to start/end when outside horizontally
+            xForMouse = (ImGui::GetMousePos().x < innerMin.x) ? 0.0f : 1e9f;
+        }
+
         // Multi-click detection via Dear ImGui
         // 1 click: start drag-selection
         // 2 clicks: word selection
         // 3 clicks: line selection
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-            int idx = bufferIndexFromMouse(originScreen);
+            int idx = indexFromLineAndLocalX(lineForMouse, xForMouse);
             int clicks = ImGui::GetIO().MouseClickedCount[ImGuiMouseButton_Left];
 
             if (clicks >= 3) {
                 selectLineAt(idx);
-                isSelecting = false; // finalize
+                isSelecting = false;
             } else if (clicks == 2) {
                 selectWordAt(idx);
-                isSelecting = false; // finalize
+                isSelecting = false;
             } else {
-                // single click -> start drag selection
                 selectionStart = selectionEnd = idx;
                 hasStoredSelection = true;
                 isSelecting = true;
             }
         } else if (isSelecting && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
-            int idx = bufferIndexFromMouse(originScreen);
+            int idx = indexFromLineAndLocalX(lineForMouse, xForMouse);
             selectionEnd = idx;
             hasStoredSelection = (selectionStart != selectionEnd);
         } else if (isSelecting && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
@@ -597,78 +633,30 @@ void OutputWindow::show() {
         ImGui::EndPopup();
     }
 
-    // Draw with clipping (fast for large logs)
-    ImVec2 baseCursorPos = ImGui::GetCursorPos();
-    ImGuiListClipper clipper;
-    clipper.Begin(totalLines, lineHeight);
+    // Detect manual scrolling and disable auto-scroll if user scrolled away from bottom
+    float currentScrollY = ImGui::GetScrollY();
+    float maxScrollY = ImGui::GetScrollMaxY();
 
-    const ImU32 selBgCol = ImGui::GetColorU32(ImGui::GetStyle().Colors[ImGuiCol_TextSelectedBg]);
-
-    // Ensure selection indices are ordered
-    int selA = selectionStart, selB = selectionEnd;
-    if (selA > selB) std::swap(selA, selB);
-
-    while (clipper.Step()) {
-        ImGui::SetCursorPosY(baseCursorPos.y + clipper.DisplayStart * lineHeight);
-
-        for (int line = clipper.DisplayStart; line < clipper.DisplayEnd; ++line) {
-            int ls = lineStartIndex(line);
-            int le = lineEndIndexExcl(line);
-
-            ImVec2 linePos = ImGui::GetCursorScreenPos();
-
-            // Selection highlight for the portion of this line that is selected
-            if (hasStoredSelection && selA >= 0 && selB >= 0 && selB > selA) {
-                int hlStart = std::max(ls, selA);
-                int hlEnd   = std::min(le, selB);
-                if (hlStart < hlEnd) {
-                    // Compute x offsets by measuring text width
-                    const char* s0 = buf.begin() + ls;
-                    const char* s1 = buf.begin() + hlStart;
-                    const char* s2 = buf.begin() + hlEnd;
-
-                    float x0 = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, s0, s1).x;
-                    float x1 = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, s1, s2).x;
-
-                    ImGui::GetWindowDrawList()->AddRectFilled(
-                        ImVec2(linePos.x + x0, linePos.y),
-                        ImVec2(linePos.x + x0 + x1, linePos.y + lineHeight),
-                        selBgCol);
-                }
-            }
-
-            // Colored text by type
-            ImVec4 color = (line >= 0 && line < (int)lineTypes.size()) ? GetLogTypeColor(lineTypes[line])
-                                                                       : ImVec4(1,1,1,1);
-            ImGui::PushStyleColor(ImGuiCol_Text, color);
-            if (ls < le) {
-                ImGui::TextUnformatted(buf.begin() + ls, buf.begin() + le);
-            } else {
-                ImGui::TextUnformatted(""); // empty line
-            }
-            ImGui::PopStyleColor();
+    // Check if user manually scrolled
+    if (!isSelecting && fabsf(currentScrollY - lastScrollY) > 0.1f) {
+        if (currentScrollY < maxScrollY - 1.0f) {
+            // User manually scrolled away from bottom, disable auto-scroll
+            autoScroll = false;
+        } else if (currentScrollY >= maxScrollY - 1.0f) {
+            // User manually scrolled back to bottom, re-enable auto-scroll
+            autoScroll = true;
         }
     }
-    clipper.End();
 
-    // Auto-scroll handling (inside child)
-    {
-        float maxY = ImGui::GetScrollMaxY();
-        float curY = ImGui::GetScrollY();
-        hasScrollbar = maxY > 0.0f;
-
-        if (maxY > 0.0f) {
-            autoScroll = (curY >= maxY - 1.0f);
-            if (autoScrollLocked) {
-                if (scrollStartCount < 8) { // keep scroll pinned for a few frames
-                    scrollStartCount++;
-                    ImGui::SetScrollY(maxY);
-                }
-            }
-        }
+    // Auto-scroll: pin to bottom if locked (avoid fighting user drag-selection)
+    if (autoScroll && autoScrollLockedButton && !isSelecting) {
+        ImGui::SetScrollY(maxScrollY);
+        currentScrollY = maxScrollY; // update current position after auto-scroll
     }
+
+    // Store current scroll position for next frame comparison
+    lastScrollY = currentScrollY;
 
     ImGui::EndChild();
-
     ImGui::End();
 }
