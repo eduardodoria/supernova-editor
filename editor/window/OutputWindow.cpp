@@ -323,6 +323,9 @@ void OutputWindow::show() {
         float w = ImGui::CalcTextSize(ICON_FA_LOCK).x + ImGui::GetStyle().FramePadding.x * 2.0f;
         if (ImGui::Button(autoScrollLockedButton ? ICON_FA_LOCK : ICON_FA_LOCK_OPEN, ImVec2(w, 0.0f))) {
             autoScrollLockedButton = !autoScrollLockedButton;
+            if (autoScrollLockedButton) {
+                autoScroll = true; // Enable auto-scroll when locking
+            }
         }
         if (ImGui::IsItemHovered()) {
             ImGui::SetTooltip(autoScrollLockedButton ? "Disable Auto-scroll" : "Enable Auto-scroll");
