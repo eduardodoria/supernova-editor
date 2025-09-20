@@ -116,6 +116,25 @@ void Editor::ResourcesWindow::processMaterialThumbnails() {
     }
 }
 
+ImU32 Editor::ResourcesWindow::fileSeparatorColor(const FileEntry& fe) const{
+    if (fe.isDirectory)
+        return ImGui::GetColorU32(ImVec4(0.60f, 0.60f, 0.60f, 1.0f));
+
+    switch (fe.type) {
+        case FileType::IMAGE:
+            return ImGui::GetColorU32(ImVec4(0.25f, 0.55f, 1.00f, 1.0f));
+        case FileType::MATERIAL:
+            return ImGui::GetColorU32(ImVec4(0.20f, 0.80f, 0.70f, 1.0f));
+        case FileType::SCENE:
+            return ImGui::GetColorU32(ImVec4(0.90f, 0.70f, 0.20f, 1.0f));
+        case FileType::ENTITY:
+            return ImGui::GetColorU32(ImVec4(0.30f, 0.85f, 0.30f, 1.0f));
+        case FileType::NONE:
+        default:
+            return ImGui::GetColorU32(ImVec4(0.50f, 0.50f, 0.50f, 1.0f));
+    }
+}
+
 void Editor::ResourcesWindow::renderHeader() {
     ImGui::BeginDisabled(currentPath == project->getProjectPath());
     if (ImGui::Button(ICON_FA_HOUSE)) {
@@ -156,27 +175,28 @@ void Editor::ResourcesWindow::renderHeader() {
         ImGui::Text("Settings");
         ImGui::Separator();
         if (ImGui::SliderInt("Icon Size", &iconSize, 16.0f, THUMBNAIL_SIZE)) {
-            iconPadding = 1.5 * iconSize;
+            iconPadding = 1.5f * iconSize;
         }
         ImGui::Separator();
         ImGui::Text("Layout");
-        if (ImGui::RadioButton("Auto", currentLayout == LayoutType::AUTO)) {
-            currentLayout = LayoutType::AUTO;
-        }
+        if (ImGui::RadioButton("Auto", currentLayout == LayoutType::AUTO)) currentLayout = LayoutType::AUTO;
         ImGui::SameLine();
-        if (ImGui::RadioButton("Grid", currentLayout == LayoutType::GRID)) {
-            currentLayout = LayoutType::GRID;
-        }
+        if (ImGui::RadioButton("Grid", currentLayout == LayoutType::GRID)) currentLayout = LayoutType::GRID;
         ImGui::SameLine();
-        if (ImGui::RadioButton("Split view", currentLayout == LayoutType::SPLIT)) {
-            currentLayout = LayoutType::SPLIT;
-        }
+        if (ImGui::RadioButton("Split view", currentLayout == LayoutType::SPLIT)) currentLayout = LayoutType::SPLIT;
+
+        ImGui::Separator();
+        ImGui::Text("Item view");
+        if (ImGui::RadioButton("Card", itemViewStyle == ItemViewStyle::CARD)) itemViewStyle = ItemViewStyle::CARD;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Classic", itemViewStyle == ItemViewStyle::CLASSIC)) itemViewStyle = ItemViewStyle::CLASSIC;
+
         ImGui::EndPopup();
     }
 }
 
 void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
-    // Card/grid sizing
+    // Common grid sizing
     float columnWidth = iconSize + iconPadding;
     float availableWidth = ImGui::GetContentRegionAvail().x;
 
@@ -184,11 +204,13 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
     if (columns < 1) columns = 1;
     if (!files.empty() && (int)files.size() < columns) columns = (int)files.size();
 
-    ImVec2 cellPadding = ImVec2(4.0f, 4.0f);
-    float totalTableWidth = std::min(availableWidth,
+    ImVec2 cellPadding = (itemViewStyle == ItemViewStyle::CARD) ? ImVec2(4.0f, 4.0f) : ImVec2(8.0f, 8.0f);
+    float totalTableWidth = std::min(
+        availableWidth,
         (columnWidth * (float)files.size()) +
         (columnWidth * (float)files.size() / 2.0f) +
-        (cellPadding.x * 2.0f * (files.empty() ? 0.0f : (float)files.size() - 1.0f)));
+        (cellPadding.x * 2.0f * (files.empty() ? 0.0f : (float)files.size() - 1.0f))
+    );
 
     ImVec2 scrollRegionMin = ImGui::GetWindowPos();
     ImVec2 scrollRegionMax = ImVec2(scrollRegionMin.x + ImGui::GetWindowSize().x,
@@ -198,7 +220,7 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
 
     bool clickedInFile = false;
 
-    // Start marquee selection if clicking empty space
+    // Start marquee selection on empty click
     if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(0) && !ImGui::IsAnyItemHovered()) {
         isDragging = true;
         dragStart = ImGui::GetMousePos();
@@ -231,26 +253,11 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
         }
     }
 
-    // Helper: color per file type (separator line)
-    auto fileTypeColor = [&](const FileEntry& fe) -> ImU32 {
-        if (fe.isDirectory) {
-            return ImGui::GetColorU32(ImVec4(0.60f, 0.60f, 0.60f, 1.0f)); // directory
-        }
-        switch (fe.type) {
-            case FileType::IMAGE:    return ImGui::GetColorU32(ImVec4(0.25f, 0.55f, 1.00f, 1.0f)); // blue
-            case FileType::MATERIAL: return ImGui::GetColorU32(ImVec4(0.20f, 0.80f, 0.70f, 1.0f)); // teal
-            case FileType::SCENE:    return ImGui::GetColorU32(ImVec4(0.90f, 0.70f, 0.20f, 1.0f)); // gold
-            case FileType::ENTITY:   return ImGui::GetColorU32(ImVec4(0.30f, 0.85f, 0.30f, 1.0f)); // green
-            case FileType::NONE:
-            default:                 return ImGui::GetColorU32(ImVec4(0.50f, 0.50f, 0.50f, 1.0f)); // default gray
-        }
-    };
-
-    // Card metrics (uniform height)
-    const float pad = 8.0f;                           // inner padding
-    const float thumbHeight = (float)iconSize;        // thumbnail area height
-    const float lineThickness = 2.0f;                 // separator thickness
-    const int   maxTextLines = 2;                     // show up to N lines of name
+    // Card metrics (constants — used only when Card view is active)
+    const float pad = 8.0f;
+    const float thumbHeight = (float)iconSize;
+    const float lineThickness = 2.0f;
+    const int   maxTextLines = 2;
     const float lineHeight = ImGui::GetTextLineHeight();
     const float textAreaHeight = maxTextLines * lineHeight;
     const float cardHeight = pad + thumbHeight + pad * 0.5f + lineThickness + pad * 0.5f + textAreaHeight + pad;
@@ -263,16 +270,32 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
             ImGui::PushID(file.name.c_str());
 
             float cellWidth = ImGui::GetContentRegionAvail().x;
-            ImVec2 cardSize(cellWidth, cardHeight);
 
-            // Marquee selection overlap test: compute item rect before creating the item
+            // Classic-only metrics
+            float itemSpacingY = 0.0f;
+            ImVec2 textSizeClassic(0, 0);
+            ImVec2 selectableSizeClassic(0, 0);
+
+            // Choose item size per style
+            ImVec2 itemSize;
+            if (itemViewStyle == ItemViewStyle::CARD) {
+                itemSize = ImVec2(cellWidth, cardHeight);
+            } else {
+                itemSpacingY = ImGui::GetStyle().ItemSpacing.y;
+                textSizeClassic = ImGui::CalcTextSize(file.name.c_str(), nullptr, true, cellWidth);
+                float celHeight = iconSize + itemSpacingY + textSizeClassic.y;
+                selectableSizeClassic = ImVec2(cellWidth, celHeight);
+                itemSize = selectableSizeClassic;
+            }
+
+            // Marquee overlap before item creation
             if (isDragging) {
                 ImVec2 itemPos = ImGui::GetCursorScreenPos();
                 itemPos.x -= scrollRegionMin.x;
                 itemPos.y -= scrollRegionMin.y;
                 itemPos.x += ImGui::GetScrollX();
                 itemPos.y += ImGui::GetScrollY();
-                ImRect itemRect(itemPos, ImVec2(itemPos.x + cardSize.x, itemPos.y + cardSize.y));
+                ImRect itemRect(itemPos, ImVec2(itemPos.x + itemSize.x, itemPos.y + itemSize.y));
                 ImRect selectionRect(
                     ImVec2(std::min(dragStart.x, dragEnd.x), std::min(dragStart.y, dragEnd.y)),
                     ImVec2(std::max(dragStart.x, dragEnd.x), std::max(dragStart.y, dragEnd.y))
@@ -288,15 +311,23 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
 
             bool isSelected = selectedFiles.find(file.name) != selectedFiles.end();
 
-            // Create the card hit area first so drag/drop can attach to it
-            bool pressed = ImGui::InvisibleButton("##card", cardSize);
-            bool hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
+            // Create the hit area
+            bool itemPressed = false;
+            bool hovered = false;
 
-            // Cache card rect from the InvisibleButton
-            ImVec2 cardMin = ImGui::GetItemRectMin();
-            ImVec2 cardMax = ImGui::GetItemRectMax();
+            if (itemViewStyle == ItemViewStyle::CARD) {
+                itemPressed = ImGui::InvisibleButton("##card", itemSize);
+                hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
+            } else {
+                ImGui::BeginGroup(); // classic uses a group to reposition icon/text within the same cell
+                itemPressed = ImGui::Selectable("", isSelected, ImGuiSelectableFlags_AllowDoubleClick, itemSize);
+                hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
+            }
 
-            // Double-click handling on the card
+            ImVec2 itemMin = ImGui::GetItemRectMin();
+            ImVec2 itemMax = ImGui::GetItemRectMax();
+
+            // Double-click: open directory or file
             if (hovered && ImGui::IsMouseDoubleClicked(0)) {
                 clickedInFile = true;
                 if (file.isDirectory) {
@@ -312,7 +343,7 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
                 }
             }
 
-            // Resolve image/thumbnail (used for drag preview and display)
+            // Resolve icon/thumbnail common path
             ImTextureID fileIconImage = (ImTextureID)file.icon;
             float dispW = (float)iconSize;
             float dispH = (float)iconSize;
@@ -322,18 +353,17 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
                 if (!thumbTexture.empty()) {
                     int tw = thumbTexture.getWidth();
                     int th = thumbTexture.getHeight();
-
                     float scale = std::min((float)iconSize / (float)tw, (float)iconSize / (float)th);
                     dispW = std::max(1.0f, tw * scale);
                     dispH = std::max(1.0f, th * scale);
-
                     fileIconImage = (ImTextureID)(intptr_t)thumbTexture.getRender()->getGLHandler();
                 }
             }
 
-            // Start drag from the card
+            // Drag source (unified)
+            bool itemActive = ImGui::IsItemActive();
             float dragThreshold = ImGui::GetIO().MouseDragThreshold;
-            bool wantDrag = ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left, dragThreshold);
+            bool wantDrag = itemActive && ImGui::IsMouseDragging(ImGuiMouseButton_Left, dragThreshold);
             if (wantDrag) {
                 if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
                     // Ensure selection contains this file if dragging an unselected item
@@ -343,7 +373,7 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
                         lastSelectedFile = file.name;
                     }
 
-                    // Build payload: list of selected file full paths separated by '\0'
+                    // Payload: list of paths separated by '\0'
                     std::vector<char> buffer;
                     buffer.reserve(256);
                     for (const auto& selectedFile : selectedFiles) {
@@ -352,7 +382,6 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
                         buffer.push_back('\0');
                     }
                     ImGui::SetDragDropPayload("resource_files", buffer.data(), buffer.size());
-
                     ImGui::Text("Moving %zu file(s)", selectedFiles.size());
 
                     if (selectedFiles.size() == 1) {
@@ -360,7 +389,6 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
                         float scale = std::min(imageDragSize / dispW, imageDragSize / dispH);
                         float previewW = dispW * scale;
                         float previewH = dispH * scale;
-
                         float availWidth = ImGui::GetCurrentWindow()->Size.x;
                         float xPos = (availWidth - previewW) * 0.5f;
                         ImGui::SetCursorPosX(xPos);
@@ -370,7 +398,7 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
                 }
             }
 
-            // Make the entire directory card a drop target (not only the icon)
+            // Directory as drop target
             if (file.isDirectory) {
                 if (ImGui::BeginDragDropTarget()) {
                     if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
@@ -380,73 +408,97 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
                 }
             }
 
-            // Card background and border — distinct but theme-aware
-            ImDrawList* drawList = ImGui::GetWindowDrawList();
-            const ImGuiStyle& style = ImGui::GetStyle();
+            // Draw content per style
+            if (itemViewStyle == ItemViewStyle::CARD) {
+                ImDrawList* drawList = ImGui::GetWindowDrawList();
+                const ImGuiStyle& style = ImGui::GetStyle();
 
-            ImVec4 windowBg = style.Colors[ImGuiCol_WindowBg];
-            ImVec4 frameBg  = style.Colors[ImGuiCol_FrameBg];
-            ImVec4 header   = style.Colors[ImGuiCol_Header];
-            ImVec4 headerHovered = style.Colors[ImGuiCol_HeaderHovered];
-            ImVec4 headerActive  = style.Colors[ImGuiCol_HeaderActive];
-            ImVec4 borderV  = style.Colors[ImGuiCol_Border];
+                ImVec4 windowBg = style.Colors[ImGuiCol_WindowBg];
+                ImVec4 frameBg  = style.Colors[ImGuiCol_FrameBg];
+                ImVec4 header   = style.Colors[ImGuiCol_Header];
+                ImVec4 headerHovered = style.Colors[ImGuiCol_HeaderHovered];
+                ImVec4 headerActive  = style.Colors[ImGuiCol_HeaderActive];
+                ImVec4 borderV  = style.Colors[ImGuiCol_Border];
 
-            auto blend = [](ImVec4 a, ImVec4 b, float t) {
-                return ImVec4(
-                    a.x + (b.x - a.x) * t,
-                    a.y + (b.y - a.y) * t,
-                    a.z + (b.z - a.z) * t,
-                    1.0f
-                );
-            };
+                auto blend = [](ImVec4 a, ImVec4 b, float t) {
+                    return ImVec4(a.x + (b.x - a.x) * t,
+                                  a.y + (b.y - a.y) * t,
+                                  a.z + (b.z - a.z) * t,
+                                  1.0f);
+                };
 
-            ImVec4 bgV = blend(windowBg, frameBg, 0.20f);           // normal: slightly different from window
-            if (hovered) bgV = blend(windowBg, headerHovered, 0.25f);
-            if (isSelected) bgV = header;
+                ImVec4 bgV = blend(windowBg, frameBg, 0.20f);
+                if (hovered) bgV = blend(windowBg, headerHovered, 0.25f);
+                if (isSelected) bgV = header;
+                ImU32 bgCol = ImGui::ColorConvertFloat4ToU32(bgV);
 
-            ImU32 bgCol = ImGui::ColorConvertFloat4ToU32(bgV);
+                ImVec4 bColV = borderV;
+                if (hovered)    bColV = headerHovered;
+                if (isSelected) bColV = headerActive;
+                ImU32 borderCol = ImGui::ColorConvertFloat4ToU32(bColV);
 
-            ImVec4 bColV = borderV;
-            if (hovered)    bColV = headerHovered;
-            if (isSelected) bColV = headerActive;
-            ImU32 borderCol = ImGui::ColorConvertFloat4ToU32(bColV);
+                float rounding = style.FrameRounding;
+                drawList->AddRectFilled(itemMin, itemMax, bgCol, rounding);
+                drawList->AddRect(itemMin, itemMax, borderCol, rounding, 0, 1.0f);
 
-            float rounding = style.FrameRounding;
-            drawList->AddRectFilled(cardMin, cardMax, bgCol, rounding);
-            drawList->AddRect(cardMin, cardMax, borderCol, rounding, 0, 1.0f);
+                // Content rect inside padding
+                ImVec2 contentMin(itemMin.x + pad, itemMin.y + pad);
+                float contentWidth = itemMax.x - itemMin.x - (pad * 2.0f);
 
-            // Content rect (inside padding)
-            ImVec2 contentMin(cardMin.x + pad, cardMin.y + pad);
-            float contentWidth = cardMax.x - cardMin.x - (pad * 2.0f);
+                // Center image in thumbnail area
+                float imageX = contentMin.x + (contentWidth - dispW) * 0.5f;
+                float imageY = contentMin.y + (thumbHeight - dispH) * 0.5f;
+                ImGui::SetCursorScreenPos(ImVec2(imageX, imageY));
+                ImGui::Image(fileIconImage, ImVec2(dispW, dispH));
 
-            // Center image in thumbnail area
-            float imageX = contentMin.x + (contentWidth - dispW) * 0.5f;
-            float imageY = contentMin.y + (thumbHeight - dispH) * 0.5f;
-            ImGui::SetCursorScreenPos(ImVec2(imageX, imageY));
-            ImGui::Image(fileIconImage, ImVec2(dispW, dispH));
+                // Separator line
+                ImU32 sepCol = fileSeparatorColor(file);
+                float lineY = contentMin.y + thumbHeight + pad * 0.5f;
+                drawList->AddLine(ImVec2(contentMin.x, lineY),
+                                  ImVec2(contentMin.x + contentWidth, lineY),
+                                  sepCol, lineThickness);
 
-            // Separator line (color by file type)
-            ImU32 sepCol = fileTypeColor(file);
-            float lineY = contentMin.y + thumbHeight + pad * 0.5f;
-            drawList->AddLine(ImVec2(contentMin.x, lineY), ImVec2(contentMin.x + contentWidth, lineY), sepCol, lineThickness);
+                // Name text, clipped to text area
+                float textY = lineY + lineThickness + pad * 0.375f;
+                ImVec4 cpuClipRect(contentMin.x, textY, contentMin.x + contentWidth, textY + textAreaHeight);
+                drawList->AddText(ImGui::GetFont(),
+                                  ImGui::GetFontSize(),
+                                  ImVec2(contentMin.x, textY),
+                                  ImGui::GetColorU32(ImGuiCol_Text),
+                                  file.name.c_str(),
+                                  nullptr,
+                                  contentWidth,
+                                  &cpuClipRect);
+                if (hovered) {
+                    ImGui::SetTooltip("%s", file.name.c_str());
+                }
+            } else {
+                // Classic layout: icon + wrapped text centered
+                float iconOffsetX = (cellWidth - iconSize) * 0.5f;
+                float iconOffsetY = itemSize.y + itemSpacingY;
 
-            // Name text, wrapped and clipped to a fixed area (uniform card height)
-            float textY = lineY + lineThickness + pad * 0.375f;
-            ImVec4 cpuClipRect(contentMin.x, textY, contentMin.x + contentWidth, textY + textAreaHeight);
+                // Move back up into the selectable rect
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + iconOffsetX);
+                ImGui::SetCursorPosY(ImGui::GetCursorPosY() - iconOffsetY);
 
-            drawList->AddText(
-                ImGui::GetFont(),
-                ImGui::GetFontSize(),
-                ImVec2(contentMin.x, textY),
-                ImGui::GetColorU32(ImGuiCol_Text),
-                file.name.c_str(),
-                nullptr,
-                contentWidth,
-                &cpuClipRect
-            );
+                // Center the scaled thumbnail inside the icon box
+                float offsetX = (iconSize - dispW) * 0.5f;
+                float offsetY = (iconSize - dispH) * 0.5f;
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offsetX);
+                ImGui::SetCursorPosY(ImGui::GetCursorPosY() + offsetY);
 
-            // Selection logic
-            if (pressed) {
+                ImGui::Image(fileIconImage, ImVec2(dispW, dispH));
+
+                float textOffsetX = (cellWidth * 0.5f) - (textSizeClassic.x * 0.5f);
+                if (textOffsetX < 0) textOffsetX = 0;
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + textOffsetX);
+                ImGui::TextWrapped("%s", file.name.c_str());
+
+                ImGui::EndGroup(); // classic group
+            }
+
+            // Selection behavior (unified)
+            if (itemPressed) {
                 clickedInFile = true;
                 if (ctrlPressed) {
                     if (isSelected) selectedFiles.erase(file.name);
@@ -455,7 +507,7 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
                 } else if (shiftPressed) {
                     if (!lastSelectedFile.empty()) {
                         auto itStart = std::find_if(files.begin(), files.end(), [&](const FileEntry& entry) { return entry.name == lastSelectedFile; });
-                        auto itEnd = std::find_if(files.begin(), files.end(), [&](const FileEntry& entry) { return entry.name == file.name; });
+                        auto itEnd   = std::find_if(files.begin(), files.end(), [&](const FileEntry& entry) { return entry.name == file.name; });
                         if (itStart != files.end() && itEnd != files.end()) {
                             if (itStart > itEnd) std::swap(itStart, itEnd);
                             for (auto it = itStart; it <= itEnd; ++it) {
@@ -472,9 +524,9 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
                 }
             }
 
-            // Right-click context menu — detect on the card rect
+            // Right-click context menu on the item rect
             if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) &&
-                ImGui::IsMouseHoveringRect(cardMin, cardMax, true)) {
+                ImGui::IsMouseHoveringRect(itemMin, itemMax, true)) {
                 clickedInFile = true;
                 if (!ctrlPressed && !isSelected) selectedFiles.clear();
                 selectedFiles.insert(file.name);
@@ -485,7 +537,8 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
             if (ImGui::BeginPopup("FileContextMenu")) {
                 if (ImGui::MenuItem(ICON_FA_COPY"  Copy")) copySelectedFiles(false);
                 if (ImGui::MenuItem(ICON_FA_SCISSORS"  Cut")) copySelectedFiles(true);
-                if (ImGui::MenuItem(ICON_FA_PASTE"  Paste", nullptr, false, !clipboardFiles.empty())) pasteFiles(currentPath / lastSelectedFile);
+                if (ImGui::MenuItem(ICON_FA_PASTE"  Paste", nullptr, false, !clipboardFiles.empty()))
+                    pasteFiles(currentPath / lastSelectedFile);
                 ImGui::Separator();
                 if (ImGui::MenuItem(ICON_FA_TRASH"  Delete")) showDeleteConfirmation = true;
                 if (ImGui::MenuItem(ICON_FA_I_CURSOR"  Rename")) {

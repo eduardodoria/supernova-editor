@@ -56,6 +56,13 @@ namespace Supernova::Editor {
             SPLIT   // New two-column tree view
         };
         LayoutType currentLayout = LayoutType::AUTO;
+
+        enum class ItemViewStyle {
+            CARD,
+            CLASSIC
+        };
+        ItemViewStyle itemViewStyle = ItemViewStyle::CARD;
+
         float layoutAutoThreshold = 600.0f;
         float leftPanelWidth = 200.0f;  // Width of the left panel in SPLIT layout
 
@@ -123,6 +130,8 @@ namespace Supernova::Editor {
         fs::path pendingMaterialPath;
         bool hasPendingMaterialRender = false;
         std::mutex materialRenderMutex;
+
+        ImU32 fileSeparatorColor(const FileEntry& fe) const;
 
         void renderHeader();
         void renderFileListing(bool showDirectories);
