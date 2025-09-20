@@ -9,8 +9,10 @@ namespace Supernova::Editor {
     private:
         Project* project;
         size_t sceneId;
-        Entity entity;
+        std::vector<Entity> entities;
         ComponentType componentType;
+
+        bool wasModified;
 
     public:
         AddComponentCmd(Project* project, size_t sceneId, Entity entity, ComponentType componentType);

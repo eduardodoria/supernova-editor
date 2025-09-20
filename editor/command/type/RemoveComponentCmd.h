@@ -6,17 +6,23 @@
 #include "yaml-cpp/yaml.h"
 
 namespace Supernova::Editor {
+
+    struct RemoveComponentData {
+        Entity entity;
+        YAML::Node oldComponent; // For no shared entities and no override components
+        bool hasOverride;
+        ComponentRecovery recovery; // For shared entities
+    };
+
     class RemoveComponentCmd : public Command {
     private:
         Project* project;
         size_t sceneId;
-        Entity entity;
         ComponentType componentType;
 
-        YAML::Node oldComponent; // For no shared entities and no override components
-        bool hasOverride;
+        std::vector<RemoveComponentData> entities;
 
-        ComponentRecovery recovery; // For shared entities
+        bool wasModified;
 
     public:
         RemoveComponentCmd(Project* project, size_t sceneId, Entity entity, ComponentType componentType);

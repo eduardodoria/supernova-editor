@@ -239,7 +239,7 @@ void Editor::Properties::dragDropResources(ComponentType cpType, std::string id,
     }
 }
 
-void Editor::Properties::handleComponentMenu(SceneProject* sceneProject, Entity entity, ComponentType cpType, const std::filesystem::path& sharedPath, bool& headerOpen) {
+void Editor::Properties::handleComponentMenu(SceneProject* sceneProject, std::vector<Entity> entities, ComponentType cpType, const std::filesystem::path& sharedPath, bool& headerOpen) {
     if (ImGui::BeginPopupContextItem(("component_options_menu_" + std::to_string(static_cast<int>(cpType))).c_str())) {
         ImGui::TextDisabled("Component options");
         ImGui::Separator();
@@ -247,15 +247,15 @@ void Editor::Properties::handleComponentMenu(SceneProject* sceneProject, Entity 
         SharedGroup* sharedGroup = project->getSharedGroup(sharedPath);
 
         if (sharedGroup){
-            if (sharedGroup->hasComponentOverride(sceneProject->id, entity, cpType)) {
+            if (sharedGroup->hasComponentOverride(sceneProject->id, entities[0], cpType)) {
                 if (ImGui::MenuItem(ICON_FA_LINK " Revert to Shared")) {
-                    cmd = new ComponentToSharedCmd(project, sceneProject->id, entity, cpType);
+                    cmd = new ComponentToSharedCmd(project, sceneProject->id, entities[0], cpType);
                     CommandHandle::get(sceneProject->id)->addCommand(cmd);
                 }
 
             } else {
                 if (ImGui::MenuItem(ICON_FA_LOCK_OPEN " Make Unique")) {
-                    cmd = new ComponentToLocalCmd(project, sceneProject->id, entity, cpType);
+                    cmd = new ComponentToLocalCmd(project, sceneProject->id, entities[0], cpType);
                     CommandHandle::get(sceneProject->id)->addCommand(cmd);
                 }
             }
@@ -263,8 +263,10 @@ void Editor::Properties::handleComponentMenu(SceneProject* sceneProject, Entity 
 
         bool canRemove = !(cpType == ComponentType::Transform && sharedGroup);
         if (ImGui::MenuItem(ICON_FA_TRASH " Remove", nullptr, false, canRemove)) {
-            cmd = new RemoveComponentCmd(project, sceneProject->id, entity, cpType);
-            CommandHandle::get(sceneProject->id)->addCommand(cmd);
+            for (Entity& entity : entities){
+                cmd = new RemoveComponentCmd(project, sceneProject->id, entity, cpType);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
+            }
 
             headerOpen = false;
         }
@@ -2453,7 +2455,7 @@ void Editor::Properties::show(){
                 ImGui::PopStyleColor();
             }
 
-            handleComponentMenu(sceneProject, entities[0], cpType, sharedGroupPath, headerOpen);
+            handleComponentMenu(sceneProject, entities, cpType, sharedGroupPath, headerOpen);
 
             // Add hover tooltip only for shared components
             if (isShared && !isComponentOverridden && ImGui::IsItemHovered()) {

@@ -2350,6 +2350,9 @@ void Editor::Project::saveSharedGroupToDisk(const std::filesystem::path& filepat
 }
 
 Editor::SharedGroup* Editor::Project::getSharedGroup(const std::filesystem::path& filepath){
+    if (filepath.empty()){
+        return nullptr;
+    }
     auto it = sharedGroups.find(filepath);
     if (it != sharedGroups.end()) {
         return &it->second;
@@ -2358,6 +2361,9 @@ Editor::SharedGroup* Editor::Project::getSharedGroup(const std::filesystem::path
 }
 
 const Editor::SharedGroup* Editor::Project::getSharedGroup(const std::filesystem::path& filepath) const {
+    if (filepath.empty()){
+        return nullptr;
+    }
     auto it = sharedGroups.find(filepath);
     if (it != sharedGroups.end()) {
         return &it->second;

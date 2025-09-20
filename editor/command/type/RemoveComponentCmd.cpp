@@ -7,8 +7,14 @@ using namespace Supernova;
 Editor::RemoveComponentCmd::RemoveComponentCmd(Project* project, size_t sceneId, Entity entity, ComponentType componentType){
     this->project = project;
     this->sceneId = sceneId;
-    this->entity = entity;
     this->componentType = componentType;
+
+    RemoveComponentData entityData;
+    entityData.entity = entity;
+
+    this->entities.push_back(entityData);
+
+    this->wasModified = project->getScene(sceneId)->isModified;
 }
 
 bool Editor::RemoveComponentCmd::execute() {
@@ -16,24 +22,27 @@ bool Editor::RemoveComponentCmd::execute() {
     if (sceneProject) {
         Scene* scene = sceneProject->scene;
 
-        fs::path filepath = project->findGroupPathFor(sceneId, entity);
-        SharedGroup* group = project->getSharedGroup(filepath);
+        for (RemoveComponentData& entityData : entities){
 
-        if (group && !group->hasComponentOverride(sceneId, entity, componentType)){
+            fs::path filepath = project->findGroupPathFor(sceneId, entityData.entity);
+            SharedGroup* group = project->getSharedGroup(filepath);
 
-            recovery = project->removeComponentToSharedGroup(sceneId, entity, componentType, true, true);
+            if (group && !group->hasComponentOverride(sceneId, entityData.entity, componentType)){
 
-        }else{
+                entityData.recovery = project->removeComponentToSharedGroup(sceneId, entityData.entity, componentType, true, true);
 
-            oldComponent = Project::removeEntityComponent(scene, entity, componentType, sceneProject->entities, true);
+            }else{
 
-            if (group){
-                hasOverride = group->hasComponentOverride(sceneId, entity, componentType);
-                if (hasOverride){
-                    group->clearComponentOverride(sceneId, entity, componentType);
+                entityData.oldComponent = Project::removeEntityComponent(scene, entityData.entity, componentType, sceneProject->entities, true);
+
+                if (group){
+                    entityData.hasOverride = group->hasComponentOverride(sceneId, entityData.entity, componentType);
+                    if (entityData.hasOverride){
+                        group->clearComponentOverride(sceneId, entityData.entity, componentType);
+                    }
                 }
-            }
 
+            }
         }
 
         sceneProject->isModified = true;
@@ -47,30 +56,46 @@ void Editor::RemoveComponentCmd::undo() {
     if (sceneProject) {
         Scene* scene = sceneProject->scene;
 
-        if (recovery.size() > 0){
+        for (RemoveComponentData& entityData : entities){
+            if (entityData.recovery.size() > 0){
 
-            project->addComponentToSharedGroup(sceneId, entity, componentType, recovery, true);
+                project->addComponentToSharedGroup(sceneId, entityData.entity, componentType, entityData.recovery, true);
 
-        }else{
+            }else{
 
-            Project::addEntityComponent(scene, entity, componentType, sceneProject->entities, oldComponent);
+                Project::addEntityComponent(scene, entityData.entity, componentType, sceneProject->entities, entityData.oldComponent);
 
-            if (hasOverride){
-                fs::path filepath = project->findGroupPathFor(sceneId, entity);
-                SharedGroup* group = project->getSharedGroup(filepath);
+                if (entityData.hasOverride){
+                    fs::path filepath = project->findGroupPathFor(sceneId, entityData.entity);
+                    SharedGroup* group = project->getSharedGroup(filepath);
 
-                if (group){
-                    group->setComponentOverride(sceneId, entity, componentType);
+                    if (group){
+                        group->setComponentOverride(sceneId, entityData.entity, componentType);
+                    }
                 }
-            }
 
+            }
         }
 
-        sceneProject->isModified = true;
+        sceneProject->isModified = wasModified;
     }
 }
 
 bool Editor::RemoveComponentCmd::mergeWith(Command* otherCommand){
+    RemoveComponentCmd* otherCmd = dynamic_cast<RemoveComponentCmd*>(otherCommand);
+    if (otherCmd != nullptr){
+        if (sceneId == otherCmd->sceneId){
+
+            for (RemoveComponentData& otherEntityData :  otherCmd->entities){
+                // insert at begin to keep deletion order
+                entities.push_back(otherEntityData);
+            }
+
+            wasModified = wasModified && otherCmd->wasModified;
+
+            return true;
+        }
+    }
 
     return false;
 }
