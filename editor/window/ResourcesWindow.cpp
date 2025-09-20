@@ -176,27 +176,29 @@ void Editor::ResourcesWindow::renderHeader() {
 }
 
 void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
+    // Card/grid sizing
     float columnWidth = iconSize + iconPadding;
     float availableWidth = ImGui::GetContentRegionAvail().x;
 
     int columns = static_cast<int>(availableWidth / columnWidth);
-    if (columns < 1) columns = 1;  // Ensure at least one column
-    if (files.size() > 0 && files.size() < columns) columns = files.size();  // Limit columns to number of files if fewer
+    if (columns < 1) columns = 1;
+    if (!files.empty() && (int)files.size() < columns) columns = (int)files.size();
 
-    ImVec2 cellPadding = ImVec2(8.0f, 8.0f);  // Example padding, adjust as needed
-    float totalTableWidth = std::min(availableWidth, 
-        (columnWidth * files.size()) + 
-        (columnWidth * files.size() / 2.0f) + 
-        (cellPadding.x * 2 * (files.size() - 1))
-    );
+    ImVec2 cellPadding = ImVec2(4.0f, 4.0f);
+    float totalTableWidth = std::min(availableWidth,
+        (columnWidth * (float)files.size()) +
+        (columnWidth * (float)files.size() / 2.0f) +
+        (cellPadding.x * 2.0f * (files.empty() ? 0.0f : (float)files.size() - 1.0f)));
 
     ImVec2 scrollRegionMin = ImGui::GetWindowPos();
     ImVec2 scrollRegionMax = ImVec2(scrollRegionMin.x + ImGui::GetWindowSize().x,
-                                   scrollRegionMin.y + ImGui::GetWindowSize().y);
+                                    scrollRegionMin.y + ImGui::GetWindowSize().y);
+
     ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, cellPadding);
 
-    bool clickedInFile = false;  // Declare this before the table for scope
+    bool clickedInFile = false;
 
+    // Start marquee selection if clicking empty space
     if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(0) && !ImGui::IsAnyItemHovered()) {
         isDragging = true;
         dragStart = ImGui::GetMousePos();
@@ -207,6 +209,7 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
         selectedFiles.clear();
     }
 
+    // Update marquee rectangle and auto-scroll
     if (isDragging) {
         ImVec2 mousePos = ImGui::GetMousePos();
         float scrollMargin = 20.0f;
@@ -214,8 +217,7 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
         if (mousePos.y > scrollRegionMax.y - scrollMargin) {
             float scrollDelta = (mousePos.y - (scrollRegionMax.y - scrollMargin)) * 0.5f;
             ImGui::SetScrollY(currentScroll + scrollDelta);
-        }
-        else if (mousePos.y < scrollRegionMin.y + scrollMargin) {
+        } else if (mousePos.y < scrollRegionMin.y + scrollMargin) {
             float scrollDelta = (mousePos.y - (scrollRegionMin.y + scrollMargin)) * 0.5f;
             ImGui::SetScrollY(currentScroll + scrollDelta);
         }
@@ -229,27 +231,48 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
         }
     }
 
+    // Helper: color per file type (separator line)
+    auto fileTypeColor = [&](const FileEntry& fe) -> ImU32 {
+        if (fe.isDirectory) {
+            return ImGui::GetColorU32(ImVec4(0.60f, 0.60f, 0.60f, 1.0f)); // directory
+        }
+        switch (fe.type) {
+            case FileType::IMAGE:    return ImGui::GetColorU32(ImVec4(0.25f, 0.55f, 1.00f, 1.0f)); // blue
+            case FileType::MATERIAL: return ImGui::GetColorU32(ImVec4(0.20f, 0.80f, 0.70f, 1.0f)); // teal
+            case FileType::SCENE:    return ImGui::GetColorU32(ImVec4(0.90f, 0.70f, 0.20f, 1.0f)); // gold
+            case FileType::ENTITY:   return ImGui::GetColorU32(ImVec4(0.30f, 0.85f, 0.30f, 1.0f)); // green
+            case FileType::NONE:
+            default:                 return ImGui::GetColorU32(ImVec4(0.50f, 0.50f, 0.50f, 1.0f)); // default gray
+        }
+    };
+
+    // Card metrics (uniform height)
+    const float pad = 8.0f;                           // inner padding
+    const float thumbHeight = (float)iconSize;        // thumbnail area height
+    const float lineThickness = 2.0f;                 // separator thickness
+    const int   maxTextLines = 2;                     // show up to N lines of name
+    const float lineHeight = ImGui::GetTextLineHeight();
+    const float textAreaHeight = maxTextLines * lineHeight;
+    const float cardHeight = pad + thumbHeight + pad * 0.5f + lineThickness + pad * 0.5f + textAreaHeight + pad;
+
     if (ImGui::BeginTable("FileTable", columns, ImGuiTableFlags_SizingStretchSame, ImVec2(totalTableWidth, 0))) {
         for (auto& file : files) {
-            if (!showDirectories && file.isDirectory) continue;  // Skip directories if not in list mode
+            if (!showDirectories && file.isDirectory) continue;
+
             ImGui::TableNextColumn();
             ImGui::PushID(file.name.c_str());
 
-            float itemSpacingY = ImGui::GetStyle().ItemSpacing.y;
             float cellWidth = ImGui::GetContentRegionAvail().x;
-            ImVec2 textSize = ImGui::CalcTextSize(file.name.c_str(), nullptr, true, cellWidth);
-            float celHeight = iconSize + itemSpacingY + textSize.y;
-            ImVec2 selectableSize(cellWidth, celHeight);
+            ImVec2 cardSize(cellWidth, cardHeight);
 
-            ImGui::BeginGroup();
-
+            // Marquee selection overlap test: compute item rect before creating the item
             if (isDragging) {
                 ImVec2 itemPos = ImGui::GetCursorScreenPos();
                 itemPos.x -= scrollRegionMin.x;
                 itemPos.y -= scrollRegionMin.y;
                 itemPos.x += ImGui::GetScrollX();
                 itemPos.y += ImGui::GetScrollY();
-                ImRect itemRect(itemPos, ImVec2(itemPos.x + selectableSize.x, itemPos.y + selectableSize.y));
+                ImRect itemRect(itemPos, ImVec2(itemPos.x + cardSize.x, itemPos.y + cardSize.y));
                 ImRect selectionRect(
                     ImVec2(std::min(dragStart.x, dragEnd.x), std::min(dragStart.y, dragEnd.y)),
                     ImVec2(std::max(dragStart.x, dragEnd.x), std::max(dragStart.y, dragEnd.y))
@@ -264,7 +287,166 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
             }
 
             bool isSelected = selectedFiles.find(file.name) != selectedFiles.end();
-            if (ImGui::Selectable("", isSelected, ImGuiSelectableFlags_AllowDoubleClick, selectableSize)) {
+
+            // Create the card hit area first so drag/drop can attach to it
+            bool pressed = ImGui::InvisibleButton("##card", cardSize);
+            bool hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
+
+            // Cache card rect from the InvisibleButton
+            ImVec2 cardMin = ImGui::GetItemRectMin();
+            ImVec2 cardMax = ImGui::GetItemRectMax();
+
+            // Double-click handling on the card
+            if (hovered && ImGui::IsMouseDoubleClicked(0)) {
+                clickedInFile = true;
+                if (file.isDirectory) {
+                    scanDirectory(currentPath / file.name);
+                    selectedFiles.clear();
+                } else {
+                    std::string extension = file.extension;
+                    if (extension == ".scene") {
+                        project->openScene(currentPath / file.name);
+                    } else if (extension == ".c" || extension == ".cpp" || extension == ".h" || extension == ".hpp") {
+                        codeEditor->openFile((currentPath / file.name).string());
+                    }
+                }
+            }
+
+            // Resolve image/thumbnail (used for drag preview and display)
+            ImTextureID fileIconImage = (ImTextureID)file.icon;
+            float dispW = (float)iconSize;
+            float dispH = (float)iconSize;
+
+            if (file.hasThumbnail && thumbnailTextures.find(file.thumbnailPath) != thumbnailTextures.end()) {
+                Texture& thumbTexture = thumbnailTextures[file.thumbnailPath];
+                if (!thumbTexture.empty()) {
+                    int tw = thumbTexture.getWidth();
+                    int th = thumbTexture.getHeight();
+
+                    float scale = std::min((float)iconSize / (float)tw, (float)iconSize / (float)th);
+                    dispW = std::max(1.0f, tw * scale);
+                    dispH = std::max(1.0f, th * scale);
+
+                    fileIconImage = (ImTextureID)(intptr_t)thumbTexture.getRender()->getGLHandler();
+                }
+            }
+
+            // Start drag from the card
+            float dragThreshold = ImGui::GetIO().MouseDragThreshold;
+            bool wantDrag = ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left, dragThreshold);
+            if (wantDrag) {
+                if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+                    // Ensure selection contains this file if dragging an unselected item
+                    if (selectedFiles.find(file.name) == selectedFiles.end()) {
+                        selectedFiles.clear();
+                        selectedFiles.insert(file.name);
+                        lastSelectedFile = file.name;
+                    }
+
+                    // Build payload: list of selected file full paths separated by '\0'
+                    std::vector<char> buffer;
+                    buffer.reserve(256);
+                    for (const auto& selectedFile : selectedFiles) {
+                        std::string fullPath = (currentPath / selectedFile).string();
+                        buffer.insert(buffer.end(), fullPath.begin(), fullPath.end());
+                        buffer.push_back('\0');
+                    }
+                    ImGui::SetDragDropPayload("resource_files", buffer.data(), buffer.size());
+
+                    ImGui::Text("Moving %zu file(s)", selectedFiles.size());
+
+                    if (selectedFiles.size() == 1) {
+                        float imageDragSize = 32.0f;
+                        float scale = std::min(imageDragSize / dispW, imageDragSize / dispH);
+                        float previewW = dispW * scale;
+                        float previewH = dispH * scale;
+
+                        float availWidth = ImGui::GetCurrentWindow()->Size.x;
+                        float xPos = (availWidth - previewW) * 0.5f;
+                        ImGui::SetCursorPosX(xPos);
+                        ImGui::Image(fileIconImage, ImVec2(previewW, previewH));
+                    }
+                    ImGui::EndDragDropSource();
+                }
+            }
+
+            // Make the entire directory card a drop target (not only the icon)
+            if (file.isDirectory) {
+                if (ImGui::BeginDragDropTarget()) {
+                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
+                        handleInternalDragAndDrop(currentPath / file.name);
+                    }
+                    ImGui::EndDragDropTarget();
+                }
+            }
+
+            // Card background and border — distinct but theme-aware
+            ImDrawList* drawList = ImGui::GetWindowDrawList();
+            const ImGuiStyle& style = ImGui::GetStyle();
+
+            ImVec4 windowBg = style.Colors[ImGuiCol_WindowBg];
+            ImVec4 frameBg  = style.Colors[ImGuiCol_FrameBg];
+            ImVec4 header   = style.Colors[ImGuiCol_Header];
+            ImVec4 headerHovered = style.Colors[ImGuiCol_HeaderHovered];
+            ImVec4 headerActive  = style.Colors[ImGuiCol_HeaderActive];
+            ImVec4 borderV  = style.Colors[ImGuiCol_Border];
+
+            auto blend = [](ImVec4 a, ImVec4 b, float t) {
+                return ImVec4(
+                    a.x + (b.x - a.x) * t,
+                    a.y + (b.y - a.y) * t,
+                    a.z + (b.z - a.z) * t,
+                    1.0f
+                );
+            };
+
+            ImVec4 bgV = blend(windowBg, frameBg, 0.20f);           // normal: slightly different from window
+            if (hovered) bgV = blend(windowBg, headerHovered, 0.25f);
+            if (isSelected) bgV = header;
+
+            ImU32 bgCol = ImGui::ColorConvertFloat4ToU32(bgV);
+
+            ImVec4 bColV = borderV;
+            if (hovered)    bColV = headerHovered;
+            if (isSelected) bColV = headerActive;
+            ImU32 borderCol = ImGui::ColorConvertFloat4ToU32(bColV);
+
+            float rounding = style.FrameRounding;
+            drawList->AddRectFilled(cardMin, cardMax, bgCol, rounding);
+            drawList->AddRect(cardMin, cardMax, borderCol, rounding, 0, 1.0f);
+
+            // Content rect (inside padding)
+            ImVec2 contentMin(cardMin.x + pad, cardMin.y + pad);
+            float contentWidth = cardMax.x - cardMin.x - (pad * 2.0f);
+
+            // Center image in thumbnail area
+            float imageX = contentMin.x + (contentWidth - dispW) * 0.5f;
+            float imageY = contentMin.y + (thumbHeight - dispH) * 0.5f;
+            ImGui::SetCursorScreenPos(ImVec2(imageX, imageY));
+            ImGui::Image(fileIconImage, ImVec2(dispW, dispH));
+
+            // Separator line (color by file type)
+            ImU32 sepCol = fileTypeColor(file);
+            float lineY = contentMin.y + thumbHeight + pad * 0.5f;
+            drawList->AddLine(ImVec2(contentMin.x, lineY), ImVec2(contentMin.x + contentWidth, lineY), sepCol, lineThickness);
+
+            // Name text, wrapped and clipped to a fixed area (uniform card height)
+            float textY = lineY + lineThickness + pad * 0.375f;
+            ImVec4 cpuClipRect(contentMin.x, textY, contentMin.x + contentWidth, textY + textAreaHeight);
+
+            drawList->AddText(
+                ImGui::GetFont(),
+                ImGui::GetFontSize(),
+                ImVec2(contentMin.x, textY),
+                ImGui::GetColorU32(ImGuiCol_Text),
+                file.name.c_str(),
+                nullptr,
+                contentWidth,
+                &cpuClipRect
+            );
+
+            // Selection logic
+            if (pressed) {
                 clickedInFile = true;
                 if (ctrlPressed) {
                     if (isSelected) selectedFiles.erase(file.name);
@@ -288,23 +470,11 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
                     selectedFiles.insert(file.name);
                     lastSelectedFile = file.name;
                 }
-                if (ImGui::IsMouseDoubleClicked(0)) {
-                    if (file.isDirectory) {
-                        scanDirectory(currentPath / file.name);
-                        selectedFiles.clear();
-                    } else {
-                        // Existing file handling
-                        std::string extension = file.extension;
-                        if (extension == ".scene") {
-                            project->openScene(currentPath / file.name);
-                        } else if (extension == ".c" || extension == ".cpp" || extension == ".h" || extension == ".hpp") {
-                            codeEditor->openFile((currentPath / file.name).string());
-                        }
-                    }
-                }
             }
 
-            if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+            // Right-click context menu — detect on the card rect
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) &&
+                ImGui::IsMouseHoveringRect(cardMin, cardMax, true)) {
                 clickedInFile = true;
                 if (!ctrlPressed && !isSelected) selectedFiles.clear();
                 selectedFiles.insert(file.name);
@@ -328,98 +498,13 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
                 ImGui::EndPopup();
             }
 
-            ImTextureID fileIconImage = (ImTextureID)file.icon;
-            ImVec2 fileIconSize = ImVec2(iconSize, iconSize);
-
-            float iconOffsetX = (cellWidth - iconSize) / 2;
-            float iconOffsetY = selectableSize.y + itemSpacingY;
-            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + iconOffsetX);
-            ImGui::SetCursorPosY(ImGui::GetCursorPosY() - iconOffsetY);
-            if (file.hasThumbnail && thumbnailTextures.find(file.thumbnailPath) != thumbnailTextures.end()) {
-                Texture& thumbTexture = thumbnailTextures[file.thumbnailPath];
-                if (!thumbTexture.empty()) {
-                    // Get actual thumbnail dimensions
-                    int thumbWidth = thumbTexture.getWidth();
-                    int thumbHeight = thumbTexture.getHeight();
-
-                    // Calculate scaling to fit within iconSize while preserving aspect ratio
-                    float scaleX = (float)iconSize / thumbWidth;
-                    float scaleY = (float)iconSize / thumbHeight;
-                    float scale = std::min(scaleX, scaleY);
-
-                    // Calculate display dimensions
-                    float displayWidth = thumbWidth * scale;
-                    float displayHeight = thumbHeight * scale;
-
-                    float offsetX = (iconSize - displayWidth) / 2;
-                    float offsetY = (iconSize - displayHeight) / 2;
-
-                    // Adjust cursor position for centering
-                    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offsetX);
-                    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + offsetY);
-
-                    fileIconImage = (ImTextureID)(intptr_t)thumbTexture.getRender()->getGLHandler();
-                    fileIconSize = ImVec2(displayWidth, displayHeight);
-                }
-            }
-
-            ImGui::Image(fileIconImage, fileIconSize);
-
-            float textOffsetX = (cellWidth / 2) - (textSize.x / 2);
-            if (textOffsetX < 0) textOffsetX = 0;
-            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + textOffsetX);
-            ImGui::TextWrapped("%s", file.name.c_str());
-
-            ImGui::EndGroup();
             ImGui::PopID();
-
-            if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
-                if (selectedFiles.find(file.name) == selectedFiles.end()) {
-                    selectedFiles.clear();
-                    selectedFiles.insert(file.name);
-                    lastSelectedFile = file.name;
-                }
-                std::vector<char> buffer;
-                for (const auto& selectedFile : selectedFiles) {
-                    std::string fullPath = (currentPath / selectedFile).string();
-                    buffer.insert(buffer.end(), fullPath.begin(), fullPath.end());
-                    buffer.push_back('\0');
-                }
-                ImGui::SetDragDropPayload("resource_files", buffer.data(), buffer.size());
-                ImGui::Text("Moving %zu file(s)", selectedFiles.size());
-                if (selectedFiles.size() == 1){
-                    float imageDragSize = 32;
-
-                    // Calculate scaling to fit within iconSize while preserving aspect ratio
-                    float scaleX = imageDragSize / fileIconSize.x;
-                    float scaleY = imageDragSize / fileIconSize.y;
-                    float scale = std::min(scaleX, scaleY);
-
-                    // Calculate display dimensions
-                    float displayWidth = fileIconSize.x * scale;
-                    float displayHeight = fileIconSize.y * scale;
-
-                    float availWidth = ImGui::GetCurrentWindow()->Size.x;
-                    float xPos = (availWidth - displayWidth) * 0.5f;
-                    ImGui::SetCursorPosX(xPos);
-
-                    ImGui::Image(fileIconImage, ImVec2(displayWidth, displayHeight));
-                }
-                ImGui::EndDragDropSource();
-            }
-
-            if (file.isDirectory && ImGui::BeginDragDropTarget()) {
-                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
-                    handleInternalDragAndDrop(currentPath / file.name);
-                }
-                ImGui::EndDragDropTarget();
-            }
         }
         ImGui::EndTable();
     }
     ImGui::PopStyleVar();
 
-    // Handle right-click on empty space
+    // Right-click on empty space
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsWindowHovered() && !clickedInFile) {
         ImGui::OpenPopup("ResourcesContextMenu");
     }
@@ -444,10 +529,12 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
         ImGui::EndPopup();
     }
 
+    // Clear selection when clicking empty space
     if (ImGui::IsMouseClicked(0) && ImGui::IsWindowHovered() && !clickedInFile) {
         selectedFiles.clear();
     }
 
+    // Draw marquee rectangle
     if (isDragging) {
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         ImVec2 rectMin(
@@ -466,7 +553,7 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
         drawList->AddRectFilled(rectMin, rectMax, IM_COL32(100, 150, 255, 50));
     }
 
-    // Delete confirmation popup
+    // Delete confirmation modal
     if (showDeleteConfirmation) {
         ImGui::OpenPopup("Delete Confirmation");
     }
