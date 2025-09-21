@@ -427,7 +427,7 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
                                   1.0f);
                 };
 
-                ImVec4 bgV = blend(windowBg, frameBg, 0.20f);
+                ImVec4 bgV = blend(windowBg, frameBg, 0.50f);
                 if (hovered) bgV = blend(windowBg, headerHovered, 0.25f);
                 if (isSelected) bgV = header;
                 ImU32 bgCol = ImGui::ColorConvertFloat4ToU32(bgV);
