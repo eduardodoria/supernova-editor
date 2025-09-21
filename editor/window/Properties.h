@@ -53,7 +53,7 @@ namespace Supernova::Editor{
         void drawImageWithBorderAndRounding(Texture* texture, const ImVec2& size, float rounding = 4.0f, ImU32 border_col = IM_COL32(0, 0, 0, 255), float border_thickness = 1.0f, bool flipY = false);
         void dragDropResources(ComponentType cpType, std::string id, SceneProject* sceneProject, std::vector<Entity> entities, int updateFlags);
 
-        void handleComponentMenu(SceneProject* sceneProject, std::vector<Entity> entities, ComponentType cpType, const std::filesystem::path& sharedPath, bool& headerOpen);
+        void handleComponentMenu(SceneProject* sceneProject, std::vector<Entity> entities, ComponentType cpType, bool isSharedGroup, bool isComponentOverridden, bool& headerOpen);
 
         bool canAddComponent(SceneProject* sceneProject, Entity entity, ComponentType cpType);
 

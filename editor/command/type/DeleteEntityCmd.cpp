@@ -128,7 +128,6 @@ bool Editor::DeleteEntityCmd::mergeWith(Editor::Command* otherCommand){
             lastSelected = otherCmd->lastSelected;
 
             for (DeleteEntityData& otherEntityData :  otherCmd->entities){
-                // insert at begin to keep deletion order
                 entities.push_back(otherEntityData);
             }
 

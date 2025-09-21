@@ -7,51 +7,83 @@ using namespace Supernova;
 Editor::ComponentToSharedCmd::ComponentToSharedCmd(Project* project, uint32_t sceneId, Entity entity, ComponentType componentType){
     this->project = project;
     this->sceneId = sceneId;
-    this->entity = entity;
     this->componentType = componentType;
+
+    ComponentToSharedData entityData;
+    entityData.entity = entity;
+    entities.push_back(entityData);
+
+    this->wasModified = project->getScene(sceneId)->isModified;
 }
 
 bool Editor::ComponentToSharedCmd::execute() {
     SceneProject* sceneProject = project->getScene(sceneId);
-    fs::path filepath = project->findGroupPathFor(sceneId, entity);
-    if (sceneProject && !filepath.empty()) {
-        SharedGroup* group = project->getSharedGroup(filepath);
 
-        Signature signature = Catalog::componentTypeToSignature(sceneProject->scene, componentType);
-        recovery = Stream::encodeComponents(entity, sceneProject->scene, signature);
+    for (ComponentToSharedData& entityData : entities){
 
-        // Clear the override and copy values from the shared registry
-        group->clearComponentOverride(sceneProject->id, entity, componentType);
+        fs::path filepath = project->findGroupPathFor(sceneId, entityData.entity);
+        if (sceneProject && !filepath.empty()) {
+            SharedGroup* group = project->getSharedGroup(filepath);
 
-        Entity registryEntity = group->getRegistryEntity(sceneId, entity);
-        Catalog::copyComponent(group->registry.get(), registryEntity, sceneProject->scene, entity, componentType);
+            Signature signature = Catalog::componentTypeToSignature(sceneProject->scene, componentType);
+            entityData.recovery = Stream::encodeComponents(entityData.entity, sceneProject->scene, signature);
 
-        sceneProject->isModified = true;
+            if (!group->hasComponentOverride(sceneId, entityData.entity, componentType)){
+                return false;
+            }
+
+            // Clear the override and copy values from the shared registry
+            group->clearComponentOverride(sceneProject->id, entityData.entity, componentType);
+
+            Entity registryEntity = group->getRegistryEntity(sceneId, entityData.entity);
+            Catalog::copyComponent(group->registry.get(), registryEntity, sceneProject->scene, entityData.entity, componentType);
+        }
+
     }
+
+    sceneProject->isModified = true;
 
     return true;
 }
 
 void Editor::ComponentToSharedCmd::undo() {
     SceneProject* sceneProject = project->getScene(sceneId);
-    fs::path filepath = project->findGroupPathFor(sceneId, entity);
-    if (sceneProject && !filepath.empty()) {
-        SharedGroup* group = project->getSharedGroup(filepath);
 
-        group->setComponentOverride(sceneProject->id, entity, componentType);
+    for (ComponentToSharedData& entityData : entities){
 
-        Entity parent = NULL_ENTITY;
-        if (componentType == ComponentType::Transform){
-            parent = sceneProject->scene->getComponent<Transform>(entity).parent;
+        fs::path filepath = project->findGroupPathFor(sceneId, entityData.entity);
+        if (sceneProject && !filepath.empty()) {
+            SharedGroup* group = project->getSharedGroup(filepath);
+
+            group->setComponentOverride(sceneProject->id, entityData.entity, componentType);
+
+            Entity parent = NULL_ENTITY;
+            if (componentType == ComponentType::Transform){
+                parent = sceneProject->scene->getComponent<Transform>(entityData.entity).parent;
+            }
+
+            Stream::decodeComponents(entityData.entity, parent, sceneProject->scene, entityData.recovery);
         }
 
-        Stream::decodeComponents(entity, parent, sceneProject->scene, recovery);
-
-        sceneProject->isModified = true;
     }
+
+    sceneProject->isModified = wasModified;
 }
 
 bool Editor::ComponentToSharedCmd::mergeWith(Command* otherCommand){
+    ComponentToSharedCmd* otherCmd = dynamic_cast<ComponentToSharedCmd*>(otherCommand);
+    if (otherCmd != nullptr){
+        if (sceneId == otherCmd->sceneId){
+
+            for (ComponentToSharedData& otherEntityData :  otherCmd->entities){
+                entities.push_back(otherEntityData);
+            }
+
+            wasModified = wasModified && otherCmd->wasModified;
+
+            return true;
+        }
+    }
 
     return false;
 }

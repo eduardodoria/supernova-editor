@@ -239,34 +239,39 @@ void Editor::Properties::dragDropResources(ComponentType cpType, std::string id,
     }
 }
 
-void Editor::Properties::handleComponentMenu(SceneProject* sceneProject, std::vector<Entity> entities, ComponentType cpType, const std::filesystem::path& sharedPath, bool& headerOpen) {
+void Editor::Properties::handleComponentMenu(SceneProject* sceneProject, std::vector<Entity> entities, ComponentType cpType, bool isSharedGroup, bool isComponentOverridden, bool& headerOpen) {
     if (ImGui::BeginPopupContextItem(("component_options_menu_" + std::to_string(static_cast<int>(cpType))).c_str())) {
         ImGui::TextDisabled("Component options");
         ImGui::Separator();
 
-        SharedGroup* sharedGroup = project->getSharedGroup(sharedPath);
-
-        if (sharedGroup){
-            if (sharedGroup->hasComponentOverride(sceneProject->id, entities[0], cpType)) {
+        if (isSharedGroup){
+            if (isComponentOverridden) {
                 if (ImGui::MenuItem(ICON_FA_LINK " Revert to Shared")) {
-                    cmd = new ComponentToSharedCmd(project, sceneProject->id, entities[0], cpType);
-                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                    for (Entity& entity : entities){
+                        cmd = new ComponentToSharedCmd(project, sceneProject->id, entity, cpType);
+                        CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                    }
+                    cmd->setNoMerge();
                 }
 
             } else {
                 if (ImGui::MenuItem(ICON_FA_LOCK_OPEN " Make Unique")) {
-                    cmd = new ComponentToLocalCmd(project, sceneProject->id, entities[0], cpType);
-                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                    for (Entity& entity : entities){
+                        cmd = new ComponentToLocalCmd(project, sceneProject->id, entity, cpType);
+                        CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                    }
+                    cmd->setNoMerge();
                 }
             }
         }
 
-        bool canRemove = !(cpType == ComponentType::Transform && sharedGroup);
+        bool canRemove = !(cpType == ComponentType::Transform && isSharedGroup);
         if (ImGui::MenuItem(ICON_FA_TRASH " Remove", nullptr, false, canRemove)) {
             for (Entity& entity : entities){
                 cmd = new RemoveComponentCmd(project, sceneProject->id, entity, cpType);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
+            cmd->setNoMerge();
 
             headerOpen = false;
         }
@@ -2069,15 +2074,9 @@ void Editor::Properties::show(){
 
     if (entities.size() > 0){
 
-        // Check if any selected entity is part of a shared group
-        std::filesystem::path sharedGroupPath;
-        bool isShared = false;
-        if (entities.size() == 1) {
-            sharedGroupPath = project->findGroupPathFor(sceneProject->id, entities[0]);
-            isShared = !sharedGroupPath.empty();
-        }
-
         // to change component view order, need change ComponentType
+        std::filesystem::path sharedGroupPath;
+        std::string names;
         bool isFirstEntity = true;
         for (Entity& entity : entities){
             std::vector<ComponentType> newComponents = Catalog::findComponents(scene, entity);
@@ -2086,8 +2085,12 @@ void Editor::Properties::show(){
                 std::sort(newComponents.begin(), newComponents.end());
             }
 
+            std::filesystem::path newSharedGroupPath = project->findGroupPathFor(sceneProject->id, entity);
+            sharedGroupPath = project->findGroupPathFor(sceneProject->id, entity);
+
             if (isFirstEntity) {
                 components = newComponents;
+                sharedGroupPath = newSharedGroupPath;
                 isFirstEntity = false;
             } else {
                 std::vector<ComponentType> intersection;
@@ -2099,18 +2102,17 @@ void Editor::Properties::show(){
                     std::back_inserter(intersection));
 
                 components = std::move(intersection);
-            }
-        }
 
-        std::string names;
-        bool firstEntity = true;
-        for (Entity& entity : entities){
-            if (!firstEntity){
+                if (sharedGroupPath != newSharedGroupPath) {
+                    sharedGroupPath.clear(); // Different groups, so no shared group
+                }
+
                 names += ", ";
             }
+
             names += scene->getEntityName(entity);
-            firstEntity = false;
         }
+
         if (entities.size() == 1){
             ImGui::Text("Entity");
         }else{
@@ -2348,6 +2350,7 @@ void Editor::Properties::show(){
                                 cmd = new AddComponentCmd(project, sceneProject->id, entity, entry.type);
                                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
                             }
+                            cmd->setNoMerge();
 
                             // Mark scene as modified
                             sceneProject->isModified = true;
@@ -2422,15 +2425,24 @@ void Editor::Properties::show(){
             ImGui::EndPopup();
         }
 
+        bool isShared = !sharedGroupPath.empty();
+
         for (ComponentType& cpType : components){
 
             // Check if this component is overridden for shared entities
             bool isComponentOverridden = false;
             SharedGroup* sharedGroup = nullptr;
-            if (isShared && entities.size() == 1) {
+            if (isShared) {
                 sharedGroup = project->getSharedGroup(sharedGroupPath);
                 if (sharedGroup) {
-                    isComponentOverridden = sharedGroup->hasComponentOverride(sceneProject->id, entities[0], cpType);
+                    for (Entity& entity : entities) {
+                        if (sharedGroup->hasComponentOverride(sceneProject->id, entity, cpType)) {
+                            // If any entity does have an override, treat as overridden
+                            isComponentOverridden = true;
+                            break;
+                        }
+                        isComponentOverridden = false;
+                    }
                 }
             }
 
@@ -2455,7 +2467,7 @@ void Editor::Properties::show(){
                 ImGui::PopStyleColor();
             }
 
-            handleComponentMenu(sceneProject, entities, cpType, sharedGroupPath, headerOpen);
+            handleComponentMenu(sceneProject, entities, cpType, isShared, isComponentOverridden, headerOpen);
 
             // Add hover tooltip only for shared components
             if (isShared && !isComponentOverridden && ImGui::IsItemHovered()) {

@@ -1,6 +1,7 @@
 #include "RemoveComponentCmd.h"
 
 #include "Stream.h"
+#include "Out.h"
 
 using namespace Supernova;
 
@@ -26,6 +27,11 @@ bool Editor::RemoveComponentCmd::execute() {
 
             fs::path filepath = project->findGroupPathFor(sceneId, entityData.entity);
             SharedGroup* group = project->getSharedGroup(filepath);
+
+            if (group && componentType == ComponentType::Transform){
+                Out::error("Cannot remove Transform component from shared entity '%s' in scene '%s'", scene->getEntityName(entityData.entity).c_str(), sceneProject->name.c_str());
+                continue;
+            }
 
             if (group && !group->hasComponentOverride(sceneId, entityData.entity, componentType)){
 
@@ -87,7 +93,6 @@ bool Editor::RemoveComponentCmd::mergeWith(Command* otherCommand){
         if (sceneId == otherCmd->sceneId){
 
             for (RemoveComponentData& otherEntityData :  otherCmd->entities){
-                // insert at begin to keep deletion order
                 entities.push_back(otherEntityData);
             }
 

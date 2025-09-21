@@ -6,14 +6,20 @@
 
 namespace Supernova::Editor {
 
+    struct ComponentToSharedData {
+        Entity entity;
+        YAML::Node recovery;
+    };
+
     class ComponentToSharedCmd: public Command {
     private:
         Project* project;
         uint32_t sceneId;
-        Entity entity;
         ComponentType componentType;
 
-        YAML::Node recovery;
+        std::vector<ComponentToSharedData> entities;
+
+        bool wasModified;
 
     public:
         ComponentToSharedCmd(Project* project, uint32_t sceneId, Entity entity, ComponentType componentType);

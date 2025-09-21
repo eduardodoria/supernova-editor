@@ -10,8 +10,10 @@ namespace Supernova::Editor {
     private:
         Project* project;
         uint32_t sceneId;
-        Entity entity;
+        std::vector<Entity> entities;
         ComponentType componentType;
+
+        bool wasModified;
 
     public:
         ComponentToLocalCmd(Project* project, uint32_t sceneId, Entity entity, ComponentType componentType);
