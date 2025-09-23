@@ -548,7 +548,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                 if (node.isScene){
                     CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new SceneNameCmd(project, node.id, nameBuffer));
                 }else{
-                    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new EntityNameCmd(project->getSelectedScene(), node.id, nameBuffer));
+                    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new EntityNameCmd(project, project->getSelectedSceneId(), node.id, nameBuffer));
                 }
             }
         }

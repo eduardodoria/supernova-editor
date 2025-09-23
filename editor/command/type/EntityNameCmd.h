@@ -13,13 +13,14 @@ namespace Supernova::Editor{
         std::string oldName;
         std::string newName;
 
-        SceneProject* sceneProject;
+        Project* project;
+        uint32_t sceneId;
         Entity entity;
 
         bool wasModified;
 
     public:
-        EntityNameCmd(SceneProject* sceneProject, Entity entity, std::string name);
+        EntityNameCmd(Project* project, uint32_t sceneId, Entity entity, std::string name);
 
         bool execute() override;
         void undo() override;

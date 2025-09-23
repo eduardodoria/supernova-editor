@@ -100,7 +100,7 @@ namespace Supernova::Editor{
         void commit() override{
             for (auto const& [entity, value] : values){
                 if (project->isEntityShared(sceneId, entity)){
-                    project->sharedGroupComponentChanged(sceneId, entity, type, {propertyName});
+                    project->sharedGroupPropertyChanged(sceneId, entity, type, {propertyName});
                 }
             }
         }

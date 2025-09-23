@@ -2,16 +2,23 @@
 
 using namespace Supernova;
 
-Editor::EntityNameCmd::EntityNameCmd(SceneProject* sceneProject, Entity entity, std::string name){
-    this->sceneProject = sceneProject;
+Editor::EntityNameCmd::EntityNameCmd(Project* project, uint32_t sceneId, Entity entity, std::string name){
+    this->project = project;
+    this->sceneId = sceneId;
     this->entity = entity;
     this->newName = name;
 
-    this->wasModified = sceneProject->isModified;
+    this->wasModified = project->getScene(sceneId)->isModified;
 }
 
 bool Editor::EntityNameCmd::execute(){
+    SceneProject* sceneProject = project->getScene(sceneId);
+
     oldName = sceneProject->scene->getEntityName(entity);
+
+    if (project->isEntityShared(sceneId, entity)){
+        project->sharedGroupNameChanged(sceneId, entity, newName, false);
+    }
     sceneProject->scene->setEntityName(entity, newName);
 
     sceneProject->isModified = true;
@@ -20,6 +27,11 @@ bool Editor::EntityNameCmd::execute(){
 }
 
 void Editor::EntityNameCmd::undo(){
+    SceneProject* sceneProject = project->getScene(sceneId);
+
+    if (project->isEntityShared(sceneId, entity)){
+        project->sharedGroupNameChanged(sceneId, entity, oldName, false);
+    }
     sceneProject->scene->setEntityName(entity, oldName);
 
     sceneProject->isModified = wasModified;
@@ -28,7 +40,7 @@ void Editor::EntityNameCmd::undo(){
 bool Editor::EntityNameCmd::mergeWith(Editor::Command* otherCommand){
     EntityNameCmd* otherCmd = dynamic_cast<EntityNameCmd*>(otherCommand);
     if (otherCmd != nullptr){
-        if (sceneProject == otherCmd->sceneProject && entity == otherCmd->entity){
+        if (sceneId == otherCmd->sceneId && entity == otherCmd->entity){
             this->oldName = otherCmd->oldName;
 
             this->wasModified = this->wasModified && otherCmd->wasModified;

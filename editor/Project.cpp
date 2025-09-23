@@ -2510,7 +2510,7 @@ void Editor::Project::collectEntities(const YAML::Node& entityNode, std::vector<
     }
 }
 
-bool Editor::Project::sharedGroupComponentChanged(uint32_t sceneId, Entity entity, ComponentType componentType, std::vector<std::string> properties, bool renderAllScenes){
+bool Editor::Project::sharedGroupPropertyChanged(uint32_t sceneId, Entity entity, ComponentType componentType, std::vector<std::string> properties, bool renderAllScenes){
     fs::path filepath = findGroupPathFor(sceneId, entity);
 
     if (filepath.empty()) {
@@ -2559,6 +2559,48 @@ bool Editor::Project::sharedGroupComponentChanged(uint32_t sceneId, Entity entit
                         }
                     }
                 }
+            }
+        }
+    }
+
+    group->isModified = true;
+
+    return true;
+}
+
+bool Editor::Project::sharedGroupNameChanged(uint32_t sceneId, Entity entity, std::string name, bool changeItself){
+    fs::path filepath = findGroupPathFor(sceneId, entity);
+
+    if (filepath.empty()) {
+        Out::error("Entity %u in scene %u is not part of any shared group", entity, sceneId);
+        return false;
+    }
+
+    SharedGroup* group = getSharedGroup(filepath);
+    uint32_t instanceId = group->getInstanceId(sceneId, entity);
+
+    Entity registryEntity = group->getRegistryEntity(sceneId, entity);
+    if (registryEntity == NULL_ENTITY) {
+        Out::error("Failed to find registry entity for shared entity %u in scene %u", entity, sceneId);
+        return false;
+    }
+    EntityRegistry* registry = group->registry.get();
+
+    registry->setEntityName(registryEntity, name);
+
+    for (auto& [otherSceneId, sceneInstances] : group->instances) {
+        for (auto& instance : sceneInstances) {
+            if ((otherSceneId != sceneId) || (instance.instanceId != instanceId) || changeItself) {
+                Entity otherEntity = group->getLocalEntity(otherSceneId, instance.instanceId, registryEntity);
+
+                SceneProject* otherScene = getScene(otherSceneId);
+                if (otherScene) {
+
+                    otherScene->scene->setEntityName(otherEntity, name);
+                    otherScene->isModified = true;
+
+                }
+
             }
         }
     }
