@@ -137,6 +137,9 @@ bool Editor::MoveEntityOrderCmd::execute(){
 
     if (project->isEntityShared(sceneId, source)){
 
+        fs::path parentSharedPath;
+        fs::path sourceSharedPath = project->findGroupPathFor(sceneId, source);
+
         if (type == InsertionType::IN){
             if (!project->isEntityShared(sceneId, target)){
                 Out::error("Cannot move shared entity %u into target %u", source, target);
@@ -145,17 +148,23 @@ bool Editor::MoveEntityOrderCmd::execute(){
         }else{
             Transform* transformTarget = sceneProject->scene->findComponent<Transform>(target);
             if (transformTarget){
-                fs::path parentSharedPath = project->findGroupPathFor(sceneId, transformTarget->parent);
-                fs::path sourceSharedPath = project->findGroupPathFor(sceneId, source);
+                parentSharedPath = project->findGroupPathFor(sceneId, transformTarget->parent);
 
-                if (parentSharedPath != sourceSharedPath){
+                SharedGroup* sourceSourceGroup = project->getSharedGroup(sourceSharedPath);
+                uint32_t souceInstanceId = sourceSourceGroup->getInstanceId(sceneId, source);
+
+                bool isSourceRoot = sourceSourceGroup && (sourceSourceGroup->getRootEntity(sceneId, souceInstanceId) == source);
+
+                if (parentSharedPath != sourceSharedPath && !isSourceRoot){
                     Out::error("Cannot move shared entity %u outside shared group", source);
                     return false;
                 }
             }
         }
 
-        sharedMoveRecovery = project->moveEntityFromSharedGroup(sceneId, source, target, type, false);
+        if (parentSharedPath == sourceSharedPath){
+            sharedMoveRecovery = project->moveEntityFromSharedGroup(sceneId, source, target, type, false);
+        }
     }
     moveEntityOrderByTarget(sceneProject->scene, sceneProject->entities, source, target, type, oldParent, oldIndex, hasTransform);
 

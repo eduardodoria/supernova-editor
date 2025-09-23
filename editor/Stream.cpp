@@ -832,7 +832,7 @@ YAML::Node Editor::Stream::encodeEntityAux(const Entity entity, const EntityRegi
     return entityNode;
 }
 
-std::vector<Entity> Editor::Stream::decodeEntity(const YAML::Node& entityNode, EntityRegistry* registry, std::vector<Entity>* entities, Project* project, SceneProject* sceneProject, Entity parent) {
+std::vector<Entity> Editor::Stream::decodeEntity(const YAML::Node& entityNode, EntityRegistry* registry, std::vector<Entity>* entities, Project* project, SceneProject* sceneProject, Entity parent, bool returnSharedEntities) {
     std::vector<Entity> allEntities;
 
     std::string entityType = entityNode["type"].as<std::string>();
@@ -841,7 +841,10 @@ std::vector<Entity> Editor::Stream::decodeEntity(const YAML::Node& entityNode, E
 
         if (project && sceneProject){
             std::filesystem::path sharedPath = entityNode["path"].as<std::string>();
-            allEntities = project->importSharedEntity(sceneProject, sharedPath, parent, false, entityNode);
+            std::vector<Entity> sharedEntities = project->importSharedEntity(sceneProject, sharedPath, parent, false, entityNode);
+            if (returnSharedEntities) {
+                allEntities.insert(allEntities.end(), sharedEntities.begin(), sharedEntities.end());
+            }
         }
 
     }else if (entityType == "Entity") {
@@ -874,7 +877,7 @@ std::vector<Entity> Editor::Stream::decodeEntity(const YAML::Node& entityNode, E
         // Decode children from actualNode
         if (entityNode["children"]) {
             for (const auto& childNode : entityNode["children"]) {
-                std::vector<Entity> childEntities = decodeEntity(childNode, registry, entities, project, sceneProject, entity);
+                std::vector<Entity> childEntities = decodeEntity(childNode, registry, entities, project, sceneProject, entity, returnSharedEntities);
                 std::copy(childEntities.begin(), childEntities.end(), std::back_inserter(allEntities));
             }
         }

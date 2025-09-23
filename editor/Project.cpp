@@ -1648,8 +1648,6 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
         }
     }
 
-    std::vector<size_t> indicesNotShared;
-
     // Merge extendNode with loadedNode if extendNode is provided
     std::vector<MergeResult> mergeResults;
     if (extendNode && !extendNode.IsNull()) {
@@ -1658,7 +1656,7 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
 
     // decode into brand‐new local entities (root + children)
     Scene* scene = sceneProject->scene;
-    std::vector<Entity> newEntities = Stream::decodeEntity(node, scene, &sceneProject->entities);
+    std::vector<Entity> newEntities = Stream::decodeEntity(node, scene, &sceneProject->entities, this, sceneProject, parent, false);
     scene->addEntityChild(parent, newEntities[0], false);
 
     std::vector<Entity> membersEntities;
@@ -2417,6 +2415,7 @@ std::vector<Editor::MergeResult> Editor::Project::mergeEntityNodes(const YAML::N
         std::string extendType = extendNode["children"][i]["type"] ? extendNode["children"][i]["type"].as<std::string>() : "";
 
         if (extendType == "Entity"){
+
             YAML::Node newChild = YAML::Clone(extendNode["children"][i]);
             insertNewChild(outputNode, newChild, i);
 
@@ -2424,11 +2423,19 @@ std::vector<Editor::MergeResult> Editor::Project::mergeEntityNodes(const YAML::N
             for (size_t c = 0; c < entityCount; ++c) {
                 result.push_back({false, 0});
             }
-        }else{
+
+        }else if (extendType == "SharedEntityChild"){
+
             YAML::Node outputChild = outputNode["children"][i];
             YAML::Node extendChild = extendNode["children"][i];
             std::vector<Editor::MergeResult> newResults = mergeEntityNodes(extendChild, outputChild);
             std::copy(newResults.begin(), newResults.end(), std::back_inserter(result));
+
+        }else if (extendType == "SharedEntity"){ // For nested shared entities
+
+            YAML::Node newChild = YAML::Clone(extendNode["children"][i]);
+            insertNewChild(outputNode, newChild, i);
+
         }
 
     }
