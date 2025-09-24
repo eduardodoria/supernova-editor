@@ -54,6 +54,10 @@ namespace Supernova::Editor{
                 *valueRef = value.newValue;
 
                 Catalog::updateEntity(sceneProject->scene, entity, updateFlags);
+
+                if (project->isEntityShared(sceneId, entity)){
+                    project->sharedGroupPropertyChanged(sceneId, entity, type, {propertyName});
+                }
             }
 
             sceneProject->isModified = true;
@@ -72,6 +76,10 @@ namespace Supernova::Editor{
                 *valueRef = value.oldValue;
 
                 Catalog::updateEntity(sceneProject->scene, entity, updateFlags);
+
+                if (project->isEntityShared(sceneId, entity)){
+                    project->sharedGroupPropertyChanged(sceneId, entity, type, {propertyName});
+                }
             }
 
             sceneProject->isModified = wasModified;
@@ -97,13 +105,6 @@ namespace Supernova::Editor{
             return false;
         }
 
-        void commit() override{
-            for (auto const& [entity, value] : values){
-                if (project->isEntityShared(sceneId, entity)){
-                    project->sharedGroupPropertyChanged(sceneId, entity, type, {propertyName});
-                }
-            }
-        }
     };
 
 }

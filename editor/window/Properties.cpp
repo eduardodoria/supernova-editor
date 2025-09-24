@@ -1652,7 +1652,6 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
     if (ImGui::IsItemDeactivatedAfterEdit() || finishProperty) {
         cmd->setNoMerge();
-        cmd->commit();
         cmd = nullptr;
         finishProperty = false;
     }
@@ -1896,7 +1895,7 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
 
                 updateMeshShape(meshComp, meshSys.get(), shapeParams);
 
-                CommandHandle::get(sceneProject->id)->addCommandCommit(new MeshChangeCmd(project, sceneProject->id, entities[0], meshComp));
+                CommandHandle::get(sceneProject->id)->addCommandNoMerge(new MeshChangeCmd(project, sceneProject->id, entities[0], meshComp));
             }
 
             ImGui::CloseCurrentPopup();

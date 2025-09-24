@@ -137,8 +137,8 @@ bool Editor::MoveEntityOrderCmd::execute(){
 
     if (project->isEntityShared(sceneId, source)){
 
-        fs::path parentSharedPath;
         fs::path sourceSharedPath = project->findGroupPathFor(sceneId, source);
+        fs::path targetSharedPath = project->findGroupPathFor(sceneId, target);
 
         if (type == InsertionType::IN){
             if (!project->isEntityShared(sceneId, target)){
@@ -148,7 +148,7 @@ bool Editor::MoveEntityOrderCmd::execute(){
         }else{
             Transform* transformTarget = sceneProject->scene->findComponent<Transform>(target);
             if (transformTarget){
-                parentSharedPath = project->findGroupPathFor(sceneId, transformTarget->parent);
+                fs::path parentSharedPath = project->findGroupPathFor(sceneId, transformTarget->parent);
 
                 SharedGroup* sourceSourceGroup = project->getSharedGroup(sourceSharedPath);
                 uint32_t souceInstanceId = sourceSourceGroup->getInstanceId(sceneId, source);
@@ -162,7 +162,7 @@ bool Editor::MoveEntityOrderCmd::execute(){
             }
         }
 
-        if (parentSharedPath == sourceSharedPath){
+        if (targetSharedPath == sourceSharedPath){
             sharedMoveRecovery = project->moveEntityFromSharedGroup(sceneId, source, target, type, false);
         }
     }

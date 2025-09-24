@@ -1349,7 +1349,7 @@ void Editor::ResourcesWindow::saveEntityFile(const fs::path& directory, const ch
 
     // Use the command instead of calling markEntityShared directly
     MarkEntitySharedCmd* markSharedCmd = new MarkEntitySharedCmd(project, project->getSelectedSceneId(), entity, relativePath);
-    CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(markSharedCmd);
+    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(markSharedCmd);
 
     scanDirectory(currentPath);
 }

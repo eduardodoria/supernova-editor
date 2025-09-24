@@ -38,6 +38,10 @@ bool Editor::ObjectTransformCmd::execute(){
             transform->scale = property.newScale;
 
             transform->needUpdate = true;
+
+            if (project->isEntityShared(sceneId, entity)){
+                project->sharedGroupPropertyChanged(sceneId, entity, ComponentType::Transform, {"position", "rotation", "scale"});
+            }
         }
     }
 
@@ -58,6 +62,10 @@ void Editor::ObjectTransformCmd::undo(){
             transform->scale = property.oldScale;
 
             transform->needUpdate = true;
+
+            if (project->isEntityShared(sceneId, entity)){
+                project->sharedGroupPropertyChanged(sceneId, entity, ComponentType::Transform, {"position", "rotation", "scale"});
+            }
         }
     }
 
@@ -86,12 +94,4 @@ bool Editor::ObjectTransformCmd::mergeWith(Editor::Command* otherCommand){
     }
 
     return false;
-}
-
-void Editor::ObjectTransformCmd::commit(){
-    for (auto& [entity, property] : props){
-        if (project->isEntityShared(sceneId, entity)){
-            project->sharedGroupPropertyChanged(sceneId, entity, ComponentType::Transform, {"position", "rotation", "scale"});
-        }
-    }
 }

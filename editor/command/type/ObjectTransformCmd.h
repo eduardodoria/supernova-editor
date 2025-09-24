@@ -35,8 +35,6 @@ namespace Supernova::Editor{
         void undo() override;
 
         bool mergeWith(Command* otherCommand) override;
-
-        void commit() override;
     };
 
 }

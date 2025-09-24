@@ -7,14 +7,13 @@ Editor::EntityNameCmd::EntityNameCmd(Project* project, uint32_t sceneId, Entity 
     this->sceneId = sceneId;
     this->entity = entity;
     this->newName = name;
-
-    this->wasModified = project->getScene(sceneId)->isModified;
 }
 
 bool Editor::EntityNameCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     oldName = sceneProject->scene->getEntityName(entity);
+    wasModified = project->getScene(sceneId)->isModified;
 
     if (project->isEntityShared(sceneId, entity)){
         project->sharedGroupNameChanged(sceneId, entity, newName, false);

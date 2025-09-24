@@ -29,40 +29,40 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addT
         parent = NULL_ENTITY;
 
         if (ImGui::MenuItem(ICON_FA_CIRCLE_DOT"  Empty entity")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(new CreateEntityCmd(project, project->getSelectedSceneId(), "Entity", addToShared));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Entity", addToShared));
         }
 
         ImGui::Separator();
     }
 
     if (ImGui::MenuItem(ICON_FA_SITEMAP"  Empty object")){
-        CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(new CreateEntityCmd(project, project->getSelectedSceneId(), "Object", EntityCreationType::OBJECT, parent, addToShared));
+        CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Object", EntityCreationType::OBJECT, parent, addToShared));
         openParent = parent;
     }
 
     if (ImGui::BeginMenu(ICON_FA_CUBE"  Basic shape")){
         if (ImGui::MenuItem(ICON_FA_CUBE"  Box")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(new CreateEntityCmd(project, project->getSelectedSceneId(), "Box", EntityCreationType::BOX, parent, addToShared));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Box", EntityCreationType::BOX, parent, addToShared));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_CUBE"  Plane")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(new CreateEntityCmd(project, project->getSelectedSceneId(), "Plane", EntityCreationType::PLANE, parent, addToShared));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Plane", EntityCreationType::PLANE, parent, addToShared));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_CUBE"  Sphere")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(new CreateEntityCmd(project, project->getSelectedSceneId(), "Sphere", EntityCreationType::SPHERE, parent, addToShared));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Sphere", EntityCreationType::SPHERE, parent, addToShared));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_CUBE"  Cylinder")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(new CreateEntityCmd(project, project->getSelectedSceneId(), "Cylinder", EntityCreationType::CYLINDER, parent, addToShared));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Cylinder", EntityCreationType::CYLINDER, parent, addToShared));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_CUBE"  Capsule")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(new CreateEntityCmd(project, project->getSelectedSceneId(), "Capsule", EntityCreationType::CAPSULE, parent, addToShared));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Capsule", EntityCreationType::CAPSULE, parent, addToShared));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_CUBE"  Torus")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(new CreateEntityCmd(project, project->getSelectedSceneId(), "Torus", EntityCreationType::TORUS, parent, addToShared));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Torus", EntityCreationType::TORUS, parent, addToShared));
             openParent = parent;
         }
         ImGui::EndMenu();
@@ -70,7 +70,7 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addT
 
     if (ImGui::BeginMenu(ICON_FA_CUBES_STACKED"  2D")){
         if (ImGui::MenuItem(ICON_FA_IMAGE"  Sprite")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(new CreateEntityCmd(project, project->getSelectedSceneId(), "Sprite", EntityCreationType::SPRITE, parent, addToShared));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Sprite", EntityCreationType::SPRITE, parent, addToShared));
             openParent = parent;
         }
         ImGui::EndMenu();
@@ -78,7 +78,7 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addT
 
     if (ImGui::BeginMenu(ICON_FA_WINDOW_RESTORE"  UI")){
         if (ImGui::MenuItem(ICON_FA_IMAGE"  Image")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(new CreateEntityCmd(project, project->getSelectedSceneId(), "Image", EntityCreationType::IMAGE, parent, addToShared));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Image", EntityCreationType::IMAGE, parent, addToShared));
             openParent = parent;
         }
         ImGui::EndMenu();
@@ -86,15 +86,15 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addT
 
     if (ImGui::BeginMenu(ICON_FA_LIGHTBULB"  Light")){
         if (ImGui::MenuItem(ICON_FA_LIGHTBULB"  Point")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(new CreateEntityCmd(project, project->getSelectedSceneId(), "Point Light", EntityCreationType::POINT_LIGHT, parent, addToShared));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Point Light", EntityCreationType::POINT_LIGHT, parent, addToShared));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_LIGHTBULB"  Directional")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(new CreateEntityCmd(project, project->getSelectedSceneId(), "Directional Light", EntityCreationType::DIRECTIONAL_LIGHT, parent, addToShared));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Directional Light", EntityCreationType::DIRECTIONAL_LIGHT, parent, addToShared));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_LIGHTBULB"  Spot")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(new CreateEntityCmd(project, project->getSelectedSceneId(), "Spot Light", EntityCreationType::SPOT_LIGHT, parent, addToShared));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Spot Light", EntityCreationType::SPOT_LIGHT, parent, addToShared));
             openParent = parent;
         }
         ImGui::EndMenu();
@@ -224,7 +224,7 @@ void Editor::Structure::handleEntityFilesDrop(const std::vector<std::string>& fi
             std::filesystem::path relativePath = std::filesystem::relative(path, project->getProjectPath());
 
             ImportSharedEntityCmd* importCmd = new ImportSharedEntityCmd(project, project->getSelectedSceneId(), relativePath, parent, true);
-            CommandHandle::get(project->getSelectedSceneId())->addCommandCommit(importCmd);
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(importCmd);
 
             std::vector<Entity> newEntities = importCmd->getImportedEntities();
 

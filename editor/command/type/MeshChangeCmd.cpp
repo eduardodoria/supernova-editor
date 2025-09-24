@@ -21,6 +21,10 @@ bool Editor::MeshChangeCmd::execute(){
 
     sceneProject->isModified = true;
 
+    if (project->isEntityShared(sceneId, entity)){
+        project->sharedGroupPropertyChanged(sceneId, entity, ComponentType::MeshComponent, {});
+    }
+
     return true;
 }
 
@@ -30,6 +34,10 @@ void Editor::MeshChangeCmd::undo(){
     sceneProject->scene->getComponent<MeshComponent>(entity) = Stream::decodeMeshComponent(oldMesh);
 
     sceneProject->isModified = wasModified;
+
+    if (project->isEntityShared(sceneId, entity)){
+        project->sharedGroupPropertyChanged(sceneId, entity, ComponentType::MeshComponent, {});
+    }
 }
 
 bool Editor::MeshChangeCmd::mergeWith(Editor::Command* otherCommand){
@@ -43,10 +51,4 @@ bool Editor::MeshChangeCmd::mergeWith(Editor::Command* otherCommand){
         }
     }
     return false;
-}
-
-void Editor::MeshChangeCmd::commit(){
-    if (project->isEntityShared(sceneId, entity)){
-        project->sharedGroupPropertyChanged(sceneId, entity, ComponentType::MeshComponent, {});
-    }
 }

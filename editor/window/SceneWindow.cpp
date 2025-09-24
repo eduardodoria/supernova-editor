@@ -299,6 +299,8 @@ void Editor::SceneWindow::show() {
 
         ImGui::SetNextWindowSizeConstraints(ImVec2(200, 200), ImVec2(FLT_MAX, FLT_MAX));
         if (ImGui::Begin(getWindowTitle(sceneProject).c_str(), canClose ? &isOpen : nullptr)) {
+            sceneProject.isVisible = true;
+
             if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
                 windowFocused = true;
                 project->setSelectedSceneId(sceneProject.id);
@@ -539,7 +541,6 @@ void Editor::SceneWindow::show() {
 
                                         PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(project, sceneProject.id, selEntity, ComponentType::MeshComponent, propName, UpdateFlags_Mesh_Texture, newTex);
                                         CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(cmd);
-                                        cmd->commit();
 
                                         selMesh = nullptr;
 
@@ -561,7 +562,6 @@ void Editor::SceneWindow::show() {
 
                                         PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(project, sceneProject.id, selEntity, ComponentType::UIComponent, propName, UpdateFlags_UI_Texture, newTex);
                                         CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(cmd);
-                                        cmd->commit();
 
                                         selUI = nullptr;
 
@@ -604,7 +604,6 @@ void Editor::SceneWindow::show() {
                                     }
 
                                     CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(cmd);
-                                    cmd->commit();
 
                                     delete tempImage;
                                     tempImage = nullptr;
@@ -642,6 +641,8 @@ void Editor::SceneWindow::show() {
                 }
             }
             ImGui::EndChild();
+        }else{
+            sceneProject.isVisible = false;
         }
         ImGui::End();
 

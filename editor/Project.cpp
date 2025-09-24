@@ -78,6 +78,7 @@ uint32_t Editor::Project::createNewScene(std::string sceneName, SceneType type){
     data.selectedEntities.clear();
     data.needUpdateRender = true;
     data.isModified = true;
+    data.isVisible = true;
 
     scenes.push_back(data);
 
@@ -1665,7 +1666,10 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
         newInstance.overrides[newEntities[0]] = 1ULL << static_cast<int>(ComponentType::Transform);
     }else{
         for (int i = 0; i < newEntities.size(); i++) {
-            if (mergeResults[i].isShared){
+            if (i >= mergeResults.size()){
+                // When shared entity is updated (saved) and scene has not been updated
+                membersEntities.push_back(newEntities[i]);
+            }else if (mergeResults[i].isShared){
                 membersEntities.push_back(newEntities[i]);
                 newInstance.overrides[newEntities[i]] = mergeResults[i].overrides;
             }
@@ -2510,7 +2514,7 @@ void Editor::Project::collectEntities(const YAML::Node& entityNode, std::vector<
     }
 }
 
-bool Editor::Project::sharedGroupPropertyChanged(uint32_t sceneId, Entity entity, ComponentType componentType, std::vector<std::string> properties, bool renderAllScenes){
+bool Editor::Project::sharedGroupPropertyChanged(uint32_t sceneId, Entity entity, ComponentType componentType, std::vector<std::string> properties, bool changeItself){
     fs::path filepath = findGroupPathFor(sceneId, entity);
 
     if (filepath.empty()) {
@@ -2540,13 +2544,13 @@ bool Editor::Project::sharedGroupPropertyChanged(uint32_t sceneId, Entity entity
         // Copy to corresponding entity in other scenes
         for (auto& [otherSceneId, sceneInstances] : group->instances) {
             for (auto& instance : sceneInstances) {
-                if ((otherSceneId != sceneId) || (instance.instanceId != instanceId)) {
+                if ((otherSceneId != sceneId) || (instance.instanceId != instanceId) || changeItself) {
                     Entity otherEntity = group->getLocalEntity(otherSceneId, instance.instanceId, registryEntity);
 
                     if (!group->hasComponentOverride(otherSceneId, otherEntity, componentType)) {
                         SceneProject* otherScene = getScene(otherSceneId);
                         if (otherScene) {
-                            if (renderAllScenes){
+                            if (otherScene->isVisible){
                                 otherScene->needUpdateRender = true;
                             }
                             if (properties.size() == 0){

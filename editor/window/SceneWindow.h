@@ -115,7 +115,6 @@ namespace Supernova::Editor {
             if (ImGui::IsItemDeactivatedAfterEdit()) {
                 if (cmd){
                     cmd->setNoMerge();
-                    cmd->commit();
                     cmd = nullptr;
                 }
             }
