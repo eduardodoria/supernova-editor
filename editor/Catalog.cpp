@@ -748,6 +748,12 @@ void Editor::Catalog::copyComponent(EntityRegistry* sourceRegistry, Entity sourc
             break;
         }
 
+        case ComponentType::ScriptComponent: {
+            YAML::Node encoded = Stream::encodeScriptComponent(sourceRegistry->getComponent<ScriptComponent>(sourceEntity));
+            targetRegistry->getComponent<ScriptComponent>(targetEntity) = Stream::decodeScriptComponent(encoded);
+            break;
+        }
+
         default:
             printf("WARNING: Unsupported component type for copying: %s\n", getComponentName(compType).c_str());
             break;

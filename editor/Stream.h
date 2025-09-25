@@ -140,5 +140,8 @@ namespace Supernova::Editor {
 
         static YAML::Node encodeLightComponent(const LightComponent& light);
         static LightComponent decodeLightComponent(const YAML::Node& node);
+
+        static YAML::Node encodeScriptComponent(const ScriptComponent& script);
+        static ScriptComponent decodeScriptComponent(const YAML::Node& node);
     };
 }

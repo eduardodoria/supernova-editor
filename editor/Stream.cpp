@@ -1048,6 +1048,11 @@ YAML::Node Editor::Stream::encodeComponents(const Entity entity, const EntityReg
         compNode[Catalog::getComponentName(ComponentType::LightComponent, true)] = encodeLightComponent(light);
     }
 
+    if (signature.test(registry->getComponentId<ScriptComponent>())) {
+        ScriptComponent script = registry->getComponent<ScriptComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::ScriptComponent, true)] = encodeScriptComponent(script);
+    }
+
     return compNode;
 }
 
@@ -1125,6 +1130,16 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
             registry->addComponent<LightComponent>(entity, light);
         }else{
             registry->getComponent<LightComponent>(entity) = light;
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::ScriptComponent, true);
+    if (compNode[compName]) {
+        ScriptComponent script = decodeScriptComponent(compNode[compName]);
+        if (!signature.test(registry->getComponentId<ScriptComponent>())){
+            registry->addComponent<ScriptComponent>(entity, script);
+        }else{
+            registry->getComponent<ScriptComponent>(entity) = script;
         }
     }
 }
@@ -1549,4 +1564,42 @@ LightComponent Editor::Stream::decodeLightComponent(const YAML::Node& node) {
     light.numShadowCascades = node["numShadowCascades"].as<unsigned int>();
 
     return light;
+}
+
+YAML::Node Editor::Stream::encodeScriptComponent(const ScriptComponent& script) {
+    YAML::Node node;
+
+    node["scriptPath"] = script.scriptPath;
+    node["scriptClassName"] = script.scriptClassName;
+    node["enabled"] = script.enabled;
+
+    //if (!script.variables.empty()) {
+    //    YAML::Node variablesNode;
+    //    for (const auto& [key, value] : script.variables) {
+    //        variablesNode[key] = encodeAnyValue(value);
+    //    }
+    //    node["variables"] = variablesNode;
+    //}
+
+    return node;
+}
+
+ScriptComponent Editor::Stream::decodeScriptComponent(const YAML::Node& node) {
+    ScriptComponent script;
+
+    if (node["scriptPath"]) script.scriptPath = node["scriptPath"].as<std::string>();
+    if (node["scriptClassName"]) script.scriptClassName = node["scriptClassName"].as<std::string>();
+    if (node["enabled"]) script.enabled = node["enabled"].as<bool>();
+
+    //if (node["variables"]) {
+    //    for (const auto& varNode : node["variables"]) {
+    //        std::string key = varNode.first.as<std::string>();
+    //        std::any value = decodeAnyValue(varNode.second);
+    //        if (value.has_value()) {
+    //            script.variables[key] = value;
+    //        }
+    //    }
+    //}
+
+    return script;
 }

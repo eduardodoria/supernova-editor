@@ -421,7 +421,7 @@ void Editor::ProjectUtils::addEntityComponent(EntityRegistry* registry, Entity e
             if (!componentNode.IsDefined() || componentNode.IsNull()){
                 registry->addComponent<ScriptComponent>(entity, {});
             }else{
-                registry->addComponent<ScriptComponent>(entity, {});
+                registry->addComponent<ScriptComponent>(entity, Stream::decodeScriptComponent(componentNode));
                 Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
             }
             break;
@@ -453,7 +453,7 @@ void Editor::ProjectUtils::addEntityComponent(EntityRegistry* registry, Entity e
             if (!componentNode.IsDefined() || componentNode.IsNull()){
                 registry->addComponent<SpriteComponent>(entity, {});
             }else{
-                registry->addComponent<SpriteComponent>(entity, {});
+                registry->addComponent<SpriteComponent>(entity, Stream::decodeSpriteComponent(componentNode));
                 Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
             }
             break;
@@ -729,7 +729,7 @@ YAML::Node Editor::ProjectUtils::removeEntityComponent(EntityRegistry* registry,
             break;
         case ComponentType::ScriptComponent:
             if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                oldComponent = Stream::encodeScriptComponent(registry->getComponent<ScriptComponent>(entity));
             }
             registry->removeComponent<ScriptComponent>(entity);
             break;
@@ -753,7 +753,7 @@ YAML::Node Editor::ProjectUtils::removeEntityComponent(EntityRegistry* registry,
             break;
         case ComponentType::SpriteComponent:
             if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                oldComponent = Stream::encodeSpriteComponent(registry->getComponent<SpriteComponent>(entity));
             }
             registry->removeComponent<SpriteComponent>(entity);
             break;
