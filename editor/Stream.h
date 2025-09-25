@@ -51,6 +51,9 @@ namespace Supernova::Editor {
         static std::string lightStateToString(LightState state);
         static LightState stringToLightState(const std::string& str);
 
+        static std::string pivotPresetToString(PivotPreset preset);
+        static PivotPreset stringToPivotPreset(const std::string& str);
+
         // ==============================
 
         static YAML::Node encodeVector2(const Vector2& vec);
@@ -92,6 +95,9 @@ namespace Supernova::Editor {
         static YAML::Node encodeAABB(const AABB& aabb);
         static AABB decodeAABB(const YAML::Node& node);
 
+        static YAML::Node encodeSpriteFrameData(const SpriteFrameData& frameData);
+        static SpriteFrameData decodeSpriteFrameData(const YAML::Node& node);
+
         static YAML::Node encodeEntityAux(const Entity entity, const EntityRegistry* registry, const Project* project = nullptr, const SceneProject* sceneProject = nullptr, bool keepEntity = false);
 
     public:
@@ -128,6 +134,9 @@ namespace Supernova::Editor {
 
         static YAML::Node encodeImageComponent(const ImageComponent& image);
         static ImageComponent decodeImageComponent(const YAML::Node& node);
+
+        static YAML::Node encodeSpriteComponent(const SpriteComponent& sprite);
+        static SpriteComponent decodeSpriteComponent(const YAML::Node& node);
 
         static YAML::Node encodeLightComponent(const LightComponent& light);
         static LightComponent decodeLightComponent(const YAML::Node& node);

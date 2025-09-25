@@ -2060,6 +2060,24 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
     propertyRow(cpType, props, "script_path", "Script Path", sceneProject, entities);
 
     endTable();
+
+    // New Script creation button
+    if (ImGui::Button(ICON_FA_FILE_CIRCLE_PLUS " New Script", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, 0))) {
+        std::string defaultName = "NewScript";
+        scriptCreateDialog.open(project->getProjectPath(),
+            defaultName,
+            [this, sceneProject, entities, cpType](const std::filesystem::path& headerPath, const std::filesystem::path& sourcePath){
+                // After creation, set script_path to the .cpp file
+                for (Entity entity: entities){
+                    std::string pathStr = sourcePath.string();
+                    cmd = new PropertyCmd<std::string>(project, sceneProject->id, entity, cpType, "script_path", 0, pathStr);
+                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                    cmd->setNoMerge();
+                }
+            },
+            [](){}
+        );
+    }
 }
 
 void Editor::Properties::show(){
@@ -2525,6 +2543,8 @@ void Editor::Properties::show(){
         }
     }
     usedPreviewIds.clear();
+
+    scriptCreateDialog.show();
 
     ImGui::End();
 }

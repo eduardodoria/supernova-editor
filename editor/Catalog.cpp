@@ -736,17 +736,17 @@ void Editor::Catalog::copyComponent(EntityRegistry* sourceRegistry, Entity sourc
             break;
         }
 
+        case ComponentType::SpriteComponent: {
+            YAML::Node encoded = Stream::encodeSpriteComponent(sourceRegistry->getComponent<SpriteComponent>(sourceEntity));
+            targetRegistry->getComponent<SpriteComponent>(targetEntity) = Stream::decodeSpriteComponent(encoded);
+            break;
+        }
+
         case ComponentType::LightComponent: {
             YAML::Node encoded = Stream::encodeLightComponent(sourceRegistry->getComponent<LightComponent>(sourceEntity));
             targetRegistry->getComponent<LightComponent>(targetEntity) = Stream::decodeLightComponent(encoded);
             break;
         }
-
-        //case ComponentType::SpriteComponent: {
-            //YAML::Node encoded = Stream::encodeSpriteComponent(sourceRegistry->getComponent<SpriteComponent>(sourceEntity));
-            //targetRegistry->getComponent<SpriteComponent>(targetEntity) = Stream::decodeSpriteComponent(encoded);
-            //break;
-        //}
 
         default:
             printf("WARNING: Unsupported component type for copying: %s\n", getComponentName(compType).c_str());

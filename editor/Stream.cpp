@@ -282,6 +282,44 @@ LightState Editor::Stream::stringToLightState(const std::string& str) {
     return LightState::AUTO; // Default
 }
 
+std::string Editor::Stream::pivotPresetToString(PivotPreset preset) {
+    switch (preset) {
+        case PivotPreset::CENTER:
+            return "CENTER";
+        case PivotPreset::TOP_CENTER:
+            return "TOP_CENTER";
+        case PivotPreset::BOTTOM_CENTER:
+            return "BOTTOM_CENTER";
+        case PivotPreset::LEFT_CENTER:
+            return "LEFT_CENTER";
+        case PivotPreset::RIGHT_CENTER:
+            return "RIGHT_CENTER";
+        case PivotPreset::TOP_LEFT:
+            return "TOP_LEFT";
+        case PivotPreset::BOTTOM_LEFT:
+            return "BOTTOM_LEFT";
+        case PivotPreset::TOP_RIGHT:
+            return "TOP_RIGHT";
+        case PivotPreset::BOTTOM_RIGHT:
+            return "BOTTOM_RIGHT";
+        default:
+            return "BOTTOM_LEFT";
+    }
+}
+
+PivotPreset Editor::Stream::stringToPivotPreset(const std::string& str) {
+    if (str == "CENTER") return PivotPreset::CENTER;
+    if (str == "TOP_CENTER") return PivotPreset::TOP_CENTER;
+    if (str == "BOTTOM_CENTER") return PivotPreset::BOTTOM_CENTER;
+    if (str == "LEFT_CENTER") return PivotPreset::LEFT_CENTER;
+    if (str == "RIGHT_CENTER") return PivotPreset::RIGHT_CENTER;
+    if (str == "TOP_LEFT") return PivotPreset::TOP_LEFT;
+    if (str == "BOTTOM_LEFT") return PivotPreset::BOTTOM_LEFT;
+    if (str == "TOP_RIGHT") return PivotPreset::TOP_RIGHT;
+    if (str == "BOTTOM_RIGHT") return PivotPreset::BOTTOM_RIGHT;
+    return PivotPreset::BOTTOM_LEFT;
+}
+
 YAML::Node Editor::Stream::encodeVector2(const Vector2& vec){
     YAML::Node node;
     node.SetStyle(YAML::EmitterStyle::Flow);
@@ -592,6 +630,22 @@ AABB Editor::Stream::decodeAABB(const YAML::Node& node) {
     Vector3 min = decodeVector3(node["min"]);
     Vector3 max = decodeVector3(node["max"]);
     return AABB(min, max);
+}
+
+YAML::Node Editor::Stream::encodeSpriteFrameData(const SpriteFrameData& frameData) {
+    YAML::Node node;
+    node["active"] = frameData.active;
+    node["name"] = frameData.name;
+    node["rect"] = encodeRect(frameData.rect);
+    return node;
+}
+
+SpriteFrameData Editor::Stream::decodeSpriteFrameData(const YAML::Node& node) {
+    SpriteFrameData frameData;
+    if (node["active"]) frameData.active = node["active"].as<bool>();
+    if (node["name"]) frameData.name = node["name"].as<std::string>();
+    if (node["rect"]) frameData.rect = decodeRect(node["rect"]);
+    return frameData;
 }
 
 YAML::Node Editor::Stream::encodeProject(Project* project) {
@@ -984,6 +1038,11 @@ YAML::Node Editor::Stream::encodeComponents(const Entity entity, const EntityReg
         compNode[Catalog::getComponentName(ComponentType::ImageComponent, true)] = encodeImageComponent(image);
     }
 
+    if (signature.test(registry->getComponentId<SpriteComponent>())) {
+        SpriteComponent sprite = registry->getComponent<SpriteComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::SpriteComponent, true)] = encodeSpriteComponent(sprite);
+    }
+
     if (signature.test(registry->getComponentId<LightComponent>())) {
         LightComponent light = registry->getComponent<LightComponent>(entity);
         compNode[Catalog::getComponentName(ComponentType::LightComponent, true)] = encodeLightComponent(light);
@@ -1046,6 +1105,16 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
             registry->addComponent<ImageComponent>(entity, image);
         }else{
             registry->getComponent<ImageComponent>(entity) = image;
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::SpriteComponent, true);
+    if (compNode[compName]) {
+        SpriteComponent sprite = decodeSpriteComponent(compNode[compName]);
+        if (!signature.test(registry->getComponentId<SpriteComponent>())){
+            registry->addComponent<SpriteComponent>(entity, sprite);
+        }else{
+            registry->getComponent<SpriteComponent>(entity) = sprite;
         }
     }
 
@@ -1392,6 +1461,52 @@ ImageComponent Editor::Stream::decodeImageComponent(const YAML::Node& node) {
     //image.needUpdatePatches = node["needUpdatePatches"].as<bool>();
 
     return image;
+}
+
+YAML::Node Editor::Stream::encodeSpriteComponent(const SpriteComponent& sprite) {
+    YAML::Node node;
+    node["width"] = sprite.width;
+    node["height"] = sprite.height;
+    node["automaticFlipY"] = sprite.automaticFlipY;
+    node["flipY"] = sprite.flipY;
+    node["textureScaleFactor"] = sprite.textureScaleFactor;
+    node["pivotPreset"] = pivotPresetToString(sprite.pivotPreset);
+    //node["needUpdateSprite"] = sprite.needUpdateSprite;
+
+    YAML::Node framesNode;
+    for (int i = 0; i < MAX_SPRITE_FRAMES; i++) {
+        if (sprite.framesRect[i].active) {
+            framesNode[i] = encodeSpriteFrameData(sprite.framesRect[i]);
+        }
+    }
+    if (framesNode.size() > 0) {
+        node["framesRect"] = framesNode;
+    }
+
+    return node;
+}
+
+SpriteComponent Editor::Stream::decodeSpriteComponent(const YAML::Node& node) {
+    SpriteComponent sprite;
+
+    if (node["width"]) sprite.width = node["width"].as<unsigned int>();
+    if (node["height"]) sprite.height = node["height"].as<unsigned int>();
+    if (node["automaticFlipY"]) sprite.automaticFlipY = node["automaticFlipY"].as<bool>();
+    if (node["flipY"]) sprite.flipY = node["flipY"].as<bool>();
+    if (node["textureScaleFactor"]) sprite.textureScaleFactor = node["textureScaleFactor"].as<float>();
+    if (node["pivotPreset"]) sprite.pivotPreset = stringToPivotPreset(node["pivotPreset"].as<std::string>());
+    //if (node["needUpdateSprite"]) sprite.needUpdateSprite = node["needUpdateSprite"].as<bool>();
+
+    if (node["framesRect"]) {
+        for (const auto& frameNode : node["framesRect"]) {
+            int index = frameNode.first.as<int>();
+            if (index >= 0 && index < MAX_SPRITE_FRAMES) {
+                sprite.framesRect[index] = decodeSpriteFrameData(frameNode.second);
+            }
+        }
+    }
+
+    return sprite;
 }
 
 YAML::Node Editor::Stream::encodeLightComponent(const LightComponent& light) {
