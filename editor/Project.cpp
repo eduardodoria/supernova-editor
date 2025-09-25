@@ -18,6 +18,7 @@
 #include "util/FileDialogs.h"
 #include "util/SHA1.h"
 #include "util/GraphicUtils.h"
+#include "util/ProjectUtils.h"
 
 using namespace Supernova;
 
@@ -851,689 +852,6 @@ bool Editor::Project::hasScenesUnsavedChanges() const{
     return false;
 }
 
-size_t Editor::Project::getTransformIndex(EntityRegistry* registry, Entity entity){
-    Signature signature = registry->getSignature(entity);
-    if (signature.test(registry->getComponentId<Transform>())) {
-        Transform& transform = registry->getComponent<Transform>(entity);
-        auto transforms = registry->getComponentArray<Transform>();
-        return transforms->getIndex(entity);
-    }
-
-    return 0;
-}
-
-void Editor::Project::sortEntitiesByTransformOrder(EntityRegistry* registry, std::vector<Entity>& entities) {
-    auto transforms = registry->getComponentArray<Transform>();
-    std::unordered_map<Entity, size_t> transformOrder;
-    for (size_t i = 0; i < transforms->size(); ++i) {
-        Entity ent = transforms->getEntity(i);
-        transformOrder[ent] = i;
-    }
-    std::sort(entities.begin(), entities.end(),
-        [&transformOrder](const Entity& a, const Entity& b) {
-            return transformOrder[a] < transformOrder[b];
-        }
-    );
-}
-
-void Editor::Project::addEntityComponent(EntityRegistry* registry, Entity entity, ComponentType componentType, std::vector<Entity>& entities, YAML::Node componentNode){
-    switch (componentType) {
-        case ComponentType::Transform:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<Transform>(entity, {});
-            }else{
-                registry->addComponent<Transform>(entity, Stream::decodeTransform(componentNode));
-            }
-            Project::sortEntitiesByTransformOrder(registry, entities);
-            break;
-        case ComponentType::MeshComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<MeshComponent>(entity, {});
-            }else{
-                registry->addComponent<MeshComponent>(entity, Stream::decodeMeshComponent(componentNode));
-            }
-            break;
-        case ComponentType::UIComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<UIComponent>(entity, {});
-            }else{
-                registry->addComponent<UIComponent>(entity, Stream::decodeUIComponent(componentNode));
-            }
-            break;
-        case ComponentType::UILayoutComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<UILayoutComponent>(entity, {});
-            }else{
-                registry->addComponent<UILayoutComponent>(entity, Stream::decodeUILayoutComponent(componentNode));
-            }
-            break;
-        case ComponentType::ActionComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<ActionComponent>(entity, {});
-            }else{
-                registry->addComponent<ActionComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::AlphaActionComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<AlphaActionComponent>(entity, {});
-            }else{
-                registry->addComponent<AlphaActionComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::AnimationComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<AnimationComponent>(entity, {});
-            }else{
-                registry->addComponent<AnimationComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::AudioComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<AudioComponent>(entity, {});
-            }else{
-                registry->addComponent<AudioComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::Body2DComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<Body2DComponent>(entity, {});
-            }else{
-                registry->addComponent<Body2DComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::Body3DComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<Body3DComponent>(entity, {});
-            }else{
-                registry->addComponent<Body3DComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::BoneComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<BoneComponent>(entity, {});
-            }else{
-                registry->addComponent<BoneComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::ButtonComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<ButtonComponent>(entity, {});
-            }else{
-                registry->addComponent<ButtonComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::CameraComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<CameraComponent>(entity, {});
-            }else{
-                registry->addComponent<CameraComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::ColorActionComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<ColorActionComponent>(entity, {});
-            }else{
-                registry->addComponent<ColorActionComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::FogComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<FogComponent>(entity, {});
-            }else{
-                registry->addComponent<FogComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::ImageComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<ImageComponent>(entity, {});
-            }else{
-                registry->addComponent<ImageComponent>(entity, Stream::decodeImageComponent(componentNode));
-            }
-            break;
-        case ComponentType::InstancedMeshComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<InstancedMeshComponent>(entity, {});
-            }else{
-                registry->addComponent<InstancedMeshComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::Joint2DComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<Joint2DComponent>(entity, {});
-            }else{
-                registry->addComponent<Joint2DComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::Joint3DComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<Joint3DComponent>(entity, {});
-            }else{
-                registry->addComponent<Joint3DComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::KeyframeTracksComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<KeyframeTracksComponent>(entity, {});
-            }else{
-                registry->addComponent<KeyframeTracksComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::LightComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<LightComponent>(entity, {});
-            }else{
-                registry->addComponent<LightComponent>(entity, Stream::decodeLightComponent(componentNode));
-            }
-            break;
-        case ComponentType::LinesComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<LinesComponent>(entity, {});
-            }else{
-                registry->addComponent<LinesComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::MeshPolygonComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<MeshPolygonComponent>(entity, {});
-            }else{
-                registry->addComponent<MeshPolygonComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::ModelComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<ModelComponent>(entity, {});
-            }else{
-                registry->addComponent<ModelComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::MorphTracksComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<MorphTracksComponent>(entity, {});
-            }else{
-                registry->addComponent<MorphTracksComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::PanelComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<PanelComponent>(entity, {});
-            }else{
-                registry->addComponent<PanelComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::ParticlesComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<ParticlesComponent>(entity, {});
-            }else{
-                registry->addComponent<ParticlesComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::PointsComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<PointsComponent>(entity, {});
-            }else{
-                registry->addComponent<PointsComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::PolygonComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<PolygonComponent>(entity, {});
-            }else{
-                registry->addComponent<PolygonComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::PositionActionComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<PositionActionComponent>(entity, {});
-            }else{
-                registry->addComponent<PositionActionComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::RotateTracksComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<RotateTracksComponent>(entity, {});
-            }else{
-                registry->addComponent<RotateTracksComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::RotationActionComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<RotationActionComponent>(entity, {});
-            }else{
-                registry->addComponent<RotationActionComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::ScaleActionComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<ScaleActionComponent>(entity, {});
-            }else{
-                registry->addComponent<ScaleActionComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::ScaleTracksComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<ScaleTracksComponent>(entity, {});
-            }else{
-                registry->addComponent<ScaleTracksComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::ScriptComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<ScriptComponent>(entity, {});
-            }else{
-                registry->addComponent<ScriptComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::ScrollbarComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<ScrollbarComponent>(entity, {});
-            }else{
-                registry->addComponent<ScrollbarComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::SkyComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<SkyComponent>(entity, {});
-            }else{
-                registry->addComponent<SkyComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::SpriteAnimationComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<SpriteAnimationComponent>(entity, {});
-            }else{
-                registry->addComponent<SpriteAnimationComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::SpriteComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<SpriteComponent>(entity, {});
-            }else{
-                registry->addComponent<SpriteComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::TerrainComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<TerrainComponent>(entity, {});
-            }else{
-                registry->addComponent<TerrainComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::TextComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<TextComponent>(entity, {});
-            }else{
-                registry->addComponent<TextComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::TextEditComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<TextEditComponent>(entity, {});
-            }else{
-                registry->addComponent<TextEditComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::TilemapComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<TilemapComponent>(entity, {});
-            }else{
-                registry->addComponent<TilemapComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::TimedActionComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<TimedActionComponent>(entity, {});
-            }else{
-                registry->addComponent<TimedActionComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::TranslateTracksComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<TranslateTracksComponent>(entity, {});
-            }else{
-                registry->addComponent<TranslateTracksComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        case ComponentType::UIContainerComponent:
-            if (!componentNode.IsDefined() || componentNode.IsNull()){
-                registry->addComponent<UIContainerComponent>(entity, {});
-            }else{
-                registry->addComponent<UIContainerComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            break;
-        default:
-            break;
-    }
-}
-
-YAML::Node Editor::Project::removeEntityComponent(EntityRegistry* registry, Entity entity, ComponentType componentType, std::vector<Entity>& entities, bool encodeComponent){
-    YAML::Node oldComponent;
-
-    switch (componentType) {
-        case ComponentType::Transform:
-            if (encodeComponent){
-                oldComponent = Stream::encodeTransform(registry->getComponent<Transform>(entity));
-            }
-            registry->removeComponent<Transform>(entity);
-            Project::sortEntitiesByTransformOrder(registry, entities);
-            break;
-        case ComponentType::MeshComponent:
-            if (encodeComponent){
-                oldComponent = Stream::encodeMeshComponent(registry->getComponent<MeshComponent>(entity));
-            }
-            registry->removeComponent<MeshComponent>(entity);
-            break;
-        case ComponentType::UIComponent:
-            if (encodeComponent){
-                oldComponent = Stream::encodeUIComponent(registry->getComponent<UIComponent>(entity));
-            }
-            registry->removeComponent<UIComponent>(entity);
-            break;
-        case ComponentType::UILayoutComponent:
-            if (encodeComponent){
-                oldComponent = Stream::encodeUILayoutComponent(registry->getComponent<UILayoutComponent>(entity));
-            }
-            registry->removeComponent<UILayoutComponent>(entity);
-            break;
-        case ComponentType::ActionComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<ActionComponent>(entity);
-            break;
-        case ComponentType::AlphaActionComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<AlphaActionComponent>(entity);
-            break;
-        case ComponentType::AnimationComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<AnimationComponent>(entity);
-            break;
-        case ComponentType::AudioComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<AudioComponent>(entity);
-            break;
-        case ComponentType::Body2DComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<Body2DComponent>(entity);
-            break;
-        case ComponentType::Body3DComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<Body3DComponent>(entity);
-            break;
-        case ComponentType::BoneComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<BoneComponent>(entity);
-            break;
-        case ComponentType::ButtonComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<ButtonComponent>(entity);
-            break;
-        case ComponentType::CameraComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<CameraComponent>(entity);
-            break;
-        case ComponentType::ColorActionComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<ColorActionComponent>(entity);
-            break;
-        case ComponentType::FogComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<FogComponent>(entity);
-            break;
-        case ComponentType::ImageComponent:
-            if (encodeComponent){
-                oldComponent = Stream::encodeImageComponent(registry->getComponent<ImageComponent>(entity));
-            }
-            registry->removeComponent<ImageComponent>(entity);
-            break;
-        case ComponentType::InstancedMeshComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<InstancedMeshComponent>(entity);
-            break;
-        case ComponentType::Joint2DComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<Joint2DComponent>(entity);
-            break;
-        case ComponentType::Joint3DComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<Joint3DComponent>(entity);
-            break;
-        case ComponentType::KeyframeTracksComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<KeyframeTracksComponent>(entity);
-            break;
-        case ComponentType::LightComponent:
-            if (encodeComponent){
-                oldComponent = Stream::encodeLightComponent(registry->getComponent<LightComponent>(entity));
-            }
-            registry->removeComponent<LightComponent>(entity);
-            break;
-        case ComponentType::LinesComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<LinesComponent>(entity);
-            break;
-        case ComponentType::MeshPolygonComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<MeshPolygonComponent>(entity);
-            break;
-        case ComponentType::ModelComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<ModelComponent>(entity);
-            break;
-        case ComponentType::MorphTracksComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<MorphTracksComponent>(entity);
-            break;
-        case ComponentType::PanelComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<PanelComponent>(entity);
-            break;
-        case ComponentType::ParticlesComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<ParticlesComponent>(entity);
-            break;
-        case ComponentType::PointsComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<PointsComponent>(entity);
-            break;
-        case ComponentType::PolygonComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<PolygonComponent>(entity);
-            break;
-        case ComponentType::PositionActionComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<PositionActionComponent>(entity);
-            break;
-        case ComponentType::RotateTracksComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<RotateTracksComponent>(entity);
-            break;
-        case ComponentType::RotationActionComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<RotationActionComponent>(entity);
-            break;
-        case ComponentType::ScaleActionComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<ScaleActionComponent>(entity);
-            break;
-        case ComponentType::ScaleTracksComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<ScaleTracksComponent>(entity);
-            break;
-        case ComponentType::ScriptComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<ScriptComponent>(entity);
-            break;
-        case ComponentType::ScrollbarComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<ScrollbarComponent>(entity);
-            break;
-        case ComponentType::SkyComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<SkyComponent>(entity);
-            break;
-        case ComponentType::SpriteAnimationComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<SpriteAnimationComponent>(entity);
-            break;
-        case ComponentType::SpriteComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<SpriteComponent>(entity);
-            break;
-        case ComponentType::TerrainComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<TerrainComponent>(entity);
-            break;
-        case ComponentType::TextComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<TextComponent>(entity);
-            break;
-        case ComponentType::TextEditComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<TextEditComponent>(entity);
-            break;
-        case ComponentType::TilemapComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<TilemapComponent>(entity);
-            break;
-        case ComponentType::TimedActionComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<TimedActionComponent>(entity);
-            break;
-        case ComponentType::TranslateTracksComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<TranslateTracksComponent>(entity);
-            break;
-        case ComponentType::UIContainerComponent:
-            if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
-            }
-            registry->removeComponent<UIContainerComponent>(entity);
-            break;
-        default:
-            break;
-    }
-
-    return oldComponent;
-}
-
 bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path filepath, YAML::Node entityNode){
     if (!filepath.is_relative()) {
         Out::error("Shared entity filepath must be relative: %s", filepath.string().c_str());
@@ -1822,7 +1140,7 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Entity entity, En
 
     std::string recoveryKey = std::to_string(sceneId) + "_" + std::to_string(instanceId);
     entityData[recoveryKey].node = Stream::encodeEntity(entity, scene, nullptr, sceneProject, true);
-    //entityData[sceneId].transformIndex = getTransformIndex(scene, entity);
+    //entityData[sceneId].transformIndex = ProjectUtils::getTransformIndex(scene, entity);
 
     if (addEntityToSharedGroup(sceneId, entityData, parent, instanceId, createItself)){
 
@@ -1886,7 +1204,7 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, const Editor::Nod
     }
 
     std::vector<Entity> regEntities =  Stream::decodeEntity(nodeRegData, group->registry.get(), &group->registryEntities);
-    MoveEntityOrderCmd::moveEntityOrderByTransform(group->registry.get(), group->registryEntities, regEntities[0], registryParent, regTransformIndex, hasRegRecoveryData);
+    ProjectUtils::moveEntityOrderByTransform(group->registry.get(), group->registryEntities, regEntities[0], registryParent, regTransformIndex, hasRegRecoveryData);
 
     for (auto& [otherSceneId, sceneInstances] : group->instances) {
         for (auto& instance : sceneInstances) {
@@ -1921,7 +1239,7 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, const Editor::Nod
                 }
 
                 newOtherEntities = Stream::decodeEntity(nodeData, otherScene->scene, &otherScene->entities);
-                MoveEntityOrderCmd::moveEntityOrderByTransform(otherScene->scene, otherScene->entities, newOtherEntities[0], otherParent, transformIndex, hasRecoveryData);
+                ProjectUtils::moveEntityOrderByTransform(otherScene->scene, otherScene->entities, newOtherEntities[0], otherParent, transformIndex, hasRecoveryData);
             } else {
                 // Just collect the entities from the node without creating them
                 collectEntities(nodeData, newOtherEntities);
@@ -1984,7 +1302,7 @@ Editor::NodeRecovery Editor::Project::removeEntityFromSharedGroup(uint32_t scene
     size_t transformIndex;
     NodeRecovery recovery;
 
-    transformIndex = getTransformIndex(group->registry.get(), registryEntity);
+    transformIndex = ProjectUtils::getTransformIndex(group->registry.get(), registryEntity);
     std::string recoveryDefKey = std::to_string(NULL_PROJECT_SCENE);
     recovery[recoveryDefKey] = {YAML::Clone(regData), std::vector<MergeResult>{}, transformIndex};
 
@@ -2010,7 +1328,7 @@ Editor::NodeRecovery Editor::Project::removeEntityFromSharedGroup(uint32_t scene
             YAML::Node node = YAML::Clone(regData);
             std::vector<MergeResult> mergeResults = mergeEntityNodes(nodeExtend, node);
 
-            transformIndex = getTransformIndex(otherScene->scene, otherEntity);
+            transformIndex = ProjectUtils::getTransformIndex(otherScene->scene, otherEntity);
 
             std::string recoveryKey = std::to_string(otherSceneId) + "_" + std::to_string(instance.instanceId);
             recovery[recoveryKey] = {node, mergeResults, transformIndex};
@@ -2132,7 +1450,7 @@ Editor::SharedMoveRecovery Editor::Project::moveEntityFromSharedGroup(uint32_t s
     Entity oldParent;
     size_t oldIndex;
     bool hasTransform;
-    MoveEntityOrderCmd::moveEntityOrderByTarget(group->registry.get(), group->registryEntities, registryEntity, registryTarget, type, oldParent, oldIndex, hasTransform);
+    ProjectUtils::moveEntityOrderByTarget(group->registry.get(), group->registryEntities, registryEntity, registryTarget, type, oldParent, oldIndex, hasTransform);
     std::string recoveryDefKey = std::to_string(NULL_PROJECT_SCENE);
     recovery[recoveryDefKey] = {oldParent, oldIndex, hasTransform};
 
@@ -2148,7 +1466,7 @@ Editor::SharedMoveRecovery Editor::Project::moveEntityFromSharedGroup(uint32_t s
                         Entity otherOldParent;
                         size_t otherOldIndex;
                         bool otherHasTransform;
-                        MoveEntityOrderCmd::moveEntityOrderByTarget(otherScene->scene, otherScene->entities, otherEntity, otherTarget, type, otherOldParent, otherOldIndex, otherHasTransform);
+                        ProjectUtils::moveEntityOrderByTarget(otherScene->scene, otherScene->entities, otherEntity, otherTarget, type, otherOldParent, otherOldIndex, otherHasTransform);
                         std::string recoveryKey = std::to_string(otherSceneId) + "_" + std::to_string(instance.instanceId);
                         recovery[recoveryKey] = {otherOldParent, otherOldIndex, otherHasTransform};
 
@@ -2184,7 +1502,7 @@ bool Editor::Project::undoMoveEntityInSharedGroup(uint32_t sceneId, Entity entit
         Out::error("No recovery data provided for undoing move of entity %u in scene %u", entity, sceneId);
         return false;
     }
-    MoveEntityOrderCmd::moveEntityOrderByIndex(group->registry.get(), group->registryEntities, registryEntity, recovery.at(recoveryDefKey).oldParent, recovery.at(recoveryDefKey).oldIndex, recovery.at(recoveryDefKey).hasTransform);
+    ProjectUtils::moveEntityOrderByIndex(group->registry.get(), group->registryEntities, registryEntity, recovery.at(recoveryDefKey).oldParent, recovery.at(recoveryDefKey).oldIndex, recovery.at(recoveryDefKey).hasTransform);
 
     for (auto& [otherSceneId, sceneInstances] : group->instances) {
         SceneProject* otherScene = getScene(otherSceneId);
@@ -2198,7 +1516,7 @@ bool Editor::Project::undoMoveEntityInSharedGroup(uint32_t sceneId, Entity entit
                         Entity otherEntity = group->getLocalEntity(otherSceneId, instance.instanceId, registryEntity);
                         Entity otherTarget = group->getLocalEntity(otherSceneId, instance.instanceId, registryTarget);
                         if (otherEntity != NULL_ENTITY && otherTarget != NULL_ENTITY) {
-                            MoveEntityOrderCmd::moveEntityOrderByIndex(otherScene->scene, otherScene->entities, otherEntity, recovery.at(recoveryKey).oldParent, recovery.at(recoveryKey).oldIndex, recovery.at(recoveryKey).hasTransform);
+                            ProjectUtils::moveEntityOrderByIndex(otherScene->scene, otherScene->entities, otherEntity, recovery.at(recoveryKey).oldParent, recovery.at(recoveryKey).oldIndex, recovery.at(recoveryKey).hasTransform);
                         }
                     }
                 }
@@ -2246,7 +1564,7 @@ bool Editor::Project::addComponentToSharedGroup(uint32_t sceneId, Entity entity,
         }
     }
 
-    Project::addEntityComponent(group->registry.get(), registryEntity, componentType, group->registryEntities, regNode);
+    ProjectUtils::addEntityComponent(group->registry.get(), registryEntity, componentType, group->registryEntities, regNode);
 
     for (auto& [otherSceneId, sceneInstances] : group->instances) {
         SceneProject* otherScene = getScene(otherSceneId);
@@ -2268,7 +1586,7 @@ bool Editor::Project::addComponentToSharedGroup(uint32_t sceneId, Entity entity,
                                 }
                             }
 
-                            Project::addEntityComponent(otherScene->scene, otherEntity, componentType, otherScene->entities, compNode);
+                            ProjectUtils::addEntityComponent(otherScene->scene, otherEntity, componentType, otherScene->entities, compNode);
 
                             otherScene->isModified = true;
                         }
@@ -2307,7 +1625,7 @@ Editor::ComponentRecovery Editor::Project::removeComponentToSharedGroup(uint32_t
     ComponentRecovery recovery;
     std::string recoveryDefKey = std::to_string(NULL_PROJECT_SCENE);
     recovery[recoveryDefKey].entity = registryEntity;
-    recovery[recoveryDefKey].node = Project::removeEntityComponent(group->registry.get(), registryEntity, componentType, group->registryEntities, encodeComponent);
+    recovery[recoveryDefKey].node = ProjectUtils::removeEntityComponent(group->registry.get(), registryEntity, componentType, group->registryEntities, encodeComponent);
 
     for (auto& [otherSceneId, sceneInstances] : group->instances) {
         SceneProject* otherScene = getScene(otherSceneId);
@@ -2320,7 +1638,7 @@ Editor::ComponentRecovery Editor::Project::removeComponentToSharedGroup(uint32_t
                         if (!group->hasComponentOverride(otherSceneId, otherEntity, componentType)) {
                             std::string recoveryKey = std::to_string(otherSceneId) + "_" + std::to_string(instance.instanceId);
                             recovery[recoveryKey].entity = otherEntity;
-                            recovery[recoveryKey].node = Project::removeEntityComponent(otherScene->scene, otherEntity, componentType, otherScene->entities, encodeComponent);
+                            recovery[recoveryKey].node = ProjectUtils::removeEntityComponent(otherScene->scene, otherEntity, componentType, otherScene->entities, encodeComponent);
 
                             otherScene->isModified = true;
                         }

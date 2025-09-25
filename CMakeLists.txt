@@ -189,6 +189,8 @@ add_executable(
     ${EDITOR_DIR}/Stream.cpp
 
     ${EDITOR_DIR}/util/GraphicUtils.cpp
+    ${EDITOR_DIR}/util/ProjectUtils.cpp
+    ${EDITOR_DIR}/util/SharedGroup.cpp
 
     ${EDITOR_DIR}/shader/ShaderBuilder.cpp
 

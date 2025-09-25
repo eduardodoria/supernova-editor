@@ -2,6 +2,7 @@
 
 #include "Stream.h"
 #include "Out.h"
+#include "util/ProjectUtils.h"
 #include "command/type/MoveEntityOrderCmd.h"
 
 using namespace Supernova;
@@ -104,7 +105,7 @@ void Editor::DeleteEntityCmd::undo(){
             std::vector<Entity> allEntities = Stream::decodeEntity(entityData.data, sceneProject->scene, &sceneProject->entities, project, sceneProject);
             entityData.entity = allEntities[0];
 
-            MoveEntityOrderCmd::moveEntityOrderByIndex(sceneProject->scene, sceneProject->entities, entityData.entity, entityData.parent, entityData.entityIndex, entityData.hasTransform);
+            ProjectUtils::moveEntityOrderByIndex(sceneProject->scene, sceneProject->entities, entityData.entity, entityData.parent, entityData.entityIndex, entityData.hasTransform);
 
         }else{
 

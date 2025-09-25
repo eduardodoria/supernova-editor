@@ -1,5 +1,7 @@
 #include "AddComponentCmd.h"
 
+#include "util/ProjectUtils.h"
+
 using namespace Supernova;
 
 Editor::AddComponentCmd::AddComponentCmd(Project* project, size_t sceneId, Entity entity, ComponentType componentType){
@@ -17,7 +19,7 @@ bool Editor::AddComponentCmd::execute() {
         Scene* scene = sceneProject->scene;
 
         for (Entity& entity : entities){
-            Project::addEntityComponent(scene, entity, componentType, sceneProject->entities);
+            ProjectUtils::addEntityComponent(scene, entity, componentType, sceneProject->entities);
 
             if (project->isEntityShared(sceneId, entity)){
                 project->addComponentToSharedGroup(sceneId, entity, componentType, false);
@@ -36,7 +38,7 @@ void Editor::AddComponentCmd::undo() {
         Scene* scene = sceneProject->scene;
 
         for (Entity& entity : entities){
-            Project::removeEntityComponent(scene, entity, componentType, sceneProject->entities);
+            ProjectUtils::removeEntityComponent(scene, entity, componentType, sceneProject->entities);
 
             if (project->isEntityShared(sceneId, entity)){
                 project->removeComponentToSharedGroup(sceneId, entity, componentType, false, false);

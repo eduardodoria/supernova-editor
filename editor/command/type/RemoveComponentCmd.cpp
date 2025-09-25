@@ -2,6 +2,7 @@
 
 #include "Stream.h"
 #include "Out.h"
+#include "util/ProjectUtils.h"
 
 using namespace Supernova;
 
@@ -39,7 +40,7 @@ bool Editor::RemoveComponentCmd::execute() {
 
             }else{
 
-                entityData.oldComponent = Project::removeEntityComponent(scene, entityData.entity, componentType, sceneProject->entities, true);
+                entityData.oldComponent = ProjectUtils::removeEntityComponent(scene, entityData.entity, componentType, sceneProject->entities, true);
 
                 if (group){
                     entityData.hasOverride = group->hasComponentOverride(sceneId, entityData.entity, componentType);
@@ -69,7 +70,7 @@ void Editor::RemoveComponentCmd::undo() {
 
             }else{
 
-                Project::addEntityComponent(scene, entityData.entity, componentType, sceneProject->entities, entityData.oldComponent);
+                ProjectUtils::addEntityComponent(scene, entityData.entity, componentType, sceneProject->entities, entityData.oldComponent);
 
                 if (entityData.hasOverride){
                     fs::path filepath = project->findGroupPathFor(sceneId, entityData.entity);
