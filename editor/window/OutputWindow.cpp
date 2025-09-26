@@ -44,6 +44,7 @@ void OutputWindow::clear() {
     lineOffsets.clear();
     lineOffsets.push_back(0);
     lineTypes.clear();
+    lineHardBreak.clear();
     needsRebuild = false;
     selectionStart = selectionEnd = -1;
     hasStoredSelection = false;
@@ -114,6 +115,7 @@ void OutputWindow::rebuildBuffer(float wrapWidth) {
     lineOffsets.clear();
     lineOffsets.push_back(0);
     lineTypes.clear();
+    lineHardBreak.clear();
 
     ImFont* font = ImGui::GetFont();
     float fontSize = ImGui::GetFontSize();
@@ -132,14 +134,17 @@ void OutputWindow::rebuildBuffer(float wrapWidth) {
             case LogType::Build: typeAllowed = typeFilters[4]; break;
         }
 
+        // Empty message: just print the prefix as its own line
         if (log.message.empty()) {
             if (typeAllowed && (!filter.IsActive() || filter.PassFilter((prefix + "\n").c_str()))) {
                 buf.append(prefix.c_str());
-                if (logIndex < logs.size() - 1) {
+                bool appendedNewline = (logIndex < logs.size() - 1);
+                if (appendedNewline) {
                     buf.append("\n");
                 }
                 lineOffsets.push_back(buf.size());
                 lineTypes.push_back(log.type);
+                lineHardBreak.push_back(appendedNewline ? 1 : 0);
             }
             continue;
         }
@@ -151,53 +156,79 @@ void OutputWindow::rebuildBuffer(float wrapWidth) {
         float currentLineWidth = prefixWidth;
         bool isFirstLine = true;
 
-        for (size_t i = 0; i < log.message.length(); ++i) {
-            char currentChar = log.message[i];
-            float charWidth = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, std::string(1, currentChar).c_str()).x;
+        const char* s = log.message.data();
+        const char* e = s + log.message.size();
+
+        while (s < e) {
+            unsigned int cp = 0;
+            int c_len = ImTextCharFromUtf8(&cp, s, e);
+            if (c_len <= 0) {
+                // Fallback: treat as a single byte if invalid
+                cp = (unsigned char)*s;
+                c_len = 1;
+            }
+
+            // Normalize CRLF: skip '\r'
+            if (cp == '\r') {
+                s += c_len;
+                continue;
+            }
 
             if (!isFirstLine && currentLine.empty()) {
                 currentLine = indentation;
                 currentLineWidth = indentWidth;
             }
 
-            if (currentLineWidth + charWidth > wrapWidth && !currentLine.empty() && currentChar != '\n') {
+            if (cp == '\n') {
+                if (typeAllowed && (!filter.IsActive() || filter.PassFilter(currentLine.c_str()))) {
+                    buf.append(currentLine.c_str());
+                    bool addNewline = ((s + c_len) < e) || (logIndex < logs.size() - 1);
+                    if (addNewline) buf.append("\n");
+                    lineOffsets.push_back(buf.size());
+                    lineTypes.push_back(log.type);
+                    lineHardBreak.push_back(addNewline ? 1 : 0); // hard break from original newline
+                }
+                currentLine.clear();
+                currentLineWidth = 0.0f;
+                isFirstLine = false;
+                s += c_len;
+                continue;
+            }
+
+            // Measure this UTF-8 codepoint width
+            float cw = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, s, s + c_len).x;
+
+            // Wrap before adding this codepoint if it overflows
+            if (currentLineWidth + cw > wrapWidth && !currentLine.empty()) {
                 if (typeAllowed && (!filter.IsActive() || filter.PassFilter(currentLine.c_str()))) {
                     buf.append(currentLine.c_str());
                     buf.append("\n");
                     lineOffsets.push_back(buf.size());
                     lineTypes.push_back(log.type);
+                    lineHardBreak.push_back(0); // soft wrap
                 }
-                currentLine = indentation + currentChar;
-                currentLineWidth = indentWidth + charWidth;
+                currentLine = indentation;
+                currentLine.append(s, c_len);
+                currentLineWidth = indentWidth + cw;
                 isFirstLine = false;
             } else {
-                currentLine += currentChar;
-                currentLineWidth += charWidth;
+                currentLine.append(s, c_len);
+                currentLineWidth += cw;
             }
 
-            if (currentChar == '\n') {
-                if (typeAllowed && (!filter.IsActive() || filter.PassFilter(currentLine.c_str()))) {
-                    buf.append(currentLine.c_str());
-                    if (i < log.message.length() - 1 || logIndex < logs.size() - 1) {
-                        buf.append("\n");
-                    }
-                    lineOffsets.push_back(buf.size());
-                    lineTypes.push_back(log.type);
-                }
-                currentLine.clear();
-                currentLineWidth = 0;
-                isFirstLine = false;
-            }
+            s += c_len;
         }
 
         if (!currentLine.empty()) {
             if (typeAllowed && (!filter.IsActive() || filter.PassFilter(currentLine.c_str()))) {
                 buf.append(currentLine.c_str());
-                if (logIndex < logs.size() - 1) {
+                bool appendNewlineBetweenLogs = (logIndex < logs.size() - 1);
+                if (appendNewlineBetweenLogs) {
                     buf.append("\n");
                 }
                 lineOffsets.push_back(buf.size());
                 lineTypes.push_back(log.type);
+                lineHardBreak.push_back(appendNewlineBetweenLogs ? 1 : 0); // hard break between logs
             }
         }
     }
@@ -318,18 +349,34 @@ void OutputWindow::show() {
     // Begin vertical menu
     ImGui::BeginChild("VerticalMenu", ImVec2(menuWidth, windowSize.y), true);
 
+    auto blend = [](ImGuiCol baseId, ImGuiCol accentId, float t) {
+        const ImVec4 base   = ImGui::GetStyleColorVec4(baseId);
+        const ImVec4 accent = ImGui::GetStyleColorVec4(accentId);
+        return ImVec4(
+            base.x + (accent.x - base.x) * t,
+            base.y + (accent.y - base.y) * t,
+            base.z + (accent.z - base.z) * t,
+            base.w + (accent.w - base.w) * t
+        );
+    };
+
     // Auto-scroll lock button
-    {
-        float w = ImGui::CalcTextSize(ICON_FA_LOCK).x + ImGui::GetStyle().FramePadding.x * 2.0f;
-        if (ImGui::Button(autoScrollLockedButton ? ICON_FA_LOCK : ICON_FA_LOCK_OPEN, ImVec2(w, 0.0f))) {
-            autoScrollLockedButton = !autoScrollLockedButton;
-            if (autoScrollLockedButton) {
-                autoScroll = true; // Enable auto-scroll when locking
-            }
+    const bool highlightSB = autoScrollLockedButton && autoScroll;
+    if (highlightSB) {
+        ImGui::PushStyleColor(ImGuiCol_Button, blend(ImGuiCol_Button, ImGuiCol_NavHighlight, 0.4f));
+    }
+    float w = ImGui::CalcTextSize(ICON_FA_LOCK).x + ImGui::GetStyle().FramePadding.x * 2.0f;
+    if (ImGui::Button(autoScrollLockedButton ? ICON_FA_LOCK : ICON_FA_LOCK_OPEN, ImVec2(w, 0.0f))) {
+        autoScrollLockedButton = !autoScrollLockedButton;
+        if (autoScrollLockedButton) {
+            autoScroll = true; // Enable auto-scroll when locking
         }
-        if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip(autoScrollLockedButton ? "Disable Auto-scroll" : "Enable Auto-scroll");
-        }
+    }
+    if (highlightSB) {
+        ImGui::PopStyleColor();
+    }
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip(autoScrollLockedButton ? "Disable Auto-scroll" : "Enable Auto-scroll");
     }
 
     // Filter button (filter icon)
@@ -341,7 +388,7 @@ void OutputWindow::show() {
         }
     }
     if (anyFilterDisabled || filter.IsActive()) {
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.5f, 0.5f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_Button, blend(ImGuiCol_Button, ImGuiCol_NavHighlight, 0.4f));
     }
     if (ImGui::Button(ICON_FA_FILTER)) {
         ImGui::OpenPopup("FilterPopup");
@@ -442,6 +489,16 @@ void OutputWindow::show() {
         lastWrapW = wrapW;
     }
 
+    // Measurements (must come before using totalLines)
+    ImFont* font = ImGui::GetFont();
+    const float fontSize = ImGui::GetFontSize();
+    const float lineBoxHeight = ImGui::GetTextLineHeight(); // text box height
+    const float lineAdvance  = lineBoxHeight + ImGui::GetStyle().ItemSpacing.y; // exact row-to-row advance
+    const int totalLines = (lineOffsets.Size > 0) ? (lineOffsets.Size - 1) : 0;
+    if ((int)lineTypes.size() != totalLines) {
+        rebuildBuffer(wrapW);
+    }
+
     // Keyboard shortcuts
     const bool winFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
     const ImGuiIO& io = ImGui::GetIO();
@@ -452,21 +509,75 @@ void OutputWindow::show() {
             hasStoredSelection = (selectionEnd > selectionStart);
         }
         if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_C, false)) {
-            if (hasStoredSelection && selectionStart >= 0 && selectionEnd > selectionStart && selectionEnd <= buf.size()) {
-                std::string selected_text(buf.begin() + selectionStart, buf.begin() + selectionEnd);
-                ImGui::SetClipboardText(selected_text.c_str());
+            if (hasStoredSelection) {
+                int a = std::min(selectionStart, selectionEnd);
+                int b = std::max(selectionStart, selectionEnd);
+                a = std::max(0, a);
+                b = std::min((int)buf.size(), b);
+                if (b > a) {
+                    // Build copy text stripping soft-wrap newlines AND their leading indentation
+                    auto lineStartIndexFn = [&](int line)->int { return (line >= 0 && line < lineOffsets.Size) ? lineOffsets[line] : 0; };
+                    auto lineEndIndexExclFn = [&](int line)->int {
+                        if (line < 0 || line + 1 >= lineOffsets.Size) return (int)buf.size();
+                        int end = lineOffsets[line + 1];
+                        if (end > 0 && end <= buf.size() && buf[end - 1] == '\n') end -= 1;
+                        return end;
+                    };
+                    auto idxToLine = [&](int idx)->int {
+                        int l = 0, r = ((lineOffsets.Size > 0) ? lineOffsets.Size - 2 : -1), ans = 0;
+                        while (l <= r) {
+                            int m = (l + r) >> 1;
+                            if (lineOffsets[m] <= idx) { ans = m; l = m + 1; }
+                            else r = m - 1;
+                        }
+                        int tl = (lineOffsets.Size > 0) ? (lineOffsets.Size - 1) : 0;
+                        return std::max(0, std::min(ans, tl > 0 ? tl - 1 : 0));
+                    };
+
+                    std::string out;
+                    out.reserve(b - a);
+                    if (totalLines > 0) {
+                        int startLine = idxToLine(a);
+                        int endLine   = idxToLine(std::max(a, b - 1));
+                        for (int i = startLine; i <= endLine; ++i) {
+                            int ls = lineStartIndexFn(i);
+                            int le = lineEndIndexExclFn(i);
+
+                            int s0 = std::max(a, ls);
+                            int e0 = std::min(b, le);
+
+                            // If this line continues from a soft wrap, drop the leading indentation we injected
+                            bool prevSoft = (i > 0) && (i - 1) < (int)lineHardBreak.size() && (lineHardBreak[i - 1] == 0);
+                            if (prevSoft) {
+                                int indentMax = (int)getTypePrefixString(
+                                    (i >= 0 && i < (int)lineTypes.size()) ? lineTypes[i] : LogType::Info
+                                ).size();
+                                int indentActual = 0;
+                                int scanEnd = std::min(le, ls + indentMax);
+                                while (ls + indentActual < scanEnd && buf[ls + indentActual] == ' ')
+                                    indentActual++;
+                                int trimTo = ls + indentActual;
+                                if (e0 > trimTo) s0 = std::max(s0, trimTo);
+                                else            s0 = e0; // selection fully inside indent -> nothing to add
+                            }
+
+                            if (e0 > s0) out.append(buf.begin() + s0, buf.begin() + e0);
+
+                            // If selection includes this line's newline and it is a hard break, append '\n'
+                            if (i + 1 < lineOffsets.Size) {
+                                int nextStart = lineOffsets[i + 1];
+                                bool hadNewlineChar = (nextStart > 0 && nextStart <= buf.size() && buf[nextStart - 1] == '\n');
+                                int nlPos = hadNewlineChar ? (nextStart - 1) : -1;
+                                if (hadNewlineChar && i < (int)lineHardBreak.size() && lineHardBreak[i] && nlPos >= a && nlPos < b) {
+                                    out.push_back('\n');
+                                }
+                            }
+                        }
+                    }
+                    ImGui::SetClipboardText(out.c_str());
+                }
             }
         }
-    }
-
-    // Measurements
-    ImFont* font = ImGui::GetFont();
-    const float fontSize = ImGui::GetFontSize();
-    const float lineBoxHeight = ImGui::GetTextLineHeight(); // text box height
-    const float lineAdvance  = lineBoxHeight + ImGui::GetStyle().ItemSpacing.y; // exact row-to-row advance
-    const int totalLines = (lineOffsets.Size > 0) ? (lineOffsets.Size - 1) : 0;
-    if ((int)lineTypes.size() != totalLines) {
-        rebuildBuffer(wrapW);
     }
 
     // Helper lambdas
@@ -619,13 +730,75 @@ void OutputWindow::show() {
 
     // Context menu for copying selected text
     if (ImGui::BeginPopupContextWindow("##output_context", ImGuiPopupFlags_MouseButtonRight)) {
-        bool canCopy = hasStoredSelection && selectionStart >= 0 && selectionEnd > selectionStart && selectionEnd <= buf.size();
+        int a = std::min(selectionStart, selectionEnd);
+        int b = std::max(selectionStart, selectionEnd);
+        a = std::max(0, a);
+        b = std::min((int)buf.size(), b);
+        bool canCopy = hasStoredSelection && (b > a);
+
         if (ImGui::MenuItem(ICON_FA_COPY "  Copy", NULL, false, canCopy)) {
             if (canCopy) {
-                int a = selectionStart, b = selectionEnd;
-                if (a > b) std::swap(a, b);
-                std::string selected_text(buf.begin() + a, buf.begin() + b);
-                ImGui::SetClipboardText(selected_text.c_str());
+                // Build copy text stripping soft-wrap newlines AND their leading indentation
+                auto lineStartIndexFn = [&](int line)->int { return (line >= 0 && line < lineOffsets.Size) ? lineOffsets[line] : 0; };
+                auto lineEndIndexExclFn = [&](int line)->int {
+                    if (line < 0 || line + 1 >= lineOffsets.Size) return (int)buf.size();
+                    int end = lineOffsets[line + 1];
+                    if (end > 0 && end <= buf.size() && buf[end - 1] == '\n') end -= 1;
+                    return end;
+                };
+                auto idxToLine = [&](int idx)->int {
+                    int l = 0, r = ((lineOffsets.Size > 0) ? lineOffsets.Size - 2 : -1), ans = 0;
+                    while (l <= r) {
+                        int m = (l + r) >> 1;
+                        if (lineOffsets[m] <= idx) { ans = m; l = m + 1; }
+                        else r = m - 1;
+                    }
+                    int tl = (lineOffsets.Size > 0) ? (lineOffsets.Size - 1) : 0;
+                    return std::max(0, std::min(ans, tl > 0 ? tl - 1 : 0));
+                };
+
+                std::string out;
+                out.reserve(b - a);
+                if (totalLines > 0) {
+                    int startLine = idxToLine(a);
+                    int endLine   = idxToLine(std::max(a, b - 1));
+                    for (int i = startLine; i <= endLine; ++i) {
+                        int ls = lineStartIndexFn(i);
+                        int le = lineEndIndexExclFn(i);
+
+                        int s0 = std::max(a, ls);
+                        int e0 = std::min(b, le);
+
+                        // If this line continues from a soft wrap, drop the leading indentation we injected
+                        bool prevSoft = (i > 0) && (i - 1) < (int)lineHardBreak.size() && (lineHardBreak[i - 1] == 0);
+                        if (prevSoft) {
+                            int indentMax = (int)getTypePrefixString(
+                                (i >= 0 && i < (int)lineTypes.size()) ? lineTypes[i] : LogType::Info
+                            ).size();
+                            int indentActual = 0;
+                            int scanEnd = std::min(le, ls + indentMax);
+                            while (ls + indentActual < scanEnd && buf[ls + indentActual] == ' ')
+                                indentActual++;
+                            int trimTo = ls + indentActual;
+                            if (e0 > trimTo) s0 = std::max(s0, trimTo);
+                            else            s0 = e0;
+                        }
+
+                        if (e0 > s0) out.append(buf.begin() + s0, buf.begin() + e0);
+
+                        bool hadNewlineChar = false;
+                        int nlPos = -1;
+                        if (i + 1 < lineOffsets.Size) {
+                            int nextStart = lineOffsets[i + 1];
+                            hadNewlineChar = (nextStart > 0 && nextStart <= buf.size() && buf[nextStart - 1] == '\n');
+                            nlPos = hadNewlineChar ? (nextStart - 1) : -1;
+                        }
+                        if (hadNewlineChar && i < (int)lineHardBreak.size() && lineHardBreak[i] && nlPos >= a && nlPos < b) {
+                            out.push_back('\n');
+                        }
+                    }
+                }
+                ImGui::SetClipboardText(out.c_str());
             }
         }
         if (ImGui::MenuItem("Select All")) {

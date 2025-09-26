@@ -26,6 +26,7 @@ namespace Supernova::Editor {
         ImVector<int> lineOffsets;           // Start index of each line in buf (size = lines + 1)
         std::vector<LogData> logs;
         std::vector<LogType> lineTypes;      // One per displayed line
+        std::vector<char> lineHardBreak;     // 1 if displayed line ends with a hard newline, 0 if soft-wrapped
 
         bool needsRebuild;
         float menuWidth;
