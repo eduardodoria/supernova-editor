@@ -471,6 +471,8 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         static ScriptComponent* def = new ScriptComponent;
 
         ps["script_path"] = {PropertyType::Script, UpdateFlags_None, nullptr, (compRef) ? (void*)&comp->scriptPath : nullptr};
+        ps["script_class_name"] = {PropertyType::String, UpdateFlags_None, nullptr, (compRef) ? (void*)&comp->scriptClassName : nullptr};
+        ps["enabled"] = {PropertyType::Bool, UpdateFlags_None, nullptr, (compRef) ? (void*)&comp->enabled : nullptr};
     }
 
     return ps;
@@ -828,7 +830,8 @@ void Editor::Catalog::copyPropertyValue(EntityRegistry* sourceRegistry, Entity s
             if (source && target) *target = *source;
             break;
         }
-        case PropertyType::String: {
+        case PropertyType::String:
+        case PropertyType::Script: {
             std::string* source = Catalog::getPropertyRef<std::string>(sourceRegistry, sourceEntity, compType, property);
             std::string* target = Catalog::getPropertyRef<std::string>(targetRegistry, targetEntity, compType, property);
             if (source && target) *target = *source;

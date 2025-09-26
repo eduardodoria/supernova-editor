@@ -20,7 +20,7 @@ private:
     std::string m_selectedPath;
     char m_baseNameBuffer[128] = "";
 
-    std::function<void(const fs::path& headerPath, const fs::path& sourcePath)> m_onCreate;
+    std::function<void(const fs::path& headerPath, const fs::path& sourcePath, const std::string& className)> m_onCreate;
     std::function<void()> m_onCancel;
 
     void displayDirectoryTree(const fs::path& rootPath, const fs::path& currentPath);
@@ -33,7 +33,7 @@ public:
     ~ScriptCreateDialog() = default;
 
     void open(const fs::path& projectPath, const std::string& defaultBaseName,
-              std::function<void(const fs::path& headerPath, const fs::path& sourcePath)> onCreate,
+              std::function<void(const fs::path& headerPath, const fs::path& sourcePath, const std::string& className)> onCreate,
               std::function<void()> onCancel = nullptr);
 
     void show();

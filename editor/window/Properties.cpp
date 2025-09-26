@@ -7,6 +7,7 @@
 #include "external/IconsFontAwesome6.h"
 #include "command/CommandHandle.h"
 #include "command/type/PropertyCmd.h"
+#include "command/type/MultiPropertyCmd.h"
 #include "command/type/EntityNameCmd.h"
 #include "command/type/MeshChangeCmd.h"
 #include "command/type/AddComponentCmd.h"
@@ -2058,21 +2059,24 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
     beginTable(cpType, getLabelSize("Script Path"));
 
     propertyRow(cpType, props, "script_path", "Script Path", sceneProject, entities);
+    //propertyRow(cpType, props, "script_class_name", "Script Class Name", sceneProject, entities);
+    propertyRow(cpType, props, "enabled", "Enabled", sceneProject, entities);
 
     endTable();
 
-    // New Script creation button
     if (ImGui::Button(ICON_FA_FILE_CIRCLE_PLUS " New Script", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, 0))) {
         std::string defaultName = "NewScript";
-        scriptCreateDialog.open(project->getProjectPath(),
-            defaultName,
-            [this, sceneProject, entities, cpType](const std::filesystem::path& headerPath, const std::filesystem::path& sourcePath){
-                // After creation, set script_path to the .cpp file
+        scriptCreateDialog.open(project->getProjectPath(), defaultName,
+            [this, sceneProject, entities, cpType](const std::filesystem::path& headerPath,
+                                                   const std::filesystem::path& sourcePath,
+                                                   const std::string& className){
+                std::string pathStr = sourcePath.string();
                 for (Entity entity: entities){
-                    std::string pathStr = sourcePath.string();
-                    cmd = new PropertyCmd<std::string>(project, sceneProject->id, entity, cpType, "script_path", 0, pathStr);
-                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
-                    cmd->setNoMerge();
+                    MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+                    multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entity, cpType, "script_path", UpdateFlags_None, pathStr);
+                    multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entity, cpType, "script_class_name", UpdateFlags_None, className);
+                    multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entity, cpType, "enabled", UpdateFlags_None, true);
+                    CommandHandle::get(sceneProject->id)->addCommandNoMerge(multiCmd);
                 }
             },
             [](){}

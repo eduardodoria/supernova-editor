@@ -6,7 +6,7 @@ namespace Supernova {
 namespace Editor {
 
 void ScriptCreateDialog::open(const fs::path& projectPath, const std::string& defaultBaseName,
-                              std::function<void(const fs::path& headerPath, const fs::path& sourcePath)> onCreate,
+                              std::function<void(const fs::path& headerPath, const fs::path& sourcePath, const std::string& className)> onCreate,
                               std::function<void()> onCancel) {
     m_isOpen = true;
     m_projectPath = projectPath;
@@ -152,7 +152,7 @@ void ScriptCreateDialog::show() {
     if (ImGui::Button("Create", ImVec2(120, 0))) {
         writeFiles(headerPath, sourcePath, className);
         if (m_onCreate) {
-            m_onCreate(headerPath, sourcePath);
+            m_onCreate(headerPath, sourcePath, className);
         }
         m_isOpen = false;
         ImGui::CloseCurrentPopup();
