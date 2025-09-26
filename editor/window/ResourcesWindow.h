@@ -61,7 +61,7 @@ namespace Supernova::Editor {
             CARD,
             CLASSIC
         };
-        ItemViewStyle itemViewStyle = ItemViewStyle::CARD;
+        ItemViewStyle itemViewStyle = ItemViewStyle::CLASSIC;
 
         float layoutAutoThreshold = 600.0f;
         float leftPanelWidth = 200.0f;  // Width of the left panel in SPLIT layout

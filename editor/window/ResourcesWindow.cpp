@@ -187,9 +187,9 @@ void Editor::ResourcesWindow::renderHeader() {
 
         ImGui::Separator();
         ImGui::Text("Item view");
-        if (ImGui::RadioButton("Card", itemViewStyle == ItemViewStyle::CARD)) itemViewStyle = ItemViewStyle::CARD;
-        ImGui::SameLine();
         if (ImGui::RadioButton("Classic", itemViewStyle == ItemViewStyle::CLASSIC)) itemViewStyle = ItemViewStyle::CLASSIC;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Card", itemViewStyle == ItemViewStyle::CARD)) itemViewStyle = ItemViewStyle::CARD;
 
         ImGui::EndPopup();
     }
