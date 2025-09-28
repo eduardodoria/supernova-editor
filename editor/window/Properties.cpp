@@ -2058,8 +2058,8 @@ void Editor::Properties::drawLightComponent(ComponentType cpType, std::map<std::
 void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std::string, PropertyData> props, SceneProject* sceneProject, std::vector<Entity> entities){
     beginTable(cpType, getLabelSize("Script Path"));
 
-    propertyRow(cpType, props, "script_path", "Script Path", sceneProject, entities);
-    //propertyRow(cpType, props, "script_class_name", "Script Class Name", sceneProject, entities);
+    propertyRow(cpType, props, "path", "Script Path", sceneProject, entities);
+    //propertyRow(cpType, props, "class_name", "Script Class Name", sceneProject, entities);
     propertyRow(cpType, props, "enabled", "Enabled", sceneProject, entities);
 
     endTable();
@@ -2073,8 +2073,8 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
                 std::string pathStr = sourcePath.string();
                 for (Entity entity: entities){
                     MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
-                    multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entity, cpType, "script_path", UpdateFlags_None, pathStr);
-                    multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entity, cpType, "script_class_name", UpdateFlags_None, className);
+                    multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entity, cpType, "path", UpdateFlags_None, pathStr);
+                    multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entity, cpType, "class_name", UpdateFlags_None, className);
                     multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entity, cpType, "enabled", UpdateFlags_None, true);
                     CommandHandle::get(sceneProject->id)->addCommandNoMerge(multiCmd);
                 }

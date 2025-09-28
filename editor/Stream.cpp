@@ -1569,8 +1569,8 @@ LightComponent Editor::Stream::decodeLightComponent(const YAML::Node& node) {
 YAML::Node Editor::Stream::encodeScriptComponent(const ScriptComponent& script) {
     YAML::Node node;
 
-    node["scriptPath"] = script.scriptPath;
-    node["scriptClassName"] = script.scriptClassName;
+    node["path"] = script.path;
+    node["className"] = script.className;
     node["enabled"] = script.enabled;
 
     //if (!script.variables.empty()) {
@@ -1587,8 +1587,8 @@ YAML::Node Editor::Stream::encodeScriptComponent(const ScriptComponent& script) 
 ScriptComponent Editor::Stream::decodeScriptComponent(const YAML::Node& node) {
     ScriptComponent script;
 
-    if (node["scriptPath"]) script.scriptPath = node["scriptPath"].as<std::string>();
-    if (node["scriptClassName"]) script.scriptClassName = node["scriptClassName"].as<std::string>();
+    if (node["path"]) script.path = node["path"].as<std::string>();
+    if (node["className"]) script.className = node["className"].as<std::string>();
     if (node["enabled"]) script.enabled = node["enabled"].as<bool>();
 
     //if (node["variables"]) {

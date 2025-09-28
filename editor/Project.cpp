@@ -269,28 +269,28 @@ void Editor::Project::insertNewChild(YAML::Node& node, YAML::Node child, size_t 
 }
 
 // Collect unique script source files from all scenes/entities
-std::vector<fs::path> Editor::Project::collectScriptSourceFiles() const {
+std::vector<Editor::ScriptSource> Editor::Project::collectScriptSourceFiles() const {
     std::unordered_set<std::string> uniqueScripts;
-    std::vector<fs::path> scriptFiles;
+    std::vector<Editor::ScriptSource> scriptFiles;
 
     for (const auto& sceneProject : scenes) {
         Scene* scene = sceneProject.scene;
-        for (Entity e : sceneProject.entities) {
-            Signature sig = scene->getSignature(e);
-            if (sig.test(scene->getComponentId<ScriptComponent>())) {
-                const ScriptComponent& sc = scene->getComponent<ScriptComponent>(e);
-                if (!sc.scriptPath.empty()) {
-                    fs::path p = sc.scriptPath;
-                    if (p.is_relative()) {
-                        p = getProjectPath() / p;
+        for (Entity entity : sceneProject.entities) {
+            Signature signature = scene->getSignature(entity);
+            if (signature.test(scene->getComponentId<ScriptComponent>())) {
+                const ScriptComponent& scriptComponent = scene->getComponent<ScriptComponent>(entity);
+                if (!scriptComponent.path.empty()) {
+                    fs::path path = scriptComponent.path;
+                    if (path.is_relative()) {
+                        path = getProjectPath() / path;
                     }
-                    if (std::filesystem::exists(p)) {
-                        std::string key = p.lexically_normal().generic_string();
+                    if (std::filesystem::exists(path)) {
+                        std::string key = path.lexically_normal().generic_string();
                         if (uniqueScripts.insert(key).second) {
-                            scriptFiles.push_back(p);
+                            scriptFiles.push_back(Editor::ScriptSource{path, scriptComponent.className, sceneProject.scene, entity});
                         }
                     } else {
-                        Out::error("Script file not found: %s", p.string().c_str());
+                        Out::error("Script file not found: %s", path.string().c_str());
                     }
                 }
             }
@@ -1971,7 +1971,7 @@ void Editor::Project::start(uint32_t sceneId) {
         return;
     }
 
-    std::vector<fs::path> scriptFiles = collectScriptSourceFiles();
+    std::vector<Editor::ScriptSource> scriptFiles = collectScriptSourceFiles();
 
     generator.build(getProjectPath(), scriptFiles);
 

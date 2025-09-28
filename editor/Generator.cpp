@@ -321,101 +321,139 @@ bool Editor::Generator::writeIfChanged(const fs::path& filePath, const std::stri
     return false;
 }
 
-void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const std::vector<fs::path>& scriptFiles){
+bool Editor::Generator::tryIncludeHeader(const fs::path& p, const fs::path& projectPath, std::unordered_set<std::string>& included, std::string& sourceContent) {
+    std::string ext = p.extension().string();
+    if (ext == ".h" || ext == ".hpp" || ext == ".hh" || ext == ".hxx") {
+        fs::path relativePath = fs::relative(p, projectPath);
+        std::string inc = relativePath.generic_string();
+        if (included.insert(inc).second) {
+            sourceContent += "#include \"" + inc + "\"\n";
+        }
+        return true;
+    }
+    // Try to guess header from a source file name
+    if (ext == ".cpp" || ext == ".cc" || ext == ".cxx") {
+        fs::path h = p; h.replace_extension(".h");
+        if (fs::exists(h)) {
+            fs::path relativePath = fs::relative(h, projectPath);
+            std::string inc = relativePath.generic_string();
+            if (included.insert(inc).second) {
+                sourceContent += "#include \"" + inc + "\"\n";
+            }
+            return true;
+        }
+        fs::path hpp = p; hpp.replace_extension(".hpp");
+        if (fs::exists(hpp)) {
+            fs::path relativePath = fs::relative(hpp, projectPath);
+            std::string inc = relativePath.generic_string();
+            if (included.insert(inc).second) {
+                sourceContent += "#include \"" + inc + "\"\n";
+            }
+            return true;
+        }
+    }
+    return false;
+}
+
+void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const std::vector<ScriptSource>& scriptFiles){
     // Build SCRIPT_SOURCES list for CMake
     std::string scriptSources = "set(SCRIPT_SOURCES\n";
-    for (const auto& p : scriptFiles) {
-        // Quote and use generic_string to handle platform separators and spaces
-        scriptSources += "    \"" + p.generic_string() + "\"\n";
+    for (const auto& s : scriptFiles) {
+        // Make path relative to project path and add CMake variable prefix
+        fs::path relativePath = fs::relative(s.path, projectPath);
+        scriptSources += "    ${CMAKE_CURRENT_SOURCE_DIR}/" + relativePath.generic_string() + "\n";
     }
     scriptSources += ")\n";
 
-    const std::string cmakeContent = R"(
-        cmake_minimum_required(VERSION 3.15)
-        project(ProjectLib)
+    // Build CMake content with proper indentation
+    std::string cmakeContent;
+    cmakeContent += "cmake_minimum_required(VERSION 3.15)\n";
+    cmakeContent += "project(ProjectLib)\n\n";
+    cmakeContent += "# Specify C++ standard\n";
+    cmakeContent += "set(CMAKE_CXX_STANDARD 17)\n";
+    cmakeContent += "set(CMAKE_CXX_STANDARD_REQUIRED ON)\n\n";
+    cmakeContent += scriptSources + "\n";
+    cmakeContent += "# Project library target\n";
+    cmakeContent += "add_library(project_lib SHARED\n";
+    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/project_lib.cpp\n";
+    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/CubeScript.cpp\n";
+    cmakeContent += "    ${SCRIPT_SOURCES}\n";
+    cmakeContent += ")\n\n";
+    cmakeContent += "# To suppress warnings if not Debug\n";
+    cmakeContent += "if(NOT CMAKE_BUILD_TYPE STREQUAL \"Debug\")\n";
+    cmakeContent += "    set(SUPERNOVA_LIB_SYSTEM SYSTEM)\n";
+    cmakeContent += "endif()\n\n";
+    cmakeContent += "target_include_directories(project_lib ${SUPERNOVA_LIB_SYSTEM} PRIVATE\n";
+    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine\n";
+    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/libs/sokol\n";
+    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/libs/box2d/include\n";
+    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/libs/joltphysics\n";
+    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/renders\n";
+    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core\n";
+    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/ecs\n";
+    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/object\n";
+    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/object/physics\n";
+    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/script\n";
+    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/math\n";
+    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/registry\n";
+    cmakeContent += ")\n\n";
+    cmakeContent += "# Find supernova library in specified location\n";
+    cmakeContent += "find_library(SUPERNOVA_LIB supernova PATHS ${SUPERNOVA_LIB_DIR} NO_DEFAULT_PATH)\n";
+    cmakeContent += "if(NOT SUPERNOVA_LIB)\n";
+    cmakeContent += "    message(FATAL_ERROR \"Supernova library not found in ${SUPERNOVA_LIB_DIR}\")\n";
+    cmakeContent += "endif()\n\n";
+    cmakeContent += "target_link_libraries(project_lib PRIVATE ${SUPERNOVA_LIB})\n\n";
+    cmakeContent += "# Set compile options based on compiler and platform\n";
+    cmakeContent += "if(MSVC)\n";
+    cmakeContent += "    target_compile_options(project_lib PRIVATE /W4 /EHsc)\n";
+    cmakeContent += "else()\n";
+    cmakeContent += "    target_compile_options(project_lib PRIVATE -Wall -Wextra -fPIC)\n";
+    cmakeContent += "endif()\n\n";
+    cmakeContent += "# Set properties for the shared library\n";
+    cmakeContent += "set_target_properties(project_lib PROPERTIES\n";
+    cmakeContent += "    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}\n";
+    cmakeContent += "    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}\n";
+    cmakeContent += "    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}\n";
+    cmakeContent += "    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}\n";
+    cmakeContent += "    LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}\n";
+    cmakeContent += "    LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}\n";
+    cmakeContent += "    LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}\n";
+    cmakeContent += "    LIBRARY_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}\n";
+    cmakeContent += "    OUTPUT_NAME \"project_lib\"\n";
+    cmakeContent += "    PREFIX \"\"\n";
+    cmakeContent += ")\n";
 
-        # Specify C++ standard
-        set(CMAKE_CXX_STANDARD 17)
-        set(CMAKE_CXX_STANDARD_REQUIRED ON)
+    // Build C++ source content with proper indentation
+    std::string sourceContent;
+    sourceContent += "#include <iostream>\n";
+    sourceContent += "#include \"Scene.h\"\n";
 
-    )" + scriptSources + R"(
+    // Include script headers
+    std::unordered_set<std::string> included;
+    for (const auto& s : scriptFiles) {
+        tryIncludeHeader(s.path, projectPath, included, sourceContent);
+    }
 
-        # Project library target
-        add_library(project_lib SHARED
-            ${CMAKE_CURRENT_SOURCE_DIR}/project_lib.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/CubeScript.cpp
-            ${SCRIPT_SOURCES}
-        )
+    sourceContent += "\n";
+    sourceContent += "#if defined(_MSC_VER)\n";
+    sourceContent += "    #define PROJECT_API __declspec(dllexport)\n";
+    sourceContent += "#else\n";
+    sourceContent += "    #define PROJECT_API\n";
+    sourceContent += "#endif\n\n";
+    sourceContent += "extern \"C\" void PROJECT_API initScene(Supernova::Scene* scene) {\n";
 
-        # To suppress warnings if not Debug
-        if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-            set(SUPERNOVA_LIB_SYSTEM SYSTEM)
-        endif()
+    // Build script instantiation code
+    std::string scriptInstantiations;
+    for (size_t i = 0; i < scriptFiles.size(); ++i) {
+        const auto& s = scriptFiles[i];
+        scriptInstantiations += "    " + s.className + "* script_" + std::to_string(i) +
+                                " = new " + s.className + "(scene, (Supernova::Entity)" + std::to_string(s.entity) + ");\n";
+        scriptInstantiations += "    (void)script_" + std::to_string(i) + ";\n";
+    }
 
-        target_include_directories(project_lib ${SUPERNOVA_LIB_SYSTEM} PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine
-            ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/libs/sokol
-            ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/libs/box2d/include
-            ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/libs/joltphysics
-            ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/renders
-            ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core
-            ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/ecs
-            ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/object
-            ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/object/physics
-            ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/script
-            ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/math
-            ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/registry
-        )
-
-        # Find supernova library in specified location
-        find_library(SUPERNOVA_LIB supernova PATHS ${SUPERNOVA_LIB_DIR} NO_DEFAULT_PATH)
-        if(NOT SUPERNOVA_LIB)
-            message(FATAL_ERROR "Supernova library not found in ${SUPERNOVA_LIB_DIR}")
-        endif()
-
-        target_link_libraries(project_lib PRIVATE ${SUPERNOVA_LIB})
-
-        # Set compile options based on compiler and platform
-        if(MSVC)
-            target_compile_options(project_lib PRIVATE /W4 /EHsc)
-        else()
-            target_compile_options(project_lib PRIVATE -Wall -Wextra -fPIC)
-        endif()
-
-        # Set properties for the shared library
-        set_target_properties(project_lib PROPERTIES
-            RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}
-            RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}
-            RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}
-            RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}
-            LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}
-            LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}
-            LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}
-            LIBRARY_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}
-            OUTPUT_NAME "project_lib"
-            PREFIX ""
-        )
-    )";
-
-    const std::string sourceContent = R"(
-        #include <iostream>
-        #include "Scene.h"
-        #include "CubeScript.h"
-
-        #if defined(_MSC_VER)
-            #define PROJECT_API __declspec(dllexport)
-        #else
-            #define PROJECT_API
-        #endif
-
-        // A sample function to be called from the shared library
-        extern "C" void PROJECT_API initScene(Supernova::Scene* scene) {
-            //Supernova::Scene scene;
-            CubeScript* cube = new CubeScript(scene);
-            cube->init();
-            std::cout << "Hello from the shared library!" << std::endl;
-        }
-    )";
+    sourceContent += scriptInstantiations;
+    sourceContent += "    std::cout << \"Hello from the shared library!\" << std::endl;\n";
+    sourceContent += "}\n";
 
     const fs::path cmakeFile = projectPath / "CMakeLists.txt";
     const fs::path sourceFile = projectPath / "project_lib.cpp";
@@ -424,7 +462,7 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const std:
     bool sourceChanged = writeIfChanged(sourceFile, sourceContent);
 }
 
-void Editor::Generator::build(fs::path projectPath, const std::vector<fs::path>& scriptFiles) {
+void Editor::Generator::build(fs::path projectPath, const std::vector<ScriptSource>& scriptFiles) {
 
     writeSourceFiles(projectPath, scriptFiles);
 
