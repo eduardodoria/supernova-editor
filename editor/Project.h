@@ -103,6 +103,8 @@ namespace Supernova::Editor{
         size_t countEntitiesInBranch(const YAML::Node& entityNode);
         void insertNewChild(YAML::Node& node, YAML::Node child, size_t index);
 
+        std::vector<fs::path> collectScriptSourceFiles() const;
+
     public:
         Project();
 
@@ -205,7 +207,7 @@ namespace Supernova::Editor{
 
         //=== end Shared Entities part ===
 
-        void build();
+        void start(uint32_t sceneId);
 
         void debugSceneHierarchy();
     };

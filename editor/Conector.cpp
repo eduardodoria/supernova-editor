@@ -2,6 +2,7 @@
 
 #include "editor/Out.h"
 #include "Scene.h"
+#include "Project.h"
 
 #include <iostream>
 #include <thread>
@@ -90,24 +91,23 @@ bool Editor::Conector::connect(fs::path projectPath){
     return false;
 }
 
-void Editor::Conector::execute(){
-    // Dynamically load and call the `sayHello` function
-    using SayHelloFunc = void (*)(Scene*);
+void Editor::Conector::execute(SceneProject* sceneProject){
+    // Dynamically load and call the `initScene` function
+    using InitSceneFunc = void (*)(Scene*);
     #ifdef _WIN32
-        SayHelloFunc sayHello = reinterpret_cast<SayHelloFunc>(GetProcAddress(static_cast<HMODULE>(libHandle), "sayHello"));
-        if (!sayHello) {
-            Out::error("Failed to find function 'sayHello' in the library (Error code: %i)", GetLastError());
+        InitSceneFunc initScene = reinterpret_cast<InitSceneFunc>(GetProcAddress(static_cast<HMODULE>(libHandle), "initScene"));
+        if (!initScene) {
+            Out::error("Failed to find function 'initScene' in the library (Error code: %i)", GetLastError());
         }
     #else
-        SayHelloFunc sayHello = reinterpret_cast<SayHelloFunc>(dlsym(libHandle, "sayHello"));
-        if (!sayHello) {
-            Out::error("Failed to find function 'sayHello' in the library (Error: %s)", dlerror());
+        InitSceneFunc initScene = reinterpret_cast<InitSceneFunc>(dlsym(libHandle, "initScene"));
+        if (!initScene) {
+            Out::error("Failed to find function 'initScene' in the library (Error: %s)", dlerror());
         }
     #endif
 
-    if (sayHello) {
-        Out::info("Calling 'sayHello' function from the library...");
-        Scene scene;
-        sayHello(&scene); // Call the function
+    if (initScene) {
+        Out::info("Calling 'initScene' function from the library...");
+        initScene(sceneProject->scene); // Call the function
     }
 }

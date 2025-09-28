@@ -307,7 +307,7 @@ void Editor::SceneWindow::show() {
             }
 
             if (ImGui::Button(ICON_FA_PLAY " Play")) {
-                project->build();
+                project->start(sceneProject.id);
             }
 
             ImGui::BeginDisabled();

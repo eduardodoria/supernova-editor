@@ -321,7 +321,15 @@ bool Editor::Generator::writeIfChanged(const fs::path& filePath, const std::stri
     return false;
 }
 
-void Editor::Generator::writeSourceFiles(const fs::path& projectPath){
+void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const std::vector<fs::path>& scriptFiles){
+    // Build SCRIPT_SOURCES list for CMake
+    std::string scriptSources = "set(SCRIPT_SOURCES\n";
+    for (const auto& p : scriptFiles) {
+        // Quote and use generic_string to handle platform separators and spaces
+        scriptSources += "    \"" + p.generic_string() + "\"\n";
+    }
+    scriptSources += ")\n";
+
     const std::string cmakeContent = R"(
         cmake_minimum_required(VERSION 3.15)
         project(ProjectLib)
@@ -330,10 +338,13 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath){
         set(CMAKE_CXX_STANDARD 17)
         set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+    )" + scriptSources + R"(
+
         # Project library target
         add_library(project_lib SHARED
             ${CMAKE_CURRENT_SOURCE_DIR}/project_lib.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/CubeScript.cpp
+            ${SCRIPT_SOURCES}
         )
 
         # To suppress warnings if not Debug
@@ -353,6 +364,7 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath){
             ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/object/physics
             ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/script
             ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/math
+            ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/registry
         )
 
         # Find supernova library in specified location
@@ -397,7 +409,7 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath){
         #endif
 
         // A sample function to be called from the shared library
-        extern "C" void PROJECT_API sayHello(Supernova::Scene* scene) {
+        extern "C" void PROJECT_API initScene(Supernova::Scene* scene) {
             //Supernova::Scene scene;
             CubeScript* cube = new CubeScript(scene);
             cube->init();
@@ -412,9 +424,9 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath){
     bool sourceChanged = writeIfChanged(sourceFile, sourceContent);
 }
 
-void Editor::Generator::build(fs::path projectPath) {
+void Editor::Generator::build(fs::path projectPath, const std::vector<fs::path>& scriptFiles) {
 
-    writeSourceFiles(projectPath);
+    writeSourceFiles(projectPath, scriptFiles);
 
     waitForBuildToComplete();
 

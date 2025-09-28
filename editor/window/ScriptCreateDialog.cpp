@@ -40,13 +40,13 @@ void ScriptCreateDialog::writeFiles(const fs::path& headerPath, const fs::path& 
         std::ofstream h(headerPath, std::ios::trunc);
         if (h) {
             h << "#pragma once\n\n";
-            h << "#include \"Script.h\"\n\n";
-            h << "class " << className << " : public Supernova::Script {\n";
+            h << "#include \"Shape.h\"\n\n";
+            h << "class " << className << " : public Supernova::Shape {\n";
             h << "public:\n";
-            h << "    " << className << "(Supernova::Entity entity);\n";
+            h << "    " << className << "(Supernova::Scene* scene, Supernova::Entity entity);\n";
             h << "    virtual ~" << className << "() = default;\n\n";
-            h << "    void onInit() override;\n";
-            h << "    void onUpdate(double dt) override;\n";
+            //h << "    void onInit() override;\n";
+            //h << "    void onUpdate(double dt) override;\n";
             h << "};\n";
         }
     }
@@ -57,12 +57,12 @@ void ScriptCreateDialog::writeFiles(const fs::path& headerPath, const fs::path& 
         if (c) {
             c << "#include \"" << headerPath.filename().string() << "\"\n\n";
             c << "using namespace Supernova;\n\n";
-            c << className << "::" << className << "(Entity entity): Script(entity) {\n";
+            c << className << "::" << className << "(Scene* scene, Entity entity): Shape(scene, entity) {\n";
             c << "}\n\n";
-            c << "void " << className << "::onInit(){\n";
-            c << "}\n\n";
-            c << "void " << className << "::onUpdate(double dt){\n";
-            c << "}\n";
+            //c << "void " << className << "::onInit(){\n";
+            //c << "}\n\n";
+            //c << "void " << className << "::onUpdate(double dt){\n";
+            //c << "}\n";
         }
     }
 }

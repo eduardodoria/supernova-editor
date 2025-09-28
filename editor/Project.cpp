@@ -268,6 +268,38 @@ void Editor::Project::insertNewChild(YAML::Node& node, YAML::Node child, size_t 
     }
 }
 
+// Collect unique script source files from all scenes/entities
+std::vector<fs::path> Editor::Project::collectScriptSourceFiles() const {
+    std::unordered_set<std::string> uniqueScripts;
+    std::vector<fs::path> scriptFiles;
+
+    for (const auto& sceneProject : scenes) {
+        Scene* scene = sceneProject.scene;
+        for (Entity e : sceneProject.entities) {
+            Signature sig = scene->getSignature(e);
+            if (sig.test(scene->getComponentId<ScriptComponent>())) {
+                const ScriptComponent& sc = scene->getComponent<ScriptComponent>(e);
+                if (!sc.scriptPath.empty()) {
+                    fs::path p = sc.scriptPath;
+                    if (p.is_relative()) {
+                        p = getProjectPath() / p;
+                    }
+                    if (std::filesystem::exists(p)) {
+                        std::string key = p.lexically_normal().generic_string();
+                        if (uniqueScripts.insert(key).second) {
+                            scriptFiles.push_back(p);
+                        }
+                    } else {
+                        Out::error("Script file not found: %s", p.string().c_str());
+                    }
+                }
+            }
+        }
+    }
+
+    return scriptFiles;
+}
+
 bool Editor::Project::createTempProject(std::string projectName, bool deleteIfExists) {
     try {
         resetConfigs();
@@ -1932,13 +1964,21 @@ bool Editor::Project::sharedGroupNameChanged(uint32_t sceneId, Entity entity, st
     return true;
 }
 
-void Editor::Project::build() {
-    generator.build(getProjectPath());
+void Editor::Project::start(uint32_t sceneId) {
+    SceneProject* sceneProject = getScene(sceneId);
+    if (!sceneProject) {
+        Out::error("Failed to find scene %u to start", sceneId);
+        return;
+    }
 
-    std::thread connectThread([this]() {
+    std::vector<fs::path> scriptFiles = collectScriptSourceFiles();
+
+    generator.build(getProjectPath(), scriptFiles);
+
+    std::thread connectThread([this, sceneProject]() {
         generator.waitForBuildToComplete();
         if (conector.connect(getProjectPath())) {
-            conector.execute();
+            conector.execute(sceneProject);
         }
     });
     connectThread.detach();

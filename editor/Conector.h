@@ -8,6 +8,8 @@ namespace fs = std::filesystem;
 
 namespace Supernova::Editor{
 
+    struct SceneProject;
+
     class Conector{
     private:
         void* libHandle;
@@ -22,7 +24,7 @@ namespace Supernova::Editor{
         virtual ~Conector();
 
         bool connect(fs::path projectPath);
-        void execute();
+        void execute(SceneProject* sceneProject);
     };
 
 }
