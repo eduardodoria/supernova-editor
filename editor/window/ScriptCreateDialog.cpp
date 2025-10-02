@@ -45,8 +45,6 @@ void ScriptCreateDialog::writeFiles(const fs::path& headerPath, const fs::path& 
             h << "public:\n";
             h << "    " << className << "(Supernova::Scene* scene, Supernova::Entity entity);\n";
             h << "    virtual ~" << className << "() = default;\n\n";
-            //h << "    void onInit() override;\n";
-            //h << "    void onUpdate(double dt) override;\n";
             h << "};\n";
         }
     }
@@ -58,11 +56,8 @@ void ScriptCreateDialog::writeFiles(const fs::path& headerPath, const fs::path& 
             c << "#include \"" << headerPath.filename().string() << "\"\n\n";
             c << "using namespace Supernova;\n\n";
             c << className << "::" << className << "(Scene* scene, Entity entity): Shape(scene, entity) {\n";
+            c << "    printf(\"" << className << " created!\\n\");\n";
             c << "}\n\n";
-            //c << "void " << className << "::onInit(){\n";
-            //c << "}\n\n";
-            //c << "void " << className << "::onUpdate(double dt){\n";
-            //c << "}\n";
         }
     }
 }

@@ -376,7 +376,6 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const std:
     cmakeContent += "# Project library target\n";
     cmakeContent += "add_library(project_lib SHARED\n";
     cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/project_lib.cpp\n";
-    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/CubeScript.cpp\n";
     cmakeContent += "    ${SCRIPT_SOURCES}\n";
     cmakeContent += ")\n\n";
     cmakeContent += "# To suppress warnings if not Debug\n";
@@ -452,7 +451,6 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const std:
     }
 
     sourceContent += scriptInstantiations;
-    sourceContent += "    std::cout << \"Hello from the shared library!\" << std::endl;\n";
     sourceContent += "}\n";
 
     const fs::path cmakeFile = projectPath / "CMakeLists.txt";
