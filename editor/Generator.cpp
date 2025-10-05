@@ -422,10 +422,12 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const std:
     cmakeContent += "    PREFIX \"\"\n";
     cmakeContent += ")\n";
 
-    // Build C++ source content with proper indentation
+    // Build C++ source content
     std::string sourceContent;
     sourceContent += "#include <iostream>\n";
+    sourceContent += "#include <vector>\n";
     sourceContent += "#include \"Scene.h\"\n";
+    sourceContent += "#include \"EntityHandle.h\"\n";  // Include base class
 
     // Include script headers
     std::unordered_set<std::string> included;
@@ -439,18 +441,34 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const std:
     sourceContent += "#else\n";
     sourceContent += "    #define PROJECT_API\n";
     sourceContent += "#endif\n\n";
+
+    // Store as base class pointers for proper cleanup
+    sourceContent += "// Static storage for script instances (as base class pointers)\n";
+    sourceContent += "static std::vector<Supernova::EntityHandle*> g_scriptInstances;\n\n";
+
     sourceContent += "extern \"C\" void PROJECT_API initScene(Supernova::Scene* scene) {\n";
 
     // Build script instantiation code
-    std::string scriptInstantiations;
     for (size_t i = 0; i < scriptFiles.size(); ++i) {
         const auto& s = scriptFiles[i];
-        scriptInstantiations += "    " + s.className + "* script_" + std::to_string(i) +
+        sourceContent += "    " + s.className + "* script_" + std::to_string(i) +
                                 " = new " + s.className + "(scene, (Supernova::Entity)" + std::to_string(s.entity) + ");\n";
-        scriptInstantiations += "    (void)script_" + std::to_string(i) + ";\n";
+        sourceContent += "    g_scriptInstances.push_back(script_" + std::to_string(i) + ");\n";
     }
 
-    sourceContent += scriptInstantiations;
+    if (scriptFiles.empty()) {
+        sourceContent += "    (void)scene;  // Suppress unused parameter warning\n";
+    }
+
+    sourceContent += "}\n\n";
+
+    // Cleanup function that properly deletes through base class pointers
+    sourceContent += "extern \"C\" void PROJECT_API cleanup() {\n";
+    sourceContent += "    // Clean up all script instances (calls virtual destructors)\n";
+    sourceContent += "    for (Supernova::EntityHandle* script : g_scriptInstances) {\n";
+    sourceContent += "        delete script;  // Properly calls virtual destructor\n";
+    sourceContent += "    }\n";
+    sourceContent += "    g_scriptInstances.clear();\n";
     sourceContent += "}\n";
 
     const fs::path cmakeFile = projectPath / "CMakeLists.txt";

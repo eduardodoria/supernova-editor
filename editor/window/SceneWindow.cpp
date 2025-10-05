@@ -306,14 +306,21 @@ void Editor::SceneWindow::show() {
                 project->setSelectedSceneId(sceneProject.id);
             }
 
+            bool isPlaying = (sceneProject.playState == ScenePlayState::PLAYING);
+            bool isStopped = (sceneProject.playState == ScenePlayState::STOPPED);
+
+            // Play button - disabled when already playing
+            ImGui::BeginDisabled(isPlaying);
             if (ImGui::Button(ICON_FA_PLAY " Play")) {
                 project->start(sceneProject.id);
             }
+            ImGui::EndDisabled();
 
-            ImGui::BeginDisabled();
+            // Stop button - disabled when stopped
+            ImGui::BeginDisabled(isStopped);
             ImGui::SameLine();
             if (ImGui::Button(ICON_FA_STOP " Stop")) {
-                // Handle stop button click
+                project->stop(sceneProject.id);
             }
             ImGui::EndDisabled();
 

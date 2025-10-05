@@ -22,7 +22,7 @@ Editor::Conector::Conector(){
 }
 
 Editor::Conector::~Conector(){
-    unloadSharedLibrary(libHandle);
+    disconnect();
 }
 
 bool Editor::Conector::fileExists(const fs::path& path) {
@@ -61,10 +61,11 @@ void Editor::Conector::unloadSharedLibrary(void* libHandle) {
             std::cout << "Library unloaded successfully.\n";
         }
     #endif
-    }
+}
 
 bool Editor::Conector::connect(fs::path projectPath){
-    unloadSharedLibrary(libHandle);
+    // Disconnect any existing connection first
+    disconnect();
 
     fs::path buildPath = projectPath / "build";
 
@@ -82,6 +83,7 @@ bool Editor::Conector::connect(fs::path projectPath){
         std::cout << "Library file found!\n";
         libHandle = loadSharedLibrary(fullLibPath.string());
         if (libHandle) {
+            Out::info("Successfully connected to library");
             return true;
         }
     } else {
@@ -91,7 +93,40 @@ bool Editor::Conector::connect(fs::path projectPath){
     return false;
 }
 
+void Editor::Conector::disconnect(){
+    if (libHandle) {
+        Out::info("Disconnecting from library...");
+
+        // This allows the library to perform any necessary cleanup
+        #ifdef _WIN32
+            using CleanupFunc = void (*)();
+            CleanupFunc cleanup = reinterpret_cast<CleanupFunc>(GetProcAddress(static_cast<HMODULE>(libHandle), "cleanup"));
+            if (cleanup) {
+                Out::info("Calling library cleanup function...");
+                cleanup();
+            }
+        #else
+            using CleanupFunc = void (*)();
+            CleanupFunc cleanup = reinterpret_cast<CleanupFunc>(dlsym(libHandle, "cleanup"));
+            if (cleanup) {
+                Out::info("Calling library cleanup function...");
+                cleanup();
+            }
+        #endif
+
+        unloadSharedLibrary(libHandle);
+        libHandle = nullptr;
+
+        Out::info("Disconnected from library successfully");
+    }
+}
+
 void Editor::Conector::execute(SceneProject* sceneProject){
+    if (!libHandle) {
+        Out::error("Cannot execute: Not connected to library");
+        return;
+    }
+
     // Dynamically load and call the `initScene` function
     using InitSceneFunc = void (*)(Scene*);
     #ifdef _WIN32
@@ -110,4 +145,8 @@ void Editor::Conector::execute(SceneProject* sceneProject){
         Out::info("Calling 'initScene' function from the library...");
         initScene(sceneProject->scene); // Call the function
     }
+}
+
+bool Editor::Conector::isLibraryConnected() const {
+    return libHandle != nullptr;
 }

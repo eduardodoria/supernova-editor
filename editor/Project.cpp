@@ -80,6 +80,7 @@ uint32_t Editor::Project::createNewScene(std::string sceneName, SceneType type){
     data.needUpdateRender = true;
     data.isModified = true;
     data.isVisible = true;
+    data.playState = ScenePlayState::STOPPED;
 
     scenes.push_back(data);
 
@@ -114,6 +115,7 @@ void Editor::Project::openScene(fs::path filepath){
         data.needUpdateRender = true;
         data.isModified = false;
         data.filepath = filepath;
+        data.playState = ScenePlayState::STOPPED;
 
         Stream::decodeSceneProject(&data, sceneNode);
 
@@ -1971,6 +1973,8 @@ void Editor::Project::start(uint32_t sceneId) {
         return;
     }
 
+    sceneProject->playState = ScenePlayState::PLAYING;
+
     std::vector<Editor::ScriptSource> scriptFiles = collectScriptSourceFiles();
 
     generator.build(getProjectPath(), scriptFiles);
@@ -1984,6 +1988,20 @@ void Editor::Project::start(uint32_t sceneId) {
     connectThread.detach();
 }
 
+void Editor::Project::stop(uint32_t sceneId) {
+    SceneProject* sceneProject = getScene(sceneId);
+    if (!sceneProject) {
+        Out::error("Failed to find scene %u to stop", sceneId);
+        return;
+    }
+
+    sceneProject->playState = ScenePlayState::STOPPED;
+
+    // Disconnect from the running game
+    if (conector.isLibraryConnected()) {
+        conector.disconnect();
+    }
+}
 void Editor::Project::debugSceneHierarchy(){
     if (SceneProject* sceneProject = getSelectedScene()){
         printf("Debug scene: %s\n", sceneProject->name.c_str());

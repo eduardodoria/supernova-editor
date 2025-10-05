@@ -1,5 +1,4 @@
-#ifndef PROJECT_H
-#define PROJECT_H
+#pragma once
 
 #include "Scene.h"
 #include "Catalog.h"
@@ -23,6 +22,12 @@ namespace Supernova::Editor{
         SCENE_UI
     };
 
+    enum class ScenePlayState {
+        STOPPED,
+        PLAYING,
+        PAUSED
+    };
+
     enum class InsertionType{
         BEFORE,
         AFTER,
@@ -41,6 +46,7 @@ namespace Supernova::Editor{
         bool needUpdateRender;
         bool isModified;
         bool isVisible;
+        ScenePlayState playState;
     };
 
     struct MergeResult {
@@ -208,10 +214,9 @@ namespace Supernova::Editor{
         //=== end Shared Entities part ===
 
         void start(uint32_t sceneId);
+        void stop(uint32_t sceneId);
 
         void debugSceneHierarchy();
     };
 
 }
-
-#endif /* PROJECT_H */

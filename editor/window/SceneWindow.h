@@ -1,5 +1,4 @@
-#ifndef SCENEWINDOW_H
-#define SCENEWINDOW_H
+#pragma once
 
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -121,5 +120,3 @@ namespace Supernova::Editor {
         }
     };
 }
-
-#endif /* SCENEWINDOW_H */

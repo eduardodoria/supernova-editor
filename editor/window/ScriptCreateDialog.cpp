@@ -40,11 +40,13 @@ void ScriptCreateDialog::writeFiles(const fs::path& headerPath, const fs::path& 
         std::ofstream h(headerPath, std::ios::trunc);
         if (h) {
             h << "#pragma once\n\n";
-            h << "#include \"Shape.h\"\n\n";
+            h << "#include \"Shape.h\"\n";
+            h << "#include \"Engine.h\"\n\n";
             h << "class " << className << " : public Supernova::Shape {\n";
             h << "public:\n";
             h << "    " << className << "(Supernova::Scene* scene, Supernova::Entity entity);\n";
-            h << "    virtual ~" << className << "() = default;\n\n";
+            h << "    virtual ~" << className << "();\n\n";
+            h << "    void update();\n\n";
             h << "};\n";
         }
     }
@@ -57,6 +59,18 @@ void ScriptCreateDialog::writeFiles(const fs::path& headerPath, const fs::path& 
             c << "using namespace Supernova;\n\n";
             c << className << "::" << className << "(Scene* scene, Entity entity): Shape(scene, entity) {\n";
             c << "    printf(\"" << className << " created!\\n\");\n";
+            c << "    \n";
+            c << "    // Subscribe to update event\n";
+            c << "    Engine::onUpdate.add<" << className << ", &" << className << "::update>(\"" << className << "Update\", this);\n";
+            c << "}\n\n";
+            c << className << "::~" << className << "() {\n";
+            c << "    // Unsubscribe from update event\n";
+            c << "    Engine::onUpdate.remove(\"" << className << "Update\");\n";
+            c << "}\n\n";
+            c << "void " << className << "::update() {\n";
+            c << "    printf(\"" << className << " update!\\n\");\n";
+            c << "    // Your update logic here\n";
+            c << "    // Example: float deltaTime = Engine::getDeltatime();\n";
             c << "}\n\n";
         }
     }

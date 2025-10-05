@@ -1,5 +1,4 @@
-#ifndef CONECTOR_H
-#define CONECTOR_H
+#pragma once
 
 #include <filesystem>
 #include <string>
@@ -24,9 +23,10 @@ namespace Supernova::Editor{
         virtual ~Conector();
 
         bool connect(fs::path projectPath);
+        void disconnect();
         void execute(SceneProject* sceneProject);
+
+        bool isLibraryConnected() const;
     };
 
 }
-
-#endif /* CONECTOR_H */
