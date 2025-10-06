@@ -501,6 +501,7 @@ void Editor::App::engineInit(int argc, char** argv) {
     }
 
     Engine::systemInit(argc, argv);
+    Engine::pauseGameEvents(true);
 
     ShaderPool::setShaderBuilder([](Supernova::ShaderKey shaderKey) -> Supernova::ShaderBuildResult {
         static Supernova::Editor::ShaderBuilder builder;  // Make static to reuse

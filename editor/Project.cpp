@@ -82,6 +82,8 @@ uint32_t Editor::Project::createNewScene(std::string sceneName, SceneType type){
     data.isVisible = true;
     data.playState = ScenePlayState::STOPPED;
 
+    pauseEngineScene(&data, true);
+
     scenes.push_back(data);
 
     setSelectedSceneId(data.id);
@@ -134,6 +136,8 @@ void Editor::Project::openScene(fs::path filepath){
             data.id = ++nextSceneId;
             Out::warning("Scene with ID '%u' already exists, usind ID %u", old, data.id);
         }
+
+        pauseEngineScene(&data, true);
 
         scenes.push_back(data);
 
@@ -300,6 +304,12 @@ std::vector<Editor::ScriptSource> Editor::Project::collectScriptSourceFiles() co
     }
 
     return scriptFiles;
+}
+
+void Editor::Project::pauseEngineScene(SceneProject* sceneProject, bool pause){
+    sceneProject->scene->getSystem<PhysicsSystem>()->setPaused(pause);
+    sceneProject->scene->getSystem<ActionSystem>()->setPaused(pause);
+    sceneProject->scene->getSystem<AudioSystem>()->setPaused(pause);
 }
 
 bool Editor::Project::createTempProject(std::string projectName, bool deleteIfExists) {
@@ -1986,6 +1996,39 @@ void Editor::Project::start(uint32_t sceneId) {
         }
     });
     connectThread.detach();
+
+    pauseEngineScene(sceneProject, false);
+    Engine::pauseGameEvents(false);
+}
+
+void Editor::Project::pause(uint32_t sceneId) {
+    SceneProject* sceneProject = getScene(sceneId);
+    if (!sceneProject) {
+        Out::error("Failed to find scene %u to pause", sceneId);
+        return;
+    }
+
+    if (sceneProject->playState == ScenePlayState::PLAYING) {
+        sceneProject->playState = ScenePlayState::PAUSED;
+
+        pauseEngineScene(sceneProject, true);
+        Engine::pauseGameEvents(true);
+    }
+}
+
+void Editor::Project::resume(uint32_t sceneId) {
+    SceneProject* sceneProject = getScene(sceneId);
+    if (!sceneProject) {
+        Out::error("Failed to find scene %u to resume", sceneId);
+        return;
+    }
+
+    if (sceneProject->playState == ScenePlayState::PAUSED) {
+        sceneProject->playState = ScenePlayState::PLAYING;
+
+        pauseEngineScene(sceneProject, false);
+        Engine::pauseGameEvents(false);
+    }
 }
 
 void Editor::Project::stop(uint32_t sceneId) {
@@ -2001,7 +2044,11 @@ void Editor::Project::stop(uint32_t sceneId) {
     if (conector.isLibraryConnected()) {
         conector.disconnect();
     }
+
+    pauseEngineScene(sceneProject, true);
+    Engine::pauseGameEvents(true);
 }
+
 void Editor::Project::debugSceneHierarchy(){
     if (SceneProject* sceneProject = getSelectedScene()){
         printf("Debug scene: %s\n", sceneProject->name.c_str());

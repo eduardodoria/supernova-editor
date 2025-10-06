@@ -111,6 +111,8 @@ namespace Supernova::Editor{
 
         std::vector<Editor::ScriptSource> collectScriptSourceFiles() const;
 
+        void pauseEngineScene(SceneProject* sceneProject, bool pause);
+
     public:
         Project();
 
@@ -214,6 +216,8 @@ namespace Supernova::Editor{
         //=== end Shared Entities part ===
 
         void start(uint32_t sceneId);
+        void pause(uint32_t sceneId);
+        void resume(uint32_t sceneId);
         void stop(uint32_t sceneId);
 
         void debugSceneHierarchy();
