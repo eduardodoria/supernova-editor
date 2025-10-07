@@ -426,10 +426,10 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const std:
 
     // Build C++ source content
     std::string sourceContent;
-    sourceContent += "#include <iostream>\n";
     sourceContent += "#include <vector>\n";
+    sourceContent += "#include <string>\n";
     sourceContent += "#include \"Scene.h\"\n";
-    sourceContent += "#include \"EntityHandle.h\"\n";  // Include base class
+    sourceContent += "#include \"EntityHandle.h\"\n";
     sourceContent += "#include \"ScriptComponent.h\"\n";
 
     // Include script headers
@@ -465,10 +465,36 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const std:
         sourceContent += "            // Sync values FROM ScriptComponent TO script instance\n";
         sourceContent += "            auto& scriptProps = script->getScriptPropertiesMutable();\n";
         sourceContent += "            for (size_t i = 0; i < scriptProps.size() && i < scriptComp->properties.size(); i++) {\n";
-        sourceContent += "                if (scriptProps[i].setter) {\n";
-        sourceContent += "                    scriptProps[i].setter(scriptComp->properties[i].value);\n";
-        sourceContent += "                }\n";
-        sourceContent += "            }\n";
+        sourceContent += "                auto& dst = scriptProps[i];\n";
+        sourceContent += "                const auto& srcVal = scriptComp->properties[i].value;\n";
+        sourceContent += "                if (dst.memberPtr) {\n";
+        sourceContent += "                    switch (dst.type) {\n";
+        sourceContent += "                        case Supernova::ScriptPropertyType::Bool:\n";
+        sourceContent += "                            *reinterpret_cast<bool*>(dst.memberPtr) = srcVal.get<bool>();\n";
+        sourceContent += "                            break;\n";
+        sourceContent += "                        case Supernova::ScriptPropertyType::Int:\n";
+        sourceContent += "                            *reinterpret_cast<int*>(dst.memberPtr) = srcVal.get<int>();\n";
+        sourceContent += "                            break;\n";
+        sourceContent += "                        case Supernova::ScriptPropertyType::Float:\n";
+        sourceContent += "                            *reinterpret_cast<float*>(dst.memberPtr) = srcVal.get<float>();\n";
+        sourceContent += "                            break;\n";
+        sourceContent += "                        case Supernova::ScriptPropertyType::String:\n";
+        sourceContent += "                            *reinterpret_cast<std::string*>(dst.memberPtr) = srcVal.get<std::string>();\n";
+        sourceContent += "                            break;\n";
+        sourceContent += "                        case Supernova::ScriptPropertyType::Vector2:\n";
+        sourceContent += "                            *reinterpret_cast<Supernova::Vector2*>(dst.memberPtr) = srcVal.get<Supernova::Vector2>();\n";
+        sourceContent += "                            break;\n";
+        sourceContent += "                        case Supernova::ScriptPropertyType::Vector3:\n";
+        sourceContent += "                        case Supernova::ScriptPropertyType::Color3: // Color3 stored as Vector3\n";
+        sourceContent += "                            *reinterpret_cast<Supernova::Vector3*>(dst.memberPtr) = srcVal.get<Supernova::Vector3>();\n";
+        sourceContent += "                            break;\n";
+        sourceContent += "                        case Supernova::ScriptPropertyType::Vector4:\n";
+        sourceContent += "                        case Supernova::ScriptPropertyType::Color4: // Color4 stored as Vector4\n";
+        sourceContent += "                            *reinterpret_cast<Supernova::Vector4*>(dst.memberPtr) = srcVal.get<Supernova::Vector4>();\n";
+        sourceContent += "                            break;\n";
+        sourceContent += "                    }\n";
+        sourceContent += "                }\n"; // Close if (dst.memberPtr)
+        sourceContent += "            }\n"; // Close for loop
         sourceContent += "        } else if (scriptComp) {\n";
         sourceContent += "            // First time - copy properties from script to component\n";
         sourceContent += "            scriptComp->properties = script->getScriptProperties();\n";
@@ -477,7 +503,7 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const std:
     }
 
     if (scriptFiles.empty()) {
-        sourceContent += "    (void)scene;  // Suppress unused parameter warning\n";
+        sourceContent += "    (void)scene; // Suppress unused parameter warning\n";
     }
 
     sourceContent += "}\n\n";
@@ -486,7 +512,7 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const std:
     sourceContent += "extern \"C\" void PROJECT_API cleanup() {\n";
     sourceContent += "    // Clean up all script instances (calls virtual destructors)\n";
     sourceContent += "    for (Supernova::EntityHandle* script : g_scriptInstances) {\n";
-    sourceContent += "        delete script;  // Properly calls virtual destructor\n";
+    sourceContent += "        delete script; // Properly calls virtual destructor\n";
     sourceContent += "    }\n";
     sourceContent += "    g_scriptInstances.clear();\n";
     sourceContent += "}\n";
