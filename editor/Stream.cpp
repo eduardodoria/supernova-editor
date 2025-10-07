@@ -886,6 +886,81 @@ YAML::Node Editor::Stream::encodeEntityAux(const Entity entity, const EntityRegi
     return entityNode;
 }
 
+YAML::Node Editor::Stream::encodeScriptProperty(const ScriptProperty& prop) {
+    YAML::Node node;
+    node["name"] = prop.name;
+    node["displayName"] = prop.displayName;
+    node["type"] = static_cast<int>(prop.type);
+
+    switch (prop.type) {
+        case ScriptPropertyType::Bool:
+            node["value"] = prop.value.boolValue;
+            break;
+        case ScriptPropertyType::Int:
+            node["value"] = prop.value.intValue;
+            break;
+        case ScriptPropertyType::Float:
+            node["value"] = prop.value.floatValue;
+            break;
+        case ScriptPropertyType::String:
+            node["value"] = prop.value.stringValue;
+            break;
+        case ScriptPropertyType::Vector2:
+            node["value"] = encodeVector2(prop.value.vector2Value);
+            break;
+        case ScriptPropertyType::Vector3:
+        case ScriptPropertyType::Color3:
+            node["value"] = encodeVector3(prop.value.vector3Value);
+            break;
+        case ScriptPropertyType::Vector4:
+        case ScriptPropertyType::Color4:
+            node["value"] = encodeVector4(prop.value.vector4Value);
+            break;
+    }
+
+    return node;
+}
+
+ScriptProperty Editor::Stream::decodeScriptProperty(const YAML::Node& node) {
+    ScriptProperty prop;
+
+    if (node["name"]) prop.name = node["name"].as<std::string>();
+    if (node["displayName"]) prop.displayName = node["displayName"].as<std::string>();
+    if (node["type"]) prop.type = static_cast<ScriptPropertyType>(node["type"].as<int>());
+
+    prop.value.type = prop.type;
+
+    if (node["value"]) {
+        switch (prop.type) {
+            case Supernova::ScriptPropertyType::Bool:
+                prop.value.boolValue = node["value"].as<bool>();
+                break;
+            case Supernova::ScriptPropertyType::Int:
+                prop.value.intValue = node["value"].as<int>();
+                break;
+            case Supernova::ScriptPropertyType::Float:
+                prop.value.floatValue = node["value"].as<float>();
+                break;
+            case Supernova::ScriptPropertyType::String:
+                prop.value.stringValue = node["value"].as<std::string>();
+                break;
+            case Supernova::ScriptPropertyType::Vector2:
+                prop.value.vector2Value = decodeVector2(node["value"]);
+                break;
+            case Supernova::ScriptPropertyType::Vector3:
+            case Supernova::ScriptPropertyType::Color3:
+                prop.value.vector3Value = decodeVector3(node["value"]);
+                break;
+            case Supernova::ScriptPropertyType::Vector4:
+            case Supernova::ScriptPropertyType::Color4:
+                prop.value.vector4Value = decodeVector4(node["value"]);
+                break;
+        }
+    }
+
+    return prop;
+}
+
 std::vector<Entity> Editor::Stream::decodeEntity(const YAML::Node& entityNode, EntityRegistry* registry, std::vector<Entity>* entities, Project* project, SceneProject* sceneProject, Entity parent, bool returnSharedEntities) {
     std::vector<Entity> allEntities;
 
@@ -1569,17 +1644,19 @@ LightComponent Editor::Stream::decodeLightComponent(const YAML::Node& node) {
 YAML::Node Editor::Stream::encodeScriptComponent(const ScriptComponent& script) {
     YAML::Node node;
 
-    node["path"] = script.path;
-    node["className"] = script.className;
+    if (!script.path.empty())
+        node["path"] = script.path;
+    if (!script.className.empty())
+        node["className"] = script.className;
     node["enabled"] = script.enabled;
 
-    //if (!script.variables.empty()) {
-    //    YAML::Node variablesNode;
-    //    for (const auto& [key, value] : script.variables) {
-    //        variablesNode[key] = encodeAnyValue(value);
-    //    }
-    //    node["variables"] = variablesNode;
-    //}
+    if (!script.properties.empty()) {
+        YAML::Node propsNode;
+        for (const auto& prop : script.properties) {
+            propsNode.push_back(encodeScriptProperty(prop));
+        }
+        node["properties"] = propsNode;
+    }
 
     return node;
 }
@@ -1587,19 +1664,18 @@ YAML::Node Editor::Stream::encodeScriptComponent(const ScriptComponent& script) 
 ScriptComponent Editor::Stream::decodeScriptComponent(const YAML::Node& node) {
     ScriptComponent script;
 
-    if (node["path"]) script.path = node["path"].as<std::string>();
-    if (node["className"]) script.className = node["className"].as<std::string>();
-    if (node["enabled"]) script.enabled = node["enabled"].as<bool>();
+    if (node["path"])
+        script.path = node["path"].as<std::string>();
+    if (node["className"])
+        script.className = node["className"].as<std::string>();
+    if (node["enabled"])
+        script.enabled = node["enabled"].as<bool>();
 
-    //if (node["variables"]) {
-    //    for (const auto& varNode : node["variables"]) {
-    //        std::string key = varNode.first.as<std::string>();
-    //        std::any value = decodeAnyValue(varNode.second);
-    //        if (value.has_value()) {
-    //            script.variables[key] = value;
-    //        }
-    //    }
-    //}
+    if (node["properties"] && node["properties"].IsSequence()) {
+        for (const auto& propNode : node["properties"]) {
+            script.properties.push_back(decodeScriptProperty(propNode));
+        }
+    }
 
     return script;
 }

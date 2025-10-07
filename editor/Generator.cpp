@@ -395,6 +395,8 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const std:
     cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/script\n";
     cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/math\n";
     cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/registry\n";
+    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/util\n";
+    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/component\n";
     cmakeContent += ")\n\n";
     cmakeContent += "# Find supernova library in specified location\n";
     cmakeContent += "find_library(SUPERNOVA_LIB supernova PATHS ${SUPERNOVA_LIB_DIR} NO_DEFAULT_PATH)\n";
@@ -428,6 +430,7 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const std:
     sourceContent += "#include <vector>\n";
     sourceContent += "#include \"Scene.h\"\n";
     sourceContent += "#include \"EntityHandle.h\"\n";  // Include base class
+    sourceContent += "#include \"ScriptComponent.h\"\n";
 
     // Include script headers
     std::unordered_set<std::string> included;
@@ -448,12 +451,29 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const std:
 
     sourceContent += "extern \"C\" void PROJECT_API initScene(Supernova::Scene* scene) {\n";
 
-    // Build script instantiation code
+    // Build script instantiation code with property synchronization
     for (size_t i = 0; i < scriptFiles.size(); ++i) {
         const auto& s = scriptFiles[i];
-        sourceContent += "    " + s.className + "* script_" + std::to_string(i) +
-                                " = new " + s.className + "(scene, (Supernova::Entity)" + std::to_string(s.entity) + ");\n";
-        sourceContent += "    g_scriptInstances.push_back(script_" + std::to_string(i) + ");\n";
+        sourceContent += "    {\n";
+        sourceContent += "        // Create script instance\n";
+        sourceContent += "        " + s.className + "* script = new " + s.className + "(scene, (Supernova::Entity)" + std::to_string(s.entity) + ");\n";
+        sourceContent += "        g_scriptInstances.push_back(script);\n";
+        sourceContent += "        \n";
+        sourceContent += "        // Get ScriptComponent\n";
+        sourceContent += "        ScriptComponent* scriptComp = scene->findComponent<ScriptComponent>((Supernova::Entity)" + std::to_string(s.entity) + ");\n";
+        sourceContent += "        if (scriptComp && !scriptComp->properties.empty()) {\n";
+        sourceContent += "            // Sync values FROM ScriptComponent TO script instance\n";
+        sourceContent += "            auto& scriptProps = script->getScriptPropertiesMutable();\n";
+        sourceContent += "            for (size_t i = 0; i < scriptProps.size() && i < scriptComp->properties.size(); i++) {\n";
+        sourceContent += "                if (scriptProps[i].setter) {\n";
+        sourceContent += "                    scriptProps[i].setter(scriptComp->properties[i].value);\n";
+        sourceContent += "                }\n";
+        sourceContent += "            }\n";
+        sourceContent += "        } else if (scriptComp) {\n";
+        sourceContent += "            // First time - copy properties from script to component\n";
+        sourceContent += "            scriptComp->properties = script->getScriptProperties();\n";
+        sourceContent += "        }\n";
+        sourceContent += "    }\n";
     }
 
     if (scriptFiles.empty()) {

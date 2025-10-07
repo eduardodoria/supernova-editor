@@ -2059,7 +2059,6 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
     beginTable(cpType, getLabelSize("Script Path"));
 
     propertyRow(cpType, props, "path", "Script Path", sceneProject, entities);
-    //propertyRow(cpType, props, "class_name", "Script Class Name", sceneProject, entities);
     propertyRow(cpType, props, "enabled", "Enabled", sceneProject, entities);
 
     endTable();
@@ -2081,6 +2080,177 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
             },
             [](){}
         );
+    }
+
+    // Display script properties if available
+    if (entities.size() == 1) {  // Only show properties for single entity selection
+        ScriptComponent& scriptComp = sceneProject->scene->getComponent<ScriptComponent>(entities[0]);
+
+        if (!scriptComp.properties.empty()) {
+            ImGui::SeparatorText("Script Properties");
+
+            beginTable(cpType, getLabelSize("Property Name"), "script_properties");
+
+            for (size_t i = 0; i < scriptComp.properties.size(); i++) {
+                auto& prop = scriptComp.properties[i];
+
+                std::string propertyId = "script_prop_" + std::to_string(i);
+
+                bool defChanged = false;
+                // Check if value differs from default based on type
+                switch (prop.type) {
+                    case Supernova::ScriptPropertyType::Bool:
+                        defChanged = (prop.value.boolValue != prop.defaultValue.boolValue);
+                        break;
+                    case Supernova::ScriptPropertyType::Int:
+                        defChanged = (prop.value.intValue != prop.defaultValue.intValue);
+                        break;
+                    case Supernova::ScriptPropertyType::Float:
+                        defChanged = (std::fabs(prop.value.floatValue - prop.defaultValue.floatValue) > 1e-6f);
+                        break;
+                    case Supernova::ScriptPropertyType::String:
+                        defChanged = (prop.value.stringValue != prop.defaultValue.stringValue);
+                        break;
+                    case Supernova::ScriptPropertyType::Vector2:
+                        defChanged = (prop.value.vector2Value != prop.defaultValue.vector2Value);
+                        break;
+                    case Supernova::ScriptPropertyType::Vector3:
+                    case Supernova::ScriptPropertyType::Color3:
+                        defChanged = (prop.value.vector3Value != prop.defaultValue.vector3Value);
+                        break;
+                    case Supernova::ScriptPropertyType::Vector4:
+                    case Supernova::ScriptPropertyType::Color4:
+                        defChanged = (prop.value.vector4Value != prop.defaultValue.vector4Value);
+                        break;
+                }
+
+                // Reset to default button
+                if (propertyHeader(prop.displayName, -1, defChanged)) {
+                    prop.value = prop.defaultValue;
+                    sceneProject->isModified = true;
+                }
+
+                bool modified = false;
+
+                // Draw appropriate control based on property type
+                switch (prop.type) {
+                    case Supernova::ScriptPropertyType::Bool: {
+                        bool value = prop.value.boolValue;
+                        if (ImGui::Checkbox(("##" + propertyId).c_str(), &value)) {
+                            prop.value.boolValue = value;
+                            modified = true;
+                        }
+                        break;
+                    }
+
+                    case Supernova::ScriptPropertyType::Int: {
+                        int value = prop.value.intValue;
+                        if (ImGui::DragInt(("##" + propertyId).c_str(), &value, 1.0f)) {
+                            prop.value.intValue = value;
+                            modified = true;
+                        }
+                        break;
+                    }
+
+                    case Supernova::ScriptPropertyType::Float: {
+                        float value = prop.value.floatValue;
+                        if (ImGui::DragFloat(("##" + propertyId).c_str(), &value, 0.1f, 0.0f, 0.0f, "%.3f")) {
+                            prop.value.floatValue = value;
+                            modified = true;
+                        }
+                        break;
+                    }
+
+                    case Supernova::ScriptPropertyType::String: {
+                        static char buffer[256];
+                        strncpy(buffer, prop.value.stringValue.c_str(), sizeof(buffer) - 1);
+                        buffer[sizeof(buffer) - 1] = '\0';
+                        if (ImGui::InputText(("##" + propertyId).c_str(), buffer, sizeof(buffer))) {
+                            prop.value.stringValue = buffer;
+                            modified = true;
+                        }
+                        break;
+                    }
+
+                    case Supernova::ScriptPropertyType::Vector2: {
+                        Vector2 value = prop.value.vector2Value;
+                        ImGui::PushMultiItemsWidths(2, ImGui::CalcItemWidth());
+                        bool changed = false;
+                        if (ImGui::DragFloat(("##x_" + propertyId).c_str(), &value.x, 0.1f)) changed = true;
+                        ImGui::SameLine();
+                        if (ImGui::DragFloat(("##y_" + propertyId).c_str(), &value.y, 0.1f)) changed = true;
+                        if (changed) {
+                            prop.value.vector2Value = value;
+                            modified = true;
+                        }
+                        break;
+                    }
+
+                    case Supernova::ScriptPropertyType::Vector3: {
+                        Vector3 value = prop.value.vector3Value;
+                        ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
+                        bool changed = false;
+                        if (ImGui::DragFloat(("##x_" + propertyId).c_str(), &value.x, 0.1f)) changed = true;
+                        ImGui::SameLine();
+                        if (ImGui::DragFloat(("##y_" + propertyId).c_str(), &value.y, 0.1f)) changed = true;
+                        ImGui::SameLine();
+                        if (ImGui::DragFloat(("##z_" + propertyId).c_str(), &value.z, 0.1f)) changed = true;
+                        if (changed) {
+                            prop.value.vector3Value = value;
+                            modified = true;
+                        }
+                        break;
+                    }
+
+                    case Supernova::ScriptPropertyType::Color3: {
+                        Vector3 value = Color::linearTosRGB(prop.value.vector3Value);
+                        if (ImGui::ColorEdit3(("##" + propertyId).c_str(), (float*)&value.x, 
+                                            ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel)) {
+                            prop.value.vector3Value = Color::sRGBToLinear(value);
+                            modified = true;
+                        }
+                        break;
+                    }
+
+                    case Supernova::ScriptPropertyType::Vector4: {
+                        Vector4 value = prop.value.vector4Value;
+                        ImGui::PushMultiItemsWidths(4, ImGui::CalcItemWidth());
+                        bool changed = false;
+                        if (ImGui::DragFloat(("##x_" + propertyId).c_str(), &value.x, 0.1f)) changed = true;
+                        ImGui::SameLine();
+                        if (ImGui::DragFloat(("##y_" + propertyId).c_str(), &value.y, 0.1f)) changed = true;
+                        ImGui::SameLine();
+                        if (ImGui::DragFloat(("##z_" + propertyId).c_str(), &value.z, 0.1f)) changed = true;
+                        ImGui::SameLine();
+                        if (ImGui::DragFloat(("##w_" + propertyId).c_str(), &value.w, 0.1f)) changed = true;
+                        if (changed) {
+                            prop.value.vector4Value = value;
+                            modified = true;
+                        }
+                        break;
+                    }
+
+                    case Supernova::ScriptPropertyType::Color4: {
+                        Vector4 value = Color::linearTosRGB(prop.value.vector4Value);
+                        if (ImGui::ColorEdit4(("##" + propertyId).c_str(), (float*)&value.x, 
+                                            ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | 
+                                            ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
+                            prop.value.vector4Value = Color::sRGBToLinear(value);
+                            modified = true;
+                        }
+                        break;
+                    }
+                }
+
+                // If property was modified, mark scene as modified
+                // Don't call setter here - values are stored in ScriptComponent
+                if (modified) {
+                    sceneProject->isModified = true;
+                }
+            }
+
+            endTable();
+        }
     }
 }
 

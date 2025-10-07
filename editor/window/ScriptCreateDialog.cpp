@@ -41,12 +41,21 @@ void ScriptCreateDialog::writeFiles(const fs::path& headerPath, const fs::path& 
         if (h) {
             h << "#pragma once\n\n";
             h << "#include \"Shape.h\"\n";
-            h << "#include \"Engine.h\"\n\n";
+            h << "#include \"Engine.h\"\n";
+            h << "#include \"ScriptProperty.h\"\n\n";
             h << "class " << className << " : public Supernova::Shape {\n";
+            h << "    SCRIPT_PROPERTY_BODY()\n\n";
             h << "public:\n";
+            h << "    // Example properties - you can add more!\n";
+            h << "    SPROPERTY(float, \"Speed\")\n";
+            h << "    float speed;\n\n";
+            h << "    SPROPERTY(bool, \"Is Active\")\n";
+            h << "    bool isActive;\n\n";
+            h << "    SPROPERTY(Supernova::Vector3, \"Target Position\")\n";
+            h << "    Supernova::Vector3 targetPosition;\n\n";
             h << "    " << className << "(Supernova::Scene* scene, Supernova::Entity entity);\n";
             h << "    virtual ~" << className << "();\n\n";
-            h << "    void update();\n\n";
+            h << "    void update();\n";
             h << "};\n";
         }
     }
@@ -58,8 +67,11 @@ void ScriptCreateDialog::writeFiles(const fs::path& headerPath, const fs::path& 
             c << "#include \"" << headerPath.filename().string() << "\"\n\n";
             c << "using namespace Supernova;\n\n";
             c << className << "::" << className << "(Scene* scene, Entity entity): Shape(scene, entity) {\n";
-            c << "    printf(\"" << className << " created!\\n\");\n";
-            c << "    \n";
+            c << "    printf(\"" << className << " created!\\n\");\n\n";
+            c << "    // Register properties for editor\n";
+            c << "    REGISTER_PROPERTY(speed, \"Speed\", 5.0f);\n";
+            c << "    REGISTER_PROPERTY(isActive, \"Is Active\", true);\n";
+            c << "    REGISTER_PROPERTY(targetPosition, \"Target Position\", Vector3(0, 0, 0));\n\n";
             c << "    // Subscribe to update event\n";
             c << "    Engine::onUpdate.add<" << className << ", &" << className << "::update>(\"" << className << "Update\", this);\n";
             c << "}\n\n";
@@ -68,9 +80,12 @@ void ScriptCreateDialog::writeFiles(const fs::path& headerPath, const fs::path& 
             c << "    Engine::onUpdate.remove(\"" << className << "Update\");\n";
             c << "}\n\n";
             c << "void " << className << "::update() {\n";
-            c << "    printf(\"" << className << " update!\\n\");\n";
-            c << "    // Your update logic here\n";
-            c << "    // Example: float deltaTime = Engine::getDeltatime();\n";
+            c << "    if (!isActive) return;\n\n";
+            c << "    // Example: Move towards target position at 'speed' units per second\n";
+            c << "    float deltaTime = Engine::getDeltatime();\n";
+            c << "    Vector3 currentPos = getPosition();\n";
+            c << "    Vector3 direction = (targetPosition - currentPos).normalize();\n";
+            c << "    setPosition(currentPos + direction * speed * deltaTime);\n";
             c << "}\n\n";
         }
     }
