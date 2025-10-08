@@ -27,6 +27,9 @@ bool Editor::CodeEditor::loadFileContent(EditorInstance& instance) {
             instance.savedUndoIndex = instance.editor->GetUndoIndex();
             instance.lastWriteTime = fs::last_write_time(instance.filepath);
             instance.isModified = false;
+
+            updateScriptProperties(instance);
+
             return true;
         }
     } catch (const std::exception& e) {
@@ -141,6 +144,17 @@ std::string Editor::CodeEditor::getWindowTitle(const EditorInstance& instance) c
     return filename + (instance.isModified ? " *" : "") + "###" + instance.filepath.string();
 }
 
+void Editor::CodeEditor::updateScriptProperties(const EditorInstance& instance){
+    // Update script properties if this is a script file
+    for (auto& sceneProject : project->getScenes()) {
+        for (Entity entity : sceneProject.entities) {
+            ScriptComponent* sc = sceneProject.scene->findComponent<ScriptComponent>(entity);
+            if (sc && sc->headerPath == instance.filepath.string()) {
+                project->updateScriptProperties(sceneProject.id, entity, instance.filepath);
+            }
+        }
+    }
+}
 
 std::vector<fs::path> Editor::CodeEditor::getOpenPaths() const{
     std::vector<fs::path> openPaths;
@@ -172,20 +186,7 @@ bool Editor::CodeEditor::save(EditorInstance& instance) {
         instance.isModified = false;
         instance.lastWriteTime = fs::last_write_time(instance.filepath);
 
-        // Update script properties if this is a script file
-        for (auto& sceneProject : project->getScenes()) {
-            for (Entity entity : sceneProject.entities) {
-                ScriptComponent* sc = sceneProject.scene->findComponent<ScriptComponent>(entity);
-                std::string sourcePath = instance.filepath.string();
-                size_t pos = sourcePath.find_last_of('.');
-                if (pos != std::string::npos && sourcePath.substr(pos) == ".h") {
-                    sourcePath = sourcePath.substr(0, pos) + ".cpp";
-                }
-                if (sc && sc->path == sourcePath) {
-                    project->updateScriptProperties(sceneProject.id, entity, instance.filepath);
-                }
-            }
-        }
+        updateScriptProperties(instance);
 
         return true;
     } catch (const std::exception& e) {

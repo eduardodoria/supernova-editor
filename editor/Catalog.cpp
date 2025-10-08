@@ -471,6 +471,7 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         static ScriptComponent* def = new ScriptComponent;
 
         ps["path"] = {PropertyType::Script, UpdateFlags_None, nullptr, (compRef) ? (void*)&comp->path : nullptr};
+        ps["header_path"] = {PropertyType::String, UpdateFlags_None, nullptr, (compRef) ? (void*)&comp->headerPath : nullptr};
         ps["class_name"] = {PropertyType::String, UpdateFlags_None, nullptr, (compRef) ? (void*)&comp->className : nullptr};
         ps["enabled"] = {PropertyType::Bool, UpdateFlags_None, nullptr, (compRef) ? (void*)&comp->enabled : nullptr};
     }

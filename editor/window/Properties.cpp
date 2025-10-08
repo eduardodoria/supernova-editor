@@ -2070,9 +2070,11 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
                                                    const std::filesystem::path& sourcePath,
                                                    const std::string& className){
                 std::string pathStr = sourcePath.string();
+                std::string headerPathStr = headerPath.string();
                 for (Entity entity: entities){
                     MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
                     multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entity, cpType, "path", UpdateFlags_None, pathStr);
+                    multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entity, cpType, "header_path", UpdateFlags_None, headerPathStr);
                     multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entity, cpType, "class_name", UpdateFlags_None, className);
                     multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entity, cpType, "enabled", UpdateFlags_None, true);
                     CommandHandle::get(sceneProject->id)->addCommandNoMerge(multiCmd);

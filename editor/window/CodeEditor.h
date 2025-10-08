@@ -42,6 +42,7 @@ namespace Supernova::Editor {
         bool loadFileContent(EditorInstance& instance);
         void handleFileChangePopup();
         std::string getWindowTitle(const EditorInstance& instance) const;
+        void updateScriptProperties(const EditorInstance& instance);
 
     public:
         CodeEditor(Project* project);

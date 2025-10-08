@@ -1646,8 +1646,13 @@ YAML::Node Editor::Stream::encodeScriptComponent(const ScriptComponent& script) 
 
     if (!script.path.empty())
         node["path"] = script.path;
+
+    if (!script.headerPath.empty())
+        node["headerPath"] = script.headerPath;
+
     if (!script.className.empty())
         node["className"] = script.className;
+
     node["enabled"] = script.enabled;
 
     if (!script.properties.empty()) {
@@ -1661,13 +1666,19 @@ YAML::Node Editor::Stream::encodeScriptComponent(const ScriptComponent& script) 
     return node;
 }
 
+
 ScriptComponent Editor::Stream::decodeScriptComponent(const YAML::Node& node) {
     ScriptComponent script;
 
     if (node["path"])
         script.path = node["path"].as<std::string>();
+
+   if (node["headerPath"])
+        script.headerPath = node["headerPath"].as<std::string>();
+
     if (node["className"])
         script.className = node["className"].as<std::string>();
+
     if (node["enabled"])
         script.enabled = node["enabled"].as<bool>();
 
