@@ -24,7 +24,7 @@ Editor::App::App(){
     outputWindow = new OutputWindow();
     sceneWindow = new SceneWindow(&project);
     structureWindow = new Structure(&project, sceneWindow);
-    codeEditor = new CodeEditor();
+    codeEditor = new CodeEditor(&project);
     resourcesWindow = new ResourcesWindow(&project, codeEditor);
     loadingWindow = new LoadingWindow();
 

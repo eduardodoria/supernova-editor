@@ -44,14 +44,13 @@ void ScriptCreateDialog::writeFiles(const fs::path& headerPath, const fs::path& 
             h << "#include \"Engine.h\"\n";
             h << "#include \"ScriptProperty.h\"\n\n";
             h << "class " << className << " : public Supernova::Shape {\n";
-            h << "    SCRIPT_PROPERTY_BODY()\n\n";
             h << "public:\n";
             h << "    // Example properties - you can add more!\n";
-            h << "    SPROPERTY(float, \"Speed\")\n";
+            h << "    SPROPERTY(\"Speed\", 5.0f)\n";
             h << "    float speed;\n\n";
-            h << "    SPROPERTY(bool, \"Is Active\")\n";
+            h << "    SPROPERTY(\"Is Active\", true)\n";
             h << "    bool isActive;\n\n";
-            h << "    SPROPERTY(Supernova::Vector3, \"Target Position\")\n";
+            h << "    SPROPERTY(\"Target Position\", Supernova::Vector3(0, 0, 0))\n";
             h << "    Supernova::Vector3 targetPosition;\n\n";
             h << "    " << className << "(Supernova::Scene* scene, Supernova::Entity entity);\n";
             h << "    virtual ~" << className << "();\n\n";
@@ -68,10 +67,6 @@ void ScriptCreateDialog::writeFiles(const fs::path& headerPath, const fs::path& 
             c << "using namespace Supernova;\n\n";
             c << className << "::" << className << "(Scene* scene, Entity entity): Shape(scene, entity) {\n";
             c << "    printf(\"" << className << " created!\\n\");\n\n";
-            c << "    // Register properties for editor\n";
-            c << "    REGISTER_PROPERTY(speed, \"Speed\", 5.0f);\n";
-            c << "    REGISTER_PROPERTY(isActive, \"Is Active\", true);\n";
-            c << "    REGISTER_PROPERTY(targetPosition, \"Target Position\", Vector3(0, 0, 0));\n\n";
             c << "    // Subscribe to update event\n";
             c << "    Engine::onUpdate.add<" << className << ", &" << className << "::update>(\"" << className << "Update\", this);\n";
             c << "}\n\n";

@@ -896,6 +896,56 @@ bool Editor::Project::hasScenesUnsavedChanges() const{
     return false;
 }
 
+void Editor::Project::updateScriptProperties(uint32_t sceneId, Entity entity, const fs::path& scriptPath) {
+    SceneProject* sceneProject = getScene(sceneId);
+    if (!sceneProject) {
+        return;
+    }
+
+    Scene* scene = sceneProject->scene;
+    ScriptComponent* scriptComp = scene->findComponent<ScriptComponent>(entity);
+    if (!scriptComp) {
+        return;
+    }
+
+    // Parse the script file to extract properties
+    fs::path fullPath = scriptPath;
+    if (scriptPath.is_relative()) {
+        fullPath = getProjectPath() / scriptPath;
+    }
+
+    std::vector<ScriptProperty> parsedProperties = ScriptParser::parseScriptProperties(fullPath);
+
+    if (parsedProperties.empty()) {
+        // No properties found or parsing failed
+        scriptComp->properties.clear();
+        return;
+    }
+
+    // Merge with existing properties to preserve user-modified values
+    std::vector<ScriptProperty> mergedProperties;
+    for (const auto& parsedProp : parsedProperties) {
+        // Try to find existing property with same name
+        auto it = std::find_if(scriptComp->properties.begin(), scriptComp->properties.end(),
+            [&parsedProp](const ScriptProperty& existing) {
+                return existing.name == parsedProp.name;
+            });
+
+        if (it != scriptComp->properties.end()) {
+            // Property exists - keep user's value but update metadata
+            ScriptProperty merged = parsedProp;
+            merged.value = it->value; // Keep user's modified value
+            mergedProperties.push_back(merged);
+        } else {
+            // New property - use default value
+            mergedProperties.push_back(parsedProp);
+        }
+    }
+
+    scriptComp->properties = mergedProperties;
+    sceneProject->isModified = true;
+}
+
 bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path filepath, YAML::Node entityNode){
     if (!filepath.is_relative()) {
         Out::error("Shared entity filepath must be relative: %s", filepath.string().c_str());

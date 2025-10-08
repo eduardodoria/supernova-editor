@@ -1,6 +1,7 @@
 #pragma once
 #include "imgui.h"
 #include "TextEditor.h"
+#include "Project.h"
 #include <string>
 #include <unordered_map>
 #include <memory>
@@ -25,6 +26,8 @@ namespace Supernova::Editor {
 
     class CodeEditor {
     private:
+        Project* project;
+
         std::unordered_map<std::string, EditorInstance> editors;
         struct PendingFileChange {
             fs::path filepath;
@@ -41,7 +44,7 @@ namespace Supernova::Editor {
         std::string getWindowTitle(const EditorInstance& instance) const;
 
     public:
-        CodeEditor();
+        CodeEditor(Project* project);
         ~CodeEditor();
 
         std::vector<fs::path> getOpenPaths() const;

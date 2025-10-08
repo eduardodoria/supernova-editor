@@ -9,6 +9,7 @@
 #include "Generator.h"
 #include "Configs.h"
 #include "util/SharedGroup.h"
+#include "util/ScriptParser.h"
 
 #include "yaml-cpp/yaml.h"
 
@@ -175,6 +176,8 @@ namespace Supernova::Editor{
 
         bool hasSelectedSceneUnsavedChanges() const;
         bool hasScenesUnsavedChanges() const;
+
+        void updateScriptProperties(uint32_t sceneId, Entity entity, const fs::path& scriptPath);
 
         //=== Shared Entities part ===
 

@@ -8,7 +8,8 @@
 
 using namespace Supernova;
 
-Editor::CodeEditor::CodeEditor() : isFileChangePopupOpen(false), windowFocused(false), lastFocused(nullptr) {
+Editor::CodeEditor::CodeEditor(Project* project) : isFileChangePopupOpen(false), windowFocused(false), lastFocused(nullptr) {
+    this->project = project;
 }
 
 Editor::CodeEditor::~CodeEditor() {
@@ -170,6 +171,22 @@ bool Editor::CodeEditor::save(EditorInstance& instance) {
         instance.savedUndoIndex = instance.editor->GetUndoIndex();
         instance.isModified = false;
         instance.lastWriteTime = fs::last_write_time(instance.filepath);
+
+        // Update script properties if this is a script file
+        for (auto& sceneProject : project->getScenes()) {
+            for (Entity entity : sceneProject.entities) {
+                ScriptComponent* sc = sceneProject.scene->findComponent<ScriptComponent>(entity);
+                std::string sourcePath = instance.filepath.string();
+                size_t pos = sourcePath.find_last_of('.');
+                if (pos != std::string::npos && sourcePath.substr(pos) == ".h") {
+                    sourcePath = sourcePath.substr(0, pos) + ".cpp";
+                }
+                if (sc && sc->path == sourcePath) {
+                    project->updateScriptProperties(sceneProject.id, entity, instance.filepath);
+                }
+            }
+        }
+
         return true;
     } catch (const std::exception& e) {
         // Handle file save errors
