@@ -46,12 +46,12 @@ void ScriptCreateDialog::writeFiles(const fs::path& headerPath, const fs::path& 
             h << "class " << className << " : public Supernova::Shape {\n";
             h << "public:\n";
             h << "    // Example properties - you can add more!\n";
-            h << "    SPROPERTY(\"Speed\", 5.0f)\n";
-            h << "    float speed;\n\n";
-            h << "    SPROPERTY(\"Is Active\", true)\n";
-            h << "    bool isActive;\n\n";
-            h << "    SPROPERTY(\"Target Position\", Supernova::Vector3(0, 0, 0))\n";
-            h << "    Supernova::Vector3 targetPosition;\n\n";
+            h << "    SPROPERTY(\"Speed\")\n";
+            h << "    float speed = 5.0f;\n\n";
+            h << "    SPROPERTY(\"Is Active\")\n";
+            h << "    bool isActive = true;\n\n";
+            h << "    SPROPERTY(\"Target Position\")\n";
+            h << "    Supernova::Vector3 targetPosition = Supernova::Vector3(0, 0, 0);\n\n";
             h << "    " << className << "(Supernova::Scene* scene, Supernova::Entity entity);\n";
             h << "    virtual ~" << className << "();\n\n";
             h << "    void update();\n";
