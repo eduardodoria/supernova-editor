@@ -154,7 +154,6 @@ std::vector<ScriptProperty> Editor::ScriptParser::parseScriptProperties(const st
         "([\\w:]+(?:\\s*<[^>]+>)?)\\s+"  // Type (with templates)
         "(\\w+)\\s*"                      // varName
         "(?:=\\s*([^;]+?))?\\s*;"        // optional = defaultValue
-        , std::regex::multiline           // Enable multiline mode
     );
 
     std::sregex_iterator it(content.begin(), content.end(), propertyRegex);
