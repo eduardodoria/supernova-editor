@@ -896,7 +896,20 @@ bool Editor::Project::hasScenesUnsavedChanges() const{
     return false;
 }
 
-void Editor::Project::updateScriptProperties(uint32_t sceneId, Entity entity, const fs::path& scriptPath) {
+void Editor::Project::updateAllScriptsProperties(uint32_t sceneId){
+    SceneProject* sceneProject = getScene(sceneId);
+    if (!sceneProject) return;
+
+    for (Entity entity : sceneProject->entities) {
+        Signature signature = sceneProject->scene->getSignature(entity);
+        if (signature.test(sceneProject->scene->getComponentId<ScriptComponent>())) {
+            const ScriptComponent& scriptComponent = sceneProject->scene->getComponent<ScriptComponent>(entity);
+            updateScriptProperties(sceneProject->id, entity);
+        }
+    }
+}
+
+void Editor::Project::updateScriptProperties(uint32_t sceneId, Entity entity){
     SceneProject* sceneProject = getScene(sceneId);
     if (!sceneProject) {
         return;
@@ -909,9 +922,9 @@ void Editor::Project::updateScriptProperties(uint32_t sceneId, Entity entity, co
     }
 
     // Parse the script file to extract properties
-    fs::path fullPath = scriptPath;
-    if (scriptPath.is_relative()) {
-        fullPath = getProjectPath() / scriptPath;
+    fs::path fullPath = scriptComp->headerPath;
+    if (fullPath.is_relative()) {
+        fullPath = getProjectPath() / fullPath;
     }
 
     std::vector<ScriptProperty> parsedProperties = ScriptParser::parseScriptProperties(fullPath);
@@ -923,6 +936,7 @@ void Editor::Project::updateScriptProperties(uint32_t sceneId, Entity entity, co
     }
 
     // Merge with existing properties to preserve user-modified values
+    // Only keep properties that exist in the parsed script
     std::vector<ScriptProperty> mergedProperties;
     for (const auto& parsedProp : parsedProperties) {
         // Try to find existing property with same name
@@ -2034,6 +2048,8 @@ void Editor::Project::start(uint32_t sceneId) {
     }
 
     sceneProject->playState = ScenePlayState::PLAYING;
+
+    updateAllScriptsProperties(sceneId);
 
     std::vector<Editor::ScriptSource> scriptFiles = collectScriptSourceFiles();
 

@@ -2078,6 +2078,8 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
                     multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entity, cpType, "class_name", UpdateFlags_None, className);
                     multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entity, cpType, "enabled", UpdateFlags_None, true);
                     CommandHandle::get(sceneProject->id)->addCommandNoMerge(multiCmd);
+
+                    project->updateScriptProperties(sceneProject->id, entity);
                 }
             },
             [](){}

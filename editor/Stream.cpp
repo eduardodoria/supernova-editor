@@ -895,26 +895,33 @@ YAML::Node Editor::Stream::encodeScriptProperty(const ScriptProperty& prop) {
     switch (prop.type) {
         case ScriptPropertyType::Bool:
             node["value"] = prop.value.boolValue;
+            node["defaultValue"] = prop.defaultValue.boolValue;
             break;
         case ScriptPropertyType::Int:
             node["value"] = prop.value.intValue;
+            node["defaultValue"] = prop.defaultValue.intValue;
             break;
         case ScriptPropertyType::Float:
             node["value"] = prop.value.floatValue;
+            node["defaultValue"] = prop.defaultValue.floatValue;
             break;
         case ScriptPropertyType::String:
             node["value"] = prop.value.stringValue;
+            node["defaultValue"] = prop.defaultValue.stringValue;
             break;
         case ScriptPropertyType::Vector2:
             node["value"] = encodeVector2(prop.value.vector2Value);
+            node["defaultValue"] = encodeVector2(prop.defaultValue.vector2Value);
             break;
         case ScriptPropertyType::Vector3:
         case ScriptPropertyType::Color3:
             node["value"] = encodeVector3(prop.value.vector3Value);
+            node["defaultValue"] = encodeVector3(prop.defaultValue.vector3Value);
             break;
         case ScriptPropertyType::Vector4:
         case ScriptPropertyType::Color4:
             node["value"] = encodeVector4(prop.value.vector4Value);
+            node["defaultValue"] = encodeVector4(prop.defaultValue.vector4Value);
             break;
     }
 
@@ -934,26 +941,47 @@ ScriptProperty Editor::Stream::decodeScriptProperty(const YAML::Node& node) {
         switch (prop.type) {
             case Supernova::ScriptPropertyType::Bool:
                 prop.value.boolValue = node["value"].as<bool>();
+                if (node["defaultValue"]) {
+                    prop.defaultValue.boolValue = node["defaultValue"].as<bool>();
+                }
                 break;
             case Supernova::ScriptPropertyType::Int:
                 prop.value.intValue = node["value"].as<int>();
+                if (node["defaultValue"]) {
+                    prop.defaultValue.intValue = node["defaultValue"].as<int>();
+                }
                 break;
             case Supernova::ScriptPropertyType::Float:
                 prop.value.floatValue = node["value"].as<float>();
+                if (node["defaultValue"]) {
+                    prop.defaultValue.floatValue = node["defaultValue"].as<float>();
+                }
                 break;
             case Supernova::ScriptPropertyType::String:
                 prop.value.stringValue = node["value"].as<std::string>();
+                if (node["defaultValue"]) {
+                    prop.defaultValue.stringValue = node["defaultValue"].as<std::string>();
+                }
                 break;
             case Supernova::ScriptPropertyType::Vector2:
                 prop.value.vector2Value = decodeVector2(node["value"]);
+                if (node["defaultValue"]) {
+                    prop.defaultValue.vector2Value = decodeVector2(node["defaultValue"]);
+                }
                 break;
             case Supernova::ScriptPropertyType::Vector3:
             case Supernova::ScriptPropertyType::Color3:
                 prop.value.vector3Value = decodeVector3(node["value"]);
+                if (node["defaultValue"]) {
+                    prop.defaultValue.vector3Value = decodeVector3(node["defaultValue"]);
+                }
                 break;
             case Supernova::ScriptPropertyType::Vector4:
             case Supernova::ScriptPropertyType::Color4:
                 prop.value.vector4Value = decodeVector4(node["value"]);
+                if (node["defaultValue"]) {
+                    prop.defaultValue.vector4Value = decodeVector4(node["defaultValue"]);
+                }
                 break;
         }
     }

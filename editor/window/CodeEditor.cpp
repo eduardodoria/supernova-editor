@@ -150,7 +150,7 @@ void Editor::CodeEditor::updateScriptProperties(const EditorInstance& instance){
         for (Entity entity : sceneProject.entities) {
             ScriptComponent* sc = sceneProject.scene->findComponent<ScriptComponent>(entity);
             if (sc && sc->headerPath == instance.filepath.string()) {
-                project->updateScriptProperties(sceneProject.id, entity, instance.filepath);
+                project->updateScriptProperties(sceneProject.id, entity);
             }
         }
     }

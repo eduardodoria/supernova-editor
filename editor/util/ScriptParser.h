@@ -7,12 +7,13 @@
 
 namespace Supernova::Editor {
 
-class ScriptParser {
-public:
-    static std::vector<Supernova::ScriptProperty> parseScriptProperties(const std::filesystem::path& scriptPath);
+    class ScriptParser {
+    private:
+        static Supernova::ScriptPropertyType inferTypeFromCppType(const std::string& cppType);
+        static std::string removeComments(const std::string& content);
 
-private:
-    static Supernova::ScriptPropertyType inferTypeFromCppType(const std::string& cppType);
-};
+    public:
+        static std::vector<Supernova::ScriptProperty> parseScriptProperties(const std::filesystem::path& scriptPath);
+    };
 
 }

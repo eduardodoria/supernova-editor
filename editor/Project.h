@@ -177,7 +177,8 @@ namespace Supernova::Editor{
         bool hasSelectedSceneUnsavedChanges() const;
         bool hasScenesUnsavedChanges() const;
 
-        void updateScriptProperties(uint32_t sceneId, Entity entity, const fs::path& scriptPath);
+        void updateAllScriptsProperties(uint32_t sceneId);
+        void updateScriptProperties(uint32_t sceneId, Entity entity);
 
         //=== Shared Entities part ===
 
