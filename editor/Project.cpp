@@ -2057,8 +2057,17 @@ void Editor::Project::start(uint32_t sceneId) {
 
     std::thread connectThread([this, sceneProject]() {
         generator.waitForBuildToComplete();
+
+        if (!generator.didLastBuildSucceed()) {
+            sceneProject->playState = ScenePlayState::STOPPED;
+            return;
+        }
+
         if (conector.connect(getProjectPath())) {
             conector.execute(sceneProject);
+        } else {
+            Out::error("Failed to connect to library");
+            sceneProject->playState = ScenePlayState::STOPPED;
         }
     });
     connectThread.detach();

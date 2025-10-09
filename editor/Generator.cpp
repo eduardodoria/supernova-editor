@@ -511,6 +511,8 @@ void Editor::Generator::build(fs::path projectPath, const std::vector<ScriptSour
 
     waitForBuildToComplete();
 
+    lastBuildSucceeded = false; // Reset status before starting new build
+
     buildFuture = std::async(std::launch::async, [this, projectPath]() {
         try {
             auto startTime = std::chrono::steady_clock::now();
@@ -524,20 +526,26 @@ void Editor::Generator::build(fs::path projectPath, const std::vector<ScriptSour
             #endif
 
             if (!configureCMake(projectPath, buildPath, configType)) {
-                throw std::runtime_error("CMake configuration failed");
+                Out::error("CMake configuration failed");
+                lastBuildSucceeded = false;
+                return;
             }
 
             if (!buildProject(projectPath, buildPath, configType)) {
-                throw std::runtime_error("Build failed");
+                Out::error("Build failed");
+                lastBuildSucceeded = false;
+                return;
             }
 
             auto endTime = std::chrono::steady_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>
                 (endTime - startTime).count() / 1000.0;
 
-            Out::build("Build completed in %.3f seconds", duration);
+            Out::build("Build completed successfully in %.3f seconds", duration);
+            lastBuildSucceeded = true;
         } catch (const std::exception& ex) {
-            Out::error("%s", ex.what());
+            Out::error("Build exception: %s", ex.what());
+            lastBuildSucceeded = false;
         }
     });
 }
@@ -551,4 +559,8 @@ void Editor::Generator::waitForBuildToComplete() {
     if (buildFuture.valid()) {
         buildFuture.wait();
     }
+}
+
+bool Editor::Generator::didLastBuildSucceed() const {
+    return lastBuildSucceeded;
 }
