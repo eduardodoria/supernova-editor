@@ -2131,6 +2131,7 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
                 // Reset to default button
                 if (propertyHeader(prop.displayName, -1, defChanged)) {
                     prop.value = prop.defaultValue;
+                    prop.syncToMember();  // Sync to member variable if available
                     sceneProject->isModified = true;
                 }
 
@@ -2246,9 +2247,9 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
                     }
                 }
 
-                // If property was modified, mark scene as modified
-                // Don't call setter here - values are stored in ScriptComponent
+                // If property was modified, sync to member and mark scene as modified
                 if (modified) {
+                    prop.syncToMember();  // Sync the value to the actual script member variable
                     sceneProject->isModified = true;
                 }
             }

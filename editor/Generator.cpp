@@ -430,6 +430,7 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const std:
     sourceContent += "#include <string>\n";
     sourceContent += "#include \"Scene.h\"\n";
     sourceContent += "#include \"EntityHandle.h\"\n";
+    sourceContent += "#include \"ScriptComponent.h\"\n";
 
     // Include script headers
     std::unordered_set<std::string> included;
@@ -459,55 +460,22 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const std:
         // Get ScriptComponent from the scene to retrieve current property values
         ScriptComponent* scriptComp = s.scene->findComponent<ScriptComponent>(s.entity);
         if (scriptComp && !scriptComp->properties.empty()) {
-            // Generate direct assignment for each property
+            // Set memberPtr for each property
+            sourceContent += "        Supernova::ScriptComponent* scriptComp = scene->findComponent<Supernova::ScriptComponent>((Supernova::Entity)" + std::to_string(s.entity) + ");\n";
+            sourceContent += "        if (scriptComp) {\n";
+            sourceContent += "            for (auto& prop : scriptComp->properties) {\n";
             for (const auto& prop : scriptComp->properties) {
-                sourceContent += "        script->" + prop.name + " = ";
-
-                switch (prop.type) {
-                    case Supernova::ScriptPropertyType::Bool:
-                        sourceContent += (prop.value.get<bool>() ? "true" : "false");
-                        break;
-                    case Supernova::ScriptPropertyType::Int:
-                        sourceContent += std::to_string(prop.value.get<int>());
-                        break;
-                    case Supernova::ScriptPropertyType::Float: {
-                        float val = prop.value.get<float>();
-                        sourceContent += std::to_string(val) + "f";
-                        break;
-                    }
-                    case Supernova::ScriptPropertyType::String:
-                        sourceContent += "\"" + prop.value.get<std::string>() + "\"";
-                        break;
-                    case Supernova::ScriptPropertyType::Vector2: {
-                        Vector2 val = prop.value.get<Vector2>();
-                        sourceContent += "Supernova::Vector2(" + 
-                                    std::to_string(val.x) + "f, " + 
-                                    std::to_string(val.y) + "f)";
-                        break;
-                    }
-                    case Supernova::ScriptPropertyType::Vector3:
-                    case Supernova::ScriptPropertyType::Color3: {
-                        Vector3 val = prop.value.get<Vector3>();
-                        sourceContent += "Supernova::Vector3(" + 
-                                    std::to_string(val.x) + "f, " + 
-                                    std::to_string(val.y) + "f, " + 
-                                    std::to_string(val.z) + "f)";
-                        break;
-                    }
-                    case Supernova::ScriptPropertyType::Vector4:
-                    case Supernova::ScriptPropertyType::Color4: {
-                        Vector4 val = prop.value.get<Vector4>();
-                        sourceContent += "Supernova::Vector4(" + 
-                                    std::to_string(val.x) + "f, " + 
-                                    std::to_string(val.y) + "f, " + 
-                                    std::to_string(val.z) + "f, " + 
-                                    std::to_string(val.w) + "f)";
-                        break;
-                    }
-                }
-
-                sourceContent += ";\n";
+                sourceContent += "                if (prop.name == \"" + prop.name + "\") {\n";
+                sourceContent += "                    prop.memberPtr = &script->" + prop.name + ";\n";
+                sourceContent += "                }\n";
             }
+            sourceContent += "            }\n";
+            sourceContent += "            \n";
+            sourceContent += "            // Sync stored values to member variables\n";
+            sourceContent += "            for (auto& prop : scriptComp->properties) {\n";
+            sourceContent += "                prop.syncToMember();\n";
+            sourceContent += "            }\n";
+            sourceContent += "        }\n";
             sourceContent += "        \n";
         }
 
