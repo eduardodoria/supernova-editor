@@ -365,7 +365,6 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const std:
     }
     scriptSources += ")\n";
 
-    // Build CMake content with proper indentation
     std::string cmakeContent;
     cmakeContent += "cmake_minimum_required(VERSION 3.15)\n";
     cmakeContent += "project(ProjectLib)\n\n";
@@ -463,12 +462,25 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const std:
             // Set memberPtr for each property
             sourceContent += "        Supernova::ScriptComponent* scriptComp = scene->findComponent<Supernova::ScriptComponent>((Supernova::Entity)" + std::to_string(s.entity) + ");\n";
             sourceContent += "        if (scriptComp) {\n";
+
+            sourceContent += "            // Set member pointers for all properties\n";
             sourceContent += "            for (auto& prop : scriptComp->properties) {\n";
+
+            // Generate if-else chain for property name matching
+            bool first = true;
             for (const auto& prop : scriptComp->properties) {
-                sourceContent += "                if (prop.name == \"" + prop.name + "\") {\n";
+                if (first) {
+                    sourceContent += "                if (prop.name == \"" + prop.name + "\") {\n";
+                    first = false;
+                } else {
+                    sourceContent += "                } else if (prop.name == \"" + prop.name + "\") {\n";
+                }
                 sourceContent += "                    prop.memberPtr = &script->" + prop.name + ";\n";
+            }
+            if (!scriptComp->properties.empty()) {
                 sourceContent += "                }\n";
             }
+
             sourceContent += "            }\n";
             sourceContent += "            \n";
             sourceContent += "            // Sync stored values to member variables\n";

@@ -9,8 +9,8 @@
 using namespace Supernova;
 
 
-ScriptPropertyType Editor::ScriptParser::inferTypeFromCppType(const std::string& cppType) {
-    // Remove const, &, *, and whitespace for comparison
+ScriptPropertyType Editor::ScriptParser::inferTypeFromCppType(const std::string& cppType, std::string& ptrTypeName) {
+    // Remove const, &, and whitespace for comparison
     std::string cleanType = cppType;
     cleanType.erase(std::remove_if(cleanType.begin(), cleanType.end(), ::isspace), cleanType.end());
 
@@ -20,37 +20,47 @@ ScriptPropertyType Editor::ScriptParser::inferTypeFromCppType(const std::string&
         cleanType.erase(constPos, 5);
     }
 
-    // Remove references and pointers
-    cleanType.erase(std::remove(cleanType.begin(), cleanType.end(), '&'), cleanType.end());
-    cleanType.erase(std::remove(cleanType.begin(), cleanType.end(), '*'), cleanType.end());
+    // Check if it's a pointer type (has *)
+    bool isPointer = (cleanType.find('*') != std::string::npos);
+
+    // Remove references and pointers for type matching
+    std::string bareType = cleanType;
+    bareType.erase(std::remove(bareType.begin(), bareType.end(), '&'), bareType.end());
+    bareType.erase(std::remove(bareType.begin(), bareType.end(), '*'), bareType.end());
+
+    // If it's a pointer type, store the full type name and return ObjectPtr
+    if (isPointer) {
+        ptrTypeName = cleanType; // Store "Mesh*", "Object*", etc.
+        return ScriptPropertyType::ObjectPtr;
+    }
 
     // Map C++ types to ScriptPropertyType
-    if (cleanType == "bool") {
+    if (bareType == "bool") {
         return ScriptPropertyType::Bool;
     }
 
-    if (cleanType == "int" || cleanType == "int32_t" || cleanType == "uint32_t" ||
-        cleanType == "short" || cleanType == "long") {
+    if (bareType == "int" || bareType == "int32_t" || bareType == "uint32_t" ||
+        bareType == "short" || bareType == "long") {
         return ScriptPropertyType::Int;
     }
 
-    if (cleanType == "float" || cleanType == "double") {
+    if (bareType == "float" || bareType == "double") {
         return ScriptPropertyType::Float;
     }
 
-    if (cleanType == "std::string" || cleanType == "string") {
+    if (bareType == "std::string" || bareType == "string") {
         return ScriptPropertyType::String;
     }
 
-    if (cleanType == "Vector2" || cleanType == "Supernova::Vector2") {
+    if (bareType == "Vector2" || bareType == "Supernova::Vector2") {
         return ScriptPropertyType::Vector2;
     }
 
-    if (cleanType == "Vector3" || cleanType == "Supernova::Vector3") {
+    if (bareType == "Vector3" || bareType == "Supernova::Vector3") {
         return ScriptPropertyType::Vector3;
     }
 
-    if (cleanType == "Vector4" || cleanType == "Supernova::Vector4") {
+    if (bareType == "Vector4" || bareType == "Supernova::Vector4") {
         return ScriptPropertyType::Vector4;
     }
 
@@ -151,7 +161,7 @@ std::vector<ScriptProperty> Editor::ScriptParser::parseScriptProperties(const st
         "SPROPERTY\\s*\\(\\s*"           // SPROPERTY(
         "\"([^\"]+)\"\\s*"                // "Display Name"
         "\\)\\s*"                         // )
-        "([\\w:]+(?:\\s*<[^>]+>)?)\\s+"  // Type (with templates)
+        "([\\w:*]+(?:\\s*<[^>]+>)?)\\s+" // Type (with templates and pointers)
         "(\\w+)\\s*"                      // varName
         "(?:=\\s*([^;]+?))?\\s*;"        // optional = defaultValue
     );
@@ -168,8 +178,14 @@ std::vector<ScriptProperty> Editor::ScriptParser::parseScriptProperties(const st
         std::string varName = match[3].str();
         std::string defaultValueStr = match[4].str(); // May be empty
 
-        // Remove whitespace from type
-        cppType.erase(std::remove_if(cppType.begin(), cppType.end(), ::isspace), cppType.end());
+        // Remove whitespace from type (but keep * for pointers)
+        std::string cleanCppType;
+        for (char c : cppType) {
+            if (!std::isspace(c)) {
+                cleanCppType += c;
+            }
+        }
+        cppType = cleanCppType;
 
         // Remove whitespace from default value if present
         if (!defaultValueStr.empty()) {
@@ -177,38 +193,40 @@ std::vector<ScriptProperty> Editor::ScriptParser::parseScriptProperties(const st
         }
 
         // Infer ScriptPropertyType from C++ type
-        ScriptPropertyType type = inferTypeFromCppType(cppType);
+        std::string ptrTypeName;
+        ScriptPropertyType type = inferTypeFromCppType(cppType, ptrTypeName);
 
         ScriptProperty prop;
         prop.name = varName;
         prop.displayName = displayName;
         prop.type = type;
+        prop.ptrTypeName = ptrTypeName; // Will be empty for non-pointer types
 
         // Parse and set default value based on type
         try {
             switch (type) {
                 case ScriptPropertyType::Bool: {
-                    bool val = bool(); // default value
+                    bool val = false; // default value
                     if (!defaultValueStr.empty()) {
                         val = (defaultValueStr == "true" || defaultValueStr == "1");
                     }
-                    prop.value.boolValue = val;
-                    prop.defaultValue.boolValue = val;
+                    prop.value = val;
+                    prop.defaultValue = val;
                     break;
                 }
 
                 case ScriptPropertyType::Int: {
-                    int val = int(); // default value
+                    int val = 0; // default value
                     if (!defaultValueStr.empty()) {
                         val = std::stoi(defaultValueStr);
                     }
-                    prop.value.intValue = val;
-                    prop.defaultValue.intValue = val;
+                    prop.value = val;
+                    prop.defaultValue = val;
                     break;
                 }
 
                 case ScriptPropertyType::Float: {
-                    float val = float(); // default value
+                    float val = 0.0f; // default value
                     if (!defaultValueStr.empty()) {
                         // Handle 'f' suffix
                         std::string cleanFloat = defaultValueStr;
@@ -217,13 +235,13 @@ std::vector<ScriptProperty> Editor::ScriptParser::parseScriptProperties(const st
                         }
                         val = std::stof(cleanFloat);
                     }
-                    prop.value.floatValue = val;
-                    prop.defaultValue.floatValue = val;
+                    prop.value = val;
+                    prop.defaultValue = val;
                     break;
                 }
 
                 case ScriptPropertyType::String: {
-                    std::string val = std::string(); // default value
+                    std::string val = ""; // default value
                     if (!defaultValueStr.empty()) {
                         // Remove quotes if present
                         val = defaultValueStr;
@@ -231,8 +249,8 @@ std::vector<ScriptProperty> Editor::ScriptParser::parseScriptProperties(const st
                             val = val.substr(1, val.size() - 2);
                         }
                     }
-                    prop.value.stringValue = val;
-                    prop.defaultValue.stringValue = val;
+                    prop.value = val;
+                    prop.defaultValue = val;
                     break;
                 }
 
@@ -253,8 +271,8 @@ std::vector<ScriptProperty> Editor::ScriptParser::parseScriptProperties(const st
                             val = Vector2(x, y);
                         }
                     }
-                    prop.value.vector2Value = val;
-                    prop.defaultValue.vector2Value = val;
+                    prop.value = val;
+                    prop.defaultValue = val;
                     break;
                 }
 
@@ -279,8 +297,8 @@ std::vector<ScriptProperty> Editor::ScriptParser::parseScriptProperties(const st
                             val = Vector3(x, y, z);
                         }
                     }
-                    prop.value.vector3Value = val;
-                    prop.defaultValue.vector3Value = val;
+                    prop.value = val;
+                    prop.defaultValue = val;
                     break;
                 }
 
@@ -308,15 +326,62 @@ std::vector<ScriptProperty> Editor::ScriptParser::parseScriptProperties(const st
                             val = Vector4(x, y, z, w);
                         }
                     }
-                    prop.value.vector4Value = val;
-                    prop.defaultValue.vector4Value = val;
+                    prop.value = val;
+                    prop.defaultValue = val;
+                    break;
+                }
+
+                case ScriptPropertyType::ObjectPtr: {
+                    // Pointers default to nullptr
+                    void* val = nullptr;
+                    if (!defaultValueStr.empty() && defaultValueStr != "nullptr" && defaultValueStr != "NULL") {
+                        Out::warning("Non-null pointer default values are not supported, using nullptr for '%s'", varName.c_str());
+                    }
+                    prop.value = val;
+                    prop.defaultValue = val;
                     break;
                 }
             }
         } catch (const std::exception& e) {
             size_t lineNum = std::count(content.begin(), content.begin() + position, '\n') + 1;
             Out::warning("Failed to parse property at line %zu: %s", lineNum, e.what());
-            // Keep zero/empty defaults on parse error
+            // Initialize with default values on parse error
+            switch (type) {
+                case ScriptPropertyType::Bool:
+                    prop.value = false;
+                    prop.defaultValue = false;
+                    break;
+                case ScriptPropertyType::Int:
+                    prop.value = 0;
+                    prop.defaultValue = 0;
+                    break;
+                case ScriptPropertyType::Float:
+                    prop.value = 0.0f;
+                    prop.defaultValue = 0.0f;
+                    break;
+                case ScriptPropertyType::String:
+                    prop.value = std::string("");
+                    prop.defaultValue = std::string("");
+                    break;
+                case ScriptPropertyType::Vector2:
+                    prop.value = Vector2();
+                    prop.defaultValue = Vector2();
+                    break;
+                case ScriptPropertyType::Vector3:
+                case ScriptPropertyType::Color3:
+                    prop.value = Vector3();
+                    prop.defaultValue = Vector3();
+                    break;
+                case ScriptPropertyType::Vector4:
+                case ScriptPropertyType::Color4:
+                    prop.value = Vector4();
+                    prop.defaultValue = Vector4();
+                    break;
+                case ScriptPropertyType::ObjectPtr:
+                    prop.value = static_cast<void*>(nullptr);
+                    prop.defaultValue = static_cast<void*>(nullptr);
+                    break;
+            }
         }
 
         properties.push_back(prop);

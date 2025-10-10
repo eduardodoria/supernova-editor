@@ -17,6 +17,7 @@
 #include "render/SceneRender2D.h"
 #include "util/SHA1.h"
 #include "Stream.h"
+#include "Out.h"
 
 #include <map>
 
@@ -2104,34 +2105,37 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
                 // Check if value differs from default based on type
                 switch (prop.type) {
                     case Supernova::ScriptPropertyType::Bool:
-                        defChanged = (prop.value.boolValue != prop.defaultValue.boolValue);
+                        defChanged = (std::get<bool>(prop.value) != std::get<bool>(prop.defaultValue));
                         break;
                     case Supernova::ScriptPropertyType::Int:
-                        defChanged = (prop.value.intValue != prop.defaultValue.intValue);
+                        defChanged = (std::get<int>(prop.value) != std::get<int>(prop.defaultValue));
                         break;
                     case Supernova::ScriptPropertyType::Float:
-                        defChanged = (std::fabs(prop.value.floatValue - prop.defaultValue.floatValue) > 1e-6f);
+                        defChanged = (std::fabs(std::get<float>(prop.value) - std::get<float>(prop.defaultValue)) > 1e-6f);
                         break;
                     case Supernova::ScriptPropertyType::String:
-                        defChanged = (prop.value.stringValue != prop.defaultValue.stringValue);
+                        defChanged = (std::get<std::string>(prop.value) != std::get<std::string>(prop.defaultValue));
                         break;
                     case Supernova::ScriptPropertyType::Vector2:
-                        defChanged = (prop.value.vector2Value != prop.defaultValue.vector2Value);
+                        defChanged = (std::get<Vector2>(prop.value) != std::get<Vector2>(prop.defaultValue));
                         break;
                     case Supernova::ScriptPropertyType::Vector3:
                     case Supernova::ScriptPropertyType::Color3:
-                        defChanged = (prop.value.vector3Value != prop.defaultValue.vector3Value);
+                        defChanged = (std::get<Vector3>(prop.value) != std::get<Vector3>(prop.defaultValue));
                         break;
                     case Supernova::ScriptPropertyType::Vector4:
                     case Supernova::ScriptPropertyType::Color4:
-                        defChanged = (prop.value.vector4Value != prop.defaultValue.vector4Value);
+                        defChanged = (std::get<Vector4>(prop.value) != std::get<Vector4>(prop.defaultValue));
+                        break;
+                    case Supernova::ScriptPropertyType::ObjectPtr:
+                        defChanged = (std::get<void*>(prop.value) != std::get<void*>(prop.defaultValue));
                         break;
                 }
 
                 // Reset to default button
                 if (propertyHeader(prop.displayName, -1, defChanged)) {
                     prop.value = prop.defaultValue;
-                    prop.syncToMember();  // Sync to member variable if available
+                    prop.syncToMember();
                     sceneProject->isModified = true;
                 }
 
@@ -2140,27 +2144,27 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
                 // Draw appropriate control based on property type
                 switch (prop.type) {
                     case Supernova::ScriptPropertyType::Bool: {
-                        bool value = prop.value.boolValue;
+                        bool value = std::get<bool>(prop.value);
                         if (ImGui::Checkbox(("##" + propertyId).c_str(), &value)) {
-                            prop.value.boolValue = value;
+                            prop.value = value;
                             modified = true;
                         }
                         break;
                     }
 
                     case Supernova::ScriptPropertyType::Int: {
-                        int value = prop.value.intValue;
+                        int value = std::get<int>(prop.value);
                         if (ImGui::DragInt(("##" + propertyId).c_str(), &value, 1.0f)) {
-                            prop.value.intValue = value;
+                            prop.value = value;
                             modified = true;
                         }
                         break;
                     }
 
                     case Supernova::ScriptPropertyType::Float: {
-                        float value = prop.value.floatValue;
+                        float value = std::get<float>(prop.value);
                         if (ImGui::DragFloat(("##" + propertyId).c_str(), &value, 0.1f, 0.0f, 0.0f, "%.3f")) {
-                            prop.value.floatValue = value;
+                            prop.value = value;
                             modified = true;
                         }
                         break;
@@ -2168,31 +2172,32 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
 
                     case Supernova::ScriptPropertyType::String: {
                         static char buffer[256];
-                        strncpy(buffer, prop.value.stringValue.c_str(), sizeof(buffer) - 1);
+                        std::string strValue = std::get<std::string>(prop.value);
+                        strncpy(buffer, strValue.c_str(), sizeof(buffer) - 1);
                         buffer[sizeof(buffer) - 1] = '\0';
                         if (ImGui::InputText(("##" + propertyId).c_str(), buffer, sizeof(buffer))) {
-                            prop.value.stringValue = buffer;
+                            prop.value = std::string(buffer);
                             modified = true;
                         }
                         break;
                     }
 
                     case Supernova::ScriptPropertyType::Vector2: {
-                        Vector2 value = prop.value.vector2Value;
+                        Vector2 value = std::get<Vector2>(prop.value);
                         ImGui::PushMultiItemsWidths(2, ImGui::CalcItemWidth());
                         bool changed = false;
                         if (ImGui::DragFloat(("##x_" + propertyId).c_str(), &value.x, 0.1f)) changed = true;
                         ImGui::SameLine();
                         if (ImGui::DragFloat(("##y_" + propertyId).c_str(), &value.y, 0.1f)) changed = true;
                         if (changed) {
-                            prop.value.vector2Value = value;
+                            prop.value = value;
                             modified = true;
                         }
                         break;
                     }
 
                     case Supernova::ScriptPropertyType::Vector3: {
-                        Vector3 value = prop.value.vector3Value;
+                        Vector3 value = std::get<Vector3>(prop.value);
                         ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
                         bool changed = false;
                         if (ImGui::DragFloat(("##x_" + propertyId).c_str(), &value.x, 0.1f)) changed = true;
@@ -2201,24 +2206,24 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
                         ImGui::SameLine();
                         if (ImGui::DragFloat(("##z_" + propertyId).c_str(), &value.z, 0.1f)) changed = true;
                         if (changed) {
-                            prop.value.vector3Value = value;
+                            prop.value = value;
                             modified = true;
                         }
                         break;
                     }
 
                     case Supernova::ScriptPropertyType::Color3: {
-                        Vector3 value = Color::linearTosRGB(prop.value.vector3Value);
+                        Vector3 value = Color::linearTosRGB(std::get<Vector3>(prop.value));
                         if (ImGui::ColorEdit3(("##" + propertyId).c_str(), (float*)&value.x, 
                                             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel)) {
-                            prop.value.vector3Value = Color::sRGBToLinear(value);
+                            prop.value = Color::sRGBToLinear(value);
                             modified = true;
                         }
                         break;
                     }
 
                     case Supernova::ScriptPropertyType::Vector4: {
-                        Vector4 value = prop.value.vector4Value;
+                        Vector4 value = std::get<Vector4>(prop.value);
                         ImGui::PushMultiItemsWidths(4, ImGui::CalcItemWidth());
                         bool changed = false;
                         if (ImGui::DragFloat(("##x_" + propertyId).c_str(), &value.x, 0.1f)) changed = true;
@@ -2229,27 +2234,50 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
                         ImGui::SameLine();
                         if (ImGui::DragFloat(("##w_" + propertyId).c_str(), &value.w, 0.1f)) changed = true;
                         if (changed) {
-                            prop.value.vector4Value = value;
+                            prop.value = value;
                             modified = true;
                         }
                         break;
                     }
 
                     case Supernova::ScriptPropertyType::Color4: {
-                        Vector4 value = Color::linearTosRGB(prop.value.vector4Value);
+                        Vector4 value = Color::linearTosRGB(std::get<Vector4>(prop.value));
                         if (ImGui::ColorEdit4(("##" + propertyId).c_str(), (float*)&value.x, 
                                             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | 
                                             ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
-                            prop.value.vector4Value = Color::sRGBToLinear(value);
+                            prop.value = Color::sRGBToLinear(value);
                             modified = true;
                         }
+                        break;
+                    }
+
+                    case Supernova::ScriptPropertyType::ObjectPtr: {
+                        // Display pointer type and address
+                        void* ptrValue = std::get<void*>(prop.value);
+
+                        // Show the pointer type name if available
+                        std::string displayText = prop.ptrTypeName.empty() ? "Object*" : prop.ptrTypeName;
+                        displayText += ": ";
+
+                        if (ptrValue == nullptr) {
+                            displayText += "nullptr";
+                        } else {
+                            char addrBuf[32];
+                            snprintf(addrBuf, sizeof(addrBuf), "0x%016llx", (unsigned long long)ptrValue);
+                            displayText += addrBuf;
+                        }
+
+                        ImGui::TextDisabled("%s", displayText.c_str());
+
+                        // TODO: In the future, add drag-drop support for object references
+                        // For now, pointers are read-only in the editor
                         break;
                     }
                 }
 
                 // If property was modified, sync to member and mark scene as modified
                 if (modified) {
-                    prop.syncToMember();  // Sync the value to the actual script member variable
+                    prop.syncToMember();
                     sceneProject->isModified = true;
                 }
             }

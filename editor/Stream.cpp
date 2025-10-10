@@ -892,36 +892,46 @@ YAML::Node Editor::Stream::encodeScriptProperty(const ScriptProperty& prop) {
     node["displayName"] = prop.displayName;
     node["type"] = static_cast<int>(prop.type);
 
+    // Store ptrTypeName if it's a pointer type
+    if (prop.type == ScriptPropertyType::ObjectPtr && !prop.ptrTypeName.empty()) {
+        node["ptrTypeName"] = prop.ptrTypeName;
+    }
+
     switch (prop.type) {
         case ScriptPropertyType::Bool:
-            node["value"] = prop.value.boolValue;
-            node["defaultValue"] = prop.defaultValue.boolValue;
+            node["value"] = std::get<bool>(prop.value);
+            node["defaultValue"] = std::get<bool>(prop.defaultValue);
             break;
         case ScriptPropertyType::Int:
-            node["value"] = prop.value.intValue;
-            node["defaultValue"] = prop.defaultValue.intValue;
+            node["value"] = std::get<int>(prop.value);
+            node["defaultValue"] = std::get<int>(prop.defaultValue);
             break;
         case ScriptPropertyType::Float:
-            node["value"] = prop.value.floatValue;
-            node["defaultValue"] = prop.defaultValue.floatValue;
+            node["value"] = std::get<float>(prop.value);
+            node["defaultValue"] = std::get<float>(prop.defaultValue);
             break;
         case ScriptPropertyType::String:
-            node["value"] = prop.value.stringValue;
-            node["defaultValue"] = prop.defaultValue.stringValue;
+            node["value"] = std::get<std::string>(prop.value);
+            node["defaultValue"] = std::get<std::string>(prop.defaultValue);
             break;
         case ScriptPropertyType::Vector2:
-            node["value"] = encodeVector2(prop.value.vector2Value);
-            node["defaultValue"] = encodeVector2(prop.defaultValue.vector2Value);
+            node["value"] = encodeVector2(std::get<Vector2>(prop.value));
+            node["defaultValue"] = encodeVector2(std::get<Vector2>(prop.defaultValue));
             break;
         case ScriptPropertyType::Vector3:
         case ScriptPropertyType::Color3:
-            node["value"] = encodeVector3(prop.value.vector3Value);
-            node["defaultValue"] = encodeVector3(prop.defaultValue.vector3Value);
+            node["value"] = encodeVector3(std::get<Vector3>(prop.value));
+            node["defaultValue"] = encodeVector3(std::get<Vector3>(prop.defaultValue));
             break;
         case ScriptPropertyType::Vector4:
         case ScriptPropertyType::Color4:
-            node["value"] = encodeVector4(prop.value.vector4Value);
-            node["defaultValue"] = encodeVector4(prop.defaultValue.vector4Value);
+            node["value"] = encodeVector4(std::get<Vector4>(prop.value));
+            node["defaultValue"] = encodeVector4(std::get<Vector4>(prop.defaultValue));
+            break;
+        case ScriptPropertyType::ObjectPtr:
+            // Store pointer as uint64_t for serialization
+            node["value"] = reinterpret_cast<uint64_t>(std::get<void*>(prop.value));
+            node["defaultValue"] = reinterpret_cast<uint64_t>(std::get<void*>(prop.defaultValue));
             break;
     }
 
@@ -935,53 +945,117 @@ ScriptProperty Editor::Stream::decodeScriptProperty(const YAML::Node& node) {
     if (node["displayName"]) prop.displayName = node["displayName"].as<std::string>();
     if (node["type"]) prop.type = static_cast<ScriptPropertyType>(node["type"].as<int>());
 
-    prop.value.type = prop.type;
+    // Restore ptrTypeName if it exists
+    if (node["ptrTypeName"]) {
+        prop.ptrTypeName = node["ptrTypeName"].as<std::string>();
+    }
 
     if (node["value"]) {
         switch (prop.type) {
-            case Supernova::ScriptPropertyType::Bool:
-                prop.value.boolValue = node["value"].as<bool>();
+            case ScriptPropertyType::Bool:
+                prop.value = node["value"].as<bool>();
                 if (node["defaultValue"]) {
-                    prop.defaultValue.boolValue = node["defaultValue"].as<bool>();
+                    prop.defaultValue = node["defaultValue"].as<bool>();
+                } else {
+                    prop.defaultValue = false;
                 }
                 break;
-            case Supernova::ScriptPropertyType::Int:
-                prop.value.intValue = node["value"].as<int>();
+            case ScriptPropertyType::Int:
+                prop.value = node["value"].as<int>();
                 if (node["defaultValue"]) {
-                    prop.defaultValue.intValue = node["defaultValue"].as<int>();
+                    prop.defaultValue = node["defaultValue"].as<int>();
+                } else {
+                    prop.defaultValue = 0;
                 }
                 break;
-            case Supernova::ScriptPropertyType::Float:
-                prop.value.floatValue = node["value"].as<float>();
+            case ScriptPropertyType::Float:
+                prop.value = node["value"].as<float>();
                 if (node["defaultValue"]) {
-                    prop.defaultValue.floatValue = node["defaultValue"].as<float>();
+                    prop.defaultValue = node["defaultValue"].as<float>();
+                } else {
+                    prop.defaultValue = 0.0f;
                 }
                 break;
-            case Supernova::ScriptPropertyType::String:
-                prop.value.stringValue = node["value"].as<std::string>();
+            case ScriptPropertyType::String:
+                prop.value = node["value"].as<std::string>();
                 if (node["defaultValue"]) {
-                    prop.defaultValue.stringValue = node["defaultValue"].as<std::string>();
+                    prop.defaultValue = node["defaultValue"].as<std::string>();
+                } else {
+                    prop.defaultValue = std::string("");
                 }
                 break;
-            case Supernova::ScriptPropertyType::Vector2:
-                prop.value.vector2Value = decodeVector2(node["value"]);
+            case ScriptPropertyType::Vector2:
+                prop.value = decodeVector2(node["value"]);
                 if (node["defaultValue"]) {
-                    prop.defaultValue.vector2Value = decodeVector2(node["defaultValue"]);
+                    prop.defaultValue = decodeVector2(node["defaultValue"]);
+                } else {
+                    prop.defaultValue = Vector2();
                 }
                 break;
-            case Supernova::ScriptPropertyType::Vector3:
-            case Supernova::ScriptPropertyType::Color3:
-                prop.value.vector3Value = decodeVector3(node["value"]);
+            case ScriptPropertyType::Vector3:
+            case ScriptPropertyType::Color3:
+                prop.value = decodeVector3(node["value"]);
                 if (node["defaultValue"]) {
-                    prop.defaultValue.vector3Value = decodeVector3(node["defaultValue"]);
+                    prop.defaultValue = decodeVector3(node["defaultValue"]);
+                } else {
+                    prop.defaultValue = Vector3();
                 }
                 break;
-            case Supernova::ScriptPropertyType::Vector4:
-            case Supernova::ScriptPropertyType::Color4:
-                prop.value.vector4Value = decodeVector4(node["value"]);
+            case ScriptPropertyType::Vector4:
+            case ScriptPropertyType::Color4:
+                prop.value = decodeVector4(node["value"]);
                 if (node["defaultValue"]) {
-                    prop.defaultValue.vector4Value = decodeVector4(node["defaultValue"]);
+                    prop.defaultValue = decodeVector4(node["defaultValue"]);
+                } else {
+                    prop.defaultValue = Vector4();
                 }
+                break;
+            case ScriptPropertyType::ObjectPtr:
+                // Restore pointer from uint64_t
+                prop.value = reinterpret_cast<void*>(node["value"].as<uint64_t>());
+                if (node["defaultValue"]) {
+                    prop.defaultValue = reinterpret_cast<void*>(node["defaultValue"].as<uint64_t>());
+                } else {
+                    prop.defaultValue = static_cast<void*>(nullptr);
+                }
+                break;
+        }
+    } else {
+        // Initialize with default values if no value is provided
+        switch (prop.type) {
+            case ScriptPropertyType::Bool:
+                prop.value = false;
+                prop.defaultValue = false;
+                break;
+            case ScriptPropertyType::Int:
+                prop.value = 0;
+                prop.defaultValue = 0;
+                break;
+            case ScriptPropertyType::Float:
+                prop.value = 0.0f;
+                prop.defaultValue = 0.0f;
+                break;
+            case ScriptPropertyType::String:
+                prop.value = std::string("");
+                prop.defaultValue = std::string("");
+                break;
+            case ScriptPropertyType::Vector2:
+                prop.value = Vector2();
+                prop.defaultValue = Vector2();
+                break;
+            case ScriptPropertyType::Vector3:
+            case ScriptPropertyType::Color3:
+                prop.value = Vector3();
+                prop.defaultValue = Vector3();
+                break;
+            case ScriptPropertyType::Vector4:
+            case ScriptPropertyType::Color4:
+                prop.value = Vector4();
+                prop.defaultValue = Vector4();
+                break;
+            case ScriptPropertyType::ObjectPtr:
+                prop.value = static_cast<void*>(nullptr);
+                prop.defaultValue = static_cast<void*>(nullptr);
                 break;
         }
     }

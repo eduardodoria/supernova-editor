@@ -9,7 +9,7 @@ namespace Supernova::Editor {
 
     class ScriptParser {
     private:
-        static Supernova::ScriptPropertyType inferTypeFromCppType(const std::string& cppType);
+        static Supernova::ScriptPropertyType inferTypeFromCppType(const std::string& cppType, std::string& ptrTypeName);
         static std::string removeComments(const std::string& content);
 
     public:
