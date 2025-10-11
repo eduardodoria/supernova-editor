@@ -355,7 +355,11 @@ bool Editor::Generator::tryIncludeHeader(const fs::path& p, const fs::path& proj
     return false;
 }
 
-void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const std::vector<ScriptSource>& scriptFiles){
+void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, const std::vector<ScriptSource>& scriptFiles){
+    // Get the project internal path for engine API includes
+    fs::path relativePath = fs::relative(projectInternalPath, projectPath) / "engine-api";
+    std::string engineApiPathStr = "${CMAKE_CURRENT_SOURCE_DIR}/" + relativePath.generic_string();
+
     // Build SCRIPT_SOURCES list for CMake
     std::string scriptSources = "set(SCRIPT_SOURCES\n";
     for (const auto& s : scriptFiles) {
@@ -382,20 +386,20 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const std:
     cmakeContent += "    set(SUPERNOVA_LIB_SYSTEM SYSTEM)\n";
     cmakeContent += "endif()\n\n";
     cmakeContent += "target_include_directories(project_lib ${SUPERNOVA_LIB_SYSTEM} PRIVATE\n";
-    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine\n";
-    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/libs/sokol\n";
-    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/libs/box2d/include\n";
-    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/libs/joltphysics\n";
-    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/renders\n";
-    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core\n";
-    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/ecs\n";
-    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/object\n";
-    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/object/physics\n";
-    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/script\n";
-    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/math\n";
-    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/registry\n";
-    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/util\n";
-    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/supernova/engine/core/component\n";
+    cmakeContent += "    " + engineApiPathStr + "\n";
+    cmakeContent += "    " + engineApiPathStr + "/libs/sokol\n";
+    cmakeContent += "    " + engineApiPathStr + "/libs/box2d/include\n";
+    cmakeContent += "    " + engineApiPathStr + "/libs/joltphysics\n";
+    cmakeContent += "    " + engineApiPathStr + "/renders\n";
+    cmakeContent += "    " + engineApiPathStr + "/core\n";
+    cmakeContent += "    " + engineApiPathStr + "/core/ecs\n";
+    cmakeContent += "    " + engineApiPathStr + "/core/object\n";
+    cmakeContent += "    " + engineApiPathStr + "/core/object/physics\n";
+    cmakeContent += "    " + engineApiPathStr + "/core/script\n";
+    cmakeContent += "    " + engineApiPathStr + "/core/math\n";
+    cmakeContent += "    " + engineApiPathStr + "/core/registry\n";
+    cmakeContent += "    " + engineApiPathStr + "/core/util\n";
+    cmakeContent += "    " + engineApiPathStr + "/core/component\n";
     cmakeContent += ")\n\n";
     cmakeContent += "# Find supernova library in specified location\n";
     cmakeContent += "find_library(SUPERNOVA_LIB supernova PATHS ${SUPERNOVA_LIB_DIR} NO_DEFAULT_PATH)\n";
@@ -517,9 +521,9 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const std:
     writeIfChanged(sourceFile, sourceContent);
 }
 
-void Editor::Generator::build(fs::path projectPath, const std::vector<ScriptSource>& scriptFiles) {
+void Editor::Generator::build(const fs::path projectPath, const fs::path projectInternalPath, const std::vector<ScriptSource>& scriptFiles) {
 
-    writeSourceFiles(projectPath, scriptFiles);
+    writeSourceFiles(projectPath, projectInternalPath, scriptFiles);
 
     waitForBuildToComplete();
 

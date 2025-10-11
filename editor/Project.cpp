@@ -312,6 +312,40 @@ void Editor::Project::pauseEngineScene(SceneProject* sceneProject, bool pause){
     sceneProject->scene->getSystem<AudioSystem>()->setPaused(pause);
 }
 
+void Editor::Project::copyEngineApiToProject() {
+    try {
+        // Get the executable path
+        std::filesystem::path exePath = std::filesystem::canonical("/proc/self/exe").parent_path();
+        std::filesystem::path engineApiSource = exePath / "engine-api";
+
+        if (!std::filesystem::exists(engineApiSource)) {
+            Out::warning("engine-api folder not found at: %s", engineApiSource.string().c_str());
+            return;
+        }
+
+        std::filesystem::path engineApiDest = getProjectInternalPath() / "engine-api";
+
+        // Create internal path if it doesn't exist
+        if (!std::filesystem::exists(getProjectInternalPath())) {
+            std::filesystem::create_directories(getProjectInternalPath());
+        }
+
+        // Remove existing engine-api if it exists
+        if (std::filesystem::exists(engineApiDest)) {
+            std::filesystem::remove_all(engineApiDest);
+        }
+
+        // Copy engine-api folder
+        std::filesystem::copy(engineApiSource, engineApiDest, 
+                            std::filesystem::copy_options::recursive);
+
+        Out::info("Copied engine-api to project: %s", engineApiDest.string().c_str());
+
+    } catch (const std::exception& e) {
+        Out::error("Failed to copy engine-api: %s", e.what());
+    }
+}
+
 bool Editor::Project::createTempProject(std::string projectName, bool deleteIfExists) {
     try {
         resetConfigs();
@@ -333,6 +367,7 @@ bool Editor::Project::createTempProject(std::string projectName, bool deleteIfEx
             Out::info("Created project directory: \"%s\"", projectPath.string().c_str());
             saveProject();
             createNewScene("New Scene", SceneType::SCENE_3D);
+            copyEngineApiToProject();
         } else {
             Out::info("Project directory already exists: \"%s\"", projectPath.string().c_str());
             loadProject(projectPath);
@@ -463,6 +498,9 @@ bool Editor::Project::loadProject(const std::filesystem::path path) {
         if (scenes.empty()) {
             createNewScene("New Scene", SceneType::SCENE_3D);
         }
+
+        // Copy engine-api to project
+        copyEngineApiToProject();
 
         Backend::getApp().updateResourcesPath();
 
@@ -778,8 +816,12 @@ std::filesystem::path Editor::Project::getProjectPath() const{
     return projectPath;
 }
 
+std::filesystem::path Editor::Project::getProjectInternalPath() const{
+    return projectPath / ".supernova";
+}
+
 fs::path Editor::Project::getThumbsDir() const{
-    return getProjectPath() / ".supernova" / "thumbs";
+    return getProjectInternalPath() / "thumbs";
 }
 
 fs::path Editor::Project::getThumbnailPath(const fs::path& originalPath) const {
@@ -2053,7 +2095,7 @@ void Editor::Project::start(uint32_t sceneId) {
 
     std::vector<Editor::ScriptSource> scriptFiles = collectScriptSourceFiles();
 
-    generator.build(getProjectPath(), scriptFiles);
+    generator.build(getProjectPath(), getProjectInternalPath(), scriptFiles);
 
     std::thread connectThread([this, sceneProject]() {
         generator.waitForBuildToComplete();

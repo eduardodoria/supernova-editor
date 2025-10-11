@@ -114,6 +114,8 @@ namespace Supernova::Editor{
 
         void pauseEngineScene(SceneProject* sceneProject, bool pause);
 
+        void copyEngineApiToProject();
+
     public:
         Project();
 
@@ -160,6 +162,7 @@ namespace Supernova::Editor{
         bool isTempProject() const;
         bool isTempUnsavedProject() const;
         std::filesystem::path getProjectPath() const;
+        std::filesystem::path getProjectInternalPath() const;
 
         fs::path getThumbsDir() const;
         fs::path getThumbnailPath(const fs::path& originalPath) const;

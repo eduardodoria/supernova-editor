@@ -285,6 +285,15 @@ set_target_properties(
     CXX_STANDARD_REQUIRED ON
 )
 
+# Copy supernova directory to executable output directory for supernova-editor
+add_custom_command(TARGET supernova-editor POST_BUILD
+    COMMAND ${CMAKE_COMMAND}
+        -DSOURCE_DIR=${CMAKE_SOURCE_DIR}/supernova/engine
+        -DDEST_DIR=$<TARGET_FILE_DIR:supernova-editor>/engine-api
+        -P ${CMAKE_SOURCE_DIR}/copy_headers.cmake
+    COMMENT "Copying supernova headers to executable directory"
+)
+
 install(TARGETS supernova-editor supernova
         CONFIGURATIONS Release MinSizeRel 
         RUNTIME DESTINATION bin
