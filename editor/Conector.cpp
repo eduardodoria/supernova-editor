@@ -18,7 +18,6 @@ using namespace Supernova;
 
 Editor::Conector::Conector(){
     libHandle = nullptr;
-    libName = "project_lib";
 }
 
 Editor::Conector::~Conector(){
@@ -63,7 +62,7 @@ void Editor::Conector::unloadSharedLibrary(void* libHandle) {
     #endif
 }
 
-bool Editor::Conector::connect(fs::path projectPath){
+bool Editor::Conector::connect(fs::path projectPath, std::string libName){
     // Disconnect any existing connection first
     disconnect();
 

@@ -15,6 +15,7 @@ namespace Supernova::Editor {
 
     struct ScriptSource {
         fs::path path;
+        fs::path headerPath;
         std::string className;
         Scene* scene;
         Entity entity;
@@ -30,14 +31,14 @@ namespace Supernova::Editor {
         bool writeIfChanged(const fs::path& filePath, const std::string& newContent);
         bool tryIncludeHeader(const fs::path& p, const fs::path& projectPath, std::unordered_set<std::string>& included, std::string& sourceContent);
 
-        void writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, const std::vector<ScriptSource>& scriptFiles);
+        void writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, std::string libName, const std::vector<ScriptSource>& scriptFiles);
 
     public:
         Generator();
         ~Generator();
 
         // New overload that accepts discovered script files
-        void build(const fs::path projectPath, const fs::path projectInternalPath, const std::vector<ScriptSource>& scriptFiles);
+        void build(const fs::path projectPath, const fs::path projectInternalPath, std::string libName, const std::vector<ScriptSource>& scriptFiles);
         bool isBuildInProgress() const;
         void waitForBuildToComplete();
         bool didLastBuildSucceed() const;

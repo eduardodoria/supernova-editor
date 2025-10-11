@@ -290,10 +290,14 @@ std::vector<Editor::ScriptSource> Editor::Project::collectScriptSourceFiles() co
                     if (path.is_relative()) {
                         path = getProjectPath() / path;
                     }
+                    fs::path headerPath = scriptComponent.headerPath;
+                    if (headerPath.is_relative()) {
+                        headerPath = getProjectPath() / headerPath;
+                    }
                     if (std::filesystem::exists(path)) {
                         std::string key = path.lexically_normal().generic_string();
                         if (uniqueScripts.insert(key).second) {
-                            scriptFiles.push_back(Editor::ScriptSource{path, scriptComponent.className, sceneProject.scene, entity});
+                            scriptFiles.push_back(Editor::ScriptSource{path, headerPath, scriptComponent.className, sceneProject.scene, entity});
                         }
                     } else {
                         Out::error("Script file not found: %s", path.string().c_str());
@@ -2091,13 +2095,15 @@ void Editor::Project::start(uint32_t sceneId) {
 
     sceneProject->playState = ScenePlayState::PLAYING;
 
+    std::string libName = "project_lib";
+
     updateAllScriptsProperties(sceneId);
 
     std::vector<Editor::ScriptSource> scriptFiles = collectScriptSourceFiles();
 
-    generator.build(getProjectPath(), getProjectInternalPath(), scriptFiles);
+    generator.build(getProjectPath(), getProjectInternalPath(), libName, scriptFiles);
 
-    std::thread connectThread([this, sceneProject]() {
+    std::thread connectThread([this, sceneProject, libName]() {
         generator.waitForBuildToComplete();
 
         if (!generator.didLastBuildSucceed()) {
@@ -2105,7 +2111,7 @@ void Editor::Project::start(uint32_t sceneId) {
             return;
         }
 
-        if (conector.connect(getProjectPath())) {
+        if (conector.connect(getProjectPath(), libName)) {
             conector.execute(sceneProject);
         } else {
             Out::error("Failed to connect to library");

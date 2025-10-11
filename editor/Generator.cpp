@@ -355,17 +355,27 @@ bool Editor::Generator::tryIncludeHeader(const fs::path& p, const fs::path& proj
     return false;
 }
 
-void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, const std::vector<ScriptSource>& scriptFiles){
+void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, std::string libName, const std::vector<ScriptSource>& scriptFiles){
     // Get the project internal path for engine API includes
-    fs::path relativePath = fs::relative(projectInternalPath, projectPath) / "engine-api";
-    std::string engineApiPathStr = "${CMAKE_CURRENT_SOURCE_DIR}/" + relativePath.generic_string();
+    fs::path relativeInternalPath = fs::relative(projectInternalPath, projectPath);
+    fs::path engineApiRelativePath = relativeInternalPath / "engine-api";
+
+    std::string internalPathStr = "${CMAKE_CURRENT_SOURCE_DIR}/" + relativeInternalPath.generic_string();
+    std::string engineApiPathStr = "${CMAKE_CURRENT_SOURCE_DIR}/" + engineApiRelativePath.generic_string();
 
     // Build SCRIPT_SOURCES list for CMake
+    std::string scriptDirs = "";
     std::string scriptSources = "set(SCRIPT_SOURCES\n";
     for (const auto& s : scriptFiles) {
         // Make path relative to project path and add CMake variable prefix
         fs::path relativePath = fs::relative(s.path, projectPath);
         scriptSources += "    ${CMAKE_CURRENT_SOURCE_DIR}/" + relativePath.generic_string() + "\n";
+
+        if (!s.headerPath.empty()) {
+            fs::path relativeHeaderPath = fs::relative(s.headerPath, projectPath);
+            fs::path relativeDir = relativeHeaderPath.parent_path();
+            scriptDirs += "    ${CMAKE_CURRENT_SOURCE_DIR}/" + relativeDir.generic_string() + "\n";
+        }
     }
     scriptSources += ")\n";
 
@@ -377,15 +387,16 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     cmakeContent += "set(CMAKE_CXX_STANDARD_REQUIRED ON)\n\n";
     cmakeContent += scriptSources + "\n";
     cmakeContent += "# Project library target\n";
-    cmakeContent += "add_library(project_lib SHARED\n";
-    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/project_lib.cpp\n";
+    cmakeContent += "add_library(" + libName + " SHARED\n";
+    cmakeContent += "    " + internalPathStr + "/project_main.cpp\n";
     cmakeContent += "    ${SCRIPT_SOURCES}\n";
     cmakeContent += ")\n\n";
     cmakeContent += "# To suppress warnings if not Debug\n";
     cmakeContent += "if(NOT CMAKE_BUILD_TYPE STREQUAL \"Debug\")\n";
     cmakeContent += "    set(SUPERNOVA_LIB_SYSTEM SYSTEM)\n";
     cmakeContent += "endif()\n\n";
-    cmakeContent += "target_include_directories(project_lib ${SUPERNOVA_LIB_SYSTEM} PRIVATE\n";
+    cmakeContent += "target_include_directories(" + libName + " ${SUPERNOVA_LIB_SYSTEM} PRIVATE\n";
+    cmakeContent += scriptDirs + "\n";
     cmakeContent += "    " + engineApiPathStr + "\n";
     cmakeContent += "    " + engineApiPathStr + "/libs/sokol\n";
     cmakeContent += "    " + engineApiPathStr + "/libs/box2d/include\n";
@@ -406,15 +417,15 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     cmakeContent += "if(NOT SUPERNOVA_LIB)\n";
     cmakeContent += "    message(FATAL_ERROR \"Supernova library not found in ${SUPERNOVA_LIB_DIR}\")\n";
     cmakeContent += "endif()\n\n";
-    cmakeContent += "target_link_libraries(project_lib PRIVATE ${SUPERNOVA_LIB})\n\n";
+    cmakeContent += "target_link_libraries(" + libName + " PRIVATE ${SUPERNOVA_LIB})\n\n";
     cmakeContent += "# Set compile options based on compiler and platform\n";
     cmakeContent += "if(MSVC)\n";
-    cmakeContent += "    target_compile_options(project_lib PRIVATE /W4 /EHsc)\n";
+    cmakeContent += "    target_compile_options(" + libName + " PRIVATE /W4 /EHsc)\n";
     cmakeContent += "else()\n";
-    cmakeContent += "    target_compile_options(project_lib PRIVATE -Wall -Wextra -fPIC)\n";
+    cmakeContent += "    target_compile_options(" + libName + " PRIVATE -Wall -Wextra -fPIC)\n";
     cmakeContent += "endif()\n\n";
     cmakeContent += "# Set properties for the shared library\n";
-    cmakeContent += "set_target_properties(project_lib PROPERTIES\n";
+    cmakeContent += "set_target_properties(" + libName + " PROPERTIES\n";
     cmakeContent += "    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}\n";
     cmakeContent += "    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}\n";
     cmakeContent += "    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}\n";
@@ -423,7 +434,7 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     cmakeContent += "    LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}\n";
     cmakeContent += "    LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}\n";
     cmakeContent += "    LIBRARY_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}\n";
-    cmakeContent += "    OUTPUT_NAME \"project_lib\"\n";
+    cmakeContent += "    OUTPUT_NAME \"" + libName + "\"\n";
     cmakeContent += "    PREFIX \"\"\n";
     cmakeContent += ")\n";
 
@@ -515,15 +526,15 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     sourceContent += "}\n";
 
     const fs::path cmakeFile = projectPath / "CMakeLists.txt";
-    const fs::path sourceFile = projectPath / "project_lib.cpp";
+    const fs::path sourceFile = projectInternalPath / "project_main.cpp";
 
     writeIfChanged(cmakeFile, cmakeContent);
     writeIfChanged(sourceFile, sourceContent);
 }
 
-void Editor::Generator::build(const fs::path projectPath, const fs::path projectInternalPath, const std::vector<ScriptSource>& scriptFiles) {
+void Editor::Generator::build(const fs::path projectPath, const fs::path projectInternalPath, std::string libName, const std::vector<ScriptSource>& scriptFiles) {
 
-    writeSourceFiles(projectPath, projectInternalPath, scriptFiles);
+    writeSourceFiles(projectPath, projectInternalPath, libName, scriptFiles);
 
     waitForBuildToComplete();
 
