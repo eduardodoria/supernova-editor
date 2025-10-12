@@ -48,6 +48,7 @@ namespace Supernova::Editor{
         bool isModified;
         bool isVisible;
         ScenePlayState playState;
+        YAML::Node playStateSnapshot;
     };
 
     struct MergeResult {
@@ -188,7 +189,7 @@ namespace Supernova::Editor{
         bool markEntityShared(uint32_t sceneId, Entity entity, fs::path filepath, YAML::Node entityNode);
         bool removeSharedGroup(const std::filesystem::path& filepath);
 
-        std::vector<Entity> importSharedEntity(SceneProject* sceneProject, const std::filesystem::path& filepath, Entity parent = NULL_ENTITY, bool needSaveScene = true, YAML::Node extendNode = YAML::Node());
+        std::vector<Entity> importSharedEntity(SceneProject* sceneProject, std::vector<Entity>* entities, const std::filesystem::path& filepath, Entity parent = NULL_ENTITY, bool needSaveScene = true, YAML::Node extendNode = YAML::Node());
         bool unimportSharedEntity(uint32_t sceneId, const std::filesystem::path& filepath, const std::vector<Entity>& entities, bool destroyEntities = true);
 
         bool addEntityToSharedGroup(uint32_t sceneId, Entity entity, Entity parent, bool createItself = true);

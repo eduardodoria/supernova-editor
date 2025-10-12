@@ -711,7 +711,7 @@ void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
     }
 }
 
-YAML::Node Editor::Stream::encodeSceneProject(const Project* project, const SceneProject* sceneProject){
+YAML::Node Editor::Stream::encodeSceneProject(const Project* project, const SceneProject* sceneProject, bool keepEntity) {
     YAML::Node root;
     root["id"] = sceneProject->id;
     root["name"] = sceneProject->name;
@@ -722,10 +722,10 @@ YAML::Node Editor::Stream::encodeSceneProject(const Project* project, const Scen
     for (Entity entity : sceneProject->entities) {
         if (Transform* transform = sceneProject->scene->findComponent<Transform>(entity)) {
             if (transform->parent == NULL_ENTITY) {
-                entitiesNode.push_back(encodeEntity(entity, sceneProject->scene, project, sceneProject));
+                entitiesNode.push_back(encodeEntity(entity, sceneProject->scene, project, sceneProject, keepEntity));
             }
         }else{
-            entitiesNode.push_back(encodeEntity(entity, sceneProject->scene, project, sceneProject));
+            entitiesNode.push_back(encodeEntity(entity, sceneProject->scene, project, sceneProject, keepEntity));
         }
     }
     root["entities"] = entitiesNode;
@@ -742,7 +742,7 @@ void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::
 void Editor::Stream::decodeSceneProjectEntities(Project* project, SceneProject* sceneProject, const YAML::Node& node){
     auto entitiesNode = node["entities"];
     for (const auto& entityNode : entitiesNode){
-        std::vector<Entity> newEntities = decodeEntity(entityNode, sceneProject->scene, &sceneProject->entities, project, sceneProject, NULL_ENTITY);
+        decodeEntity(entityNode, sceneProject->scene, &sceneProject->entities, project, sceneProject);
     }
 }
 
@@ -1063,7 +1063,7 @@ ScriptProperty Editor::Stream::decodeScriptProperty(const YAML::Node& node) {
     return prop;
 }
 
-std::vector<Entity> Editor::Stream::decodeEntity(const YAML::Node& entityNode, EntityRegistry* registry, std::vector<Entity>* entities, Project* project, SceneProject* sceneProject, Entity parent, bool returnSharedEntities) {
+std::vector<Entity> Editor::Stream::decodeEntity(const YAML::Node& entityNode, EntityRegistry* registry, std::vector<Entity>* entities, Project* project, SceneProject* sceneProject, Entity parent, bool returnSharedEntities, bool createNewIfExists) {
     std::vector<Entity> allEntities;
 
     std::string entityType = entityNode["type"].as<std::string>();
@@ -1072,7 +1072,7 @@ std::vector<Entity> Editor::Stream::decodeEntity(const YAML::Node& entityNode, E
 
         if (project && sceneProject){
             std::filesystem::path sharedPath = entityNode["path"].as<std::string>();
-            std::vector<Entity> sharedEntities = project->importSharedEntity(sceneProject, sharedPath, parent, false, entityNode);
+            std::vector<Entity> sharedEntities = project->importSharedEntity(sceneProject, entities, sharedPath, parent, false, entityNode);
             if (returnSharedEntities) {
                 allEntities.insert(allEntities.end(), sharedEntities.begin(), sharedEntities.end());
             }
@@ -1084,7 +1084,9 @@ std::vector<Entity> Editor::Stream::decodeEntity(const YAML::Node& entityNode, E
         if (entityNode["entity"]){
             entity = entityNode["entity"].as<Entity>();
             if (!registry->recreateEntity(entity)){
-                entity = registry->createEntity();
+                if (createNewIfExists){
+                    entity = registry->createEntity();
+                }
             }
         }else{
             entity = registry->createEntity();
@@ -1094,8 +1096,6 @@ std::vector<Entity> Editor::Stream::decodeEntity(const YAML::Node& entityNode, E
 
         if (entities){
             entities->push_back(entity);
-        }else if (sceneProject){
-            sceneProject->entities.push_back(entity);
         }
 
         std::string name = entityNode["name"].as<std::string>();
@@ -1108,7 +1108,7 @@ std::vector<Entity> Editor::Stream::decodeEntity(const YAML::Node& entityNode, E
         // Decode children from actualNode
         if (entityNode["children"]) {
             for (const auto& childNode : entityNode["children"]) {
-                std::vector<Entity> childEntities = decodeEntity(childNode, registry, entities, project, sceneProject, entity, returnSharedEntities);
+                std::vector<Entity> childEntities = decodeEntity(childNode, registry, entities, project, sceneProject, entity, returnSharedEntities, createNewIfExists);
                 std::copy(childEntities.begin(), childEntities.end(), std::back_inserter(allEntities));
             }
         }

@@ -34,7 +34,7 @@ bool Editor::ImportSharedEntityCmd::execute(){
 
     lastSelected = project->getSelectedEntities(sceneId);
 
-    importedEntities = project->importSharedEntity(sceneProject, filepath, parent, needSaveScene, extendNode);
+    importedEntities = project->importSharedEntity(sceneProject, &sceneProject->entities, filepath, parent, needSaveScene, extendNode);
 
     if (importedEntities.empty()){
         return false;

@@ -1079,7 +1079,7 @@ bool Editor::Project::removeSharedGroup(const std::filesystem::path& filepath) {
     return false;
 }
 
-std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProject, const std::filesystem::path& filepath, Entity parent, bool needSaveScene, YAML::Node extendNode) {
+std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProject, std::vector<Entity>* entities, const std::filesystem::path& filepath, Entity parent, bool needSaveScene, YAML::Node extendNode) {
     if (!filepath.is_relative()) {
         Out::error("Shared entity filepath must be relative: %s", filepath.string().c_str());
         return {};
@@ -1129,7 +1129,7 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
 
     // decode into brand‐new local entities (root + children)
     Scene* scene = sceneProject->scene;
-    std::vector<Entity> newEntities = Stream::decodeEntity(node, scene, &sceneProject->entities, this, sceneProject, parent, false);
+    std::vector<Entity> newEntities = Stream::decodeEntity(node, scene, entities, this, sceneProject, parent, false);
     scene->addEntityChild(parent, newEntities[0], false);
 
     std::vector<Entity> membersEntities;
@@ -2093,6 +2093,13 @@ void Editor::Project::start(uint32_t sceneId) {
         return;
     }
 
+    if (sceneProject->isModified && !sceneProject->filepath.empty()) {
+        saveSceneToPath(sceneId, sceneProject->filepath);
+    }
+
+    // Save current scene state before starting
+    sceneProject->playStateSnapshot = Stream::encodeSceneProject(this, sceneProject, true);
+
     sceneProject->playState = ScenePlayState::PLAYING;
 
     std::string libName = "project_lib";
@@ -2170,6 +2177,18 @@ void Editor::Project::stop(uint32_t sceneId) {
 
     pauseEngineScene(sceneProject, true);
     Engine::pauseGameEvents(true);
+
+    if (sceneProject->playStateSnapshot && !sceneProject->playStateSnapshot.IsNull()) {
+        Stream::decodeScene(sceneProject->scene, sceneProject->playStateSnapshot["scene"]);
+
+        auto entitiesNode = sceneProject->playStateSnapshot["entities"];
+        for (const auto& entityNode : entitiesNode){
+            Stream::decodeEntity(entityNode, sceneProject->scene, nullptr, this, sceneProject);
+        }
+
+        // Clear the snapshot
+        sceneProject->playStateSnapshot = YAML::Node();
+    }
 }
 
 void Editor::Project::debugSceneHierarchy(){
