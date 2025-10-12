@@ -388,35 +388,35 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["scale"] = {PropertyType::Vector3, UpdateFlags_Transform, (void*)&def->scale, (compRef) ? (void*)&comp->scale : nullptr};
         ps["visible"] = {PropertyType::Bool, UpdateFlags_None, (void*)&def->visible, (compRef) ? (void*)&comp->visible : nullptr};
         ps["billboard"] = {PropertyType::Bool, UpdateFlags_Transform, (void*)&def->billboard, (compRef) ? (void*)&comp->billboard : nullptr};
-        ps["fake_billboard"] = {PropertyType::Bool, UpdateFlags_Transform, (void*)&def->fakeBillboard, (compRef) ? (void*)&comp->fakeBillboard : nullptr};
-        ps["cylindrical_billboard"] = {PropertyType::Bool, UpdateFlags_Transform, (void*)&def->cylindricalBillboard, (compRef) ? (void*)&comp->cylindricalBillboard : nullptr};
-        ps["rotation_billboard"] = {PropertyType::Quat, UpdateFlags_Transform, (void*)&def->billboardRotation, (compRef) ? (void*)&comp->billboardRotation : nullptr};
+        ps["fakeBillboard"] = {PropertyType::Bool, UpdateFlags_Transform, (void*)&def->fakeBillboard, (compRef) ? (void*)&comp->fakeBillboard : nullptr};
+        ps["cylindricalBillboard"] = {PropertyType::Bool, UpdateFlags_Transform, (void*)&def->cylindricalBillboard, (compRef) ? (void*)&comp->cylindricalBillboard : nullptr};
+        ps["billboardRotation"] = {PropertyType::Quat, UpdateFlags_Transform, (void*)&def->billboardRotation, (compRef) ? (void*)&comp->billboardRotation : nullptr};
 
     }else if (component == ComponentType::MeshComponent){
         MeshComponent* comp = (MeshComponent*)compRef;
         static MeshComponent* def = new MeshComponent;
 
-        ps["cast_shadows"] = {PropertyType::Bool, UpdateFlags_Mesh_Reload, (void*)&def->castShadows, (compRef) ? (void*)&comp->castShadows : nullptr};
-        ps["receive_shadows"] = {PropertyType::Bool, UpdateFlags_Mesh_Reload, (void*)&def->receiveShadows, (compRef) ? (void*)&comp->receiveShadows : nullptr};
-        ps["num_submeshes"] = {PropertyType::UInt, UpdateFlags_None, (void*)&def->numSubmeshes, (compRef) ? (void*)&comp->numSubmeshes : nullptr};
+        ps["castShadows"] = {PropertyType::Bool, UpdateFlags_Mesh_Reload, (void*)&def->castShadows, (compRef) ? (void*)&comp->castShadows : nullptr};
+        ps["receiveShadows"] = {PropertyType::Bool, UpdateFlags_Mesh_Reload, (void*)&def->receiveShadows, (compRef) ? (void*)&comp->receiveShadows : nullptr};
+        ps["numSubmeshes"] = {PropertyType::UInt, UpdateFlags_None, (void*)&def->numSubmeshes, (compRef) ? (void*)&comp->numSubmeshes : nullptr};
         for (int s = 0; s < ((compRef) ? MAX_SUBMESHES : 1); s++){
             std::string idx = (compRef) ? std::to_string(s) : "";
             ps["submeshes["+idx+"].material"] = {PropertyType::Material, UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material, (compRef) ? (void*)&comp->submeshes[s].material : nullptr};
             ps["submeshes["+idx+"].material.name"] = {PropertyType::String, UpdateFlags_None, (void*)&def->submeshes[0].material.name, (compRef) ? (void*)&comp->submeshes[s].material.name : nullptr};
-            ps["submeshes["+idx+"].material.basecolor"] = {PropertyType::Color4L, UpdateFlags_None, (void*)&def->submeshes[0].material.baseColorFactor, (compRef) ? (void*)&comp->submeshes[s].material.baseColorFactor : nullptr};
-            ps["submeshes["+idx+"].material.metallicfactor"] = {PropertyType::Float_0_1, UpdateFlags_None, (void*)&def->submeshes[0].material.metallicFactor, (compRef) ? (void*)&comp->submeshes[s].material.metallicFactor : nullptr};
-            ps["submeshes["+idx+"].material.roughnessfactor"] = {PropertyType::Float_0_1, UpdateFlags_None, (void*)&def->submeshes[0].material.roughnessFactor, (compRef) ? (void*)&comp->submeshes[s].material.roughnessFactor : nullptr};
-            ps["submeshes["+idx+"].material.emissivefactor"] = {PropertyType::Color3L, UpdateFlags_None, (void*)&def->submeshes[0].material.emissiveFactor, (compRef) ? (void*)&comp->submeshes[s].material.emissiveFactor : nullptr};
-            ps["submeshes["+idx+"].material.basecolortexture"] = {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.baseColorTexture, (compRef) ? (void*)&comp->submeshes[s].material.baseColorTexture : nullptr};
-            ps["submeshes["+idx+"].material.emissivetexture"] = {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.emissiveTexture, (compRef) ? (void*)&comp->submeshes[s].material.emissiveTexture : nullptr};
-            ps["submeshes["+idx+"].material.metallicroughnesstexture"] = {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.metallicRoughnessTexture, (compRef) ? (void*)&comp->submeshes[s].material.metallicRoughnessTexture : nullptr};
-            ps["submeshes["+idx+"].material.occlusiontexture"] = {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.occlusionTexture, (compRef) ? (void*)&comp->submeshes[s].material.occlusionTexture : nullptr};
+            ps["submeshes["+idx+"].material.baseColor"] = {PropertyType::Color4L, UpdateFlags_None, (void*)&def->submeshes[0].material.baseColorFactor, (compRef) ? (void*)&comp->submeshes[s].material.baseColorFactor : nullptr};
+            ps["submeshes["+idx+"].material.metallicFactor"] = {PropertyType::Float_0_1, UpdateFlags_None, (void*)&def->submeshes[0].material.metallicFactor, (compRef) ? (void*)&comp->submeshes[s].material.metallicFactor : nullptr};
+            ps["submeshes["+idx+"].material.roughnessFactor"] = {PropertyType::Float_0_1, UpdateFlags_None, (void*)&def->submeshes[0].material.roughnessFactor, (compRef) ? (void*)&comp->submeshes[s].material.roughnessFactor : nullptr};
+            ps["submeshes["+idx+"].material.emissiveFactor"] = {PropertyType::Color3L, UpdateFlags_None, (void*)&def->submeshes[0].material.emissiveFactor, (compRef) ? (void*)&comp->submeshes[s].material.emissiveFactor : nullptr};
+            ps["submeshes["+idx+"].material.baseColorTexture"] = {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.baseColorTexture, (compRef) ? (void*)&comp->submeshes[s].material.baseColorTexture : nullptr};
+            ps["submeshes["+idx+"].material.emissiveTexture"] = {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.emissiveTexture, (compRef) ? (void*)&comp->submeshes[s].material.emissiveTexture : nullptr};
+            ps["submeshes["+idx+"].material.metallicRoughnessTexture"] = {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.metallicRoughnessTexture, (compRef) ? (void*)&comp->submeshes[s].material.metallicRoughnessTexture : nullptr};
+            ps["submeshes["+idx+"].material.occlusionTexture"] = {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.occlusionTexture, (compRef) ? (void*)&comp->submeshes[s].material.occlusionTexture : nullptr};
             ps["submeshes["+idx+"].material.normalTexture"] = {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.normalTexture, (compRef) ? (void*)&comp->submeshes[s].material.normalTexture : nullptr};
 
-            ps["submeshes["+idx+"].primitive_type"] = {PropertyType::Enum, UpdateFlags_Mesh_Reload, (void*)&def->submeshes[0].primitiveType, (compRef) ? (void*)&comp->submeshes[s].primitiveType : nullptr, &entriesPrimitiveType};
-            ps["submeshes["+idx+"].face_culling"] = {PropertyType::Bool, UpdateFlags_Mesh_Reload, (void*)&def->submeshes[0].faceCulling, (compRef) ? (void*)&comp->submeshes[s].faceCulling : nullptr};
-            ps["submeshes["+idx+"].texture_shadow"] = {PropertyType::Bool, UpdateFlags_Mesh_Reload, (void*)&def->submeshes[0].textureShadow, (compRef) ? (void*)&comp->submeshes[s].textureShadow : nullptr};
-            ps["submeshes["+idx+"].texture_rect"] = {PropertyType::Vector4, UpdateFlags_None, (void*)&def->submeshes[0].textureRect, (compRef) ? (void*)&comp->submeshes[s].textureRect : nullptr};
+            ps["submeshes["+idx+"].primitiveType"] = {PropertyType::Enum, UpdateFlags_Mesh_Reload, (void*)&def->submeshes[0].primitiveType, (compRef) ? (void*)&comp->submeshes[s].primitiveType : nullptr, &entriesPrimitiveType};
+            ps["submeshes["+idx+"].faceCulling"] = {PropertyType::Bool, UpdateFlags_Mesh_Reload, (void*)&def->submeshes[0].faceCulling, (compRef) ? (void*)&comp->submeshes[s].faceCulling : nullptr};
+            ps["submeshes["+idx+"].textureShadow"] = {PropertyType::Bool, UpdateFlags_Mesh_Reload, (void*)&def->submeshes[0].textureShadow, (compRef) ? (void*)&comp->submeshes[s].textureShadow : nullptr};
+            ps["submeshes["+idx+"].textureRect"] = {PropertyType::Vector4, UpdateFlags_None, (void*)&def->submeshes[0].textureRect, (compRef) ? (void*)&comp->submeshes[s].textureRect : nullptr};
         }
     }else if (component == ComponentType::UIComponent){
         UIComponent* comp = (UIComponent*)compRef;
@@ -430,24 +430,24 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
 
         ps["width"] = {PropertyType::UInt, UpdateFlags_Layout_Sizes, nullptr, (compRef) ? (void*)&comp->width : nullptr};
         ps["height"] = {PropertyType::UInt, UpdateFlags_Layout_Sizes, nullptr, (compRef) ? (void*)&comp->height : nullptr};
-        ps["ignore_scissor"] = {PropertyType::Bool, UpdateFlags_None, (void*)&def->ignoreScissor, (compRef) ? (void*)&comp->ignoreScissor : nullptr};
+        ps["ignoreScissor"] = {PropertyType::Bool, UpdateFlags_None, (void*)&def->ignoreScissor, (compRef) ? (void*)&comp->ignoreScissor : nullptr};
     }else if (component == ComponentType::ImageComponent){
         ImageComponent* comp = (ImageComponent*)compRef;
         static ImageComponent* def = new ImageComponent;
 
-        ps["patch_margin_left"] = {PropertyType::UInt, UpdateFlags_Image_Patches, (void*)&def->patchMarginLeft, (compRef) ? (void*)&comp->patchMarginLeft : nullptr};
-        ps["patch_margin_right"] = {PropertyType::UInt, UpdateFlags_Image_Patches, (void*)&def->patchMarginRight, (compRef) ? (void*)&comp->patchMarginRight : nullptr};
-        ps["patch_margin_top"] = {PropertyType::UInt, UpdateFlags_Image_Patches, (void*)&def->patchMarginTop, (compRef) ? (void*)&comp->patchMarginTop : nullptr};
-        ps["patch_margin_bottom"] = {PropertyType::UInt, UpdateFlags_Image_Patches, (void*)&def->patchMarginBottom, (compRef) ? (void*)&comp->patchMarginBottom : nullptr};
-        ps["texture_scale_factor"] = {PropertyType::Float, UpdateFlags_Image_Patches, (void*)&def->textureScaleFactor, (compRef) ? (void*)&comp->textureScaleFactor : nullptr};
+        ps["patchMarginLeft"] = {PropertyType::UInt, UpdateFlags_Image_Patches, (void*)&def->patchMarginLeft, (compRef) ? (void*)&comp->patchMarginLeft : nullptr};
+        ps["patchMarginRight"] = {PropertyType::UInt, UpdateFlags_Image_Patches, (void*)&def->patchMarginRight, (compRef) ? (void*)&comp->patchMarginRight : nullptr};
+        ps["patchMarginTop"] = {PropertyType::UInt, UpdateFlags_Image_Patches, (void*)&def->patchMarginTop, (compRef) ? (void*)&comp->patchMarginTop : nullptr};
+        ps["patchMarginBottom"] = {PropertyType::UInt, UpdateFlags_Image_Patches, (void*)&def->patchMarginBottom, (compRef) ? (void*)&comp->patchMarginBottom : nullptr};
+        ps["textureScaleFactor"] = {PropertyType::Float, UpdateFlags_Image_Patches, (void*)&def->textureScaleFactor, (compRef) ? (void*)&comp->textureScaleFactor : nullptr};
     }else if (component == ComponentType::SpriteComponent){
         SpriteComponent* comp = (SpriteComponent*)compRef;
         static SpriteComponent* def = new SpriteComponent;
 
         ps["width"] = {PropertyType::UInt, UpdateFlags_Sprite, nullptr, (compRef) ? (void*)&comp->width : nullptr};
         ps["height"] = {PropertyType::UInt, UpdateFlags_Sprite, nullptr, (compRef) ? (void*)&comp->height : nullptr};
-        ps["pivot_preset"] = {PropertyType::Enum, UpdateFlags_Sprite, (void*)&def->pivotPreset, (compRef) ? (void*)&comp->pivotPreset : nullptr, &entriesPivotPreset};
-        ps["texture_scale_factor"] = {PropertyType::Float, UpdateFlags_Sprite, (void*)&def->textureScaleFactor, (compRef) ? (void*)&comp->textureScaleFactor : nullptr};
+        ps["pivotPreset"] = {PropertyType::Enum, UpdateFlags_Sprite, (void*)&def->pivotPreset, (compRef) ? (void*)&comp->pivotPreset : nullptr, &entriesPivotPreset};
+        ps["textureScaleFactor"] = {PropertyType::Float, UpdateFlags_Sprite, (void*)&def->textureScaleFactor, (compRef) ? (void*)&comp->textureScaleFactor : nullptr};
     }else if (component == ComponentType::LightComponent){
         LightComponent* comp = (LightComponent*)compRef;
         static LightComponent* def = new LightComponent;
@@ -458,21 +458,21 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["intensity"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->intensity, (compRef) ? (void*)&comp->intensity : nullptr};
         ps["range"] = {PropertyType::Float, UpdateFlags_LightShadowCamera, (void*)&def->range, (compRef) ? (void*)&comp->range : nullptr};
         ps["color"] = {PropertyType::Color3L, UpdateFlags_None, (void*)&def->color, (compRef) ? (void*)&comp->color : nullptr};
-        ps["inner_cone_cos"] = {PropertyType::HalfCone, UpdateFlags_LightShadowCamera, (void*)&def->innerConeCos, (compRef) ? (void*)&comp->innerConeCos : nullptr};
-        ps["outer_cone_cos"] = {PropertyType::HalfCone, UpdateFlags_LightShadowCamera, (void*)&def->outerConeCos, (compRef) ? (void*)&comp->outerConeCos : nullptr};
-        ps["shadow_bias"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->shadowBias, (compRef) ? (void*)&comp->shadowBias : nullptr};
-        ps["map_resolution"] = {PropertyType::UIntSlider, UpdateFlags_LightShadowMap | UpdateFlags_Scene_Mesh_Reload, (void*)&def->mapResolution, (compRef) ? (void*)&comp->mapResolution : nullptr, nullptr, &po2Values};
-        ps["automatic_shadow_camera"] = {PropertyType::Bool, UpdateFlags_LightShadowCamera, (void*)&def->automaticShadowCamera, (compRef) ? (void*)&comp->automaticShadowCamera : nullptr};
-        ps["shadow_camera_near"] = {PropertyType::Float, UpdateFlags_LightShadowCamera, nullptr, (compRef) ? (void*)&comp->shadowCameraNearFar.x : nullptr};
-        ps["shadow_camera_far"] = {PropertyType::Float, UpdateFlags_LightShadowCamera, nullptr, (compRef) ? (void*)&comp->shadowCameraNearFar.y : nullptr};
-        ps["num_shadow_cascades"] = {PropertyType::UIntSlider, UpdateFlags_LightShadowCamera | UpdateFlags_Scene_Mesh_Reload, (void*)&def->numShadowCascades, (compRef) ? (void*)&comp->numShadowCascades : nullptr, nullptr, &cascadeValues};
+        ps["innerConeCos"] = {PropertyType::HalfCone, UpdateFlags_LightShadowCamera, (void*)&def->innerConeCos, (compRef) ? (void*)&comp->innerConeCos : nullptr};
+        ps["outerConeCos"] = {PropertyType::HalfCone, UpdateFlags_LightShadowCamera, (void*)&def->outerConeCos, (compRef) ? (void*)&comp->outerConeCos : nullptr};
+        ps["shadowBias"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->shadowBias, (compRef) ? (void*)&comp->shadowBias : nullptr};
+        ps["mapResolution"] = {PropertyType::UIntSlider, UpdateFlags_LightShadowMap | UpdateFlags_Scene_Mesh_Reload, (void*)&def->mapResolution, (compRef) ? (void*)&comp->mapResolution : nullptr, nullptr, &po2Values};
+        ps["automaticShadowCamera"] = {PropertyType::Bool, UpdateFlags_LightShadowCamera, (void*)&def->automaticShadowCamera, (compRef) ? (void*)&comp->automaticShadowCamera : nullptr};
+        ps["shadowCameraNear"] = {PropertyType::Float, UpdateFlags_LightShadowCamera, nullptr, (compRef) ? (void*)&comp->shadowCameraNearFar.x : nullptr};
+        ps["shadowCameraFar"] = {PropertyType::Float, UpdateFlags_LightShadowCamera, nullptr, (compRef) ? (void*)&comp->shadowCameraNearFar.y : nullptr};
+        ps["numShadowCascades"] = {PropertyType::UIntSlider, UpdateFlags_LightShadowCamera | UpdateFlags_Scene_Mesh_Reload, (void*)&def->numShadowCascades, (compRef) ? (void*)&comp->numShadowCascades : nullptr, nullptr, &cascadeValues};
     }else if (component == ComponentType::ScriptComponent){
         ScriptComponent* comp = (ScriptComponent*)compRef;
         static ScriptComponent* def = new ScriptComponent;
 
         ps["path"] = {PropertyType::Script, UpdateFlags_None, nullptr, (compRef) ? (void*)&comp->path : nullptr};
-        ps["header_path"] = {PropertyType::String, UpdateFlags_None, nullptr, (compRef) ? (void*)&comp->headerPath : nullptr};
-        ps["class_name"] = {PropertyType::String, UpdateFlags_None, nullptr, (compRef) ? (void*)&comp->className : nullptr};
+        ps["headerPath"] = {PropertyType::String, UpdateFlags_None, nullptr, (compRef) ? (void*)&comp->headerPath : nullptr};
+        ps["className"] = {PropertyType::String, UpdateFlags_None, nullptr, (compRef) ? (void*)&comp->className : nullptr};
         ps["enabled"] = {PropertyType::Bool, UpdateFlags_None, nullptr, (compRef) ? (void*)&comp->enabled : nullptr};
     }
 

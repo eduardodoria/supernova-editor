@@ -1697,9 +1697,9 @@ void Editor::Properties::drawTransform(ComponentType cpType, std::map<std::strin
 
         beginTable(cpType, getLabelSize("cylindrical"));
 
-        propertyRow(cpType, props, "fake_billboard", "Fake", sceneProject, entities);
-        propertyRow(cpType, props, "cylindrical_billboard", "Cylindrical", sceneProject, entities);
-        propertyRow(cpType, props, "rotation_billboard", "Rotation", sceneProject, entities, 0.1f, 12 * ImGui::GetFontSize());
+        propertyRow(cpType, props, "fakeBillboard", "Fake", sceneProject, entities);
+        propertyRow(cpType, props, "cylindricalBillboard", "Cylindrical", sceneProject, entities);
+        propertyRow(cpType, props, "billboardRotation", "Rotation", sceneProject, entities, 0.1f, 12 * ImGui::GetFontSize());
 
         endTable();
 
@@ -1906,8 +1906,8 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
         ImGui::EndPopup();
     }
 
-    propertyRow(cpType, props, "cast_shadows", "Cast Shadows", sceneProject, entities);
-    propertyRow(cpType, props, "receive_shadows", "Receive Shadows", sceneProject, entities);
+    propertyRow(cpType, props, "castShadows", "Cast Shadows", sceneProject, entities);
+    propertyRow(cpType, props, "receiveShadows", "Receive Shadows", sceneProject, entities);
 
     endTable();
 
@@ -1926,23 +1926,23 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, std::map<std::s
         if (propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material", "Material", sceneProject, entities)){
             endTable();
             beginTable(cpType, getLabelSize("Met. Roug. Texture"), "material_table");
-            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.basecolor", "Base Color", sceneProject, entities, 0.1f, -1, true);
-            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.basecolortexture", "Base Texture", sceneProject, entities, 0.1f, -1, true);
-            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.metallicfactor", "Metallic Factor", sceneProject, entities, 0.01f, 4 * ImGui::GetFontSize(), true);
-            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.roughnessfactor", "Roughness Factor", sceneProject, entities, 0.01f, 4 * ImGui::GetFontSize(), true);
-            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.metallicroughnesstexture", "Met. Roug. Texture", sceneProject, entities, 0.1f, -1, true);
-            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.emissivefactor", "Emissive Factor", sceneProject, entities, 0.1f, -1, true);
-            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.emissivetexture", "Emissive Texture", sceneProject, entities, 0.1f, -1, true);
-            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.occlusiontexture", "Occlusion Texture", sceneProject, entities, 0.1f, -1, true);
+            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.baseColor", "Base Color", sceneProject, entities, 0.1f, -1, true);
+            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.baseColorTexture", "Base Texture", sceneProject, entities, 0.1f, -1, true);
+            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.metallicFactor", "Metallic Factor", sceneProject, entities, 0.01f, 4 * ImGui::GetFontSize(), true);
+            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.roughnessFactor", "Roughness Factor", sceneProject, entities, 0.01f, 4 * ImGui::GetFontSize(), true);
+            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.metallicRoughnessTexture", "Met. Roug. Texture", sceneProject, entities, 0.1f, -1, true);
+            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.emissiveFactor", "Emissive Factor", sceneProject, entities, 0.1f, -1, true);
+            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.emissiveTexture", "Emissive Texture", sceneProject, entities, 0.1f, -1, true);
+            propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.occlusionTexture", "Occlusion Texture", sceneProject, entities, 0.1f, -1, true);
             propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].material.normalTexture", "Normal Texture", sceneProject, entities, 0.1f, -1, true);
             endTable();
             beginTable(cpType, submeshesTableSize, "submeshes");
         }
 
-        propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].face_culling", "Face Culling", sceneProject, entities);
-        propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].texture_shadow", "Texture Shadow", sceneProject, entities);
-        propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].primitive_type", "Primitive", sceneProject, entities);
-        propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].texture_rect", "Texture Rect", sceneProject, entities);
+        propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].faceCulling", "Face Culling", sceneProject, entities);
+        propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].textureShadow", "Texture Shadow", sceneProject, entities);
+        propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].primitiveType", "Primitive", sceneProject, entities);
+        propertyRow(cpType, props, "submeshes["+std::to_string(s)+"].textureRect", "Texture Rect", sceneProject, entities);
 
         endTable();
     }
@@ -1962,7 +1962,7 @@ void Editor::Properties::drawUILayoutComponent(ComponentType cpType, std::map<st
 
     propertyRow(cpType, props, "width", "Width", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
     propertyRow(cpType, props, "height", "Height", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
-    propertyRow(cpType, props, "ignore_scissor", "Ignore Scissor", sceneProject, entities);
+    propertyRow(cpType, props, "ignoreScissor", "Ignore Scissor", sceneProject, entities);
 
     endTable();
 }
@@ -1981,16 +1981,16 @@ void Editor::Properties::drawImageComponent(ComponentType cpType, std::map<std::
 
     beginTable(cpType, getLabelSize("Margin Bottom"), "nine_margin_table");
 
-    propertyRow(cpType, props, "patch_margin_left", "Margin Left", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
-    propertyRow(cpType, props, "patch_margin_right", "Margin Right", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
-    propertyRow(cpType, props, "patch_margin_top", "Margin Top", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
-    propertyRow(cpType, props, "patch_margin_bottom", "Margin Bottom", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
+    propertyRow(cpType, props, "patchMarginLeft", "Margin Left", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
+    propertyRow(cpType, props, "patchMarginRight", "Margin Right", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
+    propertyRow(cpType, props, "patchMarginTop", "Margin Top", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
+    propertyRow(cpType, props, "patchMarginBottom", "Margin Bottom", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
 
     endTable();
 
     beginTable(cpType, getLabelSize("Texture Scale"));
 
-    propertyRow(cpType, props, "texture_scale_factor", "Texture Scale", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize(), false, "Increase or decrease texture area by a factor");
+    propertyRow(cpType, props, "textureScaleFactor", "Texture Scale", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize(), false, "Increase or decrease texture area by a factor");
 
     endTable();
 }
@@ -2000,8 +2000,8 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, std::map<std:
 
     propertyRow(cpType, props, "width", "Width", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
     propertyRow(cpType, props, "height", "Height", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
-    propertyRow(cpType, props, "pivot_preset", "Pivot", sceneProject, entities);
-    propertyRow(cpType, props, "texture_scale_factor", "Texture Scale", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize(), false, "Increase or decrease texture area by a factor");
+    propertyRow(cpType, props, "pivotPreset", "Pivot", sceneProject, entities);
+    propertyRow(cpType, props, "textureScaleFactor", "Texture Scale", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize(), false, "Increase or decrease texture area by a factor");
 
     endTable();
 }
@@ -2018,8 +2018,8 @@ void Editor::Properties::drawLightComponent(ComponentType cpType, std::map<std::
         propertyRow(cpType, props, "direction", "Direction", sceneProject, entities);
     }
     if (light.type == LightType::SPOT){
-        propertyRow(cpType, props, "inner_cone_cos", "Inner Cone", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize(), false, "", "%.1f");
-        propertyRow(cpType, props, "outer_cone_cos", "Outer Cone", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize(), false, "", "%.1f");
+        propertyRow(cpType, props, "innerConeCos", "Inner Cone", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize(), false, "", "%.1f");
+        propertyRow(cpType, props, "outerConeCos", "Outer Cone", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize(), false, "", "%.1f");
     }
     endTable();
 
@@ -2027,9 +2027,9 @@ void Editor::Properties::drawLightComponent(ComponentType cpType, std::map<std::
 
     beginTable(cpType, getLabelSize("Map Resolution"), "shadow_settings_table");
     propertyRow(cpType, props, "shadows", "Enabled", sceneProject, entities);
-    propertyRow(cpType, props, "shadow_bias", "Bias", sceneProject, entities, 0.000001f, 6 * ImGui::GetFontSize(), false, "", "%.6f");
-    propertyRow(cpType, props, "map_resolution", "Map Resolution", sceneProject, entities);
-    propertyRow(cpType, props, "num_shadow_cascades", "Num Cascades", sceneProject, entities);
+    propertyRow(cpType, props, "shadowBias", "Bias", sceneProject, entities, 0.000001f, 6 * ImGui::GetFontSize(), false, "", "%.6f");
+    propertyRow(cpType, props, "mapResolution", "Map Resolution", sceneProject, entities);
+    propertyRow(cpType, props, "numShadowCascades", "Num Cascades", sceneProject, entities);
 
     propertyHeader("Shadow Camera");
     if (ImGui::Button(ICON_FA_GEAR)){
@@ -2043,10 +2043,10 @@ void Editor::Properties::drawLightComponent(ComponentType cpType, std::map<std::
 
         beginTable(cpType, getLabelSize("Camera Near"), "shadow_camera_popup");
 
-        propertyRow(cpType, props, "automatic_shadow_camera", "Automatic", sceneProject, entities);
+        propertyRow(cpType, props, "automaticShadowCamera", "Automatic", sceneProject, entities);
         ImGui::BeginDisabled(light.automaticShadowCamera);
-        propertyRow(cpType, props, "shadow_camera_near", "Camera Near", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
-        propertyRow(cpType, props, "shadow_camera_far", "Camera Far", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
+        propertyRow(cpType, props, "shadowCameraNear", "Camera Near", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
+        propertyRow(cpType, props, "shadowCameraFar", "Camera Far", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
         ImGui::EndDisabled();
 
         endTable();
@@ -2075,8 +2075,8 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
                 for (Entity entity: entities){
                     MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
                     multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entity, cpType, "path", UpdateFlags_None, pathStr);
-                    multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entity, cpType, "header_path", UpdateFlags_None, headerPathStr);
-                    multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entity, cpType, "class_name", UpdateFlags_None, className);
+                    multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entity, cpType, "headerPath", UpdateFlags_None, headerPathStr);
+                    multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entity, cpType, "className", UpdateFlags_None, className);
                     multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entity, cpType, "enabled", UpdateFlags_None, true);
                     CommandHandle::get(sceneProject->id)->addCommandNoMerge(multiCmd);
 

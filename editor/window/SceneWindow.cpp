@@ -556,7 +556,7 @@ void Editor::SceneWindow::show() {
                                         mesh->submeshes[0].needUpdateTexture = true;
                                     }
                                     if (payload->IsDelivery()) {
-                                        std::string propName = "submeshes[0].material.basecolortexture";
+                                        std::string propName = "submeshes[0].material.baseColorTexture";
                                         selMesh->submeshes[0].material.baseColorTexture = originalTex;
 
                                         PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(project, sceneProject.id, selEntity, ComponentType::MeshComponent, propName, UpdateFlags_Mesh_Texture, newTex);
@@ -611,7 +611,7 @@ void Editor::SceneWindow::show() {
                                         cmd = new CreateEntityCmd(project, sceneProject.id, "Sprite", EntityCreationType::SPRITE);
 
                                         cmd->addProperty<Vector3>(ComponentType::Transform, "position", rreturn.point);
-                                        cmd->addProperty<Texture>(ComponentType::MeshComponent, "submeshes[0].material.basecolortexture", Texture(receivedStrings[0]));
+                                        cmd->addProperty<Texture>(ComponentType::MeshComponent, "submeshes[0].material.baseColorTexture", Texture(receivedStrings[0]));
                                         cmd->addProperty<unsigned int>(ComponentType::SpriteComponent, "width", tempImage->getWidth());
                                         cmd->addProperty<unsigned int>(ComponentType::SpriteComponent, "height", tempImage->getHeight());
                                     }else{
