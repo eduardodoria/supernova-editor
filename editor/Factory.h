@@ -26,6 +26,9 @@ namespace Supernova::Editor{
 
         static std::string createComponent(Scene* scene, Entity entity, ComponentType componentType);
         static std::string createAllComponents(Scene* scene, Entity entity);
+
+        static std::string setComponent(Scene* scene, Entity entity, ComponentType componentType);
+        static std::string setAllComponents(Scene* scene, Entity entity);
     };
 
 }

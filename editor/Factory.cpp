@@ -174,3 +174,61 @@ std::string Editor::Factory::createAllComponents(Scene* scene, Entity entity) {
 
     return code.str();
 }
+
+std::string Editor::Factory::setComponent(Scene* scene, Entity entity, ComponentType componentType) {
+    // Check if entity has this component
+    Signature signature = scene->getSignature(entity);
+    ComponentId compId = Catalog::getComponentId(scene, componentType);
+
+    if (!signature.test(compId)) {
+        return "";
+    }
+
+    // Get all properties for this component
+    std::map<std::string, PropertyData> properties = Catalog::findEntityProperties(scene, entity, componentType);
+
+    if (properties.empty()) {
+        return "";
+    }
+
+    std::ostringstream code;
+    std::string componentName = Catalog::getComponentName(componentType, false);
+    std::string varName = Catalog::getComponentName(componentType, true);
+
+    // Convert first letter to lowercase for variable name
+    if (!varName.empty()) {
+        varName[0] = std::tolower(varName[0]);
+    }
+
+    code << "    if (signature.test(scene->getComponentId<" << componentName << ">())) {\n";
+    code << "        " << componentName << "& " << varName << " = scene->getComponent<" << componentName << ">(entity);\n";
+
+    // Generate code for each property
+    for (const auto& [propertyName, propertyData] : properties) {
+        std::string formattedValue = formatPropertyValue(propertyData, propertyName);
+        code << "        " << varName << "." << propertyName << " = " << formattedValue << ";\n";
+    }
+
+    code << "    }\n";
+
+    return code.str();
+}
+
+std::string Editor::Factory::setAllComponents(Scene* scene, Entity entity) {
+    // Find all components for this entity
+    std::vector<ComponentType> components = Catalog::findComponents(scene, entity);
+
+    std::ostringstream code;
+    code << "    // Set entity components\n";
+    code << "    Signature signature = scene->getSignature(entity);\n";
+    code << "\n";
+
+    for (ComponentType componentType : components) {
+        std::string componentCode = setComponent(scene, entity, componentType);
+        if (!componentCode.empty()) {
+            code << componentCode << "\n";
+        }
+    }
+
+    return code.str();
+}
