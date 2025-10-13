@@ -20,7 +20,15 @@ Editor::Generator::~Generator() {
 }
 
 bool Editor::Generator::configureCMake(const fs::path& projectPath, const fs::path& buildPath, const std::string& configType) {
-    fs::path currentPath = fs::current_path();
+    std::filesystem::path exePath;
+    #ifdef _WIN32
+        char path[MAX_PATH];
+        GetModuleFileNameA(NULL, path, MAX_PATH);
+        exePath = std::filesystem::path(path).parent_path();
+    #else
+        exePath = std::filesystem::canonical("/proc/self/exe").parent_path();
+    #endif
+
     std::string cmakeCommand = "cmake ";
     char buffer[4096];
 
@@ -31,7 +39,7 @@ bool Editor::Generator::configureCMake(const fs::path& projectPath, const fs::pa
     cmakeCommand += "-DCMAKE_BUILD_TYPE=" + configType  + " ";
     cmakeCommand += "\"" + projectPath.string() + "\" ";
     cmakeCommand += "-B \"" + buildPath.string() + "\" ";
-    cmakeCommand += "-DSUPERNOVA_LIB_DIR=\"" + currentPath.string() + "\"";
+    cmakeCommand += "-DSUPERNOVA_LIB_DIR=\"" + exePath.string() + "\"";
 
     Out::info("Configuring CMake project with command: %s", cmakeCommand.c_str());
 

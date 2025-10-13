@@ -318,8 +318,14 @@ void Editor::Project::pauseEngineScene(SceneProject* sceneProject, bool pause){
 
 void Editor::Project::copyEngineApiToProject() {
     try {
-        // Get the executable path
-        std::filesystem::path exePath = std::filesystem::canonical("/proc/self/exe").parent_path();
+        std::filesystem::path exePath;
+        #ifdef _WIN32
+            char path[MAX_PATH];
+            GetModuleFileNameA(NULL, path, MAX_PATH);
+            exePath = std::filesystem::path(path).parent_path();
+        #else
+            exePath = std::filesystem::canonical("/proc/self/exe").parent_path();
+        #endif
         std::filesystem::path engineApiSource = exePath / "engine-api";
 
         if (!std::filesystem::exists(engineApiSource)) {
@@ -334,16 +340,12 @@ void Editor::Project::copyEngineApiToProject() {
             std::filesystem::create_directories(getProjectInternalPath());
         }
 
-        // Remove existing engine-api if it exists
-        if (std::filesystem::exists(engineApiDest)) {
-            std::filesystem::remove_all(engineApiDest);
-        }
-
-        // Copy engine-api folder
+        // Copy with update_existing - only copies files that are newer
         std::filesystem::copy(engineApiSource, engineApiDest, 
-                            std::filesystem::copy_options::recursive);
+                            std::filesystem::copy_options::recursive | 
+                            std::filesystem::copy_options::update_existing);
 
-        Out::info("Copied engine-api to project: %s", engineApiDest.string().c_str());
+        Out::info("Updated engine-api in project: %s", engineApiDest.string().c_str());
 
     } catch (const std::exception& e) {
         Out::error("Failed to copy engine-api: %s", e.what());
