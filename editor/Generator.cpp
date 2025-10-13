@@ -519,25 +519,25 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
 
     // Cleanup function that syncs component values and properly deletes through base class pointers
     sourceContent += "extern \"C\" void PROJECT_API cleanup() {\n";
-    sourceContent += "    // Sync all component values from script instances back to ECS\n";
+    //sourceContent += "    // Sync all component values from script instances back to ECS\n";
 
     // Loop through all unique entities from scriptFiles and sync their components
-    std::unordered_set<uint64_t> processedEntities;
-    for (const auto& s : scriptFiles) {
-        if (processedEntities.insert(s.entity).second) {
-            sourceContent += "    {\n";
-            sourceContent += "        Supernova::Entity entity = (Supernova::Entity)" + std::to_string(s.entity) + ";\n";
-            sourceContent += "        Supernova::Scene* scene = g_scriptInstances[0]->getScene(); // Get scene from first script instance\n";
-            sourceContent += Factory::setAllComponents(s.scene, s.entity);
-            sourceContent += "    }\n";
-        }
-    }
+    //std::unordered_set<uint64_t> processedEntities;
+    //for (const auto& s : scriptFiles) {
+    //    if (processedEntities.insert(s.entity).second) {
+    //        sourceContent += "    {\n";
+    //        sourceContent += "        Supernova::Entity entity = (Supernova::Entity)" + std::to_string(s.entity) + ";\n";
+    //        sourceContent += "        Supernova::Scene* scene = g_scriptInstances[0]->getScene(); // Get scene from first script instance\n";
+    //        sourceContent += Factory::setAllComponents(s.scene, s.entity);
+    //        sourceContent += "    }\n";
+    //    }
+    //}
 
-    if (scriptFiles.empty()) {
-        sourceContent += "    // No entities to sync\n";
-    }
+    //if (scriptFiles.empty()) {
+    //    sourceContent += "    // No entities to sync\n";
+    //}
 
-    sourceContent += "    \n";
+    //sourceContent += "    \n";
     sourceContent += "    // Clean up all script instances (calls virtual destructors)\n";
     sourceContent += "    for (Supernova::EntityHandle* script : g_scriptInstances) {\n";
     sourceContent += "        delete script; // Properly calls virtual destructor\n";
