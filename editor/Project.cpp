@@ -2102,15 +2102,16 @@ void Editor::Project::start(uint32_t sceneId) {
 
     sceneProject->playState = ScenePlayState::PLAYING;
 
-    std::string libName = "project_lib";
+    std::string libName = "projectlib";
+    fs::path buildPath = getProjectInternalPath() / "build";
 
     updateAllScriptsProperties(sceneId);
 
     std::vector<Editor::ScriptSource> scriptFiles = collectScriptSourceFiles();
 
-    generator.build(getProjectPath(), getProjectInternalPath(), libName, scriptFiles);
+    generator.build(getProjectPath(), getProjectInternalPath(), buildPath, libName, scriptFiles);
 
-    std::thread connectThread([this, sceneProject, libName]() {
+    std::thread connectThread([this, sceneProject, buildPath, libName]() {
         generator.waitForBuildToComplete();
 
         if (!generator.didLastBuildSucceed()) {
@@ -2118,7 +2119,7 @@ void Editor::Project::start(uint32_t sceneId) {
             return;
         }
 
-        if (conector.connect(getProjectPath(), libName)) {
+        if (conector.connect(buildPath, libName)) {
             conector.execute(sceneProject);
         } else {
             Out::error("Failed to connect to library");

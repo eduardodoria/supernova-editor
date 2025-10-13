@@ -532,7 +532,7 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     writeIfChanged(sourceFile, sourceContent);
 }
 
-void Editor::Generator::build(const fs::path projectPath, const fs::path projectInternalPath, std::string libName, const std::vector<ScriptSource>& scriptFiles) {
+void Editor::Generator::build(const fs::path projectPath, const fs::path projectInternalPath, const fs::path buildPath, std::string libName, const std::vector<ScriptSource>& scriptFiles) {
 
     writeSourceFiles(projectPath, projectInternalPath, libName, scriptFiles);
 
@@ -540,11 +540,9 @@ void Editor::Generator::build(const fs::path projectPath, const fs::path project
 
     lastBuildSucceeded = false; // Reset status before starting new build
 
-    buildFuture = std::async(std::launch::async, [this, projectPath]() {
+    buildFuture = std::async(std::launch::async, [this, projectPath, buildPath]() {
         try {
             auto startTime = std::chrono::steady_clock::now();
-
-            fs::path buildPath = projectPath / "build";
 
             #ifdef _DEBUG
                 std::string configType = "Debug";

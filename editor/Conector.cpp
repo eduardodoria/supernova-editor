@@ -62,11 +62,9 @@ void Editor::Conector::unloadSharedLibrary(void* libHandle) {
     #endif
 }
 
-bool Editor::Conector::connect(fs::path projectPath, std::string libName){
+bool Editor::Conector::connect(const fs::path& buildPath, std::string libName){
     // Disconnect any existing connection first
     disconnect();
-
-    fs::path buildPath = projectPath / "build";
 
     std::string libPath = libName;
     #ifdef _WIN32

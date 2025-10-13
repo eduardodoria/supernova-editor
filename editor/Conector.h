@@ -21,7 +21,7 @@ namespace Supernova::Editor{
         Conector();
         virtual ~Conector();
 
-        bool connect(fs::path projectPath, std::string libName);
+        bool connect(const fs::path& buildPath, std::string libName);
         void disconnect();
         void execute(SceneProject* sceneProject);
 

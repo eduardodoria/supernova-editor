@@ -38,7 +38,7 @@ namespace Supernova::Editor {
         ~Generator();
 
         // New overload that accepts discovered script files
-        void build(const fs::path projectPath, const fs::path projectInternalPath, std::string libName, const std::vector<ScriptSource>& scriptFiles);
+        void build(const fs::path projectPath, const fs::path projectInternalPath, const fs::path buildPath, std::string libName, const std::vector<ScriptSource>& scriptFiles);
         bool isBuildInProgress() const;
         void waitForBuildToComplete();
         bool didLastBuildSucceed() const;
