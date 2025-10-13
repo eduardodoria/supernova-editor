@@ -2184,7 +2184,7 @@ void Editor::Project::stop(uint32_t sceneId) {
 
         auto entitiesNode = sceneProject->playStateSnapshot["entities"];
         for (const auto& entityNode : entitiesNode){
-            Stream::decodeEntity(entityNode, sceneProject->scene, nullptr, this, sceneProject);
+            Stream::decodeEntity(entityNode, sceneProject->scene, nullptr, this, sceneProject, NULL_ENTITY, true, false);
         }
 
         // Clear the snapshot

@@ -124,27 +124,27 @@ namespace Supernova::Editor {
         static void decodeComponents(Entity entity, Entity parent, EntityRegistry* container, const YAML::Node& compNode);
 
         static YAML::Node encodeTransform(const Transform& transform);
-        static Transform decodeTransform(const YAML::Node& node);
+        static Transform decodeTransform(const YAML::Node& node, const Transform* oldTransform = nullptr);
 
         static YAML::Node encodeMeshComponent(const MeshComponent& mesh);
-        static MeshComponent decodeMeshComponent(const YAML::Node& node);
+        static MeshComponent decodeMeshComponent(const YAML::Node& node, const MeshComponent* oldMesh = nullptr);
 
         static YAML::Node encodeUIComponent(const UIComponent& ui);
-        static UIComponent decodeUIComponent(const YAML::Node& node);
+        static UIComponent decodeUIComponent(const YAML::Node& node, const UIComponent* oldUI = nullptr);
 
         static YAML::Node encodeUILayoutComponent(const UILayoutComponent& layout);
-        static UILayoutComponent decodeUILayoutComponent(const YAML::Node& node);
+        static UILayoutComponent decodeUILayoutComponent(const YAML::Node& node, const UILayoutComponent* oldLayout = nullptr);
 
         static YAML::Node encodeImageComponent(const ImageComponent& image);
-        static ImageComponent decodeImageComponent(const YAML::Node& node);
+        static ImageComponent decodeImageComponent(const YAML::Node& node, const ImageComponent* oldImage = nullptr);
 
         static YAML::Node encodeSpriteComponent(const SpriteComponent& sprite);
-        static SpriteComponent decodeSpriteComponent(const YAML::Node& node);
+        static SpriteComponent decodeSpriteComponent(const YAML::Node& node, const SpriteComponent* oldSprite = nullptr);
 
         static YAML::Node encodeLightComponent(const LightComponent& light);
-        static LightComponent decodeLightComponent(const YAML::Node& node);
+        static LightComponent decodeLightComponent(const YAML::Node& node, const LightComponent* oldLight = nullptr);
 
         static YAML::Node encodeScriptComponent(const ScriptComponent& script);
-        static ScriptComponent decodeScriptComponent(const YAML::Node& node);
+        static ScriptComponent decodeScriptComponent(const YAML::Node& node, const ScriptComponent* oldScript = nullptr);
     };
 }

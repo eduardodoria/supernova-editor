@@ -1240,7 +1240,7 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
 
     compName = Catalog::getComponentName(ComponentType::Transform, true);
     if (compNode[compName]) {
-        Transform transform = decodeTransform(compNode[compName]);
+        Transform transform = decodeTransform(compNode[compName], registry->findComponent<Transform>(entity));
         transform.parent = parent;
         if (!signature.test(registry->getComponentId<Transform>())){
             registry->addComponent<Transform>(entity, transform);
@@ -1252,7 +1252,7 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
 
     compName = Catalog::getComponentName(ComponentType::MeshComponent, true);
     if (compNode[compName]) {
-        MeshComponent mesh = decodeMeshComponent(compNode[compName]);
+        MeshComponent mesh = decodeMeshComponent(compNode[compName], registry->findComponent<MeshComponent>(entity));
         if (!signature.test(registry->getComponentId<MeshComponent>())){
             registry->addComponent<MeshComponent>(entity, mesh);
         }else{
@@ -1262,7 +1262,7 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
 
     compName = Catalog::getComponentName(ComponentType::UIComponent, true);
     if (compNode[compName]) {
-        UIComponent ui = decodeUIComponent(compNode[compName]);
+        UIComponent ui = decodeUIComponent(compNode[compName], registry->findComponent<UIComponent>(entity));
         if (!signature.test(registry->getComponentId<UIComponent>())){
             registry->addComponent<UIComponent>(entity, ui);
         }else{
@@ -1272,7 +1272,7 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
 
     compName = Catalog::getComponentName(ComponentType::UILayoutComponent, true);
     if (compNode[compName]) {
-        UILayoutComponent layout = decodeUILayoutComponent(compNode[compName]);
+        UILayoutComponent layout = decodeUILayoutComponent(compNode[compName], registry->findComponent<UILayoutComponent>(entity));
         if (!signature.test(registry->getComponentId<UILayoutComponent>())){
             registry->addComponent<UILayoutComponent>(entity, layout);
         }else{
@@ -1282,7 +1282,7 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
 
     compName = Catalog::getComponentName(ComponentType::ImageComponent, true);
     if (compNode[compName]) {
-        ImageComponent image = decodeImageComponent(compNode[compName]);
+        ImageComponent image = decodeImageComponent(compNode[compName], registry->findComponent<ImageComponent>(entity));
         if (!signature.test(registry->getComponentId<ImageComponent>())){
             registry->addComponent<ImageComponent>(entity, image);
         }else{
@@ -1292,7 +1292,7 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
 
     compName = Catalog::getComponentName(ComponentType::SpriteComponent, true);
     if (compNode[compName]) {
-        SpriteComponent sprite = decodeSpriteComponent(compNode[compName]);
+        SpriteComponent sprite = decodeSpriteComponent(compNode[compName], registry->findComponent<SpriteComponent>(entity));
         if (!signature.test(registry->getComponentId<SpriteComponent>())){
             registry->addComponent<SpriteComponent>(entity, sprite);
         }else{
@@ -1302,7 +1302,7 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
 
     compName = Catalog::getComponentName(ComponentType::LightComponent, true);
     if (compNode[compName]) {
-        LightComponent light = decodeLightComponent(compNode[compName]);
+        LightComponent light = decodeLightComponent(compNode[compName], registry->findComponent<LightComponent>(entity));
         if (!signature.test(registry->getComponentId<LightComponent>())){
             registry->addComponent<LightComponent>(entity, light);
         }else{
@@ -1312,7 +1312,7 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
 
     compName = Catalog::getComponentName(ComponentType::ScriptComponent, true);
     if (compNode[compName]) {
-        ScriptComponent script = decodeScriptComponent(compNode[compName]);
+        ScriptComponent script = decodeScriptComponent(compNode[compName], registry->findComponent<ScriptComponent>(entity));
         if (!signature.test(registry->getComponentId<ScriptComponent>())){
             registry->addComponent<ScriptComponent>(entity, script);
         }else{
@@ -1347,26 +1347,31 @@ YAML::Node Editor::Stream::encodeTransform(const Transform& transform) {
     return transformNode;
 }
 
-Transform Editor::Stream::decodeTransform(const YAML::Node& node) {
+Transform Editor::Stream::decodeTransform(const YAML::Node& node, const Transform* oldTransform) {
     Transform transform;
 
-    transform.position = decodeVector3(node["position"]);
-    transform.rotation = decodeQuaternion(node["rotation"]);
-    transform.scale = decodeVector3(node["scale"]);
-    transform.worldPosition = decodeVector3(node["worldPosition"]);
-    transform.worldRotation = decodeQuaternion(node["worldRotation"]);
-    transform.worldScale = decodeVector3(node["worldScale"]);
-    transform.localMatrix = decodeMatrix4(node["localMatrix"]);
-    transform.modelMatrix = decodeMatrix4(node["modelMatrix"]);
-    transform.normalMatrix = decodeMatrix4(node["normalMatrix"]);
-    transform.modelViewProjectionMatrix = decodeMatrix4(node["modelViewProjectionMatrix"]);
-    transform.visible = node["visible"].as<bool>();
+    // Use old values as defaults if provided
+    if (oldTransform) {
+        transform = *oldTransform;
+    }
+
+    if (node["position"]) transform.position = decodeVector3(node["position"]);
+    if (node["rotation"]) transform.rotation = decodeQuaternion(node["rotation"]);
+    if (node["scale"]) transform.scale = decodeVector3(node["scale"]);
+    if (node["worldPosition"]) transform.worldPosition = decodeVector3(node["worldPosition"]);
+    if (node["worldRotation"]) transform.worldRotation = decodeQuaternion(node["worldRotation"]);
+    if (node["worldScale"]) transform.worldScale = decodeVector3(node["worldScale"]);
+    if (node["localMatrix"]) transform.localMatrix = decodeMatrix4(node["localMatrix"]);
+    if (node["modelMatrix"]) transform.modelMatrix = decodeMatrix4(node["modelMatrix"]);
+    if (node["normalMatrix"]) transform.normalMatrix = decodeMatrix4(node["normalMatrix"]);
+    if (node["modelViewProjectionMatrix"]) transform.modelViewProjectionMatrix = decodeMatrix4(node["modelViewProjectionMatrix"]);
+    if (node["visible"]) transform.visible = node["visible"].as<bool>();
     //transform.parent = node["parent"].as<Entity>();
-    transform.distanceToCamera = node["distanceToCamera"].as<float>();
-    transform.billboardRotation = decodeQuaternion(node["billboardRotation"]);
-    transform.billboard = node["billboard"].as<bool>();
-    transform.fakeBillboard = node["fakeBillboard"].as<bool>();
-    transform.cylindricalBillboard = node["cylindricalBillboard"].as<bool>();
+    if (node["distanceToCamera"]) transform.distanceToCamera = node["distanceToCamera"].as<float>();
+    if (node["billboardRotation"]) transform.billboardRotation = decodeQuaternion(node["billboardRotation"]);
+    if (node["billboard"]) transform.billboard = node["billboard"].as<bool>();
+    if (node["fakeBillboard"]) transform.fakeBillboard = node["fakeBillboard"].as<bool>();
+    if (node["cylindricalBillboard"]) transform.cylindricalBillboard = node["cylindricalBillboard"].as<bool>();
     //transform.needUpdateChildVisibility = node["needUpdateChildVisibility"].as<bool>();
     //transform.needUpdate = node["needUpdate"].as<bool>();
 
@@ -1437,8 +1442,13 @@ YAML::Node Editor::Stream::encodeMeshComponent(const MeshComponent& mesh) {
     return node;
 }
 
-MeshComponent Editor::Stream::decodeMeshComponent(const YAML::Node& node) {
+MeshComponent Editor::Stream::decodeMeshComponent(const YAML::Node& node, const MeshComponent* oldMesh) {
     MeshComponent mesh;
+
+    // Use old values as defaults if provided
+    if (oldMesh) {
+        mesh = *oldMesh;
+    }
 
     //mesh.loaded = node["loaded"].as<bool>();
     //mesh.loadCalled = node["loadCalled"].as<bool>();
@@ -1464,39 +1474,45 @@ MeshComponent Editor::Stream::decodeMeshComponent(const YAML::Node& node) {
     //mesh.vertexCount = node["vertexCount"].as<uint32_t>();
 
     // Decode submeshes
-    auto submeshesNode = node["submeshes"];
-    for(unsigned int i = 0; i < submeshesNode.size() && i < MAX_SUBMESHES; i++) {
-        mesh.submeshes[i] = decodeSubmesh(submeshesNode[i]);
+    if (node["submeshes"]) {
+        auto submeshesNode = node["submeshes"];
+        for(unsigned int i = 0; i < submeshesNode.size() && i < MAX_SUBMESHES; i++) {
+            mesh.submeshes[i] = decodeSubmesh(submeshesNode[i]);
+        }
+        mesh.numSubmeshes = submeshesNode.size();
     }
-    mesh.numSubmeshes = submeshesNode.size();
 
     // Decode bones matrix
-    auto bonesNode = node["bonesMatrix"];
-    for(int i = 0; i < MAX_BONES; i++) {
-        mesh.bonesMatrix[i] = decodeMatrix4(bonesNode[i]);
+    if (node["bonesMatrix"]) {
+        auto bonesNode = node["bonesMatrix"];
+        for(int i = 0; i < MAX_BONES; i++) {
+            mesh.bonesMatrix[i] = decodeMatrix4(bonesNode[i]);
+        }
     }
 
-    mesh.normAdjustJoint = node["normAdjustJoint"].as<int>();
-    mesh.normAdjustWeight = node["normAdjustWeight"].as<float>();
+    if (node["normAdjustJoint"]) mesh.normAdjustJoint = node["normAdjustJoint"].as<int>();
+    if (node["normAdjustWeight"]) mesh.normAdjustWeight = node["normAdjustWeight"].as<float>();
 
     // Decode morph weights
-    auto morphWeightsNode = node["morphWeights"];
-    for(int i = 0; i < MAX_MORPHTARGETS; i++) {
-        mesh.morphWeights[i] = morphWeightsNode[i].as<float>();
+    if (node["morphWeights"]) {
+        auto morphWeightsNode = node["morphWeights"];
+        for(int i = 0; i < MAX_MORPHTARGETS; i++) {
+            mesh.morphWeights[i] = morphWeightsNode[i].as<float>();
+        }
     }
 
-    mesh.aabb = decodeAABB(node["aabb"]);
-    mesh.verticesAABB = decodeAABB(node["verticesAABB"]);
-    mesh.worldAABB = decodeAABB(node["worldAABB"]);
+    if (node["aabb"]) mesh.aabb = decodeAABB(node["aabb"]);
+    if (node["verticesAABB"]) mesh.verticesAABB = decodeAABB(node["verticesAABB"]);
+    if (node["worldAABB"]) mesh.worldAABB = decodeAABB(node["worldAABB"]);
 
-    mesh.receiveLights = node["receiveLights"].as<bool>();
-    mesh.castShadows = node["castShadows"].as<bool>();
-    mesh.receiveShadows = node["receiveShadows"].as<bool>();
-    mesh.shadowsBillboard = node["shadowsBillboard"].as<bool>();
-    mesh.transparent = node["transparent"].as<bool>();
+    if (node["receiveLights"]) mesh.receiveLights = node["receiveLights"].as<bool>();
+    if (node["castShadows"]) mesh.castShadows = node["castShadows"].as<bool>();
+    if (node["receiveShadows"]) mesh.receiveShadows = node["receiveShadows"].as<bool>();
+    if (node["shadowsBillboard"]) mesh.shadowsBillboard = node["shadowsBillboard"].as<bool>();
+    if (node["transparent"]) mesh.transparent = node["transparent"].as<bool>();
 
-    mesh.cullingMode = stringToCullingMode(node["cullingMode"].as<std::string>());
-    mesh.windingOrder = stringToWindingOrder(node["windingOrder"].as<std::string>());
+    if (node["cullingMode"]) mesh.cullingMode = stringToCullingMode(node["cullingMode"].as<std::string>());
+    if (node["windingOrder"]) mesh.windingOrder = stringToWindingOrder(node["windingOrder"].as<std::string>());
 
     //mesh.needUpdateBuffer = node["needUpdateBuffer"].as<bool>();
     //mesh.needReload = node["needReload"].as<bool>();
@@ -1543,35 +1559,41 @@ YAML::Node Editor::Stream::encodeUIComponent(const UIComponent& ui) {
     return node;
 }
 
-UIComponent Editor::Stream::decodeUIComponent(const YAML::Node& node) {
+UIComponent Editor::Stream::decodeUIComponent(const YAML::Node& node, const UIComponent* oldUI) {
     UIComponent ui;
+
+    // Use old values as defaults if provided
+    if (oldUI) {
+        ui = *oldUI;
+    }
+
     //ui.loaded = node["loaded"].as<bool>();
     //ui.loadCalled = node["loadCalled"].as<bool>();
 
-    decodeBuffer(ui.buffer, node["buffer"]);
-    decodeBuffer(ui.indices, node["indices"]);
-    ui.minBufferCount = node["minBufferCount"].as<unsigned int>();
-    ui.minIndicesCount = node["minIndicesCount"].as<unsigned int>();
+    if (node["buffer"]) decodeBuffer(ui.buffer, node["buffer"]);
+    if (node["indices"]) decodeBuffer(ui.indices, node["indices"]);
+    if (node["minBufferCount"]) ui.minBufferCount = node["minBufferCount"].as<unsigned int>();
+    if (node["minIndicesCount"]) ui.minIndicesCount = node["minIndicesCount"].as<unsigned int>();
 
     // ui.render and ui.shader can't be deserialized here
     // ui.shaderProperties = node["shaderProperties"].as<std::string>();
     //ui.slotVSParams = node["slotVSParams"].as<int>();
     //ui.slotFSParams = node["slotFSParams"].as<int>();
 
-    ui.primitiveType = stringToPrimitiveType(node["primitiveType"].as<std::string>());
-    ui.vertexCount = node["vertexCount"].as<unsigned int>();
+    if (node["primitiveType"]) ui.primitiveType = stringToPrimitiveType(node["primitiveType"].as<std::string>());
+    if (node["vertexCount"]) ui.vertexCount = node["vertexCount"].as<unsigned int>();
 
-    ui.aabb = decodeAABB(node["aabb"]);
-    ui.worldAABB = decodeAABB(node["worldAABB"]);
+    if (node["aabb"]) ui.aabb = decodeAABB(node["aabb"]);
+    if (node["worldAABB"]) ui.worldAABB = decodeAABB(node["worldAABB"]);
 
-    ui.texture = decodeTexture(node["texture"]);
-    ui.color = decodeVector4(node["color"]);
+    if (node["texture"]) ui.texture = decodeTexture(node["texture"]);
+    if (node["color"]) ui.color = decodeVector4(node["color"]);
 
-    ui.automaticFlipY = node["automaticFlipY"].as<bool>();
-    ui.flipY = node["flipY"].as<bool>();
+    if (node["automaticFlipY"]) ui.automaticFlipY = node["automaticFlipY"].as<bool>();
+    if (node["flipY"]) ui.flipY = node["flipY"].as<bool>();
 
-    ui.pointerMoved = node["pointerMoved"].as<bool>();
-    ui.focused = node["focused"].as<bool>();
+    if (node["pointerMoved"]) ui.pointerMoved = node["pointerMoved"].as<bool>();
+    if (node["focused"]) ui.focused = node["focused"].as<bool>();
 
     //ui.needReload = node["needReload"].as<bool>();
     //ui.needUpdateAABB = node["needUpdateAABB"].as<bool>();
@@ -1606,26 +1628,32 @@ YAML::Node Editor::Stream::encodeUILayoutComponent(const UILayoutComponent& layo
     return node;
 }
 
-UILayoutComponent Editor::Stream::decodeUILayoutComponent(const YAML::Node& node) {
+UILayoutComponent Editor::Stream::decodeUILayoutComponent(const YAML::Node& node, const UILayoutComponent* oldLayout) {
     UILayoutComponent layout;
-    layout.width = node["width"].as<unsigned int>();
-    layout.height = node["height"].as<unsigned int>();
-    layout.anchorPointLeft = node["anchorPointLeft"].as<float>();
-    layout.anchorPointTop = node["anchorPointTop"].as<float>();
-    layout.anchorPointRight = node["anchorPointRight"].as<float>();
-    layout.anchorPointBottom = node["anchorPointBottom"].as<float>();
-    layout.anchorOffsetLeft = node["anchorOffsetLeft"].as<int>();
-    layout.anchorOffsetTop = node["anchorOffsetTop"].as<int>();
-    layout.anchorOffsetRight = node["anchorOffsetRight"].as<int>();
-    layout.anchorOffsetBottom = node["anchorOffsetBottom"].as<int>();
-    layout.positionOffset = decodeVector2(node["positionOffset"]);
-    layout.anchorPreset = static_cast<AnchorPreset>(node["anchorPreset"].as<int>());
-    layout.usingAnchors = node["usingAnchors"].as<bool>();
-    layout.panel = node["panel"].as<Entity>();
-    layout.containerBoxIndex = node["containerBoxIndex"].as<int>();
-    layout.scissor = decodeRect(node["scissor"]);
-    layout.ignoreScissor = node["ignoreScissor"].as<bool>();
-    layout.ignoreEvents = node["ignoreEvents"].as<bool>();
+
+    // Use old values as defaults if provided
+    if (oldLayout) {
+        layout = *oldLayout;
+    }
+
+    if (node["width"]) layout.width = node["width"].as<unsigned int>();
+    if (node["height"]) layout.height = node["height"].as<unsigned int>();
+    if (node["anchorPointLeft"]) layout.anchorPointLeft = node["anchorPointLeft"].as<float>();
+    if (node["anchorPointTop"]) layout.anchorPointTop = node["anchorPointTop"].as<float>();
+    if (node["anchorPointRight"]) layout.anchorPointRight = node["anchorPointRight"].as<float>();
+    if (node["anchorPointBottom"]) layout.anchorPointBottom = node["anchorPointBottom"].as<float>();
+    if (node["anchorOffsetLeft"]) layout.anchorOffsetLeft = node["anchorOffsetLeft"].as<int>();
+    if (node["anchorOffsetTop"]) layout.anchorOffsetTop = node["anchorOffsetTop"].as<int>();
+    if (node["anchorOffsetRight"]) layout.anchorOffsetRight = node["anchorOffsetRight"].as<int>();
+    if (node["anchorOffsetBottom"]) layout.anchorOffsetBottom = node["anchorOffsetBottom"].as<int>();
+    if (node["positionOffset"]) layout.positionOffset = decodeVector2(node["positionOffset"]);
+    if (node["anchorPreset"]) layout.anchorPreset = static_cast<AnchorPreset>(node["anchorPreset"].as<int>());
+    if (node["usingAnchors"]) layout.usingAnchors = node["usingAnchors"].as<bool>();
+    if (node["panel"]) layout.panel = node["panel"].as<Entity>();
+    if (node["containerBoxIndex"]) layout.containerBoxIndex = node["containerBoxIndex"].as<int>();
+    if (node["scissor"]) layout.scissor = decodeRect(node["scissor"]);
+    if (node["ignoreScissor"]) layout.ignoreScissor = node["ignoreScissor"].as<bool>();
+    if (node["ignoreEvents"]) layout.ignoreEvents = node["ignoreEvents"].as<bool>();
     //layout.needUpdateSizes = node["needUpdateSizes"].as<bool>();
 
     return layout;
@@ -1643,13 +1671,19 @@ YAML::Node Editor::Stream::encodeImageComponent(const ImageComponent& image) {
     return node;
 }
 
-ImageComponent Editor::Stream::decodeImageComponent(const YAML::Node& node) {
+ImageComponent Editor::Stream::decodeImageComponent(const YAML::Node& node, const ImageComponent* oldImage) {
     ImageComponent image;
-    image.patchMarginLeft = node["patchMarginLeft"].as<int>();
-    image.patchMarginRight = node["patchMarginRight"].as<int>();
-    image.patchMarginTop = node["patchMarginTop"].as<int>();
-    image.patchMarginBottom = node["patchMarginBottom"].as<int>();
-    image.textureScaleFactor = node["textureScaleFactor"].as<float>();
+
+    // Use old values as defaults if provided
+    if (oldImage) {
+        image = *oldImage;
+    }
+
+    if (node["patchMarginLeft"]) image.patchMarginLeft = node["patchMarginLeft"].as<int>();
+    if (node["patchMarginRight"]) image.patchMarginRight = node["patchMarginRight"].as<int>();
+    if (node["patchMarginTop"]) image.patchMarginTop = node["patchMarginTop"].as<int>();
+    if (node["patchMarginBottom"]) image.patchMarginBottom = node["patchMarginBottom"].as<int>();
+    if (node["textureScaleFactor"]) image.textureScaleFactor = node["textureScaleFactor"].as<float>();
     //image.needUpdatePatches = node["needUpdatePatches"].as<bool>();
 
     return image;
@@ -1678,8 +1712,13 @@ YAML::Node Editor::Stream::encodeSpriteComponent(const SpriteComponent& sprite) 
     return node;
 }
 
-SpriteComponent Editor::Stream::decodeSpriteComponent(const YAML::Node& node) {
+SpriteComponent Editor::Stream::decodeSpriteComponent(const YAML::Node& node, const SpriteComponent* oldSprite) {
     SpriteComponent sprite;
+
+    // Use old values as defaults if provided
+    if (oldSprite) {
+        sprite = *oldSprite;
+    }
 
     if (node["width"]) sprite.width = node["width"].as<unsigned int>();
     if (node["height"]) sprite.height = node["height"].as<unsigned int>();
@@ -1722,23 +1761,28 @@ YAML::Node Editor::Stream::encodeLightComponent(const LightComponent& light) {
     return node;
 }
 
-LightComponent Editor::Stream::decodeLightComponent(const YAML::Node& node) {
+LightComponent Editor::Stream::decodeLightComponent(const YAML::Node& node, const LightComponent* oldLight) {
     LightComponent light;
 
-    light.type = stringToLightType(node["type"].as<std::string>());
-    light.direction = decodeVector3(node["direction"]);
-    light.worldDirection = decodeVector3(node["worldDirection"]);
-    light.color = decodeVector3(node["color"]);
-    light.range = node["range"].as<float>();
-    light.intensity = node["intensity"].as<float>();
-    light.innerConeCos = node["innerConeCos"].as<float>();
-    light.outerConeCos = node["outerConeCos"].as<float>();
-    light.shadows = node["shadows"].as<bool>();
-    light.automaticShadowCamera = node["automaticShadowCamera"].as<bool>();
-    light.shadowBias = node["shadowBias"].as<float>();
-    light.mapResolution = node["mapResolution"].as<unsigned int>();
-    light.shadowCameraNearFar = decodeVector2(node["shadowCameraNearFar"]);
-    light.numShadowCascades = node["numShadowCascades"].as<unsigned int>();
+    // Use old values as defaults if provided
+    if (oldLight) {
+        light = *oldLight;
+    }
+
+    if (node["type"]) light.type = stringToLightType(node["type"].as<std::string>());
+    if (node["direction"]) light.direction = decodeVector3(node["direction"]);
+    if (node["worldDirection"]) light.worldDirection = decodeVector3(node["worldDirection"]);
+    if (node["color"]) light.color = decodeVector3(node["color"]);
+    if (node["range"]) light.range = node["range"].as<float>();
+    if (node["intensity"]) light.intensity = node["intensity"].as<float>();
+    if (node["innerConeCos"]) light.innerConeCos = node["innerConeCos"].as<float>();
+    if (node["outerConeCos"]) light.outerConeCos = node["outerConeCos"].as<float>();
+    if (node["shadows"]) light.shadows = node["shadows"].as<bool>();
+    if (node["automaticShadowCamera"]) light.automaticShadowCamera = node["automaticShadowCamera"].as<bool>();
+    if (node["shadowBias"]) light.shadowBias = node["shadowBias"].as<float>();
+    if (node["mapResolution"]) light.mapResolution = node["mapResolution"].as<unsigned int>();
+    if (node["shadowCameraNearFar"]) light.shadowCameraNearFar = decodeVector2(node["shadowCameraNearFar"]);
+    if (node["numShadowCascades"]) light.numShadowCascades = node["numShadowCascades"].as<unsigned int>();
 
     return light;
 }
@@ -1768,23 +1812,21 @@ YAML::Node Editor::Stream::encodeScriptComponent(const ScriptComponent& script) 
     return node;
 }
 
-
-ScriptComponent Editor::Stream::decodeScriptComponent(const YAML::Node& node) {
+ScriptComponent Editor::Stream::decodeScriptComponent(const YAML::Node& node, const ScriptComponent* oldScript) {
     ScriptComponent script;
 
-    if (node["path"])
-        script.path = node["path"].as<std::string>();
+    // Use old values as defaults if provided
+    if (oldScript) {
+        script = *oldScript;
+    }
 
-   if (node["headerPath"])
-        script.headerPath = node["headerPath"].as<std::string>();
-
-    if (node["className"])
-        script.className = node["className"].as<std::string>();
-
-    if (node["enabled"])
-        script.enabled = node["enabled"].as<bool>();
+    if (node["path"]) script.path = node["path"].as<std::string>();
+    if (node["headerPath"]) script.headerPath = node["headerPath"].as<std::string>();
+    if (node["className"]) script.className = node["className"].as<std::string>();
+    if (node["enabled"]) script.enabled = node["enabled"].as<bool>();
 
     if (node["properties"] && node["properties"].IsSequence()) {
+        script.properties.clear();
         for (const auto& propNode : node["properties"]) {
             script.properties.push_back(decodeScriptProperty(propNode));
         }
