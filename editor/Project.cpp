@@ -3,6 +3,9 @@
 #include "Backend.h"
 
 #include <fstream>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 #include "render/SceneRender2D.h"
 #include "render/SceneRender3D.h"
