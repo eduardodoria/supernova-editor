@@ -14,6 +14,7 @@
 #include "command/type/RemoveComponentCmd.h"
 #include "command/type/ComponentToSharedCmd.h"
 #include "command/type/ComponentToLocalCmd.h"
+#include "command/type/ScriptPropertyCmd.h"
 #include "render/SceneRender2D.h"
 #include "util/SHA1.h"
 #include "Stream.h"
@@ -2134,9 +2135,9 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
 
                 // Reset to default button
                 if (propertyHeader(prop.displayName, -1, defChanged)) {
-                    prop.value = prop.defaultValue;
-                    prop.syncToMember();
-                    sceneProject->isModified = true;
+                    cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], prop.name, i, prop.defaultValue);
+                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                    finishProperty = true;
                 }
 
                 bool modified = false;
@@ -2146,8 +2147,8 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
                     case Supernova::ScriptPropertyType::Bool: {
                         bool value = std::get<bool>(prop.value);
                         if (ImGui::Checkbox(("##" + propertyId).c_str(), &value)) {
-                            prop.value = value;
-                            modified = true;
+                            cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], prop.name, i, value);
+                            CommandHandle::get(sceneProject->id)->addCommand(cmd);
                         }
                         break;
                     }
@@ -2155,8 +2156,8 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
                     case Supernova::ScriptPropertyType::Int: {
                         int value = std::get<int>(prop.value);
                         if (ImGui::DragInt(("##" + propertyId).c_str(), &value, 1.0f)) {
-                            prop.value = value;
-                            modified = true;
+                            cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], prop.name, i, value);
+                            CommandHandle::get(sceneProject->id)->addCommand(cmd);
                         }
                         break;
                     }
@@ -2164,20 +2165,30 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
                     case Supernova::ScriptPropertyType::Float: {
                         float value = std::get<float>(prop.value);
                         if (ImGui::DragFloat(("##" + propertyId).c_str(), &value, 0.1f, 0.0f, 0.0f, "%.3f")) {
-                            prop.value = value;
-                            modified = true;
+                            cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], prop.name, i, value);
+                            CommandHandle::get(sceneProject->id)->addCommand(cmd);
                         }
                         break;
                     }
 
                     case Supernova::ScriptPropertyType::String: {
-                        static char buffer[256];
+                        static std::map<std::string, std::string> stringBuffers;
+                        std::string& buffer = stringBuffers[propertyId];
+
+                        // Initialize buffer if needed
                         std::string strValue = std::get<std::string>(prop.value);
-                        strncpy(buffer, strValue.c_str(), sizeof(buffer) - 1);
-                        buffer[sizeof(buffer) - 1] = '\0';
-                        if (ImGui::InputText(("##" + propertyId).c_str(), buffer, sizeof(buffer))) {
-                            prop.value = std::string(buffer);
-                            modified = true;
+                        if (buffer.empty() && !strValue.empty()) {
+                            buffer = strValue;
+                        }
+
+                        // Resize to fit ImGui buffer requirements
+                        buffer.resize(256);
+
+                        if (ImGui::InputText(("##" + propertyId).c_str(), buffer.data(), buffer.size())) {
+                            // Trim to actual string length
+                            buffer.resize(strlen(buffer.c_str()));
+                            cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], prop.name, i, buffer);
+                            CommandHandle::get(sceneProject->id)->addCommand(cmd);
                         }
                         break;
                     }
@@ -2190,8 +2201,8 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
                         ImGui::SameLine();
                         if (ImGui::DragFloat(("##y_" + propertyId).c_str(), &value.y, 0.1f)) changed = true;
                         if (changed) {
-                            prop.value = value;
-                            modified = true;
+                            cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], prop.name, i, value);
+                            CommandHandle::get(sceneProject->id)->addCommand(cmd);
                         }
                         break;
                     }
@@ -2206,8 +2217,8 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
                         ImGui::SameLine();
                         if (ImGui::DragFloat(("##z_" + propertyId).c_str(), &value.z, 0.1f)) changed = true;
                         if (changed) {
-                            prop.value = value;
-                            modified = true;
+                            cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], prop.name, i, value);
+                            CommandHandle::get(sceneProject->id)->addCommand(cmd);
                         }
                         break;
                     }
@@ -2216,8 +2227,8 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
                         Vector3 value = Color::linearTosRGB(std::get<Vector3>(prop.value));
                         if (ImGui::ColorEdit3(("##" + propertyId).c_str(), (float*)&value.x, 
                                             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel)) {
-                            prop.value = Color::sRGBToLinear(value);
-                            modified = true;
+                            cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], prop.name, i, Color::sRGBToLinear(value));
+                            CommandHandle::get(sceneProject->id)->addCommand(cmd);
                         }
                         break;
                     }
@@ -2234,8 +2245,8 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
                         ImGui::SameLine();
                         if (ImGui::DragFloat(("##w_" + propertyId).c_str(), &value.w, 0.1f)) changed = true;
                         if (changed) {
-                            prop.value = value;
-                            modified = true;
+                            cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], prop.name, i, value);
+                            CommandHandle::get(sceneProject->id)->addCommand(cmd);
                         }
                         break;
                     }
@@ -2245,8 +2256,8 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
                         if (ImGui::ColorEdit4(("##" + propertyId).c_str(), (float*)&value.x, 
                                             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | 
                                             ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
-                            prop.value = Color::sRGBToLinear(value);
-                            modified = true;
+                            cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], prop.name, i, Color::sRGBToLinear(value));
+                            CommandHandle::get(sceneProject->id)->addCommand(cmd);
                         }
                         break;
                     }
@@ -2275,10 +2286,12 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
                     }
                 }
 
-                // If property was modified, sync to member and mark scene as modified
-                if (modified) {
-                    prop.syncToMember();
-                    sceneProject->isModified = true;
+                if (ImGui::IsItemDeactivatedAfterEdit() || finishProperty) {
+                    if (cmd) {
+                        cmd->setNoMerge();
+                        cmd = nullptr;
+                    }
+                    finishProperty = false;
                 }
             }
 
