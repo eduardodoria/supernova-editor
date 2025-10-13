@@ -126,6 +126,8 @@ namespace Supernova::Editor{
         void registerSaveSceneDialog(uint32_t sceneId, std::function<void()> callback = nullptr);
         void registerProjectSaveDialog(std::function<void()> callback = nullptr);
 
+        CodeEditor* getCodeEditor() const;
+
         // Window settings methods
         int getInitialWindowWidth() const;
         int getInitialWindowHeight() const;

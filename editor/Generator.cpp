@@ -451,7 +451,7 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     std::string sourceContent;
     sourceContent += "#include <vector>\n";
     sourceContent += "#include <string>\n";
-    sourceContent += "#include \"Supernova.h\"\n\n";
+    sourceContent += "#include \"Scene.h\"\n\n";
 
     sourceContent += "using namespace Supernova;\n";
 

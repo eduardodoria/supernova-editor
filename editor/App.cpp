@@ -764,6 +764,10 @@ void Editor::App::registerProjectSaveDialog(std::function<void()> callback) {
     // If queue has more items or another dialog is open, they'll be processed later
 }
 
+Editor::CodeEditor* Editor::App::getCodeEditor() const{
+    return codeEditor;
+}
+
 void Editor::App::processNextSaveDialog() {
     // Check if there's anything to process and no dialogs are currently open
     if (saveDialogQueue.empty() || sceneSaveDialog.isOpen() || projectSaveDialog.isOpen()) {

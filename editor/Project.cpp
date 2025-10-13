@@ -979,13 +979,18 @@ void Editor::Project::updateScriptProperties(uint32_t sceneId, Entity entity){
 
     if (parsedProperties.empty()) {
         // No properties found or parsing failed
-        scriptComp->properties.clear();
+        if (!scriptComp->properties.empty()) {
+            scriptComp->properties.clear();
+            sceneProject->isModified = true;
+        }
         return;
     }
 
     // Merge with existing properties to preserve user-modified values
     // Only keep properties that exist in the parsed script
     std::vector<ScriptProperty> mergedProperties;
+    bool hasChanges = false;
+
     for (const auto& parsedProp : parsedProperties) {
         // Try to find existing property with same name
         auto it = std::find_if(scriptComp->properties.begin(), scriptComp->properties.end(),
@@ -1001,11 +1006,19 @@ void Editor::Project::updateScriptProperties(uint32_t sceneId, Entity entity){
         } else {
             // New property - use default value
             mergedProperties.push_back(parsedProp);
+            hasChanges = true;
         }
     }
 
-    scriptComp->properties = mergedProperties;
-    sceneProject->isModified = true;
+    // Check if any properties were removed
+    if (scriptComp->properties.size() != mergedProperties.size()) {
+        hasChanges = true;
+    }
+
+    if (hasChanges) {
+        scriptComp->properties = mergedProperties;
+        sceneProject->isModified = true;
+    }
 }
 
 bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path filepath, YAML::Node entityNode){
@@ -2095,9 +2108,12 @@ void Editor::Project::start(uint32_t sceneId) {
         return;
     }
 
+    updateAllScriptsProperties(sceneId);
+
     if (sceneProject->isModified && !sceneProject->filepath.empty()) {
         saveSceneToPath(sceneId, sceneProject->filepath);
     }
+    Backend::getApp().getCodeEditor()->saveAll();
 
     // Save current scene state before starting
     sceneProject->playStateSnapshot = Stream::encodeSceneProject(this, sceneProject, true);
@@ -2106,8 +2122,6 @@ void Editor::Project::start(uint32_t sceneId) {
 
     std::string libName = "projectlib";
     fs::path buildPath = getProjectInternalPath() / "build";
-
-    updateAllScriptsProperties(sceneId);
 
     std::vector<Editor::ScriptSource> scriptFiles = collectScriptSourceFiles();
 
