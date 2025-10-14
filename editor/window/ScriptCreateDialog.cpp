@@ -52,6 +52,8 @@ void ScriptCreateDialog::writeFiles(const fs::path& headerPath, const fs::path& 
             h << "    bool isActive = true;\n\n";
             h << "    SPROPERTY(\"Target Position\")\n";
             h << "    Supernova::Vector3 targetPosition = Supernova::Vector3(0, 0, 0);\n\n";
+            h << "    SPROPERTY(\"Mesh Color\", Color4)\n";
+            h << "    Supernova::Vector4 meshColor = Supernova::Vector4(1, 1, 1, 1);\n\n";
             h << "    " << className << "(Supernova::Scene* scene, Supernova::Entity entity);\n";
             h << "    virtual ~" << className << "();\n\n";
             h << "    void update();\n";
@@ -81,6 +83,7 @@ void ScriptCreateDialog::writeFiles(const fs::path& headerPath, const fs::path& 
             c << "    Vector3 currentPos = getPosition();\n";
             c << "    Vector3 direction = (targetPosition - currentPos).normalize();\n";
             c << "    setPosition(currentPos + direction * speed * deltaTime);\n";
+            c << "    setColor(meshColor);\n";
             c << "}\n\n";
         }
     }

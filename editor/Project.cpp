@@ -990,12 +990,12 @@ void Editor::Project::updateScriptProperties(uint32_t sceneId, Entity entity){
     }
 
     // Merge with existing properties to preserve user-modified values
-    // Only keep properties that exist in the parsed script
     std::vector<ScriptProperty> mergedProperties;
-    bool hasChanges = false;
+    bool structuralChanges = false; // added/removed properties
+    bool metaChanges = false;       // display name/type changed
 
     for (const auto& parsedProp : parsedProperties) {
-        // Try to find existing property with same name
+        // Try to find existing property with same internal name
         auto it = std::find_if(scriptComp->properties.begin(), scriptComp->properties.end(),
             [&parsedProp](const ScriptProperty& existing) {
                 return existing.name == parsedProp.name;
@@ -1004,22 +1004,42 @@ void Editor::Project::updateScriptProperties(uint32_t sceneId, Entity entity){
         if (it != scriptComp->properties.end()) {
             // Property exists - keep user's value but update metadata
             ScriptProperty merged = parsedProp;
-            merged.value = it->value; // Keep user's modified value
-            mergedProperties.push_back(merged);
+
+            // If the type changed, reset the value to the new default to avoid invalid variants
+            if (it->type == parsedProp.type) {
+                merged.value = it->value;
+            } else {
+                merged.value = parsedProp.defaultValue;
+                metaChanges = true;
+            }
+
+            // Preserve member pointer
+            merged.memberPtr = it->memberPtr;
+
+            // Detect metadata changes (no structural change)
+            if (it->displayName != parsedProp.displayName ||
+                it->type != parsedProp.type ||
+                it->ptrTypeName != parsedProp.ptrTypeName) {
+                metaChanges = true;
+            }
+
+            mergedProperties.push_back(std::move(merged));
         } else {
             // New property - use default value
             mergedProperties.push_back(parsedProp);
-            hasChanges = true;
+            structuralChanges = true;
         }
     }
 
     // Check if any properties were removed
     if (scriptComp->properties.size() != mergedProperties.size()) {
-        hasChanges = true;
+        structuralChanges = true;
     }
 
-    if (hasChanges) {
-        scriptComp->properties = mergedProperties;
+    // Always apply merged properties so UI metadata updates (e.g., displayName) are reflected
+    scriptComp->properties = std::move(mergedProperties);
+
+    if (structuralChanges || metaChanges) {
         sceneProject->isModified = true;
     }
 }

@@ -69,6 +69,25 @@ ScriptPropertyType Editor::ScriptParser::inferTypeFromCppType(const std::string&
     return ScriptPropertyType::Int;
 }
 
+ScriptPropertyType Editor::ScriptParser::parseExplicitType(const std::string& typeStr) {
+    std::string cleanType = typeStr;
+    cleanType.erase(std::remove_if(cleanType.begin(), cleanType.end(), ::isspace), cleanType.end());
+
+    if (cleanType == "Bool") return ScriptPropertyType::Bool;
+    if (cleanType == "Int") return ScriptPropertyType::Int;
+    if (cleanType == "Float") return ScriptPropertyType::Float;
+    if (cleanType == "String") return ScriptPropertyType::String;
+    if (cleanType == "Vector2") return ScriptPropertyType::Vector2;
+    if (cleanType == "Vector3") return ScriptPropertyType::Vector3;
+    if (cleanType == "Vector4") return ScriptPropertyType::Vector4;
+    if (cleanType == "Color3") return ScriptPropertyType::Color3;
+    if (cleanType == "Color4") return ScriptPropertyType::Color4;
+    if (cleanType == "ObjectPtr") return ScriptPropertyType::ObjectPtr;
+
+    Out::warning("Unknown explicit type '%s', will fall back to inferred type", typeStr.c_str());
+    return ScriptPropertyType::Int; // Placeholder, will be overridden
+}
+
 std::string Editor::ScriptParser::removeComments(const std::string& content) {
     std::string result;
     result.reserve(content.size());
@@ -156,14 +175,17 @@ std::vector<ScriptProperty> Editor::ScriptParser::parseScriptProperties(const st
 
     content = removeComments(content);
 
-    // Pattern: SPROPERTY("Display Name") Type varName = defaultValue; or SPROPERTY("Display Name") Type varName;
+    // Updated pattern to capture optional type parameter and type annotation comment
+    // Pattern: SPROPERTY("Display Name") or SPROPERTY("Display Name", Type) followed by Type varName = defaultValue;
     std::regex propertyRegex(
-        "SPROPERTY\\s*\\(\\s*"           // SPROPERTY(
-        "\"([^\"]+)\"\\s*"                // "Display Name"
-        "\\)\\s*"                         // )
-        "([\\w:*]+(?:\\s*<[^>]+>)?)\\s+" // Type (with templates and pointers)
-        "(\\w+)\\s*"                      // varName
-        "(?:=\\s*([^;]+?))?\\s*;"        // optional = defaultValue
+        "SPROPERTY\\s*\\(\\s*"                    // SPROPERTY(
+        "\"([^\"]+)\"\\s*"                         // "Display Name"
+        "(?:,\\s*([\\w]+))?\\s*"                   // optional , Type
+        "\\)\\s*"                                  // )
+        "(?:/\\*[^*]*@SPROPERTY_TYPE:\\s*([\\w]+)[^*]*\\*/\\s*)?" // optional /* @SPROPERTY_TYPE: Type */
+        "([\\w:*]+(?:\\s*<[^>]+>)?)\\s+"          // C++ Type (with templates and pointers)
+        "(\\w+)\\s*"                               // varName
+        "(?:=\\s*([^;]+?))?\\s*;"                 // optional = defaultValue
     );
 
     std::sregex_iterator it(content.begin(), content.end(), propertyRegex);
@@ -174,9 +196,11 @@ std::vector<ScriptProperty> Editor::ScriptParser::parseScriptProperties(const st
         size_t position = match.position();
 
         std::string displayName = match[1].str();
-        std::string cppType = match[2].str();
-        std::string varName = match[3].str();
-        std::string defaultValueStr = match[4].str(); // May be empty
+        std::string explicitType = match[2].str();        // From SPROPERTY(..., Type)
+        std::string typeAnnotation = match[3].str();      // From /* @SPROPERTY_TYPE: Type */
+        std::string cppType = match[4].str();
+        std::string varName = match[5].str();
+        std::string defaultValueStr = match[6].str();     // May be empty
 
         // Remove whitespace from type (but keep * for pointers)
         std::string cleanCppType;
@@ -192,9 +216,18 @@ std::vector<ScriptProperty> Editor::ScriptParser::parseScriptProperties(const st
             defaultValueStr.erase(std::remove_if(defaultValueStr.begin(), defaultValueStr.end(), ::isspace), defaultValueStr.end());
         }
 
-        // Infer ScriptPropertyType from C++ type
+        // Determine the property type
+        ScriptPropertyType type;
         std::string ptrTypeName;
-        ScriptPropertyType type = inferTypeFromCppType(cppType, ptrTypeName);
+
+        // Priority: explicit type parameter > type annotation > inferred from C++ type
+        if (!explicitType.empty()) {
+            type = parseExplicitType(explicitType);
+        } else if (!typeAnnotation.empty()) {
+            type = parseExplicitType(typeAnnotation);
+        } else {
+            type = inferTypeFromCppType(cppType, ptrTypeName);
+        }
 
         ScriptProperty prop;
         prop.name = varName;
