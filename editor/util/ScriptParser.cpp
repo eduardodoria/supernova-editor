@@ -28,10 +28,10 @@ ScriptPropertyType Editor::ScriptParser::inferTypeFromCppType(const std::string&
     bareType.erase(std::remove(bareType.begin(), bareType.end(), '&'), bareType.end());
     bareType.erase(std::remove(bareType.begin(), bareType.end(), '*'), bareType.end());
 
-    // If it's a pointer type, store the full type name and return ObjectPtr
+    // If it's a pointer type, store the full type name and return Pointer
     if (isPointer) {
         ptrTypeName = cleanType; // Store "Mesh*", "Object*", etc.
-        return ScriptPropertyType::ObjectPtr;
+        return ScriptPropertyType::Pointer;
     }
 
     // Map C++ types to ScriptPropertyType
@@ -69,7 +69,7 @@ ScriptPropertyType Editor::ScriptParser::inferTypeFromCppType(const std::string&
     return ScriptPropertyType::Int;
 }
 
-ScriptPropertyType Editor::ScriptParser::parseExplicitType(const std::string& typeStr) {
+ScriptPropertyType Editor::ScriptParser::parseExplicitType(const std::string& typeStr, const std::string& cppType) {
     std::string cleanType = typeStr;
     cleanType.erase(std::remove_if(cleanType.begin(), cleanType.end(), ::isspace), cleanType.end());
 
@@ -82,7 +82,31 @@ ScriptPropertyType Editor::ScriptParser::parseExplicitType(const std::string& ty
     if (cleanType == "Vector4") return ScriptPropertyType::Vector4;
     if (cleanType == "Color3") return ScriptPropertyType::Color3;
     if (cleanType == "Color4") return ScriptPropertyType::Color4;
-    if (cleanType == "ObjectPtr") return ScriptPropertyType::ObjectPtr;
+    if (cleanType == "Pointer") return ScriptPropertyType::Pointer;
+
+    // Handle "Color" - infer based on C++ type
+    if (cleanType == "Color") {
+        // Remove whitespace from C++ type for comparison
+        std::string cleanCppType = cppType;
+        cleanCppType.erase(std::remove_if(cleanCppType.begin(), cleanCppType.end(), ::isspace), cleanCppType.end());
+
+        // Remove const, &, * for bare type
+        std::string bareCppType = cleanCppType;
+        size_t constPos = bareCppType.find("const");
+        if (constPos != std::string::npos) {
+            bareCppType.erase(constPos, 5);
+        }
+        bareCppType.erase(std::remove(bareCppType.begin(), bareCppType.end(), '&'), bareCppType.end());
+        bareCppType.erase(std::remove(bareCppType.begin(), bareCppType.end(), '*'), bareCppType.end());
+
+        // Check if it's Vector4 or Vector3
+        if (bareCppType == "Vector4" || bareCppType == "Supernova::Vector4") {
+            return ScriptPropertyType::Color4;
+        } else {
+            // Default to Color3 for Vector3 or any other type
+            return ScriptPropertyType::Color3;
+        }
+    }
 
     Out::warning("Unknown explicit type '%s', will fall back to inferred type", typeStr.c_str());
     return ScriptPropertyType::Int; // Placeholder, will be overridden
@@ -222,9 +246,9 @@ std::vector<ScriptProperty> Editor::ScriptParser::parseScriptProperties(const st
 
         // Priority: explicit type parameter > type annotation > inferred from C++ type
         if (!explicitType.empty()) {
-            type = parseExplicitType(explicitType);
+            type = parseExplicitType(explicitType, cppType);
         } else if (!typeAnnotation.empty()) {
-            type = parseExplicitType(typeAnnotation);
+            type = parseExplicitType(typeAnnotation, cppType);
         } else {
             type = inferTypeFromCppType(cppType, ptrTypeName);
         }
@@ -364,7 +388,7 @@ std::vector<ScriptProperty> Editor::ScriptParser::parseScriptProperties(const st
                     break;
                 }
 
-                case ScriptPropertyType::ObjectPtr: {
+                case ScriptPropertyType::Pointer: {
                     // Pointers default to nullptr
                     void* val = nullptr;
                     if (!defaultValueStr.empty() && defaultValueStr != "nullptr" && defaultValueStr != "NULL") {
@@ -410,7 +434,7 @@ std::vector<ScriptProperty> Editor::ScriptParser::parseScriptProperties(const st
                     prop.value = Vector4();
                     prop.defaultValue = Vector4();
                     break;
-                case ScriptPropertyType::ObjectPtr:
+                case ScriptPropertyType::Pointer:
                     prop.value = static_cast<void*>(nullptr);
                     prop.defaultValue = static_cast<void*>(nullptr);
                     break;

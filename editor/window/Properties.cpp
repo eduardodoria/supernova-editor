@@ -2128,7 +2128,7 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
                     case Supernova::ScriptPropertyType::Color4:
                         defChanged = (std::get<Vector4>(prop.value) != std::get<Vector4>(prop.defaultValue));
                         break;
-                    case Supernova::ScriptPropertyType::ObjectPtr:
+                    case Supernova::ScriptPropertyType::Pointer:
                         defChanged = (std::get<void*>(prop.value) != std::get<void*>(prop.defaultValue));
                         break;
                 }
@@ -2262,7 +2262,7 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
                         break;
                     }
 
-                    case Supernova::ScriptPropertyType::ObjectPtr: {
+                    case Supernova::ScriptPropertyType::Pointer: {
                         // Display pointer type and address
                         void* ptrValue = std::get<void*>(prop.value);
 

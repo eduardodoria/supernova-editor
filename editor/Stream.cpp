@@ -893,7 +893,7 @@ YAML::Node Editor::Stream::encodeScriptProperty(const ScriptProperty& prop) {
     node["type"] = static_cast<int>(prop.type);
 
     // Store ptrTypeName if it's a pointer type
-    if (prop.type == ScriptPropertyType::ObjectPtr && !prop.ptrTypeName.empty()) {
+    if (prop.type == ScriptPropertyType::Pointer && !prop.ptrTypeName.empty()) {
         node["ptrTypeName"] = prop.ptrTypeName;
     }
 
@@ -928,7 +928,7 @@ YAML::Node Editor::Stream::encodeScriptProperty(const ScriptProperty& prop) {
             node["value"] = encodeVector4(std::get<Vector4>(prop.value));
             node["defaultValue"] = encodeVector4(std::get<Vector4>(prop.defaultValue));
             break;
-        case ScriptPropertyType::ObjectPtr:
+        case ScriptPropertyType::Pointer:
             // Store pointer as uint64_t for serialization
             node["value"] = reinterpret_cast<uint64_t>(std::get<void*>(prop.value));
             node["defaultValue"] = reinterpret_cast<uint64_t>(std::get<void*>(prop.defaultValue));
@@ -1010,7 +1010,7 @@ ScriptProperty Editor::Stream::decodeScriptProperty(const YAML::Node& node) {
                     prop.defaultValue = Vector4();
                 }
                 break;
-            case ScriptPropertyType::ObjectPtr:
+            case ScriptPropertyType::Pointer:
                 // Restore pointer from uint64_t
                 prop.value = reinterpret_cast<void*>(node["value"].as<uint64_t>());
                 if (node["defaultValue"]) {
@@ -1053,7 +1053,7 @@ ScriptProperty Editor::Stream::decodeScriptProperty(const YAML::Node& node) {
                 prop.value = Vector4();
                 prop.defaultValue = Vector4();
                 break;
-            case ScriptPropertyType::ObjectPtr:
+            case ScriptPropertyType::Pointer:
                 prop.value = static_cast<void*>(nullptr);
                 prop.defaultValue = static_cast<void*>(nullptr);
                 break;
