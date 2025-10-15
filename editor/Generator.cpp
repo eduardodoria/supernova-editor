@@ -451,7 +451,8 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     std::string sourceContent;
     sourceContent += "#include <vector>\n";
     sourceContent += "#include <string>\n";
-    sourceContent += "#include \"Scene.h\"\n\n";
+    sourceContent += "#include \"Scene.h\"\n";
+    sourceContent += "#include \"ScriptBase.h\"\n\n";
 
     sourceContent += "using namespace Supernova;\n";
 
@@ -468,54 +469,62 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     sourceContent += "    #define PROJECT_API\n";
     sourceContent += "#endif\n\n";
 
-    sourceContent += "static std::vector<Supernova::EntityHandle*> g_scriptInstances;\n\n";
-
     sourceContent += "extern \"C\" void PROJECT_API initScene(Supernova::Scene* scene) {\n";
 
-    // Build script instantiation code with direct property assignments
+    // Build script instantiation code
     for (size_t i = 0; i < scriptFiles.size(); ++i) {
         const auto& s = scriptFiles[i];
 
         sourceContent += "    {\n";
-        sourceContent += "        " + s.className + "* script = new " + s.className + "(scene, (Supernova::Entity)" + std::to_string(s.entity) + ");\n";
-        sourceContent += "        \n";
+        sourceContent += "        Supernova::Entity entity = (Supernova::Entity)" + std::to_string(s.entity) + ";\n";
+        sourceContent += "        Supernova::ScriptComponent* scriptComp = scene->findComponent<Supernova::ScriptComponent>(entity);\n";
+        sourceContent += "        if (scriptComp) {\n";
 
-        // Get ScriptComponent from the scene to retrieve current property values
-        ScriptComponent* scriptComp = s.scene->findComponent<ScriptComponent>(s.entity);
-        if (scriptComp && !scriptComp->properties.empty()) {
-            // Set memberPtr for each property
-            sourceContent += "        Supernova::ScriptComponent* scriptComp = scene->findComponent<Supernova::ScriptComponent>((Supernova::Entity)" + std::to_string(s.entity) + ");\n";
-            sourceContent += "        if (scriptComp) {\n";
+        // Find the correct script entry
+        sourceContent += "            for (auto& scriptEntry : scriptComp->scripts) {\n";
+        sourceContent += "                if (scriptEntry.className == \"" + s.className + "\") {\n";
 
-            sourceContent += "            // Set member pointers for all properties\n";
-            sourceContent += "            for (auto& prop : scriptComp->properties) {\n";
+        // Create instance based on type
+        sourceContent += "                    if (scriptEntry.type == Supernova::ScriptType::SUBCLASS) {\n";
+        sourceContent += "                        " + s.className + "* script = new " + s.className + "(scene, entity);\n";
+        sourceContent += "                        scriptEntry.instance = static_cast<void*>(script);\n";
+        sourceContent += "                    } else {\n";
+        sourceContent += "                        " + s.className + "* script = new " + s.className + "(scene, entity);\n";
+        sourceContent += "                        scriptEntry.instance = static_cast<void*>(script);\n";
+        sourceContent += "                    }\n";
 
-            // Generate if-else chain for property name matching
-            bool first = true;
-            for (const auto& prop : scriptComp->properties) {
-                if (first) {
-                    sourceContent += "                if (prop.name == \"" + prop.name + "\") {\n";
-                    first = false;
-                } else {
-                    sourceContent += "                } else if (prop.name == \"" + prop.name + "\") {\n";
+        // Set member pointers and sync values
+        if (s.scene->findComponent<ScriptComponent>(s.entity)) {
+            ScriptComponent* sc = s.scene->findComponent<ScriptComponent>(s.entity);
+            for (const auto& entry : sc->scripts) {
+                if (entry.className == s.className && !entry.properties.empty()) {
+                    sourceContent += "                    \n";
+                    sourceContent += "                    // Cast instance to actual type for property access\n";
+                    sourceContent += "                    " + s.className + "* typedScript = static_cast<" + s.className + "*>(scriptEntry.instance);\n";
+                    sourceContent += "                    \n";
+
+                    // Generate property pointer assignments
+                    for (const auto& prop : entry.properties) {
+                        sourceContent += "                    for (auto& prop : scriptEntry.properties) {\n";
+                        sourceContent += "                        if (prop.name == \"" + prop.name + "\") {\n";
+                        sourceContent += "                            prop.memberPtr = &typedScript->" + prop.name + ";\n";
+                        sourceContent += "                        }\n";
+                        sourceContent += "                    }\n";
+                    }
+
+                    sourceContent += "                    \n";
+                    sourceContent += "                    // Sync stored values to member variables\n";
+                    sourceContent += "                    for (auto& prop : scriptEntry.properties) {\n";
+                    sourceContent += "                        prop.syncToMember();\n";
+                    sourceContent += "                    }\n";
                 }
-                sourceContent += "                    prop.memberPtr = &script->" + prop.name + ";\n";
             }
-            if (!scriptComp->properties.empty()) {
-                sourceContent += "                }\n";
-            }
-
-            sourceContent += "            }\n";
-            sourceContent += "            \n";
-            sourceContent += "            // Sync stored values to member variables\n";
-            sourceContent += "            for (auto& prop : scriptComp->properties) {\n";
-            sourceContent += "                prop.syncToMember();\n";
-            sourceContent += "            }\n";
-            sourceContent += "        }\n";
-            sourceContent += "        \n";
         }
 
-        sourceContent += "        g_scriptInstances.push_back(script);\n";
+        sourceContent += "                    break;\n";
+        sourceContent += "                }\n";
+        sourceContent += "            }\n";
+        sourceContent += "        }\n";
         sourceContent += "    }\n";
     }
 
@@ -525,32 +534,59 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
 
     sourceContent += "}\n\n";
 
-    // Cleanup function that syncs component values and properly deletes through base class pointers
-    sourceContent += "extern \"C\" void PROJECT_API cleanup() {\n";
-    //sourceContent += "    // Sync all component values from script instances back to ECS\n";
+    // Cleanup function - delete all script instances
+    sourceContent += "extern \"C\" void PROJECT_API cleanup(Supernova::Scene* scene) {\n";
 
-    // Loop through all unique entities from scriptFiles and sync their components
-    //std::unordered_set<uint64_t> processedEntities;
-    //for (const auto& s : scriptFiles) {
-    //    if (processedEntities.insert(s.entity).second) {
-    //        sourceContent += "    {\n";
-    //        sourceContent += "        Supernova::Entity entity = (Supernova::Entity)" + std::to_string(s.entity) + ";\n";
-    //        sourceContent += "        Supernova::Scene* scene = g_scriptInstances[0]->getScene(); // Get scene from first script instance\n";
-    //        sourceContent += Factory::setAllComponents(s.scene, s.entity);
-    //        sourceContent += "    }\n";
-    //    }
-    //}
+    if (!scriptFiles.empty()) {
+        // Collect unique entities with scripts
+        std::unordered_set<Entity> entitiesWithScripts;
+        for (const auto& s : scriptFiles) {
+            entitiesWithScripts.insert(s.entity);
+        }
 
-    //if (scriptFiles.empty()) {
-    //    sourceContent += "    // No entities to sync\n";
-    //}
+        sourceContent += "    // Delete script instances\n";
+        for (Entity entity : entitiesWithScripts) {
+            sourceContent += "    {\n";
+            sourceContent += "        Supernova::Entity entity = (Supernova::Entity)" + std::to_string(entity) + ";\n";
+            sourceContent += "        Supernova::ScriptComponent* scriptComp = scene->findComponent<Supernova::ScriptComponent>(entity);\n";
+            sourceContent += "        if (scriptComp) {\n";
+            sourceContent += "            for (auto& scriptEntry : scriptComp->scripts) {\n";
+            sourceContent += "                if (scriptEntry.instance != nullptr) {\n";
 
-    //sourceContent += "    \n";
-    sourceContent += "    // Clean up all script instances (calls virtual destructors)\n";
-    sourceContent += "    for (Supernova::EntityHandle* script : g_scriptInstances) {\n";
-    sourceContent += "        delete script; // Properly calls virtual destructor\n";
-    sourceContent += "    }\n";
-    sourceContent += "    g_scriptInstances.clear();\n";
+            // Need to delete based on the actual type
+            // Find all scripts for this entity
+            std::vector<std::string> classNamesForEntity;
+            for (const auto& s : scriptFiles) {
+                if (s.entity == entity) {
+                    classNamesForEntity.push_back(s.className);
+                }
+            }
+
+            // Generate deletion code for each class type
+            bool first = true;
+            for (const auto& className : classNamesForEntity) {
+                if (first) {
+                    sourceContent += "                    if (scriptEntry.className == \"" + className + "\") {\n";
+                    first = false;
+                } else {
+                    sourceContent += "                    } else if (scriptEntry.className == \"" + className + "\") {\n";
+                }
+                sourceContent += "                        delete static_cast<" + className + "*>(scriptEntry.instance);\n";
+            }
+            if (!classNamesForEntity.empty()) {
+                sourceContent += "                    }\n";
+            }
+
+            sourceContent += "                    scriptEntry.instance = nullptr;\n";
+            sourceContent += "                }\n";
+            sourceContent += "            }\n";
+            sourceContent += "        }\n";
+            sourceContent += "    }\n";
+        }
+    } else {
+        sourceContent += "    (void)scene; // Suppress unused parameter warning\n";
+    }
+
     sourceContent += "}\n";
 
     const fs::path cmakeFile = projectPath / "CMakeLists.txt";

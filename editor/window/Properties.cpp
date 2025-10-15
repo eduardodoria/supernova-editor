@@ -1531,126 +1531,6 @@ bool Editor::Properties::propertyRow(ComponentType cpType, std::map<std::string,
 
         result = materialButtonGroups[id];
 
-    }else if (prop.type == PropertyType::Script){
-        std::string* value = nullptr;
-        std::map<Entity, std::string> eValue;
-        bool dif = false;
-        for (Entity& entity : entities){
-            eValue[entity] = *Catalog::getPropertyRef<std::string>(sceneProject->scene, entity, cpType, id);
-            if (value){
-                if (*value != eValue[entity])
-                    dif = true;
-            }
-            value = &eValue[entity];
-        }
-
-        std::string newValue = *value;
-
-        bool defChanged = false;
-        if (prop.def){
-            defChanged = (newValue != *static_cast<std::string*>(prop.def));
-        }
-        if (propertyHeader(label, secondColSize, defChanged, child)){
-            for (Entity& entity : entities){
-                cmd = new PropertyCmd<std::string>(project, sceneProject->id, entity, cpType, id, prop.updateFlags, *static_cast<std::string*>(prop.def));
-                CommandHandle::get(sceneProject->id)->addCommand(cmd);
-                finishProperty = true;
-            }
-        }
-
-        // Use the same UI as texture for consistency
-        ImGui::BeginGroup();
-        ImGui::PushID(("script_"+id).c_str());
-
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, textureLabel);
-
-        ImGui::BeginChild("scriptframe", ImVec2(- ImGui::CalcTextSize(ICON_FA_FILE_IMPORT).x - ImGui::GetStyle().ItemSpacing.x * 2 - ImGui::GetStyle().FramePadding.x * 2, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2), 
-            false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-
-        std::string scriptName = newValue;
-        if (std::filesystem::exists(scriptName)) {
-            scriptName = std::filesystem::path(scriptName).filename().string();
-        }
-        if (scriptName.empty()) {
-            scriptName = "< No script >";
-        }
-
-        float textWidth = ImGui::CalcTextSize(scriptName.c_str()).x;
-        float availWidth = ImGui::GetContentRegionAvail().x;
-        ImGui::SetCursorPosX(availWidth - textWidth - 2);
-        ImGui::SetCursorPosY(ImGui::GetStyle().FramePadding.y);
-        if (dif)
-            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        ImGui::Text("%s", scriptName.c_str());
-        if (dif)
-            ImGui::PopStyleColor();
-
-        ImGui::EndChild();
-        if (!newValue.empty()){
-            ImGui::SetItemTooltip("%s", newValue.c_str());
-        }
-        ImGui::PopStyleColor();
-
-        ImGui::SameLine();
-
-        if (ImGui::Button(ICON_FA_FILE_IMPORT)) {
-            std::string path = Editor::FileDialogs::openFileDialog(project->getProjectPath().string(), true, 
-                "Lua Scripts (*.lua)\0*.lua\0All Files (*.*)\0*.*\0");
-            if (!path.empty()) {
-                std::filesystem::path projectPath = project->getProjectPath();
-                std::filesystem::path filePath = std::filesystem::absolute(path);
-
-                // Check if file path is within project directory
-                std::error_code ec;
-                auto relative = std::filesystem::relative(filePath, projectPath, ec);
-                if (ec || relative.string().find("..") != std::string::npos) {
-                    ImGui::OpenPopup("Script Import Error");
-                }else{
-                    for (Entity& entity : entities){
-                        cmd = new PropertyCmd<std::string>(project, sceneProject->id, entity, cpType, id, prop.updateFlags, filePath.string());
-                        CommandHandle::get(sceneProject->id)->addCommand(cmd);
-                        finishProperty = true;
-                    }
-                }
-            }
-        }
-
-        // Error popup modal
-        if (ImGui::BeginPopupModal("Script Import Error", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::Text("Selected script file must be within the project directory.");
-            ImGui::Separator();
-
-            float buttonWidth = 120;
-            float windowWidth = ImGui::GetWindowSize().x;
-            ImGui::SetCursorPosX((windowWidth - buttonWidth) * 0.5f);
-            if (ImGui::Button("OK", ImVec2(120, 0))) {
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::EndPopup();
-        }
-
-        ImGui::PopID();
-        ImGui::EndGroup();
-
-        // Drag and drop support
-        if (ImGui::BeginDragDropTarget()){
-            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
-                std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
-                if (receivedStrings.size() > 0){
-                    std::filesystem::path scriptPath(receivedStrings[0]);
-                    // Check if it's a Lua file
-                    if (scriptPath.extension() == ".lua") {
-                        for (Entity& entity : entities){
-                            cmd = new PropertyCmd<std::string>(project, sceneProject->id, entity, cpType, id, prop.updateFlags, receivedStrings[0]);
-                            CommandHandle::get(sceneProject->id)->addCommand(cmd);
-                            finishProperty = true;
-                        }
-                    }
-                }
-            }
-            ImGui::EndDragDropTarget();
-        }
-
     }
 
     if (ImGui::IsItemDeactivatedAfterEdit() || finishProperty) {
@@ -2058,12 +1938,16 @@ void Editor::Properties::drawLightComponent(ComponentType cpType, std::map<std::
 }
 
 void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std::string, PropertyData> props, SceneProject* sceneProject, std::vector<Entity> entities){
-    beginTable(cpType, getLabelSize("Script Path"));
+    ScriptComponent& scriptComp = sceneProject->scene->getComponent<ScriptComponent>(entities[0]);
 
-    propertyRow(cpType, props, "path", "Script Path", sceneProject, entities);
-    propertyRow(cpType, props, "enabled", "Enabled", sceneProject, entities);
-
-    endTable();
+    // Check if there's already a SUBCLASS script
+    bool hasSubclass = false;
+    for (const auto& script : scriptComp.scripts) {
+        if (script.type == ScriptType::SUBCLASS) {
+            hasSubclass = true;
+            break;
+        }
+    }
 
     if (ImGui::Button(ICON_FA_FILE_CIRCLE_PLUS " New Script", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, 0))) {
         std::string defaultName = "NewScript";
@@ -2074,12 +1958,16 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
                 std::string pathStr = sourcePath.string();
                 std::string headerPathStr = headerPath.string();
                 for (Entity entity: entities){
-                    MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
-                    multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entity, cpType, "path", UpdateFlags_None, pathStr);
-                    multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entity, cpType, "headerPath", UpdateFlags_None, headerPathStr);
-                    multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entity, cpType, "className", UpdateFlags_None, className);
-                    multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entity, cpType, "enabled", UpdateFlags_None, true);
-                    CommandHandle::get(sceneProject->id)->addCommandNoMerge(multiCmd);
+                    ScriptComponent& sc = sceneProject->scene->getComponent<ScriptComponent>(entity);
+
+                    ScriptEntry newScript;
+                    newScript.type = ScriptType::SUBCLASS; // Default to SUBCLASS for new scripts
+                    newScript.path = pathStr;
+                    newScript.headerPath = headerPathStr;
+                    newScript.className = className;
+                    newScript.enabled = true;
+
+                    sc.scripts.push_back(newScript);
 
                     project->updateScriptProperties(sceneProject->id, entity);
                 }
@@ -2088,215 +1976,247 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
         );
     }
 
-    // Display script properties if available
-    if (entities.size() == 1) {  // Only show properties for single entity selection
-        ScriptComponent& scriptComp = sceneProject->scene->getComponent<ScriptComponent>(entities[0]);
+    // Display all scripts
+    if (entities.size() == 1) {
+        for (size_t scriptIdx = 0; scriptIdx < scriptComp.scripts.size(); scriptIdx++) {
+            ScriptEntry& script = scriptComp.scripts[scriptIdx];
 
-        if (!scriptComp.properties.empty()) {
-            ImGui::SeparatorText("Script Properties");
+            ImGui::PushID(scriptIdx);
 
-            beginTable(cpType, getLabelSize("Property Name"), "script_properties");
+            std::string scriptLabel = script.className.empty() ? "Unnamed Script" : script.className;
+            std::string typeLabel = (script.type == ScriptType::SUBCLASS) ? " [Subclass]" : " [Plain Class]";
 
-            for (size_t i = 0; i < scriptComp.properties.size(); i++) {
-                auto& prop = scriptComp.properties[i];
+            if (ImGui::CollapsingHeader((scriptLabel + typeLabel).c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+                beginTable(cpType, getLabelSize("Script Path"), "script_" + std::to_string(scriptIdx));
 
-                std::string propertyId = "script_prop_" + std::to_string(i);
-
-                bool defChanged = false;
-                // Check if value differs from default based on type
-                switch (prop.type) {
-                    case Supernova::ScriptPropertyType::Bool:
-                        defChanged = (std::get<bool>(prop.value) != std::get<bool>(prop.defaultValue));
-                        break;
-                    case Supernova::ScriptPropertyType::Int:
-                        defChanged = (std::get<int>(prop.value) != std::get<int>(prop.defaultValue));
-                        break;
-                    case Supernova::ScriptPropertyType::Float:
-                        defChanged = (std::fabs(std::get<float>(prop.value) - std::get<float>(prop.defaultValue)) > 1e-6f);
-                        break;
-                    case Supernova::ScriptPropertyType::String:
-                        defChanged = (std::get<std::string>(prop.value) != std::get<std::string>(prop.defaultValue));
-                        break;
-                    case Supernova::ScriptPropertyType::Vector2:
-                        defChanged = (std::get<Vector2>(prop.value) != std::get<Vector2>(prop.defaultValue));
-                        break;
-                    case Supernova::ScriptPropertyType::Vector3:
-                    case Supernova::ScriptPropertyType::Color3:
-                        defChanged = (std::get<Vector3>(prop.value) != std::get<Vector3>(prop.defaultValue));
-                        break;
-                    case Supernova::ScriptPropertyType::Vector4:
-                    case Supernova::ScriptPropertyType::Color4:
-                        defChanged = (std::get<Vector4>(prop.value) != std::get<Vector4>(prop.defaultValue));
-                        break;
-                    case Supernova::ScriptPropertyType::Pointer:
-                        defChanged = (std::get<void*>(prop.value) != std::get<void*>(prop.defaultValue));
-                        break;
+                // Script type (read-only for now, or could be editable with constraints)
+                propertyHeader("Type");
+                const char* types[] = { "Subclass", "Plain Class" };
+                int currentType = (script.type == ScriptType::SUBCLASS) ? 0 : 1;
+                ImGui::BeginDisabled(script.type == ScriptType::SUBCLASS && hasSubclass);
+                if (ImGui::Combo("##script_type", &currentType, types, IM_ARRAYSIZE(types))) {
+                    script.type = (currentType == 0) ? ScriptType::SUBCLASS : ScriptType::PLAIN_CLASS;
                 }
+                ImGui::EndDisabled();
 
-                // Reset to default button
-                if (propertyHeader(prop.displayName, -1, defChanged)) {
-                    cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], prop.name, i, prop.defaultValue);
-                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
-                    finishProperty = true;
-                }
+                // Path and enabled status
+                propertyHeader("Path");
+                ImGui::Text("%s", script.path.c_str());
 
-                bool modified = false;
+                propertyHeader("Enabled");
+                ImGui::Checkbox("##enabled", &script.enabled);
 
-                // Draw appropriate control based on property type
-                switch (prop.type) {
-                    case Supernova::ScriptPropertyType::Bool: {
-                        bool value = std::get<bool>(prop.value);
-                        if (ImGui::Checkbox(("##" + propertyId).c_str(), &value)) {
-                            cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], prop.name, i, value);
+                endTable();
+
+                // Display script properties if available
+                if (!script.properties.empty()) {
+                    ImGui::SeparatorText("Properties");
+
+                    beginTable(cpType, getLabelSize("Property Name"), "script_properties_" + std::to_string(scriptIdx));
+
+                    for (size_t propIdx = 0; propIdx < script.properties.size(); propIdx++) {
+                        ScriptProperty& prop = script.properties[propIdx];
+
+                        // Create unique property ID
+                        std::string propertyId = "script_" + std::to_string(scriptIdx) + "_prop_" + std::to_string(propIdx);
+
+                        bool defChanged = false;
+                        // Check if value differs from default based on type
+                        switch (prop.type) {
+                            case Supernova::ScriptPropertyType::Bool:
+                                defChanged = (std::get<bool>(prop.value) != std::get<bool>(prop.defaultValue));
+                                break;
+                            case Supernova::ScriptPropertyType::Int:
+                                defChanged = (std::get<int>(prop.value) != std::get<int>(prop.defaultValue));
+                                break;
+                            case Supernova::ScriptPropertyType::Float:
+                                defChanged = (std::fabs(std::get<float>(prop.value) - std::get<float>(prop.defaultValue)) > 1e-6f);
+                                break;
+                            case Supernova::ScriptPropertyType::String:
+                                defChanged = (std::get<std::string>(prop.value) != std::get<std::string>(prop.defaultValue));
+                                break;
+                            case Supernova::ScriptPropertyType::Vector2:
+                                defChanged = (std::get<Vector2>(prop.value) != std::get<Vector2>(prop.defaultValue));
+                                break;
+                            case Supernova::ScriptPropertyType::Vector3:
+                            case Supernova::ScriptPropertyType::Color3:
+                                defChanged = (std::get<Vector3>(prop.value) != std::get<Vector3>(prop.defaultValue));
+                                break;
+                            case Supernova::ScriptPropertyType::Vector4:
+                            case Supernova::ScriptPropertyType::Color4:
+                                defChanged = (std::get<Vector4>(prop.value) != std::get<Vector4>(prop.defaultValue));
+                                break;
+                            case Supernova::ScriptPropertyType::Pointer:
+                                defChanged = (std::get<void*>(prop.value) != std::get<void*>(prop.defaultValue));
+                                break;
+                        }
+
+                        // Reset to default button
+                        if (propertyHeader(prop.displayName.empty() ? prop.name : prop.displayName, -1, defChanged)) {
+                            cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], script.className, prop.name, scriptIdx, propIdx, prop.defaultValue);
                             CommandHandle::get(sceneProject->id)->addCommand(cmd);
-                        }
-                        break;
-                    }
-
-                    case Supernova::ScriptPropertyType::Int: {
-                        int value = std::get<int>(prop.value);
-                        if (ImGui::DragInt(("##" + propertyId).c_str(), &value, 1.0f)) {
-                            cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], prop.name, i, value);
-                            CommandHandle::get(sceneProject->id)->addCommand(cmd);
-                        }
-                        break;
-                    }
-
-                    case Supernova::ScriptPropertyType::Float: {
-                        float value = std::get<float>(prop.value);
-                        if (ImGui::DragFloat(("##" + propertyId).c_str(), &value, 0.1f, 0.0f, 0.0f, "%.3f")) {
-                            cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], prop.name, i, value);
-                            CommandHandle::get(sceneProject->id)->addCommand(cmd);
-                        }
-                        break;
-                    }
-
-                    case Supernova::ScriptPropertyType::String: {
-                        static std::map<std::string, std::string> stringBuffers;
-                        std::string& buffer = stringBuffers[propertyId];
-
-                        // Initialize buffer if needed
-                        std::string strValue = std::get<std::string>(prop.value);
-                        if (buffer.empty() && !strValue.empty()) {
-                            buffer = strValue;
+                            finishProperty = true;
                         }
 
-                        // Resize to fit ImGui buffer requirements
-                        buffer.resize(256);
+                        // Draw appropriate control based on property type
+                        switch (prop.type) {
+                            case Supernova::ScriptPropertyType::Bool: {
+                                bool value = std::get<bool>(prop.value);
+                                if (ImGui::Checkbox(("##" + propertyId).c_str(), &value)) {
+                                    cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], script.className, prop.name, scriptIdx, propIdx, ScriptPropertyValue(value));
+                                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                                }
+                                break;
+                            }
 
-                        if (ImGui::InputText(("##" + propertyId).c_str(), buffer.data(), buffer.size())) {
-                            // Trim to actual string length
-                            buffer.resize(strlen(buffer.c_str()));
-                            cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], prop.name, i, buffer);
-                            CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                            case Supernova::ScriptPropertyType::Int: {
+                                int value = std::get<int>(prop.value);
+                                if (ImGui::DragInt(("##" + propertyId).c_str(), &value, 1.0f)) {
+                                    cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], script.className, prop.name, scriptIdx, propIdx, ScriptPropertyValue(value));
+                                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                                }
+                                break;
+                            }
+
+                            case Supernova::ScriptPropertyType::Float: {
+                                float value = std::get<float>(prop.value);
+                                if (ImGui::DragFloat(("##" + propertyId).c_str(), &value, 0.1f, 0.0f, 0.0f, "%.3f")) {
+                                    cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], script.className, prop.name, scriptIdx, propIdx, ScriptPropertyValue(value));
+                                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                                }
+                                break;
+                            }
+
+                            case Supernova::ScriptPropertyType::String: {
+                                static std::map<std::string, std::string> stringBuffers;
+                                std::string& buffer = stringBuffers[propertyId];
+
+                                // Initialize buffer if needed
+                                std::string strValue = std::get<std::string>(prop.value);
+                                if (buffer.empty() && !strValue.empty()) {
+                                    buffer = strValue;
+                                }
+
+                                // Resize to fit ImGui buffer requirements
+                                buffer.resize(256);
+
+                                if (ImGui::InputText(("##" + propertyId).c_str(), buffer.data(), buffer.size())) {
+                                    // Trim to actual string length
+                                    buffer.resize(strlen(buffer.c_str()));
+                                    cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], script.className, prop.name, scriptIdx, propIdx, ScriptPropertyValue(buffer));
+                                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                                }
+                                break;
+                            }
+
+                            case Supernova::ScriptPropertyType::Vector2: {
+                                Vector2 value = std::get<Vector2>(prop.value);
+                                ImGui::PushMultiItemsWidths(2, ImGui::CalcItemWidth());
+                                bool changed = false;
+                                if (ImGui::DragFloat(("##x_" + propertyId).c_str(), &value.x, 0.1f)) changed = true;
+                                ImGui::SameLine();
+                                if (ImGui::DragFloat(("##y_" + propertyId).c_str(), &value.y, 0.1f)) changed = true;
+                                if (changed) {
+                                    cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], script.className, prop.name, scriptIdx, propIdx, ScriptPropertyValue(value));
+                                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                                }
+                                break;
+                            }
+
+                            case Supernova::ScriptPropertyType::Vector3: {
+                                Vector3 value = std::get<Vector3>(prop.value);
+                                ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
+                                bool changed = false;
+                                if (ImGui::DragFloat(("##x_" + propertyId).c_str(), &value.x, 0.1f)) changed = true;
+                                ImGui::SameLine();
+                                if (ImGui::DragFloat(("##y_" + propertyId).c_str(), &value.y, 0.1f)) changed = true;
+                                ImGui::SameLine();
+                                if (ImGui::DragFloat(("##z_" + propertyId).c_str(), &value.z, 0.1f)) changed = true;
+                                if (changed) {
+                                    cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], script.className, prop.name, scriptIdx, propIdx, ScriptPropertyValue(value));
+                                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                                }
+                                break;
+                            }
+
+                            case Supernova::ScriptPropertyType::Color3: {
+                                Vector3 value = Color::linearTosRGB(std::get<Vector3>(prop.value));
+                                if (ImGui::ColorEdit3(("##" + propertyId).c_str(), (float*)&value.x, 
+                                                    ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel)) {
+                                    cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], script.className, prop.name, scriptIdx, propIdx, ScriptPropertyValue(Color::sRGBToLinear(value)));
+                                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                                }
+                                break;
+                            }
+
+                            case Supernova::ScriptPropertyType::Vector4: {
+                                Vector4 value = std::get<Vector4>(prop.value);
+                                ImGui::PushMultiItemsWidths(4, ImGui::CalcItemWidth());
+                                bool changed = false;
+                                if (ImGui::DragFloat(("##x_" + propertyId).c_str(), &value.x, 0.1f)) changed = true;
+                                ImGui::SameLine();
+                                if (ImGui::DragFloat(("##y_" + propertyId).c_str(), &value.y, 0.1f)) changed = true;
+                                ImGui::SameLine();
+                                if (ImGui::DragFloat(("##z_" + propertyId).c_str(), &value.z, 0.1f)) changed = true;
+                                ImGui::SameLine();
+                                if (ImGui::DragFloat(("##w_" + propertyId).c_str(), &value.w, 0.1f)) changed = true;
+                                if (changed) {
+                                    cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], script.className, prop.name, scriptIdx, propIdx, ScriptPropertyValue(value));
+                                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                                }
+                                break;
+                            }
+
+                            case Supernova::ScriptPropertyType::Color4: {
+                                Vector4 value = Color::linearTosRGB(std::get<Vector4>(prop.value));
+                                if (ImGui::ColorEdit4(("##" + propertyId).c_str(), (float*)&value.x, 
+                                                    ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | 
+                                                    ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
+                                    cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], script.className, prop.name, scriptIdx, propIdx, ScriptPropertyValue(Color::sRGBToLinear(value)));
+                                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                                }
+                                break;
+                            }
+
+                            case Supernova::ScriptPropertyType::Pointer: {
+                                // Display pointer type and address
+                                void* ptrValue = std::get<void*>(prop.value);
+
+                                // Show the pointer type name if available
+                                std::string displayText = prop.ptrTypeName.empty() ? "Object*" : prop.ptrTypeName;
+                                displayText += ": ";
+
+                                if (ptrValue == nullptr) {
+                                    displayText += "null";
+                                } else {
+                                    char addrBuf[32];
+                                    snprintf(addrBuf, sizeof(addrBuf), "0x%p", ptrValue);
+                                    displayText += addrBuf;
+                                }
+
+                                ImGui::TextDisabled("%s", displayText.c_str());
+
+                                // TODO: In the future, add drag-drop support for object references
+                                // For now, pointers are read-only in the editor
+                                break;
+                            }
                         }
-                        break;
-                    }
 
-                    case Supernova::ScriptPropertyType::Vector2: {
-                        Vector2 value = std::get<Vector2>(prop.value);
-                        ImGui::PushMultiItemsWidths(2, ImGui::CalcItemWidth());
-                        bool changed = false;
-                        if (ImGui::DragFloat(("##x_" + propertyId).c_str(), &value.x, 0.1f)) changed = true;
-                        ImGui::SameLine();
-                        if (ImGui::DragFloat(("##y_" + propertyId).c_str(), &value.y, 0.1f)) changed = true;
-                        if (changed) {
-                            cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], prop.name, i, value);
-                            CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                        if (ImGui::IsItemDeactivatedAfterEdit() || finishProperty) {
+                            cmd->setNoMerge();
+                            cmd = nullptr;
+                            finishProperty = false;
                         }
-                        break;
                     }
 
-                    case Supernova::ScriptPropertyType::Vector3: {
-                        Vector3 value = std::get<Vector3>(prop.value);
-                        ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
-                        bool changed = false;
-                        if (ImGui::DragFloat(("##x_" + propertyId).c_str(), &value.x, 0.1f)) changed = true;
-                        ImGui::SameLine();
-                        if (ImGui::DragFloat(("##y_" + propertyId).c_str(), &value.y, 0.1f)) changed = true;
-                        ImGui::SameLine();
-                        if (ImGui::DragFloat(("##z_" + propertyId).c_str(), &value.z, 0.1f)) changed = true;
-                        if (changed) {
-                            cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], prop.name, i, value);
-                            CommandHandle::get(sceneProject->id)->addCommand(cmd);
-                        }
-                        break;
-                    }
-
-                    case Supernova::ScriptPropertyType::Color3: {
-                        Vector3 value = Color::linearTosRGB(std::get<Vector3>(prop.value));
-                        if (ImGui::ColorEdit3(("##" + propertyId).c_str(), (float*)&value.x, 
-                                            ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel)) {
-                            cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], prop.name, i, Color::sRGBToLinear(value));
-                            CommandHandle::get(sceneProject->id)->addCommand(cmd);
-                        }
-                        break;
-                    }
-
-                    case Supernova::ScriptPropertyType::Vector4: {
-                        Vector4 value = std::get<Vector4>(prop.value);
-                        ImGui::PushMultiItemsWidths(4, ImGui::CalcItemWidth());
-                        bool changed = false;
-                        if (ImGui::DragFloat(("##x_" + propertyId).c_str(), &value.x, 0.1f)) changed = true;
-                        ImGui::SameLine();
-                        if (ImGui::DragFloat(("##y_" + propertyId).c_str(), &value.y, 0.1f)) changed = true;
-                        ImGui::SameLine();
-                        if (ImGui::DragFloat(("##z_" + propertyId).c_str(), &value.z, 0.1f)) changed = true;
-                        ImGui::SameLine();
-                        if (ImGui::DragFloat(("##w_" + propertyId).c_str(), &value.w, 0.1f)) changed = true;
-                        if (changed) {
-                            cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], prop.name, i, value);
-                            CommandHandle::get(sceneProject->id)->addCommand(cmd);
-                        }
-                        break;
-                    }
-
-                    case Supernova::ScriptPropertyType::Color4: {
-                        Vector4 value = Color::linearTosRGB(std::get<Vector4>(prop.value));
-                        if (ImGui::ColorEdit4(("##" + propertyId).c_str(), (float*)&value.x, 
-                                            ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | 
-                                            ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
-                            cmd = new ScriptPropertyCmd(project, sceneProject->id, entities[0], prop.name, i, Color::sRGBToLinear(value));
-                            CommandHandle::get(sceneProject->id)->addCommand(cmd);
-                        }
-                        break;
-                    }
-
-                    case Supernova::ScriptPropertyType::Pointer: {
-                        // Display pointer type and address
-                        void* ptrValue = std::get<void*>(prop.value);
-
-                        // Show the pointer type name if available
-                        std::string displayText = prop.ptrTypeName.empty() ? "Object*" : prop.ptrTypeName;
-                        displayText += ": ";
-
-                        if (ptrValue == nullptr) {
-                            displayText += "nullptr";
-                        } else {
-                            char addrBuf[32];
-                            snprintf(addrBuf, sizeof(addrBuf), "0x%016llx", (unsigned long long)ptrValue);
-                            displayText += addrBuf;
-                        }
-
-                        ImGui::TextDisabled("%s", displayText.c_str());
-
-                        // TODO: In the future, add drag-drop support for object references
-                        // For now, pointers are read-only in the editor
-                        break;
-                    }
-                }
-
-                if (ImGui::IsItemDeactivatedAfterEdit() || finishProperty) {
-                    if (cmd) {
-                        cmd->setNoMerge();
-                        cmd = nullptr;
-                    }
-                    finishProperty = false;
+                    endTable();
                 }
             }
 
-            endTable();
+            ImGui::PopID();
         }
+    } else {
+        ImGui::TextDisabled("Select a single entity to view script details");
     }
 }
 

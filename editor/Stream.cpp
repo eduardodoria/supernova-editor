@@ -1790,23 +1790,35 @@ LightComponent Editor::Stream::decodeLightComponent(const YAML::Node& node, cons
 YAML::Node Editor::Stream::encodeScriptComponent(const ScriptComponent& script) {
     YAML::Node node;
 
-    if (!script.path.empty())
-        node["path"] = script.path;
+    if (!script.scripts.empty()) {
+        YAML::Node scriptsNode;
+        for (const auto& scriptEntry : script.scripts) {
+            YAML::Node scriptNode;
 
-    if (!script.headerPath.empty())
-        node["headerPath"] = script.headerPath;
+            scriptNode["type"] = (scriptEntry.type == ScriptType::SUBCLASS) ? "subclass" : "plain_class";
 
-    if (!script.className.empty())
-        node["className"] = script.className;
+            if (!scriptEntry.path.empty())
+                scriptNode["path"] = scriptEntry.path;
 
-    node["enabled"] = script.enabled;
+            if (!scriptEntry.headerPath.empty())
+                scriptNode["headerPath"] = scriptEntry.headerPath;
 
-    if (!script.properties.empty()) {
-        YAML::Node propsNode;
-        for (const auto& prop : script.properties) {
-            propsNode.push_back(encodeScriptProperty(prop));
+            if (!scriptEntry.className.empty())
+                scriptNode["className"] = scriptEntry.className;
+
+            scriptNode["enabled"] = scriptEntry.enabled;
+
+            if (!scriptEntry.properties.empty()) {
+                YAML::Node propsNode;
+                for (const auto& prop : scriptEntry.properties) {
+                    propsNode.push_back(encodeScriptProperty(prop));
+                }
+                scriptNode["properties"] = propsNode;
+            }
+
+            scriptsNode.push_back(scriptNode);
         }
-        node["properties"] = propsNode;
+        node["scripts"] = scriptsNode;
     }
 
     return node;
@@ -1820,16 +1832,31 @@ ScriptComponent Editor::Stream::decodeScriptComponent(const YAML::Node& node, co
         script = *oldScript;
     }
 
-    if (node["path"]) script.path = node["path"].as<std::string>();
-    if (node["headerPath"]) script.headerPath = node["headerPath"].as<std::string>();
-    if (node["className"]) script.className = node["className"].as<std::string>();
-    if (node["enabled"]) script.enabled = node["enabled"].as<bool>();
+    script.scripts.clear();
+    for (const auto& scriptNode : node["scripts"]) {
+        ScriptEntry entry;
 
-    if (node["properties"] && node["properties"].IsSequence()) {
-        script.properties.clear();
-        for (const auto& propNode : node["properties"]) {
-            script.properties.push_back(decodeScriptProperty(propNode));
+        // Decode script type
+        if (scriptNode["type"]) {
+            std::string typeStr = scriptNode["type"].as<std::string>();
+            entry.type = (typeStr == "subclass") ? ScriptType::SUBCLASS : ScriptType::PLAIN_CLASS;
+        } else {
+            entry.type = ScriptType::SUBCLASS; // Default for backward compatibility
         }
+
+        if (scriptNode["path"]) entry.path = scriptNode["path"].as<std::string>();
+        if (scriptNode["headerPath"]) entry.headerPath = scriptNode["headerPath"].as<std::string>();
+        if (scriptNode["className"]) entry.className = scriptNode["className"].as<std::string>();
+        if (scriptNode["enabled"]) entry.enabled = scriptNode["enabled"].as<bool>();
+
+        if (scriptNode["properties"] && scriptNode["properties"].IsSequence()) {
+            entry.properties.clear();
+            for (const auto& propNode : scriptNode["properties"]) {
+                entry.properties.push_back(decodeScriptProperty(propNode));
+            }
+        }
+
+        script.scripts.push_back(entry);
     }
 
     return script;

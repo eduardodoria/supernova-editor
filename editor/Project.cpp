@@ -4,6 +4,7 @@
 
 #include <fstream>
 #ifdef _WIN32
+#define NOMINMAX
 #include <windows.h>
 #endif
 
@@ -288,22 +289,26 @@ std::vector<Editor::ScriptSource> Editor::Project::collectScriptSourceFiles() co
             Signature signature = scene->getSignature(entity);
             if (signature.test(scene->getComponentId<ScriptComponent>())) {
                 const ScriptComponent& scriptComponent = scene->getComponent<ScriptComponent>(entity);
-                if (!scriptComponent.path.empty()) {
-                    fs::path path = scriptComponent.path;
-                    if (path.is_relative()) {
-                        path = getProjectPath() / path;
-                    }
-                    fs::path headerPath = scriptComponent.headerPath;
-                    if (headerPath.is_relative()) {
-                        headerPath = getProjectPath() / headerPath;
-                    }
-                    if (std::filesystem::exists(path)) {
-                        std::string key = path.lexically_normal().generic_string();
-                        if (uniqueScripts.insert(key).second) {
-                            scriptFiles.push_back(Editor::ScriptSource{path, headerPath, scriptComponent.className, sceneProject.scene, entity});
+
+                // Iterate through all scripts in the component
+                for (const auto& scriptEntry : scriptComponent.scripts) {
+                    if (!scriptEntry.path.empty()) {
+                        fs::path path = scriptEntry.path;
+                        if (path.is_relative()) {
+                            path = getProjectPath() / path;
                         }
-                    } else {
-                        Out::error("Script file not found: %s", path.string().c_str());
+                        fs::path headerPath = scriptEntry.headerPath;
+                        if (headerPath.is_relative()) {
+                            headerPath = getProjectPath() / headerPath;
+                        }
+                        if (std::filesystem::exists(path)) {
+                            std::string key = path.lexically_normal().generic_string();
+                            if (uniqueScripts.insert(key).second) {
+                                scriptFiles.push_back(Editor::ScriptSource{path, headerPath, scriptEntry.className, sceneProject.scene, entity});
+                            }
+                        } else {
+                            Out::error("Script file not found: %s", path.string().c_str());
+                        }
                     }
                 }
             }
@@ -972,74 +977,83 @@ void Editor::Project::updateScriptProperties(uint32_t sceneId, Entity entity){
         return;
     }
 
-    // Parse the script file to extract properties
-    fs::path fullPath = scriptComp->headerPath;
-    if (fullPath.is_relative()) {
-        fullPath = getProjectPath() / fullPath;
-    }
+    bool hasChanges = false;
 
-    std::vector<ScriptProperty> parsedProperties = ScriptParser::parseScriptProperties(fullPath);
-
-    if (parsedProperties.empty()) {
-        // No properties found or parsing failed
-        if (!scriptComp->properties.empty()) {
-            scriptComp->properties.clear();
-            sceneProject->isModified = true;
+    // Update properties for each script in the component
+    for (auto& scriptEntry : scriptComp->scripts) {
+        // Parse the script file to extract properties
+        fs::path fullPath = scriptEntry.headerPath;
+        if (fullPath.is_relative()) {
+            fullPath = getProjectPath() / fullPath;
         }
-        return;
-    }
 
-    // Merge with existing properties to preserve user-modified values
-    std::vector<ScriptProperty> mergedProperties;
-    bool structuralChanges = false; // added/removed properties
-    bool metaChanges = false;       // display name/type changed
+        std::vector<ScriptProperty> parsedProperties = ScriptParser::parseScriptProperties(fullPath);
 
-    for (const auto& parsedProp : parsedProperties) {
-        // Try to find existing property with same internal name
-        auto it = std::find_if(scriptComp->properties.begin(), scriptComp->properties.end(),
-            [&parsedProp](const ScriptProperty& existing) {
-                return existing.name == parsedProp.name;
-            });
+        if (parsedProperties.empty()) {
+            // No properties found or parsing failed
+            if (!scriptEntry.properties.empty()) {
+                scriptEntry.properties.clear();
+                hasChanges = true;
+            }
+            continue;
+        }
 
-        if (it != scriptComp->properties.end()) {
-            // Property exists - keep user's value but update metadata
-            ScriptProperty merged = parsedProp;
+        // Merge with existing properties to preserve user-modified values
+        std::vector<ScriptProperty> mergedProperties;
+        bool structuralChanges = false; // added/removed properties
+        bool metaChanges = false;       // display name/type changed
 
-            // If the type changed, reset the value to the new default to avoid invalid variants
-            if (it->type == parsedProp.type) {
-                merged.value = it->value;
+        for (const auto& parsedProp : parsedProperties) {
+            // Try to find existing property with same internal name
+            auto it = std::find_if(scriptEntry.properties.begin(), scriptEntry.properties.end(),
+                [&parsedProp](const ScriptProperty& existing) {
+                    return existing.name == parsedProp.name;
+                });
+
+            if (it != scriptEntry.properties.end()) {
+                // Property exists - keep user's value but update metadata
+                ScriptProperty merged = parsedProp;
+
+                // If the type changed, reset the value to the new default to avoid invalid variants
+                if (it->type == parsedProp.type) {
+                    merged.value = it->value;
+                } else {
+                    merged.value = parsedProp.defaultValue;
+                    metaChanges = true;
+                }
+
+                // Preserve member pointer
+                merged.memberPtr = it->memberPtr;
+
+                // Detect metadata changes (no structural change)
+                if (it->displayName != parsedProp.displayName ||
+                    it->type != parsedProp.type ||
+                    it->ptrTypeName != parsedProp.ptrTypeName) {
+                    metaChanges = true;
+                }
+
+                mergedProperties.push_back(std::move(merged));
             } else {
-                merged.value = parsedProp.defaultValue;
-                metaChanges = true;
+                // New property - use default value
+                mergedProperties.push_back(parsedProp);
+                structuralChanges = true;
             }
+        }
 
-            // Preserve member pointer
-            merged.memberPtr = it->memberPtr;
-
-            // Detect metadata changes (no structural change)
-            if (it->displayName != parsedProp.displayName ||
-                it->type != parsedProp.type ||
-                it->ptrTypeName != parsedProp.ptrTypeName) {
-                metaChanges = true;
-            }
-
-            mergedProperties.push_back(std::move(merged));
-        } else {
-            // New property - use default value
-            mergedProperties.push_back(parsedProp);
+        // Check if any properties were removed
+        if (scriptEntry.properties.size() != mergedProperties.size()) {
             structuralChanges = true;
         }
+
+        // Always apply merged properties so UI metadata updates (e.g., displayName) are reflected
+        scriptEntry.properties = std::move(mergedProperties);
+
+        if (structuralChanges || metaChanges) {
+            hasChanges = true;
+        }
     }
 
-    // Check if any properties were removed
-    if (scriptComp->properties.size() != mergedProperties.size()) {
-        structuralChanges = true;
-    }
-
-    // Always apply merged properties so UI metadata updates (e.g., displayName) are reflected
-    scriptComp->properties = std::move(mergedProperties);
-
-    if (structuralChanges || metaChanges) {
+    if (hasChanges) {
         sceneProject->isModified = true;
     }
 }
@@ -2210,8 +2224,9 @@ void Editor::Project::stop(uint32_t sceneId) {
 
     sceneProject->playState = ScenePlayState::STOPPED;
 
-    // Disconnect from the running game
+    // Cleanup script instances before disconnecting
     if (conector.isLibraryConnected()) {
+        conector.cleanup(sceneProject);
         conector.disconnect();
     }
 

@@ -101,8 +101,7 @@ std::string Editor::Factory::formatPropertyValue(const PropertyData& property, c
             Quaternion* value = static_cast<Quaternion*>(property.ref);
             return formatQuaternion(*value);
         }
-        case PropertyType::String:
-        case PropertyType::Script: {
+        case PropertyType::String: {
             std::string* value = static_cast<std::string*>(property.ref);
             return formatString(*value);
         }

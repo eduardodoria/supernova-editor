@@ -23,6 +23,7 @@ namespace Supernova::Editor{
 
         bool connect(const fs::path& buildPath, std::string libName);
         void disconnect();
+        void cleanup(SceneProject* sceneProject);
         void execute(SceneProject* sceneProject);
 
         bool isLibraryConnected() const;

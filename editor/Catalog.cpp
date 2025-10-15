@@ -470,10 +470,7 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ScriptComponent* comp = (ScriptComponent*)compRef;
         static ScriptComponent* def = new ScriptComponent;
 
-        ps["path"] = {PropertyType::Script, UpdateFlags_None, nullptr, (compRef) ? (void*)&comp->path : nullptr};
-        ps["headerPath"] = {PropertyType::String, UpdateFlags_None, nullptr, (compRef) ? (void*)&comp->headerPath : nullptr};
-        ps["className"] = {PropertyType::String, UpdateFlags_None, nullptr, (compRef) ? (void*)&comp->className : nullptr};
-        ps["enabled"] = {PropertyType::Bool, UpdateFlags_None, nullptr, (compRef) ? (void*)&comp->enabled : nullptr};
+        ps["scripts"] = {PropertyType::Custom, UpdateFlags_None, nullptr, (compRef) ? (void*)&comp->scripts : nullptr};
     }
 
     return ps;
@@ -831,8 +828,7 @@ void Editor::Catalog::copyPropertyValue(EntityRegistry* sourceRegistry, Entity s
             if (source && target) *target = *source;
             break;
         }
-        case PropertyType::String:
-        case PropertyType::Script: {
+        case PropertyType::String: {
             std::string* source = Catalog::getPropertyRef<std::string>(sourceRegistry, sourceEntity, compType, property);
             std::string* target = Catalog::getPropertyRef<std::string>(targetRegistry, targetEntity, compType, property);
             if (source && target) *target = *source;
@@ -862,6 +858,9 @@ void Editor::Catalog::copyPropertyValue(EntityRegistry* sourceRegistry, Entity s
             if (source && target) *target = *source;
             break;
         }
+        case PropertyType::Custom:
+            // Custom types like scripts array are handled separately above
+            break;
         default:
             // For any unknown/unsupported type, do nothing
             break;

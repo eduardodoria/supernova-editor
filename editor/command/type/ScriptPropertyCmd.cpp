@@ -3,12 +3,15 @@
 using namespace Supernova;
 
 Editor::ScriptPropertyCmd::ScriptPropertyCmd(Project* project, uint32_t sceneId, Entity entity, 
-                                             const std::string& propertyName, size_t propertyIndex,
+                                             const std::string& scriptClassName, const std::string& propertyName,
+                                             size_t scriptIndex, size_t propertyIndex,
                                              const ScriptPropertyValue& newValue) {
     this->project = project;
     this->sceneId = sceneId;
+    this->scriptClassName = scriptClassName;
     this->propertyName = propertyName;
 
+    this->values[entity].scriptIndex = scriptIndex;
     this->values[entity].propertyIndex = propertyIndex;
     this->values[entity].newValue = newValue;
     this->wasModified = project->getScene(sceneId)->isModified;
@@ -26,17 +29,23 @@ bool Editor::ScriptPropertyCmd::execute() {
             return false;
         }
 
-        if (value.propertyIndex >= scriptComp->properties.size()) {
+        if (value.scriptIndex >= scriptComp->scripts.size()) {
             return false;
         }
 
-        ScriptProperty& prop = scriptComp->properties[value.propertyIndex];
+        ScriptEntry& scriptEntry = scriptComp->scripts[value.scriptIndex];
+
+        if (value.propertyIndex >= scriptEntry.properties.size()) {
+            return false;
+        }
+
+        ScriptProperty& prop = scriptEntry.properties[value.propertyIndex];
         value.oldValue = prop.value;
         prop.value = value.newValue;
         prop.syncToMember();
 
         if (project->isEntityShared(sceneId, entity)) {
-            project->sharedGroupPropertyChanged(sceneId, entity, ComponentType::ScriptComponent, {"properties"});
+            project->sharedGroupPropertyChanged(sceneId, entity, ComponentType::ScriptComponent, {"scripts"});
         }
     }
 
@@ -57,16 +66,22 @@ void Editor::ScriptPropertyCmd::undo() {
             continue;
         }
 
-        if (value.propertyIndex >= scriptComp->properties.size()) {
+        if (value.scriptIndex >= scriptComp->scripts.size()) {
             continue;
         }
 
-        ScriptProperty& prop = scriptComp->properties[value.propertyIndex];
+        ScriptEntry& scriptEntry = scriptComp->scripts[value.scriptIndex];
+
+        if (value.propertyIndex >= scriptEntry.properties.size()) {
+            continue;
+        }
+
+        ScriptProperty& prop = scriptEntry.properties[value.propertyIndex];
         prop.value = value.oldValue;
         prop.syncToMember();
 
         if (project->isEntityShared(sceneId, entity)) {
-            project->sharedGroupPropertyChanged(sceneId, entity, ComponentType::ScriptComponent, {"properties"});
+            project->sharedGroupPropertyChanged(sceneId, entity, ComponentType::ScriptComponent, {"scripts"});
         }
     }
 
@@ -76,7 +91,9 @@ void Editor::ScriptPropertyCmd::undo() {
 bool Editor::ScriptPropertyCmd::mergeWith(Editor::Command* otherCommand) {
     ScriptPropertyCmd* otherCmd = dynamic_cast<ScriptPropertyCmd*>(otherCommand);
     if (otherCmd != nullptr) {
-        if (sceneId == otherCmd->sceneId && propertyName == otherCmd->propertyName) {
+        if (sceneId == otherCmd->sceneId && 
+            scriptClassName == otherCmd->scriptClassName &&
+            propertyName == otherCmd->propertyName) {
             for (auto const& [otherEntity, otherValue] : otherCmd->values) {
                 if (values.find(otherEntity) != values.end()) {
                     values[otherEntity].oldValue = otherValue.oldValue;

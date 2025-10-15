@@ -94,28 +94,39 @@ void Editor::Conector::disconnect(){
     if (libHandle) {
         Out::info("Disconnecting from library...");
 
-        // This allows the library to perform any necessary cleanup
-        #ifdef _WIN32
-            using CleanupFunc = void (*)();
-            CleanupFunc cleanup = reinterpret_cast<CleanupFunc>(GetProcAddress(static_cast<HMODULE>(libHandle), "cleanup"));
-            if (cleanup) {
-                Out::info("Calling library cleanup function...");
-                cleanup();
-            }
-        #else
-            using CleanupFunc = void (*)();
-            CleanupFunc cleanup = reinterpret_cast<CleanupFunc>(dlsym(libHandle, "cleanup"));
-            if (cleanup) {
-                Out::info("Calling library cleanup function...");
-                cleanup();
-            }
-        #endif
-
         unloadSharedLibrary(libHandle);
         libHandle = nullptr;
 
         Out::info("Disconnected from library successfully");
     }
+}
+
+void Editor::Conector::cleanup(SceneProject* sceneProject){
+    if (!libHandle) {
+        Out::error("Cannot cleanup: Not connected to library");
+        return;
+    }
+
+    // Call the cleanup function from the library
+    #ifdef _WIN32
+        using CleanupFunc = void (*)(Scene*);
+        CleanupFunc cleanupFunc = reinterpret_cast<CleanupFunc>(GetProcAddress(static_cast<HMODULE>(libHandle), "cleanup"));
+        if (cleanupFunc) {
+            Out::info("Calling library cleanup function...");
+            cleanupFunc(sceneProject->scene);
+        } else {
+            Out::warning("Cleanup function not found in library");
+        }
+    #else
+        using CleanupFunc = void (*)(Scene*);
+        CleanupFunc cleanupFunc = reinterpret_cast<CleanupFunc>(dlsym(libHandle, "cleanup"));
+        if (cleanupFunc) {
+            Out::info("Calling library cleanup function...");
+            cleanupFunc(sceneProject->scene);
+        } else {
+            Out::warning("Cleanup function not found in library");
+        }
+    #endif
 }
 
 void Editor::Conector::execute(SceneProject* sceneProject){

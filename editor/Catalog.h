@@ -91,7 +91,7 @@ namespace Supernova::Editor{
         IntSlider,
         Direction,
         Enum,
-        Script
+        Custom
     };
 
     struct EnumEntry {
