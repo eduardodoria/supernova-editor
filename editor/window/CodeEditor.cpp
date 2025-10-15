@@ -148,12 +148,12 @@ void Editor::CodeEditor::updateScriptProperties(const EditorInstance& instance){
     // Update script properties if this is a script file
     for (auto& sceneProject : project->getScenes()) {
         for (Entity entity : sceneProject.entities) {
-            ScriptComponent* sc = sceneProject.scene->findComponent<ScriptComponent>(entity);
-            if (sc) {
+            ScriptComponent* scriptComponent = sceneProject.scene->findComponent<ScriptComponent>(entity);
+            if (scriptComponent) {
                 // Check all scripts in the component
-                for (const auto& scriptEntry : sc->scripts) {
+                for (const auto& scriptEntry : scriptComponent->scripts) {
                     if (scriptEntry.headerPath == instance.filepath.string()) {
-                        project->updateScriptProperties(sceneProject.id, entity);
+                        project->updateScriptProperties(&sceneProject, scriptComponent->scripts);
                         break; // Found matching script, no need to check others
                     }
                 }

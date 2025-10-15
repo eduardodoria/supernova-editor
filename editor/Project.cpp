@@ -959,28 +959,17 @@ void Editor::Project::updateAllScriptsProperties(uint32_t sceneId){
     for (Entity entity : sceneProject->entities) {
         Signature signature = sceneProject->scene->getSignature(entity);
         if (signature.test(sceneProject->scene->getComponentId<ScriptComponent>())) {
-            const ScriptComponent& scriptComponent = sceneProject->scene->getComponent<ScriptComponent>(entity);
-            updateScriptProperties(sceneProject->id, entity);
+            ScriptComponent& scriptComponent = sceneProject->scene->getComponent<ScriptComponent>(entity);
+            updateScriptProperties(sceneProject, scriptComponent.scripts);
         }
     }
 }
 
-void Editor::Project::updateScriptProperties(uint32_t sceneId, Entity entity){
-    SceneProject* sceneProject = getScene(sceneId);
-    if (!sceneProject) {
-        return;
-    }
-
-    Scene* scene = sceneProject->scene;
-    ScriptComponent* scriptComp = scene->findComponent<ScriptComponent>(entity);
-    if (!scriptComp) {
-        return;
-    }
-
+void Editor::Project::updateScriptProperties(SceneProject* sceneProject, std::vector<ScriptEntry>& scripts){
     bool hasChanges = false;
 
     // Update properties for each script in the component
-    for (auto& scriptEntry : scriptComp->scripts) {
+    for (auto& scriptEntry : scripts) {
         // Parse the script file to extract properties
         fs::path fullPath = scriptEntry.headerPath;
         if (fullPath.is_relative()) {

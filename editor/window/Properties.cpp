@@ -1953,14 +1953,18 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
         std::string defaultName = "NewScript";
         scriptCreateDialog.open(project->getProjectPath(), defaultName, hasSubclass,
             [this, sceneProject, entities, cpType](const std::filesystem::path& headerPath,
-                                                   const std::filesystem::path& sourcePath,
-                                                   const std::string& className,
-                                                   ScriptType type){
+                                                const std::filesystem::path& sourcePath,
+                                                const std::string& className,
+                                                ScriptType type){
                 std::string pathStr = sourcePath.string();
                 std::string headerPathStr = headerPath.string();
-                for (Entity entity: entities){
-                    ScriptComponent& scriptComp = sceneProject->scene->getComponent<ScriptComponent>(entity);
 
+                for (Entity entity: entities){
+                    // Get current scripts vector
+                    ScriptComponent& scriptComp = sceneProject->scene->getComponent<ScriptComponent>(entity);
+                    std::vector<ScriptEntry> newScripts = scriptComp.scripts;
+
+                    // Create new entry
                     ScriptEntry entry;
                     entry.type = type;
                     entry.path = pathStr;
@@ -1968,16 +1972,20 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
                     entry.className = className;
                     entry.enabled = true;
 
-                    // Insert SUBCLASS at the beginning, SCRIPT_CLASS at the end
+                    // Insert SUBCLASS at beginning, SCRIPT_CLASS at end
                     if (type == ScriptType::SUBCLASS) {
-                        scriptComp.scripts.insert(scriptComp.scripts.begin(), entry);
+                        newScripts.insert(newScripts.begin(), entry);
                     } else {
-                        scriptComp.scripts.push_back(entry);
+                        newScripts.push_back(entry);
                     }
 
-                    project->updateScriptProperties(sceneProject->id, entity);
+                    project->updateScriptProperties(sceneProject, newScripts);
+
+                    // Use PropertyCmd to update the scripts vector
+                    cmd = new PropertyCmd<std::vector<ScriptEntry>>(project, sceneProject->id, entity, ComponentType::ScriptComponent, "scripts", UpdateFlags_None, newScripts);
+                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
                 }
-                sceneProject->isModified = true;
+                cmd->setNoMerge();
             },
             [](){}
         );
