@@ -2007,8 +2007,13 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
             return scriptComp.scripts[a].type == ScriptType::SUBCLASS;
         });
 
+        bool removedScriptThisFrame = false;
+
         for (size_t idx : scriptIndices) {
+            if (removedScriptThisFrame) break; // Avoid using invalidated references after removal
+
             size_t scriptIdx = idx;
+            if (scriptIdx >= scriptComp.scripts.size()) continue; // Safety
             ScriptEntry& script = scriptComp.scripts[scriptIdx];
 
             ImGui::PushID(scriptIdx);
@@ -2029,7 +2034,36 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
             // Add icon to distinguish from component headers
             std::string headerText = ICON_FA_FILE_CODE " " + scriptLabel + typeLabel;
 
-            if (ImGui::CollapsingHeader(headerText.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+            bool headerOpen = ImGui::CollapsingHeader(headerText.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
+
+            // Right-click menu on the script header
+            if (ImGui::BeginPopupContextItem(("script_options_menu_" + std::to_string(scriptIdx)).c_str())) {
+                ImGui::TextDisabled("Script options");
+                ImGui::Separator();
+
+                if (ImGui::MenuItem(ICON_FA_TRASH " Remove")) {
+                    // Remove this script entry
+                    std::vector<ScriptEntry> newScripts = scriptComp.scripts;
+                    if (scriptIdx < newScripts.size()) {
+                        newScripts.erase(newScripts.begin() + scriptIdx);
+
+                        // Refresh parsed properties for remaining scripts
+                        project->updateScriptProperties(sceneProject, newScripts);
+
+                        // Apply change through command system
+                        cmd = new PropertyCmd<std::vector<ScriptEntry>>(project, sceneProject->id, entities[0],
+                                ComponentType::ScriptComponent, "scripts", UpdateFlags_None, newScripts);
+                        CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                        cmd->setNoMerge();
+
+                        removedScriptThisFrame = true;
+                    }
+                }
+
+                ImGui::EndPopup();
+            }
+
+            if (headerOpen && !removedScriptThisFrame) {
                 ImGui::Unindent(indentation); // Unindent for content
 
                 beginTable(cpType, getLabelSize("Script Path"), "script_" + std::to_string(scriptIdx));
