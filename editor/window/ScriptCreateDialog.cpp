@@ -5,12 +5,15 @@
 namespace Supernova {
 namespace Editor {
 
-void ScriptCreateDialog::open(const fs::path& projectPath, const std::string& defaultBaseName,
-                              std::function<void(const fs::path& headerPath, const fs::path& sourcePath, const std::string& className)> onCreate,
+void ScriptCreateDialog::open(const fs::path& projectPath, const std::string& defaultBaseName, bool hasSubclass,
+                              std::function<void(const fs::path& headerPath, const fs::path& sourcePath, const std::string& className, ScriptType type)> onCreate,
                               std::function<void()> onCancel) {
     m_isOpen = true;
     m_projectPath = projectPath;
     m_selectedPath = projectPath.string();
+    m_hasSubclass = hasSubclass;
+    // If subclass exists, default to SCRIPT_CLASS
+    m_scriptType = hasSubclass ? ScriptType::SCRIPT_CLASS : ScriptType::SUBCLASS;
     m_onCreate = onCreate;
     m_onCancel = onCancel;
 
@@ -32,59 +35,112 @@ std::string ScriptCreateDialog::sanitizeClassName(const std::string& in) const {
     return out;
 }
 
-void ScriptCreateDialog::writeFiles(const fs::path& headerPath, const fs::path& sourcePath, const std::string& className) {
+void ScriptCreateDialog::writeFiles(const fs::path& headerPath, const fs::path& sourcePath, const std::string& className, ScriptType type) {
     fs::create_directories(headerPath.parent_path());
 
-    // Header
-    {
-        std::ofstream h(headerPath, std::ios::trunc);
-        if (h) {
-            h << "#pragma once\n\n";
-            h << "#include \"Shape.h\"\n";
-            h << "#include \"Engine.h\"\n";
-            h << "#include \"ScriptProperty.h\"\n\n";
-            h << "class " << className << " : public Supernova::Shape {\n";
-            h << "public:\n";
-            h << "    // Example properties - you can add more!\n";
-            h << "    SPROPERTY(\"Speed\")\n";
-            h << "    float speed = 5.0f;\n\n";
-            h << "    SPROPERTY(\"Is Active\")\n";
-            h << "    bool isActive = true;\n\n";
-            h << "    SPROPERTY(\"Target Position\")\n";
-            h << "    Supernova::Vector3 targetPosition = Supernova::Vector3(0, 0, 0);\n\n";
-            h << "    SPROPERTY(\"Mesh Color\", Color4)\n";
-            h << "    Supernova::Vector4 meshColor = Supernova::Vector4(1, 1, 1, 1);\n\n";
-            h << "    " << className << "(Supernova::Scene* scene, Supernova::Entity entity);\n";
-            h << "    virtual ~" << className << "();\n\n";
-            h << "    void update();\n";
-            h << "};\n";
+    if (type == ScriptType::SUBCLASS) {
+        // Header
+        {
+            std::ofstream h(headerPath, std::ios::trunc);
+            if (h) {
+                h << "#pragma once\n\n";
+                h << "#include \"Shape.h\"\n";
+                h << "#include \"Engine.h\"\n";
+                h << "#include \"ScriptProperty.h\"\n\n";
+                h << "class " << className << " : public Supernova::Shape {\n";
+                h << "public:\n";
+                h << "    // Example properties - you can add more!\n";
+                h << "    SPROPERTY(\"Speed\")\n";
+                h << "    float speed = 5.0f;\n\n";
+                h << "    SPROPERTY(\"Is Active\")\n";
+                h << "    bool isActive = true;\n\n";
+                h << "    SPROPERTY(\"Target Position\")\n";
+                h << "    Supernova::Vector3 targetPosition = Supernova::Vector3(0, 0, 0);\n\n";
+                h << "    SPROPERTY(\"Mesh Color\", Color4)\n";
+                h << "    Supernova::Vector4 meshColor = Supernova::Vector4(1, 1, 1, 1);\n\n";
+                h << "    " << className << "(Supernova::Scene* scene, Supernova::Entity entity);\n";
+                h << "    virtual ~" << className << "();\n\n";
+                h << "    void update();\n";
+                h << "};\n";
+            }
         }
-    }
 
-    // Source
-    {
-        std::ofstream c(sourcePath, std::ios::trunc);
-        if (c) {
-            c << "#include \"" << headerPath.filename().string() << "\"\n\n";
-            c << "using namespace Supernova;\n\n";
-            c << className << "::" << className << "(Scene* scene, Entity entity): Shape(scene, entity) {\n";
-            c << "    printf(\"" << className << " created!\\n\");\n\n";
-            c << "    // Subscribe to update event\n";
-            c << "    Engine::onUpdate.add<" << className << ", &" << className << "::update>(\"" << className << "Update\", this);\n";
-            c << "}\n\n";
-            c << className << "::~" << className << "() {\n";
-            c << "    // Unsubscribe from update event\n";
-            c << "    Engine::onUpdate.remove(\"" << className << "Update\");\n";
-            c << "}\n\n";
-            c << "void " << className << "::update() {\n";
-            c << "    if (!isActive) return;\n\n";
-            c << "    // Example: Move towards target position at 'speed' units per second\n";
-            c << "    float deltaTime = Engine::getDeltatime();\n";
-            c << "    Vector3 currentPos = getPosition();\n";
-            c << "    Vector3 direction = (targetPosition - currentPos).normalize();\n";
-            c << "    setPosition(currentPos + direction * speed * deltaTime);\n";
-            c << "    setColor(meshColor);\n";
-            c << "}\n\n";
+        // Source
+        {
+            std::ofstream c(sourcePath, std::ios::trunc);
+            if (c) {
+                c << "#include \"" << headerPath.filename().string() << "\"\n\n";
+                c << "using namespace Supernova;\n\n";
+                c << className << "::" << className << "(Scene* scene, Entity entity): Shape(scene, entity) {\n";
+                c << "    printf(\"" << className << " created!\\n\");\n\n";
+                c << "    // Subscribe to update event\n";
+                c << "    Engine::onUpdate.add<" << className << ", &" << className << "::update>(\"" << className << "Update\", this);\n";
+                c << "}\n\n";
+                c << className << "::~" << className << "() {\n";
+                c << "    // Unsubscribe from update event\n";
+                c << "    Engine::onUpdate.remove(\"" << className << "Update\");\n";
+                c << "}\n\n";
+                c << "void " << className << "::update() {\n";
+                c << "    if (!isActive) return;\n\n";
+                c << "    // Example: Move towards target position at 'speed' units per second\n";
+                c << "    float deltaTime = Engine::getDeltatime();\n";
+                c << "    Vector3 currentPos = getPosition();\n";
+                c << "    Vector3 direction = (targetPosition - currentPos).normalize();\n";
+                c << "    setPosition(currentPos + direction * speed * deltaTime);\n";
+                c << "    setColor(meshColor);\n";
+                c << "}\n\n";
+            }
+        }
+    } else {
+        // Script Class
+        // Header
+        {
+            std::ofstream h(headerPath, std::ios::trunc);
+            if (h) {
+                h << "#pragma once\n\n";
+                h << "#include \"ScriptBase.h\"\n";
+                h << "#include \"Engine.h\"\n";
+                h << "#include \"ScriptProperty.h\"\n\n";
+                h << "class " << className << " : public Supernova::ScriptBase {\n";
+                h << "public:\n";
+                h << "    // Example properties - you can add more!\n";
+                h << "    SPROPERTY(\"Speed\")\n";
+                h << "    float speed = 5.0f;\n\n";
+                h << "    SPROPERTY(\"Is Active\")\n";
+                h << "    bool isActive = true;\n\n";
+                h << "    SPROPERTY(\"Counter\")\n";
+                h << "    int counter = 0;\n\n";
+                h << "    " << className << "(Supernova::Scene* scene, Supernova::Entity entity);\n";
+                h << "    virtual ~" << className << "();\n\n";
+                h << "    void update();\n";
+                h << "};\n";
+            }
+        }
+
+        // Source
+        {
+            std::ofstream c(sourcePath, std::ios::trunc);
+            if (c) {
+                c << "#include \"" << headerPath.filename().string() << "\"\n\n";
+                c << "using namespace Supernova;\n\n";
+                c << className << "::" << className << "(Scene* scene, Entity entity): ScriptBase(scene, entity) {\n";
+                c << "    printf(\"" << className << " created!\\n\");\n\n";
+                c << "    // Subscribe to update event\n";
+                c << "    Engine::onUpdate.add<" << className << ", &" << className << "::update>(\"" << className << "Update\", this);\n";
+                c << "}\n\n";
+                c << className << "::~" << className << "() {\n";
+                c << "    // Unsubscribe from update event\n";
+                c << "    Engine::onUpdate.remove(\"" << className << "Update\");\n";
+                c << "}\n\n";
+                c << "void " << className << "::update() {\n";
+                c << "    if (!isActive) return;\n\n";
+                c << "    // Example: Increment counter every frame\n";
+                c << "    counter++;\n";
+                c << "    if (counter % 60 == 0) {\n";
+                c << "        printf(\"Counter: %d\\n\", counter);\n";
+                c << "    }\n";
+                c << "}\n\n";
+            }
         }
     }
 }
@@ -110,6 +166,28 @@ void ScriptCreateDialog::show() {
         }
         return;
     }
+
+    // Script Type Selection
+    ImGui::Text("Script Type:");
+
+    ImGui::BeginDisabled(m_hasSubclass);
+    if (ImGui::RadioButton("Subclass", (int*)&m_scriptType, (int)ScriptType::SUBCLASS)) {
+        // Script type changed to SUBCLASS
+    }
+    ImGui::EndDisabled();
+
+    if (m_hasSubclass && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+        ImGui::SetTooltip("Only one Subclass script is allowed per entity");
+    }
+
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Script Class", (int*)&m_scriptType, (int)ScriptType::SCRIPT_CLASS)) {
+        // Script type changed to SCRIPT_CLASS
+    }
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
 
     if (ImGui::BeginChild("DirBrowser", ImVec2(300, 200), true)) {
         if (ImGui::BeginTable("DirTree", 1, ImGuiTableFlags_Resizable)) {
@@ -172,9 +250,9 @@ void ScriptCreateDialog::show() {
 
     ImGui::BeginDisabled(!hasBase);
     if (ImGui::Button("Create", ImVec2(120, 0))) {
-        writeFiles(headerPath, sourcePath, className);
+        writeFiles(headerPath, sourcePath, className, m_scriptType);
         if (m_onCreate) {
-            m_onCreate(headerPath, sourcePath, className);
+            m_onCreate(headerPath, sourcePath, className, m_scriptType);
         }
         m_isOpen = false;
         ImGui::CloseCurrentPopup();

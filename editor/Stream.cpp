@@ -1795,7 +1795,7 @@ YAML::Node Editor::Stream::encodeScriptComponent(const ScriptComponent& script) 
         for (const auto& scriptEntry : script.scripts) {
             YAML::Node scriptNode;
 
-            scriptNode["type"] = (scriptEntry.type == ScriptType::SUBCLASS) ? "subclass" : "plain_class";
+            scriptNode["type"] = (scriptEntry.type == ScriptType::SUBCLASS) ? "subclass" : "script_class";
 
             if (!scriptEntry.path.empty())
                 scriptNode["path"] = scriptEntry.path;
@@ -1839,7 +1839,7 @@ ScriptComponent Editor::Stream::decodeScriptComponent(const YAML::Node& node, co
         // Decode script type
         if (scriptNode["type"]) {
             std::string typeStr = scriptNode["type"].as<std::string>();
-            entry.type = (typeStr == "subclass") ? ScriptType::SUBCLASS : ScriptType::PLAIN_CLASS;
+            entry.type = (typeStr == "subclass") ? ScriptType::SUBCLASS : ScriptType::SCRIPT_CLASS;
         } else {
             entry.type = ScriptType::SUBCLASS; // Default for backward compatibility
         }

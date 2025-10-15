@@ -1951,26 +1951,33 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
 
     if (ImGui::Button(ICON_FA_FILE_CIRCLE_PLUS " New Script", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, 0))) {
         std::string defaultName = "NewScript";
-        scriptCreateDialog.open(project->getProjectPath(), defaultName,
+        scriptCreateDialog.open(project->getProjectPath(), defaultName, hasSubclass,
             [this, sceneProject, entities, cpType](const std::filesystem::path& headerPath,
                                                    const std::filesystem::path& sourcePath,
-                                                   const std::string& className){
+                                                   const std::string& className,
+                                                   ScriptType type){
                 std::string pathStr = sourcePath.string();
                 std::string headerPathStr = headerPath.string();
                 for (Entity entity: entities){
-                    ScriptComponent& sc = sceneProject->scene->getComponent<ScriptComponent>(entity);
+                    ScriptComponent& scriptComp = sceneProject->scene->getComponent<ScriptComponent>(entity);
 
-                    ScriptEntry newScript;
-                    newScript.type = ScriptType::SUBCLASS; // Default to SUBCLASS for new scripts
-                    newScript.path = pathStr;
-                    newScript.headerPath = headerPathStr;
-                    newScript.className = className;
-                    newScript.enabled = true;
+                    ScriptEntry entry;
+                    entry.type = type;
+                    entry.path = pathStr;
+                    entry.headerPath = headerPathStr;
+                    entry.className = className;
+                    entry.enabled = true;
 
-                    sc.scripts.push_back(newScript);
+                    // Insert SUBCLASS at the beginning, SCRIPT_CLASS at the end
+                    if (type == ScriptType::SUBCLASS) {
+                        scriptComp.scripts.insert(scriptComp.scripts.begin(), entry);
+                    } else {
+                        scriptComp.scripts.push_back(entry);
+                    }
 
                     project->updateScriptProperties(sceneProject->id, entity);
                 }
+                sceneProject->isModified = true;
             },
             [](){}
         );
@@ -1978,26 +1985,31 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
 
     // Display all scripts
     if (entities.size() == 1) {
-        for (size_t scriptIdx = 0; scriptIdx < scriptComp.scripts.size(); scriptIdx++) {
+        // Sort scripts to ensure SUBCLASS comes first
+        std::vector<size_t> scriptIndices;
+        for (size_t i = 0; i < scriptComp.scripts.size(); i++) {
+            scriptIndices.push_back(i);
+        }
+
+        // Sort indices: SUBCLASS first, then SCRIPT_CLASS
+        std::sort(scriptIndices.begin(), scriptIndices.end(), [&](size_t a, size_t b) {
+            if (scriptComp.scripts[a].type == scriptComp.scripts[b].type) {
+                return a < b; // Maintain original order within same type
+            }
+            return scriptComp.scripts[a].type == ScriptType::SUBCLASS;
+        });
+
+        for (size_t idx : scriptIndices) {
+            size_t scriptIdx = idx;
             ScriptEntry& script = scriptComp.scripts[scriptIdx];
 
             ImGui::PushID(scriptIdx);
 
             std::string scriptLabel = script.className.empty() ? "Unnamed Script" : script.className;
-            std::string typeLabel = (script.type == ScriptType::SUBCLASS) ? " [Subclass]" : " [Plain Class]";
+            std::string typeLabel = (script.type == ScriptType::SUBCLASS) ? " [Subclass]" : " [Script Class]";
 
             if (ImGui::CollapsingHeader((scriptLabel + typeLabel).c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
                 beginTable(cpType, getLabelSize("Script Path"), "script_" + std::to_string(scriptIdx));
-
-                // Script type (read-only for now, or could be editable with constraints)
-                propertyHeader("Type");
-                const char* types[] = { "Subclass", "Plain Class" };
-                int currentType = (script.type == ScriptType::SUBCLASS) ? 0 : 1;
-                ImGui::BeginDisabled(script.type == ScriptType::SUBCLASS && hasSubclass);
-                if (ImGui::Combo("##script_type", &currentType, types, IM_ARRAYSIZE(types))) {
-                    script.type = (currentType == 0) ? ScriptType::SUBCLASS : ScriptType::PLAIN_CLASS;
-                }
-                ImGui::EndDisabled();
 
                 // Path and enabled status
                 propertyHeader("Path");

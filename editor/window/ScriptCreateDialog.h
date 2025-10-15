@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cctype>
 #include "imgui.h"
+#include "component/ScriptComponent.h"
 
 namespace Supernova {
 namespace Editor {
@@ -19,21 +20,23 @@ private:
     fs::path m_projectPath;
     std::string m_selectedPath;
     char m_baseNameBuffer[128] = "";
+    ScriptType m_scriptType = ScriptType::SUBCLASS;
+    bool m_hasSubclass = false;
 
-    std::function<void(const fs::path& headerPath, const fs::path& sourcePath, const std::string& className)> m_onCreate;
+    std::function<void(const fs::path& headerPath, const fs::path& sourcePath, const std::string& className, ScriptType type)> m_onCreate;
     std::function<void()> m_onCancel;
 
     void displayDirectoryTree(const fs::path& rootPath, const fs::path& currentPath);
 
     std::string sanitizeClassName(const std::string& in) const;
-    void writeFiles(const fs::path& headerPath, const fs::path& sourcePath, const std::string& className);
+    void writeFiles(const fs::path& headerPath, const fs::path& sourcePath, const std::string& className, ScriptType type);
 
 public:
     ScriptCreateDialog() = default;
     ~ScriptCreateDialog() = default;
 
-    void open(const fs::path& projectPath, const std::string& defaultBaseName,
-              std::function<void(const fs::path& headerPath, const fs::path& sourcePath, const std::string& className)> onCreate,
+    void open(const fs::path& projectPath, const std::string& defaultBaseName, bool hasSubclass,
+              std::function<void(const fs::path& headerPath, const fs::path& sourcePath, const std::string& className, ScriptType type)> onCreate,
               std::function<void()> onCancel = nullptr);
 
     void show();
