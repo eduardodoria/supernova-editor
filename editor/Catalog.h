@@ -23,6 +23,7 @@ namespace Supernova::Editor{
 
     // the order of components here affects properties window
     enum class ComponentType : int {
+        ScriptComponent,
         Transform,
         MeshComponent,
         UIComponent,
@@ -57,7 +58,6 @@ namespace Supernova::Editor{
         RotationActionComponent,
         ScaleActionComponent,
         ScaleTracksComponent,
-        ScriptComponent,
         ScrollbarComponent,
         SkyComponent,
         SpriteAnimationComponent,

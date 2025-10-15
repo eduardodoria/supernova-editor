@@ -2006,14 +2006,46 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
             ImGui::PushID(scriptIdx);
 
             std::string scriptLabel = script.className.empty() ? "Unnamed Script" : script.className;
-            std::string typeLabel = (script.type == ScriptType::SUBCLASS) ? " [Subclass]" : " [Script Class]";
+            std::string typeLabel = (script.type == ScriptType::SUBCLASS) ? " [Subclass]" : "";
 
-            if (ImGui::CollapsingHeader((scriptLabel + typeLabel).c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+            const float indentation = 10.0f;
+
+            // Indent to show scripts are nested inside ScriptComponent
+            ImGui::Indent(indentation);
+
+            // Custom styling for script headers
+            ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.25f, 0.25f, 0.3f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.3f, 0.3f, 0.35f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.35f, 0.35f, 0.4f, 1.0f));
+
+            // Add icon to distinguish from component headers
+            std::string headerText = ICON_FA_FILE_CODE " " + scriptLabel + typeLabel;
+
+            if (ImGui::CollapsingHeader(headerText.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+                ImGui::Unindent(indentation); // Unindent for content
+
                 beginTable(cpType, getLabelSize("Script Path"), "script_" + std::to_string(scriptIdx));
 
                 // Path and enabled status
                 propertyHeader("Path");
-                ImGui::Text("%s", script.path.c_str());
+
+                // Convert absolute path to relative path from project directory
+                std::string displayPath = script.path;
+                std::filesystem::path scriptPath = script.path;
+                std::filesystem::path projectPath = project->getProjectPath();
+
+                if (scriptPath.is_absolute()) {
+                    std::error_code ec;
+                    auto relativePath = std::filesystem::relative(scriptPath, projectPath, ec);
+                    if (!ec && relativePath.string().find("..") == std::string::npos) {
+                        displayPath = relativePath.string();
+                    }
+                }
+
+                ImGui::Text("%s", displayPath.c_str());
+                if (ImGui::IsItemHovered() && displayPath != script.path) {
+                    ImGui::SetTooltip("%s", script.path.c_str());
+                }
 
                 propertyHeader("Enabled");
                 ImGui::Checkbox("##enabled", &script.enabled);
@@ -2223,7 +2255,12 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, std::map<std:
 
                     endTable();
                 }
+
+                ImGui::Indent(indentation); // Re-indent after content
             }
+
+            ImGui::PopStyleColor(3);
+            ImGui::Unindent(indentation);
 
             ImGui::PopID();
         }
