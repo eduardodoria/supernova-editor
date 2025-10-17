@@ -7,6 +7,7 @@
 #define NOMINMAX
 #include <windows.h>
 #endif
+#include <unordered_set>
 
 #include "render/SceneRender2D.h"
 #include "render/SceneRender3D.h"
