@@ -122,6 +122,8 @@ namespace Supernova::Editor{
         static Signature componentTypeToSignature(const EntityRegistry* registry, ComponentType compType);
         static Signature componentMaskToSignature(const EntityRegistry* registry, uint64_t mask);
 
+        static PropertyType scriptPropertyTypeToPropertyType(ScriptPropertyType scriptType);
+
         static std::map<std::string, PropertyData> getProperties(ComponentType component, void* compRef);
 
         static std::vector<ComponentType> findComponents(EntityRegistry* registry, Entity entity);
@@ -135,6 +137,8 @@ namespace Supernova::Editor{
         static void copyPropertyValue(EntityRegistry* sourceRegistry, Entity sourceEntity, 
                                     EntityRegistry* targetRegistry, Entity targetEntity, 
                                     ComponentType compType, const std::string& property);
+
+        static PropertyData getProperty(EntityRegistry* registry, Entity entity, ComponentType component, std::string propertyName);
 
         template<typename T>
         static T* getPropertyRef(EntityRegistry* registry, Entity entity, ComponentType component, std::string propertyName){

@@ -530,13 +530,13 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                     if (toolslayer.getGizmo2DSideSelected() != Gizmo2DSideSelected::NONE){
                         MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
                         if (isLayout){
-                            multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entity, ComponentType::UILayoutComponent, "width", UpdateFlags_Layout_Sizes, static_cast<unsigned int>(size.x));
-                            multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entity, ComponentType::UILayoutComponent, "height", UpdateFlags_Layout_Sizes, static_cast<unsigned int>(size.y));
+                            multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entity, ComponentType::UILayoutComponent, "width", static_cast<unsigned int>(size.x));
+                            multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entity, ComponentType::UILayoutComponent, "height", static_cast<unsigned int>(size.y));
                         }else if (isSprite){
-                            multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entity, ComponentType::SpriteComponent, "width", UpdateFlags_Sprite, static_cast<unsigned int>(size.x));
-                            multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entity, ComponentType::SpriteComponent, "height", UpdateFlags_Sprite, static_cast<unsigned int>(size.y));
+                            multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entity, ComponentType::SpriteComponent, "width", static_cast<unsigned int>(size.x));
+                            multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entity, ComponentType::SpriteComponent, "height", static_cast<unsigned int>(size.y));
                         }
-                        multiCmd->addPropertyCmd<Vector3>(project, sceneProject->id, entity, ComponentType::Transform, "position", UpdateFlags_Transform, pos);
+                        multiCmd->addPropertyCmd<Vector3>(project, sceneProject->id, entity, ComponentType::Transform, "position", pos);
                         lastCommand = multiCmd;
                     }
                 }

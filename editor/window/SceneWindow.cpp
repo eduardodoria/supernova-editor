@@ -559,7 +559,7 @@ void Editor::SceneWindow::show() {
                                         std::string propName = "submeshes[0].material.baseColorTexture";
                                         selMesh->submeshes[0].material.baseColorTexture = originalTex;
 
-                                        PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(project, sceneProject.id, selEntity, ComponentType::MeshComponent, propName, UpdateFlags_Mesh_Texture, newTex);
+                                        PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(project, sceneProject.id, selEntity, ComponentType::MeshComponent, propName, newTex);
                                         CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(cmd);
 
                                         selMesh = nullptr;
@@ -580,7 +580,7 @@ void Editor::SceneWindow::show() {
                                         std::string propName = "texture";
                                         selUI->texture = originalTex;
 
-                                        PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(project, sceneProject.id, selEntity, ComponentType::UIComponent, propName, UpdateFlags_UI_Texture, newTex);
+                                        PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(project, sceneProject.id, selEntity, ComponentType::UIComponent, propName, newTex);
                                         CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(cmd);
 
                                         selUI = nullptr;

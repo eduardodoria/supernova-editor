@@ -10,6 +10,29 @@
 
 namespace Supernova::Editor{
 
+    enum class RowPropertyType{
+        Bool,
+        String,
+        Float,
+        Float_0_1,
+        Vector2,
+        Vector3,
+        Vector4,
+        Quat,
+        Color3L,
+        Color4L,
+        Int,
+        UInt,
+        Material,
+        Texture,
+        HalfCone,
+        UIntSlider,
+        IntSlider,
+        Direction,
+        Enum,
+        Custom
+    };
+
     class Properties{
     private:
         Project* project;
@@ -43,6 +66,8 @@ namespace Supernova::Editor{
 
         const ImU32 textureLabel = IM_COL32(50, 50, 50, 255);
 
+        static RowPropertyType scriptPropertyTypeToRowPropertyType(ScriptPropertyType scriptType);
+
         // replace [number] with []
         std::string replaceNumberedBrackets(const std::string& input);
         Vector3 roundZero(const Vector3& val, const float threshold);
@@ -55,7 +80,7 @@ namespace Supernova::Editor{
 
         Texture* findThumbnail(const std::string& path);
         void drawImageWithBorderAndRounding(Texture* texture, const ImVec2& size, float rounding = 4.0f, ImU32 border_col = IM_COL32(0, 0, 0, 255), float border_thickness = 1.0f, bool flipY = false);
-        void dragDropResources(ComponentType cpType, std::string id, SceneProject* sceneProject, std::vector<Entity> entities, int updateFlags);
+        void dragDropResources(ComponentType cpType, std::string id, SceneProject* sceneProject, std::vector<Entity> entities, ComponentType componentType);
 
         void handleComponentMenu(SceneProject* sceneProject, std::vector<Entity> entities, ComponentType cpType, bool isSharedGroup, bool isComponentOverridden, bool& headerOpen);
 
@@ -72,16 +97,16 @@ namespace Supernova::Editor{
         void beginTable(ComponentType cpType, float firstColSize, std::string nameAddon = "");
         void endTable();
         bool propertyHeader(std::string label, float secondColSize = -1, bool defChanged = false, bool child = false);
-        bool propertyRow(ComponentType cpType, std::map<std::string, PropertyData> props, std::string id, std::string label, SceneProject* sceneProject, std::vector<Entity> entities, float stepSize = 0.1f, float secondColSize = -1, bool child = false, std::string help = "", const char *format = "%.2f");
+        bool propertyRow(RowPropertyType type, ComponentType cpType, std::string id, std::string label, SceneProject* sceneProject, std::vector<Entity> entities, float stepSize = 0.1f, float secondColSize = -1, bool child = false, std::string help = "", const char *format = "%.2f");
 
-        void drawTransform(ComponentType cpType, std::map<std::string, PropertyData> props, SceneProject* sceneProject, std::vector<Entity> entities);
-        void drawMeshComponent(ComponentType cpType, std::map<std::string, PropertyData> props, SceneProject* sceneProject, std::vector<Entity> entities);
-        void drawUIComponent(ComponentType cpType, std::map<std::string, PropertyData> props, SceneProject* sceneProject, std::vector<Entity> entities);
-        void drawUILayoutComponent(ComponentType cpType, std::map<std::string, PropertyData> props, SceneProject* sceneProject, std::vector<Entity> entities);
-        void drawImageComponent(ComponentType cpType, std::map<std::string, PropertyData> props, SceneProject* sceneProject, std::vector<Entity> entities);
-        void drawSpriteComponent(ComponentType cpType, std::map<std::string, PropertyData> props, SceneProject* sceneProject, std::vector<Entity> entities);
-        void drawLightComponent(ComponentType cpType, std::map<std::string, PropertyData> props, SceneProject* sceneProject, std::vector<Entity> entities);
-        void drawScriptComponent(ComponentType cpType, std::map<std::string, PropertyData> props, SceneProject* sceneProject, std::vector<Entity> entities);
+        void drawTransform(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
+        void drawMeshComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
+        void drawUIComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
+        void drawUILayoutComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
+        void drawImageComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
+        void drawSpriteComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
+        void drawLightComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
+        void drawScriptComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
 
     public:
         Properties(Project* project);

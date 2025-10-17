@@ -377,6 +377,22 @@ Signature Editor::Catalog::componentMaskToSignature(const EntityRegistry* regist
     return signature;
 }
 
+Editor::PropertyType Editor::Catalog::scriptPropertyTypeToPropertyType(ScriptPropertyType scriptType) {
+    switch (scriptType) {
+        case Supernova::ScriptPropertyType::Bool: return Editor::PropertyType::Bool;
+        case Supernova::ScriptPropertyType::Int: return Editor::PropertyType::Int;
+        case Supernova::ScriptPropertyType::Float: return Editor::PropertyType::Float;
+        case Supernova::ScriptPropertyType::String: return Editor::PropertyType::String;
+        case Supernova::ScriptPropertyType::Vector2: return Editor::PropertyType::Vector2;
+        case Supernova::ScriptPropertyType::Vector3: return Editor::PropertyType::Vector3;
+        case Supernova::ScriptPropertyType::Vector4: return Editor::PropertyType::Vector4;
+        case Supernova::ScriptPropertyType::Color3: return Editor::PropertyType::Color3L;
+        case Supernova::ScriptPropertyType::Color4: return Editor::PropertyType::Color4L;
+        case Supernova::ScriptPropertyType::Pointer: return Editor::PropertyType::Custom;
+        default: return Editor::PropertyType::Custom;
+    }
+}
+
 std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(ComponentType component, void* compRef){
     std::map<std::string, Editor::PropertyData> ps;
     if(component == ComponentType::Transform){
@@ -471,6 +487,65 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         static ScriptComponent* def = new ScriptComponent;
 
         ps["scripts"] = {PropertyType::Custom, UpdateFlags_None, nullptr, (compRef) ? (void*)&comp->scripts : nullptr};
+
+        // Add script properties to the map
+        if (compRef && comp) {
+            for (size_t i = 0; i < comp->scripts.size(); i++) {
+                auto& script = comp->scripts[i];
+                if (!script.enabled) continue;
+
+                for (auto& prop : script.properties) {
+                    std::string key = "script[" + std::to_string(i) + "]." + prop.name;
+                    PropertyData propData;
+                    propData.type = scriptPropertyTypeToPropertyType(prop.type);
+                    propData.updateFlags = UpdateFlags_None;
+
+                    // Get pointer to the actual value in the variant
+                    switch (prop.type) {
+                        case Supernova::ScriptPropertyType::Bool:
+                            propData.ref = &std::get<bool>(prop.value);
+                            propData.def = &std::get<bool>(prop.defaultValue);
+                            break;
+                        case Supernova::ScriptPropertyType::Int:
+                            propData.ref = &std::get<int>(prop.value);
+                            propData.def = &std::get<int>(prop.defaultValue);
+                            break;
+                        case Supernova::ScriptPropertyType::Float:
+                            propData.ref = &std::get<float>(prop.value);
+                            propData.def = &std::get<float>(prop.defaultValue);
+                            break;
+                        case Supernova::ScriptPropertyType::String:
+                            propData.ref = &std::get<std::string>(prop.value);
+                            propData.def = &std::get<std::string>(prop.defaultValue);
+                            break;
+                        case Supernova::ScriptPropertyType::Vector2:
+                            propData.ref = &std::get<Vector2>(prop.value);
+                            propData.def = &std::get<Vector2>(prop.defaultValue);
+                            break;
+                        case Supernova::ScriptPropertyType::Vector3:
+                        case Supernova::ScriptPropertyType::Color3:
+                            propData.ref = &std::get<Vector3>(prop.value);
+                            propData.def = &std::get<Vector3>(prop.defaultValue);
+                            break;
+                        case Supernova::ScriptPropertyType::Vector4:
+                        case Supernova::ScriptPropertyType::Color4:
+                            propData.ref = &std::get<Vector4>(prop.value);
+                            propData.def = &std::get<Vector4>(prop.defaultValue);
+                            break;
+                        case Supernova::ScriptPropertyType::Pointer:
+                            propData.ref = &std::get<void*>(prop.value);
+                            propData.def = &std::get<void*>(prop.defaultValue);
+                            break;
+                        default:
+                            propData.ref = nullptr;
+                            propData.def = nullptr;
+                            break;
+                    }
+
+                    ps[key] = propData;
+                }
+            }
+        }
     }
 
     return ps;
@@ -868,4 +943,15 @@ void Editor::Catalog::copyPropertyValue(EntityRegistry* sourceRegistry, Entity s
 
     // Apply any update flags that are associated with this property
     updateEntity(targetRegistry, targetEntity, propIt->second.updateFlags);
+}
+
+Editor::PropertyData Editor::Catalog::getProperty(EntityRegistry* registry, Entity entity, ComponentType component, std::string propertyName){
+    for (auto& [name, property] : Catalog::findEntityProperties(registry, entity, component)){
+        if (name == propertyName){
+            return property;
+        }
+    }
+
+    printf("ERROR: Cannot find property %s\n", propertyName.c_str());
+    return PropertyData();
 }
