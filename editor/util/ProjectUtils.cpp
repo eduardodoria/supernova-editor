@@ -53,7 +53,7 @@ bool Editor::ProjectUtils::moveEntityOrderByTarget(EntityRegistry* registry, std
         bool needAdjustBranch = (sourceTransformIndex < targetTransformIndex);
 
         Entity newParent = NULL_ENTITY;
-        if (type == InsertionType::IN){
+        if (type == InsertionType::INTO){
             newParent = target;
         }else{
             newParent = transformTarget->parent;
@@ -66,7 +66,7 @@ bool Editor::ProjectUtils::moveEntityOrderByTarget(EntityRegistry* registry, std
             // if position target has children, move them to the end of the list
             //targetTransformIndex = registry->findBranchLastIndex(target);
         //}
-        if (type == InsertionType::AFTER || type == InsertionType::IN){
+        if (type == InsertionType::AFTER || type == InsertionType::INTO){
             targetTransformIndex++;
         }
         if (needAdjustBranch){
@@ -101,7 +101,7 @@ bool Editor::ProjectUtils::moveEntityOrderByTarget(EntityRegistry* registry, std
         } else if (type == InsertionType::AFTER) {
             if (sourceIndex < targetIndex) targetIndex--;
             entities.insert(entities.begin() + targetIndex + 1, tempSource);
-        } else if (type == InsertionType::IN) {
+        } else if (type == InsertionType::INTO) {
             // "IN" is ambiguous without hierarchy, treat as AFTER
             if (sourceIndex < targetIndex) targetIndex--;
             entities.insert(entities.begin() + targetIndex + 1, tempSource);

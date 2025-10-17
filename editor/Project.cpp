@@ -4,7 +4,6 @@
 
 #include <fstream>
 #ifdef _WIN32
-#define NOMINMAX
 #include <windows.h>
 #endif
 #include <unordered_set>
@@ -1597,7 +1596,7 @@ Editor::SharedMoveRecovery Editor::Project::moveEntityFromSharedGroup(uint32_t s
     uint32_t instanceId = group->getInstanceId(sceneId, entity);
 
     if (!isEntityShared(sceneId, target)){
-        if (type == InsertionType::IN){
+        if (type == InsertionType::INTO){
             Out::error("Cannot move shared entity %u into non-shared target %u in scene %u", entity, target, sceneId);
             return {};
         }

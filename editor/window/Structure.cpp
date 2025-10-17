@@ -434,7 +434,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                     }else if (insertAfter){
                         type = InsertionType::AFTER;
                     }else{
-                        type = InsertionType::IN;
+                        type = InsertionType::INTO;
                     }
                     CommandHandle::get(project->getSelectedSceneId())->addCommand(new MoveEntityOrderCmd(project, project->getSelectedSceneId(), sourceEntity, node.id, type));
                 }

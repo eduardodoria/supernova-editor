@@ -32,7 +32,7 @@ namespace Supernova::Editor{
     enum class InsertionType{
         BEFORE,
         AFTER,
-        IN
+        INTO
     };
 
     struct SceneProject{

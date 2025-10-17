@@ -23,7 +23,7 @@ bool Editor::MoveEntityOrderCmd::execute(){
         fs::path sourceSharedPath = project->findGroupPathFor(sceneId, source);
         fs::path targetSharedPath = project->findGroupPathFor(sceneId, target);
 
-        if (type == InsertionType::IN){
+        if (type == InsertionType::INTO){
             if (!project->isEntityShared(sceneId, target)){
                 Out::error("Cannot move shared entity %u into target %u", source, target);
                 return false;
