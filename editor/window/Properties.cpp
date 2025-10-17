@@ -14,7 +14,6 @@
 #include "command/type/RemoveComponentCmd.h"
 #include "command/type/ComponentToSharedCmd.h"
 #include "command/type/ComponentToLocalCmd.h"
-#include "command/type/ScriptPropertyCmd.h"
 #include "render/SceneRender2D.h"
 #include "util/SHA1.h"
 #include "Stream.h"
@@ -23,6 +22,34 @@
 #include <map>
 
 using namespace Supernova;
+
+static std::vector<Editor::EnumEntry> entriesPrimitiveType = {
+    { (int)PrimitiveType::TRIANGLES, "Triangles" },
+    { (int)PrimitiveType::TRIANGLE_STRIP, "Triangle Strip" },
+    { (int)PrimitiveType::POINTS, "Points" },
+    { (int)PrimitiveType::LINES, "Lines" }
+};
+
+static std::vector<Editor::EnumEntry> entriesPivotPreset = {
+    { (int)PivotPreset::CENTER, "Center" },
+    { (int)PivotPreset::TOP_CENTER, "Top Center" },
+    { (int)PivotPreset::BOTTOM_CENTER, "Bottom Center" },
+    { (int)PivotPreset::LEFT_CENTER, "Left Center" },
+    { (int)PivotPreset::RIGHT_CENTER, "Right Center" },
+    { (int)PivotPreset::TOP_LEFT, "Top Left" },
+    { (int)PivotPreset::BOTTOM_LEFT, "Bottom Left" },
+    { (int)PivotPreset::TOP_RIGHT, "Top Right" },
+    { (int)PivotPreset::BOTTOM_RIGHT, "Bottom Right" }
+};
+
+static std::vector<Editor::EnumEntry> entriesLightType = {
+    { (int)LightType::DIRECTIONAL, "Directional" },
+    { (int)LightType::POINT, "Point" },
+    { (int)LightType::SPOT, "Spot" }
+};
+
+static std::vector<int> cascadeValues = { 1, 2, 3, 4, 5, 6 };
+static std::vector<int> po2Values = { 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384 };
 
 Editor::Properties::Properties(Project* project){
     this->project = project;
@@ -495,7 +522,7 @@ bool Editor::Properties::propertyHeader(std::string label, float secondColSize, 
     return button;
 }
 
-bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType, std::string id, std::string label, SceneProject* sceneProject, std::vector<Entity> entities, float stepSize, float secondColSize, bool child, std::string help, const char *format){
+bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType, std::string id, std::string label, SceneProject* sceneProject, std::vector<Entity> entities, RowSettings settings){
     bool result = true;
 
     constexpr float compThreshold = 1e-4;
@@ -526,7 +553,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         if (defArr){
             defChanged = compareVectorFloat((float*)&newValue, defArr, 2, compThreshold);
         }
-        if (propertyHeader(label, secondColSize, defChanged, child)){
+        if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector2>(project, sceneProject->id, entity, cpType, id, static_cast<Vector2>(defArr));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -539,7 +566,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
         if (difX)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::DragFloat(("##input_x_"+id).c_str(), &(newValue.x), stepSize, 0.0f, 0.0f, format)){
+        if (ImGui::DragFloat(("##input_x_"+id).c_str(), &(newValue.x), settings.stepSize, 0.0f, 0.0f, settings.format)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector2>(project, sceneProject->id, entity, cpType, id, Vector2(newValue.x, eValue[entity].y));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -551,7 +578,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         ImGui::SameLine();
         if (difY)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::DragFloat(("##input_y_"+id).c_str(), &(newValue.y), stepSize, 0.0f, 0.0f, format)){
+        if (ImGui::DragFloat(("##input_y_"+id).c_str(), &(newValue.y), settings.stepSize, 0.0f, 0.0f, settings.format)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector2>(project, sceneProject->id, entity, cpType, id, Vector2(eValue[entity].x, newValue.y));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -591,7 +618,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         if (defArr){
             defChanged = compareVectorFloat((float*)&newValue, defArr, 3, compThreshold);
         }
-        if (propertyHeader(label, secondColSize, defChanged, child)){
+        if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector3>(project, sceneProject->id, entity, cpType, id, static_cast<Vector3>(defArr));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -645,7 +672,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             }
         }
 
-        ImGui::SetNextItemWidth(secondColSize);
+        ImGui::SetNextItemWidth(settings.secondColSize);
 
         ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
 
@@ -666,7 +693,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         // Store cursor position before drawing the input
         ImVec2 inputPosX = ImGui::GetCursorScreenPos();
 
-        if (ImGui::DragFloat(("##input_x_"+id).c_str(), &(newValue.x), stepSize, min, max, format)){
+        if (ImGui::DragFloat(("##input_x_"+id).c_str(), &(newValue.x), settings.stepSize, min, max, settings.format)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector3>(project, sceneProject->id, entity, cpType, id, Vector3(newValue.x, eValue[entity].y, eValue[entity].z));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -692,7 +719,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         // Store cursor position before drawing the input
         ImVec2 inputPosY = ImGui::GetCursorScreenPos();
 
-        if (ImGui::DragFloat(("##input_y_"+id).c_str(), &(newValue.y), stepSize, min, max, format)){
+        if (ImGui::DragFloat(("##input_y_"+id).c_str(), &(newValue.y), settings.stepSize, min, max, settings.format)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector3>(project, sceneProject->id, entity, cpType, id, Vector3(eValue[entity].x, newValue.y, eValue[entity].z));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -716,7 +743,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         // Store cursor position before drawing the input
         ImVec2 inputPosZ = ImGui::GetCursorScreenPos();
 
-        if (ImGui::DragFloat(("##input_z_"+id).c_str(), &(newValue.z), stepSize, min, max, format)){
+        if (ImGui::DragFloat(("##input_z_"+id).c_str(), &(newValue.z), settings.stepSize, min, max, settings.format)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector3>(project, sceneProject->id, entity, cpType, id, Vector3(eValue[entity].x, eValue[entity].y, newValue.z));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -767,7 +794,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         if (defArr){
             defChanged = compareVectorFloat((float*)&newValue, defArr, 4, compThreshold);
         }
-        if (propertyHeader(label, secondColSize, defChanged, child)){
+        if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector4>(project, sceneProject->id, entity, cpType, id, static_cast<Vector4>(defArr));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -780,7 +807,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
         if (difX)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::DragFloat(("##input_x_"+id).c_str(), &(newValue.x), stepSize, 0.0f, 0.0f, format)){
+        if (ImGui::DragFloat(("##input_x_"+id).c_str(), &(newValue.x), settings.stepSize, 0.0f, 0.0f, settings.format)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector4>(project, sceneProject->id, entity, cpType, id, Vector4(newValue.x, eValue[entity].y, eValue[entity].z, eValue[entity].w));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -792,7 +819,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         ImGui::SameLine();
         if (difY)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::DragFloat(("##input_y_"+id).c_str(), &(newValue.y), stepSize, 0.0f, 0.0f, format)){
+        if (ImGui::DragFloat(("##input_y_"+id).c_str(), &(newValue.y), settings.stepSize, 0.0f, 0.0f, settings.format)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector4>(project, sceneProject->id, entity, cpType, id, Vector4(eValue[entity].x, newValue.y, eValue[entity].z, eValue[entity].w));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -804,7 +831,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         ImGui::SameLine();
         if (difZ)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::DragFloat(("##input_z_"+id).c_str(), &(newValue.z), stepSize, 0.0f, 0.0f, format)){
+        if (ImGui::DragFloat(("##input_z_"+id).c_str(), &(newValue.z), settings.stepSize, 0.0f, 0.0f, settings.format)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector4>(project, sceneProject->id, entity, cpType, id, Vector4(eValue[entity].x, eValue[entity].y, newValue.z, eValue[entity].w));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -816,7 +843,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         ImGui::SameLine();
         if (difW)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::DragFloat(("##input_w_"+id).c_str(), &(newValue.w), stepSize, 0.0f, 0.0f, format)){
+        if (ImGui::DragFloat(("##input_w_"+id).c_str(), &(newValue.w), settings.stepSize, 0.0f, 0.0f, settings.format)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector4>(project, sceneProject->id, entity, cpType, id, Vector4(eValue[entity].x, eValue[entity].y, eValue[entity].z, newValue.w));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -860,7 +887,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         if (defArr){
             defChanged = compareVectorFloat((float*)&qValue, defArr, 4, compThreshold);
         }
-        if (propertyHeader(label, secondColSize, defChanged, child)){
+        if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Quaternion>(project, sceneProject->id, entity, cpType, id, static_cast<Quaternion>(defArr));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -888,7 +915,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         // Store cursor position before drawing the input
         ImVec2 inputPosX = ImGui::GetCursorScreenPos();
 
-        if (ImGui::DragFloat(("##input_x_"+id).c_str(), &(newValue.x), stepSize, 0.0f, 0.0f, (std::string(format) + "°").c_str())){
+        if (ImGui::DragFloat(("##input_x_"+id).c_str(), &(newValue.x), settings.stepSize, 0.0f, 0.0f, (std::string(settings.format) + "°").c_str())){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Quaternion>(project, sceneProject->id, entity, cpType, id, Quaternion(newValue.x, eValue[entity].y, eValue[entity].z, order));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -914,7 +941,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         // Store cursor position before drawing the input
         ImVec2 inputPosY = ImGui::GetCursorScreenPos();
 
-        if (ImGui::DragFloat(("##input_y_"+id).c_str(), &(newValue.y), stepSize, 0.0f, 0.0f, "%.2f°")){
+        if (ImGui::DragFloat(("##input_y_"+id).c_str(), &(newValue.y), settings.stepSize, 0.0f, 0.0f, "%.2f°")){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Quaternion>(project, sceneProject->id, entity, cpType, id, Quaternion(eValue[entity].x, newValue.y, eValue[entity].z, order));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -938,7 +965,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         // Store cursor position before drawing the input
         ImVec2 inputPosZ = ImGui::GetCursorScreenPos();
 
-        if (ImGui::DragFloat(("##input_z_"+id).c_str(), &(newValue.z), stepSize, 0.0f, 0.0f, "%.2f°")){
+        if (ImGui::DragFloat(("##input_z_"+id).c_str(), &(newValue.z), settings.stepSize, 0.0f, 0.0f, "%.2f°")){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Quaternion>(project, sceneProject->id, entity, cpType, id, Quaternion(eValue[entity].x, eValue[entity].y, newValue.z, order));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -980,7 +1007,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         if (defArr){
             defChanged = (newValue != *defArr);
         }
-        if (propertyHeader(label, secondColSize, defChanged, child)){
+        if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<bool>(project, sceneProject->id, entity, cpType, id, *defArr);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -1030,7 +1057,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
                 defChanged = (newValue != *defArr);
             }
         }
-        if (propertyHeader(label, secondColSize, defChanged, child)){
+        if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<float>(project, sceneProject->id, entity, cpType, id, *defArr);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -1045,14 +1072,14 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             v_max = 1.0F;
         }
 
-        std::string newFormat = format;
+        std::string newFormat = settings.format;
         if (type == RowPropertyType::HalfCone){
-            newFormat = std::string(format) + "°";
+            newFormat = std::string(settings.format) + "°";
         }
 
         if (dif)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::DragFloat(("##input_float_"+id).c_str(), &newValue, stepSize, v_min, v_max, newFormat.c_str())){
+        if (ImGui::DragFloat(("##input_float_"+id).c_str(), &newValue, settings.stepSize, v_min, v_max, newFormat.c_str())){
             for (Entity& entity : entities){
                 if (type == RowPropertyType::HalfCone){
                     cmd = new PropertyCmd<float>(project, sceneProject->id, entity, cpType, id, cos(Angle::defaultToRad(newValue / 2)));
@@ -1066,8 +1093,8 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             ImGui::PopStyleColor();
         //ImGui::SetItemTooltip("%s", prop.label.c_str());
 
-        if (!help.empty()){
-            ImGui::SameLine(); helpMarker(help);
+        if (!settings.help.empty()){
+            ImGui::SameLine(); helpMarker(settings.help);
         }
 
     }else if (type == RowPropertyType::UInt){
@@ -1092,7 +1119,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         if (defArr){
             defChanged = (newValue != *defArr);
         }
-        if (propertyHeader(label, secondColSize, defChanged, child)){
+        if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<unsigned int>(project, sceneProject->id, entity, cpType, id, *defArr);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -1102,7 +1129,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
         if (dif)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::DragInt(("##input_uint_"+id).c_str(), (int*)&newValue, static_cast<unsigned int>(stepSize), 0.0f, INT_MAX)){
+        if (ImGui::DragInt(("##input_uint_"+id).c_str(), (int*)&newValue, static_cast<unsigned int>(settings.stepSize), 0.0f, INT_MAX)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<unsigned int>(project, sceneProject->id, entity, cpType, id, newValue);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -1134,7 +1161,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         if (defArr){
             defChanged = (newValue != *defArr);
         }
-        if (propertyHeader(label, secondColSize, defChanged, child)){
+        if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<int>(project, sceneProject->id, entity, cpType, id, *defArr);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -1144,7 +1171,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
         if (dif)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        if (ImGui::DragInt(("##input_int_"+id).c_str(), &newValue, static_cast<int>(stepSize), 0.0f, 0.0f)){
+        if (ImGui::DragInt(("##input_int_"+id).c_str(), &newValue, static_cast<int>(settings.stepSize), 0.0f, 0.0f)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<int>(project, sceneProject->id, entity, cpType, id, newValue);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -1177,7 +1204,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         if (defArr){
             defChanged = compareVectorFloat((float*)value, defArr, 3, compThreshold);
         }
-        if (propertyHeader(label, secondColSize, defChanged, child)){
+        if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector3>(project, sceneProject->id, entity, cpType, id, static_cast<Vector3>(defArr));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -1220,7 +1247,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         if (defArr){
             defChanged = compareVectorFloat((float*)value, defArr, 4, compThreshold);
         }
-        if (propertyHeader(label, secondColSize, defChanged, child)){
+        if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Vector4>(project, sceneProject->id, entity, cpType, id, static_cast<Vector4>(defArr));
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -1240,7 +1267,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             ImGui::PopStyleColor();
         //ImGui::SetItemTooltip("%s", prop.label.c_str());
 
-    }else if ((type == RowPropertyType::IntSlider || type == RowPropertyType::UIntSlider)){
+    }else if ((type == RowPropertyType::IntSlider || type == RowPropertyType::UIntSlider) && settings.sliderValues){
         int* value = nullptr;
         std::map<Entity, int> eValue;
         bool dif = false;
@@ -1249,7 +1276,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         for (Entity& entity : entities){
             PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
             defArr = prop.def;
-            sliderValues = prop.sliderValues;
+            sliderValues = settings.sliderValues;
             if (type == RowPropertyType::IntSlider) {
                 eValue[entity] = *static_cast<int*>(prop.ref);
             } else {
@@ -1272,7 +1299,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
                 defChanged = (newValue != *static_cast<unsigned int*>(defArr));
             }
         }
-        if (propertyHeader(label, secondColSize, defChanged, child)){
+        if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
                 if (type == RowPropertyType::IntSlider) {
                     cmd = new PropertyCmd<int>(project, sceneProject->id, entity, cpType, id, *static_cast<int*>(defArr));
@@ -1315,7 +1342,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         if (dif)
             ImGui::PopStyleColor();
 
-    }else if (type == RowPropertyType::Enum) {
+    }else if (type == RowPropertyType::Enum && settings.enumEntries) {
         int* value = nullptr;
         std::map<Entity, int> eValue;
         bool dif = false;
@@ -1324,7 +1351,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         for (Entity& entity : entities){
             PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
             defArr = static_cast<int*>(prop.def);
-            enumEntries = prop.enumEntries;
+            enumEntries = settings.enumEntries;
             eValue[entity] = *static_cast<int*>(prop.ref);
             if (value){
                 if (*value != eValue[entity])
@@ -1355,7 +1382,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             }
             defChanged = (item_current != item_default);
         }
-        if (propertyHeader(label, secondColSize, defChanged, child)){
+        if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
                 int defValue = (*enumEntries)[item_default].value;
                 cmd = new PropertyCmd<int>(project, sceneProject->id, entity, cpType, id, defValue);
@@ -1404,7 +1431,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         if (defArr){
             defChanged = (newValue != *defArr);
         }
-        if (propertyHeader(label, secondColSize, defChanged, child)){
+        if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Texture>(project, sceneProject->id, entity, cpType, id, *defArr);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -1521,7 +1548,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         if (defArr){
             defChanged = (newValue != *defArr);
         }
-        if (propertyHeader(label, secondColSize, defChanged, child)){
+        if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<Material>(project, sceneProject->id, entity, cpType, id, *defArr);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -1604,24 +1631,24 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
 void Editor::Properties::drawTransform(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     // Add this code to calculate appropriate step size based on selected scene
-    float stepSize = 0.1f;
+    RowSettings settingsPos;
     if (sceneProject) {
         Camera* camera = sceneProject->sceneRender->getCamera();
         if (sceneProject->sceneType == SceneType::SCENE_3D) {
             // For 3D scenes, scale step based on distance from target
             float distanceFromTarget = camera->getDistanceFromTarget();
-            stepSize = std::max(0.01f, distanceFromTarget / 200.0f);
+            settingsPos.stepSize = std::max(0.01f, distanceFromTarget / 200.0f);
         } else {
             // For 2D scenes, use the zoom level
             SceneRender2D* sceneRender2D = static_cast<SceneRender2D*>(sceneProject->sceneRender);
             float zoom = sceneRender2D->getZoom();
-            stepSize = std::max(0.01f, zoom * 1.0f);
+            settingsPos.stepSize = std::max(0.01f, zoom * 1.0f);
         }
     }
 
     beginTable(cpType, getLabelSize("billboard"));
 
-    propertyRow(RowPropertyType::Vector3, cpType, "position", "Position", sceneProject, entities, stepSize);
+    propertyRow(RowPropertyType::Vector3, cpType, "position", "Position", sceneProject, entities, settingsPos);
     propertyRow(RowPropertyType::Quat, cpType, "rotation", "Rotation", sceneProject, entities);
     propertyRow(RowPropertyType::Vector3, cpType, "scale", "Scale", sceneProject, entities);
     propertyRow(RowPropertyType::Bool, cpType, "visible", "Visible", sceneProject, entities);
@@ -1636,12 +1663,13 @@ void Editor::Properties::drawTransform(ComponentType cpType, SceneProject* scene
         ImGui::Text("Billboard settings");
         ImGui::Separator();
 
-        beginTable(cpType, getLabelSize("cylindrical"));
+        RowSettings settingsRotation;
+        settingsRotation.secondColSize = 12 * ImGui::GetFontSize();
 
+        beginTable(cpType, getLabelSize("cylindrical"));
         propertyRow(RowPropertyType::Bool, cpType, "fakeBillboard", "Fake", sceneProject, entities);
         propertyRow(RowPropertyType::Bool, cpType, "cylindricalBillboard", "Cylindrical", sceneProject, entities);
-        propertyRow(RowPropertyType::Quat, cpType, "billboardRotation", "Rotation", sceneProject, entities, 0.1f, 12 * ImGui::GetFontSize());
-
+        propertyRow(RowPropertyType::Quat, cpType, "billboardRotation", "Rotation", sceneProject, entities, settingsRotation);
         endTable();
 
         ImGui::EndPopup();
@@ -1865,24 +1893,36 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, SceneProject* s
         beginTable(cpType, submeshesTableSize, "submeshes");
 
         if (propertyRow(RowPropertyType::Material, cpType, "submeshes["+std::to_string(s)+"].material", "Material", sceneProject, entities)){
+
+            RowSettings settingsFactor;
+            settingsFactor.stepSize = 0.01f;
+            settingsFactor.secondColSize = 4 * ImGui::GetFontSize();
+            settingsFactor.child = true;
+
+            RowSettings settingsMaterial;
+            settingsMaterial.child = true;
+
             endTable();
             beginTable(cpType, getLabelSize("Met. Roug. Texture"), "material_table");
-            propertyRow(RowPropertyType::Color4L, cpType, "submeshes["+std::to_string(s)+"].material.baseColor", "Base Color", sceneProject, entities, 0.1f, -1, true);
-            propertyRow(RowPropertyType::Texture, cpType, "submeshes["+std::to_string(s)+"].material.baseColorTexture", "Base Texture", sceneProject, entities, 0.1f, -1, true);
-            propertyRow(RowPropertyType::Float_0_1, cpType, "submeshes["+std::to_string(s)+"].material.metallicFactor", "Metallic Factor", sceneProject, entities, 0.01f, 4 * ImGui::GetFontSize(), true);
-            propertyRow(RowPropertyType::Float_0_1, cpType, "submeshes["+std::to_string(s)+"].material.roughnessFactor", "Roughness Factor", sceneProject, entities, 0.01f, 4 * ImGui::GetFontSize(), true);
-            propertyRow(RowPropertyType::Texture, cpType, "submeshes["+std::to_string(s)+"].material.metallicRoughnessTexture", "Met. Roug. Texture", sceneProject, entities, 0.1f, -1, true);
-            propertyRow(RowPropertyType::Color3L, cpType, "submeshes["+std::to_string(s)+"].material.emissiveFactor", "Emissive Factor", sceneProject, entities, 0.1f, -1, true);
-            propertyRow(RowPropertyType::Texture, cpType, "submeshes["+std::to_string(s)+"].material.emissiveTexture", "Emissive Texture", sceneProject, entities, 0.1f, -1, true);
-            propertyRow(RowPropertyType::Texture, cpType, "submeshes["+std::to_string(s)+"].material.occlusionTexture", "Occlusion Texture", sceneProject, entities, 0.1f, -1, true);
-            propertyRow(RowPropertyType::Texture, cpType, "submeshes["+std::to_string(s)+"].material.normalTexture", "Normal Texture", sceneProject, entities, 0.1f, -1, true);
+            propertyRow(RowPropertyType::Color4L, cpType, "submeshes["+std::to_string(s)+"].material.baseColor", "Base Color", sceneProject, entities, settingsMaterial);
+            propertyRow(RowPropertyType::Texture, cpType, "submeshes["+std::to_string(s)+"].material.baseColorTexture", "Base Texture", sceneProject, entities,settingsMaterial);
+            propertyRow(RowPropertyType::Float_0_1, cpType, "submeshes["+std::to_string(s)+"].material.metallicFactor", "Metallic Factor", sceneProject, entities, settingsFactor);
+            propertyRow(RowPropertyType::Float_0_1, cpType, "submeshes["+std::to_string(s)+"].material.roughnessFactor", "Roughness Factor", sceneProject, entities, settingsFactor);
+            propertyRow(RowPropertyType::Texture, cpType, "submeshes["+std::to_string(s)+"].material.metallicRoughnessTexture", "Met. Roug. Texture", sceneProject, entities, settingsMaterial);
+            propertyRow(RowPropertyType::Color3L, cpType, "submeshes["+std::to_string(s)+"].material.emissiveFactor", "Emissive Factor", sceneProject, entities, settingsMaterial);
+            propertyRow(RowPropertyType::Texture, cpType, "submeshes["+std::to_string(s)+"].material.emissiveTexture", "Emissive Texture", sceneProject, entities, settingsMaterial);
+            propertyRow(RowPropertyType::Texture, cpType, "submeshes["+std::to_string(s)+"].material.occlusionTexture", "Occlusion Texture", sceneProject, entities, settingsMaterial);
+            propertyRow(RowPropertyType::Texture, cpType, "submeshes["+std::to_string(s)+"].material.normalTexture", "Normal Texture", sceneProject, entities, settingsMaterial);
             endTable();
             beginTable(cpType, submeshesTableSize, "submeshes");
         }
 
+        RowSettings settingsPrimitive;
+        settingsPrimitive.enumEntries = &entriesPrimitiveType;
+
         propertyRow(RowPropertyType::Bool, cpType, "submeshes["+std::to_string(s)+"].faceCulling", "Face Culling", sceneProject, entities);
         propertyRow(RowPropertyType::Bool, cpType, "submeshes["+std::to_string(s)+"].textureShadow", "Texture Shadow", sceneProject, entities);
-        propertyRow(RowPropertyType::Enum, cpType, "submeshes["+std::to_string(s)+"].primitiveType", "Primitive", sceneProject, entities);
+        propertyRow(RowPropertyType::Enum, cpType, "submeshes["+std::to_string(s)+"].primitiveType", "Primitive", sceneProject, entities, settingsPrimitive);
         propertyRow(RowPropertyType::Vector4, cpType, "submeshes["+std::to_string(s)+"].textureRect", "Texture Rect", sceneProject, entities);
 
         endTable();
@@ -1891,20 +1931,20 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, SceneProject* s
 
 void Editor::Properties::drawUIComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     beginTable(cpType, getLabelSize("Texture"));
-
     propertyRow(RowPropertyType::Color4L, cpType, "color", "Color", sceneProject, entities);
     propertyRow(RowPropertyType::Texture, cpType, "texture", "Texture", sceneProject, entities);
-
     endTable();
 }
 
 void Editor::Properties::drawUILayoutComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+    RowSettings settings;
+    settings.stepSize = 1.0f;
+    settings.secondColSize = 6 * ImGui::GetFontSize();
+
     beginTable(cpType, getLabelSize("Ignore Scissor"));
-
-    propertyRow(RowPropertyType::UInt, cpType, "width", "Width", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
-    propertyRow(RowPropertyType::UInt, cpType, "height", "Height", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
+    propertyRow(RowPropertyType::UInt, cpType, "width", "Width", sceneProject, entities, settings);
+    propertyRow(RowPropertyType::UInt, cpType, "height", "Height", sceneProject, entities, settings);
     propertyRow(RowPropertyType::Bool, cpType, "ignoreScissor", "Ignore Scissor", sceneProject, entities);
-
     endTable();
 }
 
@@ -1920,57 +1960,91 @@ void Editor::Properties::drawImageComponent(ComponentType cpType, SceneProject* 
         }
     }
 
+    RowSettings settingsInt;
+    settingsInt.stepSize = 1.0f;
+    settingsInt.secondColSize = 6 * ImGui::GetFontSize();
+
+    RowSettings settingsTexScale;
+    settingsTexScale.secondColSize = 6 * ImGui::GetFontSize();
+    settingsTexScale.help = "Increase or decrease texture area by a factor";
+
     beginTable(cpType, getLabelSize("Margin Bottom"), "nine_margin_table");
-
-    propertyRow(RowPropertyType::UInt, cpType, "patchMarginLeft", "Margin Left", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
-    propertyRow(RowPropertyType::UInt, cpType, "patchMarginRight", "Margin Right", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
-    propertyRow(RowPropertyType::UInt, cpType, "patchMarginTop", "Margin Top", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
-    propertyRow(RowPropertyType::UInt, cpType, "patchMarginBottom", "Margin Bottom", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
-
+    propertyRow(RowPropertyType::UInt, cpType, "patchMarginLeft", "Margin Left", sceneProject, entities, settingsInt);
+    propertyRow(RowPropertyType::UInt, cpType, "patchMarginRight", "Margin Right", sceneProject, entities, settingsInt);
+    propertyRow(RowPropertyType::UInt, cpType, "patchMarginTop", "Margin Top", sceneProject, entities, settingsInt);
+    propertyRow(RowPropertyType::UInt, cpType, "patchMarginBottom", "Margin Bottom", sceneProject, entities, settingsInt);
     endTable();
 
     beginTable(cpType, getLabelSize("Texture Scale"));
-
-    propertyRow(RowPropertyType::Float, cpType, "textureScaleFactor", "Texture Scale", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize(), false, "Increase or decrease texture area by a factor");
-
+    propertyRow(RowPropertyType::Float, cpType, "textureScaleFactor", "Texture Scale", sceneProject, entities, settingsTexScale);
     endTable();
 }
 
 void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+    RowSettings settingsInt;
+    settingsInt.stepSize = 1.0f;
+    settingsInt.secondColSize = 6 * ImGui::GetFontSize();
+
+    RowSettings settingsTexScale;
+    settingsTexScale.secondColSize = 6 * ImGui::GetFontSize();
+    settingsTexScale.help = "Increase or decrease texture area by a factor";
+
+    RowSettings settingsPivot;
+    settingsPivot.enumEntries = &entriesPivotPreset;
+
     beginTable(cpType, getLabelSize("Texture Scale"));
-
-    propertyRow(RowPropertyType::UInt, cpType, "width", "Width", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
-    propertyRow(RowPropertyType::UInt, cpType, "height", "Height", sceneProject, entities, 1.0, 6 * ImGui::GetFontSize());
-    propertyRow(RowPropertyType::Enum, cpType, "pivotPreset", "Pivot", sceneProject, entities);
-    propertyRow(RowPropertyType::Float, cpType, "textureScaleFactor", "Texture Scale", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize(), false, "Increase or decrease texture area by a factor");
-
+    propertyRow(RowPropertyType::UInt, cpType, "width", "Width", sceneProject, entities, settingsInt);
+    propertyRow(RowPropertyType::UInt, cpType, "height", "Height", sceneProject, entities, settingsInt);
+    propertyRow(RowPropertyType::Enum, cpType, "pivotPreset", "Pivot", sceneProject, entities, settingsPivot);
+    propertyRow(RowPropertyType::Float, cpType, "textureScaleFactor", "Texture Scale", sceneProject, entities, settingsTexScale);
     endTable();
 }
 
 void Editor::Properties::drawLightComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     LightComponent& light = sceneProject->scene->getComponent<LightComponent>(entities[0]);
 
+    RowSettings settingsFloat;
+    settingsFloat.secondColSize = 6 * ImGui::GetFontSize();
+
+    RowSettings settingsCone;
+    settingsCone.secondColSize = 6 * ImGui::GetFontSize();
+    settingsCone.format = "%.1f";
+
+    RowSettings settingsLightType;
+    settingsLightType.enumEntries = &entriesLightType;
+
     beginTable(cpType, getLabelSize("Inner cone"));
-    propertyRow(RowPropertyType::Enum, cpType, "type", "Type", sceneProject, entities);
-    propertyRow(RowPropertyType::Float, cpType, "intensity", "Intensity", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
-    propertyRow(RowPropertyType::Float, cpType, "range", "Range", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
+    propertyRow(RowPropertyType::Enum, cpType, "type", "Type", sceneProject, entities, settingsLightType);
+    propertyRow(RowPropertyType::Float, cpType, "intensity", "Intensity", sceneProject, entities, settingsFloat);
+    propertyRow(RowPropertyType::Float, cpType, "range", "Range", sceneProject, entities, settingsFloat);
     propertyRow(RowPropertyType::Color3L, cpType, "color", "Color", sceneProject, entities);
     if (light.type != LightType::POINT){
         propertyRow(RowPropertyType::Direction, cpType, "direction", "Direction", sceneProject, entities);
     }
     if (light.type == LightType::SPOT){
-        propertyRow(RowPropertyType::HalfCone, cpType, "innerConeCos", "Inner Cone", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize(), false, "", "%.1f");
-        propertyRow(RowPropertyType::HalfCone, cpType, "outerConeCos", "Outer Cone", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize(), false, "", "%.1f");
+        propertyRow(RowPropertyType::HalfCone, cpType, "innerConeCos", "Inner Cone", sceneProject, entities, settingsCone);
+        propertyRow(RowPropertyType::HalfCone, cpType, "outerConeCos", "Outer Cone", sceneProject, entities, settingsCone);
     }
     endTable();
 
     ImGui::SeparatorText("Shadow settings");
 
+    RowSettings settingsBias;
+    settingsBias.stepSize = 0.000001f;
+    settingsBias.secondColSize = 6 * ImGui::GetFontSize();
+    settingsBias.format = "%.6f";
+
+    RowSettings settingsMapRes;
+    settingsMapRes.sliderValues = &po2Values;
+
+    RowSettings settingsCascade;
+    settingsCascade.sliderValues = &cascadeValues;
+
     beginTable(cpType, getLabelSize("Map Resolution"), "shadow_settings_table");
     propertyRow(RowPropertyType::Bool, cpType, "shadows", "Enabled", sceneProject, entities);
-    propertyRow(RowPropertyType::Float, cpType, "shadowBias", "Bias", sceneProject, entities, 0.000001f, 6 * ImGui::GetFontSize(), false, "", "%.6f");
-    propertyRow(RowPropertyType::UIntSlider, cpType, "mapResolution", "Map Resolution", sceneProject, entities);
-    propertyRow(RowPropertyType::UIntSlider, cpType, "numShadowCascades", "Num Cascades", sceneProject, entities);
+    propertyRow(RowPropertyType::Float, cpType, "shadowBias", "Bias", sceneProject, entities, settingsBias);
+    propertyRow(RowPropertyType::UIntSlider, cpType, "mapResolution", "Map Resolution", sceneProject, entities, settingsMapRes);
+    propertyRow(RowPropertyType::UIntSlider, cpType, "numShadowCascades", "Num Cascades", sceneProject, entities, settingsCascade);
 
     propertyHeader("Shadow Camera");
     if (ImGui::Button(ICON_FA_GEAR)){
@@ -1982,12 +2056,15 @@ void Editor::Properties::drawLightComponent(ComponentType cpType, SceneProject* 
         ImGui::Text("Shadow camera settings");
         ImGui::Separator();
 
+        RowSettings settingsFloat;
+        settingsFloat.secondColSize = 6 * ImGui::GetFontSize();
+
         beginTable(cpType, getLabelSize("Camera Near"), "shadow_camera_popup");
 
         propertyRow(RowPropertyType::Bool, cpType, "automaticShadowCamera", "Automatic", sceneProject, entities);
         ImGui::BeginDisabled(light.automaticShadowCamera);
-        propertyRow(RowPropertyType::Float, cpType, "shadowCameraNear", "Camera Near", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
-        propertyRow(RowPropertyType::Float, cpType, "shadowCameraFar", "Camera Far", sceneProject, entities, 0.1f, 6 * ImGui::GetFontSize());
+        propertyRow(RowPropertyType::Float, cpType, "shadowCameraNear", "Camera Near", sceneProject, entities, settingsFloat);
+        propertyRow(RowPropertyType::Float, cpType, "shadowCameraFar", "Camera Far", sceneProject, entities, settingsFloat);
         ImGui::EndDisabled();
 
         endTable();

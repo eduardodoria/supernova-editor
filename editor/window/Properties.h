@@ -33,6 +33,21 @@ namespace Supernova::Editor{
         Custom
     };
 
+    struct EnumEntry {
+        int value;
+        const char* name;
+    };
+
+    struct RowSettings{
+        float stepSize = 0.1f;
+        float secondColSize = -1;
+        bool child = false;
+        std::string help = "";
+        const char *format = "%.2f";
+        std::vector<EnumEntry>* enumEntries = nullptr;
+        std::vector<int>* sliderValues = nullptr;
+    };
+
     class Properties{
     private:
         Project* project;
@@ -97,7 +112,7 @@ namespace Supernova::Editor{
         void beginTable(ComponentType cpType, float firstColSize, std::string nameAddon = "");
         void endTable();
         bool propertyHeader(std::string label, float secondColSize = -1, bool defChanged = false, bool child = false);
-        bool propertyRow(RowPropertyType type, ComponentType cpType, std::string id, std::string label, SceneProject* sceneProject, std::vector<Entity> entities, float stepSize = 0.1f, float secondColSize = -1, bool child = false, std::string help = "", const char *format = "%.2f");
+        bool propertyRow(RowPropertyType type, ComponentType cpType, std::string id, std::string label, SceneProject* sceneProject, std::vector<Entity> entities, RowSettings settings = RowSettings());
 
         void drawTransform(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
         void drawMeshComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);

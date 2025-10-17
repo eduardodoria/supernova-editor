@@ -107,14 +107,6 @@ std::string Editor::Factory::formatPropertyValue(const PropertyData& property, c
         }
         case PropertyType::Enum: {
             int* value = static_cast<int*>(property.ref);
-            // Find enum name if available
-            if (property.enumEntries) {
-                for (const auto& entry : *property.enumEntries) {
-                    if (entry.value == *value) {
-                        return "/* " + std::string(entry.name) + " */ " + formatInt(*value);
-                    }
-                }
-            }
             return formatInt(*value);
         }
         case PropertyType::HalfCone: {

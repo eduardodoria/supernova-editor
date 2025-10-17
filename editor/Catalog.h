@@ -94,18 +94,11 @@ namespace Supernova::Editor{
         Custom
     };
 
-    struct EnumEntry {
-        int value;
-        const char* name;
-    };
-
     struct PropertyData{
         PropertyType type;
         int updateFlags;
         void* def;
         void* ref;
-        std::vector<EnumEntry>* enumEntries = nullptr;
-        std::vector<int>* sliderValues = nullptr;
     };
 
     class Catalog{

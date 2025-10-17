@@ -6,34 +6,6 @@
 
 using namespace Supernova;
 
-static std::vector<Editor::EnumEntry> entriesPrimitiveType = {
-    { (int)PrimitiveType::TRIANGLES, "Triangles" },
-    { (int)PrimitiveType::TRIANGLE_STRIP, "Triangle Strip" },
-    { (int)PrimitiveType::POINTS, "Points" },
-    { (int)PrimitiveType::LINES, "Lines" }
-};
-
-static std::vector<Editor::EnumEntry> entriesPivotPreset = {
-    { (int)PivotPreset::CENTER, "Center" },
-    { (int)PivotPreset::TOP_CENTER, "Top Center" },
-    { (int)PivotPreset::BOTTOM_CENTER, "Bottom Center" },
-    { (int)PivotPreset::LEFT_CENTER, "Left Center" },
-    { (int)PivotPreset::RIGHT_CENTER, "Right Center" },
-    { (int)PivotPreset::TOP_LEFT, "Top Left" },
-    { (int)PivotPreset::BOTTOM_LEFT, "Bottom Left" },
-    { (int)PivotPreset::TOP_RIGHT, "Top Right" },
-    { (int)PivotPreset::BOTTOM_RIGHT, "Bottom Right" }
-};
-
-static std::vector<Editor::EnumEntry> entriesLightType = {
-    { (int)LightType::DIRECTIONAL, "Directional" },
-    { (int)LightType::POINT, "Point" },
-    { (int)LightType::SPOT, "Spot" }
-};
-
-static std::vector<int> cascadeValues = { 1, 2, 3, 4, 5, 6 };
-static std::vector<int> po2Values = { 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384 };
-
 Editor::Catalog::Catalog(){
 }
 
@@ -429,7 +401,7 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
             ps["submeshes["+idx+"].material.occlusionTexture"] = {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.occlusionTexture, (compRef) ? (void*)&comp->submeshes[s].material.occlusionTexture : nullptr};
             ps["submeshes["+idx+"].material.normalTexture"] = {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.normalTexture, (compRef) ? (void*)&comp->submeshes[s].material.normalTexture : nullptr};
 
-            ps["submeshes["+idx+"].primitiveType"] = {PropertyType::Enum, UpdateFlags_Mesh_Reload, (void*)&def->submeshes[0].primitiveType, (compRef) ? (void*)&comp->submeshes[s].primitiveType : nullptr, &entriesPrimitiveType};
+            ps["submeshes["+idx+"].primitiveType"] = {PropertyType::Enum, UpdateFlags_Mesh_Reload, (void*)&def->submeshes[0].primitiveType, (compRef) ? (void*)&comp->submeshes[s].primitiveType : nullptr};
             ps["submeshes["+idx+"].faceCulling"] = {PropertyType::Bool, UpdateFlags_Mesh_Reload, (void*)&def->submeshes[0].faceCulling, (compRef) ? (void*)&comp->submeshes[s].faceCulling : nullptr};
             ps["submeshes["+idx+"].textureShadow"] = {PropertyType::Bool, UpdateFlags_Mesh_Reload, (void*)&def->submeshes[0].textureShadow, (compRef) ? (void*)&comp->submeshes[s].textureShadow : nullptr};
             ps["submeshes["+idx+"].textureRect"] = {PropertyType::Vector4, UpdateFlags_None, (void*)&def->submeshes[0].textureRect, (compRef) ? (void*)&comp->submeshes[s].textureRect : nullptr};
@@ -462,13 +434,13 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
 
         ps["width"] = {PropertyType::UInt, UpdateFlags_Sprite, nullptr, (compRef) ? (void*)&comp->width : nullptr};
         ps["height"] = {PropertyType::UInt, UpdateFlags_Sprite, nullptr, (compRef) ? (void*)&comp->height : nullptr};
-        ps["pivotPreset"] = {PropertyType::Enum, UpdateFlags_Sprite, (void*)&def->pivotPreset, (compRef) ? (void*)&comp->pivotPreset : nullptr, &entriesPivotPreset};
+        ps["pivotPreset"] = {PropertyType::Enum, UpdateFlags_Sprite, (void*)&def->pivotPreset, (compRef) ? (void*)&comp->pivotPreset : nullptr};
         ps["textureScaleFactor"] = {PropertyType::Float, UpdateFlags_Sprite, (void*)&def->textureScaleFactor, (compRef) ? (void*)&comp->textureScaleFactor : nullptr};
     }else if (component == ComponentType::LightComponent){
         LightComponent* comp = (LightComponent*)compRef;
         static LightComponent* def = new LightComponent;
 
-        ps["type"] = {PropertyType::Enum, UpdateFlags_LightShadowMap | UpdateFlags_LightShadowCamera | UpdateFlags_Scene_Mesh_Reload, nullptr, (compRef) ? (void*)&comp->type : nullptr, &entriesLightType};
+        ps["type"] = {PropertyType::Enum, UpdateFlags_LightShadowMap | UpdateFlags_LightShadowCamera | UpdateFlags_Scene_Mesh_Reload, nullptr, (compRef) ? (void*)&comp->type : nullptr};
         ps["direction"] = {PropertyType::Direction, UpdateFlags_Transform, (void*)&def->direction, (compRef) ? (void*)&comp->direction : nullptr};
         ps["shadows"] = {PropertyType::Bool, UpdateFlags_LightShadowCamera | UpdateFlags_Scene_Mesh_Reload, (void*)&def->shadows, (compRef) ? (void*)&comp->shadows : nullptr};
         ps["intensity"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->intensity, (compRef) ? (void*)&comp->intensity : nullptr};
@@ -477,11 +449,11 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["innerConeCos"] = {PropertyType::HalfCone, UpdateFlags_LightShadowCamera, (void*)&def->innerConeCos, (compRef) ? (void*)&comp->innerConeCos : nullptr};
         ps["outerConeCos"] = {PropertyType::HalfCone, UpdateFlags_LightShadowCamera, (void*)&def->outerConeCos, (compRef) ? (void*)&comp->outerConeCos : nullptr};
         ps["shadowBias"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->shadowBias, (compRef) ? (void*)&comp->shadowBias : nullptr};
-        ps["mapResolution"] = {PropertyType::UIntSlider, UpdateFlags_LightShadowMap | UpdateFlags_Scene_Mesh_Reload, (void*)&def->mapResolution, (compRef) ? (void*)&comp->mapResolution : nullptr, nullptr, &po2Values};
+        ps["mapResolution"] = {PropertyType::UIntSlider, UpdateFlags_LightShadowMap | UpdateFlags_Scene_Mesh_Reload, (void*)&def->mapResolution, (compRef) ? (void*)&comp->mapResolution : nullptr};
         ps["automaticShadowCamera"] = {PropertyType::Bool, UpdateFlags_LightShadowCamera, (void*)&def->automaticShadowCamera, (compRef) ? (void*)&comp->automaticShadowCamera : nullptr};
         ps["shadowCameraNear"] = {PropertyType::Float, UpdateFlags_LightShadowCamera, nullptr, (compRef) ? (void*)&comp->shadowCameraNearFar.x : nullptr};
         ps["shadowCameraFar"] = {PropertyType::Float, UpdateFlags_LightShadowCamera, nullptr, (compRef) ? (void*)&comp->shadowCameraNearFar.y : nullptr};
-        ps["numShadowCascades"] = {PropertyType::UIntSlider, UpdateFlags_LightShadowCamera | UpdateFlags_Scene_Mesh_Reload, (void*)&def->numShadowCascades, (compRef) ? (void*)&comp->numShadowCascades : nullptr, nullptr, &cascadeValues};
+        ps["numShadowCascades"] = {PropertyType::UIntSlider, UpdateFlags_LightShadowCamera | UpdateFlags_Scene_Mesh_Reload, (void*)&def->numShadowCascades, (compRef) ? (void*)&comp->numShadowCascades : nullptr};
     }else if (component == ComponentType::ScriptComponent){
         ScriptComponent* comp = (ScriptComponent*)compRef;
         static ScriptComponent* def = new ScriptComponent;
