@@ -358,8 +358,8 @@ Editor::PropertyType Editor::Catalog::scriptPropertyTypeToPropertyType(ScriptPro
         case Supernova::ScriptPropertyType::Vector2: return Editor::PropertyType::Vector2;
         case Supernova::ScriptPropertyType::Vector3: return Editor::PropertyType::Vector3;
         case Supernova::ScriptPropertyType::Vector4: return Editor::PropertyType::Vector4;
-        case Supernova::ScriptPropertyType::Color3: return Editor::PropertyType::Color3L;
-        case Supernova::ScriptPropertyType::Color4: return Editor::PropertyType::Color4L;
+        case Supernova::ScriptPropertyType::Color3: return Editor::PropertyType::Vector3;
+        case Supernova::ScriptPropertyType::Color4: return Editor::PropertyType::Vector4;
         case Supernova::ScriptPropertyType::Pointer: return Editor::PropertyType::Custom;
         default: return Editor::PropertyType::Custom;
     }
@@ -391,10 +391,10 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
             std::string idx = (compRef) ? std::to_string(s) : "";
             ps["submeshes["+idx+"].material"] = {PropertyType::Material, UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material, (compRef) ? (void*)&comp->submeshes[s].material : nullptr};
             ps["submeshes["+idx+"].material.name"] = {PropertyType::String, UpdateFlags_None, (void*)&def->submeshes[0].material.name, (compRef) ? (void*)&comp->submeshes[s].material.name : nullptr};
-            ps["submeshes["+idx+"].material.baseColor"] = {PropertyType::Color4L, UpdateFlags_None, (void*)&def->submeshes[0].material.baseColorFactor, (compRef) ? (void*)&comp->submeshes[s].material.baseColorFactor : nullptr};
-            ps["submeshes["+idx+"].material.metallicFactor"] = {PropertyType::Float_0_1, UpdateFlags_None, (void*)&def->submeshes[0].material.metallicFactor, (compRef) ? (void*)&comp->submeshes[s].material.metallicFactor : nullptr};
-            ps["submeshes["+idx+"].material.roughnessFactor"] = {PropertyType::Float_0_1, UpdateFlags_None, (void*)&def->submeshes[0].material.roughnessFactor, (compRef) ? (void*)&comp->submeshes[s].material.roughnessFactor : nullptr};
-            ps["submeshes["+idx+"].material.emissiveFactor"] = {PropertyType::Color3L, UpdateFlags_None, (void*)&def->submeshes[0].material.emissiveFactor, (compRef) ? (void*)&comp->submeshes[s].material.emissiveFactor : nullptr};
+            ps["submeshes["+idx+"].material.baseColor"] = {PropertyType::Vector4, UpdateFlags_None, (void*)&def->submeshes[0].material.baseColorFactor, (compRef) ? (void*)&comp->submeshes[s].material.baseColorFactor : nullptr};
+            ps["submeshes["+idx+"].material.metallicFactor"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->submeshes[0].material.metallicFactor, (compRef) ? (void*)&comp->submeshes[s].material.metallicFactor : nullptr};
+            ps["submeshes["+idx+"].material.roughnessFactor"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->submeshes[0].material.roughnessFactor, (compRef) ? (void*)&comp->submeshes[s].material.roughnessFactor : nullptr};
+            ps["submeshes["+idx+"].material.emissiveFactor"] = {PropertyType::Vector3, UpdateFlags_None, (void*)&def->submeshes[0].material.emissiveFactor, (compRef) ? (void*)&comp->submeshes[s].material.emissiveFactor : nullptr};
             ps["submeshes["+idx+"].material.baseColorTexture"] = {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.baseColorTexture, (compRef) ? (void*)&comp->submeshes[s].material.baseColorTexture : nullptr};
             ps["submeshes["+idx+"].material.emissiveTexture"] = {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.emissiveTexture, (compRef) ? (void*)&comp->submeshes[s].material.emissiveTexture : nullptr};
             ps["submeshes["+idx+"].material.metallicRoughnessTexture"] = {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.metallicRoughnessTexture, (compRef) ? (void*)&comp->submeshes[s].material.metallicRoughnessTexture : nullptr};
@@ -410,7 +410,7 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         UIComponent* comp = (UIComponent*)compRef;
         static UIComponent* def = new UIComponent;
 
-        ps["color"] = {PropertyType::Color4L, UpdateFlags_None, (void*)&def->color, (compRef) ? (void*)&comp->color : nullptr};
+        ps["color"] = {PropertyType::Vector4, UpdateFlags_None, (void*)&def->color, (compRef) ? (void*)&comp->color : nullptr};
         ps["texture"] = {PropertyType::Texture, UpdateFlags_UI_Texture, (void*)&def->texture, (compRef) ? (void*)&comp->texture : nullptr};
     }else if (component == ComponentType::UILayoutComponent){
         UILayoutComponent* comp = (UILayoutComponent*)compRef;
@@ -441,19 +441,19 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         static LightComponent* def = new LightComponent;
 
         ps["type"] = {PropertyType::Enum, UpdateFlags_LightShadowMap | UpdateFlags_LightShadowCamera | UpdateFlags_Scene_Mesh_Reload, nullptr, (compRef) ? (void*)&comp->type : nullptr};
-        ps["direction"] = {PropertyType::Direction, UpdateFlags_Transform, (void*)&def->direction, (compRef) ? (void*)&comp->direction : nullptr};
+        ps["direction"] = {PropertyType::Vector3, UpdateFlags_Transform, (void*)&def->direction, (compRef) ? (void*)&comp->direction : nullptr};
         ps["shadows"] = {PropertyType::Bool, UpdateFlags_LightShadowCamera | UpdateFlags_Scene_Mesh_Reload, (void*)&def->shadows, (compRef) ? (void*)&comp->shadows : nullptr};
         ps["intensity"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->intensity, (compRef) ? (void*)&comp->intensity : nullptr};
         ps["range"] = {PropertyType::Float, UpdateFlags_LightShadowCamera, (void*)&def->range, (compRef) ? (void*)&comp->range : nullptr};
-        ps["color"] = {PropertyType::Color3L, UpdateFlags_None, (void*)&def->color, (compRef) ? (void*)&comp->color : nullptr};
-        ps["innerConeCos"] = {PropertyType::HalfCone, UpdateFlags_LightShadowCamera, (void*)&def->innerConeCos, (compRef) ? (void*)&comp->innerConeCos : nullptr};
-        ps["outerConeCos"] = {PropertyType::HalfCone, UpdateFlags_LightShadowCamera, (void*)&def->outerConeCos, (compRef) ? (void*)&comp->outerConeCos : nullptr};
+        ps["color"] = {PropertyType::Vector3, UpdateFlags_None, (void*)&def->color, (compRef) ? (void*)&comp->color : nullptr};
+        ps["innerConeCos"] = {PropertyType::Float, UpdateFlags_LightShadowCamera, (void*)&def->innerConeCos, (compRef) ? (void*)&comp->innerConeCos : nullptr};
+        ps["outerConeCos"] = {PropertyType::Float, UpdateFlags_LightShadowCamera, (void*)&def->outerConeCos, (compRef) ? (void*)&comp->outerConeCos : nullptr};
         ps["shadowBias"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->shadowBias, (compRef) ? (void*)&comp->shadowBias : nullptr};
-        ps["mapResolution"] = {PropertyType::UIntSlider, UpdateFlags_LightShadowMap | UpdateFlags_Scene_Mesh_Reload, (void*)&def->mapResolution, (compRef) ? (void*)&comp->mapResolution : nullptr};
+        ps["mapResolution"] = {PropertyType::UInt, UpdateFlags_LightShadowMap | UpdateFlags_Scene_Mesh_Reload, (void*)&def->mapResolution, (compRef) ? (void*)&comp->mapResolution : nullptr};
         ps["automaticShadowCamera"] = {PropertyType::Bool, UpdateFlags_LightShadowCamera, (void*)&def->automaticShadowCamera, (compRef) ? (void*)&comp->automaticShadowCamera : nullptr};
         ps["shadowCameraNear"] = {PropertyType::Float, UpdateFlags_LightShadowCamera, nullptr, (compRef) ? (void*)&comp->shadowCameraNearFar.x : nullptr};
         ps["shadowCameraFar"] = {PropertyType::Float, UpdateFlags_LightShadowCamera, nullptr, (compRef) ? (void*)&comp->shadowCameraNearFar.y : nullptr};
-        ps["numShadowCascades"] = {PropertyType::UIntSlider, UpdateFlags_LightShadowCamera | UpdateFlags_Scene_Mesh_Reload, (void*)&def->numShadowCascades, (compRef) ? (void*)&comp->numShadowCascades : nullptr};
+        ps["numShadowCascades"] = {PropertyType::UInt, UpdateFlags_LightShadowCamera | UpdateFlags_Scene_Mesh_Reload, (void*)&def->numShadowCascades, (compRef) ? (void*)&comp->numShadowCascades : nullptr};
     }else if (component == ComponentType::ScriptComponent){
         ScriptComponent* comp = (ScriptComponent*)compRef;
         static ScriptComponent* def = new ScriptComponent;
@@ -828,8 +828,7 @@ void Editor::Catalog::copyPropertyValue(EntityRegistry* sourceRegistry, Entity s
             if (source && target) *target = *source;
             break;
         }
-        case PropertyType::Float:
-        case PropertyType::Float_0_1: {
+        case PropertyType::Float: {
             float* source = Catalog::getPropertyRef<float>(sourceRegistry, sourceEntity, compType, property);
             float* target = Catalog::getPropertyRef<float>(targetRegistry, targetEntity, compType, property);
             if (source && target) *target = *source;
@@ -841,8 +840,7 @@ void Editor::Catalog::copyPropertyValue(EntityRegistry* sourceRegistry, Entity s
             if (source && target) *target = *source;
             break;
         }
-        case PropertyType::UInt:
-        case PropertyType::UIntSlider: {
+        case PropertyType::UInt: {
             unsigned int* source = Catalog::getPropertyRef<unsigned int>(sourceRegistry, sourceEntity, compType, property);
             unsigned int* target = Catalog::getPropertyRef<unsigned int>(targetRegistry, targetEntity, compType, property);
             if (source && target) *target = *source;
@@ -854,16 +852,13 @@ void Editor::Catalog::copyPropertyValue(EntityRegistry* sourceRegistry, Entity s
             if (source && target) *target = *source;
             break;
         }
-        case PropertyType::Vector3:
-        case PropertyType::Color3L:
-        case PropertyType::Direction: {
+        case PropertyType::Vector3: {
             Vector3* source = Catalog::getPropertyRef<Vector3>(sourceRegistry, sourceEntity, compType, property);
             Vector3* target = Catalog::getPropertyRef<Vector3>(targetRegistry, targetEntity, compType, property);
             if (source && target) *target = *source;
             break;
         }
-        case PropertyType::Vector4:
-        case PropertyType::Color4L: {
+        case PropertyType::Vector4: {
             Vector4* source = Catalog::getPropertyRef<Vector4>(sourceRegistry, sourceEntity, compType, property);
             Vector4* target = Catalog::getPropertyRef<Vector4>(targetRegistry, targetEntity, compType, property);
             if (source && target) *target = *source;
@@ -890,12 +885,6 @@ void Editor::Catalog::copyPropertyValue(EntityRegistry* sourceRegistry, Entity s
         case PropertyType::Texture: {
             Texture* source = Catalog::getPropertyRef<Texture>(sourceRegistry, sourceEntity, compType, property);
             Texture* target = Catalog::getPropertyRef<Texture>(targetRegistry, targetEntity, compType, property);
-            if (source && target) *target = *source;
-            break;
-        }
-        case PropertyType::HalfCone: {
-            float* source = Catalog::getPropertyRef<float>(sourceRegistry, sourceEntity, compType, property);
-            float* target = Catalog::getPropertyRef<float>(targetRegistry, targetEntity, compType, property);
             if (source && target) *target = *source;
             break;
         }

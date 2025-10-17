@@ -67,18 +67,15 @@ std::string Editor::Factory::formatPropertyValue(const PropertyData& property, c
             bool* value = static_cast<bool*>(property.ref);
             return formatBool(*value);
         }
-        case PropertyType::Float:
-        case PropertyType::Float_0_1: {
+        case PropertyType::Float: {
             float* value = static_cast<float*>(property.ref);
             return formatFloat(*value);
         }
-        case PropertyType::Int:
-        case PropertyType::IntSlider: {
+        case PropertyType::Int: {
             int* value = static_cast<int*>(property.ref);
             return formatInt(*value);
         }
-        case PropertyType::UInt:
-        case PropertyType::UIntSlider: {
+        case PropertyType::UInt: {
             unsigned int* value = static_cast<unsigned int*>(property.ref);
             return formatUInt(*value);
         }
@@ -86,14 +83,11 @@ std::string Editor::Factory::formatPropertyValue(const PropertyData& property, c
             Vector2* value = static_cast<Vector2*>(property.ref);
             return formatVector2(*value);
         }
-        case PropertyType::Vector3:
-        case PropertyType::Color3L:
-        case PropertyType::Direction: {
+        case PropertyType::Vector3: {
             Vector3* value = static_cast<Vector3*>(property.ref);
             return formatVector3(*value);
         }
-        case PropertyType::Vector4:
-        case PropertyType::Color4L: {
+        case PropertyType::Vector4: {
             Vector4* value = static_cast<Vector4*>(property.ref);
             return formatVector4(*value);
         }
@@ -108,11 +102,6 @@ std::string Editor::Factory::formatPropertyValue(const PropertyData& property, c
         case PropertyType::Enum: {
             int* value = static_cast<int*>(property.ref);
             return formatInt(*value);
-        }
-        case PropertyType::HalfCone: {
-            // HalfCone is typically two floats (inner and outer angles)
-            float* value = static_cast<float*>(property.ref);
-            return formatFloat(*value);
         }
         case PropertyType::Material:
         case PropertyType::Texture:
