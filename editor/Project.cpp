@@ -4,9 +4,13 @@
 
 #include <fstream>
 #ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <windows.h>
 #endif
 #include <unordered_set>
+#include <algorithm>
 
 #include "render/SceneRender2D.h"
 #include "render/SceneRender3D.h"
