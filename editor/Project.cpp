@@ -2237,6 +2237,8 @@ void Editor::Project::stop(uint32_t sceneId) {
         // Clear the snapshot
         sceneProject->playStateSnapshot = YAML::Node();
     }
+
+    sceneProject->scene->getComponent<CameraComponent>(sceneProject->scene->getCamera()).needUpdate = true;
 }
 
 void Editor::Project::debugSceneHierarchy(){

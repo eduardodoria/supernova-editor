@@ -216,6 +216,11 @@ void Editor::Properties::drawImageWithBorderAndRounding(Texture* texture, const 
 
 
 void Editor::Properties::dragDropResources(ComponentType cpType, std::string id, SceneProject* sceneProject, std::vector<Entity> entities, ComponentType componentType){
+    // Block DnD while playing for non-script components
+    if (sceneProject && sceneProject->playState == ScenePlayState::PLAYING && cpType != ComponentType::ScriptComponent) {
+        return;
+    }
+
     if (ImGui::BeginDragDropTarget()){
 
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
@@ -285,10 +290,12 @@ void Editor::Properties::dragDropResources(ComponentType cpType, std::string id,
     }
 }
 
-void Editor::Properties::handleComponentMenu(SceneProject* sceneProject, std::vector<Entity> entities, ComponentType cpType, bool isSharedGroup, bool isComponentOverridden, bool& headerOpen) {
+void Editor::Properties::handleComponentMenu(SceneProject* sceneProject, std::vector<Entity> entities, ComponentType cpType, bool isSharedGroup, bool isComponentOverridden, bool& headerOpen, bool readOnly) {
     if (ImGui::BeginPopupContextItem(("component_options_menu_" + std::to_string(static_cast<int>(cpType))).c_str())) {
         ImGui::TextDisabled("Component options");
         ImGui::Separator();
+
+        ImGui::BeginDisabled(readOnly); // disable all actions while playing
 
         if (isSharedGroup){
             if (isComponentOverridden) {
@@ -321,6 +328,8 @@ void Editor::Properties::handleComponentMenu(SceneProject* sceneProject, std::ve
 
             headerOpen = false;
         }
+
+        ImGui::EndDisabled();
 
         ImGui::EndPopup();
     }
@@ -2346,6 +2355,9 @@ void Editor::Properties::show(){
 
         ImGui::Separator();
 
+        // Disable adding components while playing
+        bool isReadOnlyComponents = (sceneProject->playState == ScenePlayState::PLAYING);
+        ImGui::BeginDisabled(isReadOnlyComponents);
         if (ImGui::Button(ICON_FA_PLUS" New component", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
             addComponentModalOpen = true;
             componentMenuJustOpened = true;
@@ -2353,6 +2365,7 @@ void Editor::Properties::show(){
             hoveredComponentIndex = -1;  // Reset hover
             ImGui::OpenPopup("Add new component");
         }
+        ImGui::EndDisabled();
 
         ImGui::SetNextWindowSize(ImVec2(400, 0.0f), ImGuiCond_Once);
         if (ImGui::BeginPopupModal("Add new component", &addComponentModalOpen, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove)) {
@@ -2676,7 +2689,9 @@ void Editor::Properties::show(){
                 ImGui::PopStyleColor();
             }
 
-            handleComponentMenu(sceneProject, entities, cpType, isShared, isComponentOverridden, headerOpen);
+            // Context menu disabled while playing
+            bool compReadOnly = (sceneProject->playState == ScenePlayState::PLAYING) && (cpType != ComponentType::ScriptComponent);
+            handleComponentMenu(sceneProject, entities, cpType, isShared, isComponentOverridden, headerOpen, sceneProject->playState == ScenePlayState::PLAYING);
 
             // Add hover tooltip only for shared components
             if (isShared && !isComponentOverridden && ImGui::IsItemHovered()) {
@@ -2689,6 +2704,9 @@ void Editor::Properties::show(){
             ImGui::PopID();
 
             if (headerOpen){
+                // Disable non-script components while playing
+                if (compReadOnly) ImGui::BeginDisabled(true);
+
                 if (cpType == ComponentType::Transform){
                     drawTransform(cpType, sceneProject, entities);
                 }else if (cpType == ComponentType::MeshComponent){
@@ -2704,8 +2722,11 @@ void Editor::Properties::show(){
                 }else if (cpType == ComponentType::LightComponent){
                     drawLightComponent(cpType, sceneProject, entities);
                 }else if (cpType == ComponentType::ScriptComponent){
+                    // ScriptComponent remains editable while playing
                     drawScriptComponent(cpType, sceneProject, entities);
                 }
+
+                if (compReadOnly) ImGui::EndDisabled();
             }
         }
 
