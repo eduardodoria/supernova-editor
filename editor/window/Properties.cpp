@@ -217,7 +217,7 @@ void Editor::Properties::drawImageWithBorderAndRounding(Texture* texture, const 
 
 void Editor::Properties::dragDropResources(ComponentType cpType, std::string id, SceneProject* sceneProject, std::vector<Entity> entities, ComponentType componentType){
     // Block DnD while playing for non-script components
-    if (sceneProject && sceneProject->playState == ScenePlayState::PLAYING && cpType != ComponentType::ScriptComponent) {
+    if (sceneProject) {
         return;
     }
 
@@ -564,7 +564,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         }
         if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Vector2>(project, sceneProject->id, entity, cpType, id, static_cast<Vector2>(defArr));
+                cmd = new PropertyCmd<Vector2>(project, sceneProject->id, entity, cpType, id, static_cast<Vector2>(defArr), settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
                 finishProperty = true;
             }
@@ -577,7 +577,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         if (ImGui::DragFloat(("##input_x_"+id).c_str(), &(newValue.x), settings.stepSize, 0.0f, 0.0f, settings.format)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Vector2>(project, sceneProject->id, entity, cpType, id, Vector2(newValue.x, eValue[entity].y));
+                cmd = new PropertyCmd<Vector2>(project, sceneProject->id, entity, cpType, id, Vector2(newValue.x, eValue[entity].y), settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
@@ -589,7 +589,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         if (ImGui::DragFloat(("##input_y_"+id).c_str(), &(newValue.y), settings.stepSize, 0.0f, 0.0f, settings.format)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Vector2>(project, sceneProject->id, entity, cpType, id, Vector2(eValue[entity].x, newValue.y));
+                cmd = new PropertyCmd<Vector2>(project, sceneProject->id, entity, cpType, id, Vector2(eValue[entity].x, newValue.y), settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
@@ -629,7 +629,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         }
         if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Vector3>(project, sceneProject->id, entity, cpType, id, static_cast<Vector3>(defArr));
+                cmd = new PropertyCmd<Vector3>(project, sceneProject->id, entity, cpType, id, static_cast<Vector3>(defArr), settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
                 finishProperty = true;
             }
@@ -668,7 +668,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
                 // Apply to all entities
                 for (Entity& entity : entities) {
-                    cmd = new PropertyCmd<Vector3>(project, sceneProject->id, entity, cpType, id, newDirection);
+                    cmd = new PropertyCmd<Vector3>(project, sceneProject->id, entity, cpType, id, newDirection, settings.onValueChanged);
                     CommandHandle::get(sceneProject->id)->addCommand(cmd);
                 }
 
@@ -704,7 +704,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
         if (ImGui::DragFloat(("##input_x_"+id).c_str(), &(newValue.x), settings.stepSize, min, max, settings.format)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Vector3>(project, sceneProject->id, entity, cpType, id, Vector3(newValue.x, eValue[entity].y, eValue[entity].z));
+                cmd = new PropertyCmd<Vector3>(project, sceneProject->id, entity, cpType, id, Vector3(newValue.x, eValue[entity].y, eValue[entity].z), settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
@@ -730,7 +730,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
         if (ImGui::DragFloat(("##input_y_"+id).c_str(), &(newValue.y), settings.stepSize, min, max, settings.format)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Vector3>(project, sceneProject->id, entity, cpType, id, Vector3(eValue[entity].x, newValue.y, eValue[entity].z));
+                cmd = new PropertyCmd<Vector3>(project, sceneProject->id, entity, cpType, id, Vector3(eValue[entity].x, newValue.y, eValue[entity].z), settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
@@ -754,7 +754,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
         if (ImGui::DragFloat(("##input_z_"+id).c_str(), &(newValue.z), settings.stepSize, min, max, settings.format)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Vector3>(project, sceneProject->id, entity, cpType, id, Vector3(eValue[entity].x, eValue[entity].y, newValue.z));
+                cmd = new PropertyCmd<Vector3>(project, sceneProject->id, entity, cpType, id, Vector3(eValue[entity].x, eValue[entity].y, newValue.z), settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
@@ -805,7 +805,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         }
         if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Vector4>(project, sceneProject->id, entity, cpType, id, static_cast<Vector4>(defArr));
+                cmd = new PropertyCmd<Vector4>(project, sceneProject->id, entity, cpType, id, static_cast<Vector4>(defArr), settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
                 finishProperty = true;
             }
@@ -818,7 +818,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         if (ImGui::DragFloat(("##input_x_"+id).c_str(), &(newValue.x), settings.stepSize, 0.0f, 0.0f, settings.format)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Vector4>(project, sceneProject->id, entity, cpType, id, Vector4(newValue.x, eValue[entity].y, eValue[entity].z, eValue[entity].w));
+                cmd = new PropertyCmd<Vector4>(project, sceneProject->id, entity, cpType, id, Vector4(newValue.x, eValue[entity].y, eValue[entity].z, eValue[entity].w), settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
@@ -830,7 +830,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         if (ImGui::DragFloat(("##input_y_"+id).c_str(), &(newValue.y), settings.stepSize, 0.0f, 0.0f, settings.format)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Vector4>(project, sceneProject->id, entity, cpType, id, Vector4(eValue[entity].x, newValue.y, eValue[entity].z, eValue[entity].w));
+                cmd = new PropertyCmd<Vector4>(project, sceneProject->id, entity, cpType, id, Vector4(eValue[entity].x, newValue.y, eValue[entity].z, eValue[entity].w), settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
@@ -842,7 +842,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         if (ImGui::DragFloat(("##input_z_"+id).c_str(), &(newValue.z), settings.stepSize, 0.0f, 0.0f, settings.format)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Vector4>(project, sceneProject->id, entity, cpType, id, Vector4(eValue[entity].x, eValue[entity].y, newValue.z, eValue[entity].w));
+                cmd = new PropertyCmd<Vector4>(project, sceneProject->id, entity, cpType, id, Vector4(eValue[entity].x, eValue[entity].y, newValue.z, eValue[entity].w), settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
@@ -854,7 +854,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         if (ImGui::DragFloat(("##input_w_"+id).c_str(), &(newValue.w), settings.stepSize, 0.0f, 0.0f, settings.format)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Vector4>(project, sceneProject->id, entity, cpType, id, Vector4(eValue[entity].x, eValue[entity].y, eValue[entity].z, newValue.w));
+                cmd = new PropertyCmd<Vector4>(project, sceneProject->id, entity, cpType, id, Vector4(eValue[entity].x, eValue[entity].y, eValue[entity].z, newValue.w), settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
@@ -898,7 +898,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         }
         if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Quaternion>(project, sceneProject->id, entity, cpType, id, static_cast<Quaternion>(defArr));
+                cmd = new PropertyCmd<Quaternion>(project, sceneProject->id, entity, cpType, id, static_cast<Quaternion>(defArr), settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
                 finishProperty = true;
             }
@@ -926,7 +926,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
         if (ImGui::DragFloat(("##input_x_"+id).c_str(), &(newValue.x), settings.stepSize, 0.0f, 0.0f, (std::string(settings.format) + "°").c_str())){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Quaternion>(project, sceneProject->id, entity, cpType, id, Quaternion(newValue.x, eValue[entity].y, eValue[entity].z, order));
+                cmd = new PropertyCmd<Quaternion>(project, sceneProject->id, entity, cpType, id, Quaternion(newValue.x, eValue[entity].y, eValue[entity].z, order), settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
@@ -952,7 +952,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
         if (ImGui::DragFloat(("##input_y_"+id).c_str(), &(newValue.y), settings.stepSize, 0.0f, 0.0f, "%.2f°")){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Quaternion>(project, sceneProject->id, entity, cpType, id, Quaternion(eValue[entity].x, newValue.y, eValue[entity].z, order));
+                cmd = new PropertyCmd<Quaternion>(project, sceneProject->id, entity, cpType, id, Quaternion(eValue[entity].x, newValue.y, eValue[entity].z, order), settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
@@ -976,7 +976,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
         if (ImGui::DragFloat(("##input_z_"+id).c_str(), &(newValue.z), settings.stepSize, 0.0f, 0.0f, "%.2f°")){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Quaternion>(project, sceneProject->id, entity, cpType, id, Quaternion(eValue[entity].x, eValue[entity].y, newValue.z, order));
+                cmd = new PropertyCmd<Quaternion>(project, sceneProject->id, entity, cpType, id, Quaternion(eValue[entity].x, eValue[entity].y, newValue.z, order), settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
@@ -1018,7 +1018,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         }
         if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<bool>(project, sceneProject->id, entity, cpType, id, *defArr);
+                cmd = new PropertyCmd<bool>(project, sceneProject->id, entity, cpType, id, *defArr, settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
                 finishProperty = true;
             }
@@ -1028,7 +1028,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             ImGui::PushStyleColor(ImGuiCol_CheckMark, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         if (ImGui::Checkbox(("##checkbox_"+id).c_str(), &newValue)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<bool>(project, sceneProject->id, entity, cpType, id, newValue);
+                cmd = new PropertyCmd<bool>(project, sceneProject->id, entity, cpType, id, newValue, settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
@@ -1068,7 +1068,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         }
         if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<float>(project, sceneProject->id, entity, cpType, id, *defArr);
+                cmd = new PropertyCmd<float>(project, sceneProject->id, entity, cpType, id, *defArr, settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
                 finishProperty = true;
             }
@@ -1091,9 +1091,9 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         if (ImGui::DragFloat(("##input_float_"+id).c_str(), &newValue, settings.stepSize, v_min, v_max, newFormat.c_str())){
             for (Entity& entity : entities){
                 if (type == RowPropertyType::HalfCone){
-                    cmd = new PropertyCmd<float>(project, sceneProject->id, entity, cpType, id, cos(Angle::defaultToRad(newValue / 2)));
+                    cmd = new PropertyCmd<float>(project, sceneProject->id, entity, cpType, id, cos(Angle::defaultToRad(newValue / 2)), settings.onValueChanged);
                 }else{
-                    cmd = new PropertyCmd<float>(project, sceneProject->id, entity, cpType, id, newValue);
+                    cmd = new PropertyCmd<float>(project, sceneProject->id, entity, cpType, id, newValue, settings.onValueChanged);
                 }
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
@@ -1130,7 +1130,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         }
         if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<unsigned int>(project, sceneProject->id, entity, cpType, id, *defArr);
+                cmd = new PropertyCmd<unsigned int>(project, sceneProject->id, entity, cpType, id, *defArr, settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
                 finishProperty = true;
             }
@@ -1140,7 +1140,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         if (ImGui::DragInt(("##input_uint_"+id).c_str(), (int*)&newValue, static_cast<unsigned int>(settings.stepSize), 0.0f, INT_MAX)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<unsigned int>(project, sceneProject->id, entity, cpType, id, newValue);
+                cmd = new PropertyCmd<unsigned int>(project, sceneProject->id, entity, cpType, id, newValue, settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
@@ -1172,7 +1172,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         }
         if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<int>(project, sceneProject->id, entity, cpType, id, *defArr);
+                cmd = new PropertyCmd<int>(project, sceneProject->id, entity, cpType, id, *defArr, settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
                 finishProperty = true;
             }
@@ -1182,7 +1182,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         if (ImGui::DragInt(("##input_int_"+id).c_str(), &newValue, static_cast<int>(settings.stepSize), 0.0f, 0.0f)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<int>(project, sceneProject->id, entity, cpType, id, newValue);
+                cmd = new PropertyCmd<int>(project, sceneProject->id, entity, cpType, id, newValue, settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
@@ -1215,7 +1215,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         }
         if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Vector3>(project, sceneProject->id, entity, cpType, id, static_cast<Vector3>(defArr));
+                cmd = new PropertyCmd<Vector3>(project, sceneProject->id, entity, cpType, id, static_cast<Vector3>(defArr), settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
                 finishProperty = true;
             }
@@ -1225,7 +1225,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             ImGui::PushStyleColor(ImGuiCol_FrameBg, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         if (ImGui::ColorEdit3((label+"##checkbox_"+id).c_str(), (float*)&newValue.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Vector3>(project, sceneProject->id, entity, cpType, id, Color::sRGBToLinear(newValue));
+                cmd = new PropertyCmd<Vector3>(project, sceneProject->id, entity, cpType, id, Color::sRGBToLinear(newValue), settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
@@ -1258,7 +1258,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         }
         if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Vector4>(project, sceneProject->id, entity, cpType, id, static_cast<Vector4>(defArr));
+                cmd = new PropertyCmd<Vector4>(project, sceneProject->id, entity, cpType, id, static_cast<Vector4>(defArr), settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
                 finishProperty = true;
             }
@@ -1268,7 +1268,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             ImGui::PushStyleColor(ImGuiCol_FrameBg, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         if (ImGui::ColorEdit4((label+"##checkbox_"+id).c_str(), (float*)&newValue.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Vector4>(project, sceneProject->id, entity, cpType, id, Color::sRGBToLinear(newValue));
+                cmd = new PropertyCmd<Vector4>(project, sceneProject->id, entity, cpType, id, Color::sRGBToLinear(newValue), settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
@@ -1311,9 +1311,9 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
                 if (type == RowPropertyType::IntSlider) {
-                    cmd = new PropertyCmd<int>(project, sceneProject->id, entity, cpType, id, *static_cast<int*>(defArr));
+                    cmd = new PropertyCmd<int>(project, sceneProject->id, entity, cpType, id, *static_cast<int*>(defArr), settings.onValueChanged);
                 } else {
-                    cmd = new PropertyCmd<unsigned int>(project, sceneProject->id, entity, cpType, id, *static_cast<unsigned int*>(defArr));
+                    cmd = new PropertyCmd<unsigned int>(project, sceneProject->id, entity, cpType, id, *static_cast<unsigned int*>(defArr), settings.onValueChanged);
                 }
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
                 finishProperty = true;
@@ -1340,9 +1340,9 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             int newSliderValue = (*sliderValues)[currentIndex];
             for (Entity& entity : entities){
                 if (type == RowPropertyType::IntSlider) {
-                    cmd = new PropertyCmd<int>(project, sceneProject->id, entity, cpType, id, newSliderValue);
+                    cmd = new PropertyCmd<int>(project, sceneProject->id, entity, cpType, id, newSliderValue, settings.onValueChanged);
                 } else {
-                    cmd = new PropertyCmd<unsigned int>(project, sceneProject->id, entity, cpType, id, static_cast<unsigned int>(newSliderValue));
+                    cmd = new PropertyCmd<unsigned int>(project, sceneProject->id, entity, cpType, id, static_cast<unsigned int>(newSliderValue), settings.onValueChanged);
                 }
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
@@ -1394,7 +1394,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
                 int defValue = (*enumEntries)[item_default].value;
-                cmd = new PropertyCmd<int>(project, sceneProject->id, entity, cpType, id, defValue);
+                cmd = new PropertyCmd<int>(project, sceneProject->id, entity, cpType, id, defValue, settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
                 finishProperty = true;
             }
@@ -1411,7 +1411,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         if (ImGui::Combo(("##combo_" + id).c_str(), &item_current, names.data(), static_cast<int>(names.size()))) {
             int newValue = (*enumEntries)[item_current].value;
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<int>(project, sceneProject->id, entity, cpType, id, newValue);
+                cmd = new PropertyCmd<int>(project, sceneProject->id, entity, cpType, id, newValue, settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
         }
@@ -1442,7 +1442,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         }
         if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Texture>(project, sceneProject->id, entity, cpType, id, *defArr);
+                cmd = new PropertyCmd<Texture>(project, sceneProject->id, entity, cpType, id, *defArr, settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
                 finishProperty = true;
             }
@@ -1509,7 +1509,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
                 }else{
                     Texture texture(filePath.string());
                     for (Entity& entity : entities){
-                        cmd = new PropertyCmd<Texture>(project, sceneProject->id, entity, cpType, id, texture);
+                        cmd = new PropertyCmd<Texture>(project, sceneProject->id, entity, cpType, id, texture, settings.onValueChanged);
                         CommandHandle::get(sceneProject->id)->addCommand(cmd);
                         finishProperty = true;
                     }
@@ -1559,7 +1559,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         }
         if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Material>(project, sceneProject->id, entity, cpType, id, *defArr);
+                cmd = new PropertyCmd<Material>(project, sceneProject->id, entity, cpType, id, *defArr, settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
                 finishProperty = true;
             }
@@ -1633,10 +1633,6 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         cmd->setNoMerge();
         cmd = nullptr;
         finishProperty = false;
-
-        if (settings.onValueChanged) {
-            settings.onValueChanged();
-        }
     }
 
     return result;
@@ -2356,7 +2352,7 @@ void Editor::Properties::show(){
         ImGui::Separator();
 
         // Disable adding components while playing
-        bool isReadOnlyComponents = (sceneProject->playState == ScenePlayState::PLAYING);
+        bool isReadOnlyComponents = false;
         ImGui::BeginDisabled(isReadOnlyComponents);
         if (ImGui::Button(ICON_FA_PLUS" New component", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
             addComponentModalOpen = true;
@@ -2690,8 +2686,8 @@ void Editor::Properties::show(){
             }
 
             // Context menu disabled while playing
-            bool compReadOnly = (sceneProject->playState == ScenePlayState::PLAYING) && (cpType != ComponentType::ScriptComponent);
-            handleComponentMenu(sceneProject, entities, cpType, isShared, isComponentOverridden, headerOpen, sceneProject->playState == ScenePlayState::PLAYING);
+            bool compReadOnly = false;
+            handleComponentMenu(sceneProject, entities, cpType, isShared, isComponentOverridden, headerOpen, compReadOnly);
 
             // Add hover tooltip only for shared components
             if (isShared && !isComponentOverridden && ImGui::IsItemHovered()) {

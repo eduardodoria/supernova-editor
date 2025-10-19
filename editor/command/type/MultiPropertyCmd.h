@@ -4,6 +4,7 @@
 #include "PropertyCmd.h"
 #include <vector>
 #include <memory>
+#include <functional>
 
 namespace Supernova::Editor {
 
@@ -17,9 +18,9 @@ namespace Supernova::Editor {
 
         template<typename T>
         void addPropertyCmd(Project* project, uint32_t sceneId, Entity entity, ComponentType type, 
-                           std::string propertyName, T newValue) {
+                           std::string propertyName, T newValue, std::function<void()> onValueChanged = nullptr) {
             commands.push_back(std::make_unique<PropertyCmd<T>>(
-                project, sceneId, entity, type, propertyName, newValue));
+                project, sceneId, entity, type, propertyName, newValue, onValueChanged));
         }
 
         void addCommand(std::unique_ptr<Command> command) {

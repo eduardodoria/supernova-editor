@@ -6,6 +6,7 @@
 #include "ecs/Entity.h"
 #include "component/Transform.h"
 #include "Catalog.h"
+#include <functional>
 
 
 namespace Supernova::Editor{
@@ -26,17 +27,19 @@ namespace Supernova::Editor{
         std::string propertyName;
         int updateFlags;
         bool wasModified;
+        std::function<void()> onValueChanged;
 
         std::map<Entity,PropertyCmdValue<T>> values;
 
     public:
 
-        PropertyCmd(Project* project, uint32_t sceneId, Entity entity, ComponentType type, std::string propertyName, T newValue){
+        PropertyCmd(Project* project, uint32_t sceneId, Entity entity, ComponentType type, std::string propertyName, T newValue, std::function<void()> onValueChanged = nullptr){
             this->project = project;
             this->sceneId = sceneId;
             this->type = type;
             this->propertyName = propertyName;
             this->updateFlags = updateFlags;
+            this->onValueChanged = onValueChanged;
 
             this->values[entity].newValue = newValue;
             this->wasModified = project->getScene(sceneId)->isModified;
@@ -63,6 +66,10 @@ namespace Supernova::Editor{
 
             sceneProject->isModified = true;
 
+            if (onValueChanged) {
+                onValueChanged();
+            }
+
             return true;
         }
 
@@ -85,6 +92,10 @@ namespace Supernova::Editor{
             }
 
             sceneProject->isModified = wasModified;
+
+            if (onValueChanged) {
+                onValueChanged();
+            }
         }
 
         bool mergeWith(Editor::Command* otherCommand) override{
@@ -100,6 +111,10 @@ namespace Supernova::Editor{
                     }
                     updateFlags |= otherCmd->updateFlags;
                     wasModified = wasModified && otherCmd->wasModified;
+                    // Keep the most recent callback
+                    if (otherCmd->onValueChanged) {
+                        onValueChanged = otherCmd->onValueChanged;
+                    }
                     return true;
                 }
             }
