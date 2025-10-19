@@ -2146,7 +2146,7 @@ void Editor::Project::start(uint32_t sceneId) {
     Backend::getApp().getCodeEditor()->saveAll();
 
     // Save current scene state before starting
-    sceneProject->playStateSnapshot = Stream::encodeSceneProject(this, sceneProject, true);
+    sceneProject->playStateSnapshot = Stream::encodeSceneProject(this, sceneProject, true, true);
 
     sceneProject->playState = ScenePlayState::PLAYING;
 

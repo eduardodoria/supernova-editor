@@ -23,8 +23,8 @@ namespace Supernova::Editor{
 
     // the order of components here affects properties window
     enum class ComponentType : int {
-        ScriptComponent,
         Transform,
+        ScriptComponent,
         MeshComponent,
         UIComponent,
         UILayoutComponent,

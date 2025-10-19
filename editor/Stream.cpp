@@ -711,7 +711,7 @@ void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
     }
 }
 
-YAML::Node Editor::Stream::encodeSceneProject(const Project* project, const SceneProject* sceneProject, bool keepEntity) {
+YAML::Node Editor::Stream::encodeSceneProject(const Project* project, const SceneProject* sceneProject, bool keepEntity, bool avoidShared) {
     YAML::Node root;
     root["id"] = sceneProject->id;
     root["name"] = sceneProject->name;
@@ -722,10 +722,10 @@ YAML::Node Editor::Stream::encodeSceneProject(const Project* project, const Scen
     for (Entity entity : sceneProject->entities) {
         if (Transform* transform = sceneProject->scene->findComponent<Transform>(entity)) {
             if (transform->parent == NULL_ENTITY) {
-                entitiesNode.push_back(encodeEntity(entity, sceneProject->scene, project, sceneProject, keepEntity));
+                entitiesNode.push_back(encodeEntity(entity, sceneProject->scene, project, sceneProject, keepEntity, avoidShared));
             }
         }else{
-            entitiesNode.push_back(encodeEntity(entity, sceneProject->scene, project, sceneProject, keepEntity));
+            entitiesNode.push_back(encodeEntity(entity, sceneProject->scene, project, sceneProject, keepEntity, avoidShared));
         }
     }
     root["entities"] = entitiesNode;
@@ -794,7 +794,7 @@ Scene* Editor::Stream::decodeScene(Scene* scene, const YAML::Node& node) {
     return scene;
 }
 
-YAML::Node Editor::Stream::encodeEntity(const Entity entity, const EntityRegistry* registry, const Project* project, const SceneProject* sceneProject, bool keepEntity) {
+YAML::Node Editor::Stream::encodeEntity(const Entity entity, const EntityRegistry* registry, const Project* project, const SceneProject* sceneProject, bool keepEntity, bool avoidShared) {
     std::map<Entity, YAML::Node> entityNodes;
 
     bool hasCurrentEntity = true;
@@ -805,7 +805,7 @@ YAML::Node Editor::Stream::encodeEntity(const Entity entity, const EntityRegistr
 
     if (hasCurrentEntity) {
         YAML::Node& currentNode = entityNodes[entity];
-        currentNode = encodeEntityAux(entity, registry, project, sceneProject, keepEntity);
+        currentNode = encodeEntityAux(entity, registry, project, sceneProject, keepEntity, avoidShared);
 
         Signature signature = registry->getSignature(entity);
 
@@ -823,7 +823,7 @@ YAML::Node Editor::Stream::encodeEntity(const Entity entity, const EntityRegistr
 
                 if (hasCurrentEntity) {
                     YAML::Node& currentNode = entityNodes[currentEntity];
-                    currentNode = encodeEntityAux(currentEntity, registry, project, sceneProject, keepEntity);
+                    currentNode = encodeEntityAux(currentEntity, registry, project, sceneProject, keepEntity, avoidShared);
 
                     Transform& transform = transforms->getComponentFromIndex(i);
 
@@ -844,11 +844,11 @@ YAML::Node Editor::Stream::encodeEntity(const Entity entity, const EntityRegistr
     return entityNodes[entity];
 }
 
-YAML::Node Editor::Stream::encodeEntityAux(const Entity entity, const EntityRegistry* registry, const Project* project, const SceneProject* sceneProject, bool keepEntity) {
+YAML::Node Editor::Stream::encodeEntityAux(const Entity entity, const EntityRegistry* registry, const Project* project, const SceneProject* sceneProject, bool keepEntity, bool avoidShared) {
     YAML::Node entityNode;
 
     fs::path sharedPath = "";
-    if (project && sceneProject) {
+    if (project && sceneProject && !avoidShared) {
         sharedPath = project->findGroupPathFor(sceneProject->id, entity);
     }
 
