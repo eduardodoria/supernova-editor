@@ -1624,6 +1624,10 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         cmd->setNoMerge();
         cmd = nullptr;
         finishProperty = false;
+
+        if (settings.onValueChanged) {
+            settings.onValueChanged();
+        }
     }
 
     return result;
@@ -2244,21 +2248,12 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
 
                         RowPropertyType propType = scriptPropertyTypeToRowPropertyType(prop.type);
 
-                        if (propertyRow(propType, cpType, propertyId, displayName, sceneProject, entities)) {
-                            // Property was reset to default
+                        RowSettings propSettings;
+                        propSettings.onValueChanged = [&prop]() {
                             prop.syncToMember();
-                        }
+                        };
 
-                        if (ImGui::IsItemDeactivatedAfterEdit() || finishProperty) {
-                            // Sync the changed value to the actual member variable
-                            prop.syncToMember();
-
-                            if (cmd) {
-                                cmd->setNoMerge();
-                                cmd = nullptr;
-                            }
-                            finishProperty = false;
-                        }
+                        propertyRow(propType, cpType, propertyId, displayName, sceneProject, entities, propSettings);
                     }
 
                     endTable();

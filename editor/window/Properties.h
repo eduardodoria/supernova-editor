@@ -46,6 +46,7 @@ namespace Supernova::Editor{
         const char *format = "%.2f";
         std::vector<EnumEntry>* enumEntries = nullptr;
         std::vector<int>* sliderValues = nullptr;
+        std::function<void()> onValueChanged = nullptr;
     };
 
     class Properties{
