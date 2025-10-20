@@ -895,7 +895,9 @@ void Editor::Catalog::copyPropertyValue(EntityRegistry* sourceRegistry, Entity s
             break;
         }
         case PropertyType::Custom:
-            // Custom types like scripts array are handled separately above
+            if (compType == ComponentType::ScriptComponent) {
+                copyComponent(sourceRegistry, sourceEntity, targetRegistry, targetEntity, compType);
+            }
             break;
         default:
             // For any unknown/unsupported type, do nothing

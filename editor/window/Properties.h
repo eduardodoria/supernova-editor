@@ -4,7 +4,8 @@
 #include "render/preview/MeshPreviewRender.h"
 #include "render/preview/DirectionRender.h"
 #include "util/ShapeParameters.h"
-#include "ScriptCreateDialog.h"
+#include "window/dialog/ScriptCreateDialog.h"
+#include "window/dialog/ComponentAddDialog.h"
 
 #include "imgui.h"
 
@@ -77,8 +78,9 @@ namespace Supernova::Editor{
         bool addComponentModalOpen = false;
         bool componentMenuJustOpened = false;
 
-        // Script creation dialog
+        // Dialogs
         ScriptCreateDialog scriptCreateDialog;
+        ComponentAddDialog componentAddDialog;
 
         const ImU32 textureLabel = IM_COL32(50, 50, 50, 255);
 

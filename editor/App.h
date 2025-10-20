@@ -14,8 +14,8 @@
 
 #include "window/LoadingWindow.h"
 
-#include "window/ProjectSaveDialog.h"
-#include "window/SceneSaveDialog.h"
+#include "window/dialog/ProjectSaveDialog.h"
+#include "window/dialog/SceneSaveDialog.h"
 
 #include "render/SceneRender.h"
 
