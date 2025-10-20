@@ -155,6 +155,8 @@ void ComponentAddDialog::show() {
     int componentIndex = 0;
     bool foundAny = false;
 
+    ImGui::Dummy(ImVec2(0, 5));
+
     for (const auto& category : m_categories) {
         std::vector<ComponentEntry> filteredEntries;
 
@@ -188,40 +190,49 @@ void ComponentAddDialog::show() {
                 ImGui::PushID(componentIndex);
 
                 ImVec2 cursorPos = ImGui::GetCursorPos();
-                bool isHovered = (m_hoveredIndex == componentIndex);
 
-                if (isHovered) {
-                    // Draw highlight background
-                    ImVec2 p_min = ImGui::GetCursorScreenPos();
-                    ImVec2 p_max = ImVec2(p_min.x + ImGui::GetContentRegionAvail().x, p_min.y + 40);
-                    ImDrawList* draw_list = ImGui::GetWindowDrawList();
-                    draw_list->AddRectFilled(p_min, p_max, IM_COL32(60, 80, 120, 100), 5.0f);
+                // Customize button colors to match your design
+                ImVec4 bgColor = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);  // Transparent by default
+                ImVec4 hoverColor = ImVec4(0.235f, 0.314f, 0.471f, 0.392f);  // Your hover color
+                ImVec4 activeColor = ImVec4(0.314f, 0.392f, 0.549f, 0.588f);  // Slightly brighter when clicked
+
+                ImGui::PushStyleColor(ImGuiCol_Button, bgColor);
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hoverColor);
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, activeColor);
+                ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.0f)); // Left align
+
+                // Create button with empty label (we'll draw content manually)
+                bool clicked = ImGui::Button("##component", ImVec2(ImGui::GetContentRegionAvail().x, 45));
+
+                ImGui::PopStyleVar();
+                ImGui::PopStyleColor(3);
+
+                // Check if hovered for cursor change
+                if (ImGui::IsItemHovered()) {
+                    ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
                 }
 
-                ImGui::SetCursorPosX(20);
-                ImGui::BeginGroup();
+                // Draw icon and text on top of the button
+                ImGui::SetCursorPos(ImVec2(cursorPos.x + 20, cursorPos.y + 5));
 
-                // Icon with color
                 ImGui::PushStyleColor(ImGuiCol_Text, entry.color);
                 ImGui::Text("%s", entry.icon);
                 ImGui::PopStyleColor();
 
                 ImGui::SameLine();
-                ImGui::SetCursorPosX(50);
+                ImGui::SetCursorPosX(cursorPos.x + 50);
 
                 // Component name and description
                 ImGui::BeginGroup();
                 ImGui::Text("%s", entry.name);
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+                ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);  // Tighten spacing
                 ImGui::TextWrapped("%s", entry.description);
                 ImGui::PopStyleColor();
                 ImGui::EndGroup();
 
-                ImGui::EndGroup();
-
-                // Make the whole area clickable
-                ImGui::SetCursorPos(cursorPos);
-                if (ImGui::InvisibleButton("##component", ImVec2(ImGui::GetContentRegionAvail().x, 40))) {
+                // Handle button click
+                if (clicked) {
                     if (m_onAdd) {
                         m_onAdd(entry.type);
                     }
@@ -234,18 +245,13 @@ void ComponentAddDialog::show() {
                     ImGui::CloseCurrentPopup();
                 }
 
-                if (ImGui::IsItemHovered()) {
-                    m_hoveredIndex = componentIndex;
-                    ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-                }
-
                 ImGui::PopID();
                 componentIndex++;
 
                 ImGui::Dummy(ImVec2(0, 5));
+
             }
 
-            ImGui::Dummy(ImVec2(0, 10));
         }
     }
 
