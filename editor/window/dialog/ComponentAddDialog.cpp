@@ -1,5 +1,6 @@
 #include "ComponentAddDialog.h"
 #include "external/IconsFontAwesome6.h"
+#include "util/UIUtils.h"
 #include <cctype>
 
 namespace Supernova {
@@ -109,39 +110,9 @@ void ComponentAddDialog::show() {
         return;
     }
 
-    // Search input with clear button
-    float inputHeight = ImGui::GetFrameHeight();
-    ImVec2 buttonSize = ImGui::CalcTextSize(ICON_FA_MAGNIFYING_GLASS);
-    buttonSize.x += ImGui::GetStyle().FramePadding.x * 2.0f;
-    buttonSize.y = inputHeight;
-
-    ImGui::BeginGroup();
-    ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - buttonSize.x);
-    
-    if (m_justOpened) {
-        ImGui::SetKeyboardFocusHere();
-        m_justOpened = false;
-    }
-    
-    ImGui::InputTextWithHint("##search", "Search components...", m_searchBuffer, sizeof(m_searchBuffer));
-
-    ImGui::SameLine(0, 0);
-    ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_FrameBgHovered));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGui::GetStyleColorVec4(ImGuiCol_FrameBgActive));
-    
-    if (ImGui::Button(ICON_FA_MAGNIFYING_GLASS, buttonSize)) {
-        if (strlen(m_searchBuffer) > 0) {
-            m_searchBuffer[0] = '\0';
-        }
-    }
-    if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("Clear");
-    }
-    
-    ImGui::PopStyleColor(3);
-    ImGui::PopItemWidth();
-    ImGui::EndGroup();
+    // Search input
+    UIUtils::searchInput("##search", "Search components...", m_searchBuffer, sizeof(m_searchBuffer), m_justOpened);
+    m_justOpened = false;
 
     ImGui::Separator();
 

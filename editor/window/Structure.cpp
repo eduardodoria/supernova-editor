@@ -11,6 +11,7 @@
 #include "command/type/MakeEntityLocalCmd.h"
 #include "command/type/MakeEntitySharedCmd.h"
 #include "util/EntityPayload.h"
+#include "util/UIUtils.h"
 #include "Out.h"
 #include "Stream.h"
 #include <algorithm>
@@ -114,42 +115,7 @@ void Editor::Structure::showIconMenu(){
 
     ImGui::SameLine();
 
-    // Get default sizes
-    float inputHeight = ImGui::GetFrameHeight();
-    ImVec2 buttonSize = ImGui::CalcTextSize(ICON_FA_MAGNIFYING_GLASS);
-    buttonSize.x += ImGui::GetStyle().FramePadding.x * 2.0f;
-    buttonSize.y = inputHeight;
-
-    // Create a group for the input text with button
-    ImGui::BeginGroup();
-
-    // Input text
-    ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - buttonSize.x);
-
-    // Clear search when ESC is pressed
-    if (ImGui::IsKeyPressed(ImGuiKey_Escape) && ImGui::IsWindowFocused()) {
-        searchBuffer[0] = '\0';
-    }
-
-    ImGui::InputText("##structure_search", searchBuffer, IM_ARRAYSIZE(searchBuffer));
-
-    // Button inside input with same color as input background
-    ImGui::SameLine(0, 0);
-    ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_FrameBgHovered));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGui::GetStyleColorVec4(ImGuiCol_FrameBgActive));
-    if (ImGui::Button(ICON_FA_MAGNIFYING_GLASS)){
-        if (strlen(searchBuffer) > 0) {
-            searchBuffer[0] = '\0';
-        }
-    }
-    if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("Clear");
-    }
-    ImGui::PopStyleColor(3);
-
-    ImGui::PopItemWidth();
-    ImGui::EndGroup();
+    UIUtils::searchInput("##structure_search", "", searchBuffer, sizeof(searchBuffer), false);
 
     if (ImGui::BeginPopup("NewObjectMenu"))
     {
