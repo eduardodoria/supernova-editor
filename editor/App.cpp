@@ -945,6 +945,14 @@ void Editor::App::exit() {
 }
 
 void Editor::App::closeWindow(){
+    // Stop all playing scenes before shutdown to properly cleanup script instances
+    for (auto& sceneProject : project.getScenes()) {
+        if (sceneProject.playState == ScenePlayState::PLAYING || 
+            sceneProject.playState == ScenePlayState::PAUSED) {
+            project.stop(sceneProject.id);
+        }
+    }
+
     Editor::ShaderBuilder::requestShutdown();
     Backend::closeWindow();
 }

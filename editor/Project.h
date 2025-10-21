@@ -26,7 +26,8 @@ namespace Supernova::Editor{
     enum class ScenePlayState {
         STOPPED,
         PLAYING,
-        PAUSED
+        PAUSED,
+        CANCELLING
     };
 
     enum class InsertionType{

@@ -309,9 +309,10 @@ void Editor::SceneWindow::show() {
             bool isPlaying = (sceneProject.playState == ScenePlayState::PLAYING);
             bool isPaused = (sceneProject.playState == ScenePlayState::PAUSED);
             bool isStopped = (sceneProject.playState == ScenePlayState::STOPPED);
+            bool isCancelling = (sceneProject.playState == ScenePlayState::CANCELLING);
 
             // Play button - disabled when already playing
-            ImGui::BeginDisabled(isPlaying);
+            ImGui::BeginDisabled(isPlaying || isCancelling);
             if (ImGui::Button(ICON_FA_PLAY " Play")) {
                 if (!isPaused) {
                     project->start(sceneProject.id);
@@ -322,7 +323,7 @@ void Editor::SceneWindow::show() {
             ImGui::EndDisabled();
 
             // Pause/Resume button - disabled when stopped
-            ImGui::BeginDisabled(isStopped || isPaused);
+            ImGui::BeginDisabled(isStopped || isPaused || isCancelling);
             ImGui::SameLine();
             if (ImGui::Button(ICON_FA_PAUSE " Pause")) {
                 project->pause(sceneProject.id);
@@ -330,7 +331,7 @@ void Editor::SceneWindow::show() {
             ImGui::EndDisabled();
 
             // Stop button - disabled when stopped
-            ImGui::BeginDisabled(isStopped);
+            ImGui::BeginDisabled(isStopped || isCancelling);
             ImGui::SameLine();
             if (ImGui::Button(ICON_FA_STOP " Stop")) {
                 project->stop(sceneProject.id);

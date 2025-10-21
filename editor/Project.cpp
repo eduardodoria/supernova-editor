@@ -2214,31 +2214,54 @@ void Editor::Project::stop(uint32_t sceneId) {
         Out::error("Failed to find scene %u to stop", sceneId);
         return;
     }
+    // Mark cancelling state so UI can reflect it immediately
+    sceneProject->playState = ScenePlayState::CANCELLING;
 
-    sceneProject->playState = ScenePlayState::STOPPED;
+    // Request cancellation asynchronously (returns a future we can wait on later if needed)
+    auto cancelFuture = generator.cancelBuild();
 
-    // Cleanup script instances before disconnecting
+    // Cleanup script instances / disconnect if the library is currently connected.
     if (conector.isLibraryConnected()) {
         conector.cleanup(sceneProject);
         conector.disconnect();
     }
 
+    // Pause engine while cancellation is in progress
     pauseEngineScene(sceneProject, true);
     Engine::pauseGameEvents(true);
 
-    if (sceneProject->playStateSnapshot && !sceneProject->playStateSnapshot.IsNull()) {
-        Stream::decodeScene(sceneProject->scene, sceneProject->playStateSnapshot["scene"]);
-
-        auto entitiesNode = sceneProject->playStateSnapshot["entities"];
-        for (const auto& entityNode : entitiesNode){
-            Stream::decodeEntity(entityNode, sceneProject->scene, nullptr, this, sceneProject, NULL_ENTITY, true, false);
+    // After cancellation completes perform the rest of the stop work on a background thread
+    uint32_t sceneIdCopy = sceneId;
+    std::thread finalizeStopThread([this, sceneIdCopy, cancelFuture = std::move(cancelFuture)]() mutable {
+        if (cancelFuture.valid()) {
+            // wait for cancellation to finish
+            cancelFuture.wait();
         }
 
-        // Clear the snapshot
-        sceneProject->playStateSnapshot = YAML::Node();
-    }
+        // Get scene pointer again - it should still be valid unless scene was deleted
+        SceneProject* sceneProject = getScene(sceneIdCopy);
+        if (!sceneProject) {
+            Out::warning("Scene %u no longer exists after build cancellation", sceneIdCopy);
+            return;
+        }
 
-    sceneProject->scene->getComponent<CameraComponent>(sceneProject->scene->getCamera()).needUpdate = true;
+        // Restore snapshot if present
+        if (sceneProject->playStateSnapshot && !sceneProject->playStateSnapshot.IsNull()) {
+            Stream::decodeScene(sceneProject->scene, sceneProject->playStateSnapshot["scene"]);
+
+            auto entitiesNode = sceneProject->playStateSnapshot["entities"];
+            for (const auto& entityNode : entitiesNode){
+                Stream::decodeEntity(entityNode, sceneProject->scene, nullptr, this, sceneProject, NULL_ENTITY, true, false);
+            }
+
+            // Clear the snapshot
+            sceneProject->playStateSnapshot = YAML::Node();
+        }
+
+        sceneProject->playState = ScenePlayState::STOPPED;
+        sceneProject->scene->getComponent<CameraComponent>(sceneProject->scene->getCamera()).needUpdate = true;
+    });
+    finalizeStopThread.detach();
 }
 
 void Editor::Project::debugSceneHierarchy(){
