@@ -904,10 +904,18 @@ void Editor::App::saveWindowSettings(int width, int height, bool maximized) {
 }
 
 void Editor::App::exit() {
-    // First check if the scene save dialog is open
+    // Check if any modal popup is currently open (including ComponentAddDialog, ScriptCreateDialog, etc.)
+    ImGuiWindow* modal = ImGui::GetTopMostAndVisiblePopupModal();
+    if (modal != nullptr) {
+        // A modal is open - close it first
+        ImGui::CloseCurrentPopup();
+        return;  // Don't proceed with exit yet, user needs to click close again
+    }
+
+    // Also check if the scene save dialog is specifically open
     if (sceneSaveDialog.isOpen()) {
-        // Close the dialog first
         sceneSaveDialog.close();
+        return;
     }
 
     if (project.hasScenesUnsavedChanges() || codeEditor->hasUnsavedChanges() || project.isTempUnsavedProject()) {
@@ -928,7 +936,6 @@ void Editor::App::exit() {
             },
             []() {
                 // Cancel callback - do nothing, just close the dialog
-                // No action needed, the dialog will close automatically
             }
         );
     } else {

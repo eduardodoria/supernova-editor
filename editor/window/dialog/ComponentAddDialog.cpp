@@ -98,11 +98,9 @@ void ComponentAddDialog::show() {
     ImGui::SetNextWindowSize(ImVec2(400, 0.0f), ImGuiCond_Once);
 
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | 
-                             ImGuiWindowFlags_NoMove |
                              ImGuiWindowFlags_Modal;
 
-    bool popupOpen = true;
-    if (!ImGui::BeginPopupModal("Add new component##ComponentAddModal", &popupOpen, flags)) {
+    if (!ImGui::BeginPopupModal("Add new component##ComponentAddModal", nullptr, flags)) {
         if (m_isOpen) {
             m_isOpen = false;
             if (m_onCancel) m_onCancel();

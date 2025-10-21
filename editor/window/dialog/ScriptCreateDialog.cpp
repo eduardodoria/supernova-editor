@@ -154,7 +154,6 @@ void ScriptCreateDialog::show() {
     ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
     ImGuiWindowFlags flags = ImGuiWindowFlags_AlwaysAutoResize |
-                             ImGuiWindowFlags_NoMove |
                              ImGuiWindowFlags_NoSavedSettings |
                              ImGuiWindowFlags_Modal;
 

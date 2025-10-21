@@ -36,7 +36,6 @@ void ProjectSaveDialog::show() {
 
     // Setup window flags for modal dialog
     ImGuiWindowFlags flags = ImGuiWindowFlags_AlwaysAutoResize |
-                             ImGuiWindowFlags_NoMove |
                              ImGuiWindowFlags_NoSavedSettings |
                              ImGuiWindowFlags_Modal;
 
