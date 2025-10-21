@@ -19,6 +19,10 @@
 
 using namespace Supernova;
 
+ImVec4 Editor::App::ThemeColors::ButtonActivated;
+ImVec4 Editor::App::ThemeColors::FileCardBackground;
+ImVec4 Editor::App::ThemeColors::FileCardBackgroundHovered;
+
 Editor::App::App(){
     propertiesWindow = new Properties(&project);
     outputWindow = new OutputWindow();
@@ -639,6 +643,10 @@ void Editor::App::kewtStyleTheme(){
     colors[ImGuiCol_NavWindowingHighlight]  = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
     colors[ImGuiCol_NavWindowingDimBg]      = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
     colors[ImGuiCol_ModalWindowDimBg]       = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
+
+    ThemeColors::ButtonActivated = ImLerp(colors[ImGuiCol_Button], colors[ImGuiCol_NavHighlight], 0.4f);
+    ThemeColors::FileCardBackground = ImLerp(colors[ImGuiCol_WindowBg], colors[ImGuiCol_FrameBg], 0.5f);
+    ThemeColors::FileCardBackgroundHovered = ImLerp(colors[ImGuiCol_WindowBg], colors[ImGuiCol_HeaderHovered], 0.25f);
 
     // main
     style.WindowPadding = ImVec2(8, 8);

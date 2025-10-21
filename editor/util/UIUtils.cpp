@@ -1,4 +1,5 @@
 #include "UIUtils.h"
+#include "App.h"
 #include "external/IconsFontAwesome6.h"
 
 namespace Supernova::Editor {
@@ -41,9 +42,7 @@ bool UIUtils::searchInput(const char* id, std::string hint, char* buffer, size_t
 
     // Determine icon text color based on match case
     bool isMatchCase = (matchCase != nullptr) && (*matchCase);
-    const ImVec4 base = style.Colors[ImGuiCol_Text];
-    const float darker = 0.85f;
-    ImVec4 iconTextColor = isMatchCase ? base : ImVec4(base.x * darker, base.y * darker, base.z * darker, base.w);
+    ImVec4 iconTextColor = isMatchCase ? style.Colors[ImGuiCol_Text] : style.Colors[ImGuiCol_TextDisabled];
 
     ImGui::PushStyleColor(ImGuiCol_Button, bgColor);
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, bgHoveredColor);

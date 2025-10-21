@@ -413,22 +413,13 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
                 ImDrawList* drawList = ImGui::GetWindowDrawList();
                 const ImGuiStyle& style = ImGui::GetStyle();
 
-                ImVec4 windowBg = style.Colors[ImGuiCol_WindowBg];
-                ImVec4 frameBg  = style.Colors[ImGuiCol_FrameBg];
                 ImVec4 header   = style.Colors[ImGuiCol_Header];
                 ImVec4 headerHovered = style.Colors[ImGuiCol_HeaderHovered];
                 ImVec4 headerActive  = style.Colors[ImGuiCol_HeaderActive];
                 ImVec4 borderV  = style.Colors[ImGuiCol_Border];
 
-                auto blend = [](ImVec4 a, ImVec4 b, float t) {
-                    return ImVec4(a.x + (b.x - a.x) * t,
-                                  a.y + (b.y - a.y) * t,
-                                  a.z + (b.z - a.z) * t,
-                                  1.0f);
-                };
-
-                ImVec4 bgV = blend(windowBg, frameBg, 0.50f);
-                if (hovered) bgV = blend(windowBg, headerHovered, 0.25f);
+                ImVec4 bgV = App::ThemeColors::FileCardBackground;
+                if (hovered) bgV = App::ThemeColors::FileCardBackgroundHovered;
                 if (isSelected) bgV = header;
                 ImU32 bgCol = ImGui::ColorConvertFloat4ToU32(bgV);
 

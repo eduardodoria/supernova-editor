@@ -98,6 +98,12 @@ namespace Supernova::Editor{
 
     public:
 
+        struct ThemeColors {
+            static ImVec4 ButtonActivated;
+            static ImVec4 FileCardBackground;
+            static ImVec4 FileCardBackgroundHovered;
+        };
+
         App();
 
         void setup();

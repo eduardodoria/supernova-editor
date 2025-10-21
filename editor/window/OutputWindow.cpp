@@ -1,6 +1,7 @@
 #include "OutputWindow.h"
 #include "external/IconsFontAwesome6.h"
 #include "util/UIUtils.h"
+#include "App.h"
 #include <ctime>
 #include <iomanip>
 #include <sstream>
@@ -399,21 +400,10 @@ void OutputWindow::show() {
     // Begin vertical menu
     ImGui::BeginChild("VerticalMenu", ImVec2(menuWidth, windowSize.y), true);
 
-    auto blend = [](ImGuiCol baseId, ImGuiCol accentId, float t) {
-        const ImVec4 base   = ImGui::GetStyleColorVec4(baseId);
-        const ImVec4 accent = ImGui::GetStyleColorVec4(accentId);
-        return ImVec4(
-            base.x + (accent.x - base.x) * t,
-            base.y + (accent.y - base.y) * t,
-            base.z + (accent.z - base.z) * t,
-            base.w + (accent.w - base.w) * t
-        );
-    };
-
     // Auto-scroll lock button
     const bool highlightSB = autoScrollLockedButton && autoScroll;
     if (highlightSB) {
-        ImGui::PushStyleColor(ImGuiCol_Button, blend(ImGuiCol_Button, ImGuiCol_NavHighlight, 0.4f));
+        ImGui::PushStyleColor(ImGuiCol_Button, App::ThemeColors::ButtonActivated);
     }
     float w = ImGui::CalcTextSize(ICON_FA_LOCK).x + ImGui::GetStyle().FramePadding.x * 2.0f;
     if (ImGui::Button(autoScrollLockedButton ? ICON_FA_LOCK : ICON_FA_LOCK_OPEN, ImVec2(w, 0.0f))) {
@@ -438,7 +428,7 @@ void OutputWindow::show() {
         }
     }
     if (anyFilterDisabled || filter.IsActive()) {
-        ImGui::PushStyleColor(ImGuiCol_Button, blend(ImGuiCol_Button, ImGuiCol_NavHighlight, 0.4f));
+        ImGui::PushStyleColor(ImGuiCol_Button, App::ThemeColors::ButtonActivated);
     }
     if (ImGui::Button(ICON_FA_FILTER)) {
         ImGui::OpenPopup("FilterPopup");
