@@ -3,9 +3,20 @@
 
 namespace Supernova::Editor {
 
-bool UIUtils::searchInput(const char* id, std::string hint, char* buffer, size_t bufferSize, bool autoFocus) {
+bool UIUtils::searchInput(const char* id, std::string hint, char* buffer, size_t bufferSize, bool autoFocus, bool* matchCase) {
     ImGui::BeginGroup();
-    ImGui::PushItemWidth(-1);
+
+    ImGuiStyle& style = ImGui::GetStyle();
+
+    // Calculate icon button width
+    ImVec2 iconSize = ImGui::CalcTextSize(ICON_FA_MAGNIFYING_GLASS);
+    float buttonWidth = iconSize.x + style.FramePadding.x * 2.0f;
+
+    // Calculate input field width (total width minus button, no spacing)
+    float availWidth = ImGui::GetContentRegionAvail().x;
+    float inputWidth = availWidth - buttonWidth;
+
+    ImGui::PushItemWidth(inputWidth);
 
     if (autoFocus) {
         ImGui::SetKeyboardFocusHere();
@@ -14,44 +25,55 @@ bool UIUtils::searchInput(const char* id, std::string hint, char* buffer, size_t
     bool changed = false;
     if (hint.empty()) {
         changed = ImGui::InputText(id, buffer, bufferSize);
-    }else {
+    } else {
         changed = ImGui::InputTextWithHint(id, hint.c_str(), buffer, bufferSize);
     }
 
-    // Draw the magnifying glass icon on the right with background
-    ImVec2 inputMin = ImGui::GetItemRectMin();
-    ImVec2 inputMax = ImGui::GetItemRectMax();
-
-    // Get the input field background color
-    ImVec4 bgColor = ImGui::GetStyleColorVec4(ImGuiCol_FrameBg);
-
-    // Calculate icon size and padding
-    ImVec2 iconSize = ImGui::CalcTextSize(ICON_FA_MAGNIFYING_GLASS);
-    ImGuiStyle& style = ImGui::GetStyle();
-    float framePaddingX = style.FramePadding.x;
-    float framePaddingY = style.FramePadding.y;
-
-    // Draw background rectangle for the icon
-    ImVec2 iconBgMin = ImVec2(inputMax.x - iconSize.x - framePaddingX * 2, inputMin.y);
-    ImVec2 iconBgMax = inputMax;
-    ImGui::GetWindowDrawList()->AddRectFilled(
-        iconBgMin,
-        iconBgMax,
-        ImGui::GetColorU32(bgColor)
-    );
-
-    // Draw the icon centered in the background
-    ImVec2 iconPos = ImVec2(
-        inputMax.x - iconSize.x - framePaddingX,
-        inputMin.y + framePaddingY
-    );
-    ImGui::GetWindowDrawList()->AddText(
-        iconPos,
-        ImGui::GetColorU32(ImVec4(0.6f, 0.6f, 0.6f, 1.0f)),
-        ICON_FA_MAGNIFYING_GLASS
-    );
-
     ImGui::PopItemWidth();
+
+    // Button on the same line with no spacing
+    ImGui::SameLine(0.0f, 0.0f);
+
+    // Style the button to match the input field
+    ImVec4 bgColor = style.Colors[ImGuiCol_FrameBg];
+    ImVec4 bgHoveredColor = style.Colors[ImGuiCol_FrameBgHovered];
+    ImVec4 bgActiveColor = style.Colors[ImGuiCol_FrameBgActive];
+
+    // Determine icon text color based on match case
+    bool isMatchCase = (matchCase != nullptr) && (*matchCase);
+    const ImVec4 base = style.Colors[ImGuiCol_Text];
+    const float darker = 0.85f;
+    ImVec4 iconTextColor = isMatchCase ? base : ImVec4(base.x * darker, base.y * darker, base.z * darker, base.w);
+
+    ImGui::PushStyleColor(ImGuiCol_Button, bgColor);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, bgHoveredColor);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, bgActiveColor);
+    ImGui::PushStyleColor(ImGuiCol_Text, iconTextColor);
+
+    // Create unique popup ID based on the input ID
+    std::string popupId = std::string("SearchOptions") + id;
+
+    if (ImGui::Button(ICON_FA_MAGNIFYING_GLASS)) {
+        ImGui::OpenPopup(popupId.c_str());
+    }
+
+    ImGui::PopStyleColor(4);
+
+    // Context menu for search options
+    if (ImGui::BeginPopup(popupId.c_str())) {
+        if (matchCase) {
+            ImGui::Checkbox(ICON_FA_SPELL_CHECK "  Match Case", matchCase);
+        } else {
+            // Show disabled checkbox if matchCase is not provided
+            bool dummyMatchCase = false;
+            ImGui::BeginDisabled();
+            ImGui::Text("No options available");
+            ImGui::EndDisabled();
+        }
+
+        ImGui::EndPopup();
+    }
+
     ImGui::EndGroup();
 
     return changed;

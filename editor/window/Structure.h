@@ -33,6 +33,7 @@ namespace Supernova::Editor{
         SceneWindow* sceneWindow;
 
         char nameBuffer[256];
+        bool matchCase = false;
         char searchBuffer[256] = "";
 
         std::vector<TreeNode*> selectedScenes;

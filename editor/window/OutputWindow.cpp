@@ -6,6 +6,7 @@
 #include <sstream>
 #include <cmath>
 #include <algorithm>
+#include <cstring>
 
 #include "imgui_internal.h"
 
@@ -36,6 +37,7 @@ OutputWindow::OutputWindow() {
     for (int i = 0; i < 5; i++) {
         typeFilters[i] = true;
     }
+    searchMatchCase = false; // default: case-insensitive
     clear();
 }
 
@@ -137,7 +139,7 @@ void OutputWindow::rebuildBuffer(float wrapWidth) {
 
         // Empty message: just print the prefix as its own line
         if (log.message.empty()) {
-            if (typeAllowed && (!filter.IsActive() || filter.PassFilter((prefix + "\n").c_str()))) {
+            if (typeAllowed && passTextFilter((prefix + "\n").c_str())) {
                 buf.append(prefix.c_str());
                 bool appendedNewline = (logIndex < logs.size() - 1);
                 if (appendedNewline) {
@@ -181,7 +183,7 @@ void OutputWindow::rebuildBuffer(float wrapWidth) {
             }
 
             if (cp == '\n') {
-                if (typeAllowed && (!filter.IsActive() || filter.PassFilter(currentLine.c_str()))) {
+                if (typeAllowed && passTextFilter(currentLine.c_str())) {
                     buf.append(currentLine.c_str());
                     bool addNewline = ((s + c_len) < e) || (logIndex < logs.size() - 1);
                     if (addNewline) buf.append("\n");
@@ -201,7 +203,7 @@ void OutputWindow::rebuildBuffer(float wrapWidth) {
 
             // Wrap before adding this codepoint if it overflows
             if (currentLineWidth + cw > wrapWidth && !currentLine.empty()) {
-                if (typeAllowed && (!filter.IsActive() || filter.PassFilter(currentLine.c_str()))) {
+                if (typeAllowed && passTextFilter(currentLine.c_str())) {
                     buf.append(currentLine.c_str());
                     buf.append("\n");
                     lineOffsets.push_back(buf.size());
@@ -221,7 +223,7 @@ void OutputWindow::rebuildBuffer(float wrapWidth) {
         }
 
         if (!currentLine.empty()) {
-            if (typeAllowed && (!filter.IsActive() || filter.PassFilter(currentLine.c_str()))) {
+            if (typeAllowed && passTextFilter(currentLine.c_str())) {
                 buf.append(currentLine.c_str());
                 bool appendNewlineBetweenLogs = (logIndex < logs.size() - 1);
                 if (appendNewlineBetweenLogs) {
@@ -337,6 +339,53 @@ void OutputWindow::selectLineAt(int bufferIndex) {
     hasStoredSelection = selectionEnd > selectionStart;
 }
 
+// Case-aware filter pass that mirrors ImGuiTextFilter semantics when possible
+bool OutputWindow::passTextFilter(const char* text) const {
+    if (!filter.IsActive())
+        return true;
+
+    // Default (case-insensitive) -> use Dear ImGui implementation
+    if (!searchMatchCase)
+        return filter.PassFilter(text);
+
+    // Case-sensitive path:
+    // Use built tokens (filter.Build() must be called when InputBuf changes)
+    const char* text_begin = text;
+    const char* text_end   = text + std::strlen(text);
+
+    int include_count = 0;
+    bool include_matched = false;
+
+    for (int i = 0; i < filter.Filters.Size; ++i) {
+        const ImGuiTextFilter::ImGuiTextRange& r = filter.Filters[i];
+        if (r.empty()) continue;
+
+        const char* f_begin = r.b;
+        const char* f_end   = r.e;
+
+        bool is_exclude = (*f_begin == '-');
+        if (is_exclude) {
+            f_begin++;
+            if (f_begin >= f_end) continue; // empty exclude
+        } else {
+            include_count++;
+        }
+
+        // Case-sensitive substring search
+        const char* found = std::search(text_begin, text_end, f_begin, f_end);
+        if (is_exclude) {
+            if (found != text_end) return false; // excluded token present
+        } else {
+            if (found != text_end) include_matched = true;
+        }
+    }
+
+    if (include_count > 0)
+        return include_matched; // require at least one include to match
+
+    return true; // only excludes were specified and none matched
+}
+
 void OutputWindow::show() {
     if (!ImGui::Begin("Output")) {
         ImGui::End();
@@ -418,9 +467,13 @@ void OutputWindow::show() {
             needsRebuild = true;
         }
 
-        if (UIUtils::searchInput("##output_search", "Search...", filter.InputBuf, IM_ARRAYSIZE(filter.InputBuf), false)) {
+        bool prevMatchCase = searchMatchCase;
+        if (UIUtils::searchInput("##output_filter_input", "Filter...", filter.InputBuf, IM_ARRAYSIZE(filter.InputBuf), false, &searchMatchCase)) {
             filter.Build(); // IMPORTANT: rebuild internal tokens
             needsRebuild = true;
+        }
+        if (prevMatchCase != searchMatchCase) {
+            needsRebuild = true; // case mode changed
         }
 
         if (filterChanged) {

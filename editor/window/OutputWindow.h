@@ -44,6 +44,9 @@ namespace Supernova::Editor {
         bool autoScrollLockedButton;    // the button state
         float lastScrollY;              // track last scroll position to detect manual scrolling
 
+        // Search options
+        bool searchMatchCase;           // enable case-sensitive search
+
         void rebuildBuffer(float wrapWidth); // accept wrap width
 
         // Helpers for selection
@@ -51,6 +54,9 @@ namespace Supernova::Editor {
         bool isWordChar(unsigned int cp);
         void selectWordAt(int bufferIndex);
         void selectLineAt(int bufferIndex);
+
+        // Text filter helper honoring match-case
+        bool passTextFilter(const char* text) const;
 
     public:
         OutputWindow();

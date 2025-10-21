@@ -115,7 +115,7 @@ void Editor::Structure::showIconMenu(){
 
     ImGui::SameLine();
 
-    UIUtils::searchInput("##structure_search", "", searchBuffer, sizeof(searchBuffer), false);
+    UIUtils::searchInput("##structure_search", "", searchBuffer, sizeof(searchBuffer), false, &matchCase);
 
     if (ImGui::BeginPopup("NewObjectMenu"))
     {
@@ -204,12 +204,17 @@ void Editor::Structure::handleEntityFilesDrop(const std::vector<std::string>& fi
 }
 
 bool Editor::Structure::nodeMatchesSearch(const TreeNode& node, const std::string& searchLower) {
-    // Convert node name to lowercase for case-insensitive search
-    std::string nodeLower = node.name;
-    std::transform(nodeLower.begin(), nodeLower.end(), nodeLower.begin(), ::tolower);
+    std::string nodeName = node.name;
+    std::string searchStr = searchLower;
+
+    if (!matchCase) {
+        // Convert both to lowercase for case-insensitive search
+        std::transform(nodeName.begin(), nodeName.end(), nodeName.begin(), ::tolower);
+        std::transform(searchStr.begin(), searchStr.end(), searchStr.begin(), ::tolower);
+    }
 
     // Check if the node name contains the search string
-    return nodeLower.find(searchLower) != std::string::npos;
+    return nodeName.find(searchStr) != std::string::npos;
 }
 
 bool Editor::Structure::hasMatchingDescendant(const TreeNode& node, const std::string& searchLower) {
@@ -676,9 +681,11 @@ void Editor::Structure::show(){
 
     // Apply search filtering if there's a search term
     if (strlen(searchBuffer) > 0) {
-        std::string searchLower = searchBuffer;
-        std::transform(searchLower.begin(), searchLower.end(), searchLower.begin(), ::tolower);
-        markMatchingNodes(root, searchLower);
+        std::string searchStr = searchBuffer;
+        if (!matchCase) {
+            std::transform(searchStr.begin(), searchStr.end(), searchStr.begin(), ::tolower);
+        }
+        markMatchingNodes(root, searchStr);
     }
 
     showTreeNode(root);
