@@ -31,7 +31,7 @@ ScriptPropertyType Editor::ScriptParser::inferTypeFromCppType(const std::string&
     // If it's a pointer type, store the full type name and return Pointer
     if (isPointer) {
         ptrTypeName = cleanType; // Store "Mesh*", "Object*", etc.
-        return ScriptPropertyType::Pointer;
+        return ScriptPropertyType::EntityPointer;
     }
 
     // Map C++ types to ScriptPropertyType
@@ -82,7 +82,7 @@ ScriptPropertyType Editor::ScriptParser::parseExplicitType(const std::string& ty
     if (cleanType == "Vector4") return ScriptPropertyType::Vector4;
     if (cleanType == "Color3") return ScriptPropertyType::Color3;
     if (cleanType == "Color4") return ScriptPropertyType::Color4;
-    if (cleanType == "Pointer") return ScriptPropertyType::Pointer;
+    //if (cleanType == "Pointer") return ScriptPropertyType::Pointer;
 
     // Handle "Color" - infer based on C++ type
     if (cleanType == "Color") {
@@ -388,11 +388,11 @@ std::vector<ScriptProperty> Editor::ScriptParser::parseScriptProperties(const st
                     break;
                 }
 
-                case ScriptPropertyType::Pointer: {
+                case ScriptPropertyType::EntityPointer: {
                     // Pointers default to nullptr
-                    void* val = nullptr;
+                    EntityRef val;
                     if (!defaultValueStr.empty() && defaultValueStr != "nullptr" && defaultValueStr != "NULL") {
-                        Out::warning("Non-null pointer default values are not supported, using nullptr for '%s'", varName.c_str());
+                        Out::warning("Non-null entity pointer default values are not supported, using null entity for '%s'", varName.c_str());
                     }
                     prop.value = val;
                     prop.defaultValue = val;
@@ -434,9 +434,9 @@ std::vector<ScriptProperty> Editor::ScriptParser::parseScriptProperties(const st
                     prop.value = Vector4();
                     prop.defaultValue = Vector4();
                     break;
-                case ScriptPropertyType::Pointer:
-                    prop.value = static_cast<void*>(nullptr);
-                    prop.defaultValue = static_cast<void*>(nullptr);
+                case ScriptPropertyType::EntityPointer:
+                    prop.value = EntityRef();
+                    prop.defaultValue = EntityRef();
                     break;
             }
         }

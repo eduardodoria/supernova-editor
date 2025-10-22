@@ -4,6 +4,7 @@
 
 #include "util/Util.h"
 #include "util/FileDialogs.h"
+#include "util/EntityPayload.h"
 #include "external/IconsFontAwesome6.h"
 #include "command/CommandHandle.h"
 #include "command/type/PropertyCmd.h"
@@ -69,7 +70,7 @@ Editor::RowPropertyType Editor::Properties::scriptPropertyTypeToRowPropertyType(
         case Supernova::ScriptPropertyType::Vector4: return RowPropertyType::Vector4;
         case Supernova::ScriptPropertyType::Color3: return RowPropertyType::Color3L;
         case Supernova::ScriptPropertyType::Color4: return RowPropertyType::Color4L;
-        case Supernova::ScriptPropertyType::Pointer: return RowPropertyType::Custom;
+        case Supernova::ScriptPropertyType::EntityPointer: return RowPropertyType::Entity;
         default: return RowPropertyType::Custom;
     }
 }
@@ -1626,6 +1627,114 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         }
 
         result = materialButtonGroups[id];
+
+    }else if (type == RowPropertyType::Entity){
+        EntityRef* value = nullptr;
+        bool different = false;
+        std::map<Entity, EntityRef> eValue;
+        EntityRef* defVal = nullptr;
+
+        for (Entity& entity : entities){
+            PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
+            defVal = static_cast<EntityRef*>(prop.def);
+            eValue[entity] = *static_cast<EntityRef*>(prop.ref);
+            if (value){
+                if (value->entity != eValue[entity].entity)
+                    different = true;
+            }
+            value = &eValue[entity];
+        }
+
+        EntityRef newValue = *value;
+
+        bool defChanged = false;
+        if (defVal){
+            defChanged = (newValue.entity != defVal->entity);
+        }
+
+        if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
+            for (Entity& entity : entities){
+                EntityRef resetVal = defVal ? *defVal : EntityRef{NULL_ENTITY, sceneProject->scene};
+                cmd = new PropertyCmd<EntityRef>(project, sceneProject->id, entity, cpType, id, resetVal, settings.onValueChanged);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                finishProperty = true;
+            }
+        }
+
+        ImGui::BeginGroup();
+
+        // Display entity name or "None"
+        std::string entityName = "None";
+        if (newValue.entity != NULL_ENTITY && sceneProject->scene->isEntityCreated(newValue.entity)) {
+            entityName = sceneProject->scene->getEntityName(newValue.entity);
+            if (entityName.empty()) {
+                entityName = "Entity " + std::to_string(newValue.entity);
+            }
+        }
+
+        if (different) {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+            entityName = "---";
+        }
+
+        // Button to show entity (with icon)
+        std::string buttonLabel = ICON_FA_CIRCLE_DOT " " + entityName + "##entity_" + id;
+        float clearButtonFramePadding = 2;
+        float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_XMARK).x;
+        ImVec2 buttonSize = ImVec2(ImGui::GetContentRegionAvail().x - clearButtonWidth - ImGui::GetStyle().ItemSpacing.x - clearButtonFramePadding* 2, 0);
+
+        if (ImGui::Button(buttonLabel.c_str(), buttonSize)) {
+            // Optional: Focus on the entity in the structure window
+            if (newValue.entity != NULL_ENTITY) {
+                project->clearSelectedEntities(sceneProject->id);
+                project->addSelectedEntity(sceneProject->id, newValue.entity);
+            }
+        }
+
+        // Handle drag and drop from Structure window
+        if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("entity", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
+                if (payload->IsDelivery()) {
+                    const EntityPayload* entityPayload = static_cast<const EntityPayload*>(payload->Data);
+                    Entity droppedEntity = entityPayload->entity;
+
+                    // Create new EntityRef with the dropped entity
+                    EntityRef newEntityRef{droppedEntity, sceneProject->scene};
+
+                    // Apply to all selected entities
+                    for (Entity& entity : entities) {
+                        cmd = new PropertyCmd<EntityRef>(project, sceneProject->id, entity, cpType, id, newEntityRef, settings.onValueChanged);
+                        CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                    }
+                    finishProperty = true;
+                }
+            }
+            ImGui::EndDragDropTarget();
+        }
+
+        if (different) {
+            ImGui::PopStyleColor();
+        }
+
+        // Clear button (X)
+        ImGui::SameLine();
+        ImGui::BeginDisabled(newValue.entity == NULL_ENTITY);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
+        if (ImGui::Button((ICON_FA_XMARK "##clear_entity_" + id).c_str())) {
+            EntityRef emptyRef{NULL_ENTITY, sceneProject->scene};
+            for (Entity& entity : entities) {
+                cmd = new PropertyCmd<EntityRef>(project, sceneProject->id, entity, cpType, id, emptyRef, settings.onValueChanged);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
+            }
+            finishProperty = true;
+        }
+        ImGui::PopStyleVar();
+        ImGui::EndDisabled();
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Clear entity reference");
+        }
+
+        ImGui::EndGroup();
 
     }
 

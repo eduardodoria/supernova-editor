@@ -31,7 +31,8 @@ namespace Supernova::Editor{
         IntSlider,
         Direction,
         Enum,
-        Custom
+        Custom,
+        Entity
     };
 
     struct EnumEntry {

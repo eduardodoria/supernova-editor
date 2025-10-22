@@ -360,7 +360,7 @@ Editor::PropertyType Editor::Catalog::scriptPropertyTypeToPropertyType(ScriptPro
         case Supernova::ScriptPropertyType::Vector4: return Editor::PropertyType::Vector4;
         case Supernova::ScriptPropertyType::Color3: return Editor::PropertyType::Vector3;
         case Supernova::ScriptPropertyType::Color4: return Editor::PropertyType::Vector4;
-        case Supernova::ScriptPropertyType::Pointer: return Editor::PropertyType::Custom;
+        case Supernova::ScriptPropertyType::EntityPointer: return PropertyType::Entity;
         default: return Editor::PropertyType::Custom;
     }
 }
@@ -504,9 +504,9 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
                             propData.ref = &std::get<Vector4>(prop.value);
                             propData.def = &std::get<Vector4>(prop.defaultValue);
                             break;
-                        case Supernova::ScriptPropertyType::Pointer:
-                            propData.ref = &std::get<void*>(prop.value);
-                            propData.def = &std::get<void*>(prop.defaultValue);
+                        case Supernova::ScriptPropertyType::EntityPointer:
+                            propData.ref = &std::get<EntityRef>(prop.value);
+                            propData.def = &std::get<EntityRef>(prop.defaultValue);
                             break;
                         default:
                             propData.ref = nullptr;
@@ -891,6 +891,12 @@ void Editor::Catalog::copyPropertyValue(EntityRegistry* sourceRegistry, Entity s
         case PropertyType::Enum: {
             int* source = Catalog::getPropertyRef<int>(sourceRegistry, sourceEntity, compType, property);
             int* target = Catalog::getPropertyRef<int>(targetRegistry, targetEntity, compType, property);
+            if (source && target) *target = *source;
+            break;
+        }
+        case PropertyType::Entity: {
+            EntityRef* source = Catalog::getPropertyRef<EntityRef>(sourceRegistry, sourceEntity, compType, property);
+            EntityRef* target = Catalog::getPropertyRef<EntityRef>(targetRegistry, targetEntity, compType, property);
             if (source && target) *target = *source;
             break;
         }

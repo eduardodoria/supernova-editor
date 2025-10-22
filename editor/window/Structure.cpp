@@ -481,7 +481,9 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         selectedScenes.clear();
     }
 
-    if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+    // Check for selection on mouse release (not click) to allow drag without selection
+    bool wasItemActivePrevFrame = ImGui::IsItemActive();
+    if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left) && !ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
         if (!node.isScene){
             ImGuiIO& io = ImGui::GetIO();
             if (!io.KeyShift){

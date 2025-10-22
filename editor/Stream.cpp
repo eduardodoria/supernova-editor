@@ -893,7 +893,7 @@ YAML::Node Editor::Stream::encodeScriptProperty(const ScriptProperty& prop) {
     node["type"] = static_cast<int>(prop.type);
 
     // Store ptrTypeName if it's a pointer type
-    if (prop.type == ScriptPropertyType::Pointer && !prop.ptrTypeName.empty()) {
+    if (prop.type == ScriptPropertyType::EntityPointer && !prop.ptrTypeName.empty()) {
         node["ptrTypeName"] = prop.ptrTypeName;
     }
 
@@ -928,10 +928,9 @@ YAML::Node Editor::Stream::encodeScriptProperty(const ScriptProperty& prop) {
             node["value"] = encodeVector4(std::get<Vector4>(prop.value));
             node["defaultValue"] = encodeVector4(std::get<Vector4>(prop.defaultValue));
             break;
-        case ScriptPropertyType::Pointer:
-            // Store pointer as uint64_t for serialization
-            node["value"] = reinterpret_cast<uint64_t>(std::get<void*>(prop.value));
-            node["defaultValue"] = reinterpret_cast<uint64_t>(std::get<void*>(prop.defaultValue));
+        case ScriptPropertyType::EntityPointer:
+            //node["value"] = encodeEntityRef(std::get<EntityRef>(prop.value));
+            //node["defaultValue"] = encodeEntityRef(std::get<EntityRef>(prop.defaultValue));
             break;
     }
 
@@ -1010,14 +1009,13 @@ ScriptProperty Editor::Stream::decodeScriptProperty(const YAML::Node& node) {
                     prop.defaultValue = Vector4();
                 }
                 break;
-            case ScriptPropertyType::Pointer:
-                // Restore pointer from uint64_t
-                prop.value = reinterpret_cast<void*>(node["value"].as<uint64_t>());
-                if (node["defaultValue"]) {
-                    prop.defaultValue = reinterpret_cast<void*>(node["defaultValue"].as<uint64_t>());
-                } else {
-                    prop.defaultValue = static_cast<void*>(nullptr);
-                }
+            case ScriptPropertyType::EntityPointer:
+                //prop.value = decodeEntityRef(node["value"]);
+                //if (node["defaultValue"]) {
+                //    prop.defaultValue = decodeEntityRef(node["defaultValue"]);
+                //} else {
+                //    prop.defaultValue = EntityRef();
+                //}
                 break;
         }
     } else {
@@ -1053,9 +1051,9 @@ ScriptProperty Editor::Stream::decodeScriptProperty(const YAML::Node& node) {
                 prop.value = Vector4();
                 prop.defaultValue = Vector4();
                 break;
-            case ScriptPropertyType::Pointer:
-                prop.value = static_cast<void*>(nullptr);
-                prop.defaultValue = static_cast<void*>(nullptr);
+            case ScriptPropertyType::EntityPointer:
+                prop.value = EntityRef();
+                prop.defaultValue = EntityRef();
                 break;
         }
     }
