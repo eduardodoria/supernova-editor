@@ -336,40 +336,6 @@ bool Editor::Generator::writeIfChanged(const fs::path& filePath, const std::stri
     return false;
 }
 
-bool Editor::Generator::tryIncludeHeader(const fs::path& p, const fs::path& projectPath, std::unordered_set<std::string>& included, std::string& sourceContent) {
-    std::string ext = p.extension().string();
-    if (ext == ".h" || ext == ".hpp" || ext == ".hh" || ext == ".hxx") {
-        fs::path relativePath = fs::relative(p, projectPath);
-        std::string inc = relativePath.generic_string();
-        if (included.insert(inc).second) {
-            sourceContent += "#include \"" + inc + "\"\n";
-        }
-        return true;
-    }
-    if (ext == ".cpp" || ext == ".cc" || ext == ".cxx") {
-        fs::path candidate = p;
-        candidate.replace_extension(".h");
-        if (fs::exists(candidate)) {
-            fs::path relativePath = fs::relative(candidate, projectPath);
-            std::string inc = relativePath.generic_string();
-            if (included.insert(inc).second) {
-                sourceContent += "#include \"" + inc + "\"\n";
-            }
-            return true;
-        }
-        candidate.replace_extension(".hpp");
-        if (fs::exists(candidate)) {
-            fs::path relativePath = fs::relative(candidate, projectPath);
-            std::string inc = relativePath.generic_string();
-            if (included.insert(inc).second) {
-                sourceContent += "#include \"" + inc + "\"\n";
-            }
-            return true;
-        }
-    }
-    return false;
-}
-
 void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, std::string libName, const std::vector<ScriptSource>& scriptFiles) {
     fs::path relativeInternalPath = fs::relative(projectInternalPath, projectPath);
     fs::path engineApiRelativePath = relativeInternalPath / "engine-api";
@@ -462,9 +428,12 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     sourceContent += "#include \"EntityHandle.h\"\n";
     sourceContent += "#include \"Mesh.h\"\n\n";
 
-    std::unordered_set<std::string> includedHeaders;
     for (const auto& s : scriptFiles) {
-        tryIncludeHeader(s.path, projectPath, includedHeaders, sourceContent);
+        if (!s.headerPath.empty() && fs::exists(s.headerPath)) {
+            fs::path relativePath = fs::relative(s.headerPath, projectPath);
+            std::string inc = relativePath.generic_string();
+            sourceContent += "#include \"" + inc + "\"\n";
+        }
     }
 
     sourceContent += "\n";
@@ -479,9 +448,13 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
 
     sourceContent += "extern \"C\" void PROJECT_API initScene(Supernova::Scene* scene) {\n";
 
+    sourceContent += "    Supernova::Entity entity = NULL_ENTITY;\n";
+    sourceContent += "    Supernova::ScriptComponent* scriptComp = nullptr;\n";
+    sourceContent += "\n";
+
     for (const auto& s : scriptFiles) {
-        sourceContent += "    Supernova::Entity entity = (Supernova::Entity)" + std::to_string(s.entity) + ";\n";
-        sourceContent += "    Supernova::ScriptComponent* scriptComp = scene->findComponent<Supernova::ScriptComponent>(entity);\n";
+        sourceContent += "    entity = (Supernova::Entity)" + std::to_string(s.entity) + ";\n";
+        sourceContent += "    scriptComp = scene->findComponent<Supernova::ScriptComponent>(entity);\n";
         sourceContent += "    if (scriptComp) {\n";
         sourceContent += "        for (auto& scriptEntry : scriptComp->scripts) {\n";
         sourceContent += "            if (scriptEntry.className == \"" + s.className + "\") {\n";
@@ -493,7 +466,6 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
             for (const auto& entry : sc->scripts) {
                 if (entry.className == s.className && !entry.properties.empty()) {
                     sourceContent += "\n";
-                    sourceContent += "                // Cast instance to actual type for property access\n";
                     sourceContent += "                " + s.className + "* typedScript = static_cast<" + s.className + "*>(scriptEntry.instance);\n";
                     sourceContent += "\n";
                     sourceContent += "                for (auto& prop : scriptEntry.properties) {\n";
@@ -564,10 +536,12 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     sourceContent += "extern \"C\" void PROJECT_API cleanup(Supernova::Scene* scene) {\n";
 
     if (!scriptFiles.empty()) {
-        sourceContent += "    // Delete script instances\n";
         for (const auto& s : scriptFiles) {
-            sourceContent += "    Supernova::Entity entity = (Supernova::Entity)" + std::to_string(s.entity) + ";\n";
-            sourceContent += "    Supernova::ScriptComponent* scriptComp = scene->findComponent<Supernova::ScriptComponent>(entity);\n";
+            sourceContent += "    Supernova::Entity entity = NULL_ENTITY;\n";
+            sourceContent += "    Supernova::ScriptComponent* scriptComp = nullptr;\n";
+            sourceContent += "\n";
+            sourceContent += "    entity = (Supernova::Entity)" + std::to_string(s.entity) + ";\n";
+            sourceContent += "    scriptComp = scene->findComponent<Supernova::ScriptComponent>(entity);\n";
             sourceContent += "    if (scriptComp) {\n";
             sourceContent += "        for (auto& scriptEntry : scriptComp->scripts) {\n";
             sourceContent += "            if (scriptEntry.instance) {\n";
