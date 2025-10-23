@@ -28,9 +28,9 @@ ScriptPropertyType Editor::ScriptParser::inferTypeFromCppType(const std::string&
     bareType.erase(std::remove(bareType.begin(), bareType.end(), '&'), bareType.end());
     bareType.erase(std::remove(bareType.begin(), bareType.end(), '*'), bareType.end());
 
-    // If it's a pointer type, store the full type name and return Pointer
+    // If it's a pointer type, store the type name without * and return Pointer
     if (isPointer) {
-        ptrTypeName = cleanType; // Store "Mesh*", "Object*", etc.
+        ptrTypeName = bareType; // Store "Mesh", "Object", etc. (without *)
         return ScriptPropertyType::EntityPointer;
     }
 

@@ -456,8 +456,11 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     std::string sourceContent;
     sourceContent += "#include <vector>\n";
     sourceContent += "#include <string>\n";
+    sourceContent += "#include <stdio.h>\n";
     sourceContent += "#include \"Scene.h\"\n";
-    sourceContent += "#include \"ScriptBase.h\"\n\n";
+    sourceContent += "#include \"ScriptBase.h\"\n";
+    sourceContent += "#include \"EntityHandle.h\"\n";
+    sourceContent += "#include \"Mesh.h\"\n\n";
 
     std::unordered_set<std::string> includedHeaders;
     for (const auto& s : scriptFiles) {
@@ -477,46 +480,75 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     sourceContent += "extern \"C\" void PROJECT_API initScene(Supernova::Scene* scene) {\n";
 
     for (const auto& s : scriptFiles) {
-        sourceContent += "    {\n";
-        sourceContent += "        Supernova::Entity entity = (Supernova::Entity)" + std::to_string(s.entity) + ";\n";
-        sourceContent += "        Supernova::ScriptComponent* scriptComp = scene->findComponent<Supernova::ScriptComponent>(entity);\n";
-        sourceContent += "        if (scriptComp) {\n";
-
-        // Find the correct script entry
-        sourceContent += "            for (auto& scriptEntry : scriptComp->scripts) {\n";
-        sourceContent += "                if (scriptEntry.className == \"" + s.className + "\") {\n";
-        sourceContent += "                    " + s.className + "* script = new " + s.className + "(scene, entity);\n";
-        sourceContent += "                    scriptEntry.instance = static_cast<void*>(script);\n";
+        sourceContent += "    Supernova::Entity entity = (Supernova::Entity)" + std::to_string(s.entity) + ";\n";
+        sourceContent += "    Supernova::ScriptComponent* scriptComp = scene->findComponent<Supernova::ScriptComponent>(entity);\n";
+        sourceContent += "    if (scriptComp) {\n";
+        sourceContent += "        for (auto& scriptEntry : scriptComp->scripts) {\n";
+        sourceContent += "            if (scriptEntry.className == \"" + s.className + "\") {\n";
+        sourceContent += "                " + s.className + "* script = new " + s.className + "(scene, entity);\n";
+        sourceContent += "                scriptEntry.instance = static_cast<void*>(script);\n";
 
         if (s.scene->findComponent<ScriptComponent>(s.entity)) {
             ScriptComponent* sc = s.scene->findComponent<ScriptComponent>(s.entity);
             for (const auto& entry : sc->scripts) {
                 if (entry.className == s.className && !entry.properties.empty()) {
-                    sourceContent += "                    \n";
-                    sourceContent += "                    // Cast instance to actual type for property access\n";
-                    sourceContent += "                    " + s.className + "* typedScript = static_cast<" + s.className + "*>(scriptEntry.instance);\n";
-                    sourceContent += "                    \n";
+                    sourceContent += "\n";
+                    sourceContent += "                // Cast instance to actual type for property access\n";
+                    sourceContent += "                " + s.className + "* typedScript = static_cast<" + s.className + "*>(scriptEntry.instance);\n";
+                    sourceContent += "\n";
+                    sourceContent += "                for (auto& prop : scriptEntry.properties) {\n";
 
-                    // Generate property pointer assignments
+                    // Generate individual property assignments
                     for (const auto& prop : entry.properties) {
-                        sourceContent += "                    for (auto& prop : scriptEntry.properties) {\n";
-                        sourceContent += "                        if (prop.name == \"" + prop.name + "\") {\n";
-                        sourceContent += "                            prop.memberPtr = &typedScript->" + prop.name + ";\n";
-                        sourceContent += "                        }\n";
+                        sourceContent += "\n";
+                        sourceContent += "                    if (prop.name == \"" + prop.name + "\") {\n";
+
+                        // Handle EntityPointer types
+                        if (prop.type == ScriptPropertyType::EntityPointer) {
+                            sourceContent += "                        Supernova::EntityRef entityRef = std::get<Supernova::EntityRef>(prop.value);\n";
+                            sourceContent += "                        printf(\"[DEBUG]   EntityRef: entity=%u\\n\", (unsigned int)entityRef.entity);\n";
+                            sourceContent += "                        void* instancePtr = nullptr;\n";
+                            sourceContent += "\n";
+                            sourceContent += "                        if (entityRef.entity != NULL_ENTITY && entityRef.scene) {\n";
+                            sourceContent += "                            Supernova::ScriptComponent* targetScriptComp = entityRef.scene->findComponent<Supernova::ScriptComponent>(entityRef.entity);\n";
+                            sourceContent += "                            if (targetScriptComp) {\n";
+                            sourceContent += "                                for (auto& targetScript : targetScriptComp->scripts) {\n";
+                            sourceContent += "                                    if (targetScript.type == ScriptType::SUBCLASS && targetScript.className == \"" + prop.ptrTypeName + "\" && targetScript.instance) {\n";
+                            sourceContent += "                                        instancePtr = targetScript.instance;\n";
+                            sourceContent += "                                        printf(\"[DEBUG]   Found matching script instance: %p\\n\", instancePtr);\n";
+                            sourceContent += "                                        break;\n";
+                            sourceContent += "                                    }\n";
+                            sourceContent += "                                }\n";
+                            sourceContent += "                            }\n";
+                            sourceContent += "\n";
+                            if (!prop.ptrTypeName.empty()) {
+                                sourceContent += "                            if (!instancePtr) {\n";
+                                sourceContent += "                                printf(\"[DEBUG]   No script instance found, creating " + prop.ptrTypeName + " type\\n\");\n";
+                                sourceContent += "                                instancePtr = new " + prop.ptrTypeName + "(entityRef.scene, entityRef.entity);\n";
+                                sourceContent += "                            }\n";
+                            }
+                            sourceContent += "                        }\n";
+                            sourceContent += "\n";
+                            sourceContent += "                        typedScript->" + prop.name + " = nullptr;\n";
+                            sourceContent += "                        if (instancePtr) {\n";
+                            sourceContent += "                            typedScript->" + prop.name + " = static_cast<" + prop.ptrTypeName + "*>(instancePtr);\n";
+                            sourceContent += "                            printf(\"[DEBUG]   Successfully assigned %p to typedScript->" + prop.name + "\\n\", instancePtr);\n";
+                            sourceContent += "                        }\n";
+                            sourceContent += "\n";
+                        }
+
+                        sourceContent += "                        prop.memberPtr = &typedScript->" + prop.name + ";\n";
                         sourceContent += "                    }\n";
                     }
 
-                    sourceContent += "                    \n";
-                    sourceContent += "                    // Sync stored values to member variables\n";
-                    sourceContent += "                    for (auto& prop : scriptEntry.properties) {\n";
-                    sourceContent += "                        prop.syncToMember();\n";
-                    sourceContent += "                    }\n";
+                    sourceContent += "\n";
+                    sourceContent += "                    prop.syncToMember();\n";
+                    sourceContent += "                }\n";
+                    sourceContent += "                \n";
                 }
             }
         }
 
-        sourceContent += "                    break;\n";
-        sourceContent += "                }\n";
         sourceContent += "            }\n";
         sourceContent += "        }\n";
         sourceContent += "    }\n";
@@ -532,47 +564,17 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     sourceContent += "extern \"C\" void PROJECT_API cleanup(Supernova::Scene* scene) {\n";
 
     if (!scriptFiles.empty()) {
-        // Collect unique entities with scripts
-        std::unordered_set<Entity> entitiesWithScripts;
-        for (const auto& s : scriptFiles) {
-            entitiesWithScripts.insert(s.entity);
-        }
-
         sourceContent += "    // Delete script instances\n";
-        for (Entity entity : entitiesWithScripts) {
-            sourceContent += "    {\n";
-            sourceContent += "        Supernova::Entity entity = (Supernova::Entity)" + std::to_string(entity) + ";\n";
-            sourceContent += "        Supernova::ScriptComponent* scriptComp = scene->findComponent<Supernova::ScriptComponent>(entity);\n";
-            sourceContent += "        if (scriptComp) {\n";
-            sourceContent += "            for (auto& scriptEntry : scriptComp->scripts) {\n";
-            sourceContent += "                if (scriptEntry.instance != nullptr) {\n";
-
-            // Need to delete based on the actual type
-            // Find all scripts for this entity
-            std::vector<std::string> classNamesForEntity;
-            for (const auto& s : scriptFiles) {
-                if (s.entity == entity) {
-                    classNamesForEntity.push_back(s.className);
-                }
-            }
-
-            // Generate deletion code for each class type
-            bool first = true;
-            for (const auto& className : classNamesForEntity) {
-                if (first) {
-                    sourceContent += "                    if (scriptEntry.className == \"" + className + "\") {\n";
-                    first = false;
-                } else {
-                    sourceContent += "                    } else if (scriptEntry.className == \"" + className + "\") {\n";
-                }
-                sourceContent += "                        delete static_cast<" + className + "*>(scriptEntry.instance);\n";
-            }
-            if (!classNamesForEntity.empty()) {
-                sourceContent += "                    }\n";
-            }
-
-            sourceContent += "                    scriptEntry.instance = nullptr;\n";
+        for (const auto& s : scriptFiles) {
+            sourceContent += "    Supernova::Entity entity = (Supernova::Entity)" + std::to_string(s.entity) + ";\n";
+            sourceContent += "    Supernova::ScriptComponent* scriptComp = scene->findComponent<Supernova::ScriptComponent>(entity);\n";
+            sourceContent += "    if (scriptComp) {\n";
+            sourceContent += "        for (auto& scriptEntry : scriptComp->scripts) {\n";
+            sourceContent += "            if (scriptEntry.instance) {\n";
+            sourceContent += "                if (scriptEntry.className == \"" + s.className + "\") {\n";
+            sourceContent += "                    delete static_cast<" + s.className + "*>(scriptEntry.instance);\n";
             sourceContent += "                }\n";
+            sourceContent += "                scriptEntry.instance = nullptr;\n";
             sourceContent += "            }\n";
             sourceContent += "        }\n";
             sourceContent += "    }\n";
