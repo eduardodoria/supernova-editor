@@ -1,5 +1,4 @@
-#ifndef EDITORBACKEND_H
-#define EDITORBACKEND_H
+#pragma once
 
 #include "App.h"
 
@@ -24,5 +23,3 @@ namespace Supernova::Editor{
     };
 
 }
-
-#endif /* EDITORBACKEND_H */

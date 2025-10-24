@@ -423,10 +423,7 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     sourceContent += "#include <vector>\n";
     sourceContent += "#include <string>\n";
     sourceContent += "#include <stdio.h>\n";
-    sourceContent += "#include \"Scene.h\"\n";
-    sourceContent += "#include \"ScriptBase.h\"\n";
-    sourceContent += "#include \"EntityHandle.h\"\n";
-    sourceContent += "#include \"Mesh.h\"\n\n";
+    sourceContent += "#include \"Supernova.h\"\n\n";
 
     for (const auto& s : scriptFiles) {
         if (!s.headerPath.empty() && fs::exists(s.headerPath)) {
