@@ -2138,6 +2138,21 @@ void Editor::Project::start(uint32_t sceneId) {
         return;
     }
 
+    Supernova::FunctionSubscribeGlobal::getCrashHandler() = 
+        [this, sceneId](const std::string& tag, const std::string& errorInfo) {
+            // Log the scene and entity context
+            SceneProject* sceneProject = getScene(sceneId);
+            if (sceneProject) {
+                Out::error("Script crash in scene '%s' (ID: %u)\nFunction: %s\nError: %s", sceneProject->name.c_str(), sceneId, tag.c_str(), errorInfo.c_str());
+            }
+
+            // Stop asynchronously
+            std::thread([this, sceneId]() {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                stop(sceneId);
+            }).detach();
+        };
+
     updateAllScriptsProperties(sceneId);
 
     if (sceneProject->isModified && !sceneProject->filepath.empty()) {
@@ -2216,6 +2231,9 @@ void Editor::Project::stop(uint32_t sceneId) {
     }
     // Mark cancelling state so UI can reflect it immediately
     sceneProject->playState = ScenePlayState::CANCELLING;
+
+    // Clear crash handler when stopping
+    Supernova::FunctionSubscribeGlobal::getCrashHandler() = nullptr;
 
     // Request cancellation asynchronously (returns a future we can wait on later if needed)
     auto cancelFuture = generator.cancelBuild();

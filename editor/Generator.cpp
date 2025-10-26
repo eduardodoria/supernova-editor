@@ -604,11 +604,8 @@ void Editor::Generator::build(const fs::path projectPath, const fs::path project
         try {
             auto startTime = std::chrono::steady_clock::now();
 
-            #ifdef _DEBUG
-                std::string configType = "Debug";
-            #else
-                std::string configType = "Release";
-            #endif
+            std::string configType = "Debug";
+
             if (!configureCMake(projectPath, buildPath, configType)) {
                 if (cancelRequested.load(std::memory_order_relaxed)) {
                     Out::warning("Build configuration cancelled.");
