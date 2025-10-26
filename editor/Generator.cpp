@@ -445,15 +445,16 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
 
     sourceContent += "extern \"C\" void PROJECT_API initScene(Supernova::Scene* scene) {\n";
 
-    sourceContent += "    Supernova::Entity entity = NULL_ENTITY;\n";
-    sourceContent += "    Supernova::ScriptComponent* scriptComp = nullptr;\n";
+    sourceContent += "\n";
+
+    sourceContent += "    const auto& scriptsArray = scene->getComponentArray<ScriptComponent>();\n";
+    sourceContent += "    for (size_t i = 0; i < scriptsArray->size(); i++) {\n";
+    sourceContent += "        Supernova::ScriptComponent& scriptComp = scriptsArray->getComponentFromIndex(i);\n";
+    sourceContent += "        Supernova::Entity entity = scriptsArray->getEntity(i);\n";
+    sourceContent += "        for (auto& scriptEntry : scriptComp.scripts) {\n";
     sourceContent += "\n";
 
     for (const auto& s : scriptFiles) {
-        sourceContent += "    entity = (Supernova::Entity)" + std::to_string(s.entity) + ";\n";
-        sourceContent += "    scriptComp = scene->findComponent<Supernova::ScriptComponent>(entity);\n";
-        sourceContent += "    if (scriptComp) {\n";
-        sourceContent += "        for (auto& scriptEntry : scriptComp->scripts) {\n";
         sourceContent += "            if (scriptEntry.className == \"" + s.className + "\") {\n";
         sourceContent += "                " + s.className + "* script = new " + s.className + "(scene, entity);\n";
         sourceContent += "                scriptEntry.instance = static_cast<void*>(script);\n";
@@ -513,15 +514,16 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
                     sourceContent += "\n";
                     sourceContent += "                    prop.syncToMember();\n";
                     sourceContent += "                }\n";
-                    sourceContent += "                \n";
                 }
             }
         }
 
         sourceContent += "            }\n";
-        sourceContent += "        }\n";
-        sourceContent += "    }\n";
     }
+
+    sourceContent += "\n";
+    sourceContent += "        }\n";
+    sourceContent += "    }\n";
 
     if (scriptFiles.empty()) {
         sourceContent += "    (void)scene; // Suppress unused parameter warning\n";
@@ -533,23 +535,20 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     sourceContent += "extern \"C\" void PROJECT_API cleanup(Supernova::Scene* scene) {\n";
 
     if (!scriptFiles.empty()) {
+        sourceContent += "    const auto& scriptsArray = scene->getComponentArray<ScriptComponent>();\n";
+        sourceContent += "    for (size_t i = 0; i < scriptsArray->size(); i++) {\n";
+        sourceContent += "        Supernova::ScriptComponent& scriptComp = scriptsArray->getComponentFromIndex(i);\n";
+        sourceContent += "        for (auto& scriptEntry : scriptComp.scripts) {\n";
         for (const auto& s : scriptFiles) {
-            sourceContent += "    Supernova::Entity entity = NULL_ENTITY;\n";
-            sourceContent += "    Supernova::ScriptComponent* scriptComp = nullptr;\n";
-            sourceContent += "\n";
-            sourceContent += "    entity = (Supernova::Entity)" + std::to_string(s.entity) + ";\n";
-            sourceContent += "    scriptComp = scene->findComponent<Supernova::ScriptComponent>(entity);\n";
-            sourceContent += "    if (scriptComp) {\n";
-            sourceContent += "        for (auto& scriptEntry : scriptComp->scripts) {\n";
             sourceContent += "            if (scriptEntry.instance) {\n";
             sourceContent += "                if (scriptEntry.className == \"" + s.className + "\") {\n";
             sourceContent += "                    delete static_cast<" + s.className + "*>(scriptEntry.instance);\n";
             sourceContent += "                }\n";
             sourceContent += "                scriptEntry.instance = nullptr;\n";
             sourceContent += "            }\n";
-            sourceContent += "        }\n";
-            sourceContent += "    }\n";
         }
+        sourceContent += "        }\n";
+        sourceContent += "    }\n";
     } else {
         sourceContent += "    (void)scene; // Suppress unused parameter warning\n";
     }
