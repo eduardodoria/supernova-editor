@@ -81,6 +81,7 @@ set(SUPERNOVA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/supernova)
 set(SUPERSHADER_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/supershader)
 
 add_definitions("-DSUPERNOVA_EDITOR")
+add_definitions("-DSUPERNOVA_CRASH_GUARD")
 
 add_definitions("-DNO_LUA_INIT")
 add_definitions("-DNO_CPP_INIT")
