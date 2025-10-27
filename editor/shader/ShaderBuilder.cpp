@@ -27,15 +27,15 @@ Editor::ShaderBuilder::~ShaderBuilder(){
 ShaderVertexType Editor::ShaderBuilder::mapVertexType(supershader::attribute_type_t type) {
     using namespace supershader;
     switch(type) {
-        case FLOAT:  return ShaderVertexType::FLOAT;
-        case FLOAT2: return ShaderVertexType::FLOAT2;
-        case FLOAT3: return ShaderVertexType::FLOAT3;
-        case FLOAT4: return ShaderVertexType::FLOAT4;
-        case INT:    return ShaderVertexType::INT;
-        case INT2:   return ShaderVertexType::INT2;
-        case INT3:   return ShaderVertexType::INT3;
-        case INT4:   return ShaderVertexType::INT4;
-        default:     return ShaderVertexType::FLOAT;
+        case attribute_type_t::FLOAT:  return ShaderVertexType::FLOAT;
+        case attribute_type_t::FLOAT2: return ShaderVertexType::FLOAT2;
+        case attribute_type_t::FLOAT3: return ShaderVertexType::FLOAT3;
+        case attribute_type_t::FLOAT4: return ShaderVertexType::FLOAT4;
+        case attribute_type_t::INT:    return ShaderVertexType::INT;
+        case attribute_type_t::INT2:   return ShaderVertexType::INT2;
+        case attribute_type_t::INT3:   return ShaderVertexType::INT3;
+        case attribute_type_t::INT4:   return ShaderVertexType::INT4;
+        default:                       return ShaderVertexType::FLOAT;
     }
 }
 
