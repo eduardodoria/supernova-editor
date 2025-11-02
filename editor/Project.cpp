@@ -153,6 +153,8 @@ void Editor::Project::openScene(fs::path filepath){
 
         Backend::getApp().addNewSceneToDock(scenes.back().id);
 
+        resolvePendingEntityRefs();
+
     } catch (const YAML::Exception& e) {
         Out::error("Failed to open scene: %s", e.what());
         Backend::getApp().registerAlert("Error", "Failed to open scene file!");
@@ -527,6 +529,8 @@ bool Editor::Project::loadProject(const std::filesystem::path path) {
             AppSettings::setLastProjectPath(projectPath);
         }
 
+        resolvePendingEntityRefs();
+
         Out::info("Project loaded successfully: \"%s\"", projectPath.string().c_str());
         return true;
 
@@ -753,7 +757,11 @@ bool Editor::Project::selectObjectsByRect(uint32_t sceneId, Vector2 start, Vecto
     return false;
 }
 
-std::vector<Editor::SceneProject>&  Editor::Project::getScenes(){
+std::vector<Editor::SceneProject>& Editor::Project::getScenes(){
+    return scenes;
+}
+
+const std::vector<Editor::SceneProject>& Editor::Project::getScenes() const{
     return scenes;
 }
 
@@ -2292,4 +2300,65 @@ void Editor::Project::debugSceneHierarchy(){
         }
         printf("\n");
     }
+}
+
+void Editor::Project::addPendingEntityRefTask(uint32_t sceneId, Entity entity, size_t scriptIndex, const std::string& propertyName, const YAML::Node& valueNode, const YAML::Node& defaultValueNode) {
+    pendingEntityRefTasks.push_back(PendingEntityRefTask{
+        sceneId, entity, scriptIndex, propertyName, valueNode, defaultValueNode
+    });
+}
+
+void Editor::Project::resolvePendingEntityRefs() {
+    if (pendingEntityRefTasks.empty()) return;
+
+    std::vector<PendingEntityRefTask> remaining;
+    remaining.reserve(pendingEntityRefTasks.size());
+
+    for (auto& task : pendingEntityRefTasks) {
+        SceneProject* sceneProject = getScene(task.sceneId);
+        if (!sceneProject) {
+            // Scene no longer exists; keep for later
+            remaining.push_back(std::move(task)); 
+            continue; 
+        }
+
+        // Locate ScriptComponent and property
+        Scene* scene = sceneProject->scene;
+        Signature sig = scene->getSignature(task.entity);
+        if (!sig.test(scene->getComponentId<ScriptComponent>())) {
+            Out::warning("Entity %u in scene %u does not have a ScriptComponent for entity ref fixup", task.entity, task.sceneId);
+            continue;
+        }
+
+        ScriptComponent& sc = scene->getComponent<ScriptComponent>(task.entity);
+        if (task.scriptIndex >= sc.scripts.size()) {
+            Out::warning("Script index %zu out of range for entity %u in scene %u", task.scriptIndex, task.entity, task.sceneId);
+            continue;
+        }
+
+        ScriptEntry& entry = sc.scripts[task.scriptIndex];
+        auto itProp = std::find_if(entry.properties.begin(), entry.properties.end(),
+            [&](const ScriptProperty& p){ return p.name == task.propertyName; });
+
+        if (itProp == entry.properties.end()) {
+            Out::warning("Property '%s' not found in script index %zu for entity %u in scene %u", task.propertyName.c_str(), task.scriptIndex, task.entity, task.sceneId);
+            continue;
+        }
+
+        // Perform decode now
+        if (task.valueNode && task.valueNode.IsMap()) {
+            itProp->value = Stream::decodeEntityRef(task.valueNode, this, sceneProject);
+        } else {
+            itProp->value = EntityRef();
+        }
+
+        if (task.defaultValueNode && task.defaultValueNode.IsMap()) {
+            itProp->defaultValue = Stream::decodeEntityRef(task.defaultValueNode, this, sceneProject);
+        } else {
+            itProp->defaultValue = EntityRef();
+        }
+        // Do not mark scenes modified on load-time fixup
+    }
+
+    pendingEntityRefTasks.swap(remaining);
 }

@@ -422,7 +422,6 @@ void Editor::ProjectUtils::addEntityComponent(EntityRegistry* registry, Entity e
                 registry->addComponent<ScriptComponent>(entity, {});
             }else{
                 registry->addComponent<ScriptComponent>(entity, Stream::decodeScriptComponent(componentNode));
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
             }
             break;
         case ComponentType::ScrollbarComponent:
@@ -454,7 +453,6 @@ void Editor::ProjectUtils::addEntityComponent(EntityRegistry* registry, Entity e
                 registry->addComponent<SpriteComponent>(entity, {});
             }else{
                 registry->addComponent<SpriteComponent>(entity, Stream::decodeSpriteComponent(componentNode));
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
             }
             break;
         case ComponentType::TerrainComponent:

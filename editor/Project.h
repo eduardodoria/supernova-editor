@@ -80,6 +80,16 @@ namespace Supernova::Editor{
 
     using ComponentRecovery = std::map<std::string, ComponentRecoveryEntry>;
 
+    // Pending EntityRef resolution
+    struct PendingEntityRefTask {
+        uint32_t sceneId;
+        Entity entity;
+        size_t scriptIndex;
+        std::string propertyName;
+        YAML::Node valueNode;
+        YAML::Node defaultValueNode;
+    };
+
     class Project{
     private:
 
@@ -100,6 +110,8 @@ namespace Supernova::Editor{
         bool resourcesFocused;
 
         std::map<std::filesystem::path, SharedGroup> sharedGroups;
+
+        std::vector<PendingEntityRefTask> pendingEntityRefTasks;
 
         template<typename T>
         T* findScene(uint32_t sceneId) const;
@@ -150,6 +162,7 @@ namespace Supernova::Editor{
         bool selectObjectsByRect(uint32_t sceneId, Vector2 start, Vector2 end);
 
         std::vector<SceneProject>& getScenes();
+        const std::vector<SceneProject>& getScenes() const;
         SceneProject* getScene(uint32_t sceneId);
         const SceneProject* getScene(uint32_t sceneId) const;
         SceneProject* getSelectedScene();
@@ -230,6 +243,9 @@ namespace Supernova::Editor{
         void stop(uint32_t sceneId);
 
         void debugSceneHierarchy();
+
+        void addPendingEntityRefTask(uint32_t sceneId, Entity entity, size_t scriptIndex, const std::string& propertyName, const YAML::Node& valueNode, const YAML::Node& defaultValueNode);
+        void resolvePendingEntityRefs();
     };
 
 }

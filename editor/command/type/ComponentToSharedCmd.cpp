@@ -26,7 +26,7 @@ bool Editor::ComponentToSharedCmd::execute() {
             SharedGroup* group = project->getSharedGroup(filepath);
 
             Signature signature = Catalog::componentTypeToSignature(sceneProject->scene, componentType);
-            entityData.recovery = Stream::encodeComponents(entityData.entity, sceneProject->scene, signature);
+            entityData.recovery = Stream::encodeComponents(entityData.entity, sceneProject->scene, project, sceneProject, signature);
 
             if (!group->hasComponentOverride(sceneId, entityData.entity, componentType)){
                 return false;
@@ -62,7 +62,7 @@ void Editor::ComponentToSharedCmd::undo() {
                 parent = sceneProject->scene->getComponent<Transform>(entityData.entity).parent;
             }
 
-            Stream::decodeComponents(entityData.entity, parent, sceneProject->scene, entityData.recovery);
+            Stream::decodeComponents(entityData.entity, parent, sceneProject->scene, project, sceneProject, entityData.recovery);
         }
 
     }
