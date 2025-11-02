@@ -101,7 +101,7 @@ namespace Supernova::Editor {
         static YAML::Node encodeEntityAux(const Entity entity, const EntityRegistry* registry, const Project* project = nullptr, const SceneProject* sceneProject = nullptr, bool keepEntity = false, bool avoidShared = false);
 
         static YAML::Node encodeScriptProperty(const ScriptProperty& prop, const Project* project, const SceneProject* sceneProject);
-        static ScriptProperty decodeScriptProperty(const YAML::Node& node, Project* project, SceneProject* sceneProject, Entity ownerEntity, size_t scriptIndex);
+        static ScriptProperty decodeScriptProperty(const YAML::Node& node, Project* project, SceneProject* sceneProject, Entity ownerEntity, size_t scriptIndex, size_t propertyIndex);
 
     public:
         static YAML::Node encodeProject(Project* project);

@@ -937,7 +937,7 @@ YAML::Node Editor::Stream::encodeScriptProperty(const ScriptProperty& prop, cons
     return node;
 }
 
-ScriptProperty Editor::Stream::decodeScriptProperty(const YAML::Node& node, Project* project, SceneProject* sceneProject, Entity ownerEntity, size_t scriptIndex) {
+ScriptProperty Editor::Stream::decodeScriptProperty(const YAML::Node& node, Project* project, SceneProject* sceneProject, Entity ownerEntity, size_t scriptIndex, size_t propertyIndex) {
     ScriptProperty prop;
 
     if (node["name"]) prop.name = node["name"].as<std::string>();
@@ -953,33 +953,33 @@ ScriptProperty Editor::Stream::decodeScriptProperty(const YAML::Node& node, Proj
         switch (prop.type) {
             case ScriptPropertyType::Bool:
                 prop.value = node["value"].as<bool>();
-                if (node["defaultValue"]) prop.defaultValue = node["defaultValue"].as<bool>(); else prop.defaultValue = false;
+                prop.defaultValue = node["defaultValue"] ? node["defaultValue"].as<bool>() : false;
                 break;
             case ScriptPropertyType::Int:
                 prop.value = node["value"].as<int>();
-                if (node["defaultValue"]) prop.defaultValue = node["defaultValue"].as<int>(); else prop.defaultValue = 0;
+                prop.defaultValue = node["defaultValue"] ? node["defaultValue"].as<int>() : 0;
                 break;
             case ScriptPropertyType::Float:
                 prop.value = node["value"].as<float>();
-                if (node["defaultValue"]) prop.defaultValue = node["defaultValue"].as<float>(); else prop.defaultValue = 0.0f;
+                prop.defaultValue = node["defaultValue"] ? node["defaultValue"].as<float>() : 0.0f;
                 break;
             case ScriptPropertyType::String:
                 prop.value = node["value"].as<std::string>();
-                if (node["defaultValue"]) prop.defaultValue = node["defaultValue"].as<std::string>(); else prop.defaultValue = std::string("");
+                prop.defaultValue = node["defaultValue"] ? node["defaultValue"].as<std::string>() : std::string("");
                 break;
             case ScriptPropertyType::Vector2:
                 prop.value = decodeVector2(node["value"]);
-                if (node["defaultValue"]) prop.defaultValue = decodeVector2(node["defaultValue"]); else prop.defaultValue = Vector2();
+                prop.defaultValue = node["defaultValue"] ? decodeVector2(node["defaultValue"]) : Vector2();
                 break;
             case ScriptPropertyType::Vector3:
             case ScriptPropertyType::Color3:
                 prop.value = decodeVector3(node["value"]);
-                if (node["defaultValue"]) prop.defaultValue = decodeVector3(node["defaultValue"]); else prop.defaultValue = Vector3();
+                prop.defaultValue = node["defaultValue"] ? decodeVector3(node["defaultValue"]) : Vector3();
                 break;
             case ScriptPropertyType::Vector4:
             case ScriptPropertyType::Color4:
                 prop.value = decodeVector4(node["value"]);
-                if (node["defaultValue"]) prop.defaultValue = decodeVector4(node["defaultValue"]); else prop.defaultValue = Vector4();
+                prop.defaultValue = node["defaultValue"] ? decodeVector4(node["defaultValue"]) : Vector4();
                 break;
             case ScriptPropertyType::EntityPointer: {
                 // Defer decoding to Project pending queue to ensure all entities are loaded
@@ -993,7 +993,7 @@ ScriptProperty Editor::Stream::decodeScriptProperty(const YAML::Node& node, Proj
                         sceneProject->id,
                         ownerEntity,
                         scriptIndex,
-                        prop.name,
+                        propertyIndex,
                         valueNode,
                         defNode
                     );
@@ -1889,12 +1889,11 @@ ScriptComponent Editor::Stream::decodeScriptComponent(const YAML::Node& node, co
     for (const auto& scriptNode : node["scripts"]) {
         ScriptEntry entry;
 
-        // Decode script type
         if (scriptNode["type"]) {
             std::string typeStr = scriptNode["type"].as<std::string>();
             entry.type = (typeStr == "subclass") ? ScriptType::SUBCLASS : ScriptType::SCRIPT_CLASS;
         } else {
-            entry.type = ScriptType::SUBCLASS; // Default for backward compatibility
+            entry.type = ScriptType::SUBCLASS;
         }
 
         if (scriptNode["path"]) entry.path = scriptNode["path"].as<std::string>();
@@ -1904,8 +1903,10 @@ ScriptComponent Editor::Stream::decodeScriptComponent(const YAML::Node& node, co
 
         if (scriptNode["properties"] && scriptNode["properties"].IsSequence()) {
             entry.properties.clear();
+            size_t propIdx = 0;
             for (const auto& propNode : scriptNode["properties"]) {
-                entry.properties.push_back(decodeScriptProperty(propNode, project, sceneProject, ownerEntity, scriptIdx));
+                entry.properties.push_back(decodeScriptProperty(propNode, project, sceneProject, ownerEntity, scriptIdx, propIdx));
+                ++propIdx;
             }
         }
 

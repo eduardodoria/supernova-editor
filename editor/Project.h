@@ -85,7 +85,7 @@ namespace Supernova::Editor{
         uint32_t sceneId;
         Entity entity;
         size_t scriptIndex;
-        std::string propertyName;
+        size_t propertyIndex;
         YAML::Node valueNode;
         YAML::Node defaultValueNode;
     };
@@ -244,7 +244,7 @@ namespace Supernova::Editor{
 
         void debugSceneHierarchy();
 
-        void addPendingEntityRefTask(uint32_t sceneId, Entity entity, size_t scriptIndex, const std::string& propertyName, const YAML::Node& valueNode, const YAML::Node& defaultValueNode);
+        void addPendingEntityRefTask(uint32_t sceneId, Entity entity, size_t scriptIndex, size_t propertyIndex, const YAML::Node& valueNode, const YAML::Node& defaultValueNode);
         void resolvePendingEntityRefs();
     };
 

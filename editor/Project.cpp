@@ -2302,9 +2302,9 @@ void Editor::Project::debugSceneHierarchy(){
     }
 }
 
-void Editor::Project::addPendingEntityRefTask(uint32_t sceneId, Entity entity, size_t scriptIndex, const std::string& propertyName, const YAML::Node& valueNode, const YAML::Node& defaultValueNode) {
+void Editor::Project::addPendingEntityRefTask(uint32_t sceneId, Entity entity, size_t scriptIndex, size_t propertyIndex, const YAML::Node& valueNode, const YAML::Node& defaultValueNode) {
     pendingEntityRefTasks.push_back(PendingEntityRefTask{
-        sceneId, entity, scriptIndex, propertyName, valueNode, defaultValueNode
+        sceneId, entity, scriptIndex, propertyIndex, valueNode, defaultValueNode
     });
 }
 
@@ -2317,16 +2317,14 @@ void Editor::Project::resolvePendingEntityRefs() {
     for (auto& task : pendingEntityRefTasks) {
         SceneProject* sceneProject = getScene(task.sceneId);
         if (!sceneProject) {
-            // Scene no longer exists; keep for later
-            remaining.push_back(std::move(task)); 
-            continue; 
+            remaining.push_back(std::move(task));
+            continue;
         }
 
-        // Locate ScriptComponent and property
         Scene* scene = sceneProject->scene;
         Signature sig = scene->getSignature(task.entity);
         if (!sig.test(scene->getComponentId<ScriptComponent>())) {
-            Out::warning("Entity %u in scene %u does not have a ScriptComponent for entity ref fixup", task.entity, task.sceneId);
+            Out::warning("Entity %u in scene %u has no ScriptComponent for entity ref fixup", task.entity, task.sceneId);
             continue;
         }
 
@@ -2337,27 +2335,24 @@ void Editor::Project::resolvePendingEntityRefs() {
         }
 
         ScriptEntry& entry = sc.scripts[task.scriptIndex];
-        auto itProp = std::find_if(entry.properties.begin(), entry.properties.end(),
-            [&](const ScriptProperty& p){ return p.name == task.propertyName; });
-
-        if (itProp == entry.properties.end()) {
-            Out::warning("Property '%s' not found in script index %zu for entity %u in scene %u", task.propertyName.c_str(), task.scriptIndex, task.entity, task.sceneId);
+        if (task.propertyIndex >= entry.properties.size()) {
+            Out::warning("Property index %zu out of range for entity %u in scene %u", task.propertyIndex, task.entity, task.sceneId);
             continue;
         }
 
-        // Perform decode now
+        ScriptProperty& prop = entry.properties[task.propertyIndex];
+
         if (task.valueNode && task.valueNode.IsMap()) {
-            itProp->value = Stream::decodeEntityRef(task.valueNode, this, sceneProject);
+            prop.value = Stream::decodeEntityRef(task.valueNode, this, sceneProject);
         } else {
-            itProp->value = EntityRef();
+            prop.value = EntityRef();
         }
 
         if (task.defaultValueNode && task.defaultValueNode.IsMap()) {
-            itProp->defaultValue = Stream::decodeEntityRef(task.defaultValueNode, this, sceneProject);
+            prop.defaultValue = Stream::decodeEntityRef(task.defaultValueNode, this, sceneProject);
         } else {
-            itProp->defaultValue = EntityRef();
+            prop.defaultValue = EntityRef();
         }
-        // Do not mark scenes modified on load-time fixup
     }
 
     pendingEntityRefTasks.swap(remaining);
