@@ -98,7 +98,7 @@ namespace Supernova::Editor {
         static YAML::Node encodeSpriteFrameData(const SpriteFrameData& frameData);
         static SpriteFrameData decodeSpriteFrameData(const YAML::Node& node);
 
-        static YAML::Node encodeEntityAux(const Entity entity, const EntityRegistry* registry, const Project* project = nullptr, const SceneProject* sceneProject = nullptr, bool keepEntity = false, bool avoidShared = false);
+        static YAML::Node encodeEntityAux(const Entity entity, const EntityRegistry* registry, const Project* project = nullptr, const SceneProject* sceneProject = nullptr, bool keepEntity = false);
 
         static YAML::Node encodeScriptProperty(const ScriptProperty& prop, const Project* project, const SceneProject* sceneProject);
         static ScriptProperty decodeScriptProperty(const YAML::Node& node, Project* project, SceneProject* sceneProject, Entity ownerEntity, size_t scriptIndex, size_t propertyIndex);
@@ -107,14 +107,14 @@ namespace Supernova::Editor {
         static YAML::Node encodeProject(Project* project);
         static void decodeProject(Project* project, const YAML::Node& node);
 
-        static YAML::Node encodeSceneProject(const Project* project, const SceneProject* sceneProject, bool keepEntity = false, bool avoidShared = false);
+        static YAML::Node encodeSceneProject(const Project* project, const SceneProject* sceneProject, bool keepEntity = false);
         static void decodeSceneProject(SceneProject* sceneProject, const YAML::Node& node);
         static void decodeSceneProjectEntities(Project* project, SceneProject* sceneProject, const YAML::Node& node);
 
         static YAML::Node encodeScene(Scene* scene);
         static Scene* decodeScene(Scene* scene, const YAML::Node& node);
 
-        static YAML::Node encodeEntity(const Entity entity, const EntityRegistry* registry, const Project* project = nullptr, const SceneProject* sceneProject = nullptr, bool keepEntity = false, bool avoidShared = false);
+        static YAML::Node encodeEntity(const Entity entity, const EntityRegistry* registry, const Project* project = nullptr, const SceneProject* sceneProject = nullptr, bool keepEntity = false);
         static std::vector<Entity> decodeEntity(const YAML::Node& entityNode, EntityRegistry* registry, std::vector<Entity>* entities = nullptr, Project* project = nullptr, SceneProject* sceneProject = nullptr, Entity parent = NULL_ENTITY, bool returnSharedEntities = true, bool createNewIfExists = true);
 
         static YAML::Node encodeMaterial(const Material& material);

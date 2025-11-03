@@ -711,7 +711,7 @@ void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
     }
 }
 
-YAML::Node Editor::Stream::encodeSceneProject(const Project* project, const SceneProject* sceneProject, bool keepEntity, bool avoidShared) {
+YAML::Node Editor::Stream::encodeSceneProject(const Project* project, const SceneProject* sceneProject, bool keepEntity) {
     YAML::Node root;
     root["id"] = sceneProject->id;
     root["name"] = sceneProject->name;
@@ -722,10 +722,10 @@ YAML::Node Editor::Stream::encodeSceneProject(const Project* project, const Scen
     for (Entity entity : sceneProject->entities) {
         if (Transform* transform = sceneProject->scene->findComponent<Transform>(entity)) {
             if (transform->parent == NULL_ENTITY) {
-                entitiesNode.push_back(encodeEntity(entity, sceneProject->scene, project, sceneProject, keepEntity, avoidShared));
+                entitiesNode.push_back(encodeEntity(entity, sceneProject->scene, project, sceneProject, keepEntity));
             }
         }else{
-            entitiesNode.push_back(encodeEntity(entity, sceneProject->scene, project, sceneProject, keepEntity, avoidShared));
+            entitiesNode.push_back(encodeEntity(entity, sceneProject->scene, project, sceneProject, keepEntity));
         }
     }
     root["entities"] = entitiesNode;
@@ -794,7 +794,7 @@ Scene* Editor::Stream::decodeScene(Scene* scene, const YAML::Node& node) {
     return scene;
 }
 
-YAML::Node Editor::Stream::encodeEntity(const Entity entity, const EntityRegistry* registry, const Project* project, const SceneProject* sceneProject, bool keepEntity, bool avoidShared) {
+YAML::Node Editor::Stream::encodeEntity(const Entity entity, const EntityRegistry* registry, const Project* project, const SceneProject* sceneProject, bool keepEntity) {
     std::map<Entity, YAML::Node> entityNodes;
 
     bool hasCurrentEntity = true;
@@ -805,7 +805,7 @@ YAML::Node Editor::Stream::encodeEntity(const Entity entity, const EntityRegistr
 
     if (hasCurrentEntity) {
         YAML::Node& currentNode = entityNodes[entity];
-        currentNode = encodeEntityAux(entity, registry, project, sceneProject, keepEntity, avoidShared);
+        currentNode = encodeEntityAux(entity, registry, project, sceneProject, keepEntity);
 
         Signature signature = registry->getSignature(entity);
 
@@ -823,7 +823,7 @@ YAML::Node Editor::Stream::encodeEntity(const Entity entity, const EntityRegistr
 
                 if (hasCurrentEntity) {
                     YAML::Node& currentNode = entityNodes[currentEntity];
-                    currentNode = encodeEntityAux(currentEntity, registry, project, sceneProject, keepEntity, avoidShared);
+                    currentNode = encodeEntityAux(currentEntity, registry, project, sceneProject, keepEntity);
 
                     Transform& transform = transforms->getComponentFromIndex(i);
 
@@ -844,11 +844,11 @@ YAML::Node Editor::Stream::encodeEntity(const Entity entity, const EntityRegistr
     return entityNodes[entity];
 }
 
-YAML::Node Editor::Stream::encodeEntityAux(const Entity entity, const EntityRegistry* registry, const Project* project, const SceneProject* sceneProject, bool keepEntity, bool avoidShared) {
+YAML::Node Editor::Stream::encodeEntityAux(const Entity entity, const EntityRegistry* registry, const Project* project, const SceneProject* sceneProject, bool keepEntity) {
     YAML::Node entityNode;
 
     fs::path sharedPath = "";
-    if (project && sceneProject && !avoidShared) {
+    if (project && sceneProject) {
         sharedPath = project->findGroupPathFor(sceneProject->id, entity);
     }
 
@@ -1197,7 +1197,7 @@ EntityRef Editor::Stream::decodeEntityRef(const YAML::Node& node, Project* proje
     EntityRef ref;
     if (node && node.IsMap()) {
         // Portable reference using project/scene id + entity index
-        if (project && node["sceneId"] && node["entityIndex"]) {
+        if (node["sceneId"] && node["entityIndex"]) {
             uint32_t sceneId = node["sceneId"].as<uint32_t>();
             size_t index = node["entityIndex"].as<size_t>();
 

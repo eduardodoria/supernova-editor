@@ -149,11 +149,11 @@ void Editor::Project::openScene(fs::path filepath){
 
         scenes.push_back(data);
 
+        resolvePendingEntityRefs();
+
         setSelectedSceneId(scenes.back().id);
 
         Backend::getApp().addNewSceneToDock(scenes.back().id);
-
-        resolvePendingEntityRefs();
 
     } catch (const YAML::Exception& e) {
         Out::error("Failed to open scene: %s", e.what());
@@ -519,6 +519,8 @@ bool Editor::Project::loadProject(const std::filesystem::path path) {
             createNewScene("New Scene", SceneType::SCENE_3D);
         }
 
+        resolvePendingEntityRefs();
+
         // Copy engine-api to project
         copyEngineApiToProject();
 
@@ -528,8 +530,6 @@ bool Editor::Project::loadProject(const std::filesystem::path path) {
         if (!isTempProject()) {
             AppSettings::setLastProjectPath(projectPath);
         }
-
-        resolvePendingEntityRefs();
 
         Out::info("Project loaded successfully: \"%s\"", projectPath.string().c_str());
         return true;
@@ -2169,7 +2169,7 @@ void Editor::Project::start(uint32_t sceneId) {
     Backend::getApp().getCodeEditor()->saveAll();
 
     // Save current scene state before starting
-    sceneProject->playStateSnapshot = Stream::encodeSceneProject(this, sceneProject, true, true);
+    sceneProject->playStateSnapshot = Stream::encodeSceneProject(nullptr, sceneProject, true);
 
     sceneProject->playState = ScenePlayState::PLAYING;
 
@@ -2277,7 +2277,7 @@ void Editor::Project::stop(uint32_t sceneId) {
 
             auto entitiesNode = sceneProject->playStateSnapshot["entities"];
             for (const auto& entityNode : entitiesNode){
-                Stream::decodeEntity(entityNode, sceneProject->scene, nullptr, this, sceneProject, NULL_ENTITY, true, false);
+                Stream::decodeEntity(entityNode, sceneProject->scene, nullptr, nullptr, sceneProject, NULL_ENTITY, true, false);
             }
 
             // Clear the snapshot
