@@ -1645,6 +1645,18 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             value = &eValue[entity];
         }
 
+        // Helper: find entity index in sceneProject->entities
+        auto findEntityIndex = [&](Entity e)->int {
+            if (e == NULL_ENTITY) return -1;
+            if (!sceneProject) return -1;
+            for (size_t i = 0; i < sceneProject->entities.size(); ++i){
+                if (sceneProject->entities[i] == e){
+                    return static_cast<int>(i);
+                }
+            }
+            return -1;
+        };
+
         EntityRef newValue = *value;
 
         bool defChanged = false;
@@ -1654,7 +1666,14 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
         if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
-                EntityRef resetVal = defVal ? *defVal : EntityRef{NULL_ENTITY, sceneProject->scene};
+                // Build reset value using default entity if present; otherwise NULL_ENTITY
+                Entity targetEntity = (defVal ? defVal->entity : NULL_ENTITY);
+                EntityRef resetVal;
+                resetVal.entity = targetEntity;
+                resetVal.scene = sceneProject->scene;
+                resetVal.entityIndex = findEntityIndex(targetEntity);
+                resetVal.sceneId = sceneProject->id;
+
                 cmd = new PropertyCmd<EntityRef>(project, sceneProject->id, entity, cpType, id, resetVal, settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
                 finishProperty = true;
@@ -1698,8 +1717,12 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
                     const EntityPayload* entityPayload = static_cast<const EntityPayload*>(payload->Data);
                     Entity droppedEntity = entityPayload->entity;
 
-                    // Create new EntityRef with the dropped entity
-                    EntityRef newEntityRef{droppedEntity, sceneProject->scene};
+                    // Create new EntityRef with full info
+                    EntityRef newEntityRef;
+                    newEntityRef.entity = droppedEntity;
+                    newEntityRef.scene = sceneProject->scene;
+                    newEntityRef.entityIndex = findEntityIndex(droppedEntity);
+                    newEntityRef.sceneId = sceneProject->id;
 
                     // Apply to all selected entities
                     for (Entity& entity : entities) {
@@ -1721,7 +1744,12 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         ImGui::BeginDisabled(newValue.entity == NULL_ENTITY);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
         if (ImGui::Button((ICON_FA_XMARK "##clear_entity_" + id).c_str())) {
-            EntityRef emptyRef{NULL_ENTITY, sceneProject->scene};
+            EntityRef emptyRef;
+            emptyRef.entity = NULL_ENTITY;
+            emptyRef.scene = nullptr;
+            emptyRef.entityIndex = -1;
+            emptyRef.sceneId = NULL_PROJECT_SCENE;
+
             for (Entity& entity : entities) {
                 cmd = new PropertyCmd<EntityRef>(project, sceneProject->id, entity, cpType, id, emptyRef, settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
