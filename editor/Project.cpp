@@ -139,6 +139,8 @@ void Editor::Project::openScene(fs::path filepath){
 
         Stream::decodeSceneProjectEntities(this, &data, sceneNode);
 
+        resolveEntityRefs(&data);
+
         if (getScene(data.id) != nullptr) {
             uint32_t old = data.id;
             data.id = ++nextSceneId;
@@ -148,8 +150,6 @@ void Editor::Project::openScene(fs::path filepath){
         pauseEngineScene(&data, true);
 
         scenes.push_back(data);
-
-        resolvePendingEntityRefs();
 
         setSelectedSceneId(scenes.back().id);
 
@@ -322,6 +322,45 @@ std::vector<Editor::ScriptSource> Editor::Project::collectScriptSourceFiles() co
     }
 
     return scriptFiles;
+}
+
+void Editor::Project::resolveEntityRefs(SceneProject* sceneProject){
+    Scene* scene = sceneProject->scene;
+    if (!scene) return;
+
+    for (Entity e : sceneProject->entities){
+        if (!scene->isEntityCreated(e)) continue;
+
+        Signature signature = scene->getSignature(e);
+        if (!signature.test(scene->getComponentId<ScriptComponent>())) continue;
+
+        auto& sc = scene->getComponent<ScriptComponent>(e);
+        for (auto& scriptEntry : sc.scripts){
+            for (auto& prop : scriptEntry.properties){
+                if (prop.type != ScriptPropertyType::EntityPointer) continue;
+                if (!std::holds_alternative<EntityRef>(prop.value)) continue;
+
+                EntityRef ref = std::get<EntityRef>(prop.value);
+
+                // Only resolve when we have a valid index
+                if (ref.entityIndex >= 0){
+                    uint32_t targetSceneId = (ref.sceneId != 0) ? ref.sceneId : sceneProject->id;
+                    SceneProject* targetScene = getScene(targetSceneId);
+                    if (targetScene && ref.entityIndex >= 0 && ref.entityIndex < (int)targetScene->entities.size()){
+                        ref.entity = targetScene->entities[ref.entityIndex];
+                        ref.scene  = targetScene->scene;
+                        prop.value = ref; // write back
+                    }
+                }
+            }
+        }
+    }
+}
+
+void Editor::Project::resolveAllEntityRefs(){
+    for (auto& sceneProject : scenes){
+        resolveEntityRefs(&sceneProject);
+    }
 }
 
 void Editor::Project::pauseEngineScene(SceneProject* sceneProject, bool pause){
@@ -514,12 +553,12 @@ bool Editor::Project::loadProject(const std::filesystem::path path) {
         YAML::Node projectNode = YAML::LoadFile(projectFile.string());
         Stream::decodeProject(this, projectNode);
 
+        resolveAllEntityRefs();
+
         // Create a default scene if no scenes were loaded
         if (scenes.empty()) {
             createNewScene("New Scene", SceneType::SCENE_3D);
         }
-
-        resolvePendingEntityRefs();
 
         // Copy engine-api to project
         copyEngineApiToProject();
@@ -2176,6 +2215,7 @@ void Editor::Project::start(uint32_t sceneId) {
     std::string libName = "projectlib";
     fs::path buildPath = getProjectInternalPath() / "build";
 
+    resolveEntityRefs(sceneProject);
     std::vector<Editor::ScriptSource> scriptFiles = collectScriptSourceFiles();
 
     generator.build(getProjectPath(), getProjectInternalPath(), buildPath, libName, scriptFiles);
@@ -2300,60 +2340,4 @@ void Editor::Project::debugSceneHierarchy(){
         }
         printf("\n");
     }
-}
-
-void Editor::Project::addPendingEntityRefTask(uint32_t sceneId, Entity entity, size_t scriptIndex, size_t propertyIndex, const YAML::Node& valueNode, const YAML::Node& defaultValueNode) {
-    pendingEntityRefTasks.push_back(PendingEntityRefTask{
-        sceneId, entity, scriptIndex, propertyIndex, valueNode, defaultValueNode
-    });
-}
-
-void Editor::Project::resolvePendingEntityRefs() {
-    if (pendingEntityRefTasks.empty()) return;
-
-    std::vector<PendingEntityRefTask> remaining;
-    remaining.reserve(pendingEntityRefTasks.size());
-
-    for (auto& task : pendingEntityRefTasks) {
-        SceneProject* sceneProject = getScene(task.sceneId);
-        if (!sceneProject) {
-            remaining.push_back(std::move(task));
-            continue;
-        }
-
-        Scene* scene = sceneProject->scene;
-        Signature sig = scene->getSignature(task.entity);
-        if (!sig.test(scene->getComponentId<ScriptComponent>())) {
-            Out::warning("Entity %u in scene %u has no ScriptComponent for entity ref fixup", task.entity, task.sceneId);
-            continue;
-        }
-
-        ScriptComponent& sc = scene->getComponent<ScriptComponent>(task.entity);
-        if (task.scriptIndex >= sc.scripts.size()) {
-            Out::warning("Script index %zu out of range for entity %u in scene %u", task.scriptIndex, task.entity, task.sceneId);
-            continue;
-        }
-
-        ScriptEntry& entry = sc.scripts[task.scriptIndex];
-        if (task.propertyIndex >= entry.properties.size()) {
-            Out::warning("Property index %zu out of range for entity %u in scene %u", task.propertyIndex, task.entity, task.sceneId);
-            continue;
-        }
-
-        ScriptProperty& prop = entry.properties[task.propertyIndex];
-
-        if (task.valueNode && task.valueNode.IsMap()) {
-            prop.value = Stream::decodeEntityRef(task.valueNode, this, sceneProject);
-        } else {
-            prop.value = EntityRef();
-        }
-
-        if (task.defaultValueNode && task.defaultValueNode.IsMap()) {
-            prop.defaultValue = Stream::decodeEntityRef(task.defaultValueNode, this, sceneProject);
-        } else {
-            prop.defaultValue = EntityRef();
-        }
-    }
-
-    pendingEntityRefTasks.swap(remaining);
 }

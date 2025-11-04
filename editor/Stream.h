@@ -98,10 +98,13 @@ namespace Supernova::Editor {
         static YAML::Node encodeSpriteFrameData(const SpriteFrameData& frameData);
         static SpriteFrameData decodeSpriteFrameData(const YAML::Node& node);
 
+        static YAML::Node encodeEntityRef(const EntityRef& ref);
+        static EntityRef decodeEntityRef(const YAML::Node& node);
+
         static YAML::Node encodeEntityAux(const Entity entity, const EntityRegistry* registry, const Project* project = nullptr, const SceneProject* sceneProject = nullptr, bool keepEntity = false);
 
-        static YAML::Node encodeScriptProperty(const ScriptProperty& prop, const Project* project, const SceneProject* sceneProject);
-        static ScriptProperty decodeScriptProperty(const YAML::Node& node, Project* project, SceneProject* sceneProject, Entity ownerEntity, size_t scriptIndex, size_t propertyIndex);
+        static YAML::Node encodeScriptProperty(const ScriptProperty& prop);
+        static ScriptProperty decodeScriptProperty(const YAML::Node& node);
 
     public:
         static YAML::Node encodeProject(Project* project);
@@ -120,11 +123,8 @@ namespace Supernova::Editor {
         static YAML::Node encodeMaterial(const Material& material);
         static Material decodeMaterial(const YAML::Node& node);
 
-        static YAML::Node encodeEntityRef(const EntityRef& ref, const Project* project = nullptr, const SceneProject* currentSceneProject = nullptr);
-        static EntityRef decodeEntityRef(const YAML::Node& node, Project* project = nullptr, SceneProject* currentSceneProject = nullptr);
-
-        static YAML::Node encodeComponents(const Entity entity, const EntityRegistry* registry, const Project* project, const SceneProject* sceneProject, Signature signature);
-        static void decodeComponents(Entity entity, Entity parent, EntityRegistry* registry, Project* project, SceneProject* sceneProject, const YAML::Node& compNode);
+        static YAML::Node encodeComponents(const Entity entity, const EntityRegistry* registry, Signature signature);
+        static void decodeComponents(Entity entity, Entity parent, EntityRegistry* registry, const YAML::Node& compNode);
 
         static YAML::Node encodeTransform(const Transform& transform);
         static Transform decodeTransform(const YAML::Node& node, const Transform* oldTransform = nullptr);
@@ -147,7 +147,7 @@ namespace Supernova::Editor {
         static YAML::Node encodeLightComponent(const LightComponent& light);
         static LightComponent decodeLightComponent(const YAML::Node& node, const LightComponent* oldLight = nullptr);
 
-        static YAML::Node encodeScriptComponent(const ScriptComponent& script, const Project* project = nullptr, const SceneProject* sceneProject = nullptr);
-        static ScriptComponent decodeScriptComponent(const YAML::Node& node, const ScriptComponent* oldScript = nullptr, Project* project = nullptr, SceneProject* sceneProject = nullptr, Entity ownerEntity = NULL_ENTITY);
+        static YAML::Node encodeScriptComponent(const ScriptComponent& script);
+        static ScriptComponent decodeScriptComponent(const YAML::Node& node, const ScriptComponent* oldScript = nullptr);
     };
 }
