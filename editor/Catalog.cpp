@@ -360,7 +360,7 @@ Editor::PropertyType Editor::Catalog::scriptPropertyTypeToPropertyType(ScriptPro
         case Supernova::ScriptPropertyType::Vector4: return Editor::PropertyType::Vector4;
         case Supernova::ScriptPropertyType::Color3: return Editor::PropertyType::Vector3;
         case Supernova::ScriptPropertyType::Color4: return Editor::PropertyType::Vector4;
-        case Supernova::ScriptPropertyType::EntityPointer: return PropertyType::Entity;
+        case Supernova::ScriptPropertyType::EntityPointer: return PropertyType::EntityPointer;
         default: return Editor::PropertyType::Custom;
     }
 }
@@ -894,10 +894,17 @@ void Editor::Catalog::copyPropertyValue(EntityRegistry* sourceRegistry, Entity s
             if (source && target) *target = *source;
             break;
         }
-        case PropertyType::Entity: {
+        case PropertyType::EntityPointer: {
             EntityRef* source = Catalog::getPropertyRef<EntityRef>(sourceRegistry, sourceEntity, compType, property);
             EntityRef* target = Catalog::getPropertyRef<EntityRef>(targetRegistry, targetEntity, compType, property);
-            if (source && target) *target = *source;
+            if (source && target) {
+                // Reset runtime refs to defaults
+                target->entity = NULL_ENTITY;
+                target->scene = nullptr;
+                // Copy only editor-facing metadata
+                target->entityIndex = source->entityIndex;
+                target->sceneId = source->sceneId;
+            }
             break;
         }
         case PropertyType::Custom:

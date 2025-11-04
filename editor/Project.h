@@ -186,6 +186,7 @@ namespace Supernova::Editor{
         void updateAllScriptsProperties(uint32_t sceneId);
         void updateScriptProperties(SceneProject* sceneProject, std::vector<ScriptEntry>& scripts);
 
+        void resolveEntityRef(EntityRef& ref);
         void resolveEntityRefs(SceneProject* sceneProject);
         void resolveAllEntityRefs();
 

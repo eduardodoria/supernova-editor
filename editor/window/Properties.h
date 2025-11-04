@@ -32,7 +32,7 @@ namespace Supernova::Editor{
         Direction,
         Enum,
         Custom,
-        Entity
+        EntityPointer
     };
 
     struct EnumEntry {

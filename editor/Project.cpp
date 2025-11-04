@@ -139,8 +139,6 @@ void Editor::Project::openScene(fs::path filepath){
 
         Stream::decodeSceneProjectEntities(this, &data, sceneNode);
 
-        resolveEntityRefs(&data);
-
         if (getScene(data.id) != nullptr) {
             uint32_t old = data.id;
             data.id = ++nextSceneId;
@@ -322,45 +320,6 @@ std::vector<Editor::ScriptSource> Editor::Project::collectScriptSourceFiles() co
     }
 
     return scriptFiles;
-}
-
-void Editor::Project::resolveEntityRefs(SceneProject* sceneProject){
-    Scene* scene = sceneProject->scene;
-    if (!scene) return;
-
-    for (Entity e : sceneProject->entities){
-        if (!scene->isEntityCreated(e)) continue;
-
-        Signature signature = scene->getSignature(e);
-        if (!signature.test(scene->getComponentId<ScriptComponent>())) continue;
-
-        auto& sc = scene->getComponent<ScriptComponent>(e);
-        for (auto& scriptEntry : sc.scripts){
-            for (auto& prop : scriptEntry.properties){
-                if (prop.type != ScriptPropertyType::EntityPointer) continue;
-                if (!std::holds_alternative<EntityRef>(prop.value)) continue;
-
-                EntityRef ref = std::get<EntityRef>(prop.value);
-
-                // Only resolve when we have a valid index
-                if (ref.entityIndex >= 0){
-                    uint32_t targetSceneId = (ref.sceneId != 0) ? ref.sceneId : sceneProject->id;
-                    SceneProject* targetScene = getScene(targetSceneId);
-                    if (targetScene && ref.entityIndex >= 0 && ref.entityIndex < (int)targetScene->entities.size()){
-                        ref.entity = targetScene->entities[ref.entityIndex];
-                        ref.scene  = targetScene->scene;
-                        prop.value = ref; // write back
-                    }
-                }
-            }
-        }
-    }
-}
-
-void Editor::Project::resolveAllEntityRefs(){
-    for (auto& sceneProject : scenes){
-        resolveEntityRefs(&sceneProject);
-    }
 }
 
 void Editor::Project::pauseEngineScene(SceneProject* sceneProject, bool pause){
@@ -552,8 +511,6 @@ bool Editor::Project::loadProject(const std::filesystem::path path) {
         // Load and parse project file
         YAML::Node projectNode = YAML::LoadFile(projectFile.string());
         Stream::decodeProject(this, projectNode);
-
-        resolveAllEntityRefs();
 
         // Create a default scene if no scenes were loaded
         if (scenes.empty()) {
@@ -1097,6 +1054,44 @@ void Editor::Project::updateScriptProperties(SceneProject* sceneProject, std::ve
         sceneProject->isModified = true;
     }
 }
+
+void Editor::Project::resolveEntityRef(EntityRef& ref){
+    if (ref.entityIndex >= 0 && ref.sceneId != NULL_PROJECT_SCENE){
+        SceneProject* targetScene = getScene(ref.sceneId);
+        if (targetScene && ref.entityIndex < (int)targetScene->entities.size()){
+            ref.entity = targetScene->entities[ref.entityIndex];
+            ref.scene  = targetScene->scene;
+        }
+    }
+}
+
+void Editor::Project::resolveEntityRefs(SceneProject* sceneProject){
+    Scene* scene = sceneProject->scene;
+    if (!scene) return;
+
+    auto scriptComps = scene->getComponentArray<ScriptComponent>();
+
+    for (size_t i = 0; i < scriptComps->size(); ++i) {
+        Entity entity = scriptComps->getEntity(i);
+        ScriptComponent& scriptComponent = scriptComps->getComponentFromIndex(i);
+        for (auto& scriptEntry : scriptComponent.scripts){
+            for (auto& prop : scriptEntry.properties){
+                if (prop.type != ScriptPropertyType::EntityPointer) continue;
+                if (!std::holds_alternative<EntityRef>(prop.value)) continue;
+
+                resolveEntityRef(std::get<EntityRef>(prop.value));
+            }
+        }
+    }
+
+}
+
+void Editor::Project::resolveAllEntityRefs(){
+    for (auto& sceneProject : scenes){
+        resolveEntityRefs(&sceneProject);
+    }
+}
+
 
 bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path filepath, YAML::Node entityNode){
     if (!filepath.is_relative()) {

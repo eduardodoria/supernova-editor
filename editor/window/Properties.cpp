@@ -70,7 +70,7 @@ Editor::RowPropertyType Editor::Properties::scriptPropertyTypeToRowPropertyType(
         case Supernova::ScriptPropertyType::Vector4: return RowPropertyType::Vector4;
         case Supernova::ScriptPropertyType::Color3: return RowPropertyType::Color3L;
         case Supernova::ScriptPropertyType::Color4: return RowPropertyType::Color4L;
-        case Supernova::ScriptPropertyType::EntityPointer: return RowPropertyType::Entity;
+        case Supernova::ScriptPropertyType::EntityPointer: return RowPropertyType::EntityPointer;
         default: return RowPropertyType::Custom;
     }
 }
@@ -1628,7 +1628,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
         result = materialButtonGroups[id];
 
-    }else if (type == RowPropertyType::Entity){
+    }else if (type == RowPropertyType::EntityPointer){
         EntityRef* value = nullptr;
         bool different = false;
         std::map<Entity, EntityRef> eValue;
@@ -1639,7 +1639,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             defVal = static_cast<EntityRef*>(prop.def);
             eValue[entity] = *static_cast<EntityRef*>(prop.ref);
             if (value){
-                if (value->entity != eValue[entity].entity)
+                if (value->entityIndex != eValue[entity].entityIndex || value->sceneId != eValue[entity].sceneId)
                     different = true;
             }
             value = &eValue[entity];
@@ -1657,29 +1657,17 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             return -1;
         };
 
-        // Callback to resolve entity refs after the value is changed
-        auto onEntityRefChanged = [this, sceneProject]() {
-            project->resolveEntityRefs(sceneProject);
-        };
-
         EntityRef newValue = *value;
+        project->resolveEntityRef(newValue);
 
         bool defChanged = false;
         if (defVal){
-            defChanged = (newValue.entity != defVal->entity);
+            defChanged = (newValue.entityIndex != defVal->entityIndex || newValue.sceneId != defVal->sceneId);
         }
 
         if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
             for (Entity& entity : entities){
-                // Build reset value using default entity if present; otherwise NULL_ENTITY
-                Entity targetEntity = (defVal ? defVal->entity : NULL_ENTITY);
-                EntityRef resetVal;
-                //resetVal.entity = targetEntity;
-                //resetVal.scene = sceneProject->scene;
-                resetVal.entityIndex = findEntityIndex(targetEntity);
-                resetVal.sceneId = sceneProject->id;
-
-                cmd = new PropertyCmd<EntityRef>(project, sceneProject->id, entity, cpType, id, resetVal, onEntityRefChanged);
+                cmd = new PropertyCmd<EntityRef>(project, sceneProject->id, entity, cpType, id, *defVal);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
                 finishProperty = true;
             }
@@ -1724,14 +1712,12 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
                     // Create new EntityRef with full info
                     EntityRef newEntityRef;
-                    //newEntityRef.entity = droppedEntity;
-                    //newEntityRef.scene = sceneProject->scene;
                     newEntityRef.entityIndex = findEntityIndex(droppedEntity);
                     newEntityRef.sceneId = sceneProject->id;
 
                     // Apply to all selected entities
                     for (Entity& entity : entities) {
-                        cmd = new PropertyCmd<EntityRef>(project, sceneProject->id, entity, cpType, id, newEntityRef, onEntityRefChanged);
+                        cmd = new PropertyCmd<EntityRef>(project, sceneProject->id, entity, cpType, id, newEntityRef);
                         CommandHandle::get(sceneProject->id)->addCommand(cmd);
                     }
                     finishProperty = true;
@@ -1749,14 +1735,8 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         ImGui::BeginDisabled(newValue.entity == NULL_ENTITY);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
         if (ImGui::Button((ICON_FA_XMARK "##clear_entity_" + id).c_str())) {
-            EntityRef emptyRef;
-            //emptyRef.entity = NULL_ENTITY;
-            //emptyRef.scene = nullptr;
-            emptyRef.entityIndex = -1;
-            emptyRef.sceneId = NULL_PROJECT_SCENE;
-
             for (Entity& entity : entities) {
-                cmd = new PropertyCmd<EntityRef>(project, sceneProject->id, entity, cpType, id, emptyRef, onEntityRefChanged);
+                cmd = new PropertyCmd<EntityRef>(project, sceneProject->id, entity, cpType, id, *defVal);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
             }
             finishProperty = true;
