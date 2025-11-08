@@ -10,6 +10,7 @@
 #include "Configs.h"
 #include "util/SharedGroup.h"
 #include "util/ScriptParser.h"
+#include "util/ScopedDefaultEntityPool.h"
 
 #include "yaml-cpp/yaml.h"
 

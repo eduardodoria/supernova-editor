@@ -9,6 +9,8 @@
 using namespace Supernova;
 
 Editor::SceneRender::SceneRender(Scene* scene, bool use2DGizmos, bool enableViewGizmo, float gizmoScale, float selectionOffset): toolslayer(use2DGizmos), uilayer(enableViewGizmo){
+    ScopedDefaultEntityPool sys(*scene, EntityPool::System);
+
     this->mouseClicked = false;
     this->lastCommand = nullptr;
     this->useGlobalTransform = true;

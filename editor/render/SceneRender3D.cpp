@@ -15,6 +15,8 @@
 using namespace Supernova;
 
 Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, true, 40.0, 0.01){
+    ScopedDefaultEntityPool sys(*scene, EntityPool::System);
+
     linesOffset = Vector2(0, 0);
 
     lines = new Lines(scene);
@@ -108,6 +110,7 @@ void Editor::SceneRender3D::createLines(){
 
 bool Editor::SceneRender3D::instanciateLightObject(Entity entity){
     if (lightObjects.find(entity) == lightObjects.end()) {
+        ScopedDefaultEntityPool sys(*scene, EntityPool::System);
         lightObjects[entity].icon = new Sprite(scene);
         lightObjects[entity].lines = new Lines(scene);
 

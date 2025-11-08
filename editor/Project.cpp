@@ -1134,7 +1134,7 @@ bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path
     if (scene->findComponent<Transform>(entity)) {
         newInstance.overrides[entity] = 1ULL << static_cast<int>(ComponentType::Transform);
 
-        newGroup.registry->getComponent<Transform>(NULL_ENTITY + 1) = {};
+        newGroup.registry->getComponent<Transform>(EntityManager::firstUserEntity()) = {};
     }
 
     newGroup.instances[sceneId].push_back(std::move(newInstance));
@@ -1191,8 +1191,8 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
 
     YAML::Node node;
     // Use registry if modified, otherwise load from file
-    if (group.isModified && (group.registry->getLastEntity() > NULL_ENTITY)) {
-        node = Stream::encodeEntity(NULL_ENTITY + 1, group.registry.get());
+    if (group.isModified && (group.registry->getLastEntity() >= EntityManager::firstUserEntity())) {
+        node = Stream::encodeEntity(EntityManager::firstUserEntity(), group.registry.get());
     } else {
         try {
             std::filesystem::path fullSharedPath = getProjectPath() / filepath;
@@ -1896,7 +1896,7 @@ Editor::ComponentRecovery Editor::Project::removeComponentToSharedGroup(uint32_t
 
 void Editor::Project::saveSharedGroupToDisk(const std::filesystem::path& filepath) {
     SharedGroup* group = getSharedGroup(filepath);
-    YAML::Node encodedNode = Stream::encodeEntity(NULL_ENTITY + 1, group->registry.get());
+    YAML::Node encodedNode = Stream::encodeEntity(EntityManager::firstUserEntity(), group->registry.get());
     if (group->isModified && encodedNode && !encodedNode.IsNull()) {
         std::filesystem::path fullSharedPath = getProjectPath() / filepath;
         std::ofstream fout(fullSharedPath.string());

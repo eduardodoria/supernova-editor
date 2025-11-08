@@ -50,10 +50,10 @@ bool Editor::CreateEntityCmd::execute(){
     Scene* scene = sceneProject->scene;
 
     if (entity == NULL_ENTITY){
-        entity = scene->createEntity();
+        entity = scene->createUserEntity();
     }else{
         if (!scene->recreateEntity(entity)){
-            entity = scene->createEntity();
+            entity = scene->createUserEntity();
         }
     }
 
