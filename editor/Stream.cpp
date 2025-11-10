@@ -1838,6 +1838,7 @@ ScriptComponent Editor::Stream::decodeScriptComponent(const YAML::Node& node, co
         script = *oldScript;
     }
 
+    script.scripts.clear();
     for (const auto& scriptNode : node["scripts"]) {
         ScriptEntry entry;
 
