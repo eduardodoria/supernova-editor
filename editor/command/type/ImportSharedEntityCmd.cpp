@@ -59,7 +59,7 @@ void Editor::ImportSharedEntityCmd::undo(){
     }
 
     // Get entity info to recover same ids
-    extendNode = Stream::encodeEntity(importedEntities[0], sceneProject->scene, project, sceneProject, true);
+    extendNode = Stream::encodeEntity(importedEntities[0], sceneProject->scene, project, sceneProject);
 
     // Unimport the shared entity
     project->unimportSharedEntity(sceneId, filepath, importedEntities);

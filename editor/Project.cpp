@@ -968,12 +968,12 @@ void Editor::Project::updateAllScriptsProperties(uint32_t sceneId){
         Signature signature = sceneProject->scene->getSignature(entity);
         if (signature.test(sceneProject->scene->getComponentId<ScriptComponent>())) {
             ScriptComponent& scriptComponent = sceneProject->scene->getComponent<ScriptComponent>(entity);
-            updateScriptProperties(sceneProject, scriptComponent.scripts);
+            updateScriptProperties(sceneProject, entity, scriptComponent.scripts);
         }
     }
 }
 
-void Editor::Project::updateScriptProperties(SceneProject* sceneProject, std::vector<ScriptEntry>& scripts){
+void Editor::Project::updateScriptProperties(SceneProject* sceneProject, Entity entity, std::vector<ScriptEntry>& scripts){
     bool hasChanges = false;
 
     // Update properties for each script in the component
@@ -1052,15 +1052,39 @@ void Editor::Project::updateScriptProperties(SceneProject* sceneProject, std::ve
 
     if (hasChanges) {
         sceneProject->isModified = true;
+
+        // Mark shared group modified if this entity belongs to one
+        std::filesystem::path groupPath = findGroupPathFor(sceneProject->id, entity);
+        if (!groupPath.empty()) {
+            SharedGroup* group = getSharedGroup(groupPath);
+            if (group) {
+                group->isModified = true;
+            }
+        }
     }
 }
 
-void Editor::Project::resolveEntityRef(EntityRef& ref){
-    if (ref.entityIndex >= 0 && ref.sceneId != NULL_PROJECT_SCENE){
-        SceneProject* targetScene = getScene(ref.sceneId);
-        if (targetScene && ref.entityIndex < (int)targetScene->entities.size()){
-            ref.entity = targetScene->entities[ref.entityIndex];
-            ref.scene  = targetScene->scene;
+void Editor::Project::resolveEntityRef(EntityRef& ref, SceneProject* sceneProject, Entity entity){
+    if (ref.locator.kind == EntityRefKind::LocalEntity){
+        SceneProject* targetScene = getScene(ref.locator.sceneId);
+        if (targetScene){
+            ref.scene = targetScene->scene;
+            ref.entity = ref.locator.scopedEntity;
+        }
+    }else if (ref.locator.kind == EntityRefKind::SharedEntity){
+        SharedGroup* group = getSharedGroup(ref.locator.sharedPath);
+        if (!group) {
+            ref.entity = NULL_ENTITY;
+            ref.scene = nullptr;
+            return;
+        }
+        uint32_t instanceId = group->getInstanceId(sceneProject->id, entity);
+        if (instanceId != 0 && ref.locator.scopedEntity != NULL_ENTITY) {
+            Entity local = group->getLocalEntity(sceneProject->id, instanceId, ref.locator.scopedEntity);
+            if (local != NULL_ENTITY) {
+                ref.scene  = sceneProject->scene;
+                ref.entity = local;
+            }
         }
     }
 }
@@ -1079,7 +1103,7 @@ void Editor::Project::resolveEntityRefs(SceneProject* sceneProject){
                 if (prop.type != ScriptPropertyType::EntityPointer) continue;
                 if (!std::holds_alternative<EntityRef>(prop.value)) continue;
 
-                resolveEntityRef(std::get<EntityRef>(prop.value));
+                resolveEntityRef(std::get<EntityRef>(prop.value), sceneProject, entity);
             }
         }
     }
@@ -1380,7 +1404,7 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Entity entity, En
     NodeRecovery entityData;
 
     std::string recoveryKey = std::to_string(sceneId) + "_" + std::to_string(instanceId);
-    entityData[recoveryKey].node = Stream::encodeEntity(entity, scene, nullptr, sceneProject, true);
+    entityData[recoveryKey].node = Stream::encodeEntity(entity, scene, nullptr, sceneProject);
     //entityData[sceneId].transformIndex = ProjectUtils::getTransformIndex(scene, entity);
 
     if (addEntityToSharedGroup(sceneId, entityData, parent, instanceId, createItself)){
@@ -1538,7 +1562,7 @@ Editor::NodeRecovery Editor::Project::removeEntityFromSharedGroup(uint32_t scene
         Out::error("Failed to find registry entity for shared entity %u in scene %u", entity, sceneId);
         return {};
     }
-    YAML::Node regData = Stream::encodeEntity(registryEntity, group->registry.get(), nullptr, nullptr, true);
+    YAML::Node regData = Stream::encodeEntity(registryEntity, group->registry.get(), nullptr, nullptr);
 
     size_t transformIndex;
     NodeRecovery recovery;
@@ -1559,7 +1583,7 @@ Editor::NodeRecovery Editor::Project::removeEntityFromSharedGroup(uint32_t scene
                 continue;
             }
 
-            YAML::Node nodeExtend = Stream::encodeEntity(otherEntity, otherScene->scene, this, otherScene, true);
+            YAML::Node nodeExtend = Stream::encodeEntity(otherEntity, otherScene->scene, this, otherScene);
 
             std::vector<Entity> allEntities;
             std::vector<Entity> sharedEntities;
@@ -2203,7 +2227,7 @@ void Editor::Project::start(uint32_t sceneId) {
     Backend::getApp().getCodeEditor()->saveAll();
 
     // Save current scene state before starting
-    sceneProject->playStateSnapshot = Stream::encodeSceneProject(nullptr, sceneProject, true);
+    sceneProject->playStateSnapshot = Stream::encodeSceneProject(nullptr, sceneProject);
 
     sceneProject->playState = ScenePlayState::PLAYING;
 

@@ -153,7 +153,13 @@ void Editor::CodeEditor::updateScriptProperties(const EditorInstance& instance){
                 // Check all scripts in the component
                 for (const auto& scriptEntry : scriptComponent->scripts) {
                     if (scriptEntry.headerPath == instance.filepath.string()) {
-                        project->updateScriptProperties(&sceneProject, scriptComponent->scripts);
+
+                        std::vector<ScriptEntry> newScripts = scriptComponent->scripts;
+
+                        project->updateScriptProperties(&sceneProject, entity, newScripts);
+                        PropertyCmd<std::vector<ScriptEntry>> propertyCmd(project, sceneProject.id, entity, ComponentType::ScriptComponent, "scripts", newScripts);
+                        propertyCmd.execute();
+
                         break; // Found matching script, no need to check others
                     }
                 }

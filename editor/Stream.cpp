@@ -320,6 +320,21 @@ PivotPreset Editor::Stream::stringToPivotPreset(const std::string& str) {
     return PivotPreset::BOTTOM_LEFT;
 }
 
+std::string Editor::Stream::entityRefKindToString(EntityRefKind kind){
+    switch(kind){
+        case EntityRefKind::LocalEntity: return "local_entity";
+        case EntityRefKind::SharedEntity: return "shared_entity";
+        case EntityRefKind::None:
+        default: return "none";
+    }
+}
+
+EntityRefKind Editor::Stream::stringToEntityRefKind(const std::string& str){
+    if (str == "local_entity") return EntityRefKind::LocalEntity;
+    if (str == "shared_entity") return EntityRefKind::SharedEntity;
+    return EntityRefKind::None;
+}
+
 YAML::Node Editor::Stream::encodeVector2(const Vector2& vec){
     YAML::Node node;
     node.SetStyle(YAML::EmitterStyle::Flow);
@@ -650,12 +665,24 @@ SpriteFrameData Editor::Stream::decodeSpriteFrameData(const YAML::Node& node) {
 
 YAML::Node Editor::Stream::encodeEntityRef(const EntityRef& ref) {
     YAML::Node node;
-    // Only store entityIndex and sceneId
-    if (ref.entityIndex >= 0) {
-        node["entityIndex"] = ref.entityIndex;
-    }
-    if (ref.sceneId != 0) {
-        node["sceneId"] = ref.sceneId;
+    const EntityLocator& loc = ref.locator;
+
+    if (loc.kind != EntityRefKind::None) {
+        YAML::Node locNode;
+        locNode["kind"] = entityRefKindToString(loc.kind);
+
+        if (loc.scopedEntity != NULL_ENTITY)
+            locNode["scopedEntity"] = loc.scopedEntity;
+
+        if (loc.kind == EntityRefKind::LocalEntity) {
+            if (loc.sceneId != 0)
+                locNode["sceneId"] = loc.sceneId;
+        } else if (loc.kind == EntityRefKind::SharedEntity) {
+            if (!loc.sharedPath.empty())
+                locNode["sharedPath"] = loc.sharedPath;
+        }
+
+        node["locator"] = locNode;
     }
     return node;
 }
@@ -665,11 +692,25 @@ EntityRef Editor::Stream::decodeEntityRef(const YAML::Node& node) {
     if (!node || !node.IsMap()) {
         return ref; // defaults: entityIndex = -1, sceneId = 0, entity=NULL_ENTITY, scene=nullptr
     }
-    if (node["entityIndex"]) {
-        ref.entityIndex = node["entityIndex"].as<int>();
-    }
-    if (node["sceneId"]) {
-        ref.sceneId = node["sceneId"].as<uint32_t>();
+    if (node["locator"] && node["locator"].IsMap()) {
+        auto locNode = node["locator"];
+        EntityLocator loc;
+
+        if (locNode["kind"])
+            loc.kind = stringToEntityRefKind(locNode["kind"].as<std::string>());
+
+        if (locNode["scopedEntity"])
+            loc.scopedEntity = locNode["scopedEntity"].as<Entity>();
+
+        if (loc.kind == EntityRefKind::LocalEntity) {
+            if (locNode["sceneId"])
+                loc.sceneId = locNode["sceneId"].as<uint32_t>();
+        } else if (loc.kind == EntityRefKind::SharedEntity) {
+            if (locNode["sharedPath"])
+                loc.sharedPath = locNode["sharedPath"].as<std::string>();
+        }
+
+        ref.locator = loc;
     }
     return ref;
 }
@@ -737,7 +778,7 @@ void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
     }
 }
 
-YAML::Node Editor::Stream::encodeSceneProject(const Project* project, const SceneProject* sceneProject, bool keepEntity) {
+YAML::Node Editor::Stream::encodeSceneProject(const Project* project, const SceneProject* sceneProject) {
     YAML::Node root;
     root["id"] = sceneProject->id;
     root["name"] = sceneProject->name;
@@ -748,10 +789,10 @@ YAML::Node Editor::Stream::encodeSceneProject(const Project* project, const Scen
     for (Entity entity : sceneProject->entities) {
         if (Transform* transform = sceneProject->scene->findComponent<Transform>(entity)) {
             if (transform->parent == NULL_ENTITY) {
-                entitiesNode.push_back(encodeEntity(entity, sceneProject->scene, project, sceneProject, keepEntity));
+                entitiesNode.push_back(encodeEntity(entity, sceneProject->scene, project, sceneProject));
             }
         }else{
-            entitiesNode.push_back(encodeEntity(entity, sceneProject->scene, project, sceneProject, keepEntity));
+            entitiesNode.push_back(encodeEntity(entity, sceneProject->scene, project, sceneProject));
         }
     }
     root["entities"] = entitiesNode;
@@ -820,7 +861,7 @@ Scene* Editor::Stream::decodeScene(Scene* scene, const YAML::Node& node) {
     return scene;
 }
 
-YAML::Node Editor::Stream::encodeEntity(const Entity entity, const EntityRegistry* registry, const Project* project, const SceneProject* sceneProject, bool keepEntity) {
+YAML::Node Editor::Stream::encodeEntity(const Entity entity, const EntityRegistry* registry, const Project* project, const SceneProject* sceneProject) {
     std::map<Entity, YAML::Node> entityNodes;
 
     bool hasCurrentEntity = true;
@@ -831,7 +872,7 @@ YAML::Node Editor::Stream::encodeEntity(const Entity entity, const EntityRegistr
 
     if (hasCurrentEntity) {
         YAML::Node& currentNode = entityNodes[entity];
-        currentNode = encodeEntityAux(entity, registry, project, sceneProject, keepEntity);
+        currentNode = encodeEntityAux(entity, registry, project, sceneProject);
 
         Signature signature = registry->getSignature(entity);
 
@@ -849,7 +890,7 @@ YAML::Node Editor::Stream::encodeEntity(const Entity entity, const EntityRegistr
 
                 if (hasCurrentEntity) {
                     YAML::Node& currentNode = entityNodes[currentEntity];
-                    currentNode = encodeEntityAux(currentEntity, registry, project, sceneProject, keepEntity);
+                    currentNode = encodeEntityAux(currentEntity, registry, project, sceneProject);
 
                     Transform& transform = transforms->getComponentFromIndex(i);
 
@@ -870,7 +911,7 @@ YAML::Node Editor::Stream::encodeEntity(const Entity entity, const EntityRegistr
     return entityNodes[entity];
 }
 
-YAML::Node Editor::Stream::encodeEntityAux(const Entity entity, const EntityRegistry* registry, const Project* project, const SceneProject* sceneProject, bool keepEntity) {
+YAML::Node Editor::Stream::encodeEntityAux(const Entity entity, const EntityRegistry* registry, const Project* project, const SceneProject* sceneProject) {
     YAML::Node entityNode;
 
     fs::path sharedPath = "";
@@ -889,9 +930,7 @@ YAML::Node Editor::Stream::encodeEntityAux(const Entity entity, const EntityRegi
             entityNode["type"] = "SharedEntityChild";
         }
 
-        if (keepEntity) {
-            entityNode["entity"] = entity;
-        }
+        entityNode["entity"] = entity;
 
         Signature signature = Catalog::componentMaskToSignature(registry, group->getEntityOverrides(sceneProject->id, entity));
         entityNode["components"] = encodeComponents(entity, registry, signature);
@@ -899,9 +938,7 @@ YAML::Node Editor::Stream::encodeEntityAux(const Entity entity, const EntityRegi
     }else{
         entityNode["type"] = "Entity";
 
-        if (keepEntity) {
-            entityNode["entity"] = entity;
-        }
+        entityNode["entity"] = entity;
         entityNode["name"] = registry->getEntityName(entity);
 
         Signature signature = registry->getSignature(entity);
@@ -1054,11 +1091,11 @@ std::vector<Entity> Editor::Stream::decodeEntity(const YAML::Node& entityNode, E
             entity = entityNode["entity"].as<Entity>();
             if (!registry->recreateEntity(entity)){
                 if (createNewIfExists){
-                    entity = registry->createEntity();
+                    entity = registry->createUserEntity();
                 }
             }
         }else{
-            entity = registry->createEntity();
+            entity = registry->createUserEntity();
         }
 
         allEntities.push_back(entity);
@@ -1801,8 +1838,6 @@ ScriptComponent Editor::Stream::decodeScriptComponent(const YAML::Node& node, co
         script = *oldScript;
     }
 
-    script.scripts.clear();
-
     for (const auto& scriptNode : node["scripts"]) {
         ScriptEntry entry;
 
@@ -1819,7 +1854,6 @@ ScriptComponent Editor::Stream::decodeScriptComponent(const YAML::Node& node, co
         if (scriptNode["enabled"]) entry.enabled = scriptNode["enabled"].as<bool>();
 
         if (scriptNode["properties"] && scriptNode["properties"].IsSequence()) {
-            entry.properties.clear();
             for (const auto& propNode : scriptNode["properties"]) {
                 entry.properties.push_back(decodeScriptProperty(propNode));
             }

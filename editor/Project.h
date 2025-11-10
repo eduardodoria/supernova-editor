@@ -185,9 +185,9 @@ namespace Supernova::Editor{
         bool hasScenesUnsavedChanges() const;
 
         void updateAllScriptsProperties(uint32_t sceneId);
-        void updateScriptProperties(SceneProject* sceneProject, std::vector<ScriptEntry>& scripts);
+        void updateScriptProperties(SceneProject* sceneProject, Entity entity, std::vector<ScriptEntry>& scripts);
 
-        void resolveEntityRef(EntityRef& ref);
+        void resolveEntityRef(EntityRef& ref, SceneProject* sceneProject, Entity entity);
         void resolveEntityRefs(SceneProject* sceneProject);
         void resolveAllEntityRefs();
 

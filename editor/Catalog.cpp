@@ -902,8 +902,7 @@ void Editor::Catalog::copyPropertyValue(EntityRegistry* sourceRegistry, Entity s
                 target->entity = NULL_ENTITY;
                 target->scene = nullptr;
                 // Copy only editor-facing metadata
-                target->entityIndex = source->entityIndex;
-                target->sceneId = source->sceneId;
+                target->locator = source->locator;
             }
             break;
         }

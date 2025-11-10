@@ -1639,30 +1639,20 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             defVal = static_cast<EntityRef*>(prop.def);
             eValue[entity] = *static_cast<EntityRef*>(prop.ref);
             if (value){
-                if (value->entityIndex != eValue[entity].entityIndex || value->sceneId != eValue[entity].sceneId)
+                if (value->locator.sceneId != eValue[entity].locator.sceneId ||
+                    value->locator.scopedEntity != eValue[entity].locator.scopedEntity ||
+                    value->locator.sharedPath != eValue[entity].locator.sharedPath)
                     different = true;
             }
             value = &eValue[entity];
         }
 
-        // Helper: find entity index in sceneProject->entities
-        auto findEntityIndex = [&](Entity e)->int {
-            if (e == NULL_ENTITY) return -1;
-            if (!sceneProject) return -1;
-            for (size_t i = 0; i < sceneProject->entities.size(); ++i){
-                if (sceneProject->entities[i] == e){
-                    return static_cast<int>(i);
-                }
-            }
-            return -1;
-        };
-
         EntityRef newValue = *value;
-        project->resolveEntityRef(newValue);
+        project->resolveEntityRef(newValue, sceneProject, entities.back());
 
         bool defChanged = false;
         if (defVal){
-            defChanged = (newValue.entityIndex != defVal->entityIndex || newValue.sceneId != defVal->sceneId);
+            defChanged = (newValue.entity != defVal->entity || newValue.scene != defVal->scene);
         }
 
         if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
@@ -1710,10 +1700,36 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
                     const EntityPayload* entityPayload = static_cast<const EntityPayload*>(payload->Data);
                     Entity droppedEntity = entityPayload->entity;
 
-                    // Create new EntityRef with full info
+                    // Detect shared group of dropped entity
+                    std::filesystem::path droppedGroupPath = project->findGroupPathFor(sceneProject->id, droppedEntity);
+                    bool useShared = false;
+
+                    if (!droppedGroupPath.empty()) {
+                        // Only use shared reference if ALL selected entities belong to the SAME shared group
+                        useShared = true;
+                        for (Entity hostEntity : entities) {
+                            if (project->findGroupPathFor(sceneProject->id, hostEntity) != droppedGroupPath) {
+                                useShared = false;
+                                break;
+                            }
+                        }
+                    }
+
                     EntityRef newEntityRef;
-                    newEntityRef.entityIndex = findEntityIndex(droppedEntity);
-                    newEntityRef.sceneId = sceneProject->id;
+                    if (useShared) {
+                        SharedGroup* group = project->getSharedGroup(droppedGroupPath);
+                        Entity registryEntity = group->getRegistryEntity(sceneProject->id, droppedEntity);
+                        uint32_t instanceId = group->getInstanceId(sceneProject->id, droppedEntity);
+
+                        newEntityRef.locator.kind = EntityRefKind::SharedEntity;
+                        newEntityRef.locator.scopedEntity = registryEntity;
+                        newEntityRef.locator.sharedPath = droppedGroupPath.generic_string();
+                    } else {
+                        // Normal scene entity reference
+                        newEntityRef.locator.kind = EntityRefKind::LocalEntity;
+                        newEntityRef.locator.scopedEntity = droppedEntity;
+                        newEntityRef.locator.sceneId = sceneProject->id;
+                    }
 
                     // Apply to all selected entities
                     for (Entity& entity : entities) {
@@ -2247,7 +2263,7 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
                         newScripts.push_back(entry);
                     }
 
-                    project->updateScriptProperties(sceneProject, newScripts);
+                    project->updateScriptProperties(sceneProject, entity, newScripts);
 
                     // Use PropertyCmd to update the scripts vector
                     cmd = new PropertyCmd<std::vector<ScriptEntry>>(project, sceneProject->id, entity, ComponentType::ScriptComponent, "scripts", newScripts);
@@ -2316,7 +2332,7 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
                         newScripts.erase(newScripts.begin() + scriptIdx);
 
                         // Refresh parsed properties for remaining scripts
-                        project->updateScriptProperties(sceneProject, newScripts);
+                        project->updateScriptProperties(sceneProject, entities[0], newScripts);
 
                         // Apply change through command system
                         cmd = new PropertyCmd<std::vector<ScriptEntry>>(project, sceneProject->id, entities[0], ComponentType::ScriptComponent, "scripts", newScripts);
