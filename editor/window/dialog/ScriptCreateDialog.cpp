@@ -73,12 +73,9 @@ void ScriptCreateDialog::writeFiles(const fs::path& headerPath, const fs::path& 
                 c << "using namespace Supernova;\n\n";
                 c << className << "::" << className << "(Scene* scene, Entity entity): Shape(scene, entity) {\n";
                 c << "    printf(\"" << className << " created!\\n\");\n\n";
-                c << "    // Subscribe to update event\n";
-                c << "    Engine::onUpdate.add<" << className << ", &" << className << "::update>(\"" << className << "Update\", this);\n";
                 c << "}\n\n";
                 c << className << "::~" << className << "() {\n";
-                c << "    // Unsubscribe from update event\n";
-                c << "    Engine::onUpdate.remove(\"" << className << "Update\");\n";
+                c << "\n";
                 c << "}\n\n";
                 c << "void " << className << "::update() {\n";
                 c << "    if (!isActive) return;\n\n";

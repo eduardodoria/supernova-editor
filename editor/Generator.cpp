@@ -458,6 +458,8 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
         sourceContent += "            if (scriptEntry.className == \"" + s.className + "\") {\n";
         sourceContent += "                " + s.className + "* script = new " + s.className + "(scene, entity);\n";
         sourceContent += "                scriptEntry.instance = static_cast<void*>(script);\n";
+        sourceContent += "                std::string updateTag = scriptEntry.className + std::string(\"_\") + std::to_string((unsigned int)entity) + \"_Update\";\n";
+        sourceContent += "                Engine::onUpdate.add<" + s.className + ", &" + s.className + "::update>(updateTag, static_cast<" + s.className + "*>(scriptEntry.instance));\n";
 
         if (s.scene->findComponent<ScriptComponent>(s.entity)) {
             ScriptComponent* sc = s.scene->findComponent<ScriptComponent>(s.entity);
@@ -538,16 +540,20 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
         sourceContent += "    const auto& scriptsArray = scene->getComponentArray<ScriptComponent>();\n";
         sourceContent += "    for (size_t i = 0; i < scriptsArray->size(); i++) {\n";
         sourceContent += "        Supernova::ScriptComponent& scriptComp = scriptsArray->getComponentFromIndex(i);\n";
+        sourceContent += "        Supernova::Entity entity = scriptsArray->getEntity(i);\n";
         sourceContent += "        for (auto& scriptEntry : scriptComp.scripts) {\n";
         for (const auto& s : scriptFiles) {
             sourceContent += "            if (scriptEntry.instance) {\n";
             sourceContent += "                if (scriptEntry.className == \"" + s.className + "\") {\n";
+            sourceContent += "                    std::string updateTag = scriptEntry.className + std::string(\"_\") + std::to_string((unsigned int)entity) + \"_Update\";\n";
+            sourceContent += "                    Engine::onUpdate.remove(updateTag);\n";
             sourceContent += "                    delete static_cast<" + s.className + "*>(scriptEntry.instance);\n";
             sourceContent += "                }\n";
             sourceContent += "                scriptEntry.instance = nullptr;\n";
             sourceContent += "            }\n";
         }
         sourceContent += "        }\n";
+        sourceContent += "        Engine::clearAllSubscriptions(true);\n";
         sourceContent += "    }\n";
     } else {
         sourceContent += "    (void)scene; // Suppress unused parameter warning\n";
