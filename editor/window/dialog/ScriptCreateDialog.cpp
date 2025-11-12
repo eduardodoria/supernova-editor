@@ -108,7 +108,7 @@ void ScriptCreateDialog::writeFiles(const fs::path& headerPath, const fs::path& 
                 h << "    SPROPERTY(\"Counter\")\n";
                 h << "    int counter = 0;\n\n";
                 h << "    " << className << "(Supernova::Scene* scene, Supernova::Entity entity);\n";
-                h << "    virtual ~" << className << "();\n\n";
+                h << "    ~" << className << "();\n\n";
                 h << "    void onUpdate();\n";
                 h << "};\n";
             }
