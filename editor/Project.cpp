@@ -1066,9 +1066,8 @@ void Editor::Project::updateScriptProperties(SceneProject* sceneProject, Entity 
 
 void Editor::Project::resolveEntityRef(EntityRef& ref, SceneProject* sceneProject, Entity entity){
     if (ref.locator.kind == EntityRefKind::LocalEntity){
-        SceneProject* targetScene = getScene(ref.locator.sceneId);
-        if (targetScene){
-            ref.scene = targetScene->scene;
+        if (sceneProject->id == ref.locator.sceneId){
+            ref.scene = sceneProject->scene;
             ref.entity = ref.locator.scopedEntity;
         }
     }else if (ref.locator.kind == EntityRefKind::SharedEntity){
