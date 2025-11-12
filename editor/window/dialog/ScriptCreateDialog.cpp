@@ -60,7 +60,7 @@ void ScriptCreateDialog::writeFiles(const fs::path& headerPath, const fs::path& 
                 h << "    Supernova::Vector4 meshColor = Supernova::Vector4(1, 1, 1, 1);\n\n";
                 h << "    " << className << "(Supernova::Scene* scene, Supernova::Entity entity);\n";
                 h << "    virtual ~" << className << "();\n\n";
-                h << "    void update();\n";
+                h << "    void onUpdate();\n";
                 h << "};\n";
             }
         }
@@ -72,12 +72,12 @@ void ScriptCreateDialog::writeFiles(const fs::path& headerPath, const fs::path& 
                 c << "#include \"" << headerPath.filename().string() << "\"\n\n";
                 c << "using namespace Supernova;\n\n";
                 c << className << "::" << className << "(Scene* scene, Entity entity): Shape(scene, entity) {\n";
-                c << "    printf(\"" << className << " created!\\n\");\n\n";
+                c << "    REGISTER_EVENT(onUpdate);\n\n";
                 c << "}\n\n";
                 c << className << "::~" << className << "() {\n";
                 c << "\n";
                 c << "}\n\n";
-                c << "void " << className << "::update() {\n";
+                c << "void " << className << "::onUpdate() {\n";
                 c << "    if (!isActive) return;\n\n";
                 c << "    // Example: Move towards target position at 'speed' units per second\n";
                 c << "    float deltaTime = Engine::getDeltatime();\n";
@@ -109,7 +109,7 @@ void ScriptCreateDialog::writeFiles(const fs::path& headerPath, const fs::path& 
                 h << "    int counter = 0;\n\n";
                 h << "    " << className << "(Supernova::Scene* scene, Supernova::Entity entity);\n";
                 h << "    virtual ~" << className << "();\n\n";
-                h << "    void update();\n";
+                h << "    void onUpdate();\n";
                 h << "};\n";
             }
         }
@@ -121,15 +121,12 @@ void ScriptCreateDialog::writeFiles(const fs::path& headerPath, const fs::path& 
                 c << "#include \"" << headerPath.filename().string() << "\"\n\n";
                 c << "using namespace Supernova;\n\n";
                 c << className << "::" << className << "(Scene* scene, Entity entity): ScriptBase(scene, entity) {\n";
-                c << "    printf(\"" << className << " created!\\n\");\n\n";
-                c << "    // Subscribe to update event\n";
-                c << "    Engine::onUpdate.add<" << className << ", &" << className << "::update>(\"" << className << "Update\", this);\n";
+                c << "    REGISTER_EVENT(onUpdate);\n\n";
                 c << "}\n\n";
                 c << className << "::~" << className << "() {\n";
-                c << "    // Unsubscribe from update event\n";
-                c << "    Engine::onUpdate.remove(\"" << className << "Update\");\n";
+                c << "\n";
                 c << "}\n\n";
-                c << "void " << className << "::update() {\n";
+                c << "void " << className << "::onUpdate() {\n";
                 c << "    if (!isActive) return;\n\n";
                 c << "    // Example: Increment counter every frame\n";
                 c << "    counter++;\n";

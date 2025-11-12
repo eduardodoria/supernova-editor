@@ -2256,6 +2256,9 @@ void Editor::Project::start(uint32_t sceneId) {
     });
     connectThread.detach();
 
+    Engine::onViewLoaded.call();
+    Engine::onViewChanged.call();
+
     pauseEngineScene(sceneProject, false);
     Engine::pauseGameEvents(false);
 }
@@ -2266,6 +2269,8 @@ void Editor::Project::pause(uint32_t sceneId) {
         Out::error("Failed to find scene %u to pause", sceneId);
         return;
     }
+
+    Engine::onPause.call();
 
     if (sceneProject->playState == ScenePlayState::PLAYING) {
         sceneProject->playState = ScenePlayState::PAUSED;
@@ -2282,6 +2287,8 @@ void Editor::Project::resume(uint32_t sceneId) {
         return;
     }
 
+    Engine::onResume.call();
+
     if (sceneProject->playState == ScenePlayState::PAUSED) {
         sceneProject->playState = ScenePlayState::PLAYING;
 
@@ -2296,6 +2303,10 @@ void Editor::Project::stop(uint32_t sceneId) {
         Out::error("Failed to find scene %u to stop", sceneId);
         return;
     }
+
+    Engine::onViewDestroyed.call();
+    Engine::onShutdown.call();
+
     // Mark cancelling state so UI can reflect it immediately
     sceneProject->playState = ScenePlayState::CANCELLING;
 
