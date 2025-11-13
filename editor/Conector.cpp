@@ -75,7 +75,7 @@ bool Editor::Conector::connect(const fs::path& buildPath, std::string libName){
     if (fileExists(fullLibPath)) {
         libHandle = loadSharedLibrary(fullLibPath.string());
         if (libHandle) {
-            Out::success("Successfully connected to library");
+            Out::info("Successfully connected to library");
             return true;
         }
     } else {
