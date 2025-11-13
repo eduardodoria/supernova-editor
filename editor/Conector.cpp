@@ -32,18 +32,16 @@ void* Editor::Conector::loadSharedLibrary(const std::string& libPath) {
     #ifdef _WIN32
         HMODULE libHandle = LoadLibrary(libPath.c_str());
         if (!libHandle) {
-            std::cerr << "Failed to load library: " << libPath << " (Error code: " << GetLastError() << ")\n";
+            Out::error("Failed to load library: %s (Error code: %lu)", libPath.c_str(), GetLastError());
             return nullptr;
         }
-        std::cout << "Library loaded successfully: " << libPath << "\n";
         return libHandle;
     #else
-        void* libHandle = dlopen(libPath.c_str(), RTLD_LAZY);
+        void* libHandle = dlopen(libPath.c_str(), RTLD_NOW | RTLD_LOCAL);
         if (!libHandle) {
-            std::cerr << "Failed to load library: " << libPath << " (Error: " << dlerror() << ")\n";
+            Out::error("Failed to load library: %s (Error: %s)", libPath.c_str(), dlerror());
             return nullptr;
         }
-        std::cout << "Library loaded successfully: " << libPath << "\n";
         return libHandle;
     #endif
 }
@@ -73,14 +71,11 @@ bool Editor::Conector::connect(const fs::path& buildPath, std::string libName){
         libPath = libPath + ".so";
     #endif
 
-    Out::info("Checking for library file: %s", libPath.c_str());
-
     fs::path fullLibPath = buildPath / fs::path(libPath);
     if (fileExists(fullLibPath)) {
-        std::cout << "Library file found!\n";
         libHandle = loadSharedLibrary(fullLibPath.string());
         if (libHandle) {
-            Out::info("Successfully connected to library");
+            Out::success("Successfully connected to library");
             return true;
         }
     } else {
@@ -92,8 +87,6 @@ bool Editor::Conector::connect(const fs::path& buildPath, std::string libName){
 
 void Editor::Conector::disconnect(){
     if (libHandle) {
-        Out::info("Disconnecting from library...");
-
         unloadSharedLibrary(libHandle);
         libHandle = nullptr;
 
@@ -107,26 +100,33 @@ void Editor::Conector::cleanup(SceneProject* sceneProject){
         return;
     }
 
-    // Call the cleanup function from the library
+    using CleanupFunc = void (*)(Scene*);
     #ifdef _WIN32
-        using CleanupFunc = void (*)(Scene*);
-        CleanupFunc cleanupFunc = reinterpret_cast<CleanupFunc>(GetProcAddress(static_cast<HMODULE>(libHandle), "cleanup"));
-        if (cleanupFunc) {
-            Out::info("Calling library cleanup function...");
-            cleanupFunc(sceneProject->scene);
-        } else {
-            Out::warning("Cleanup function not found in library");
+        CleanupFunc cleanupFn = reinterpret_cast<CleanupFunc>(GetProcAddress(static_cast<HMODULE>(libHandle), "cleanup"));
+        if (!cleanupFn) {
+            Out::error("Failed to find function 'cleanup' in the library (Error code: %lu)", GetLastError());
         }
     #else
-        using CleanupFunc = void (*)(Scene*);
-        CleanupFunc cleanupFunc = reinterpret_cast<CleanupFunc>(dlsym(libHandle, "cleanup"));
-        if (cleanupFunc) {
-            Out::info("Calling library cleanup function...");
-            cleanupFunc(sceneProject->scene);
-        } else {
-            Out::warning("Cleanup function not found in library");
+        dlerror(); // clear any existing error
+        CleanupFunc cleanupFn = reinterpret_cast<CleanupFunc>(dlsym(libHandle, "cleanup"));
+        const char* err = dlerror();
+        if (err) {
+            Out::error("Failed to find function 'cleanup' in the library (Error: %s)", err);
+            cleanupFn = nullptr;
         }
     #endif
+
+    if (cleanupFn) {
+        try {
+            cleanupFn(sceneProject->scene);
+        } catch (const std::exception& e) {
+            Out::error("Exception in cleanup(): %s", e.what());
+        } catch (...) {
+            Out::error("Unknown exception in cleanup()");
+        }
+    } else {
+        Out::warning("Cleanup function not found in library");
+    }
 }
 
 void Editor::Conector::execute(SceneProject* sceneProject){
@@ -135,23 +135,30 @@ void Editor::Conector::execute(SceneProject* sceneProject){
         return;
     }
 
-    // Dynamically load and call the `initScene` function
     using InitSceneFunc = void (*)(Scene*);
     #ifdef _WIN32
-        InitSceneFunc initScene = reinterpret_cast<InitSceneFunc>(GetProcAddress(static_cast<HMODULE>(libHandle), "initScene"));
-        if (!initScene) {
-            Out::error("Failed to find function 'initScene' in the library (Error code: %i)", GetLastError());
+        InitSceneFunc initSceneFn = reinterpret_cast<InitSceneFunc>(GetProcAddress(static_cast<HMODULE>(libHandle), "initScene"));
+        if (!initSceneFn) {
+            Out::error("Failed to find function 'initScene' in the library (Error code: %lu)", GetLastError());
         }
     #else
-        InitSceneFunc initScene = reinterpret_cast<InitSceneFunc>(dlsym(libHandle, "initScene"));
-        if (!initScene) {
-            Out::error("Failed to find function 'initScene' in the library (Error: %s)", dlerror());
+        dlerror(); // clear any existing error
+        InitSceneFunc initSceneFn = reinterpret_cast<InitSceneFunc>(dlsym(libHandle, "initScene"));
+        const char* err = dlerror();
+        if (err) {
+            Out::error("Failed to find function 'initScene' in the library (Error: %s)", err);
+            initSceneFn = nullptr;
         }
     #endif
 
-    if (initScene) {
-        Out::info("Calling 'initScene' function from the library...");
-        initScene(sceneProject->scene); // Call the function
+    if (initSceneFn) {
+        try {
+            initSceneFn(sceneProject->scene);
+        } catch (const std::exception& e) {
+            Out::error("Exception in initScene(): %s", e.what());
+        } catch (...) {
+            Out::error("Unknown exception in initScene()");
+        }
     }
 }
 

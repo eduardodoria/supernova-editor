@@ -403,6 +403,7 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     cmakeContent += "    target_compile_options(" + libName + " PRIVATE /W4 /EHsc)\n";
     cmakeContent += "else()\n";
     cmakeContent += "    target_compile_options(" + libName + " PRIVATE -Wall -Wextra -fPIC)\n";
+    cmakeContent += "    target_link_options(" + libName + " PRIVATE -Wl,-z,defs,--no-undefined)\n"; // no undefined symbols
     cmakeContent += "endif()\n\n";
     cmakeContent += "# Set properties for the shared library\n";
     cmakeContent += "set_target_properties(" + libName + " PROPERTIES\n";
@@ -448,6 +449,8 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     sourceContent += "\n";
 
     sourceContent += "    const auto& scriptsArray = scene->getComponentArray<ScriptComponent>();\n";
+    sourceContent += "\n";
+
     sourceContent += "    for (size_t i = 0; i < scriptsArray->size(); i++) {\n";
     sourceContent += "        Supernova::ScriptComponent& scriptComp = scriptsArray->getComponentFromIndex(i);\n";
     sourceContent += "        Supernova::Entity entity = scriptsArray->getEntity(i);\n";
@@ -458,6 +461,18 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
         sourceContent += "            if (scriptEntry.className == \"" + s.className + "\") {\n";
         sourceContent += "                " + s.className + "* script = new " + s.className + "(scene, entity);\n";
         sourceContent += "                scriptEntry.instance = static_cast<void*>(script);\n";
+        sourceContent += "            }\n";
+    }
+    sourceContent += "        }\n";
+    sourceContent += "    }\n";
+
+    sourceContent += "    for (size_t i = 0; i < scriptsArray->size(); i++) {\n";
+    sourceContent += "        Supernova::ScriptComponent& scriptComp = scriptsArray->getComponentFromIndex(i);\n";
+    sourceContent += "        for (auto& scriptEntry : scriptComp.scripts) {\n";
+    sourceContent += "\n";
+
+    for (const auto& s : scriptFiles) {
+        sourceContent += "            if (scriptEntry.className == \"" + s.className + "\") {\n";
 
         if (s.scene->findComponent<ScriptComponent>(s.entity)) {
             ScriptComponent* sc = s.scene->findComponent<ScriptComponent>(s.entity);
@@ -481,18 +496,22 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
                             sourceContent += "\n";
                             sourceContent += "                        if (entityRef.entity != NULL_ENTITY && entityRef.scene) {\n";
                             sourceContent += "                            Supernova::ScriptComponent* targetScriptComp = entityRef.scene->findComponent<Supernova::ScriptComponent>(entityRef.entity);\n";
+                            sourceContent += "                            bool hasSubclass = false;\n";
                             sourceContent += "                            if (targetScriptComp) {\n";
                             sourceContent += "                                for (auto& targetScript : targetScriptComp->scripts) {\n";
-                            sourceContent += "                                    if (targetScript.type == ScriptType::SUBCLASS && targetScript.className == \"" + prop.ptrTypeName + "\" && targetScript.instance) {\n";
-                            sourceContent += "                                        instancePtr = targetScript.instance;\n";
-                            sourceContent += "                                        printf(\"[DEBUG]   Found matching script instance: %p\\n\", instancePtr);\n";
-                            sourceContent += "                                        break;\n";
+                            sourceContent += "                                    if (targetScript.type == ScriptType::SUBCLASS) {\n";
+                            sourceContent += "                                        hasSubclass = true;\n";
+                            sourceContent += "                                        if (targetScript.className == \"" + prop.ptrTypeName + "\" && targetScript.instance) {\n";
+                            sourceContent += "                                            instancePtr = targetScript.instance;\n";
+                            sourceContent += "                                            printf(\"[DEBUG]   Found matching script instance: %p\\n\", instancePtr);\n";
+                            sourceContent += "                                            break;\n";
+                            sourceContent += "                                        }\n";
                             sourceContent += "                                    }\n";
                             sourceContent += "                                }\n";
                             sourceContent += "                            }\n";
                             sourceContent += "\n";
                             if (!prop.ptrTypeName.empty()) {
-                                sourceContent += "                            if (!instancePtr) {\n";
+                                sourceContent += "                            if (!instancePtr && !hasSubclass) {\n";
                                 sourceContent += "                                printf(\"[DEBUG]   No script instance found, creating " + prop.ptrTypeName + " type\\n\");\n";
                                 sourceContent += "                                instancePtr = new " + prop.ptrTypeName + "(entityRef.scene, entityRef.entity);\n";
                                 sourceContent += "                            }\n";
