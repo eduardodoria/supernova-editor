@@ -460,11 +460,13 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
 
         ps["scripts"] = {PropertyType::Custom, UpdateFlags_None, nullptr, (compRef) ? (void*)&comp->scripts : nullptr};
 
-        // Add script properties to the map
         if (compRef && comp) {
             for (size_t i = 0; i < comp->scripts.size(); i++) {
                 auto& script = comp->scripts[i];
-                if (!script.enabled) continue;
+
+                // Enabled flag exposed individually (no layout row will be added, only used by checkbox)
+                std::string enabledKey = "script[" + std::to_string(i) + "].enabled";
+                ps[enabledKey] = {PropertyType::Bool, UpdateFlags_None, nullptr, (void*)&script.enabled};
 
                 for (auto& prop : script.properties) {
                     std::string key = "script[" + std::to_string(i) + "]." + prop.name;

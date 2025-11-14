@@ -93,7 +93,7 @@ namespace Supernova::Editor{
 
         bool compareVectorFloat(const float* a, const float* b, size_t elements, const float threshold);
 
-        float getLabelSize(std::string label);
+        float getLabelSize(std::string label, bool addRotateIconSpace = true);
 
         void helpMarker(std::string desc);
 

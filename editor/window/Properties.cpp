@@ -109,8 +109,10 @@ bool Editor::Properties::compareVectorFloat(const float* a, const float* b, size
     return false;
 }
 
-float Editor::Properties::getLabelSize(std::string label){
-    return ImGui::CalcTextSize((label + ICON_FA_ROTATE_LEFT).c_str()).x;
+float Editor::Properties::getLabelSize(std::string label, bool addRotateIconSpace){
+    float iconSize = ImGui::CalcTextSize(ICON_FA_ROTATE_LEFT).x;
+    float labelSize = ImGui::CalcTextSize(label.c_str()).x;
+    return labelSize + (addRotateIconSpace ? iconSize : iconSize / 2.0f);
 }
 
 void Editor::Properties::helpMarker(std::string desc) {
@@ -2349,31 +2351,69 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
             if (headerOpen && !removedScriptThisFrame) {
                 ImGui::Unindent(indentation); // Unindent for content
 
-                beginTable(cpType, getLabelSize("Script Path"), "script_" + std::to_string(scriptIdx));
+                beginTable(cpType, getLabelSize("Script", false), "script_" + std::to_string(scriptIdx));
 
                 // Path and enabled status
-                propertyHeader("Path");
+                propertyHeader("Script");
 
                 // Convert absolute path to relative path from project directory
                 std::string displayPath = script.path;
                 std::filesystem::path scriptPath = script.path;
                 std::filesystem::path projectPath = project->getProjectPath();
 
-                if (scriptPath.is_absolute()) {
-                    std::error_code ec;
-                    auto relativePath = std::filesystem::relative(scriptPath, projectPath, ec);
-                    if (!ec && relativePath.string().find("..") == std::string::npos) {
-                        displayPath = relativePath.string();
-                    }
+                bool enabled = script.enabled;
+                ImGui::Checkbox(("##script_enabled_" + std::to_string(scriptIdx)).c_str(), &enabled);
+                if (ImGui::IsItemDeactivatedAfterEdit()) {
+                    // Use PropertyCmd<bool> on individual enabled property
+                    std::string propName = "script[" + std::to_string(scriptIdx) + "].enabled";
+                    cmd = new PropertyCmd<bool>(project, sceneProject->id, entities[0],
+                                                ComponentType::ScriptComponent, propName, enabled);
+                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                    cmd->setNoMerge();
                 }
-
-                ImGui::Text("%s", displayPath.c_str());
-                if (ImGui::IsItemHovered() && displayPath != script.path) {
+                ImGui::SameLine();
+                ImGui::TextUnformatted(script.className.c_str());
+                if (ImGui::IsItemHovered()) {
                     ImGui::SetTooltip("%s", script.path.c_str());
                 }
 
-                propertyHeader("Enabled");
-                ImGui::Checkbox("##enabled", &script.enabled);
+                ImGui::SameLine();
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(ImGui::GetStyle().FramePadding.x / 3.0, ImGui::GetStyle().FramePadding.y / 2.0));
+
+                // Resolve header path (if present)
+                std::filesystem::path hdrPath = script.headerPath;
+                bool hasHeader = !script.headerPath.empty();
+                if (hasHeader) {
+                    if (hdrPath.is_relative()) hdrPath = projectPath / hdrPath;
+                }
+                bool hdrExists = hasHeader && std::filesystem::exists(hdrPath);
+                ImGui::BeginDisabled(!hdrExists);
+                if (ImGui::Button((ICON_FA_FILE_LINES "##open_hdr_" + std::to_string(scriptIdx)).c_str())) {
+                    Backend::getApp().getCodeEditor()->openFile(hdrPath.string());
+                }
+                if (ImGui::IsItemHovered()) {
+                    if (hdrExists) ImGui::SetTooltip("C++ header: %s", hdrPath.string().c_str());
+                    else ImGui::SetTooltip("Header file not found");
+                }
+                ImGui::EndDisabled();
+
+                ImGui::SameLine();
+
+                // Resolve source path
+                std::filesystem::path srcPath = script.path;
+                if (srcPath.is_relative()) srcPath = projectPath / srcPath;
+                bool srcExists = std::filesystem::exists(srcPath);
+                ImGui::BeginDisabled(!srcExists);
+                if (ImGui::Button((ICON_FA_FILE_CODE "##open_src_" + std::to_string(scriptIdx)).c_str())) {
+                    Backend::getApp().getCodeEditor()->openFile(srcPath.string());
+                }
+                if (ImGui::IsItemHovered()) {
+                    if (srcExists) ImGui::SetTooltip("C++ source: %s", srcPath.string().c_str());
+                    else ImGui::SetTooltip("Source file not found");
+                }
+                ImGui::EndDisabled();
+
+                ImGui::PopStyleVar();
 
                 endTable();
 
@@ -2381,7 +2421,18 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
                 if (!script.properties.empty()) {
                     ImGui::SeparatorText("Properties");
 
-                    beginTable(cpType, getLabelSize("Property Name"), "script_properties_" + std::to_string(scriptIdx));
+                    ImGui::BeginDisabled(!script.enabled);
+
+                    // Compute dynamic first column width based on longest property label
+                    float maxPropLabelSize = 0;
+                    for (const ScriptProperty& prop : script.properties) {
+                        std::string displayName = prop.displayName.empty() ? prop.name : prop.displayName;
+                        float size = getLabelSize(displayName);
+                        if (size > maxPropLabelSize)
+                            maxPropLabelSize = size;
+                    }
+
+                    beginTable(cpType, maxPropLabelSize, "script_properties_" + std::to_string(scriptIdx));
 
                     for (size_t propIdx = 0; propIdx < script.properties.size(); propIdx++) {
                         ScriptProperty& prop = script.properties[propIdx];
@@ -2400,6 +2451,8 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
                     }
 
                     endTable();
+
+                    ImGui::EndDisabled();
                 }
 
                 ImGui::Indent(indentation); // Re-indent after content
