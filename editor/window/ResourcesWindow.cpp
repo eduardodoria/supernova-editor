@@ -337,7 +337,7 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
                     std::string extension = file.extension;
                     if (extension == ".scene") {
                         project->openScene(currentPath / file.name);
-                    } else if (extension == ".c" || extension == ".cpp" || extension == ".h" || extension == ".hpp") {
+                    } else {
                         codeEditor->openFile((currentPath / file.name).string());
                     }
                 }

@@ -11,17 +11,24 @@ namespace fs = std::filesystem;
 
 namespace Supernova::Editor {
 
+    enum class LanguageType {
+        CPP,
+        LUA,
+        UNKNOWN
+    };
+
     struct EditorInstance {
         std::unique_ptr<TextEditor> editor;
         bool isOpen;
         fs::path filepath;
+        LanguageType languageType;
         fs::file_time_type lastWriteTime;
         bool isModified;
         double lastCheckTime;
         bool hasExternalChanges;
         int savedUndoIndex;
 
-        EditorInstance() : isOpen(true), isModified(false), lastCheckTime(0.0), hasExternalChanges(false), savedUndoIndex(0) {}
+        EditorInstance() : isOpen(true), languageType(LanguageType::UNKNOWN), isModified(false), lastCheckTime(0.0), hasExternalChanges(false), savedUndoIndex(0) {}
     };
 
     class CodeEditor {

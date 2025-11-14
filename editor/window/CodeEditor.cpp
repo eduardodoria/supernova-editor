@@ -258,8 +258,22 @@ void Editor::CodeEditor::openFile(const std::string& filepath) {
     instance.filepath = filepath;
     instance.editor = std::make_unique<TextEditor>();
 
-    // Setup the editor instance
-    instance.editor->SetLanguageDefinition(TextEditor::LanguageDefinitionId::Cpp);
+    // Detect language from extension
+    std::string ext = instance.filepath.extension().string();
+    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+    if (ext == ".cpp" || ext == ".cc" || ext == ".cxx" || ext == ".c" ||
+        ext == ".hpp" || ext == ".hh" || ext == ".hxx" || ext == ".h") {
+        instance.languageType = LanguageType::CPP;
+        instance.editor->SetLanguageDefinition(TextEditor::LanguageDefinitionId::Cpp);
+    } else if (ext == ".lua") {
+        instance.languageType = LanguageType::LUA;
+        instance.editor->SetLanguageDefinition(TextEditor::LanguageDefinitionId::Lua);
+    } else {
+        instance.languageType = LanguageType::UNKNOWN;
+        instance.editor->SetLanguageDefinition(TextEditor::LanguageDefinitionId::None);
+    }
+
     instance.editor->SetPalette(TextEditor::PaletteId::Dark);
     instance.editor->SetTabSize(4);
 
