@@ -803,3 +803,149 @@ YAML::Node Editor::ProjectUtils::removeEntityComponent(EntityRegistry* registry,
 
     return oldComponent;
 }
+
+ScriptPropertyType Editor::ProjectUtils::stringToScriptPropertyType(const std::string& s) {
+    std::string t = s;
+    std::transform(t.begin(), t.end(), t.begin(), [](unsigned char c){ return (char)std::tolower(c); });
+
+    if (t == "bool" || t == "boolean") return ScriptPropertyType::Bool;
+    if (t == "int"  || t == "integer") return ScriptPropertyType::Int;
+    if (t == "float" || t == "number") return ScriptPropertyType::Float;
+    if (t == "string")                 return ScriptPropertyType::String;
+    if (t == "vector2" || t == "vec2") return ScriptPropertyType::Vector2;
+    if (t == "vector3" || t == "vec3") return ScriptPropertyType::Vector3;
+    if (t == "vector4" || t == "vec4") return ScriptPropertyType::Vector4;
+    if (t == "color3")                 return ScriptPropertyType::Color3;
+    if (t == "color4")                 return ScriptPropertyType::Color4;
+    if (t == "entity" || t == "entitypointer")
+        return ScriptPropertyType::EntityPointer;
+
+    // Fallback
+    return ScriptPropertyType::Float;
+}
+
+ScriptPropertyValue Editor::ProjectUtils::luaValueToScriptPropertyValue(lua_State* L, int idx, ScriptPropertyType type) {
+    switch (type) {
+    case ScriptPropertyType::Bool:
+        return ScriptPropertyValue(lua_toboolean(L, idx) != 0);
+
+    case ScriptPropertyType::Int:
+        return ScriptPropertyValue((int)luaL_optinteger(L, idx, 0));
+
+    case ScriptPropertyType::Float:
+        return ScriptPropertyValue((float)luaL_optnumber(L, idx, 0.0));
+
+    case ScriptPropertyType::String:
+        if (lua_isstring(L, idx))
+            return ScriptPropertyValue(std::string(lua_tostring(L, idx)));
+        return ScriptPropertyValue(std::string());
+
+    case ScriptPropertyType::Vector2: {
+        Vector2 v(0, 0);
+        if (lua_istable(L, idx)) {
+            lua_rawgeti(L, idx, 1);
+            lua_rawgeti(L, idx, 2);
+            v.x = (float)luaL_optnumber(L, -2, 0.0);
+            v.y = (float)luaL_optnumber(L, -1, 0.0);
+            lua_pop(L, 2);
+        }
+        return ScriptPropertyValue(v);
+    }
+
+    case ScriptPropertyType::Vector3:
+    case ScriptPropertyType::Color3: {
+        Vector3 v(0, 0, 0);
+        if (lua_istable(L, idx)) {
+            lua_rawgeti(L, idx, 1);
+            lua_rawgeti(L, idx, 2);
+            lua_rawgeti(L, idx, 3);
+            v.x = (float)luaL_optnumber(L, -3, 0.0);
+            v.y = (float)luaL_optnumber(L, -2, 0.0);
+            v.z = (float)luaL_optnumber(L, -1, 0.0);
+            lua_pop(L, 3);
+        }
+        return ScriptPropertyValue(v);
+    }
+
+    case ScriptPropertyType::Vector4:
+    case ScriptPropertyType::Color4: {
+        Vector4 v(0, 0, 0, 1);
+        if (lua_istable(L, idx)) {
+            lua_rawgeti(L, idx, 1);
+            lua_rawgeti(L, idx, 2);
+            lua_rawgeti(L, idx, 3);
+            lua_rawgeti(L, idx, 4);
+            v.x = (float)luaL_optnumber(L, -4, 0.0);
+            v.y = (float)luaL_optnumber(L, -3, 0.0);
+            v.z = (float)luaL_optnumber(L, -2, 0.0);
+            v.w = (float)luaL_optnumber(L, -1, 1.0);
+            lua_pop(L, 4);
+        }
+        return ScriptPropertyValue(v);
+    }
+
+    case ScriptPropertyType::EntityPointer: {
+        // For now, leave empty EntityRef. The editor will fill locator later.
+        return ScriptPropertyValue(EntityRef{});
+    }
+    }
+
+    return ScriptPropertyValue{};
+}
+
+void Editor::ProjectUtils::loadLuaScriptProperties(ScriptEntry& entry, const std::string& luaPath) {
+    lua_State* L = LuaBinding::getLuaState();
+    if (!L) return;
+
+    // Load script file as a chunk (returns the script table on the stack)
+    if (luaL_dofile(L, luaPath.c_str()) != LUA_OK) {
+        Out::error("Failed to load Lua script \"%s\": %s", luaPath.c_str(), lua_tostring(L, -1));
+        lua_pop(L, 1); // pop error message
+        return;
+    }
+
+    // Stack: script_table
+    if (!lua_istable(L, -1)) {
+        lua_pop(L, 1);
+        return;
+    }
+
+    lua_getfield(L, -1, "properties");  // Stack: script_table, properties_table
+
+    if (lua_istable(L, -1)) {
+        entry.properties.clear();
+
+        lua_pushnil(L);  // Stack: script_table, properties_table, nil
+        while (lua_next(L, -2) != 0) {  // Stack: script_table, properties_table, key, property_table
+            if (lua_istable(L, -1)) {
+                ScriptProperty prop;
+
+                lua_getfield(L, -1, "name");
+                if (lua_isstring(L, -1)) prop.name = lua_tostring(L, -1);
+                lua_pop(L, 1);
+
+                lua_getfield(L, -1, "displayName");
+                prop.displayName = lua_isstring(L, -1) ? lua_tostring(L, -1) : prop.name;
+                lua_pop(L, 1);
+
+                lua_getfield(L, -1, "type");
+                if (lua_isstring(L, -1)) {
+                    prop.type = ProjectUtils::stringToScriptPropertyType(lua_tostring(L, -1));
+                } else {
+                    prop.type = ScriptPropertyType::Float;
+                }
+                lua_pop(L, 1);
+
+                lua_getfield(L, -1, "default");
+                prop.defaultValue = ProjectUtils::luaValueToScriptPropertyValue(L, -1, prop.type);
+                prop.value = prop.defaultValue;
+                lua_pop(L, 1);
+
+                entry.properties.push_back(std::move(prop));
+            }
+            lua_pop(L, 1);  // pop value, keep key
+        }
+    }
+
+    lua_pop(L, 2);  // pop properties_table and script_table
+}

@@ -320,6 +320,23 @@ PivotPreset Editor::Stream::stringToPivotPreset(const std::string& str) {
     return PivotPreset::BOTTOM_LEFT;
 }
 
+std::string Editor::Stream::scriptTypeToString(ScriptType type) {
+    switch (type) {
+        case ScriptType::SUBCLASS:     return "subclass";
+        case ScriptType::SCRIPT_CLASS: return "script_class";
+        case ScriptType::SCRIPT_LUA:   return "script_lua";
+        default:                       return "subclass";
+    }
+}
+
+ScriptType Editor::Stream::stringToScriptType(const std::string& str) {
+    if (str == "subclass")     return ScriptType::SUBCLASS;
+    if (str == "script_class") return ScriptType::SCRIPT_CLASS;
+    if (str == "script_lua")   return ScriptType::SCRIPT_LUA;
+
+    return ScriptType::SUBCLASS;
+}
+
 std::string Editor::Stream::entityRefKindToString(EntityRefKind kind){
     switch(kind){
         case EntityRefKind::LocalEntity: return "local_entity";
@@ -1801,7 +1818,7 @@ YAML::Node Editor::Stream::encodeScriptComponent(const ScriptComponent& script) 
         for (const auto& scriptEntry : script.scripts) {
             YAML::Node scriptNode;
 
-            scriptNode["type"] = (scriptEntry.type == ScriptType::SUBCLASS) ? "subclass" : "script_class";
+            scriptNode["type"] = scriptTypeToString(scriptEntry.type);
 
             if (!scriptEntry.path.empty())
                 scriptNode["path"] = scriptEntry.path;
@@ -1839,20 +1856,29 @@ ScriptComponent Editor::Stream::decodeScriptComponent(const YAML::Node& node, co
     }
 
     script.scripts.clear();
+
+    if (!node["scripts"] || !node["scripts"].IsSequence())
+        return script;
+
     for (const auto& scriptNode : node["scripts"]) {
         ScriptEntry entry;
 
         if (scriptNode["type"]) {
             std::string typeStr = scriptNode["type"].as<std::string>();
-            entry.type = (typeStr == "subclass") ? ScriptType::SUBCLASS : ScriptType::SCRIPT_CLASS;
-        } else {
-            entry.type = ScriptType::SUBCLASS;
+            entry.type = stringToScriptType(typeStr);
         }
 
-        if (scriptNode["path"]) entry.path = scriptNode["path"].as<std::string>();
-        if (scriptNode["headerPath"]) entry.headerPath = scriptNode["headerPath"].as<std::string>();
-        if (scriptNode["className"]) entry.className = scriptNode["className"].as<std::string>();
-        if (scriptNode["enabled"]) entry.enabled = scriptNode["enabled"].as<bool>();
+        if (scriptNode["path"])
+            entry.path = scriptNode["path"].as<std::string>();
+
+        if (scriptNode["headerPath"])
+            entry.headerPath = scriptNode["headerPath"].as<std::string>();
+
+        if (scriptNode["className"])
+            entry.className = scriptNode["className"].as<std::string>();
+
+        if (scriptNode["enabled"])
+            entry.enabled = scriptNode["enabled"].as<bool>();
 
         if (scriptNode["properties"] && scriptNode["properties"].IsSequence()) {
             for (const auto& propNode : scriptNode["properties"]) {
@@ -1860,7 +1886,7 @@ ScriptComponent Editor::Stream::decodeScriptComponent(const YAML::Node& node, co
             }
         }
 
-        script.scripts.push_back(entry);
+        script.scripts.push_back(std::move(entry));
     }
 
     return script;

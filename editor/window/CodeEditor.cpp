@@ -149,21 +149,40 @@ void Editor::CodeEditor::updateScriptProperties(const EditorInstance& instance){
     for (auto& sceneProject : project->getScenes()) {
         for (Entity entity : sceneProject.entities) {
             ScriptComponent* scriptComponent = sceneProject.scene->findComponent<ScriptComponent>(entity);
-            if (scriptComponent) {
-                // Check all scripts in the component
-                for (const auto& scriptEntry : scriptComponent->scripts) {
-                    if (scriptEntry.headerPath == instance.filepath.string()) {
+            if (!scriptComponent)
+                continue;
 
-                        std::vector<ScriptEntry> newScripts = scriptComponent->scripts;
+            bool found = false;
+            // Check all scripts in the component
+            for (const auto& scriptEntry : scriptComponent->scripts) {
+                bool isCppScript =
+                    (scriptEntry.type == ScriptType::SUBCLASS ||
+                    scriptEntry.type == ScriptType::SCRIPT_CLASS);
 
-                        project->updateScriptProperties(&sceneProject, entity, newScripts);
-                        PropertyCmd<std::vector<ScriptEntry>> propertyCmd(project, sceneProject.id, entity, ComponentType::ScriptComponent, "scripts", newScripts);
-                        propertyCmd.execute();
+                bool isLuaScript =
+                    (scriptEntry.type == ScriptType::SCRIPT_LUA);
 
-                        break; // Found matching script, no need to check others
-                    }
+                // For C++ scripts we compare headerPath, for Lua we compare .lua path
+                bool matchesFile = false;
+                if (isCppScript && !scriptEntry.headerPath.empty()) {
+                    matchesFile = (scriptEntry.headerPath == instance.filepath.string());
+                } else if (isLuaScript && !scriptEntry.path.empty()) {
+                    matchesFile = (scriptEntry.path == instance.filepath.string());
+                }
+
+                if (matchesFile) {
+                    std::vector<ScriptEntry> newScripts = scriptComponent->scripts;
+
+                    project->updateScriptProperties(&sceneProject, entity, newScripts);
+                    PropertyCmd<std::vector<ScriptEntry>> propertyCmd(project, sceneProject.id, entity, ComponentType::ScriptComponent, "scripts", newScripts);
+                    propertyCmd.execute();
+
+                    found = true;
+                    break; // Found matching script, no need to check others
                 }
             }
+            if (found)
+            break; // No need to scan more entities in this scene
         }
     }
 }

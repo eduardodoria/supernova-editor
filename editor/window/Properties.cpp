@@ -2237,13 +2237,15 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
 
     if (ImGui::Button(ICON_FA_FILE_CIRCLE_PLUS " New Script", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, 0))) {
         std::string defaultName = "NewScript";
-        scriptCreateDialog.open(project->getProjectPath(), defaultName, hasSubclass,
+        scriptCreateDialog.open(
+            project->getProjectPath(),
+            defaultName,
+            hasSubclass,
             [this, sceneProject, entities, cpType](const std::filesystem::path& headerPath,
                                                 const std::filesystem::path& sourcePath,
-                                                const std::string& className,
-                                                ScriptType type){
-                std::string pathStr = sourcePath.string();
-                std::string headerPathStr = headerPath.string();
+                                                const std::filesystem::path& luaPath,
+                                                const std::string& name,
+                                                ScriptType type) {
 
                 for (Entity entity: entities){
                     // Get current scripts vector
@@ -2253,10 +2255,17 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
                     // Create new entry
                     ScriptEntry entry;
                     entry.type = type;
-                    entry.path = pathStr;
-                    entry.headerPath = headerPathStr;
-                    entry.className = className;
                     entry.enabled = true;
+
+                    if (type == ScriptType::SUBCLASS || type == ScriptType::SCRIPT_CLASS) {
+                        entry.headerPath = headerPath.string();
+                        entry.path = sourcePath.string();
+                        entry.className = name;
+                    } else if (type == ScriptType::SCRIPT_LUA) {
+                        entry.headerPath.clear();
+                        entry.path = luaPath.string();
+                        entry.className = name; // module (file base) name
+                    }
 
                     // Insert SUBCLASS at beginning, SCRIPT_CLASS at end
                     if (type == ScriptType::SUBCLASS) {

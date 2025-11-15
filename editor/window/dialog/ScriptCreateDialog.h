@@ -23,20 +23,43 @@ private:
     ScriptType m_scriptType = ScriptType::SUBCLASS;
     bool m_hasSubclass = false;
 
-    std::function<void(const fs::path& headerPath, const fs::path& sourcePath, const std::string& className, ScriptType type)> m_onCreate;
+    // For C++ scripts, headerPath/sourcePath are valid; for Lua scripts, luaPath is valid.
+    std::function<void(const fs::path& headerPath,
+                       const fs::path& sourcePath,
+                       const fs::path& luaPath,
+                       const std::string& classOrModuleName,
+                       ScriptType type)> m_onCreate;
+
     std::function<void()> m_onCancel;
 
     void displayDirectoryTree(const fs::path& rootPath, const fs::path& currentPath);
 
     std::string sanitizeClassName(const std::string& in) const;
-    void writeFiles(const fs::path& headerPath, const fs::path& sourcePath, const std::string& className, ScriptType type);
+
+    // New helper paths
+    fs::path makeHeaderPath(const std::string& className) const;
+    fs::path makeSourcePath(const std::string& className) const;
+    fs::path makeLuaPath(const std::string& moduleName) const;
+
+    // Unified writer (handles C++ and Lua)
+    void writeFiles(const fs::path& headerPath,
+                    const fs::path& sourcePath,
+                    const fs::path& luaPath,
+                    const std::string& classOrModuleName,
+                    ScriptType type);
 
 public:
     ScriptCreateDialog() = default;
     ~ScriptCreateDialog() = default;
 
-    void open(const fs::path& projectPath, const std::string& defaultBaseName, bool hasSubclass,
-              std::function<void(const fs::path& headerPath, const fs::path& sourcePath, const std::string& className, ScriptType type)> onCreate,
+    void open(const fs::path& projectPath,
+              const std::string& defaultBaseName,
+              bool hasSubclass,
+              std::function<void(const fs::path& headerPath,
+                                 const fs::path& sourcePath,
+                                 const fs::path& luaPath,
+                                 const std::string& classOrModuleName,
+                                 ScriptType type)> onCreate,
               std::function<void()> onCancel = nullptr);
 
     void show();

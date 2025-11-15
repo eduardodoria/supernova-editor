@@ -978,75 +978,90 @@ void Editor::Project::updateScriptProperties(SceneProject* sceneProject, Entity 
 
     // Update properties for each script in the component
     for (auto& scriptEntry : scripts) {
-        // Parse the script file to extract properties
-        fs::path fullPath = scriptEntry.headerPath;
-        if (fullPath.is_relative()) {
-            fullPath = getProjectPath() / fullPath;
-        }
+        // C++ scripts: keep existing behavior
+        if (scriptEntry.type == ScriptType::SUBCLASS ||
+            scriptEntry.type == ScriptType::SCRIPT_CLASS) {
 
-        std::vector<ScriptProperty> parsedProperties = ScriptParser::parseScriptProperties(fullPath);
+            fs::path fullPath = scriptEntry.headerPath;
+            if (fullPath.is_relative()) {
+                fullPath = getProjectPath() / fullPath;
+            }
 
-        if (parsedProperties.empty()) {
-            // No properties found or parsing failed
-            if (!scriptEntry.properties.empty()) {
-                scriptEntry.properties.clear();
+            std::vector<ScriptProperty> parsedProperties = ScriptParser::parseScriptProperties(fullPath);
+            if (parsedProperties.empty()) {
+                continue;
+            }
+
+            // Merge with existing properties to preserve user-modified values
+            std::vector<ScriptProperty> mergedProperties;
+            bool structuralChanges = false; // added/removed properties
+            bool metaChanges = false;       // display name/type changed
+
+            for (const auto& parsedProp : parsedProperties) {
+                auto it = std::find_if(scriptEntry.properties.begin(), scriptEntry.properties.end(),
+                    [&](const ScriptProperty& existing) { return existing.name == parsedProp.name; });
+
+                if (it != scriptEntry.properties.end()) {
+                    ScriptProperty merged = *it;
+
+                    if (merged.displayName != parsedProp.displayName ||
+                        merged.type != parsedProp.type) {
+                        metaChanges = true;
+                        merged.displayName = parsedProp.displayName;
+                        merged.type = parsedProp.type;
+                    }
+
+                    merged.defaultValue = parsedProp.defaultValue;
+
+                    mergedProperties.push_back(std::move(merged));
+                } else {
+                    structuralChanges = true;
+                    mergedProperties.push_back(parsedProp);
+                }
+            }
+
+            if (scriptEntry.properties.size() != mergedProperties.size()) {
+                structuralChanges = true;
+            }
+
+            scriptEntry.properties = std::move(mergedProperties);
+
+            if (structuralChanges || metaChanges) {
                 hasChanges = true;
             }
+
             continue;
         }
 
-        // Merge with existing properties to preserve user-modified values
-        std::vector<ScriptProperty> mergedProperties;
-        bool structuralChanges = false; // added/removed properties
-        bool metaChanges = false;       // display name/type changed
-
-        for (const auto& parsedProp : parsedProperties) {
-            // Try to find existing property with same internal name
-            auto it = std::find_if(scriptEntry.properties.begin(), scriptEntry.properties.end(),
-                [&parsedProp](const ScriptProperty& existing) {
-                    return existing.name == parsedProp.name;
-                });
-
-            if (it != scriptEntry.properties.end()) {
-                // Property exists - keep user's value but update metadata
-                ScriptProperty merged = parsedProp;
-
-                // If the type changed, reset the value to the new default to avoid invalid variants
-                if (it->type == parsedProp.type) {
-                    merged.value = it->value;
-                } else {
-                    merged.value = parsedProp.defaultValue;
-                    metaChanges = true;
-                }
-
-                // Preserve member pointer
-                merged.memberPtr = it->memberPtr;
-
-                // Detect metadata changes (no structural change)
-                if (it->displayName != parsedProp.displayName ||
-                    it->type != parsedProp.type ||
-                    it->ptrTypeName != parsedProp.ptrTypeName) {
-                    metaChanges = true;
-                }
-
-                mergedProperties.push_back(std::move(merged));
-            } else {
-                // New property - use default value
-                mergedProperties.push_back(parsedProp);
-                structuralChanges = true;
+        // Lua scripts: load properties from Lua file
+        if (scriptEntry.type == ScriptType::SCRIPT_LUA) {
+            fs::path fullPath = scriptEntry.path;
+            if (fullPath.is_relative()) {
+                fullPath = getProjectPath() / fullPath;
             }
-        }
 
-        // Check if any properties were removed
-        if (scriptEntry.properties.size() != mergedProperties.size()) {
-            structuralChanges = true;
-        }
+            // Keep previous properties to preserve current values
+            std::vector<ScriptProperty> oldProps = scriptEntry.properties;
+            ProjectUtils::loadLuaScriptProperties(scriptEntry, fullPath.string());
 
-        // Always apply merged properties so UI metadata updates (e.g., displayName) are reflected
-        scriptEntry.properties = std::move(mergedProperties);
+            // Merge: keep old values if names match
+            for (auto& newProp : scriptEntry.properties) {
+                auto itOld = std::find_if(oldProps.begin(), oldProps.end(),
+                    [&](const ScriptProperty& p) { return p.name == newProp.name; });
 
-        if (structuralChanges || metaChanges) {
-            hasChanges = true;
+                if (itOld != oldProps.end()) {
+                    // If type changed, reset to default; otherwise keep user value
+                    if (itOld->type == newProp.type) {
+                        newProp.value = itOld->value;
+                    } else {
+                        hasChanges = true;
+                    }
+                } else {
+                    hasChanges = true;
+                }
+            }
+
+            continue;
         }
     }
 

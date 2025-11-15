@@ -1,6 +1,9 @@
 #pragma once
 
+#include "lua.hpp"
+
 #include "Project.h"
+#include "script/ScriptProperty.h"
 
 namespace Supernova::Editor {
 
@@ -15,6 +18,17 @@ public:
 
     static void addEntityComponent(EntityRegistry* registry, Entity entity, ComponentType componentType, std::vector<Entity>& entities, YAML::Node componentNode = YAML::Node());
     static YAML::Node removeEntityComponent(EntityRegistry* registry, Entity entity, ComponentType componentType, std::vector<Entity>& entities, bool encodeComponent = false);
+
+    // --- Lua script utilities ---
+
+    // Convert Lua "type" string (e.g. "float", "bool", "vector3") into ScriptPropertyType
+    static ScriptPropertyType stringToScriptPropertyType(const std::string& s);
+
+    // Convert a Lua value at index idx into ScriptPropertyValue according to ScriptPropertyType
+    static ScriptPropertyValue luaValueToScriptPropertyValue(lua_State* L, int idx, ScriptPropertyType type);
+
+    // Load Script.properties from a Lua script file, and fill entry.properties
+    static void loadLuaScriptProperties(ScriptEntry& entry, const std::string& luaPath);
 };
 
 } // namespace Supernova::Editor

@@ -5,14 +5,20 @@
 namespace Supernova {
 namespace Editor {
 
-void ScriptCreateDialog::open(const fs::path& projectPath, const std::string& defaultBaseName, bool hasSubclass,
-                              std::function<void(const fs::path& headerPath, const fs::path& sourcePath, const std::string& className, ScriptType type)> onCreate,
-                              std::function<void()> onCancel) {
+void ScriptCreateDialog::open(const fs::path& projectPath,
+                              const std::string& defaultBaseName,
+                              bool hasSubclass,
+    std::function<void(const fs::path& headerPath,
+                       const fs::path& sourcePath,
+                       const fs::path& luaPath,
+                       const std::string& classOrModuleName,
+                       ScriptType type)> onCreate,
+    std::function<void()> onCancel) {
     m_isOpen = true;
     m_projectPath = projectPath;
     m_selectedPath = projectPath.string();
     m_hasSubclass = hasSubclass;
-    // If subclass exists, default to SCRIPT_CLASS
+    // If subclass exists, default to SCRIPT_CLASS (C++)
     m_scriptType = hasSubclass ? ScriptType::SCRIPT_CLASS : ScriptType::SUBCLASS;
     m_onCreate = onCreate;
     m_onCancel = onCancel;
@@ -35,106 +41,171 @@ std::string ScriptCreateDialog::sanitizeClassName(const std::string& in) const {
     return out;
 }
 
-void ScriptCreateDialog::writeFiles(const fs::path& headerPath, const fs::path& sourcePath, const std::string& className, ScriptType type) {
-    fs::create_directories(headerPath.parent_path());
+fs::path ScriptCreateDialog::makeHeaderPath(const std::string& className) const {
+    return fs::path(m_selectedPath) / (className + ".h");
+}
 
-    if (type == ScriptType::SUBCLASS) {
-        // Header
-        {
-            std::ofstream h(headerPath, std::ios::trunc);
-            if (h) {
-                h << "#pragma once\n\n";
-                h << "#include \"Shape.h\"\n";
-                h << "#include \"Engine.h\"\n";
-                h << "#include \"ScriptProperty.h\"\n\n";
-                h << "class " << className << " : public Supernova::Shape {\n";
-                h << "public:\n";
-                h << "    // Example properties - you can add more!\n";
-                h << "    SPROPERTY(\"Speed\")\n";
-                h << "    float speed = 5.0f;\n\n";
-                h << "    SPROPERTY(\"Is Active\")\n";
-                h << "    bool isActive = true;\n\n";
-                h << "    SPROPERTY(\"Target Position\")\n";
-                h << "    Supernova::Vector3 targetPosition = Supernova::Vector3(0, 0, 0);\n\n";
-                h << "    SPROPERTY(\"Mesh Color\", Color4)\n";
-                h << "    Supernova::Vector4 meshColor = Supernova::Vector4(1, 1, 1, 1);\n\n";
-                h << "    " << className << "(Supernova::Scene* scene, Supernova::Entity entity);\n";
-                h << "    virtual ~" << className << "();\n\n";
-                h << "    void onUpdate();\n";
-                h << "};\n";
+fs::path ScriptCreateDialog::makeSourcePath(const std::string& className) const {
+    return fs::path(m_selectedPath) / (className + ".cpp");
+}
+
+fs::path ScriptCreateDialog::makeLuaPath(const std::string& moduleName) const {
+    return fs::path(m_selectedPath) / (moduleName + ".lua");
+}
+
+void ScriptCreateDialog::writeFiles(const fs::path& headerPath,
+                                    const fs::path& sourcePath,
+                                    const fs::path& luaPath,
+                                    const std::string& classOrModuleName,
+                                    ScriptType type) {
+    bool isCppSubclass   = (type == ScriptType::SUBCLASS);
+    bool isCppScriptBase = (type == ScriptType::SCRIPT_CLASS);
+    bool isLua           = (type == ScriptType::SCRIPT_LUA);
+
+    // C++ generation
+    if (isCppSubclass || isCppScriptBase) {
+        fs::create_directories(headerPath.parent_path());
+
+        if (isCppSubclass) {
+            // Header
+            {
+                std::ofstream h(headerPath, std::ios::trunc);
+                if (h) {
+                    h << "#pragma once\n\n";
+                    h << "#include \"Shape.h\"\n";
+                    h << "#include \"Engine.h\"\n";
+                    h << "#include \"ScriptProperty.h\"\n\n";
+                    h << "class " << classOrModuleName << " : public Supernova::Shape {\n";
+                    h << "public:\n";
+                    h << "    // Example properties - you can add more!\n";
+                    h << "    SPROPERTY(\"Speed\")\n";
+                    h << "    float speed = 5.0f;\n\n";
+                    h << "    SPROPERTY(\"Is Active\")\n";
+                    h << "    bool isActive = true;\n\n";
+                    h << "    SPROPERTY(\"Target Position\")\n";
+                    h << "    Supernova::Vector3 targetPosition = Supernova::Vector3(0, 0, 0);\n\n";
+                    h << "    SPROPERTY(\"Mesh Color\", Color4)\n";
+                    h << "    Supernova::Vector4 meshColor = Supernova::Vector4(1, 1, 1, 1);\n\n";
+                    h << "    " << classOrModuleName << "(Supernova::Scene* scene, Supernova::Entity entity);\n";
+                    h << "    virtual ~" << classOrModuleName << "();\n\n";
+                    h << "    void onUpdate();\n";
+                    h << "};\n";
+                }
+            }
+
+            // Source
+            {
+                std::ofstream c(sourcePath, std::ios::trunc);
+                if (c) {
+                    c << "#include \"" << headerPath.filename().string() << "\"\n\n";
+                    c << "using namespace Supernova;\n\n";
+                    c << classOrModuleName << "::" << classOrModuleName << "(Scene* scene, Entity entity): Shape(scene, entity) {\n";
+                    c << "    REGISTER_EVENT(onUpdate);\n\n";
+                    c << "}\n\n";
+                    c << classOrModuleName << "::~" << classOrModuleName << "() {\n";
+                    c << "\n";
+                    c << "}\n\n";
+                    c << "void " << classOrModuleName << "::onUpdate() {\n";
+                    c << "    if (!isActive) return;\n\n";
+                    c << "    // Example: Move towards target position at 'speed' units per second\n";
+                    c << "    float deltaTime = Engine::getDeltatime();\n";
+                    c << "    Vector3 currentPos = getPosition();\n";
+                    c << "    Vector3 direction = (targetPosition - currentPos).normalize();\n";
+                    c << "    setPosition(currentPos + direction * speed * deltaTime);\n";
+                    c << "    setColor(meshColor);\n";
+                    c << "}\n\n";
+                }
+            }
+        } else if (isCppScriptBase) {
+            // Script Class
+            // Header
+            {
+                std::ofstream h(headerPath, std::ios::trunc);
+                if (h) {
+                    h << "#pragma once\n\n";
+                    h << "#include \"ScriptBase.h\"\n";
+                    h << "#include \"Engine.h\"\n";
+                    h << "#include \"ScriptProperty.h\"\n\n";
+                    h << "class " << classOrModuleName << " : public Supernova::ScriptBase {\n";
+                    h << "public:\n";
+                    h << "    // Example properties - you can add more!\n";
+                    h << "    SPROPERTY(\"Speed\")\n";
+                    h << "    float speed = 5.0f;\n\n";
+                    h << "    SPROPERTY(\"Is Active\")\n";
+                    h << "    bool isActive = true;\n\n";
+                    h << "    SPROPERTY(\"Counter\")\n";
+                    h << "    int counter = 0;\n\n";
+                    h << "    " << classOrModuleName << "(Supernova::Scene* scene, Supernova::Entity entity);\n";
+                    h << "    ~" << classOrModuleName << "();\n\n";
+                    h << "    void onUpdate();\n";
+                    h << "};\n";
+                }
+            }
+
+            // Source
+            {
+                std::ofstream c(sourcePath, std::ios::trunc);
+                if (c) {
+                    c << "#include \"" << headerPath.filename().string() << "\"\n\n";
+                    c << "using namespace Supernova;\n\n";
+                    c << classOrModuleName << "::" << classOrModuleName << "(Scene* scene, Entity entity): ScriptBase(scene, entity) {\n";
+                    c << "    REGISTER_EVENT(onUpdate);\n\n";
+                    c << "}\n\n";
+                    c << classOrModuleName << "::~" << classOrModuleName << "() {\n";
+                    c << "\n";
+                    c << "}\n\n";
+                    c << "void " << classOrModuleName << "::onUpdate() {\n";
+                    c << "    if (!isActive) return;\n\n";
+                    c << "    // Example: Increment counter every frame\n";
+                    c << "    counter++;\n";
+                    c << "    if (counter % 60 == 0) {\n";
+                    c << "        printf(\"Counter: %d\\n\", counter);\n";
+                    c << "    }\n";
+                    c << "}\n\n";
+                }
             }
         }
+    }
 
-        // Source
-        {
-            std::ofstream c(sourcePath, std::ios::trunc);
-            if (c) {
-                c << "#include \"" << headerPath.filename().string() << "\"\n\n";
-                c << "using namespace Supernova;\n\n";
-                c << className << "::" << className << "(Scene* scene, Entity entity): Shape(scene, entity) {\n";
-                c << "    REGISTER_EVENT(onUpdate);\n\n";
-                c << "}\n\n";
-                c << className << "::~" << className << "() {\n";
-                c << "\n";
-                c << "}\n\n";
-                c << "void " << className << "::onUpdate() {\n";
-                c << "    if (!isActive) return;\n\n";
-                c << "    // Example: Move towards target position at 'speed' units per second\n";
-                c << "    float deltaTime = Engine::getDeltatime();\n";
-                c << "    Vector3 currentPos = getPosition();\n";
-                c << "    Vector3 direction = (targetPosition - currentPos).normalize();\n";
-                c << "    setPosition(currentPos + direction * speed * deltaTime);\n";
-                c << "    setColor(meshColor);\n";
-                c << "}\n\n";
-            }
-        }
-    } else {
-        // Script Class
-        // Header
-        {
-            std::ofstream h(headerPath, std::ios::trunc);
-            if (h) {
-                h << "#pragma once\n\n";
-                h << "#include \"ScriptBase.h\"\n";
-                h << "#include \"Engine.h\"\n";
-                h << "#include \"ScriptProperty.h\"\n\n";
-                h << "class " << className << " : public Supernova::ScriptBase {\n";
-                h << "public:\n";
-                h << "    // Example properties - you can add more!\n";
-                h << "    SPROPERTY(\"Speed\")\n";
-                h << "    float speed = 5.0f;\n\n";
-                h << "    SPROPERTY(\"Is Active\")\n";
-                h << "    bool isActive = true;\n\n";
-                h << "    SPROPERTY(\"Counter\")\n";
-                h << "    int counter = 0;\n\n";
-                h << "    " << className << "(Supernova::Scene* scene, Supernova::Entity entity);\n";
-                h << "    ~" << className << "();\n\n";
-                h << "    void onUpdate();\n";
-                h << "};\n";
-            }
-        }
+    // Lua generation
+    if (isLua) {
+        fs::create_directories(luaPath.parent_path());
+        std::ofstream f(luaPath, std::ios::trunc);
+        if (f) {
+            f << "-- " << classOrModuleName << ".lua\n";
+            f << "-- Auto-generated by Supernova Editor\n\n";
 
-        // Source
-        {
-            std::ofstream c(sourcePath, std::ios::trunc);
-            if (c) {
-                c << "#include \"" << headerPath.filename().string() << "\"\n\n";
-                c << "using namespace Supernova;\n\n";
-                c << className << "::" << className << "(Scene* scene, Entity entity): ScriptBase(scene, entity) {\n";
-                c << "    REGISTER_EVENT(onUpdate);\n\n";
-                c << "}\n\n";
-                c << className << "::~" << className << "() {\n";
-                c << "\n";
-                c << "}\n\n";
-                c << "void " << className << "::onUpdate() {\n";
-                c << "    if (!isActive) return;\n\n";
-                c << "    // Example: Increment counter every frame\n";
-                c << "    counter++;\n";
-                c << "    if (counter % 60 == 0) {\n";
-                c << "        printf(\"Counter: %d\\n\", counter);\n";
-                c << "    }\n";
-                c << "}\n\n";
-            }
+            f << "local Script = {\n";
+            f << "    properties = {\n";
+            f << "        {\n";
+            f << "            name = \"speed\",\n";
+            f << "            displayName = \"Speed\",\n";
+            f << "            type = \"float\",\n";
+            f << "            default = 5.0\n";
+            f << "        },\n";
+            f << "        {\n";
+            f << "            name = \"isActive\",\n";
+            f << "            displayName = \"Is Active\",\n";
+            f << "            type = \"bool\",\n";
+            f << "            default = true\n";
+            f << "        }\n";
+            f << "    }\n";
+            f << "}\n\n";
+
+            f << "function Script:init()\n";
+            f << "    -- Called when script is created\n";
+            f << "    self.counter = 0\n";
+            f << "end\n\n";
+
+            f << "function Script:onUpdate(dt)\n";
+            f << "    if not self.isActive then return end\n\n";
+            f << "    self.counter = self.counter + 1\n";
+            f << "    if self.counter % 60 == 0 then\n";
+            f << "        print(\"Counter: \" .. self.counter)\n";
+            f << "    end\n";
+            f << "end\n\n";
+
+            f << "return Script\n";
         }
     }
 }
@@ -163,20 +234,17 @@ void ScriptCreateDialog::show() {
     // Script Type Selection
     ImGui::Text("Script Type:");
 
+    // C++ Subclass (only one per entity)
     ImGui::BeginDisabled(m_hasSubclass);
-    if (ImGui::RadioButton("Subclass", (int*)&m_scriptType, (int)ScriptType::SUBCLASS)) {
-        // Script type changed to SUBCLASS
-    }
+    if (ImGui::RadioButton("C++ Subclass", (int*)&m_scriptType, (int)ScriptType::SUBCLASS)) {}
     ImGui::EndDisabled();
-
     if (m_hasSubclass && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
         ImGui::SetTooltip("Only one Subclass script is allowed per entity");
     }
 
-    ImGui::SameLine();
-    if (ImGui::RadioButton("Script Class", (int*)&m_scriptType, (int)ScriptType::SCRIPT_CLASS)) {
-        // Script type changed to SCRIPT_CLASS
-    }
+    if (ImGui::RadioButton("C++ Script Class", (int*)&m_scriptType, (int)ScriptType::SCRIPT_CLASS)) {}
+
+    if (ImGui::RadioButton("Lua Script", (int*)&m_scriptType, (int)ScriptType::SCRIPT_LUA)) {}
 
     ImGui::Spacing();
     ImGui::Separator();
@@ -220,19 +288,49 @@ void ScriptCreateDialog::show() {
     std::string baseName = m_baseNameBuffer;
     bool hasBase = !baseName.empty();
 
-    std::string className = sanitizeClassName(baseName);
-    fs::path headerPath = fs::path(m_selectedPath) / (className + ".h");
-    fs::path sourcePath = fs::path(m_selectedPath) / (className + ".cpp");
+    std::string name = sanitizeClassName(baseName);
 
-    ImGui::TextWrapped("Will create:\n  %s\n  %s",
-        fs::relative(headerPath, m_projectPath).string().c_str(),
-        fs::relative(sourcePath, m_projectPath).string().c_str());
+    // Compute possible paths
+    fs::path headerPath;
+    fs::path sourcePath;
+    fs::path luaPath;
 
-    bool headerExists = fs::exists(headerPath);
-    bool sourceExists = fs::exists(sourcePath);
-    if (headerExists || sourceExists) {
-        ImGui::TextColored(ImVec4(1.f, 0.5f, 0.f, 1.f),
-            "Warning: Existing file(s) will be overwritten.");
+    bool isCpp = (m_scriptType == ScriptType::SUBCLASS ||
+                m_scriptType == ScriptType::SCRIPT_CLASS);
+    bool isLua = (m_scriptType == ScriptType::SCRIPT_LUA);
+
+    if (isCpp) {
+        headerPath = makeHeaderPath(name);
+        sourcePath = makeSourcePath(name);
+    }
+
+    if (isLua) {
+        luaPath = makeLuaPath(name);
+    }
+
+    // Display
+    if (isCpp && isLua) {
+        // (You probably won’t have a type that is both; kept for completeness)
+    } else if (isCpp) {
+        ImGui::TextWrapped("Will create:\n  %s\n  %s",
+            fs::relative(headerPath, m_projectPath).string().c_str(),
+            fs::relative(sourcePath, m_projectPath).string().c_str());
+
+        bool headerExists = fs::exists(headerPath);
+        bool sourceExists = fs::exists(sourcePath);
+        if (headerExists || sourceExists) {
+            ImGui::TextColored(ImVec4(1.f, 0.5f, 0.f, 1.f),
+                "Warning: Existing file(s) will be overwritten.");
+        }
+    } else if (isLua) {
+        ImGui::TextWrapped("Will create:\n  %s",
+            fs::relative(luaPath, m_projectPath).string().c_str());
+
+        bool luaExists = fs::exists(luaPath);
+        if (luaExists) {
+            ImGui::TextColored(ImVec4(1.f, 0.5f, 0.f, 1.f),
+                "Warning: Existing file will be overwritten.");
+        }
     }
 
     ImGui::Separator();
@@ -243,10 +341,22 @@ void ScriptCreateDialog::show() {
 
     ImGui::BeginDisabled(!hasBase);
     if (ImGui::Button("Create", ImVec2(120, 0))) {
-        writeFiles(headerPath, sourcePath, className, m_scriptType);
-        if (m_onCreate) {
-            m_onCreate(headerPath, sourcePath, className, m_scriptType);
+        fs::path useHeader, useSource, useLua;
+
+        if (isCpp) {
+            useHeader = headerPath;
+            useSource = sourcePath;
         }
+        if (isLua) {
+            useLua = luaPath;
+        }
+
+        writeFiles(useHeader, useSource, useLua, name, m_scriptType);
+
+        if (m_onCreate) {
+            m_onCreate(useHeader, useSource, useLua, name, m_scriptType);
+        }
+
         m_isOpen = false;
         ImGui::CloseCurrentPopup();
     }

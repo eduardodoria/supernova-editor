@@ -54,6 +54,9 @@ namespace Supernova::Editor {
         static std::string pivotPresetToString(PivotPreset preset);
         static PivotPreset stringToPivotPreset(const std::string& str);
 
+        static std::string scriptTypeToString(ScriptType type);
+        static ScriptType stringToScriptType(const std::string& str);
+
         // ==============================
 
         static YAML::Node encodeVector2(const Vector2& vec);
