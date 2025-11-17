@@ -21,13 +21,8 @@ public:
 
     // --- Lua script utilities ---
 
-    // Convert Lua "type" string (e.g. "float", "bool", "vector3") into ScriptPropertyType
     static ScriptPropertyType stringToScriptPropertyType(const std::string& s);
-
-    // Convert a Lua value at index idx into ScriptPropertyValue according to ScriptPropertyType
     static ScriptPropertyValue luaValueToScriptPropertyValue(lua_State* L, int idx, ScriptPropertyType type);
-
-    // Load Script.properties from a Lua script file, and fill entry.properties
     static void loadLuaScriptProperties(ScriptEntry& entry, const std::string& luaPath);
 };
 

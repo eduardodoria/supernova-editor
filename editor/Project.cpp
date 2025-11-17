@@ -2461,20 +2461,20 @@ void Editor::Project::start(uint32_t sceneId) {
 
         if (conector.connect(buildPath, libName)) {
             conector.execute(sceneProject);
+
+            initializeLuaScripts(sceneProject);
+
+            pauseEngineScene(sceneProject, false);
+            Engine::pauseGameEvents(false);
+
+            Engine::onViewLoaded.call();
+            Engine::onViewChanged.call();
         } else {
             Out::error("Failed to connect to library");
             sceneProject->playState = ScenePlayState::STOPPED;
         }
     });
     connectThread.detach();
-
-    initializeLuaScripts(sceneProject);
-
-    Engine::onViewLoaded.call();
-    Engine::onViewChanged.call();
-
-    pauseEngineScene(sceneProject, false);
-    Engine::pauseGameEvents(false);
 }
 
 void Editor::Project::pause(uint32_t sceneId) {
@@ -2518,9 +2518,6 @@ void Editor::Project::stop(uint32_t sceneId) {
         return;
     }
 
-    Engine::onViewDestroyed.call();
-    Engine::onShutdown.call();
-
     // Mark cancelling state so UI can reflect it immediately
     sceneProject->playState = ScenePlayState::CANCELLING;
 
@@ -2530,17 +2527,11 @@ void Editor::Project::stop(uint32_t sceneId) {
     // Request cancellation asynchronously (returns a future we can wait on later if needed)
     auto cancelFuture = generator.cancelBuild();
 
-    cleanupLuaScripts(sceneProject);
-
     // Cleanup script instances / disconnect if the library is currently connected.
     if (conector.isLibraryConnected()) {
         conector.cleanup(sceneProject);
         conector.disconnect();
     }
-
-    // Pause engine while cancellation is in progress
-    pauseEngineScene(sceneProject, true);
-    Engine::pauseGameEvents(true);
 
     // After cancellation completes perform the rest of the stop work on a background thread
     uint32_t sceneIdCopy = sceneId;
@@ -2550,12 +2541,21 @@ void Editor::Project::stop(uint32_t sceneId) {
             cancelFuture.wait();
         }
 
+        Engine::onViewDestroyed.call();
+        Engine::onShutdown.call();
+
         // Get scene pointer again - it should still be valid unless scene was deleted
         SceneProject* sceneProject = getScene(sceneIdCopy);
         if (!sceneProject) {
             Out::warning("Scene %u no longer exists after build cancellation", sceneIdCopy);
             return;
         }
+
+        // Pause engine while cancellation is in progress
+        pauseEngineScene(sceneProject, true);
+        Engine::pauseGameEvents(true);
+
+        cleanupLuaScripts(sceneProject);
 
         // Restore snapshot if present
         if (sceneProject->playStateSnapshot && !sceneProject->playStateSnapshot.IsNull()) {

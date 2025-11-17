@@ -2375,16 +2375,13 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
                 if (ImGui::IsItemDeactivatedAfterEdit()) {
                     // Use PropertyCmd<bool> on individual enabled property
                     std::string propName = "script[" + std::to_string(scriptIdx) + "].enabled";
-                    cmd = new PropertyCmd<bool>(project, sceneProject->id, entities[0],
-                                                ComponentType::ScriptComponent, propName, enabled);
+                    cmd = new PropertyCmd<bool>(project, sceneProject->id, entities[0], ComponentType::ScriptComponent, propName, enabled);
                     CommandHandle::get(sceneProject->id)->addCommand(cmd);
                     cmd->setNoMerge();
                 }
                 ImGui::SameLine();
-                ImGui::TextUnformatted(script.className.c_str());
-                if (ImGui::IsItemHovered()) {
-                    ImGui::SetTooltip("%s", script.path.c_str());
-                }
+                std::string langTypeLabel = (script.type == ScriptType::SCRIPT_LUA) ? "Lua" : "C++";
+                ImGui::TextUnformatted(langTypeLabel.c_str());
 
                 ImGui::SameLine();
                 ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(ImGui::GetStyle().FramePadding.x / 3.0, ImGui::GetStyle().FramePadding.y / 2.0));
