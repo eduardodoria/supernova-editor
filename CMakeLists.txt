@@ -112,6 +112,7 @@ include_directories (${CMAKE_CURRENT_SOURCE_DIR})
 
 include_directories (${SUPERNOVA_ROOT}/engine/libs/sokol)
 include_directories (${SUPERNOVA_ROOT}/engine/libs/lua)
+include_directories (${SUPERNOVA_ROOT}/engine/libs/luabridge3)
 include_directories (${SUPERNOVA_ROOT}/engine/libs/box2d/include)
 include_directories (${SUPERNOVA_ROOT}/engine/libs/joltphysics)
 include_directories (${SUPERNOVA_ROOT}/engine/libs/stb)

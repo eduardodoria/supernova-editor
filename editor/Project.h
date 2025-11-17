@@ -113,11 +113,14 @@ namespace Supernova::Editor{
         size_t countEntitiesInBranch(const YAML::Node& entityNode);
         void insertNewChild(YAML::Node& node, YAML::Node child, size_t index);
 
-        std::vector<Editor::ScriptSource> collectScriptSourceFiles() const;
+        std::vector<Editor::ScriptSource> collectCppScriptSourceFiles() const;
 
         void pauseEngineScene(SceneProject* sceneProject, bool pause);
 
         void copyEngineApiToProject();
+
+        void initializeLuaScripts(SceneProject* sceneProject);
+        void cleanupLuaScripts(SceneProject* sceneProject);
 
     public:
         Project();

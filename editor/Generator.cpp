@@ -427,7 +427,7 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     sourceContent += "#include \"Supernova.h\"\n\n";
 
     for (const auto& s : scriptFiles) {
-        if (!s.headerPath.empty() && fs::exists(s.headerPath)) {
+        if (!s.headerPath.empty() && fs::exists(s.headerPath) && fs::is_regular_file(s.headerPath)) {
             fs::path relativePath = fs::relative(s.headerPath, projectPath);
             std::string inc = relativePath.generic_string();
             sourceContent += "#include \"" + inc + "\"\n";
