@@ -100,7 +100,7 @@ void ScriptCreateDialog::writeFiles(const fs::path& headerPath,
                     c << "#include \"" << headerPath.filename().string() << "\"\n\n";
                     c << "using namespace Supernova;\n\n";
                     c << classOrModuleName << "::" << classOrModuleName << "(Scene* scene, Entity entity): Shape(scene, entity) {\n";
-                    c << "    REGISTER_EVENT(onUpdate);\n\n";
+                    c << "    REGISTER_ENGINE_EVENT(onUpdate);\n\n";
                     c << "}\n\n";
                     c << classOrModuleName << "::~" << classOrModuleName << "() {\n";
                     c << "\n";
@@ -149,7 +149,7 @@ void ScriptCreateDialog::writeFiles(const fs::path& headerPath,
                     c << "#include \"" << headerPath.filename().string() << "\"\n\n";
                     c << "using namespace Supernova;\n\n";
                     c << classOrModuleName << "::" << classOrModuleName << "(Scene* scene, Entity entity): ScriptBase(scene, entity) {\n";
-                    c << "    REGISTER_EVENT(onUpdate);\n\n";
+                    c << "    REGISTER_ENGINE_EVENT(onUpdate);\n\n";
                     c << "}\n\n";
                     c << classOrModuleName << "::~" << classOrModuleName << "() {\n";
                     c << "\n";
@@ -197,7 +197,7 @@ void ScriptCreateDialog::writeFiles(const fs::path& headerPath,
             // init(self) – called once by the engine (Project::initializeLuaScripts)
             f << "function " << classOrModuleName << ":init()\n";
             f << "    -- 'self.scene' and 'self.entity' are provided by the engine\n";
-            f << "    RegisterEvent(self, Engine.onUpdate, \"onUpdate\")\n";
+            f << "    RegisterEngineEvent(self, \"onUpdate\")\n";
             f << "    self.counter = 0\n";
             f << "end\n\n";
 
