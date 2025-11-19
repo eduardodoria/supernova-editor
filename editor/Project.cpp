@@ -437,6 +437,9 @@ void Editor::Project::initializeLuaScripts(SceneProject* sceneProject) {
             lua_setfield(L, -2, "__index");// mt.__index = module
             lua_setmetatable(L, -2);       // setmetatable(instance, mt)
 
+            lua_pushstring(L, scriptEntry.className.c_str());
+            lua_setfield(L, -2, "__name");
+
             // Store scene reference on instance
             if (!luabridge::push<Scene*>(L, scene)) {
                 Out::error("Failed to push scene to Lua");
@@ -2533,12 +2536,20 @@ void Editor::Project::start(uint32_t sceneId) {
         [this, sceneId](const std::string& tag, const std::string& errorInfo) {
             // Log the scene and entity context
             SceneProject* sceneProject = getScene(sceneId);
-            if (sceneProject) {
-                Out::error("Script crash in scene '%s' (ID: %u)\nFunction: %s\nError: %s", sceneProject->name.c_str(), sceneId, tag.c_str(), errorInfo.c_str());
-            }
+            std::string sceneName = sceneProject ? sceneProject->name : "Unknown";
 
-            // Stop asynchronously
+            Out::error("Script crash in scene '%s' (ID: %u)\nFunction: %s\nError: %s", sceneName.c_str(), sceneId, tag.c_str(), errorInfo.c_str());
+
+            // 1. Pause immediately.
+            // This sets a flag to prevent the Engine from starting the NEXT frame update.
+            pause(sceneId);
+
+            // 2. Stop asynchronously.
+            // We use a background thread to wait for the Main Thread to finish the CURRENT frame
+            // and unwind the stack. Destroying the scene (via stop) while the Main Thread 
+            // is still executing code inside it will cause a Segmentation Fault.
             std::thread([this, sceneId]() {
+                // Heuristic delay to allow the stack to unwind safely
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 stop(sceneId);
             }).detach();
