@@ -540,7 +540,7 @@ void Editor::Project::initializeLuaScripts(SceneProject* sceneProject) {
                                     int targetRef = static_cast<int>(reinterpret_cast<intptr_t>(targetScript.instance));
                                     lua_rawgeti(L, LUA_REGISTRYINDEX, targetRef);
                                     foundScript = true;
-                                    printf("[DEBUG]   Resolved EntityRef to Lua script '%s'\n", targetScript.className.c_str());
+                                    printf("[DEBUG]   Found matching Lua script instance: '%s'\n", targetScript.className.c_str());
                                     break;
                                 }
                             }
@@ -548,6 +548,7 @@ void Editor::Project::initializeLuaScripts(SceneProject* sceneProject) {
                             // If no Lua script matched, create EntityHandle
                             if (!foundScript) {
                                 EntityHandle* handle = new EntityHandle(entityRef.scene, entityRef.entity);
+                                printf("[DEBUG]   No Lua script instance found, creating 'EntityHandle' type\n");
 
                                 if (!luabridge::push<EntityHandle*>(L, handle)) {
                                     delete handle;
@@ -566,13 +567,14 @@ void Editor::Project::initializeLuaScripts(SceneProject* sceneProject) {
                                     int targetRef = static_cast<int>(reinterpret_cast<intptr_t>(targetScript.instance));
                                     lua_rawgeti(L, LUA_REGISTRYINDEX, targetRef);
                                     foundScript = true;
-                                    printf("[DEBUG]   Resolved EntityRef to Lua script '%s'\n", targetScript.className.c_str());
+                                    printf("[DEBUG]   Found matching Lua script instance: '%s'\n", targetScript.className.c_str());
                                     break;
                                 }
                             }
 
                             if (!foundScript) {
                                 EntityHandle* handle = new EntityHandle(entityRef.scene, entityRef.entity);
+                                printf("[DEBUG]   No Lua script instance found, creating 'EntityHandle' type\n");
 
                                 if (!luabridge::push<EntityHandle*>(L, handle)) {
                                     delete handle;
@@ -586,6 +588,7 @@ void Editor::Project::initializeLuaScripts(SceneProject* sceneProject) {
                     } else {
                         // No script component, create EntityHandle wrapper
                         EntityHandle* handle = new EntityHandle(entityRef.scene, entityRef.entity);
+                        printf("[DEBUG]   No Lua script instance found, creating 'EntityHandle' type\n");
 
                         if (!luabridge::push<EntityHandle*>(L, handle)) {
                             delete handle;
@@ -604,7 +607,6 @@ void Editor::Project::initializeLuaScripts(SceneProject* sceneProject) {
                 }
 
                 lua_setfield(L, -2, prop.name.c_str());
-                printf("[DEBUG]   Set EntityPointer property '%s' for script '%s'\n", prop.name.c_str(), scriptEntry.className.c_str());
             }
 
             lua_pop(L, 1); // Pop instance
@@ -661,24 +663,10 @@ void Editor::Project::cleanupLuaScripts(SceneProject* sceneProject) {
             }
 
             if (scriptEntry.instance) {
+                // Release the Lua registry reference
                 int ref = static_cast<int>(reinterpret_cast<intptr_t>(scriptEntry.instance));
-
-                // Call cleanup() method if it exists
-                lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
-                lua_getfield(L, -1, "cleanup");
-                if (lua_isfunction(L, -1)) {
-                    lua_pushvalue(L, -2); // Push self
-                    if (lua_pcall(L, 1, 0, 0) != LUA_OK) {
-                        Out::error("Lua cleanup() failed: %s", lua_tostring(L, -1));
-                        lua_pop(L, 1);
-                    }
-                } else {
-                    lua_pop(L, 1); // Pop non-function
-                }
-                lua_pop(L, 1); // Pop instance table
-
-                // Unref from registry
                 luaL_unref(L, LUA_REGISTRYINDEX, ref);
+
                 scriptEntry.instance = nullptr;
             }
         }
@@ -1326,10 +1314,12 @@ void Editor::Project::updateScriptProperties(SceneProject* sceneProject, Entity 
                     ScriptProperty merged = *it;
 
                     if (merged.displayName != parsedProp.displayName ||
-                        merged.type != parsedProp.type) {
+                        merged.type != parsedProp.type ||
+                        merged.ptrTypeName != parsedProp.ptrTypeName) {
                         metaChanges = true;
                         merged.displayName = parsedProp.displayName;
                         merged.type = parsedProp.type;
+                        merged.ptrTypeName = parsedProp.ptrTypeName;
                     }
 
                     merged.defaultValue = parsedProp.defaultValue;

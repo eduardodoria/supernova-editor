@@ -496,19 +496,16 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
                         // Handle EntityPointer types
                         if (prop.type == ScriptPropertyType::EntityPointer) {
                             sourceContent += "                        Supernova::EntityRef entityRef = std::get<Supernova::EntityRef>(prop.value);\n";
-                            sourceContent += "                        printf(\"[DEBUG]   EntityRef: entity=%u\\n\", (unsigned int)entityRef.entity);\n";
                             sourceContent += "                        void* instancePtr = nullptr;\n";
                             sourceContent += "\n";
                             sourceContent += "                        if (entityRef.entity != NULL_ENTITY && entityRef.scene) {\n";
                             sourceContent += "                            Supernova::ScriptComponent* targetScriptComp = entityRef.scene->findComponent<Supernova::ScriptComponent>(entityRef.entity);\n";
-                            sourceContent += "                            bool hasSubclass = false;\n";
                             sourceContent += "                            if (targetScriptComp) {\n";
                             sourceContent += "                                for (auto& targetScript : targetScriptComp->scripts) {\n";
-                            sourceContent += "                                    if (targetScript.type == ScriptType::SUBCLASS) {\n";
-                            sourceContent += "                                        hasSubclass = true;\n";
+                            sourceContent += "                                    if (targetScript.type != ScriptType::SCRIPT_LUA) {\n";
                             sourceContent += "                                        if (targetScript.className == \"" + prop.ptrTypeName + "\" && targetScript.instance) {\n";
                             sourceContent += "                                            instancePtr = targetScript.instance;\n";
-                            sourceContent += "                                            printf(\"[DEBUG]   Found matching script instance: %p\\n\", instancePtr);\n";
+                            sourceContent += "                                            printf(\"[DEBUG]   Found matching C++ script instance: '%s'\\n\", targetScript.className.c_str());\n";
                             sourceContent += "                                            break;\n";
                             sourceContent += "                                        }\n";
                             sourceContent += "                                    }\n";
@@ -516,8 +513,8 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
                             sourceContent += "                            }\n";
                             sourceContent += "\n";
                             if (!prop.ptrTypeName.empty()) {
-                                sourceContent += "                            if (!instancePtr && !hasSubclass) {\n";
-                                sourceContent += "                                printf(\"[DEBUG]   No script instance found, creating " + prop.ptrTypeName + " type\\n\");\n";
+                                sourceContent += "                            if (!instancePtr) {\n";
+                                sourceContent += "                                printf(\"[DEBUG]   No C++ script instance found, creating '" + prop.ptrTypeName + "' type\\n\");\n";
                                 sourceContent += "                                instancePtr = new " + prop.ptrTypeName + "(entityRef.scene, entityRef.entity);\n";
                                 sourceContent += "                            }\n";
                             }
@@ -526,7 +523,6 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
                             sourceContent += "                        typedScript->" + prop.name + " = nullptr;\n";
                             sourceContent += "                        if (instancePtr) {\n";
                             sourceContent += "                            typedScript->" + prop.name + " = static_cast<" + prop.ptrTypeName + "*>(instancePtr);\n";
-                            sourceContent += "                            printf(\"[DEBUG]   Successfully assigned %p to typedScript->" + prop.name + "\\n\", instancePtr);\n";
                             sourceContent += "                        }\n";
                             sourceContent += "\n";
                         }

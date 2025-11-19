@@ -285,38 +285,38 @@ LightState Editor::Stream::stringToLightState(const std::string& str) {
 std::string Editor::Stream::pivotPresetToString(PivotPreset preset) {
     switch (preset) {
         case PivotPreset::CENTER:
-            return "CENTER";
+            return "center";
         case PivotPreset::TOP_CENTER:
-            return "TOP_CENTER";
+            return "top_center";
         case PivotPreset::BOTTOM_CENTER:
-            return "BOTTOM_CENTER";
+            return "bottom_center";
         case PivotPreset::LEFT_CENTER:
-            return "LEFT_CENTER";
+            return "left_center";
         case PivotPreset::RIGHT_CENTER:
-            return "RIGHT_CENTER";
+            return "right_center";
         case PivotPreset::TOP_LEFT:
-            return "TOP_LEFT";
+            return "top_left";
         case PivotPreset::BOTTOM_LEFT:
-            return "BOTTOM_LEFT";
+            return "bottom_left";
         case PivotPreset::TOP_RIGHT:
-            return "TOP_RIGHT";
+            return "top_right";
         case PivotPreset::BOTTOM_RIGHT:
-            return "BOTTOM_RIGHT";
+            return "bottom_right";
         default:
-            return "BOTTOM_LEFT";
+            return "bottom_left";
     }
 }
 
 PivotPreset Editor::Stream::stringToPivotPreset(const std::string& str) {
-    if (str == "CENTER") return PivotPreset::CENTER;
-    if (str == "TOP_CENTER") return PivotPreset::TOP_CENTER;
-    if (str == "BOTTOM_CENTER") return PivotPreset::BOTTOM_CENTER;
-    if (str == "LEFT_CENTER") return PivotPreset::LEFT_CENTER;
-    if (str == "RIGHT_CENTER") return PivotPreset::RIGHT_CENTER;
-    if (str == "TOP_LEFT") return PivotPreset::TOP_LEFT;
-    if (str == "BOTTOM_LEFT") return PivotPreset::BOTTOM_LEFT;
-    if (str == "TOP_RIGHT") return PivotPreset::TOP_RIGHT;
-    if (str == "BOTTOM_RIGHT") return PivotPreset::BOTTOM_RIGHT;
+    if (str == "center") return PivotPreset::CENTER;
+    if (str == "top_center") return PivotPreset::TOP_CENTER;
+    if (str == "bottom_center") return PivotPreset::BOTTOM_CENTER;
+    if (str == "left_center") return PivotPreset::LEFT_CENTER;
+    if (str == "right_center") return PivotPreset::RIGHT_CENTER;
+    if (str == "top_left") return PivotPreset::TOP_LEFT;
+    if (str == "bottom_left") return PivotPreset::BOTTOM_LEFT;
+    if (str == "top_right") return PivotPreset::TOP_RIGHT;
+    if (str == "bottom_right") return PivotPreset::BOTTOM_RIGHT;
     return PivotPreset::BOTTOM_LEFT;
 }
 

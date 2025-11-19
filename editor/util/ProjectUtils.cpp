@@ -804,26 +804,6 @@ YAML::Node Editor::ProjectUtils::removeEntityComponent(EntityRegistry* registry,
     return oldComponent;
 }
 
-ScriptPropertyType Editor::ProjectUtils::stringToScriptPropertyType(const std::string& s) {
-    std::string t = s;
-    std::transform(t.begin(), t.end(), t.begin(), [](unsigned char c){ return (char)std::tolower(c); });
-
-    if (t == "bool" || t == "boolean") return ScriptPropertyType::Bool;
-    if (t == "int"  || t == "integer") return ScriptPropertyType::Int;
-    if (t == "float" || t == "number") return ScriptPropertyType::Float;
-    if (t == "string")                 return ScriptPropertyType::String;
-    if (t == "vector2" || t == "vec2") return ScriptPropertyType::Vector2;
-    if (t == "vector3" || t == "vec3") return ScriptPropertyType::Vector3;
-    if (t == "vector4" || t == "vec4") return ScriptPropertyType::Vector4;
-    if (t == "color3")                 return ScriptPropertyType::Color3;
-    if (t == "color4")                 return ScriptPropertyType::Color4;
-    if (t == "entity" || t == "entitypointer")
-        return ScriptPropertyType::EntityPointer;
-
-    // Fallback
-    return ScriptPropertyType::Float;
-}
-
 ScriptPropertyValue Editor::ProjectUtils::luaValueToScriptPropertyValue(lua_State* L, int idx, ScriptPropertyType type) {
     switch (type) {
     case ScriptPropertyType::Bool:
@@ -930,7 +910,35 @@ void Editor::ProjectUtils::loadLuaScriptProperties(ScriptEntry& entry, const std
 
                 lua_getfield(L, -1, "type");
                 if (lua_isstring(L, -1)) {
-                    prop.type = ProjectUtils::stringToScriptPropertyType(lua_tostring(L, -1));
+                    std::string typeStr = lua_tostring(L, -1);
+                    std::string typeLower = typeStr;
+                    std::transform(typeLower.begin(), typeLower.end(), typeLower.begin(), 
+                                [](unsigned char c){ return (char)std::tolower(c); });
+
+                    if (typeLower == "bool" || typeLower == "boolean"){
+                        prop.type = ScriptPropertyType::Bool;
+                    }else if (typeLower == "int"  || typeLower == "integer"){
+                        prop.type = ScriptPropertyType::Int;
+                    }else if (typeLower == "float" || typeLower == "number"){
+                        prop.type = ScriptPropertyType::Float;
+                    }else if (typeLower == "string"){
+                        prop.type = ScriptPropertyType::String;
+                    }else if (typeLower == "vector2" || typeLower == "vec2"){
+                        prop.type = ScriptPropertyType::Vector2;
+                    }else if (typeLower == "vector3" || typeLower == "vec3"){
+                        prop.type = ScriptPropertyType::Vector3;
+                    }else if (typeLower == "vector4" || typeLower == "vec4"){
+                        prop.type = ScriptPropertyType::Vector4;
+                    }else if (typeLower == "color3"){
+                        prop.type = ScriptPropertyType::Color3;
+                    }else if (typeLower == "color4"){
+                        prop.type = ScriptPropertyType::Color4;
+                    }else if (typeLower == "entity" || typeLower == "entitypointer" || typeLower == "pointer"){
+                        prop.type = ScriptPropertyType::EntityPointer;
+                    }else{
+                        prop.type = ScriptPropertyType::EntityPointer;
+                        prop.ptrTypeName = typeStr;
+                    }
                 } else {
                     prop.type = ScriptPropertyType::Float;
                 }

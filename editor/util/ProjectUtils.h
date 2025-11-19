@@ -21,7 +21,6 @@ public:
 
     // --- Lua script utilities ---
 
-    static ScriptPropertyType stringToScriptPropertyType(const std::string& s);
     static ScriptPropertyValue luaValueToScriptPropertyValue(lua_State* L, int idx, ScriptPropertyType type);
     static void loadLuaScriptProperties(ScriptEntry& entry, const std::string& luaPath);
 };
