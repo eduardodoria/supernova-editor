@@ -2538,7 +2538,7 @@ void Editor::Project::start(uint32_t sceneId) {
             SceneProject* sceneProject = getScene(sceneId);
             std::string sceneName = sceneProject ? sceneProject->name : "Unknown";
 
-            Out::error("Script crash in scene '%s' (ID: %u)\nFunction: %s\nError: %s", sceneName.c_str(), sceneId, tag.c_str(), errorInfo.c_str());
+            Out::error("Script crash in scene '%s' (ID: %u)\nLocation: %s\nError: %s", sceneName.c_str(), sceneId, tag.c_str(), errorInfo.c_str());
 
             // 1. Pause immediately.
             // This sets a flag to prevent the Engine from starting the NEXT frame update.
