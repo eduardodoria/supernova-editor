@@ -54,7 +54,6 @@ public:
 
     void open(const fs::path& projectPath,
               const std::string& defaultBaseName,
-              bool hasSubclass,
               std::function<void(const fs::path& headerPath,
                                  const fs::path& sourcePath,
                                  const fs::path& luaPath,

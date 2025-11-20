@@ -2226,21 +2226,11 @@ void Editor::Properties::drawLightComponent(ComponentType cpType, SceneProject* 
 void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     ScriptComponent& scriptComp = sceneProject->scene->getComponent<ScriptComponent>(entities[0]);
 
-    // Check if there's already a SUBCLASS script
-    bool hasSubclass = false;
-    for (const auto& script : scriptComp.scripts) {
-        if (script.type == ScriptType::SUBCLASS) {
-            hasSubclass = true;
-            break;
-        }
-    }
-
     if (ImGui::Button(ICON_FA_FILE_CIRCLE_PLUS " New Script", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, 0))) {
         std::string defaultName = "NewScript";
         scriptCreateDialog.open(
             project->getProjectPath(),
             defaultName,
-            hasSubclass,
             [this, sceneProject, entities, cpType](const std::filesystem::path& headerPath,
                                                 const std::filesystem::path& sourcePath,
                                                 const std::filesystem::path& luaPath,

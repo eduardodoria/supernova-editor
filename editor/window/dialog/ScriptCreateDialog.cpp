@@ -7,7 +7,6 @@ namespace Editor {
 
 void ScriptCreateDialog::open(const fs::path& projectPath,
                               const std::string& defaultBaseName,
-                              bool hasSubclass,
     std::function<void(const fs::path& headerPath,
                        const fs::path& sourcePath,
                        const fs::path& luaPath,
@@ -17,9 +16,8 @@ void ScriptCreateDialog::open(const fs::path& projectPath,
     m_isOpen = true;
     m_projectPath = projectPath;
     m_selectedPath = projectPath.string();
-    m_hasSubclass = hasSubclass;
-    // If subclass exists, default to SCRIPT_CLASS (C++)
-    m_scriptType = hasSubclass ? ScriptType::SCRIPT_CLASS : ScriptType::SUBCLASS;
+    // Default to SUBCLASS
+    m_scriptType = ScriptType::SUBCLASS;
     m_onCreate = onCreate;
     m_onCancel = onCancel;
 
@@ -239,13 +237,8 @@ void ScriptCreateDialog::show() {
     // Script Type Selection
     ImGui::Text("Script Type:");
 
-    // C++ Subclass (only one per entity)
-    ImGui::BeginDisabled(m_hasSubclass);
+    // C++ Subclass
     if (ImGui::RadioButton("C++ Subclass", (int*)&m_scriptType, (int)ScriptType::SUBCLASS)) {}
-    ImGui::EndDisabled();
-    if (m_hasSubclass && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-        ImGui::SetTooltip("Only one Subclass script is allowed per entity");
-    }
 
     if (ImGui::RadioButton("C++ Script Class", (int*)&m_scriptType, (int)ScriptType::SCRIPT_CLASS)) {}
 
