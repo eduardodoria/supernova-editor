@@ -26,6 +26,61 @@ void ScriptCreateDialog::open(const fs::path& projectPath,
     m_baseNameBuffer[sizeof(m_baseNameBuffer) - 1] = '\0';
 }
 
+void ScriptCreateDialog::displayDirectoryTree(const fs::path& rootPath, const fs::path& currentPath) {
+    try {
+        std::vector<fs::path> subDirs;
+        for (const auto& entry : fs::directory_iterator(currentPath)) {
+            if (entry.is_directory()) {
+                subDirs.push_back(entry.path());
+            }
+        }
+        std::sort(subDirs.begin(), subDirs.end());
+
+        for (const auto& dirPath : subDirs) {
+            std::string fname = dirPath.filename().string();
+            if (!fname.empty() && fname[0] == '.')
+                continue;
+
+            ImGui::PushID(dirPath.string().c_str());
+            ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanFullWidth;
+            bool isSelected = (m_selectedPath == dirPath.string());
+            if (isSelected)
+                nodeFlags |= ImGuiTreeNodeFlags_Selected;
+
+            bool hasSub = false;
+            try {
+                for (const auto& subEntry : fs::directory_iterator(dirPath)) {
+                    if (subEntry.is_directory()) { hasSub = true; break; }
+                }
+            } catch (...) {}
+
+            if (!hasSub) nodeFlags |= ImGuiTreeNodeFlags_Leaf;
+
+            bool open = ImGui::TreeNodeEx("##dir", nodeFlags);
+            ImGui::SameLine(0, 0);
+            ImGui::TextColored(ImVec4(1.f, 0.8f, 0.f, 1.f), "%s", open ? ICON_FA_FOLDER_OPEN : ICON_FA_FOLDER);
+            ImGui::SameLine();
+            ImGui::Text("%s", fname.c_str());
+
+            if (ImGui::IsItemClicked() ||
+                (ImGui::IsMouseClicked(0) && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem))) {
+                m_selectedPath = dirPath.string();
+            }
+
+            if (open) {
+                if (hasSub) {
+                    displayDirectoryTree(rootPath, dirPath);
+                }
+                ImGui::TreePop();
+            }
+
+            ImGui::PopID();
+        }
+    } catch (...) {
+        ImGui::TextColored(ImVec4(1, 0, 0, 1), "Error reading directory");
+    }
+}
+
 std::string ScriptCreateDialog::sanitizeClassName(const std::string& in) const {
     std::string out;
     out.reserve(in.size());
@@ -213,6 +268,31 @@ void ScriptCreateDialog::writeFiles(const fs::path& headerPath,
     }
 }
 
+void ScriptCreateDialog::finalizeCreation(const fs::path& headerPath,
+                                          const fs::path& sourcePath,
+                                          const fs::path& luaPath,
+                                          const std::string& name) {
+    fs::path useHeader, useSource, useLua;
+    bool isCpp = (m_scriptType == ScriptType::SUBCLASS || m_scriptType == ScriptType::SCRIPT_CLASS);
+    bool isLua = (m_scriptType == ScriptType::SCRIPT_LUA);
+
+    if (isCpp) {
+        useHeader = headerPath;
+        useSource = sourcePath;
+    }
+    if (isLua) {
+        useLua = luaPath;
+    }
+
+    writeFiles(useHeader, useSource, useLua, name, m_scriptType);
+
+    if (m_onCreate) {
+        m_onCreate(useHeader, useSource, useLua, name, m_scriptType);
+    }
+
+    m_isOpen = false;
+}
+
 void ScriptCreateDialog::show() {
     if (!m_isOpen) return;
 
@@ -339,24 +419,16 @@ void ScriptCreateDialog::show() {
 
     ImGui::BeginDisabled(!hasBase);
     if (ImGui::Button("Create", ImVec2(120, 0))) {
-        fs::path useHeader, useSource, useLua;
+        bool headerExists = isCpp && fs::exists(headerPath);
+        bool sourceExists = isCpp && fs::exists(sourcePath);
+        bool luaExists = isLua && fs::exists(luaPath);
 
-        if (isCpp) {
-            useHeader = headerPath;
-            useSource = sourcePath;
+        if (headerExists || sourceExists || luaExists) {
+            ImGui::OpenPopup("Confirm Overwrite");
+        } else {
+            finalizeCreation(headerPath, sourcePath, luaPath, name);
+            ImGui::CloseCurrentPopup();
         }
-        if (isLua) {
-            useLua = luaPath;
-        }
-
-        writeFiles(useHeader, useSource, useLua, name, m_scriptType);
-
-        if (m_onCreate) {
-            m_onCreate(useHeader, useSource, useLua, name, m_scriptType);
-        }
-
-        m_isOpen = false;
-        ImGui::CloseCurrentPopup();
     }
     ImGui::EndDisabled();
 
@@ -367,62 +439,30 @@ void ScriptCreateDialog::show() {
         ImGui::CloseCurrentPopup();
     }
 
-    ImGui::EndPopup();
-}
+    // Overwrite confirmation modal
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    if (ImGui::BeginPopupModal("Confirm Overwrite", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        ImGui::Text("One or more files already exist.\nThis operation will overwrite them.\n\nAre you sure?");
+        ImGui::Separator();
 
-void ScriptCreateDialog::displayDirectoryTree(const fs::path& rootPath, const fs::path& currentPath) {
-    try {
-        std::vector<fs::path> subDirs;
-        for (const auto& entry : fs::directory_iterator(currentPath)) {
-            if (entry.is_directory()) {
-                subDirs.push_back(entry.path());
-            }
+        if (ImGui::Button("Yes", ImVec2(120, 0))) {
+             finalizeCreation(headerPath, sourcePath, luaPath, name);
+             ImGui::CloseCurrentPopup(); // Close Confirm Overwrite
         }
-        std::sort(subDirs.begin(), subDirs.end());
-
-        for (const auto& dirPath : subDirs) {
-            std::string fname = dirPath.filename().string();
-            if (!fname.empty() && fname[0] == '.')
-                continue;
-
-            ImGui::PushID(dirPath.string().c_str());
-            ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanFullWidth;
-            bool isSelected = (m_selectedPath == dirPath.string());
-            if (isSelected)
-                nodeFlags |= ImGuiTreeNodeFlags_Selected;
-
-            bool hasSub = false;
-            try {
-                for (const auto& subEntry : fs::directory_iterator(dirPath)) {
-                    if (subEntry.is_directory()) { hasSub = true; break; }
-                }
-            } catch (...) {}
-
-            if (!hasSub) nodeFlags |= ImGuiTreeNodeFlags_Leaf;
-
-            bool open = ImGui::TreeNodeEx("##dir", nodeFlags);
-            ImGui::SameLine(0, 0);
-            ImGui::TextColored(ImVec4(1.f, 0.8f, 0.f, 1.f), "%s", open ? ICON_FA_FOLDER_OPEN : ICON_FA_FOLDER);
-            ImGui::SameLine();
-            ImGui::Text("%s", fname.c_str());
-
-            if (ImGui::IsItemClicked() ||
-                (ImGui::IsMouseClicked(0) && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem))) {
-                m_selectedPath = dirPath.string();
-            }
-
-            if (open) {
-                if (hasSub) {
-                    displayDirectoryTree(rootPath, dirPath);
-                }
-                ImGui::TreePop();
-            }
-
-            ImGui::PopID();
+        ImGui::SameLine();
+        if (ImGui::Button("No", ImVec2(120, 0))) { 
+            ImGui::CloseCurrentPopup(); 
         }
-    } catch (...) {
-        ImGui::TextColored(ImVec4(1, 0, 0, 1), "Error reading directory");
+        ImGui::EndPopup();
     }
+
+    // If creation finished (m_isOpen set to false in finalizeCreation), close the main dialog
+    if (!m_isOpen && ImGui::IsPopupOpen("Create Script##CreateScriptModal")) {
+        ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::EndPopup();
 }
 
 } // namespace Editor

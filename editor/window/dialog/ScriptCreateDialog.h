@@ -21,7 +21,6 @@ private:
     std::string m_selectedPath;
     char m_baseNameBuffer[128] = "";
     ScriptType m_scriptType = ScriptType::SUBCLASS;
-    bool m_hasSubclass = false;
 
     // For C++ scripts, headerPath/sourcePath are valid; for Lua scripts, luaPath is valid.
     std::function<void(const fs::path& headerPath,
@@ -47,6 +46,11 @@ private:
                     const fs::path& luaPath,
                     const std::string& classOrModuleName,
                     ScriptType type);
+
+    void finalizeCreation(const fs::path& headerPath,
+                          const fs::path& sourcePath,
+                          const fs::path& luaPath,
+                          const std::string& name);
 
 public:
     ScriptCreateDialog() = default;
