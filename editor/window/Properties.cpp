@@ -2224,193 +2224,237 @@ void Editor::Properties::drawLightComponent(ComponentType cpType, SceneProject* 
 }
 
 void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
-    ScriptComponent& scriptComp = sceneProject->scene->getComponent<ScriptComponent>(entities[0]);
+    if (entities.empty()) return;
 
-    // Display all scripts
-    if (entities.size() == 1) {
-        // Sort scripts to ensure SUBCLASS comes first
-        std::vector<size_t> scriptIndices;
-        for (size_t i = 0; i < scriptComp.scripts.size(); i++) {
-            scriptIndices.push_back(i);
+    ScriptComponent& firstScriptComp = sceneProject->scene->getComponent<ScriptComponent>(entities[0]);
+
+    // Identify common scripts by index
+    std::vector<size_t> commonIndices;
+    for (size_t i = 0; i < firstScriptComp.scripts.size(); i++) {
+        const ScriptEntry& refScript = firstScriptComp.scripts[i];
+        bool isCommon = true;
+        for (size_t e = 1; e < entities.size(); e++) {
+            ScriptComponent& otherScriptComp = sceneProject->scene->getComponent<ScriptComponent>(entities[e]);
+            if (i >= otherScriptComp.scripts.size()) {
+                isCommon = false;
+                break;
+            }
+            const ScriptEntry& otherScript = otherScriptComp.scripts[i];
+            if (refScript.type != otherScript.type || 
+                refScript.className != otherScript.className || 
+                refScript.path != otherScript.path) {
+                isCommon = false;
+                break;
+            }
+        }
+        if (isCommon) {
+            commonIndices.push_back(i);
+        }
+    }
+
+    if (commonIndices.empty()) {
+        if (entities.size() > 1) {
+            ImGui::TextDisabled("Select a single entity to view script details");
+        }
+        return;
+    }
+
+    bool removedScriptThisFrame = false;
+
+    for (size_t scriptIdx : commonIndices) {
+        if (removedScriptThisFrame) break; // Avoid using invalidated references after removal
+
+        ScriptEntry& script = firstScriptComp.scripts[scriptIdx];
+
+        ImGui::PushID(static_cast<int>(scriptIdx));
+
+        std::string scriptLabel = script.className.empty() ? "Unnamed Script" : script.className;
+        std::string typeLabel;
+        if (script.type == ScriptType::SUBCLASS) {
+            typeLabel = " [Subclass]";
+        } else if (script.type == ScriptType::SCRIPT_CLASS) {
+            typeLabel = " [C++]";
+        } else if (script.type == ScriptType::SCRIPT_LUA) {
+            typeLabel = " [Lua]";
         }
 
-        // Sort indices: SUBCLASS first, then SCRIPT_CLASS
-        std::sort(scriptIndices.begin(), scriptIndices.end(), [&](size_t a, size_t b) {
-            if (scriptComp.scripts[a].type == scriptComp.scripts[b].type) {
-                return a < b; // Maintain original order within same type
-            }
-            return scriptComp.scripts[a].type == ScriptType::SUBCLASS;
-        });
+        const float indentation = 10.0f;
 
-        bool removedScriptThisFrame = false;
+        // Indent to show scripts are nested inside ScriptComponent
+        ImGui::Indent(indentation);
 
-        for (size_t idx : scriptIndices) {
-            if (removedScriptThisFrame) break; // Avoid using invalidated references after removal
+        // Custom styling for script headers
+        ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.25f, 0.25f, 0.3f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.3f, 0.3f, 0.35f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.35f, 0.35f, 0.4f, 1.0f));
 
-            size_t scriptIdx = idx;
-            if (scriptIdx >= scriptComp.scripts.size()) continue; // Safety
-            ScriptEntry& script = scriptComp.scripts[scriptIdx];
+        // Add icon to distinguish from component headers
+        std::string headerText = ICON_FA_FILE_CODE " " + scriptLabel + typeLabel;
 
-            ImGui::PushID(scriptIdx);
+        bool headerOpen = ImGui::CollapsingHeader(headerText.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
 
-            std::string scriptLabel = script.className.empty() ? "Unnamed Script" : script.className;
-            std::string typeLabel = (script.type == ScriptType::SUBCLASS) ? " [Subclass]" : "";
+        // Right-click menu on the script header
+        if (ImGui::BeginPopupContextItem(("script_options_menu_" + std::to_string(scriptIdx)).c_str())) {
+            ImGui::TextDisabled("Script options");
+            ImGui::Separator();
 
-            const float indentation = 10.0f;
-
-            // Indent to show scripts are nested inside ScriptComponent
-            ImGui::Indent(indentation);
-
-            // Custom styling for script headers
-            ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.25f, 0.25f, 0.3f, 1.0f));
-            ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.3f, 0.3f, 0.35f, 1.0f));
-            ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.35f, 0.35f, 0.4f, 1.0f));
-
-            // Add icon to distinguish from component headers
-            std::string headerText = ICON_FA_FILE_CODE " " + scriptLabel + typeLabel;
-
-            bool headerOpen = ImGui::CollapsingHeader(headerText.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
-
-            // Right-click menu on the script header
-            if (ImGui::BeginPopupContextItem(("script_options_menu_" + std::to_string(scriptIdx)).c_str())) {
-                ImGui::TextDisabled("Script options");
-                ImGui::Separator();
-
-                if (ImGui::MenuItem(ICON_FA_TRASH " Remove")) {
-                    // Remove this script entry
-                    std::vector<ScriptEntry> newScripts = scriptComp.scripts;
+            if (ImGui::MenuItem(ICON_FA_TRASH " Remove")) {
+                // Remove this script entry from all selected entities
+                for (const Entity& entity : entities) {
+                    ScriptComponent& sc = sceneProject->scene->getComponent<ScriptComponent>(entity);
+                    std::vector<ScriptEntry> newScripts = sc.scripts;
                     if (scriptIdx < newScripts.size()) {
                         newScripts.erase(newScripts.begin() + scriptIdx);
 
                         // Refresh parsed properties for remaining scripts
-                        project->updateScriptProperties(sceneProject, entities[0], newScripts);
+                        project->updateScriptProperties(sceneProject, entity, newScripts);
 
                         // Apply change through command system
-                        cmd = new PropertyCmd<std::vector<ScriptEntry>>(project, sceneProject->id, entities[0], ComponentType::ScriptComponent, "scripts", newScripts);
+                        cmd = new PropertyCmd<std::vector<ScriptEntry>>(project, sceneProject->id, entity, ComponentType::ScriptComponent, "scripts", newScripts);
                         CommandHandle::get(sceneProject->id)->addCommand(cmd);
-                        cmd->setNoMerge();
-
-                        removedScriptThisFrame = true;
                     }
                 }
+                if (cmd) cmd->setNoMerge();
 
-                ImGui::EndPopup();
+                removedScriptThisFrame = true;
             }
 
-            if (headerOpen && !removedScriptThisFrame) {
-                ImGui::Unindent(indentation); // Unindent for content
+            ImGui::EndPopup();
+        }
 
-                beginTable(cpType, getLabelSize("Script", false), "script_" + std::to_string(scriptIdx));
+        if (headerOpen && !removedScriptThisFrame) {
+            ImGui::Unindent(indentation); // Unindent for content
 
-                // Path and enabled status
-                propertyHeader("Script");
+            beginTable(cpType, getLabelSize("Script", false), "script_" + std::to_string(scriptIdx));
 
-                // Convert absolute path to relative path from project directory
-                std::string displayPath = script.path;
-                std::filesystem::path scriptPath = script.path;
-                std::filesystem::path projectPath = project->getProjectPath();
+            // Path and enabled status
+            propertyHeader("Script");
 
-                bool enabled = script.enabled;
-                ImGui::Checkbox(("##script_enabled_" + std::to_string(scriptIdx)).c_str(), &enabled);
-                if (ImGui::IsItemDeactivatedAfterEdit()) {
-                    // Use PropertyCmd<bool> on individual enabled property
-                    std::string propName = "script[" + std::to_string(scriptIdx) + "].enabled";
-                    cmd = new PropertyCmd<bool>(project, sceneProject->id, entities[0], ComponentType::ScriptComponent, propName, enabled);
+            // Enabled Checkbox Logic
+            bool allEnabled = true;
+            bool anyEnabled = false;
+            for (const Entity& e : entities) {
+                bool en = sceneProject->scene->getComponent<ScriptComponent>(e).scripts[scriptIdx].enabled;
+                if (en) anyEnabled = true;
+                else allEnabled = false;
+            }
+
+            bool enabled = allEnabled;
+            bool mixed = anyEnabled && !allEnabled;
+
+            if (mixed) ImGui::PushStyleColor(ImGuiCol_CheckMark, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+            ImGui::Checkbox(("##script_enabled_" + std::to_string(scriptIdx)).c_str(), &enabled);
+            if (mixed) ImGui::PopStyleColor();
+
+            if (ImGui::IsItemDeactivatedAfterEdit()) {
+                std::string propName = "script[" + std::to_string(scriptIdx) + "].enabled";
+                for (const Entity& entity : entities) {
+                    cmd = new PropertyCmd<bool>(project, sceneProject->id, entity, ComponentType::ScriptComponent, propName, enabled);
                     CommandHandle::get(sceneProject->id)->addCommand(cmd);
-                    cmd->setNoMerge();
                 }
-                ImGui::SameLine();
-                std::string langTypeLabel = (script.type == ScriptType::SCRIPT_LUA) ? "Lua" : "C++";
-                ImGui::TextUnformatted(langTypeLabel.c_str());
+                if (cmd) cmd->setNoMerge();
+            }
 
-                ImGui::SameLine();
-                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(ImGui::GetStyle().FramePadding.x / 3.0, ImGui::GetStyle().FramePadding.y / 2.0));
+            ImGui::SameLine();
+            ImGui::TextUnformatted(script.className.c_str());
 
-                // Resolve header path (if present)
-                std::filesystem::path hdrPath = script.headerPath;
-                bool hasHeader = !script.headerPath.empty();
-                if (hasHeader) {
-                    if (hdrPath.is_relative()) hdrPath = projectPath / hdrPath;
-                }
-                bool hdrExists = hasHeader && std::filesystem::exists(hdrPath);
-                ImGui::BeginDisabled(!hdrExists);
-                if (ImGui::Button((ICON_FA_FILE_LINES "##open_hdr_" + std::to_string(scriptIdx)).c_str())) {
-                    Backend::getApp().getCodeEditor()->openFile(hdrPath.string());
-                }
-                if (ImGui::IsItemHovered()) {
-                    if (hdrExists) ImGui::SetTooltip("C++ header: %s", hdrPath.string().c_str());
-                    else ImGui::SetTooltip("Header file not found");
-                }
-                ImGui::EndDisabled();
+            ImGui::SameLine();
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(ImGui::GetStyle().FramePadding.x / 3.0, ImGui::GetStyle().FramePadding.y / 2.0));
 
-                ImGui::SameLine();
+            // Resolve header path (if present)
+            std::filesystem::path projectPath = project->getProjectPath();
+            std::filesystem::path hdrPath = script.headerPath;
+            bool hasHeader = !script.headerPath.empty();
+            if (hasHeader) {
+                if (hdrPath.is_relative()) hdrPath = projectPath / hdrPath;
+            }
+            bool hdrExists = hasHeader && std::filesystem::exists(hdrPath);
+            ImGui::BeginDisabled(!hdrExists);
+            if (ImGui::Button((ICON_FA_FILE_LINES "##open_hdr_" + std::to_string(scriptIdx)).c_str())) {
+                Backend::getApp().getCodeEditor()->openFile(hdrPath.string());
+            }
+            if (ImGui::IsItemHovered()) {
+                if (hdrExists) ImGui::SetTooltip("C++ header: %s", hdrPath.string().c_str());
+                else ImGui::SetTooltip("Header file not found");
+            }
+            ImGui::EndDisabled();
 
-                // Resolve source path
-                std::filesystem::path srcPath = script.path;
-                if (srcPath.is_relative()) srcPath = projectPath / srcPath;
-                bool srcExists = std::filesystem::exists(srcPath);
-                ImGui::BeginDisabled(!srcExists);
-                if (ImGui::Button((ICON_FA_FILE_CODE "##open_src_" + std::to_string(scriptIdx)).c_str())) {
-                    Backend::getApp().getCodeEditor()->openFile(srcPath.string());
-                }
-                if (ImGui::IsItemHovered()) {
-                    if (srcExists) ImGui::SetTooltip("C++ source: %s", srcPath.string().c_str());
-                    else ImGui::SetTooltip("Source file not found");
-                }
-                ImGui::EndDisabled();
+            ImGui::SameLine();
 
-                ImGui::PopStyleVar();
+            // Resolve source path
+            std::filesystem::path srcPath = script.path;
+            if (srcPath.is_relative()) srcPath = projectPath / srcPath;
+            bool srcExists = std::filesystem::exists(srcPath);
+            ImGui::BeginDisabled(!srcExists);
+            if (ImGui::Button((ICON_FA_FILE_CODE "##open_src_" + std::to_string(scriptIdx)).c_str())) {
+                Backend::getApp().getCodeEditor()->openFile(srcPath.string());
+            }
+            if (ImGui::IsItemHovered()) {
+                if (srcExists) ImGui::SetTooltip("C++ source: %s", srcPath.string().c_str());
+                else ImGui::SetTooltip("Source file not found");
+            }
+            ImGui::EndDisabled();
+
+            ImGui::PopStyleVar();
+
+            endTable();
+
+            // Display script properties if available
+            if (!script.properties.empty()) {
+                ImGui::SeparatorText("Properties");
+
+                ImGui::BeginDisabled(!enabled && !mixed);
+
+                // Compute dynamic first column width based on longest property label
+                float maxPropLabelSize = 0;
+                for (const ScriptProperty& prop : script.properties) {
+                    std::string displayName = prop.displayName.empty() ? prop.name : prop.displayName;
+                    float size = getLabelSize(displayName);
+                    if (size > maxPropLabelSize)
+                        maxPropLabelSize = size;
+                }
+
+                beginTable(cpType, maxPropLabelSize, "script_properties_" + std::to_string(scriptIdx));
+
+                for (size_t propIdx = 0; propIdx < script.properties.size(); propIdx++) {
+                    ScriptProperty& prop = script.properties[propIdx];
+
+                    std::string propertyId = "script[" + std::to_string(scriptIdx) + "]." + prop.name;
+                    std::string displayName = prop.displayName.empty() ? prop.name : prop.displayName;
+
+                    RowPropertyType propType = scriptPropertyTypeToRowPropertyType(prop.type);
+
+                    RowSettings propSettings;
+                    propSettings.onValueChanged = [this, sceneProject, entities, scriptIdx, propName = prop.name]() {
+                        for (const Entity& e : entities) {
+                            ScriptComponent& sc = sceneProject->scene->getComponent<ScriptComponent>(e);
+                            if (scriptIdx < sc.scripts.size()) {
+                                ScriptEntry& se = sc.scripts[scriptIdx];
+                                for (ScriptProperty& sp : se.properties) {
+                                    if (sp.name == propName) {
+                                        sp.syncToMember();
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    };
+
+                    propertyRow(propType, cpType, propertyId, displayName, sceneProject, entities, propSettings);
+                }
 
                 endTable();
 
-                // Display script properties if available
-                if (!script.properties.empty()) {
-                    ImGui::SeparatorText("Properties");
-
-                    ImGui::BeginDisabled(!script.enabled);
-
-                    // Compute dynamic first column width based on longest property label
-                    float maxPropLabelSize = 0;
-                    for (const ScriptProperty& prop : script.properties) {
-                        std::string displayName = prop.displayName.empty() ? prop.name : prop.displayName;
-                        float size = getLabelSize(displayName);
-                        if (size > maxPropLabelSize)
-                            maxPropLabelSize = size;
-                    }
-
-                    beginTable(cpType, maxPropLabelSize, "script_properties_" + std::to_string(scriptIdx));
-
-                    for (size_t propIdx = 0; propIdx < script.properties.size(); propIdx++) {
-                        ScriptProperty& prop = script.properties[propIdx];
-
-                        std::string propertyId = "script[" + std::to_string(scriptIdx) + "]." + prop.name;
-                        std::string displayName = prop.displayName.empty() ? prop.name : prop.displayName;
-
-                        RowPropertyType propType = scriptPropertyTypeToRowPropertyType(prop.type);
-
-                        RowSettings propSettings;
-                        propSettings.onValueChanged = [&prop]() {
-                            prop.syncToMember();
-                        };
-
-                        propertyRow(propType, cpType, propertyId, displayName, sceneProject, entities, propSettings);
-                    }
-
-                    endTable();
-
-                    ImGui::EndDisabled();
-                }
-
-                ImGui::Indent(indentation); // Re-indent after content
+                ImGui::EndDisabled();
             }
 
-            ImGui::PopStyleColor(3);
-            ImGui::Unindent(indentation);
-
-            ImGui::PopID();
+            ImGui::Indent(indentation); // Re-indent after content
         }
-    } else {
-        ImGui::TextDisabled("Select a single entity to view script details");
+
+        ImGui::PopStyleColor(3);
+        ImGui::Unindent(indentation);
+
+        ImGui::PopID();
     }
 }
 
@@ -2518,27 +2562,23 @@ void Editor::Properties::show(){
                 [](){}
             );
         }
-        ImGui::EndDisabled();
 
         ImGui::SameLine();
 
-        ImGui::BeginDisabled(entities.size() != 1 || isReadOnlyComponents);
         if (ImGui::Button(ICON_FA_FILE_CIRCLE_PLUS " New Script", ImVec2(buttonWidth, 0))) {
-            if (entities.size() == 1) {
-                Entity entity = entities[0];
+            std::string defaultName = "NewScript";
+            scriptCreateDialog.open(
+                project->getProjectPath(),
+                defaultName,
+                [this, sceneProject, entities](const std::filesystem::path& headerPath,
+                                                    const std::filesystem::path& sourcePath,
+                                                    const std::filesystem::path& luaPath,
+                                                    const std::string& name,
+                                                    ScriptType type) {
 
-                std::string defaultName = "NewScript";
-                scriptCreateDialog.open(
-                    project->getProjectPath(),
-                    defaultName,
-                    [this, sceneProject, entity](const std::filesystem::path& headerPath,
-                                                        const std::filesystem::path& sourcePath,
-                                                        const std::filesystem::path& luaPath,
-                                                        const std::string& name,
-                                                        ScriptType type) {
+                    Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
 
-                        Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
-
+                    for (const Entity& entity : entities) {
                         bool hasScriptComponent = false;
                         std::vector<ComponentType> existingComponents = Catalog::findComponents(sceneProject->scene, entity);
                         for (ComponentType ct : existingComponents) {
@@ -2585,13 +2625,13 @@ void Editor::Properties::show(){
                             project, sceneProject->id, entity, ComponentType::ScriptComponent, "scripts", newScripts
                         );
                         multiCmd->addCommand(std::move(propCmd));
+                    }
 
-                        multiCmd->setNoMerge();
-                        CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
-                    },
-                    [](){}
-                );
-            }
+                    multiCmd->setNoMerge();
+                    CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+                },
+                [](){}
+            );
         }
         ImGui::EndDisabled();
 
