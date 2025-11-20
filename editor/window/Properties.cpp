@@ -2226,56 +2226,6 @@ void Editor::Properties::drawLightComponent(ComponentType cpType, SceneProject* 
 void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     ScriptComponent& scriptComp = sceneProject->scene->getComponent<ScriptComponent>(entities[0]);
 
-    if (ImGui::Button(ICON_FA_FILE_CIRCLE_PLUS " New Script", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, 0))) {
-        std::string defaultName = "NewScript";
-        scriptCreateDialog.open(
-            project->getProjectPath(),
-            defaultName,
-            [this, sceneProject, entities, cpType](const std::filesystem::path& headerPath,
-                                                const std::filesystem::path& sourcePath,
-                                                const std::filesystem::path& luaPath,
-                                                const std::string& name,
-                                                ScriptType type) {
-
-                for (Entity entity: entities){
-                    // Get current scripts vector
-                    ScriptComponent& scriptComp = sceneProject->scene->getComponent<ScriptComponent>(entity);
-                    std::vector<ScriptEntry> newScripts = scriptComp.scripts;
-
-                    // Create new entry
-                    ScriptEntry entry;
-                    entry.type = type;
-                    entry.enabled = true;
-
-                    if (type == ScriptType::SUBCLASS || type == ScriptType::SCRIPT_CLASS) {
-                        entry.headerPath = headerPath.string();
-                        entry.path = sourcePath.string();
-                        entry.className = name;
-                    } else if (type == ScriptType::SCRIPT_LUA) {
-                        entry.headerPath.clear();
-                        entry.path = luaPath.string();
-                        entry.className = name; // module (file base) name
-                    }
-
-                    // Insert SUBCLASS at beginning, SCRIPT_CLASS at end
-                    if (type == ScriptType::SUBCLASS) {
-                        newScripts.insert(newScripts.begin(), entry);
-                    } else {
-                        newScripts.push_back(entry);
-                    }
-
-                    project->updateScriptProperties(sceneProject, entity, newScripts);
-
-                    // Use PropertyCmd to update the scripts vector
-                    cmd = new PropertyCmd<std::vector<ScriptEntry>>(project, sceneProject->id, entity, ComponentType::ScriptComponent, "scripts", newScripts);
-                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
-                }
-                cmd->setNoMerge();
-            },
-            [](){}
-        );
-    }
-
     // Display all scripts
     if (entities.size() == 1) {
         // Sort scripts to ensure SUBCLASS comes first
@@ -2539,8 +2489,11 @@ void Editor::Properties::show(){
         ImGui::Separator();
 
         bool isReadOnlyComponents = false;
+
+        float buttonWidth = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
+
         ImGui::BeginDisabled(isReadOnlyComponents);
-        if (ImGui::Button(ICON_FA_PLUS" New component", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+        if (ImGui::Button(ICON_FA_SQUARE_PLUS " New component", ImVec2(buttonWidth, 0))) {
             componentAddDialog.open(
                 [this, sceneProject, entities](ComponentType cpType) {
                     // Add component to all selected entities
@@ -2564,6 +2517,81 @@ void Editor::Properties::show(){
                 },
                 [](){}
             );
+        }
+        ImGui::EndDisabled();
+
+        ImGui::SameLine();
+
+        ImGui::BeginDisabled(entities.size() != 1 || isReadOnlyComponents);
+        if (ImGui::Button(ICON_FA_FILE_CIRCLE_PLUS " New Script", ImVec2(buttonWidth, 0))) {
+            if (entities.size() == 1) {
+                Entity entity = entities[0];
+
+                std::string defaultName = "NewScript";
+                scriptCreateDialog.open(
+                    project->getProjectPath(),
+                    defaultName,
+                    [this, sceneProject, entity](const std::filesystem::path& headerPath,
+                                                        const std::filesystem::path& sourcePath,
+                                                        const std::filesystem::path& luaPath,
+                                                        const std::string& name,
+                                                        ScriptType type) {
+
+                        Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+
+                        bool hasScriptComponent = false;
+                        std::vector<ComponentType> existingComponents = Catalog::findComponents(sceneProject->scene, entity);
+                        for (ComponentType ct : existingComponents) {
+                            if (ct == ComponentType::ScriptComponent) {
+                                hasScriptComponent = true;
+                                break;
+                            }
+                        }
+
+                        std::vector<ScriptEntry> newScripts;
+
+                        if (!hasScriptComponent) {
+                            auto addCmd = std::make_unique<Editor::AddComponentCmd>(project, sceneProject->id, entity, ComponentType::ScriptComponent);
+                            multiCmd->addCommand(std::move(addCmd));
+                        } else {
+                            ScriptComponent& scriptComp = sceneProject->scene->getComponent<ScriptComponent>(entity);
+                            newScripts = scriptComp.scripts;
+                        }
+
+                        ScriptEntry entry;
+                        entry.type = type;
+                        entry.enabled = true;
+
+                        if (type == ScriptType::SUBCLASS || type == ScriptType::SCRIPT_CLASS) {
+                            entry.headerPath = headerPath.string();
+                            entry.path = sourcePath.string();
+                            entry.className = name;
+                        } else if (type == ScriptType::SCRIPT_LUA) {
+                            entry.headerPath.clear();
+                            entry.path = luaPath.string();
+                            entry.className = name; // module (file base) name
+                        }
+
+                        // Insert SUBCLASS at beginning, SCRIPT_CLASS at end
+                        if (type == ScriptType::SUBCLASS) {
+                            newScripts.insert(newScripts.begin(), entry);
+                        } else {
+                            newScripts.push_back(entry);
+                        }
+
+                        project->updateScriptProperties(sceneProject, entity, newScripts);
+
+                        auto propCmd = std::make_unique<Editor::PropertyCmd<std::vector<ScriptEntry>>>(
+                            project, sceneProject->id, entity, ComponentType::ScriptComponent, "scripts", newScripts
+                        );
+                        multiCmd->addCommand(std::move(propCmd));
+
+                        multiCmd->setNoMerge();
+                        CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+                    },
+                    [](){}
+                );
+            }
         }
         ImGui::EndDisabled();
 
