@@ -2358,8 +2358,56 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
             ImGui::SameLine();
             ImGui::TextUnformatted(script.className.c_str());
 
-            ImGui::SameLine();
+            //ImGui::SameLine();
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(ImGui::GetStyle().FramePadding.x / 3.0, ImGui::GetStyle().FramePadding.y / 2.0));
+
+            if (ImGui::Button((ICON_FA_PEN_TO_SQUARE "##edit_name_" + std::to_string(scriptIdx)).c_str())) {
+                ImGui::OpenPopup(("Edit Class Name##" + std::to_string(scriptIdx)).c_str());
+            }
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Edit class name");
+            }
+
+            if (ImGui::BeginPopup(("Edit Class Name##" + std::to_string(scriptIdx)).c_str())) {
+                static char nameBuffer[128];
+                if (ImGui::IsWindowAppearing()) {
+                    strncpy(nameBuffer, script.className.c_str(), sizeof(nameBuffer) - 1);
+                    nameBuffer[sizeof(nameBuffer) - 1] = '\0';
+                }
+
+                bool apply = false;
+                if (ImGui::InputText("##new_name", nameBuffer, sizeof(nameBuffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
+                    apply = true;
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Apply")) {
+                    apply = true;
+                }
+
+                if (apply) {
+                    std::string newName = nameBuffer;
+                    if (!newName.empty() && newName != script.className) {
+                        for (const Entity& entity : entities) {
+                            ScriptComponent& sc = sceneProject->scene->getComponent<ScriptComponent>(entity);
+                            std::vector<ScriptEntry> newScripts = sc.scripts;
+                            if (scriptIdx < newScripts.size()) {
+                                newScripts[scriptIdx].className = newName;
+
+                                project->updateScriptProperties(sceneProject, entity, newScripts);
+
+                                cmd = new PropertyCmd<std::vector<ScriptEntry>>(project, sceneProject->id, entity, ComponentType::ScriptComponent, "scripts", newScripts);
+                                CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                            }
+                        }
+                        if (cmd) cmd->setNoMerge();
+                    }
+                    ImGui::CloseCurrentPopup();
+                }
+
+                ImGui::EndPopup();
+            }
+
+            ImGui::SameLine();
 
             // Resolve header path (if present)
             std::filesystem::path projectPath = project->getProjectPath();
