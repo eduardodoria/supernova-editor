@@ -444,16 +444,20 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
                                   sepCol, lineThickness);
 
                 // Name text, clipped to text area
-                float textY = lineY + lineThickness + pad * 0.375f;
+                float textY = lineY + lineThickness + pad + 0.375f;
                 ImVec4 cpuClipRect(contentMin.x, textY, contentMin.x + contentWidth, textY + textAreaHeight);
-                drawList->AddText(ImGui::GetFont(),
-                                  ImGui::GetFontSize(),
-                                  ImVec2(contentMin.x, textY),
-                                  ImGui::GetColorU32(ImGuiCol_Text),
-                                  file.name.c_str(),
-                                  nullptr,
-                                  contentWidth,
-                                  &cpuClipRect);
+
+                // Scale down font for card view
+                ImGui::SetWindowFontScale(0.85f);  // 85% of original size, adjust as needed
+
+                drawList->AddText(ImGui::GetFont(), ImGui::GetFontSize(), 
+                    ImVec2(contentMin.x, textY), 
+                    ImGui::GetColorU32(ImGuiCol_Text), 
+                    file.name.c_str(), nullptr, contentWidth, &cpuClipRect);
+
+                // Reset font scale
+                ImGui::SetWindowFontScale(1.0f);
+
                 if (hovered) {
                     ImGui::SetTooltip("%s", file.name.c_str());
                 }
@@ -1482,7 +1486,7 @@ void Editor::ResourcesWindow::show() {
             ImGui::EndTable();
         }
         ImGui::PopStyleVar();
-        ImGui::BeginChild("FileTableScrollRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
+        ImGui::BeginChild("FileTableScrollRegion", ImVec2(0, 0), true);
         renderFileListing(true);
         ImGui::EndChild();
     } else if (effectiveLayout == LayoutType::SPLIT) {
