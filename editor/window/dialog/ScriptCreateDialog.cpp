@@ -361,7 +361,13 @@ void ScriptCreateDialog::show() {
 
     ImGui::Text("Class / Base Name:");
     ImGui::SetNextItemWidth(-1);
-    ImGui::InputText("##basename", m_baseNameBuffer, sizeof(m_baseNameBuffer));
+
+    bool enterPressed = ImGui::InputText(
+        "##basename",
+        m_baseNameBuffer,
+        sizeof(m_baseNameBuffer),
+        ImGuiInputTextFlags_EnterReturnsTrue
+    );
 
     std::string baseName = m_baseNameBuffer;
     bool hasBase = !baseName.empty();
@@ -374,7 +380,7 @@ void ScriptCreateDialog::show() {
     fs::path luaPath;
 
     bool isCpp = (m_scriptType == ScriptType::SUBCLASS ||
-                m_scriptType == ScriptType::SCRIPT_CLASS);
+                  m_scriptType == ScriptType::SCRIPT_CLASS);
     bool isLua = (m_scriptType == ScriptType::SCRIPT_LUA);
 
     if (isCpp) {
@@ -384,6 +390,20 @@ void ScriptCreateDialog::show() {
 
     if (isLua) {
         luaPath = makeLuaPath(name);
+    }
+
+    // If Enter was pressed inside the input, try to create (same logic as Create button)
+    if (enterPressed && hasBase) {
+        bool headerExists = isCpp && fs::exists(headerPath);
+        bool sourceExists = isCpp && fs::exists(sourcePath);
+        bool luaExists    = isLua && fs::exists(luaPath);
+
+        if (headerExists || sourceExists || luaExists) {
+            ImGui::OpenPopup("Confirm Overwrite");
+        } else {
+            finalizeCreation(headerPath, sourcePath, luaPath, name);
+            ImGui::CloseCurrentPopup(); // Close main modal
+        }
     }
 
     // Display

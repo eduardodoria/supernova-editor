@@ -202,15 +202,9 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories) {
 
     int columns = static_cast<int>(availableWidth / columnWidth);
     if (columns < 1) columns = 1;
-    if (!files.empty() && (int)files.size() < columns) columns = (int)files.size();
 
     ImVec2 cellPadding = (itemViewStyle == ItemViewStyle::CARD) ? ImVec2(4.0f, 4.0f) : ImVec2(8.0f, 8.0f);
-    float totalTableWidth = std::min(
-        availableWidth,
-        (columnWidth * (float)files.size()) +
-        (columnWidth * (float)files.size() / 2.0f) +
-        (cellPadding.x * 2.0f * (files.empty() ? 0.0f : (float)files.size() - 1.0f))
-    );
+    float totalTableWidth = availableWidth;
 
     ImVec2 scrollRegionMin = ImGui::GetWindowPos();
     ImVec2 scrollRegionMax = ImVec2(scrollRegionMin.x + ImGui::GetWindowSize().x,
