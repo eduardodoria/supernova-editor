@@ -2298,6 +2298,40 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
             ImGui::TextDisabled("Script options");
             ImGui::Separator();
 
+            bool canMoveUp = scriptIdx > 0;
+            if (ImGui::MenuItem(ICON_FA_ARROW_UP " Move Up", nullptr, false, canMoveUp)) {
+                for (const Entity& entity : entities) {
+                    ScriptComponent& sc = sceneProject->scene->getComponent<ScriptComponent>(entity);
+                    std::vector<ScriptEntry> newScripts = sc.scripts;
+                    if (scriptIdx < newScripts.size() && scriptIdx > 0) {
+                        std::swap(newScripts[scriptIdx], newScripts[scriptIdx - 1]);
+
+                        project->updateScriptProperties(sceneProject, entity, newScripts);
+
+                        cmd = new PropertyCmd<std::vector<ScriptEntry>>(project, sceneProject->id, entity, ComponentType::ScriptComponent, "scripts", newScripts);
+                        CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                    }
+                }
+                if (cmd) cmd->setNoMerge();
+            }
+
+            bool canMoveDown = scriptIdx < firstScriptComp.scripts.size() - 1;
+            if (ImGui::MenuItem(ICON_FA_ARROW_DOWN " Move Down", nullptr, false, canMoveDown)) {
+                for (const Entity& entity : entities) {
+                    ScriptComponent& sc = sceneProject->scene->getComponent<ScriptComponent>(entity);
+                    std::vector<ScriptEntry> newScripts = sc.scripts;
+                    if (scriptIdx < newScripts.size() - 1) {
+                        std::swap(newScripts[scriptIdx], newScripts[scriptIdx + 1]);
+
+                        project->updateScriptProperties(sceneProject, entity, newScripts);
+
+                        cmd = new PropertyCmd<std::vector<ScriptEntry>>(project, sceneProject->id, entity, ComponentType::ScriptComponent, "scripts", newScripts);
+                        CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                    }
+                }
+                if (cmd) cmd->setNoMerge();
+            }
+
             if (ImGui::MenuItem(ICON_FA_TRASH " Remove")) {
                 // Remove this script entry from all selected entities
                 for (const Entity& entity : entities) {
