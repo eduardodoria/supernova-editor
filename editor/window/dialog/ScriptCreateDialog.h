@@ -25,7 +25,6 @@ private:
     // For C++ scripts, headerPath/sourcePath are valid; for Lua scripts, luaPath is valid.
     std::function<void(const fs::path& headerPath,
                        const fs::path& sourcePath,
-                       const fs::path& luaPath,
                        const std::string& classOrModuleName,
                        ScriptType type)> m_onCreate;
 
@@ -43,13 +42,11 @@ private:
     // Unified writer (handles C++ and Lua)
     void writeFiles(const fs::path& headerPath,
                     const fs::path& sourcePath,
-                    const fs::path& luaPath,
                     const std::string& classOrModuleName,
                     ScriptType type);
 
     void finalizeCreation(const fs::path& headerPath,
                           const fs::path& sourcePath,
-                          const fs::path& luaPath,
                           const std::string& name);
 
 public:
@@ -60,7 +57,6 @@ public:
               const std::string& defaultBaseName,
               std::function<void(const fs::path& headerPath,
                                  const fs::path& sourcePath,
-                                 const fs::path& luaPath,
                                  const std::string& classOrModuleName,
                                  ScriptType type)> onCreate,
               std::function<void()> onCancel = nullptr);

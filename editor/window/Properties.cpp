@@ -2379,18 +2379,17 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
                 static char sourceBuffer[256];
                 static char headerBuffer[256];
 
+                std::filesystem::path projectPath = project->getProjectPath();
                 std::filesystem::path srcPath(script.path);
                 std::filesystem::path hdrPath(script.headerPath);
                 if (ImGui::IsWindowAppearing()) {
                     strncpy(nameBuffer, script.className.c_str(), sizeof(nameBuffer) - 1);
                     nameBuffer[sizeof(nameBuffer) - 1] = '\0';
 
-                    std::string srcFilename = srcPath.filename().string();
-                    strncpy(sourceBuffer, srcFilename.c_str(), sizeof(sourceBuffer) - 1);
+                    strncpy(sourceBuffer, srcPath.filename().string().c_str(), sizeof(sourceBuffer) - 1);
                     sourceBuffer[sizeof(sourceBuffer) - 1] = '\0';
 
-                    std::string hdrFilename = hdrPath.filename().string();
-                    strncpy(headerBuffer, hdrFilename.c_str(), sizeof(headerBuffer) - 1);
+                    strncpy(headerBuffer, hdrPath.filename().string().c_str(), sizeof(headerBuffer) - 1);
                     headerBuffer[sizeof(headerBuffer) - 1] = '\0';
                 }
 
@@ -2418,26 +2417,24 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
                 ImGui::InputText("##new_source", sourceBuffer, sizeof(sourceBuffer), ImGuiInputTextFlags_ReadOnly);
                 ImGui::PopStyleColor();
                 if (ImGui::IsItemHovered()) {
-                    if (srcPath.is_absolute()) {
-                        std::error_code ec;
-                        srcPath = std::filesystem::relative(srcPath, project->getProjectPath(), ec);
-                    }
-                    ImGui::SetTooltip("%s", srcPath.string().c_str());
+                    ImGui::SetTooltip("%s", script.path.c_str());
                 }
 
                 ImGui::SameLine();
                 if (ImGui::Button(ICON_FA_FOLDER_OPEN "##source_btn")) {
-                    std::string selected = FileDialogs::openFileDialog(srcPath.parent_path().string());
+                    fs::path fullSrcPath(script.path);
+                    if (fullSrcPath.is_relative()) fullSrcPath = projectPath / fullSrcPath;
+                    std::string selected = FileDialogs::openFileDialog(fullSrcPath.parent_path().string());
                     if (!selected.empty()) {
                         std::filesystem::path p(selected);
-                        std::filesystem::path proj(project->getProjectPath());
                         std::error_code ec;
-                        std::filesystem::path rel = std::filesystem::relative(p, proj, ec);
+                        std::filesystem::path rel = std::filesystem::relative(p, projectPath, ec);
                         if (!ec && rel.string().find("..") == std::string::npos) {
-                             strncpy(sourceBuffer, rel.string().c_str(), sizeof(sourceBuffer) - 1);
-                             changed = true;
+                            srcPath = rel;
+                            strncpy(sourceBuffer, rel.filename().string().c_str(), sizeof(sourceBuffer) - 1);
+                            changed = true;
                         } else {
-                             Backend::getApp().registerAlert("Error", "File must be inside project directory.");
+                            Backend::getApp().registerAlert("Error", "File must be inside project directory.");
                         }
                     }
                 }
@@ -2453,26 +2450,24 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
                     ImGui::InputText("##new_header", headerBuffer, sizeof(headerBuffer), ImGuiInputTextFlags_ReadOnly);
                     ImGui::PopStyleColor();
                     if (ImGui::IsItemHovered()) {
-                        if (!hdrPath.empty() && hdrPath.is_absolute()) {
-                            std::error_code ec;
-                            hdrPath = std::filesystem::relative(hdrPath, project->getProjectPath(), ec);
-                        }
-                        ImGui::SetTooltip("%s", hdrPath.string().c_str());
+                        ImGui::SetTooltip("%s", script.headerPath.c_str());
                     }
 
                     ImGui::SameLine();
                     if (ImGui::Button(ICON_FA_FOLDER_OPEN "##header_btn")) {
-                        std::string selected = FileDialogs::openFileDialog(hdrPath.parent_path().string());
+                        fs::path fullHdrPath(script.headerPath);
+                        if (fullHdrPath.is_relative()) fullHdrPath = projectPath / fullHdrPath;
+                        std::string selected = FileDialogs::openFileDialog(fullHdrPath.parent_path().string());
                         if (!selected.empty()) {
                             std::filesystem::path p(selected);
-                            std::filesystem::path proj(project->getProjectPath());
                             std::error_code ec;
-                            std::filesystem::path rel = std::filesystem::relative(p, proj, ec);
+                            std::filesystem::path rel = std::filesystem::relative(p, projectPath, ec);
                             if (!ec && rel.string().find("..") == std::string::npos) {
-                                 strncpy(headerBuffer, rel.string().c_str(), sizeof(headerBuffer) - 1);
-                                 changed = true;
+                                hdrPath = rel;
+                                strncpy(headerBuffer, rel.filename().string().c_str(), sizeof(headerBuffer) - 1);
+                                changed = true;
                             } else {
-                                 Backend::getApp().registerAlert("Error", "File must be inside project directory.");
+                                Backend::getApp().registerAlert("Error", "File must be inside project directory.");
                             }
                         }
                     }
@@ -2483,8 +2478,8 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
 
                 if (changed) {
                     std::string newName = nameBuffer;
-                    std::string newSource = sourceBuffer;
-                    std::string newHeader = headerBuffer;
+                    std::string newSource = srcPath.string();
+                    std::string newHeader = hdrPath.string();
 
                     for (const Entity& entity : entities) {
                         ScriptComponent& sc = sceneProject->scene->getComponent<ScriptComponent>(entity);
@@ -2526,11 +2521,7 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
             }
             if (ImGui::IsItemHovered()) {
                 if (hdrExists){
-                    if (hdrPath.is_absolute()) {
-                        std::error_code ec;
-                        hdrPath = std::filesystem::relative(hdrPath, projectPath, ec);
-                    }
-                    ImGui::SetTooltip("Header: %s", hdrPath.string().c_str());
+                    ImGui::SetTooltip("Header: %s", script.headerPath.c_str());
                 }
                 else ImGui::SetTooltip("Header file not found");
             }
@@ -2548,11 +2539,7 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
             }
             if (ImGui::IsItemHovered()) {
                 if (srcExists){
-                    if (srcPath.is_absolute()) {
-                        std::error_code ec;
-                        srcPath = std::filesystem::relative(srcPath, projectPath, ec);
-                    }
-                    ImGui::SetTooltip("Source: %s", srcPath.string().c_str());
+                    ImGui::SetTooltip("Source: %s", script.path.c_str());
                 }
                 else ImGui::SetTooltip("Source file not found");
             }
@@ -2735,7 +2722,6 @@ void Editor::Properties::show(){
                 defaultName,
                 [this, sceneProject, entities](const std::filesystem::path& headerPath,
                                                     const std::filesystem::path& sourcePath,
-                                                    const std::filesystem::path& luaPath,
                                                     const std::string& name,
                                                     ScriptType type) {
 
@@ -2771,16 +2757,11 @@ void Editor::Properties::show(){
                             entry.className = name;
                         } else if (type == ScriptType::SCRIPT_LUA) {
                             entry.headerPath.clear();
-                            entry.path = luaPath.string();
+                            entry.path = sourcePath.string();
                             entry.className = name; // module (file base) name
                         }
 
-                        // Insert SUBCLASS at beginning, SCRIPT_CLASS at end
-                        if (type == ScriptType::SUBCLASS) {
-                            newScripts.insert(newScripts.begin(), entry);
-                        } else {
-                            newScripts.push_back(entry);
-                        }
+                        newScripts.push_back(entry);
 
                         project->updateScriptProperties(sceneProject, entity, newScripts);
 
