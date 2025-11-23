@@ -2379,24 +2379,18 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
                 static char sourceBuffer[256];
                 static char headerBuffer[256];
 
+                std::filesystem::path srcPath(script.path);
+                std::filesystem::path hdrPath(script.headerPath);
                 if (ImGui::IsWindowAppearing()) {
                     strncpy(nameBuffer, script.className.c_str(), sizeof(nameBuffer) - 1);
                     nameBuffer[sizeof(nameBuffer) - 1] = '\0';
 
-                    std::filesystem::path srcPath(script.path);
-                    if (srcPath.is_absolute()) {
-                        std::error_code ec;
-                        srcPath = std::filesystem::relative(srcPath, project->getProjectPath(), ec);
-                    }
-                    strncpy(sourceBuffer, srcPath.string().c_str(), sizeof(sourceBuffer) - 1);
+                    std::string srcFilename = srcPath.filename().string();
+                    strncpy(sourceBuffer, srcFilename.c_str(), sizeof(sourceBuffer) - 1);
                     sourceBuffer[sizeof(sourceBuffer) - 1] = '\0';
 
-                    std::filesystem::path hdrPath(script.headerPath);
-                    if (!hdrPath.empty() && hdrPath.is_absolute()) {
-                        std::error_code ec;
-                        hdrPath = std::filesystem::relative(hdrPath, project->getProjectPath(), ec);
-                    }
-                    strncpy(headerBuffer, hdrPath.string().c_str(), sizeof(headerBuffer) - 1);
+                    std::string hdrFilename = hdrPath.filename().string();
+                    strncpy(headerBuffer, hdrFilename.c_str(), sizeof(headerBuffer) - 1);
                     headerBuffer[sizeof(headerBuffer) - 1] = '\0';
                 }
 
@@ -2415,7 +2409,7 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
                 }
 
                 // Source Path
-                propertyHeader("Source Path", secondColSize);
+                propertyHeader("Source File", secondColSize);
                 //ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
                 float buttonWidth = ImGui::CalcTextSize(ICON_FA_FOLDER_OPEN).x;
                 ImGui::SetNextItemWidth(secondColSize - buttonWidth - ImGui::GetStyle().ItemSpacing.x - ImGui::GetStyle().FramePadding.x * 2.0);
@@ -2423,10 +2417,17 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
                 ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
                 ImGui::InputText("##new_source", sourceBuffer, sizeof(sourceBuffer), ImGuiInputTextFlags_ReadOnly);
                 ImGui::PopStyleColor();
+                if (ImGui::IsItemHovered()) {
+                    if (srcPath.is_absolute()) {
+                        std::error_code ec;
+                        srcPath = std::filesystem::relative(srcPath, project->getProjectPath(), ec);
+                    }
+                    ImGui::SetTooltip("%s", srcPath.string().c_str());
+                }
 
                 ImGui::SameLine();
                 if (ImGui::Button(ICON_FA_FOLDER_OPEN "##source_btn")) {
-                    std::string selected = FileDialogs::openFileDialog(project->getProjectPath().string());
+                    std::string selected = FileDialogs::openFileDialog(srcPath.parent_path().string());
                     if (!selected.empty()) {
                         std::filesystem::path p(selected);
                         std::filesystem::path proj(project->getProjectPath());
@@ -2444,17 +2445,24 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
 
                 // Header Path
                 if (script.type != ScriptType::SCRIPT_LUA) {
-                    propertyHeader("Header Path", secondColSize);
+                    propertyHeader("Header File", secondColSize);
                     //ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
                     ImGui::SetNextItemWidth(secondColSize - buttonWidth - ImGui::GetStyle().ItemSpacing.x - ImGui::GetStyle().FramePadding.x * 2.0);
 
                     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
                     ImGui::InputText("##new_header", headerBuffer, sizeof(headerBuffer), ImGuiInputTextFlags_ReadOnly);
                     ImGui::PopStyleColor();
+                    if (ImGui::IsItemHovered()) {
+                        if (!hdrPath.empty() && hdrPath.is_absolute()) {
+                            std::error_code ec;
+                            hdrPath = std::filesystem::relative(hdrPath, project->getProjectPath(), ec);
+                        }
+                        ImGui::SetTooltip("%s", hdrPath.string().c_str());
+                    }
 
                     ImGui::SameLine();
                     if (ImGui::Button(ICON_FA_FOLDER_OPEN "##header_btn")) {
-                        std::string selected = FileDialogs::openFileDialog(project->getProjectPath().string());
+                        std::string selected = FileDialogs::openFileDialog(hdrPath.parent_path().string());
                         if (!selected.empty()) {
                             std::filesystem::path p(selected);
                             std::filesystem::path proj(project->getProjectPath());
@@ -2517,7 +2525,13 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
                 Backend::getApp().getCodeEditor()->openFile(hdrPath.string());
             }
             if (ImGui::IsItemHovered()) {
-                if (hdrExists) ImGui::SetTooltip("C++ header: %s", hdrPath.string().c_str());
+                if (hdrExists){
+                    if (hdrPath.is_absolute()) {
+                        std::error_code ec;
+                        hdrPath = std::filesystem::relative(hdrPath, projectPath, ec);
+                    }
+                    ImGui::SetTooltip("Header: %s", hdrPath.string().c_str());
+                }
                 else ImGui::SetTooltip("Header file not found");
             }
             ImGui::EndDisabled();
@@ -2533,7 +2547,13 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
                 Backend::getApp().getCodeEditor()->openFile(srcPath.string());
             }
             if (ImGui::IsItemHovered()) {
-                if (srcExists) ImGui::SetTooltip("C++ source: %s", srcPath.string().c_str());
+                if (srcExists){
+                    if (srcPath.is_absolute()) {
+                        std::error_code ec;
+                        srcPath = std::filesystem::relative(srcPath, projectPath, ec);
+                    }
+                    ImGui::SetTooltip("Source: %s", srcPath.string().c_str());
+                }
                 else ImGui::SetTooltip("Source file not found");
             }
             ImGui::EndDisabled();
