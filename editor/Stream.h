@@ -51,6 +51,9 @@ namespace Supernova::Editor {
         static std::string lightStateToString(LightState state);
         static LightState stringToLightState(const std::string& str);
 
+        static std::string cameraTypeToString(CameraType type);
+        static CameraType stringToCameraType(const std::string& str);
+
         static std::string pivotPresetToString(PivotPreset preset);
         static PivotPreset stringToPivotPreset(const std::string& str);
 
@@ -152,6 +155,9 @@ namespace Supernova::Editor {
 
         static YAML::Node encodeLightComponent(const LightComponent& light);
         static LightComponent decodeLightComponent(const YAML::Node& node, const LightComponent* oldLight = nullptr);
+
+        static YAML::Node encodeCameraComponent(const CameraComponent& camera);
+        static CameraComponent decodeCameraComponent(const YAML::Node& node, const CameraComponent* oldCamera = nullptr);
 
         static YAML::Node encodeScriptComponent(const ScriptComponent& script);
         static ScriptComponent decodeScriptComponent(const YAML::Node& node, const ScriptComponent* oldScript = nullptr);

@@ -220,6 +220,128 @@ void Editor::SceneRender3D::createOrUpdateCameraIcon(Entity entity, const Transf
     co.icon->setScale(scale);
 }
 
+void Editor::SceneRender3D::createCameraFrustum(Entity entity, const Transform& transform, const CameraComponent& cameraComponent, bool isSelected) {
+    CameraObjects& co = cameraObjects[entity];
+
+    co.lines->setPosition(transform.worldPosition);
+    co.lines->setRotation(transform.worldRotation);
+    co.lines->setVisible(isSelected);
+
+    if (!isSelected) return;
+
+    // Don't draw frustum for 2D cameras
+    if (cameraComponent.type == CameraType::CAMERA_2D) {
+        co.lines->clearLines();
+        return;
+    }
+
+    bool changed = false;
+    if (co.type != cameraComponent.type) changed = true;
+    if (cameraComponent.type == CameraType::CAMERA_PERSPECTIVE) {
+        if (co.yfov != cameraComponent.yfov || co.aspect != cameraComponent.aspect || 
+            co.nearClip != cameraComponent.nearClip || co.farClip != cameraComponent.farClip) {
+            changed = true;
+        }
+    } else if (cameraComponent.type == CameraType::CAMERA_ORTHO) {
+        if (co.leftClip != cameraComponent.leftClip || co.rightClip != cameraComponent.rightClip ||
+            co.bottomClip != cameraComponent.bottomClip || co.topClip != cameraComponent.topClip ||
+            co.nearClip != cameraComponent.nearClip || co.farClip != cameraComponent.farClip) {
+            changed = true;
+        }
+    }
+
+    if (!changed) return;
+
+    co.type = cameraComponent.type;
+    co.yfov = cameraComponent.yfov;
+    co.aspect = cameraComponent.aspect;
+    co.nearClip = cameraComponent.nearClip;
+    co.farClip = cameraComponent.farClip;
+    co.leftClip = cameraComponent.leftClip;
+    co.rightClip = cameraComponent.rightClip;
+    co.bottomClip = cameraComponent.bottomClip;
+    co.topClip = cameraComponent.topClip;
+
+    co.lines->clearLines();
+    Vector4 color(0.8f, 0.8f, 0.8f, 1.0f);
+
+    if (cameraComponent.type == CameraType::CAMERA_PERSPECTIVE) {
+        float tanHalfFov = std::tan(cameraComponent.yfov / 2.0f);
+        float nearHeight = 2.0f * std::abs(cameraComponent.nearClip) * tanHalfFov;
+        float nearWidth = nearHeight * cameraComponent.aspect;
+        float farHeight = 2.0f * std::abs(cameraComponent.farClip) * tanHalfFov;
+        float farWidth = farHeight * cameraComponent.aspect;
+
+        float hNear = nearHeight / 2.0f;
+        float wNear = nearWidth / 2.0f;
+        float hFar = farHeight / 2.0f;
+        float wFar = farWidth / 2.0f;
+
+        Vector3 ntl(-wNear, hNear, -std::abs(cameraComponent.nearClip));
+        Vector3 ntr(wNear, hNear, -std::abs(cameraComponent.nearClip));
+        Vector3 nbl(-wNear, -hNear, -std::abs(cameraComponent.nearClip));
+        Vector3 nbr(wNear, -hNear, -std::abs(cameraComponent.nearClip));
+
+        Vector3 ftl(-wFar, hFar, -std::abs(cameraComponent.farClip));
+        Vector3 ftr(wFar, hFar, -std::abs(cameraComponent.farClip));
+        Vector3 fbl(-wFar, -hFar, -std::abs(cameraComponent.farClip));
+        Vector3 fbr(wFar, -hFar, -std::abs(cameraComponent.farClip));
+
+        co.lines->addLine(ntl, ntr, color);
+        co.lines->addLine(ntr, nbr, color);
+        co.lines->addLine(nbr, nbl, color);
+        co.lines->addLine(nbl, ntl, color);
+
+        co.lines->addLine(ftl, ftr, color);
+        co.lines->addLine(ftr, fbr, color);
+        co.lines->addLine(fbr, fbl, color);
+        co.lines->addLine(fbl, ftl, color);
+
+        co.lines->addLine(ntl, ftl, color);
+        co.lines->addLine(ntr, ftr, color);
+        co.lines->addLine(nbl, fbl, color);
+        co.lines->addLine(nbr, fbr, color);
+
+        co.lines->addLine(Vector3(0,0,0), ntl, color);
+        co.lines->addLine(Vector3(0,0,0), ntr, color);
+        co.lines->addLine(Vector3(0,0,0), nbl, color);
+        co.lines->addLine(Vector3(0,0,0), nbr, color);
+
+    } else if (cameraComponent.type == CameraType::CAMERA_ORTHO) {
+        float l = cameraComponent.leftClip;
+        float r = cameraComponent.rightClip;
+        float b = cameraComponent.bottomClip;
+        float t = cameraComponent.topClip;
+        float n = -std::abs(cameraComponent.nearClip);
+        float f = -std::abs(cameraComponent.farClip);
+
+        Vector3 ntl(l, t, n);
+        Vector3 ntr(r, t, n);
+        Vector3 nbl(l, b, n);
+        Vector3 nbr(r, b, n);
+
+        Vector3 ftl(l, t, f);
+        Vector3 ftr(r, t, f);
+        Vector3 fbl(l, b, f);
+        Vector3 fbr(r, b, f);
+
+        co.lines->addLine(ntl, ntr, color);
+        co.lines->addLine(ntr, nbr, color);
+        co.lines->addLine(nbr, nbl, color);
+        co.lines->addLine(nbl, ntl, color);
+
+        co.lines->addLine(ftl, ftr, color);
+        co.lines->addLine(ftr, fbr, color);
+        co.lines->addLine(fbr, fbl, color);
+        co.lines->addLine(fbl, ftl, color);
+
+        co.lines->addLine(ntl, ftl, color);
+        co.lines->addLine(ntr, ftr, color);
+        co.lines->addLine(nbl, fbl, color);
+        co.lines->addLine(nbr, fbr, color);
+    }
+}
+
 void Editor::SceneRender3D::createDirectionalLightArrow(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected) {
     LightObjects& lo = lightObjects[entity];
 
@@ -529,10 +651,14 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
         if (signature.test(scene->getComponentId<CameraComponent>()) && signature.test(scene->getComponentId<Transform>())) {
             if (entity != camera->getEntity()) {
                 Transform& transform = scene->getComponent<Transform>(entity);
+                CameraComponent& cameraComp = scene->getComponent<CameraComponent>(entity);
 
                 currentIconCameras.insert(entity);
                 bool newCamera = instanciateCameraObject(entity);
                 createOrUpdateCameraIcon(entity, transform, newCamera);
+
+                bool isSelected = std::find(selEntities.begin(), selEntities.end(), entity) != selEntities.end();
+                createCameraFrustum(entity, transform, cameraComp, isSelected);
             }
         }
     }

@@ -21,6 +21,16 @@ namespace Supernova::Editor{
     struct CameraObjects{
         Sprite* icon = nullptr;
         Lines* lines = nullptr;
+
+        CameraType type;
+        float yfov = 0;
+        float aspect = 0;
+        float nearClip = 0;
+        float farClip = 0;
+        float leftClip = 0;
+        float rightClip = 0;
+        float bottomClip = 0;
+        float topClip = 0;
     };
 
     class SceneRender3D: public SceneRender{
@@ -41,6 +51,7 @@ namespace Supernova::Editor{
         bool instanciateCameraObject(Entity entity);
         void createOrUpdateLightIcon(Entity entity, const Transform& transform, LightType lightType, bool newLight);
         void createOrUpdateCameraIcon(Entity entity, const Transform& transform, bool newCamera);
+        void createCameraFrustum(Entity entity, const Transform& transform, const CameraComponent& cameraComponent, bool isSelected);
         void createDirectionalLightArrow(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected);
         void createPointLightSphere(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected);
         void createSpotLightCones(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected);

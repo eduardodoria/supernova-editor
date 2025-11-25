@@ -368,7 +368,7 @@ Editor::PropertyType Editor::Catalog::scriptPropertyTypeToPropertyType(ScriptPro
 std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(ComponentType component, void* compRef){
     std::map<std::string, Editor::PropertyData> ps;
     if(component == ComponentType::Transform){
-        Transform* comp = (Transform*)compRef;
+        Transform* comp = static_cast<Transform*>(compRef);
         static Transform* def = new Transform;
 
         ps["position"] = {PropertyType::Vector3, UpdateFlags_Transform, (void*)&def->position, (compRef) ? (void*)&comp->position : nullptr};
@@ -381,7 +381,7 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["billboardRotation"] = {PropertyType::Quat, UpdateFlags_Transform, (void*)&def->billboardRotation, (compRef) ? (void*)&comp->billboardRotation : nullptr};
 
     }else if (component == ComponentType::MeshComponent){
-        MeshComponent* comp = (MeshComponent*)compRef;
+        MeshComponent* comp = static_cast<MeshComponent*>(compRef);
         static MeshComponent* def = new MeshComponent;
 
         ps["castShadows"] = {PropertyType::Bool, UpdateFlags_Mesh_Reload, (void*)&def->castShadows, (compRef) ? (void*)&comp->castShadows : nullptr};
@@ -407,20 +407,20 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
             ps["submeshes["+idx+"].textureRect"] = {PropertyType::Vector4, UpdateFlags_None, (void*)&def->submeshes[0].textureRect, (compRef) ? (void*)&comp->submeshes[s].textureRect : nullptr};
         }
     }else if (component == ComponentType::UIComponent){
-        UIComponent* comp = (UIComponent*)compRef;
+        UIComponent* comp = static_cast<UIComponent*>(compRef);
         static UIComponent* def = new UIComponent;
 
         ps["color"] = {PropertyType::Vector4, UpdateFlags_None, (void*)&def->color, (compRef) ? (void*)&comp->color : nullptr};
         ps["texture"] = {PropertyType::Texture, UpdateFlags_UI_Texture, (void*)&def->texture, (compRef) ? (void*)&comp->texture : nullptr};
     }else if (component == ComponentType::UILayoutComponent){
-        UILayoutComponent* comp = (UILayoutComponent*)compRef;
+        UILayoutComponent* comp = static_cast<UILayoutComponent*>(compRef);
         static UILayoutComponent* def = new UILayoutComponent;
 
         ps["width"] = {PropertyType::UInt, UpdateFlags_Layout_Sizes, nullptr, (compRef) ? (void*)&comp->width : nullptr};
         ps["height"] = {PropertyType::UInt, UpdateFlags_Layout_Sizes, nullptr, (compRef) ? (void*)&comp->height : nullptr};
         ps["ignoreScissor"] = {PropertyType::Bool, UpdateFlags_None, (void*)&def->ignoreScissor, (compRef) ? (void*)&comp->ignoreScissor : nullptr};
     }else if (component == ComponentType::ImageComponent){
-        ImageComponent* comp = (ImageComponent*)compRef;
+        ImageComponent* comp = static_cast<ImageComponent*>(compRef);
         static ImageComponent* def = new ImageComponent;
 
         ps["patchMarginLeft"] = {PropertyType::UInt, UpdateFlags_Image_Patches, (void*)&def->patchMarginLeft, (compRef) ? (void*)&comp->patchMarginLeft : nullptr};
@@ -429,7 +429,7 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["patchMarginBottom"] = {PropertyType::UInt, UpdateFlags_Image_Patches, (void*)&def->patchMarginBottom, (compRef) ? (void*)&comp->patchMarginBottom : nullptr};
         ps["textureScaleFactor"] = {PropertyType::Float, UpdateFlags_Image_Patches, (void*)&def->textureScaleFactor, (compRef) ? (void*)&comp->textureScaleFactor : nullptr};
     }else if (component == ComponentType::SpriteComponent){
-        SpriteComponent* comp = (SpriteComponent*)compRef;
+        SpriteComponent* comp = static_cast<SpriteComponent*>(compRef);
         static SpriteComponent* def = new SpriteComponent;
 
         ps["width"] = {PropertyType::UInt, UpdateFlags_Sprite, nullptr, (compRef) ? (void*)&comp->width : nullptr};
@@ -437,7 +437,7 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["pivotPreset"] = {PropertyType::Enum, UpdateFlags_Sprite, (void*)&def->pivotPreset, (compRef) ? (void*)&comp->pivotPreset : nullptr};
         ps["textureScaleFactor"] = {PropertyType::Float, UpdateFlags_Sprite, (void*)&def->textureScaleFactor, (compRef) ? (void*)&comp->textureScaleFactor : nullptr};
     }else if (component == ComponentType::LightComponent){
-        LightComponent* comp = (LightComponent*)compRef;
+        LightComponent* comp = static_cast<LightComponent*>(compRef);
         static LightComponent* def = new LightComponent;
 
         ps["type"] = {PropertyType::Enum, UpdateFlags_LightShadowMap | UpdateFlags_LightShadowCamera | UpdateFlags_Scene_Mesh_Reload, nullptr, (compRef) ? (void*)&comp->type : nullptr};
@@ -454,8 +454,26 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["shadowCameraNear"] = {PropertyType::Float, UpdateFlags_LightShadowCamera, nullptr, (compRef) ? (void*)&comp->shadowCameraNearFar.x : nullptr};
         ps["shadowCameraFar"] = {PropertyType::Float, UpdateFlags_LightShadowCamera, nullptr, (compRef) ? (void*)&comp->shadowCameraNearFar.y : nullptr};
         ps["numShadowCascades"] = {PropertyType::UInt, UpdateFlags_LightShadowCamera | UpdateFlags_Scene_Mesh_Reload, (void*)&def->numShadowCascades, (compRef) ? (void*)&comp->numShadowCascades : nullptr};
+    }else if(component == ComponentType::CameraComponent){
+        CameraComponent* comp = static_cast<CameraComponent*>(compRef);
+        static CameraComponent* def = new CameraComponent;
+
+        ps["type"] = {PropertyType::Enum, UpdateFlags_None, &def->type, &comp->type};
+        ps["target"] = {PropertyType::Vector3, UpdateFlags_None, &def->target, &comp->target};
+        ps["up"] = {PropertyType::Vector3, UpdateFlags_None, &def->up, &comp->up};
+        ps["left"] = {PropertyType::Float, UpdateFlags_None, &def->leftClip, &comp->leftClip};
+        ps["right"] = {PropertyType::Float, UpdateFlags_None, &def->rightClip, &comp->rightClip};
+        ps["bottom"] = {PropertyType::Float, UpdateFlags_None, &def->bottomClip, &comp->bottomClip};
+        ps["top"] = {PropertyType::Float, UpdateFlags_None, &def->topClip, &comp->topClip};
+        ps["yfov"] = {PropertyType::Float, UpdateFlags_None, &def->yfov, &comp->yfov};
+        ps["aspect"] = {PropertyType::Float, UpdateFlags_None, &def->aspect, &comp->aspect};
+        ps["near"] = {PropertyType::Float, UpdateFlags_None, &def->nearClip, &comp->nearClip};
+        ps["far"] = {PropertyType::Float, UpdateFlags_None, &def->farClip, &comp->farClip};
+        ps["renderToTexture"] = {PropertyType::Bool, UpdateFlags_None, &def->renderToTexture, &comp->renderToTexture};
+        ps["transparentSort"] = {PropertyType::Bool, UpdateFlags_None, &def->transparentSort, &comp->transparentSort};
+        ps["automatic"] = {PropertyType::Bool, UpdateFlags_None, &def->automatic, &comp->automatic};
     }else if (component == ComponentType::ScriptComponent){
-        ScriptComponent* comp = (ScriptComponent*)compRef;
+        ScriptComponent* comp = static_cast<ScriptComponent*>(compRef);
         static ScriptComponent* def = new ScriptComponent;
 
         ps["scripts"] = {PropertyType::Custom, UpdateFlags_None, nullptr, (compRef) ? (void*)&comp->scripts : nullptr};
@@ -696,6 +714,10 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::findEntityPropertie
         if (LightComponent* compRef = registry->findComponent<LightComponent>(entity)){
             return getProperties(component, compRef);
         }
+    }else if (component == ComponentType::CameraComponent){
+        if (CameraComponent* compRef = registry->findComponent<CameraComponent>(entity)){
+            return getProperties(component, compRef);
+        }
     }else if (component == ComponentType::ScriptComponent){
         if (ScriptComponent* compRef = registry->findComponent<ScriptComponent>(entity)){
             return getProperties(component, compRef);
@@ -794,6 +816,12 @@ void Editor::Catalog::copyComponent(EntityRegistry* sourceRegistry, Entity sourc
         case ComponentType::LightComponent: {
             YAML::Node encoded = Stream::encodeLightComponent(sourceRegistry->getComponent<LightComponent>(sourceEntity));
             targetRegistry->getComponent<LightComponent>(targetEntity) = Stream::decodeLightComponent(encoded);
+            break;
+        }
+
+        case ComponentType::CameraComponent: {
+            YAML::Node encoded = Stream::encodeCameraComponent(sourceRegistry->getComponent<CameraComponent>(sourceEntity));
+            targetRegistry->getComponent<CameraComponent>(targetEntity) = Stream::decodeCameraComponent(encoded);
             break;
         }
 

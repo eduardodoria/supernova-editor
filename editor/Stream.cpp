@@ -282,6 +282,22 @@ LightState Editor::Stream::stringToLightState(const std::string& str) {
     return LightState::AUTO; // Default
 }
 
+std::string Editor::Stream::cameraTypeToString(CameraType type) {
+    switch (type) {
+        case CameraType::CAMERA_2D: return "camera_2d";
+        case CameraType::CAMERA_ORTHO: return "camera_ortho";
+        case CameraType::CAMERA_PERSPECTIVE: return "camera_perspective";
+        default: return "camera_2d";
+    }
+}
+
+CameraType Editor::Stream::stringToCameraType(const std::string& str) {
+    if (str == "camera_2d") return CameraType::CAMERA_2D;
+    if (str == "camera_ortho") return CameraType::CAMERA_ORTHO;
+    if (str == "camera_perspective") return CameraType::CAMERA_PERSPECTIVE;
+    return CameraType::CAMERA_2D;
+}
+
 std::string Editor::Stream::pivotPresetToString(PivotPreset preset) {
     switch (preset) {
         case PivotPreset::CENTER:
@@ -1248,6 +1264,11 @@ YAML::Node Editor::Stream::encodeComponents(const Entity entity, const EntityReg
         compNode[Catalog::getComponentName(ComponentType::LightComponent, true)] = encodeLightComponent(light);
     }
 
+    if (signature.test(registry->getComponentId<CameraComponent>())) {
+        CameraComponent camera = registry->getComponent<CameraComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::CameraComponent, true)] = encodeCameraComponent(camera);
+    }
+
     if (signature.test(registry->getComponentId<ScriptComponent>())) {
         ScriptComponent script = registry->getComponent<ScriptComponent>(entity);
         compNode[Catalog::getComponentName(ComponentType::ScriptComponent, true)] = encodeScriptComponent(script);
@@ -1330,6 +1351,16 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
             registry->addComponent<LightComponent>(entity, light);
         }else{
             registry->getComponent<LightComponent>(entity) = light;
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::CameraComponent, true);
+    if (compNode[compName]) {
+        CameraComponent camera = decodeCameraComponent(compNode[compName], registry->findComponent<CameraComponent>(entity));
+        if (!signature.test(registry->getComponentId<CameraComponent>())){
+            registry->addComponent<CameraComponent>(entity, camera);
+        }else{
+            registry->getComponent<CameraComponent>(entity) = camera;
         }
     }
 
@@ -1808,6 +1839,53 @@ LightComponent Editor::Stream::decodeLightComponent(const YAML::Node& node, cons
     if (node["numShadowCascades"]) light.numShadowCascades = node["numShadowCascades"].as<unsigned int>();
 
     return light;
+}
+
+YAML::Node Editor::Stream::encodeCameraComponent(const CameraComponent& camera) {
+    YAML::Node node;
+
+    node["type"] = cameraTypeToString(camera.type);
+    node["target"] = encodeVector3(camera.target);
+    node["up"] = encodeVector3(camera.up);
+    node["leftClip"] = camera.leftClip;
+    node["rightClip"] = camera.rightClip;
+    node["bottomClip"] = camera.bottomClip;
+    node["topClip"] = camera.topClip;
+    node["yfov"] = camera.yfov;
+    node["aspect"] = camera.aspect;
+    node["nearClip"] = camera.nearClip;
+    node["farClip"] = camera.farClip;
+    node["renderToTexture"] = camera.renderToTexture;
+    node["transparentSort"] = camera.transparentSort;
+    node["automatic"] = camera.automatic;
+
+    return node;
+}
+
+CameraComponent Editor::Stream::decodeCameraComponent(const YAML::Node& node, const CameraComponent* oldCamera) {
+    CameraComponent camera;
+
+    // Use old values as defaults if provided
+    if (oldCamera) {
+        camera = *oldCamera;
+    }
+
+    if (node["type"]) camera.type = stringToCameraType(node["type"].as<std::string>());
+    if (node["target"]) camera.target = decodeVector3(node["target"]);
+    if (node["up"]) camera.up = decodeVector3(node["up"]);
+    if (node["leftClip"]) camera.leftClip = node["leftClip"].as<float>();
+    if (node["rightClip"]) camera.rightClip = node["rightClip"].as<float>();
+    if (node["bottomClip"]) camera.bottomClip = node["bottomClip"].as<float>();
+    if (node["topClip"]) camera.topClip = node["topClip"].as<float>();
+    if (node["yfov"]) camera.yfov = node["yfov"].as<float>();
+    if (node["aspect"]) camera.aspect = node["aspect"].as<float>();
+    if (node["nearClip"]) camera.nearClip = node["nearClip"].as<float>();
+    if (node["farClip"]) camera.farClip = node["farClip"].as<float>();
+    if (node["renderToTexture"]) camera.renderToTexture = node["renderToTexture"].as<bool>();
+    if (node["transparentSort"]) camera.transparentSort = node["transparentSort"].as<bool>();
+    if (node["automatic"]) camera.automatic = node["automatic"].as<bool>();
+
+    return camera;
 }
 
 YAML::Node Editor::Stream::encodeScriptComponent(const ScriptComponent& script) {

@@ -43,6 +43,7 @@ namespace Supernova::Editor{
         Scene* scene;
         SceneType sceneType;
         std::vector<Entity> entities;
+        Entity mainCamera = NULL_ENTITY;
         SceneRender* sceneRender;
         std::vector<Entity> selectedEntities;
         fs::path filepath;

@@ -49,6 +49,12 @@ static std::vector<Editor::EnumEntry> entriesLightType = {
     { (int)LightType::SPOT, "Spot" }
 };
 
+static std::vector<Editor::EnumEntry> entriesCameraType = {
+    { (int)CameraType::CAMERA_2D, "2D" },
+    { (int)CameraType::CAMERA_ORTHO, "Orthographic" },
+    { (int)CameraType::CAMERA_PERSPECTIVE, "Perspective" }
+};
+
 static std::vector<int> cascadeValues = { 1, 2, 3, 4, 5, 6 };
 static std::vector<int> po2Values = { 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384 };
 
@@ -2149,6 +2155,60 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
     endTable();
 }
 
+void Editor::Properties::drawCameraComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+    Scene* scene = sceneProject->scene;
+
+    //float secondColSize = 150;
+    float firstColSize = getLabelSize("Transparent Sort");
+
+    beginTable(cpType, firstColSize);
+
+    RowSettings enumSettings;
+    enumSettings.enumEntries = &entriesCameraType;
+    //enumSettings.secondColSize = secondColSize;
+    propertyRow(RowPropertyType::Enum, cpType, "type", "Type", sceneProject, entities, enumSettings);
+
+    // Get camera type from first entity to show relevant properties
+    CameraType camType = CameraType::CAMERA_2D;
+    if (!entities.empty()) {
+        CameraComponent* cam = scene->findComponent<CameraComponent>(entities[0]);
+        if (cam) {
+            camType = cam->type;
+        }
+    }
+
+    RowSettings defaultSettings;
+    //defaultSettings.secondColSize = secondColSize;
+
+    propertyRow(RowPropertyType::Vector3, cpType, "target", "Target", sceneProject, entities, defaultSettings);
+    propertyRow(RowPropertyType::Vector3, cpType, "up", "Up", sceneProject, entities, defaultSettings);
+
+    if (camType == CameraType::CAMERA_PERSPECTIVE) {
+        RowSettings fovSettings;
+        //fovSettings.secondColSize = secondColSize;
+        fovSettings.format = "%.3f";
+        propertyRow(RowPropertyType::Float, cpType, "yfov", "Y FOV", sceneProject, entities, fovSettings);
+
+        propertyRow(RowPropertyType::Float, cpType, "aspect", "Aspect", sceneProject, entities, defaultSettings);
+    }
+
+    if (camType == CameraType::CAMERA_ORTHO || camType == CameraType::CAMERA_2D) {
+        propertyRow(RowPropertyType::Float, cpType, "left", "Left", sceneProject, entities, defaultSettings);
+        propertyRow(RowPropertyType::Float, cpType, "right", "Right", sceneProject, entities, defaultSettings);
+        propertyRow(RowPropertyType::Float, cpType, "bottom", "Bottom", sceneProject, entities, defaultSettings);
+        propertyRow(RowPropertyType::Float, cpType, "top", "Top", sceneProject, entities, defaultSettings);
+    }
+
+    propertyRow(RowPropertyType::Float, cpType, "near", "Near", sceneProject, entities, defaultSettings);
+    propertyRow(RowPropertyType::Float, cpType, "far", "Far", sceneProject, entities, defaultSettings);
+
+    //propertyRow(RowPropertyType::Bool, cpType, "renderToTexture", "Render To Texture", sceneProject, entities, defaultSettings);
+    //propertyRow(RowPropertyType::Bool, cpType, "transparentSort", "Transparent Sort", sceneProject, entities, defaultSettings);
+    propertyRow(RowPropertyType::Bool, cpType, "automatic", "Automatic", sceneProject, entities, defaultSettings);
+
+    endTable();
+}
+
 void Editor::Properties::drawLightComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     LightComponent& light = sceneProject->scene->getComponent<LightComponent>(entities[0]);
 
@@ -2890,6 +2950,8 @@ void Editor::Properties::show(){
                     drawSpriteComponent(cpType, sceneProject, entities);
                 }else if (cpType == ComponentType::LightComponent){
                     drawLightComponent(cpType, sceneProject, entities);
+                }else if (cpType == ComponentType::CameraComponent){
+                    drawCameraComponent(cpType, sceneProject, entities);
                 }else if (cpType == ComponentType::ScriptComponent){
                     // ScriptComponent remains editable while playing
                     drawScriptComponent(cpType, sceneProject, entities);

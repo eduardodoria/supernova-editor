@@ -595,7 +595,7 @@ YAML::Node Editor::ProjectUtils::removeEntityComponent(EntityRegistry* registry,
             break;
         case ComponentType::CameraComponent:
             if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                oldComponent = Stream::encodeCameraComponent(registry->getComponent<CameraComponent>(entity));
             }
             registry->removeComponent<CameraComponent>(entity);
             break;
