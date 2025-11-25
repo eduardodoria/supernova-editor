@@ -9,6 +9,7 @@
 #include "resources/icons/sun-icon_png.h"
 #include "resources/icons/bulb-icon_png.h"
 #include "resources/icons/spot-icon_png.h"
+#include "resources/icons/camera-icon_png.h"
 
 #include "Project.h"
 
@@ -39,6 +40,7 @@ Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, tr
     sky->setTextures("editor:resources:default_sky", skyBack, skyFront, skyLeft, skyRight, skyTop, skyBottom);
 
     lightObjects.clear();
+    cameraObjects.clear();
 
     createLines();
 
@@ -69,6 +71,12 @@ Editor::SceneRender3D::~SceneRender3D(){
         delete pair.second.lines;
     }
     lightObjects.clear();
+
+    for (auto& pair : cameraObjects) {
+        delete pair.second.icon;
+        delete pair.second.lines;
+    }
+    cameraObjects.clear();
 }
 
 void Editor::SceneRender3D::createLines(){
@@ -120,6 +128,18 @@ bool Editor::SceneRender3D::instanciateLightObject(Entity entity){
     return false;
 }
 
+bool Editor::SceneRender3D::instanciateCameraObject(Entity entity){
+    if (cameraObjects.find(entity) == cameraObjects.end()) {
+        ScopedDefaultEntityPool sys(*scene, EntityPool::System);
+        cameraObjects[entity].icon = new Sprite(scene);
+        cameraObjects[entity].lines = new Lines(scene);
+
+        return true;
+    }
+
+    return false;
+}
+
 void Editor::SceneRender3D::createOrUpdateLightIcon(Entity entity, const Transform& transform, LightType lightType, bool newLight) {
     LightObjects& lo = lightObjects[entity];
 
@@ -162,6 +182,42 @@ void Editor::SceneRender3D::createOrUpdateLightIcon(Entity entity, const Transfo
     }
 
     lo.icon->setScale(scale);
+}
+
+void Editor::SceneRender3D::createOrUpdateCameraIcon(Entity entity, const Transform& transform, bool newCamera) {
+    CameraObjects& co = cameraObjects[entity];
+
+    if (newCamera) {
+        TextureData iconData;
+        iconData.loadTextureFromMemory(camera_icon_png, camera_icon_png_len);
+        co.icon->setTexture("editor:resources:camera_icon", iconData);
+
+        co.icon->setBillboard(true);
+        co.icon->setSize(128, 128);
+        co.icon->setReceiveLights(false);
+        co.icon->setCastShadows(false);
+        co.icon->setReceiveShadows(false);
+        co.icon->setPivotPreset(PivotPreset::CENTER);
+    }
+
+    // Update camera icon position
+    co.icon->setPosition(transform.worldPosition);
+    co.icon->setVisible(transform.visible);
+
+    // Update camera icon scale
+    CameraComponent& cameracomp = scene->getComponent<CameraComponent>(camera->getEntity());
+    float iconScale = 0.25f;
+    float scale = iconScale * zoom;
+
+    if (cameracomp.type == CameraType::CAMERA_PERSPECTIVE){
+        float dist = (co.icon->getPosition() - camera->getWorldPosition()).length();
+        scale = std::tan(cameracomp.yfov) * dist * (iconScale / (float)framebuffer.getHeight());
+        if (!std::isfinite(scale) || scale <= 0.0f) {
+            scale = 1.0f;
+        }
+    }
+
+    co.icon->setScale(scale);
 }
 
 void Editor::SceneRender3D::createDirectionalLightArrow(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected) {
@@ -445,6 +501,7 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
     viewgizmo.applyRotation(camera);
 
     std::set<Entity> currentIconLights;
+    std::set<Entity> currentIconCameras;
 
     for (Entity& entity: entities){
         Signature signature = scene->getSignature(entity);
@@ -468,6 +525,16 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
                 createSpotLightCones(entity, transform, light, isSelected);
             }
         }
+
+        if (signature.test(scene->getComponentId<CameraComponent>()) && signature.test(scene->getComponentId<Transform>())) {
+            if (entity != camera->getEntity()) {
+                Transform& transform = scene->getComponent<Transform>(entity);
+
+                currentIconCameras.insert(entity);
+                bool newCamera = instanciateCameraObject(entity);
+                createOrUpdateCameraIcon(entity, transform, newCamera);
+            }
+        }
     }
 
     // Remove sun icons for entities that are no longer directional lights
@@ -479,6 +546,18 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
             it = lightObjects.erase(it);
         } else {
             ++it;
+        }
+    }
+
+    // Remove camera icons
+    auto itCam = cameraObjects.begin();
+    while (itCam != cameraObjects.end()) {
+        if (currentIconCameras.find(itCam->first) == currentIconCameras.end()) {
+            delete itCam->second.icon;
+            delete itCam->second.lines;
+            itCam = cameraObjects.erase(itCam);
+        } else {
+            ++itCam;
         }
     }
 }

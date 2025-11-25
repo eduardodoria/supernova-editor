@@ -23,7 +23,8 @@ namespace Supernova::Editor{
         SPRITE,
         POINT_LIGHT,
         DIRECTIONAL_LIGHT,
-        SPOT_LIGHT
+        SPOT_LIGHT,
+        CAMERA
     };
 
     class CreateEntityCmd: public Command{

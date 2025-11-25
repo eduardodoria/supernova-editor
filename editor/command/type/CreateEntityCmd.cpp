@@ -181,6 +181,13 @@ bool Editor::CreateEntityCmd::execute(){
         light.range = 10.0f;
         light.intensity = 30.0f;
 
+    }else if (type == EntityCreationType::CAMERA){
+
+        scene->addComponent<Transform>(entity, {});
+        scene->addComponent<CameraComponent>(entity, {});
+
+        CameraComponent& camera = scene->getComponent<CameraComponent>(entity);
+        camera.type = CameraType::CAMERA_PERSPECTIVE;
     }
 
     scene->setEntityName(entity, entityName);

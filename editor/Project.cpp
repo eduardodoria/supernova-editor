@@ -963,7 +963,8 @@ Entity Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
         }else if (signature.test(scenedata->scene->getComponentId<UIComponent>())){
             UIComponent& ui = scenedata->scene->getComponent<UIComponent>(entity);
             aabb = ui.worldAABB;
-        }else if (signature.test(scenedata->scene->getComponentId<LightComponent>())){
+        }else if (signature.test(scenedata->scene->getComponentId<LightComponent>()) || 
+                  signature.test(scenedata->scene->getComponentId<CameraComponent>())){
             Transform& transform = scenedata->scene->getComponent<Transform>(entity);
             Transform& camtransform = scenedata->scene->getComponent<Transform>(scenedata->scene->getCamera());
             CameraComponent& camera = scenedata->scene->getComponent<CameraComponent>(scenedata->scene->getCamera());
@@ -1030,7 +1031,8 @@ bool Editor::Project::selectObjectsByRect(uint32_t sceneId, Vector2 start, Vecto
         }else if (signature.test(scenedata->scene->getComponentId<UIComponent>())){
             UIComponent& ui = scenedata->scene->getComponent<UIComponent>(entity);
             aabb = ui.aabb;
-        }else if (signature.test(scenedata->scene->getComponentId<LightComponent>())){
+        }else if (signature.test(scenedata->scene->getComponentId<LightComponent>()) || 
+                  signature.test(scenedata->scene->getComponentId<CameraComponent>())){
             Transform& transform = scenedata->scene->getComponent<Transform>(entity);
             aabb = AABB::ZERO; // just a point
         }

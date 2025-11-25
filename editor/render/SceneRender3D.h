@@ -18,6 +18,11 @@ namespace Supernova::Editor{
         float range = 0.0f;
     };
 
+    struct CameraObjects{
+        Sprite* icon = nullptr;
+        Lines* lines = nullptr;
+    };
+
     class SceneRender3D: public SceneRender{
     private:
 
@@ -25,6 +30,7 @@ namespace Supernova::Editor{
         SkyBox* sky;
 
         std::map<Entity, LightObjects> lightObjects;
+        std::map<Entity, CameraObjects> cameraObjects;
 
         ViewportGizmo viewgizmo;
 
@@ -32,7 +38,9 @@ namespace Supernova::Editor{
 
         void createLines();
         bool instanciateLightObject(Entity entity);
+        bool instanciateCameraObject(Entity entity);
         void createOrUpdateLightIcon(Entity entity, const Transform& transform, LightType lightType, bool newLight);
+        void createOrUpdateCameraIcon(Entity entity, const Transform& transform, bool newCamera);
         void createDirectionalLightArrow(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected);
         void createPointLightSphere(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected);
         void createSpotLightCones(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected);
