@@ -495,6 +495,11 @@ void Editor::Project::initializeLuaScripts(SceneProject* sceneProject) {
             int ref = luaL_ref(L, LUA_REGISTRYINDEX);
             scriptEntry.instance = reinterpret_cast<void*>(static_cast<intptr_t>(ref));
 
+            // Set luaInstanceRef on all properties so syncToMember/syncFromMember work
+            for (auto& prop : scriptEntry.properties) {
+                prop.luaRef = ref;
+            }
+
             // Pop module table
             lua_pop(L, 1);
         }
@@ -671,6 +676,10 @@ void Editor::Project::cleanupLuaScripts(SceneProject* sceneProject) {
                 luaL_unref(L, LUA_REGISTRYINDEX, ref);
 
                 scriptEntry.instance = nullptr;
+
+                for (auto& prop : scriptEntry.properties) {
+                    prop.luaRef = 0;
+                }
             }
         }
     }
