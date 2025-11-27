@@ -300,6 +300,8 @@ std::vector<Editor::ScriptSource> Editor::Project::collectCppScriptSourceFiles()
 
                 // Iterate through all scripts in the component
                 for (const auto& scriptEntry : scriptComponent.scripts) {
+                    if (!scriptEntry.enabled)
+                        continue;
                     if (scriptEntry.type == ScriptType::SCRIPT_LUA)
                         continue; // Skip Lua scripts
 
@@ -391,10 +393,9 @@ void Editor::Project::initializeLuaScripts(SceneProject* sceneProject) {
         Entity entity = scriptsArray->getEntity(i);
 
         for (auto& scriptEntry : scriptComp.scripts) {
-            if (scriptEntry.type != ScriptType::SCRIPT_LUA)
-                continue;
-
             if (!scriptEntry.enabled)
+                continue;
+            if (scriptEntry.type != ScriptType::SCRIPT_LUA)
                 continue;
 
             // Construct full path to Lua file
@@ -683,6 +684,46 @@ void Editor::Project::cleanupLuaScripts(SceneProject* sceneProject) {
             }
         }
     }
+}
+
+void Editor::Project::finalizeStart(SceneProject* sceneProject) {
+    initializeLuaScripts(sceneProject);
+
+    pauseEngineScene(sceneProject, false);
+    Engine::pauseGameEvents(false);
+
+    Engine::onViewLoaded.call();
+    Engine::onViewChanged.call();
+
+    Out::success("Scene '%s' started", sceneProject->name.c_str());
+}
+
+void Editor::Project::finalizeStop(SceneProject* sceneProject) {
+    Engine::onViewDestroyed.call();
+    Engine::onShutdown.call();
+
+    pauseEngineScene(sceneProject, true);
+    Engine::pauseGameEvents(true);
+
+    cleanupLuaScripts(sceneProject);
+
+    // Restore snapshot if present
+    if (sceneProject->playStateSnapshot && !sceneProject->playStateSnapshot.IsNull()) {
+        Stream::decodeScene(sceneProject->scene, sceneProject->playStateSnapshot["scene"]);
+
+        auto entitiesNode = sceneProject->playStateSnapshot["entities"];
+        for (const auto& entityNode : entitiesNode) {
+            Stream::decodeEntity(entityNode, sceneProject->scene, nullptr, nullptr, sceneProject, NULL_ENTITY, true, false);
+        }
+
+        // Clear the snapshot
+        sceneProject->playStateSnapshot = YAML::Node();
+    }
+
+    sceneProject->playState = ScenePlayState::STOPPED;
+    sceneProject->scene->getComponent<CameraComponent>(sceneProject->scene->getCamera()).needUpdate = true;
+
+    Out::success("Scene '%s' stopped", sceneProject->name.c_str());
 }
 
 bool Editor::Project::createTempProject(std::string projectName, bool deleteIfExists) {
@@ -2578,38 +2619,39 @@ void Editor::Project::start(uint32_t sceneId) {
 
     sceneProject->playState = ScenePlayState::PLAYING;
 
-    std::string libName = "projectlib";
-    fs::path buildPath = getProjectInternalPath() / "build";
-
     resolveEntityRefs(sceneProject);
     std::vector<Editor::ScriptSource> scriptFiles = collectCppScriptSourceFiles();
 
-    generator.build(getProjectPath(), getProjectInternalPath(), buildPath, libName, scriptFiles);
+    // Check if we have C++ scripts that need building
+    bool hasCppScripts = !scriptFiles.empty();
 
-    std::thread connectThread([this, sceneProject, buildPath, libName]() {
-        generator.waitForBuildToComplete();
+    if (hasCppScripts) {
+        std::string libName = "projectlib";
+        fs::path buildPath = getProjectInternalPath() / "build";
 
-        if (!generator.didLastBuildSucceed()) {
-            sceneProject->playState = ScenePlayState::STOPPED;
-            return;
-        }
+        generator.build(getProjectPath(), getProjectInternalPath(), buildPath, libName, scriptFiles);
 
-        if (conector.connect(buildPath, libName)) {
-            conector.execute(sceneProject);
+        std::thread connectThread([this, sceneProject, buildPath, libName]() {
+            generator.waitForBuildToComplete();
 
-            initializeLuaScripts(sceneProject);
+            if (!generator.didLastBuildSucceed()) {
+                sceneProject->playState = ScenePlayState::STOPPED;
+                return;
+            }
 
-            pauseEngineScene(sceneProject, false);
-            Engine::pauseGameEvents(false);
-
-            Engine::onViewLoaded.call();
-            Engine::onViewChanged.call();
-        } else {
-            Out::error("Failed to connect to library");
-            sceneProject->playState = ScenePlayState::STOPPED;
-        }
-    });
-    connectThread.detach();
+            if (conector.connect(buildPath, libName)) {
+                conector.execute(sceneProject);
+                finalizeStart(sceneProject);
+            } else {
+                Out::error("Failed to connect to library");
+                sceneProject->playState = ScenePlayState::STOPPED;
+            }
+        });
+        connectThread.detach();
+    } else {
+        // No C++ scripts, just initialize Lua scripts directly
+        finalizeStart(sceneProject);
+    }
 }
 
 void Editor::Project::pause(uint32_t sceneId) {
@@ -2659,56 +2701,39 @@ void Editor::Project::stop(uint32_t sceneId) {
     // Clear crash handler when stopping
     Supernova::FunctionSubscribeGlobal::getCrashHandler() = nullptr;
 
-    // Request cancellation asynchronously (returns a future we can wait on later if needed)
-    auto cancelFuture = generator.cancelBuild();
+    // Check if we have C++ library connected
+    bool hasLibraryConnected = conector.isLibraryConnected();
 
-    // Cleanup script instances / disconnect if the library is currently connected.
-    if (conector.isLibraryConnected()) {
+    if (hasLibraryConnected) {
+        // Request cancellation asynchronously (returns a future we can wait on later if needed)
+        auto cancelFuture = generator.cancelBuild();
+
+        // Cleanup script instances / disconnect if the library is currently connected.
         conector.cleanup(sceneProject);
         conector.disconnect();
-    }
 
-    // After cancellation completes perform the rest of the stop work on a background thread
-    uint32_t sceneIdCopy = sceneId;
-    std::thread finalizeStopThread([this, sceneIdCopy, cancelFuture = std::move(cancelFuture)]() mutable {
-        if (cancelFuture.valid()) {
-            // wait for cancellation to finish
-            cancelFuture.wait();
-        }
-
-        Engine::onViewDestroyed.call();
-        Engine::onShutdown.call();
-
-        // Get scene pointer again - it should still be valid unless scene was deleted
-        SceneProject* sceneProject = getScene(sceneIdCopy);
-        if (!sceneProject) {
-            Out::warning("Scene %u no longer exists after build cancellation", sceneIdCopy);
-            return;
-        }
-
-        // Pause engine while cancellation is in progress
-        pauseEngineScene(sceneProject, true);
-        Engine::pauseGameEvents(true);
-
-        cleanupLuaScripts(sceneProject);
-
-        // Restore snapshot if present
-        if (sceneProject->playStateSnapshot && !sceneProject->playStateSnapshot.IsNull()) {
-            Stream::decodeScene(sceneProject->scene, sceneProject->playStateSnapshot["scene"]);
-
-            auto entitiesNode = sceneProject->playStateSnapshot["entities"];
-            for (const auto& entityNode : entitiesNode){
-                Stream::decodeEntity(entityNode, sceneProject->scene, nullptr, nullptr, sceneProject, NULL_ENTITY, true, false);
+        // After cancellation completes perform the rest of the stop work on a background thread
+        uint32_t sceneIdCopy = sceneId;
+        std::thread finalizeStopThread([this, sceneIdCopy, cancelFuture = std::move(cancelFuture)]() mutable {
+            if (cancelFuture.valid()) {
+                // wait for cancellation to finish
+                cancelFuture.wait();
             }
 
-            // Clear the snapshot
-            sceneProject->playStateSnapshot = YAML::Node();
-        }
+            // Get scene pointer again - it should still be valid unless scene was deleted
+            SceneProject* sceneProject = getScene(sceneIdCopy);
+            if (!sceneProject) {
+                Out::warning("Scene %u no longer exists after build cancellation", sceneIdCopy);
+                return;
+            }
 
-        sceneProject->playState = ScenePlayState::STOPPED;
-        sceneProject->scene->getComponent<CameraComponent>(sceneProject->scene->getCamera()).needUpdate = true;
-    });
-    finalizeStopThread.detach();
+            finalizeStop(sceneProject);
+        });
+        finalizeStopThread.detach();
+    } else {
+        // No C++ library connected, just finalize directly
+        finalizeStop(sceneProject);
+    }
 }
 
 void Editor::Project::debugSceneHierarchy(){

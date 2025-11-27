@@ -123,6 +123,9 @@ namespace Supernova::Editor{
         void initializeLuaScripts(SceneProject* sceneProject);
         void cleanupLuaScripts(SceneProject* sceneProject);
 
+        void finalizeStart(SceneProject* sceneProject);
+        void finalizeStop(SceneProject* sceneProject);
+
     public:
         Project();
 
