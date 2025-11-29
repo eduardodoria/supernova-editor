@@ -188,6 +188,17 @@ bool Editor::CreateEntityCmd::execute(){
 
         CameraComponent& camera = scene->getComponent<CameraComponent>(entity);
         camera.type = CameraType::CAMERA_PERSPECTIVE;
+        camera.useTarget = false;
+        camera.yfov = 0.75f;
+
+        if (Engine::getCanvasWidth() != 0 && Engine::getCanvasHeight() != 0) {
+            camera.aspect = (float) Engine::getCanvasWidth() / (float) Engine::getCanvasHeight();
+        }else{
+            camera.aspect = 1.0;
+        }
+
+        camera.nearClip = DEFAULT_PERSPECTIVE_NEAR;
+        camera.farClip = DEFAULT_PERSPECTIVE_FAR;
     }
 
     scene->setEntityName(entity, entityName);

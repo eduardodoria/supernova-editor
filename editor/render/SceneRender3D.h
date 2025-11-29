@@ -51,7 +51,7 @@ namespace Supernova::Editor{
         bool instanciateCameraObject(Entity entity);
         void createOrUpdateLightIcon(Entity entity, const Transform& transform, LightType lightType, bool newLight);
         void createOrUpdateCameraIcon(Entity entity, const Transform& transform, bool newCamera);
-        void createCameraFrustum(Entity entity, const Transform& transform, const CameraComponent& cameraComponent, bool isSelected);
+        void createCameraFrustum(Entity entity, const Transform& transform, const CameraComponent& cameraComponent, bool fixedSizeFrustum);
         void createDirectionalLightArrow(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected);
         void createPointLightSphere(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected);
         void createSpotLightCones(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected);

@@ -50,7 +50,6 @@ static std::vector<Editor::EnumEntry> entriesLightType = {
 };
 
 static std::vector<Editor::EnumEntry> entriesCameraType = {
-    { (int)CameraType::CAMERA_2D, "2D" },
     { (int)CameraType::CAMERA_ORTHO, "Orthographic" },
     { (int)CameraType::CAMERA_PERSPECTIVE, "Perspective" }
 };
@@ -2157,42 +2156,35 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
 
 void Editor::Properties::drawCameraComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     Scene* scene = sceneProject->scene;
+    CameraComponent& camera = scene->getComponent<CameraComponent>(entities[0]);
 
-    //float secondColSize = 150;
-    float firstColSize = getLabelSize("Transparent Sort");
+    float firstColSize = getLabelSize("Auto Resize");
 
     beginTable(cpType, firstColSize);
 
     RowSettings enumSettings;
     enumSettings.enumEntries = &entriesCameraType;
-    //enumSettings.secondColSize = secondColSize;
     propertyRow(RowPropertyType::Enum, cpType, "type", "Type", sceneProject, entities, enumSettings);
 
-    // Get camera type from first entity to show relevant properties
-    CameraType camType = CameraType::CAMERA_2D;
-    if (!entities.empty()) {
-        CameraComponent* cam = scene->findComponent<CameraComponent>(entities[0]);
-        if (cam) {
-            camType = cam->type;
-        }
-    }
-
     RowSettings defaultSettings;
-    //defaultSettings.secondColSize = secondColSize;
 
-    propertyRow(RowPropertyType::Vector3, cpType, "target", "Target", sceneProject, entities, defaultSettings);
-    propertyRow(RowPropertyType::Vector3, cpType, "up", "Up", sceneProject, entities, defaultSettings);
+    propertyRow(RowPropertyType::Bool, cpType, "useTarget", "Use Target", sceneProject, entities, defaultSettings);
 
-    if (camType == CameraType::CAMERA_PERSPECTIVE) {
+    if (camera.useTarget){
+        propertyRow(RowPropertyType::Vector3, cpType, "target", "Target", sceneProject, entities, defaultSettings);
+    }
+    propertyRow(RowPropertyType::Direction, cpType, "up", "Up", sceneProject, entities, defaultSettings);
+
+    if (camera.type == CameraType::CAMERA_PERSPECTIVE) {
         RowSettings fovSettings;
-        //fovSettings.secondColSize = secondColSize;
         fovSettings.format = "%.3f";
+        fovSettings.stepSize = 0.01f;
         propertyRow(RowPropertyType::Float, cpType, "yfov", "Y FOV", sceneProject, entities, fovSettings);
 
         propertyRow(RowPropertyType::Float, cpType, "aspect", "Aspect", sceneProject, entities, defaultSettings);
     }
 
-    if (camType == CameraType::CAMERA_ORTHO || camType == CameraType::CAMERA_2D) {
+    if (camera.type == CameraType::CAMERA_ORTHO || camera.type == CameraType::CAMERA_2D) {
         propertyRow(RowPropertyType::Float, cpType, "left", "Left", sceneProject, entities, defaultSettings);
         propertyRow(RowPropertyType::Float, cpType, "right", "Right", sceneProject, entities, defaultSettings);
         propertyRow(RowPropertyType::Float, cpType, "bottom", "Bottom", sceneProject, entities, defaultSettings);
@@ -2204,7 +2196,7 @@ void Editor::Properties::drawCameraComponent(ComponentType cpType, SceneProject*
 
     //propertyRow(RowPropertyType::Bool, cpType, "renderToTexture", "Render To Texture", sceneProject, entities, defaultSettings);
     //propertyRow(RowPropertyType::Bool, cpType, "transparentSort", "Transparent Sort", sceneProject, entities, defaultSettings);
-    propertyRow(RowPropertyType::Bool, cpType, "automatic", "Automatic", sceneProject, entities, defaultSettings);
+    propertyRow(RowPropertyType::Bool, cpType, "autoResize", "Auto Resize", sceneProject, entities, defaultSettings);
 
     endTable();
 }
@@ -2811,13 +2803,16 @@ void Editor::Properties::show(){
 
         if (ImGui::Button(ICON_FA_FILE_CIRCLE_PLUS " New Script", ImVec2(buttonWidth, 0))) {
             std::string defaultName = "NewScript";
+            Entity firstEntity = entities.empty() ? NULL_ENTITY : entities[0];
             scriptCreateDialog.open(
+                sceneProject->scene,
+                firstEntity,
                 project->getProjectPath(),
                 defaultName,
                 [this, sceneProject, entities](const std::filesystem::path& headerPath,
-                                                    const std::filesystem::path& sourcePath,
-                                                    const std::string& name,
-                                                    ScriptType type) {
+                                            const std::filesystem::path& sourcePath,
+                                            const std::string& name,
+                                            ScriptType type) {
 
                     Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
 

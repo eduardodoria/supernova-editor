@@ -458,20 +458,21 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         CameraComponent* comp = static_cast<CameraComponent*>(compRef);
         static CameraComponent* def = new CameraComponent;
 
-        ps["type"] = {PropertyType::Enum, UpdateFlags_None, &def->type, &comp->type};
-        ps["target"] = {PropertyType::Vector3, UpdateFlags_None, &def->target, &comp->target};
-        ps["up"] = {PropertyType::Vector3, UpdateFlags_None, &def->up, &comp->up};
-        ps["left"] = {PropertyType::Float, UpdateFlags_None, &def->leftClip, &comp->leftClip};
-        ps["right"] = {PropertyType::Float, UpdateFlags_None, &def->rightClip, &comp->rightClip};
-        ps["bottom"] = {PropertyType::Float, UpdateFlags_None, &def->bottomClip, &comp->bottomClip};
-        ps["top"] = {PropertyType::Float, UpdateFlags_None, &def->topClip, &comp->topClip};
-        ps["yfov"] = {PropertyType::Float, UpdateFlags_None, &def->yfov, &comp->yfov};
-        ps["aspect"] = {PropertyType::Float, UpdateFlags_None, &def->aspect, &comp->aspect};
-        ps["near"] = {PropertyType::Float, UpdateFlags_None, &def->nearClip, &comp->nearClip};
-        ps["far"] = {PropertyType::Float, UpdateFlags_None, &def->farClip, &comp->farClip};
+        ps["type"] = {PropertyType::Enum, UpdateFlags_Camera, &def->type, &comp->type};
+        ps["target"] = {PropertyType::Vector3, UpdateFlags_Camera, &def->target, &comp->target};
+        ps["up"] = {PropertyType::Vector3, UpdateFlags_Camera, &def->up, &comp->up};
+        ps["left"] = {PropertyType::Float, UpdateFlags_Camera, &def->leftClip, &comp->leftClip};
+        ps["right"] = {PropertyType::Float, UpdateFlags_Camera, &def->rightClip, &comp->rightClip};
+        ps["bottom"] = {PropertyType::Float, UpdateFlags_Camera, &def->bottomClip, &comp->bottomClip};
+        ps["top"] = {PropertyType::Float, UpdateFlags_Camera, &def->topClip, &comp->topClip};
+        ps["yfov"] = {PropertyType::Float, UpdateFlags_Camera, &def->yfov, &comp->yfov};
+        ps["aspect"] = {PropertyType::Float, UpdateFlags_Camera, &def->aspect, &comp->aspect};
+        ps["near"] = {PropertyType::Float, UpdateFlags_Camera, &def->nearClip, &comp->nearClip};
+        ps["far"] = {PropertyType::Float, UpdateFlags_Camera, &def->farClip, &comp->farClip};
         ps["renderToTexture"] = {PropertyType::Bool, UpdateFlags_None, &def->renderToTexture, &comp->renderToTexture};
         ps["transparentSort"] = {PropertyType::Bool, UpdateFlags_None, &def->transparentSort, &comp->transparentSort};
-        ps["automatic"] = {PropertyType::Bool, UpdateFlags_None, &def->automatic, &comp->automatic};
+        ps["useTarget"] = {PropertyType::Bool, UpdateFlags_Camera, &def->useTarget, &comp->useTarget};
+        ps["autoResize"] = {PropertyType::Bool, UpdateFlags_Camera, &def->autoResize, &comp->autoResize};
     }else if (component == ComponentType::ScriptComponent){
         ScriptComponent* comp = static_cast<ScriptComponent*>(compRef);
         static ScriptComponent* def = new ScriptComponent;
@@ -730,6 +731,9 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::findEntityPropertie
 void Editor::Catalog::updateEntity(EntityRegistry* registry, Entity entity, int updateFlags){
     if (updateFlags & UpdateFlags_Transform){
         registry->getComponent<Transform>(entity).needUpdate = true;
+    }
+    if (updateFlags & UpdateFlags_Camera){
+        registry->getComponent<CameraComponent>(entity).needUpdate = true;
     }
     if (updateFlags & UpdateFlags_Scene_Mesh_Reload){
         auto meshes = registry->getComponentArray<MeshComponent>();

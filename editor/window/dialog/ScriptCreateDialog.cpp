@@ -1,25 +1,25 @@
 #include "ScriptCreateDialog.h"
 #include "external/IconsFontAwesome6.h"
+#include "Scene.h"
 #include <fstream>
 
 namespace Supernova {
 namespace Editor {
 
-void ScriptCreateDialog::open(const fs::path& projectPath,
+void ScriptCreateDialog::open(Scene* scene,
+                              Entity entity,
+                              const fs::path& projectPath,
                               const std::string& defaultBaseName,
-    std::function<void(const fs::path& headerPath,
-                       const fs::path& sourcePath,
-                       const std::string& classOrModuleName,
-                       ScriptType type)> onCreate,
-    std::function<void()> onCancel) {
+                              std::function<void(const fs::path&, const fs::path&, const std::string&, ScriptType)> onCreate,
+                              std::function<void()> onCancel) {
     m_isOpen = true;
+    m_scene = scene;
+    m_entity = entity;
     m_projectPath = projectPath;
     m_selectedPath = projectPath.string();
-    // Default to SUBCLASS
     m_scriptType = ScriptType::SUBCLASS;
     m_onCreate = onCreate;
     m_onCancel = onCancel;
-
     std::string base = defaultBaseName.empty() ? "NewScript" : defaultBaseName;
     strncpy(m_baseNameBuffer, base.c_str(), sizeof(m_baseNameBuffer) - 1);
     m_baseNameBuffer[sizeof(m_baseNameBuffer) - 1] = '\0';
@@ -106,37 +106,66 @@ fs::path ScriptCreateDialog::makeLuaPath(const std::string& moduleName) const {
 }
 
 void ScriptCreateDialog::writeFiles(const fs::path& headerPath,
-                                    const fs::path& sourcePath,
-                                    const std::string& classOrModuleName,
-                                    ScriptType type) {
-    bool isCppSubclass   = (type == ScriptType::SUBCLASS);
+                                      const fs::path& sourcePath,
+                                      const std::string& classOrModuleName,
+                                      ScriptType type) {
+    bool isCppSubclass = (type == ScriptType::SUBCLASS);
     bool isCppScriptBase = (type == ScriptType::SCRIPT_CLASS);
-    bool isLua           = (type == ScriptType::SCRIPT_LUA);
+    bool isLua = (type == ScriptType::SCRIPT_LUA);
 
-    // C++ generation
     if (isCppSubclass || isCppScriptBase) {
         fs::create_directories(headerPath.parent_path());
 
         if (isCppSubclass) {
+            std::string parentClass = "EntityHandle";
+            bool hasTransform = false;
+            bool isMesh = false;
+
+            if (m_scene && m_entity != NULL_ENTITY) {
+                Signature signature = m_scene->getSignature(m_entity);
+                auto cameraComponentId = m_scene->getComponentId<CameraComponent>();
+                auto meshComponentId = m_scene->getComponentId<MeshComponent>();
+                auto lightComponentId = m_scene->getComponentId<LightComponent>();
+                auto transformComponentId = m_scene->getComponentId<Transform>();
+
+                if (signature.test(transformComponentId)) {
+                    parentClass = "Object";
+                    hasTransform = true;
+                }
+
+                if (signature.test(cameraComponentId)) {
+                    parentClass = "Camera";
+                } else if (signature.test(meshComponentId)) {
+                    parentClass = "Mesh";
+                    isMesh = true;
+                } else if (signature.test(lightComponentId)) {
+                    parentClass = "Light";
+                }
+            }
+
             // Header
             {
                 std::ofstream h(headerPath, std::ios::trunc);
                 if (h) {
                     h << "#pragma once\n\n";
                     h << "#include \"Shape.h\"\n";
-                    h << "#include \"Engine.h\"\n";
+                    h << "#include \"" << parentClass << ".h\"\n";
                     h << "#include \"ScriptProperty.h\"\n\n";
-                    h << "class " << classOrModuleName << " : public Supernova::Shape {\n";
+                    h << "class " << classOrModuleName << " : public Supernova::" << parentClass << " {\n";
                     h << "public:\n";
-                    h << "    // Example properties - you can add more!\n";
-                    h << "    SPROPERTY(\"Speed\")\n";
-                    h << "    float speed = 5.0f;\n\n";
+                    h << "    // Example properties\n";
                     h << "    SPROPERTY(\"Is Active\")\n";
                     h << "    bool isActive = true;\n\n";
-                    h << "    SPROPERTY(\"Target Position\")\n";
-                    h << "    Supernova::Vector3 targetPosition = Supernova::Vector3(0, 0, 0);\n\n";
-                    h << "    SPROPERTY(\"Mesh Color\", Color4)\n";
-                    h << "    Supernova::Vector4 meshColor = Supernova::Vector4(1, 1, 1, 1);\n\n";
+                    if (hasTransform){
+                        h << "    SPROPERTY(\"Speed\")\n";
+                        h << "    float speed = 5.0f;\n\n";
+                        h << "    SPROPERTY(\"Target Position\")\n";
+                        h << "    Supernova::Vector3 targetPosition = Supernova::Vector3(0, 0, 0);\n\n";
+                        if (isMesh){
+                            h << "    SPROPERTY(\"Mesh Color\", Color4)\n";
+                            h << "    Supernova::Vector4 meshColor = Supernova::Vector4(1, 1, 1, 1);\n\n";
+                        }
+                    }
                     h << "    " << classOrModuleName << "(Supernova::Scene* scene, Supernova::Entity entity);\n";
                     h << "    virtual ~" << classOrModuleName << "();\n\n";
                     h << "    void onUpdate();\n";
@@ -150,7 +179,7 @@ void ScriptCreateDialog::writeFiles(const fs::path& headerPath,
                 if (c) {
                     c << "#include \"" << headerPath.filename().string() << "\"\n\n";
                     c << "using namespace Supernova;\n\n";
-                    c << classOrModuleName << "::" << classOrModuleName << "(Scene* scene, Entity entity): Shape(scene, entity) {\n";
+                    c << classOrModuleName << "::" << classOrModuleName << "(Scene* scene, Entity entity): " << parentClass << "(scene, entity) {\n";
                     c << "    REGISTER_ENGINE_EVENT(onUpdate);\n\n";
                     c << "}\n\n";
                     c << classOrModuleName << "::~" << classOrModuleName << "() {\n";
@@ -158,12 +187,16 @@ void ScriptCreateDialog::writeFiles(const fs::path& headerPath,
                     c << "}\n\n";
                     c << "void " << classOrModuleName << "::onUpdate() {\n";
                     c << "    if (!isActive) return;\n\n";
-                    c << "    // Example: Move towards target position at 'speed' units per second\n";
-                    c << "    float deltaTime = Engine::getDeltatime();\n";
-                    c << "    Vector3 currentPos = getPosition();\n";
-                    c << "    Vector3 direction = (targetPosition - currentPos).normalize();\n";
-                    c << "    setPosition(currentPos + direction * speed * deltaTime);\n";
-                    c << "    setColor(meshColor);\n";
+                    if (hasTransform){
+                        c << "    // Example: Move towards target position at 'speed' units per second\n";
+                        c << "    float deltaTime = Engine::getDeltatime();\n";
+                        c << "    Vector3 currentPos = getPosition();\n";
+                        c << "    Vector3 direction = (targetPosition - currentPos).normalize();\n";
+                        c << "    setPosition(currentPos + direction * speed * deltaTime);\n";
+                        if (isMesh){
+                            c << "    setColor(meshColor);\n";
+                        }
+                    }
                     c << "}\n\n";
                 }
             }

@@ -9,16 +9,17 @@ namespace Supernova::Editor{
     enum UpdateFlags{
         UpdateFlags_None                = 0,
         UpdateFlags_Transform           = 1 << 0,
-        UpdateFlags_Scene_Mesh_Reload   = 1 << 1,
-        UpdateFlags_Mesh_Reload         = 1 << 2,
-        UpdateFlags_Mesh_Texture        = 1 << 3,
-        UpdateFlags_UI_Reload           = 1 << 4,
-        UpdateFlags_UI_Texture          = 1 << 5,
-        UpdateFlags_Image_Patches       = 1 << 6,
-        UpdateFlags_Layout_Sizes        = 1 << 7,
-        UpdateFlags_Sprite              = 1 << 8,
-        UpdateFlags_LightShadowMap      = 1 << 9,
-        UpdateFlags_LightShadowCamera   = 1 << 10
+        UpdateFlags_Camera              = 1 << 1,
+        UpdateFlags_Scene_Mesh_Reload   = 1 << 2,
+        UpdateFlags_Mesh_Reload         = 1 << 3,
+        UpdateFlags_Mesh_Texture        = 1 << 4,
+        UpdateFlags_UI_Reload           = 1 << 5,
+        UpdateFlags_UI_Texture          = 1 << 6,
+        UpdateFlags_Image_Patches       = 1 << 7,
+        UpdateFlags_Layout_Sizes        = 1 << 8,
+        UpdateFlags_Sprite              = 1 << 9,
+        UpdateFlags_LightShadowMap      = 1 << 10,
+        UpdateFlags_LightShadowCamera   = 1 << 11
     };
 
     // the order of components here affects properties window

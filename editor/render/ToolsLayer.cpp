@@ -51,7 +51,8 @@ void Editor::ToolsLayer::updateCamera(CameraComponent& extCamera, Transform& ext
     cameracomp.farClip = extCamera.farClip;
     cameracomp.yfov = extCamera.yfov;
     cameracomp.aspect = extCamera.aspect;
-    cameracomp.automatic = extCamera.automatic;
+    cameracomp.useTarget = extCamera.useTarget;
+    cameracomp.autoResize = extCamera.autoResize;
     if (extCamera.needUpdate){
         cameracomp.needUpdate = extCamera.needUpdate;
     }

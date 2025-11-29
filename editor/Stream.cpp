@@ -1407,6 +1407,7 @@ Transform Editor::Stream::decodeTransform(const YAML::Node& node, const Transfor
     // Use old values as defaults if provided
     if (oldTransform) {
         transform = *oldTransform;
+        transform.needUpdate = true;
     }
 
     if (node["position"]) transform.position = decodeVector3(node["position"]);
@@ -1857,7 +1858,8 @@ YAML::Node Editor::Stream::encodeCameraComponent(const CameraComponent& camera) 
     node["farClip"] = camera.farClip;
     node["renderToTexture"] = camera.renderToTexture;
     node["transparentSort"] = camera.transparentSort;
-    node["automatic"] = camera.automatic;
+    node["useTarget"] = camera.useTarget;
+    node["autoResize"] = camera.autoResize;
 
     return node;
 }
@@ -1868,6 +1870,7 @@ CameraComponent Editor::Stream::decodeCameraComponent(const YAML::Node& node, co
     // Use old values as defaults if provided
     if (oldCamera) {
         camera = *oldCamera;
+        camera.needUpdate = true;
     }
 
     if (node["type"]) camera.type = stringToCameraType(node["type"].as<std::string>());
@@ -1883,7 +1886,8 @@ CameraComponent Editor::Stream::decodeCameraComponent(const YAML::Node& node, co
     if (node["farClip"]) camera.farClip = node["farClip"].as<float>();
     if (node["renderToTexture"]) camera.renderToTexture = node["renderToTexture"].as<bool>();
     if (node["transparentSort"]) camera.transparentSort = node["transparentSort"].as<bool>();
-    if (node["automatic"]) camera.automatic = node["automatic"].as<bool>();
+    if (node["useTarget"]) camera.useTarget = node["useTarget"].as<bool>();
+    if (node["autoResize"]) camera.autoResize = node["autoResize"].as<bool>();
 
     return camera;
 }

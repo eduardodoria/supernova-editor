@@ -220,14 +220,14 @@ void Editor::SceneRender3D::createOrUpdateCameraIcon(Entity entity, const Transf
     co.icon->setScale(scale);
 }
 
-void Editor::SceneRender3D::createCameraFrustum(Entity entity, const Transform& transform, const CameraComponent& cameraComponent, bool isSelected) {
+void Editor::SceneRender3D::createCameraFrustum(Entity entity, const Transform& transform, const CameraComponent& cameraComponent, bool fixedSizeFrustum) {
     CameraObjects& co = cameraObjects[entity];
 
     co.lines->setPosition(transform.worldPosition);
-    co.lines->setRotation(transform.worldRotation);
-    co.lines->setVisible(isSelected);
 
-    if (!isSelected) return;
+    Quaternion rotation;
+    rotation.fromRotationMatrix(cameraComponent.viewMatrix.inverse());
+    co.lines->setRotation(rotation);
 
     // Don't draw frustum for 2D cameras
     if (cameraComponent.type == CameraType::CAMERA_2D) {
@@ -265,11 +265,16 @@ void Editor::SceneRender3D::createCameraFrustum(Entity entity, const Transform& 
     co.lines->clearLines();
     Vector4 color(0.8f, 0.8f, 0.8f, 1.0f);
 
+    float farClip = 2.0f;
+    if (!fixedSizeFrustum) {
+        farClip = cameraComponent.farClip;
+    }
+
     if (cameraComponent.type == CameraType::CAMERA_PERSPECTIVE) {
         float tanHalfFov = std::tan(cameraComponent.yfov / 2.0f);
         float nearHeight = 2.0f * std::abs(cameraComponent.nearClip) * tanHalfFov;
         float nearWidth = nearHeight * cameraComponent.aspect;
-        float farHeight = 2.0f * std::abs(cameraComponent.farClip) * tanHalfFov;
+        float farHeight = 2.0f * std::abs(farClip) * tanHalfFov;
         float farWidth = farHeight * cameraComponent.aspect;
 
         float hNear = nearHeight / 2.0f;
@@ -282,10 +287,11 @@ void Editor::SceneRender3D::createCameraFrustum(Entity entity, const Transform& 
         Vector3 nbl(-wNear, -hNear, -std::abs(cameraComponent.nearClip));
         Vector3 nbr(wNear, -hNear, -std::abs(cameraComponent.nearClip));
 
-        Vector3 ftl(-wFar, hFar, -std::abs(cameraComponent.farClip));
-        Vector3 ftr(wFar, hFar, -std::abs(cameraComponent.farClip));
-        Vector3 fbl(-wFar, -hFar, -std::abs(cameraComponent.farClip));
-        Vector3 fbr(wFar, -hFar, -std::abs(cameraComponent.farClip));
+        // Use debugFarClip for Z coordinate
+        Vector3 ftl(-wFar, hFar, -std::abs(farClip));
+        Vector3 ftr(wFar, hFar, -std::abs(farClip));
+        Vector3 fbl(-wFar, -hFar, -std::abs(farClip));
+        Vector3 fbr(wFar, -hFar, -std::abs(farClip));
 
         co.lines->addLine(ntl, ntr, color);
         co.lines->addLine(ntr, nbr, color);
@@ -307,13 +313,23 @@ void Editor::SceneRender3D::createCameraFrustum(Entity entity, const Transform& 
         co.lines->addLine(Vector3(0,0,0), nbl, color);
         co.lines->addLine(Vector3(0,0,0), nbr, color);
 
+        // Up marker
+        float markerSize = 0.4f;
+        Vector3 up1(0, hFar + markerSize, -std::abs(farClip));
+        Vector3 up2(-markerSize/2.0f, hFar, -std::abs(farClip));
+        Vector3 up3(markerSize/2.0f, hFar, -std::abs(farClip));
+        co.lines->addLine(up1, up2, color);
+        co.lines->addLine(up2, up3, color);
+        co.lines->addLine(up3, up1, color);
+
+
     } else if (cameraComponent.type == CameraType::CAMERA_ORTHO) {
         float l = cameraComponent.leftClip;
         float r = cameraComponent.rightClip;
         float b = cameraComponent.bottomClip;
         float t = cameraComponent.topClip;
         float n = -std::abs(cameraComponent.nearClip);
-        float f = -std::abs(cameraComponent.farClip);
+        float f = -std::abs(farClip);
 
         Vector3 ntl(l, t, n);
         Vector3 ntr(r, t, n);
@@ -339,8 +355,18 @@ void Editor::SceneRender3D::createCameraFrustum(Entity entity, const Transform& 
         co.lines->addLine(ntr, ftr, color);
         co.lines->addLine(nbl, fbl, color);
         co.lines->addLine(nbr, fbr, color);
+
+        // Up marker
+        float markerSize = 0.4f;
+        Vector3 up1(0, t + markerSize, f);
+        Vector3 up2(-markerSize/2.0f, t, f);
+        Vector3 up3(markerSize/2.0f, t, f);
+        co.lines->addLine(up1, up2, color);
+        co.lines->addLine(up2, up3, color);
+        co.lines->addLine(up3, up1, color);
     }
 }
+
 
 void Editor::SceneRender3D::createDirectionalLightArrow(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected) {
     LightObjects& lo = lightObjects[entity];
@@ -656,9 +682,7 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
                 currentIconCameras.insert(entity);
                 bool newCamera = instanciateCameraObject(entity);
                 createOrUpdateCameraIcon(entity, transform, newCamera);
-
-                bool isSelected = std::find(selEntities.begin(), selEntities.end(), entity) != selEntities.end();
-                createCameraFrustum(entity, transform, cameraComp, isSelected);
+                createCameraFrustum(entity, transform, cameraComp, true);
             }
         }
     }
