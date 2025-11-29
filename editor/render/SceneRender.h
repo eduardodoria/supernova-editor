@@ -63,7 +63,7 @@ namespace Supernova::Editor{
 
         void updateRenderSystem();
 
-        virtual void update(std::vector<Entity> selEntities, std::vector<Entity> entities);
+        virtual void update(std::vector<Entity> selEntities, std::vector<Entity> entities, Entity mainCamera);
         virtual void mouseHoverEvent(float x, float y);
         virtual void mouseClickEvent(float x, float y, std::vector<Entity> selEntities);
         virtual void mouseReleaseEvent(float x, float y);

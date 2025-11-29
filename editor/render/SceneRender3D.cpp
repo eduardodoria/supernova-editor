@@ -220,7 +220,7 @@ void Editor::SceneRender3D::createOrUpdateCameraIcon(Entity entity, const Transf
     co.icon->setScale(scale);
 }
 
-void Editor::SceneRender3D::createCameraFrustum(Entity entity, const Transform& transform, const CameraComponent& cameraComponent, bool fixedSizeFrustum) {
+void Editor::SceneRender3D::createCameraFrustum(Entity entity, const Transform& transform, const CameraComponent& cameraComponent, bool fixedSizeFrustum, bool isMainCamera) {
     CameraObjects& co = cameraObjects[entity];
 
     co.lines->setPosition(transform.worldPosition);
@@ -237,6 +237,7 @@ void Editor::SceneRender3D::createCameraFrustum(Entity entity, const Transform& 
 
     bool changed = false;
     if (co.type != cameraComponent.type) changed = true;
+    if (co.isMainCamera != isMainCamera) changed = true;
     if (cameraComponent.type == CameraType::CAMERA_PERSPECTIVE) {
         if (co.yfov != cameraComponent.yfov || co.aspect != cameraComponent.aspect || 
             co.nearClip != cameraComponent.nearClip || co.farClip != cameraComponent.farClip) {
@@ -253,6 +254,7 @@ void Editor::SceneRender3D::createCameraFrustum(Entity entity, const Transform& 
     if (!changed) return;
 
     co.type = cameraComponent.type;
+    co.isMainCamera = isMainCamera;
     co.yfov = cameraComponent.yfov;
     co.aspect = cameraComponent.aspect;
     co.nearClip = cameraComponent.nearClip;
@@ -264,6 +266,9 @@ void Editor::SceneRender3D::createCameraFrustum(Entity entity, const Transform& 
 
     co.lines->clearLines();
     Vector4 color(0.8f, 0.8f, 0.8f, 1.0f);
+    if (isMainCamera){
+        color = Vector4(0.5f, 1.0f, 0.5f, 1.0f); // Soft green for main camera
+    }
 
     float farClip = 2.0f;
     if (!fixedSizeFrustum) {
@@ -634,8 +639,8 @@ void Editor::SceneRender3D::updateSelLines(std::vector<OBB> obbs){
     }
 }
 
-void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<Entity> entities){
-    SceneRender::update(selEntities, entities);
+void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<Entity> entities, Entity mainCamera){
+    SceneRender::update(selEntities, entities, mainCamera);
 
     int linesStepChange = (int)(camera->getFarClip() / 2);
     int cameraLineStepX = (int)(camera->getWorldPosition().x / linesStepChange) * linesStepChange;
@@ -682,7 +687,7 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
                 currentIconCameras.insert(entity);
                 bool newCamera = instanciateCameraObject(entity);
                 createOrUpdateCameraIcon(entity, transform, newCamera);
-                createCameraFrustum(entity, transform, cameraComp, true);
+                createCameraFrustum(entity, transform, cameraComp, true, mainCamera == entity);
             }
         }
     }

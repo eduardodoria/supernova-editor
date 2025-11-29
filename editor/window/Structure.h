@@ -16,13 +16,14 @@ namespace Supernova::Editor{
         bool isScene = false;
         bool isShared = false;
         bool isParentShared = false;
+        bool isMainCamera = false;
         bool separator = false;
         bool hasTransform = false;
         bool matchesSearch = false;         // Node matches search term
         bool hasMatchingDescendant = false; // Has a descendant that matches search
         uint32_t id = 0;
         size_t order = 0;
-        uint32_t parent = 0;
+        uint32_t parent = NULL_ENTITY;
         std::vector<TreeNode> children;
     };
 

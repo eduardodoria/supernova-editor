@@ -303,12 +303,21 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     if (hasSearch && node.matchesSearch) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 0.5f, 1.0f)); // Yellow for search matches
         pushedHighlightColor = true;
+    } else if (node.isMainCamera) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.9f, 0.8f, 1.0f)); // Soft green for main camera
+        pushedHighlightColor = true;
     } else if (node.isShared) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.7f, 1.0f, 1.0f)); // Light blue for shared
         pushedHighlightColor = true;
     }
 
-    bool nodeOpen = ImGui::TreeNodeEx((node.icon + "  " + node.name + "###" + getNodeImGuiId(node)).c_str(), flags);
+    std::string label = node.icon + "  " + node.name;
+    //if (node.isMainCamera){
+    //    label += "  " ICON_FA_EYE;
+    //}
+    label += "###" + getNodeImGuiId(node);
+
+    bool nodeOpen = ImGui::TreeNodeEx(label.c_str(), flags);
 
     // Pop color if we pushed it
     if (pushedHighlightColor) {
@@ -567,6 +576,23 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                 showNewEntityMenu(node.isScene, node.id, createSharedChild);
             }
         }
+
+        if (!node.isScene) {
+            SceneProject* sceneProject = project->getSelectedScene();
+            if (sceneProject->scene->getSignature(node.id).test(sceneProject->scene->getComponentId<CameraComponent>())) {
+                ImGui::Separator();
+                if (node.isMainCamera) {
+                    if (ImGui::MenuItem(ICON_FA_VIDEO"  Unset as Main Camera", nullptr, false, node.isMainCamera)) {
+                        sceneProject->mainCamera = NULL_ENTITY;
+                    }
+                } else {
+                    if (ImGui::MenuItem(ICON_FA_VIDEO"  Set as Main Camera", nullptr, false, !node.isMainCamera)) {
+                        sceneProject->mainCamera = node.id;
+                    }
+                }
+            }
+        }
+
         ImGui::EndPopup();
     }
 
@@ -598,6 +624,7 @@ std::string Editor::Structure::getNodeImGuiId(TreeNode& node){
 
 void Editor::Structure::show(){
     SceneProject* sceneProject = project->getSelectedScene();
+    Entity mainCamera = sceneProject->mainCamera;
     size_t order = 0;
 
     TreeNode root;
@@ -605,15 +632,8 @@ void Editor::Structure::show(){
     root.icon = ICON_FA_TV;
     root.id = sceneProject->id;
     root.isScene = true;
-    root.isShared = false;
-    root.isParentShared = false;
-    root.separator = false;
-    root.hasTransform = false;
     root.order = order++;
-    root.parent = NULL_ENTITY;
     root.name = sceneProject->name;
-    root.matchesSearch = false;
-    root.hasMatchingDescendant = false;
 
     // non-hierarchical entities
     for (auto& entity : sceneProject->entities) {
@@ -623,16 +643,9 @@ void Editor::Structure::show(){
             TreeNode child;
             child.icon = getObjectIcon(signature, sceneProject->scene);
             child.id = entity;
-            child.isScene = false;
-            child.isShared = false;
-            child.isParentShared = false;
-            child.separator = false;
-            child.hasTransform = false;
+            child.isMainCamera = (entity == mainCamera);
             child.order = order++;
-            child.parent = NULL_ENTITY;
             child.name = sceneProject->scene->getEntityName(entity);
-            child.matchesSearch = false;
-            child.hasMatchingDescendant = false;
 
             root.children.push_back(child);
         }
@@ -659,16 +672,10 @@ void Editor::Structure::show(){
             TreeNode child;
             child.icon = getObjectIcon(signature, sceneProject->scene);
             child.id = entity;
-            child.isScene = false;
-            child.isShared = false;
-            child.isParentShared = false;
-            child.separator = false;
+            child.isMainCamera = (entity == mainCamera);
             child.hasTransform = true;
             child.order = order++;
-            child.parent = NULL_ENTITY;
             child.name = sceneProject->scene->getEntityName(entity);
-            child.matchesSearch = false;
-            child.hasMatchingDescendant = false;
             if (transform.parent == NULL_ENTITY){
                 root.children.push_back(child);
             }else{

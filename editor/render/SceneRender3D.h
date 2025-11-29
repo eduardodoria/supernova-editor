@@ -23,6 +23,7 @@ namespace Supernova::Editor{
         Lines* lines = nullptr;
 
         CameraType type;
+        bool isMainCamera = false;
         float yfov = 0;
         float aspect = 0;
         float nearClip = 0;
@@ -51,7 +52,7 @@ namespace Supernova::Editor{
         bool instanciateCameraObject(Entity entity);
         void createOrUpdateLightIcon(Entity entity, const Transform& transform, LightType lightType, bool newLight);
         void createOrUpdateCameraIcon(Entity entity, const Transform& transform, bool newCamera);
-        void createCameraFrustum(Entity entity, const Transform& transform, const CameraComponent& cameraComponent, bool fixedSizeFrustum);
+        void createCameraFrustum(Entity entity, const Transform& transform, const CameraComponent& cameraComponent, bool fixedSizeFrustum, bool isMainCamera);
         void createDirectionalLightArrow(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected);
         void createPointLightSphere(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected);
         void createSpotLightCones(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected);
@@ -63,7 +64,7 @@ namespace Supernova::Editor{
         virtual void activate();
         virtual void updateSelLines(std::vector<OBB> obbs);
 
-        virtual void update(std::vector<Entity> selEntities, std::vector<Entity> entities);
+        virtual void update(std::vector<Entity> selEntities, std::vector<Entity> entities, Entity mainCamera);
         virtual void mouseHoverEvent(float x, float y);
         virtual void mouseClickEvent(float x, float y, std::vector<Entity> selEntities);
         virtual void mouseReleaseEvent(float x, float y);
