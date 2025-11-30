@@ -584,10 +584,12 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                 if (node.isMainCamera) {
                     if (ImGui::MenuItem(ICON_FA_VIDEO"  Unset as Main Camera", nullptr, false, node.isMainCamera)) {
                         sceneProject->mainCamera = NULL_ENTITY;
+                        sceneProject->isModified = true;
                     }
                 } else {
                     if (ImGui::MenuItem(ICON_FA_VIDEO"  Set as Main Camera", nullptr, false, !node.isMainCamera)) {
                         sceneProject->mainCamera = node.id;
+                        sceneProject->isModified = true;
                     }
                 }
             }

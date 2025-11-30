@@ -61,6 +61,8 @@ namespace Supernova::Editor{
         virtual void updateSize(int width, int height);
         virtual void updateSelLines(std::vector<OBB> obbs) = 0;
 
+        void enableCamera();
+
         void updateRenderSystem();
 
         virtual void update(std::vector<Entity> selEntities, std::vector<Entity> entities, Entity mainCamera);

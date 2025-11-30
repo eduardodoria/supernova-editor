@@ -133,6 +133,16 @@ void Editor::Project::openScene(fs::path filepath){
 
         Stream::decodeSceneProject(&data, sceneNode);
 
+        if (data.id == NULL_PROJECT_SCENE || getScene(data.id) != nullptr) {
+            uint32_t oldId = data.id;
+            data.id = ++nextSceneId;
+            if (oldId == NULL_PROJECT_SCENE){
+                Out::warning("Scene ID was NULL_PROJECT_SCENE, assigning new ID %u", data.id);
+            }else{
+                Out::warning("Scene ID %u already exists, assigning new ID %u", oldId, data.id);
+            }
+        }
+
         if (data.sceneType == SceneType::SCENE_3D){
             data.sceneRender = new SceneRender3D(data.scene);
         }else if (data.sceneType == SceneType::SCENE_2D){
@@ -695,6 +705,10 @@ void Editor::Project::finalizeStart(SceneProject* sceneProject) {
     Engine::onViewLoaded.call();
     Engine::onViewChanged.call();
 
+    if (sceneProject->mainCamera != NULL_ENTITY) {
+        sceneProject->scene->setCamera(sceneProject->mainCamera);
+    }
+
     Out::success("Scene '%s' started", sceneProject->name.c_str());
 }
 
@@ -722,6 +736,8 @@ void Editor::Project::finalizeStop(SceneProject* sceneProject) {
 
     sceneProject->playState = ScenePlayState::STOPPED;
     sceneProject->scene->getComponent<CameraComponent>(sceneProject->scene->getCamera()).needUpdate = true;
+
+    sceneProject->sceneRender->enableCamera();
 
     Out::success("Scene '%s' stopped", sceneProject->name.c_str());
 }

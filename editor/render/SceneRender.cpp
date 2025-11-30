@@ -173,6 +173,10 @@ void Editor::SceneRender::updateSize(int width, int height){
 
 }
 
+void Editor::SceneRender::enableCamera(){
+    scene->setCamera(camera);
+}
+
 void Editor::SceneRender::updateRenderSystem(){
     // Meshes and UIs are created in update, without this can affect worldAABB
     scene->getSystem<MeshSystem>()->update(0);
