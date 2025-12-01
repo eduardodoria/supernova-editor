@@ -100,6 +100,8 @@ void Editor::SceneRender2D::updateSelLines(std::vector<OBB> obbs){
 
 void Editor::SceneRender2D::update(std::vector<Entity> selEntities, std::vector<Entity> entities, Entity mainCamera){
     SceneRender::update(selEntities, entities, mainCamera);
+
+    lines->setVisible(!isPlaying);
 }
 
 void Editor::SceneRender2D::mouseHoverEvent(float x, float y){

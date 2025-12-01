@@ -709,6 +709,8 @@ void Editor::Project::finalizeStart(SceneProject* sceneProject) {
         sceneProject->scene->setCamera(sceneProject->mainCamera);
     }
 
+    sceneProject->sceneRender->setPlayMode(true);
+
     Out::success("Scene '%s' started", sceneProject->name.c_str());
 }
 
@@ -737,7 +739,7 @@ void Editor::Project::finalizeStop(SceneProject* sceneProject) {
     sceneProject->playState = ScenePlayState::STOPPED;
     sceneProject->scene->getComponent<CameraComponent>(sceneProject->scene->getCamera()).needUpdate = true;
 
-    sceneProject->sceneRender->enableCamera();
+    sceneProject->sceneRender->setPlayMode(false);
 
     Out::success("Scene '%s' stopped", sceneProject->name.c_str());
 }

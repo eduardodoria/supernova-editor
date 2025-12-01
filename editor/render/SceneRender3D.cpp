@@ -224,6 +224,7 @@ void Editor::SceneRender3D::createCameraFrustum(Entity entity, const Transform& 
     CameraObjects& co = cameraObjects[entity];
 
     co.lines->setPosition(transform.worldPosition);
+    co.lines->setVisible(transform.visible);
 
     Quaternion rotation;
     rotation.fromRotationMatrix(cameraComponent.viewMatrix.inverse());
@@ -641,6 +642,21 @@ void Editor::SceneRender3D::updateSelLines(std::vector<OBB> obbs){
 
 void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<Entity> entities, Entity mainCamera){
     SceneRender::update(selEntities, entities, mainCamera);
+
+    if (isPlaying){
+        lines->setVisible(false);
+        for (auto& pair : lightObjects) {
+            pair.second.icon->setVisible(false);
+            pair.second.lines->setVisible(false);
+        }
+        for (auto& pair : cameraObjects) {
+            pair.second.icon->setVisible(false);
+            pair.second.lines->setVisible(false);
+        }
+        return;
+    }
+
+    lines->setVisible(true);
 
     int linesStepChange = (int)(camera->getFarClip() / 2);
     int cameraLineStepX = (int)(camera->getWorldPosition().x / linesStepChange) * linesStepChange;

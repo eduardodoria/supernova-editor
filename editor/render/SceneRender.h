@@ -50,6 +50,7 @@ namespace Supernova::Editor{
         UILayer uilayer;
 
         bool multipleEntitiesSelected;
+        bool isPlaying;
 
         float zoom;       // current zoom level (units per pixel) for 2D
 
@@ -57,11 +58,11 @@ namespace Supernova::Editor{
         SceneRender(Scene* scene, bool use2DGizmos, bool enableViewGizmo, float gizmoScale, float selectionOffset);
         virtual ~SceneRender();
 
+        void setPlayMode(bool isPlaying);
+
         virtual void activate();
         virtual void updateSize(int width, int height);
         virtual void updateSelLines(std::vector<OBB> obbs) = 0;
-
-        void enableCamera();
 
         void updateRenderSystem();
 
