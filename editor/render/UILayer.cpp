@@ -8,7 +8,7 @@ Editor::UILayer::UILayer(bool enableViewGizmo){
     scene = new Scene();
     camera = new Camera(scene);
 
-    rect = new Object(scene);
+    selectionRect = new Object(scene);
     upRect = new Polygon(scene);
     bottomRect = new Polygon(scene);
     leftRect = new Polygon(scene);
@@ -21,12 +21,12 @@ Editor::UILayer::UILayer(bool enableViewGizmo){
     rightRect->setColor(Vector4(rectColor, 1.0));
     centralRect->setColor(Vector4(rectColor, 0.2));
 
-    rect->setVisible(false);
-    rect->addChild(upRect);
-    rect->addChild(bottomRect);
-    rect->addChild(leftRect);
-    rect->addChild(rightRect);
-    rect->addChild(centralRect);
+    selectionRect->setVisible(false);
+    selectionRect->addChild(upRect);
+    selectionRect->addChild(bottomRect);
+    selectionRect->addChild(leftRect);
+    selectionRect->addChild(rightRect);
+    selectionRect->addChild(centralRect);
 
     // to avoid try to load every frame (without vertices)
     updateRect(Vector2::ZERO, Vector2::ZERO);
@@ -47,7 +47,7 @@ Editor::UILayer::UILayer(bool enableViewGizmo){
 
 Editor::UILayer::~UILayer(){
     delete camera;
-    delete rect;
+    delete selectionRect;
     delete upRect;
     delete bottomRect;
     delete leftRect;
@@ -64,8 +64,14 @@ void Editor::UILayer::setViewportGizmoTexture(Framebuffer* framebuffer){
     viewGizmoImage->setTexture(framebuffer);
 }
 
-void Editor::UILayer::setRectVisible(bool visible){
-    rect->setVisible(visible);
+void Editor::UILayer::setViewGizmoImageVisible(bool visible){
+    if (viewGizmoImage){
+        viewGizmoImage->setVisible(visible);
+    }
+}
+
+void Editor::UILayer::setSelectionBoxVisible(bool visible){
+    selectionRect->setVisible(visible);
 }
 
 void Editor::UILayer::updateRect(Vector2 position, Vector2 size){
@@ -76,7 +82,7 @@ void Editor::UILayer::updateRect(Vector2 position, Vector2 size){
         size = -size + Vector2(thickness*2);
     }
 
-    rect->setPosition(Vector3(position, 0));
+    selectionRect->setPosition(Vector3(position, 0));
 
     upRect->clearVertices();
     leftRect->clearVertices();

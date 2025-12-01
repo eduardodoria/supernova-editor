@@ -15,7 +15,7 @@ namespace Supernova::Editor{
         Scene* scene;
         Camera* camera;
 
-        Object* rect;
+        Object* selectionRect;
 
         Polygon* upRect;
         Polygon* bottomRect;
@@ -30,7 +30,9 @@ namespace Supernova::Editor{
 
         void setViewportGizmoTexture(Framebuffer* framebuffer);
 
-        void setRectVisible(bool visible);
+        void setViewGizmoImageVisible(bool visible);
+        void setSelectionBoxVisible(bool visible);
+
         void updateRect(Vector2 position, Vector2 size);
 
         Framebuffer* getFramebuffer();

@@ -210,7 +210,6 @@ add_executable(
     ${EDITOR_DIR}/window/dialog/ProjectSaveDialog.cpp
     ${EDITOR_DIR}/window/dialog/ScriptCreateDialog.cpp
 
-    ${EDITOR_DIR}/render/ViewportGizmo.cpp
     ${EDITOR_DIR}/render/ToolsLayer.cpp
     ${EDITOR_DIR}/render/UILayer.cpp
     ${EDITOR_DIR}/render/SceneRender.cpp
@@ -220,6 +219,7 @@ add_executable(
     ${EDITOR_DIR}/render/gizmo/RotateGizmo.cpp
     ${EDITOR_DIR}/render/gizmo/ScaleGizmo.cpp
     ${EDITOR_DIR}/render/gizmo/Object2DGizmo.cpp
+    ${EDITOR_DIR}/render/gizmo/ViewportGizmo.cpp
     ${EDITOR_DIR}/render/preview/MaterialRender.cpp
     ${EDITOR_DIR}/render/preview/MeshPreviewRender.cpp
     ${EDITOR_DIR}/render/preview/DirectionRender.cpp

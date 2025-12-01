@@ -3,7 +3,7 @@
 #include "SceneRender.h"
 
 #include "Supernova.h"
-#include "ViewportGizmo.h"
+#include "gizmo/ViewportGizmo.h"
 
 namespace Supernova::Editor{
 

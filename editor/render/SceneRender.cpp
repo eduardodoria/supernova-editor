@@ -263,14 +263,17 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities, std::vector<En
     if (isPlaying){
         selLines->setVisible(false);
         toolslayer.setGizmoVisible(false);
+        uilayer.setViewGizmoImageVisible(false);
+
+        uilayer.setSelectionBoxVisible(false); // only set invisible
     }else{
         selLines->setVisible(selectionVisibility);
-
         if (toolslayer.getGizmoSelected() == GizmoSelected::OBJECT2D && !sameRotation){
             toolslayer.setGizmoVisible(false);
         }else{
             toolslayer.setGizmoVisible(selectionVisibility);
         }
+        uilayer.setViewGizmoImageVisible(true);
     }
 }
 
@@ -356,7 +359,7 @@ void Editor::SceneRender::mouseClickEvent(float x, float y, std::vector<Entity> 
 }
 
 void Editor::SceneRender::mouseReleaseEvent(float x, float y){
-    uilayer.setRectVisible(false);
+    uilayer.setSelectionBoxVisible(false);
 
     mouseClicked = false;
 
@@ -369,8 +372,8 @@ void Editor::SceneRender::mouseReleaseEvent(float x, float y){
 }
 
 void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float origY, Project* project, size_t sceneId, std::vector<Entity> selEntities, bool disableSelection){
-    if (!disableSelection){
-        uilayer.setRectVisible(true);
+    if (!disableSelection && !isPlaying){
+        uilayer.setSelectionBoxVisible(true);
         uilayer.updateRect(Vector2(origX, origY), Vector2(x, y) - Vector2(origX, origY));
     }
 

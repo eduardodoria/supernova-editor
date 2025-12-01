@@ -1059,6 +1059,11 @@ Entity Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
 
 bool Editor::Project::selectObjectByRay(uint32_t sceneId, float x, float y, bool shiftPressed){
     SceneProject* scenedata = getScene(sceneId);
+
+    if (scenedata->playState != ScenePlayState::STOPPED){
+        return false;
+    }
+
     Entity selEntity = findObjectByRay(sceneId, x, y);
 
     if (!scenedata->sceneRender->isAnyGizmoSideSelected()){
@@ -1078,6 +1083,11 @@ bool Editor::Project::selectObjectByRay(uint32_t sceneId, float x, float y, bool
 
 bool Editor::Project::selectObjectsByRect(uint32_t sceneId, Vector2 start, Vector2 end){
     SceneProject* scenedata = getScene(sceneId);
+
+    if (scenedata->playState != ScenePlayState::STOPPED){
+        return false;
+    }
+
     Camera* camera = scenedata->sceneRender->getCamera();
 
     clearSelectedEntities(sceneId);
