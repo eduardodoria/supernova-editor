@@ -10,6 +10,7 @@
 #include "command/type/ImportSharedEntityCmd.h"
 #include "command/type/MakeEntityLocalCmd.h"
 #include "command/type/MakeEntitySharedCmd.h"
+#include "command/type/SetMainCameraCmd.h"
 #include "util/EntityPayload.h"
 #include "util/UIUtils.h"
 #include "Out.h"
@@ -583,13 +584,11 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                 ImGui::Separator();
                 if (node.isMainCamera) {
                     if (ImGui::MenuItem(ICON_FA_VIDEO"  Unset as Main Camera", nullptr, false, node.isMainCamera)) {
-                        sceneProject->mainCamera = NULL_ENTITY;
-                        sceneProject->isModified = true;
+                        CommandHandle::get(project->getSelectedSceneId())->addCommand(new SetMainCameraCmd(project, project->getSelectedSceneId(), NULL_ENTITY));
                     }
                 } else {
                     if (ImGui::MenuItem(ICON_FA_VIDEO"  Set as Main Camera", nullptr, false, !node.isMainCamera)) {
-                        sceneProject->mainCamera = node.id;
-                        sceneProject->isModified = true;
+                        CommandHandle::get(project->getSelectedSceneId())->addCommand(new SetMainCameraCmd(project, project->getSelectedSceneId(), node.id));
                     }
                 }
             }

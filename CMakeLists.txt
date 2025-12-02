@@ -245,6 +245,7 @@ add_executable(
     ${EDITOR_DIR}/command/type/RenameFileCmd.cpp
     ${EDITOR_DIR}/command/type/CreateDirCmd.cpp
     ${EDITOR_DIR}/command/type/DeleteFileCmd.cpp
+    ${EDITOR_DIR}/command/type/SetMainCameraCmd.cpp
 
     ${IMGUI_SOURCES}
     ${IMGUICOLORTEXTEDIT_SOURCES}
