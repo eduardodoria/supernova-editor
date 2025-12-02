@@ -14,6 +14,7 @@ namespace Supernova::Editor{
 
         size_t entityIndex;
         bool hasTransform = false;
+        bool wasMainCamera = false;
         Entity parent = NULL_ENTITY;
 
         YAML::Node data;

@@ -32,6 +32,12 @@ Editor::DeleteEntityCmd::DeleteEntityCmd(Project* project, uint32_t sceneId, Ent
         }
     }
 
+    if (signature.test(scene->getComponentId<CameraComponent>())){
+        if (sceneProject->mainCamera == entity){
+            entityData.wasMainCamera = true;
+        }
+    }
+
     this->entities.push_back(entityData);
 
     this->wasModified = project->getScene(sceneId)->isModified;
@@ -48,6 +54,11 @@ void Editor::DeleteEntityCmd::destroyEntity(EntityRegistry* registry, Entity ent
     if (project){
         if (project->isSelectedEntity(sceneId, entity)){
             project->clearSelectedEntities(sceneId);
+        }
+
+        SceneProject* sceneProject = project->getScene(sceneId);
+        if (sceneProject && sceneProject->mainCamera == entity){
+            sceneProject->mainCamera = NULL_ENTITY;
         }
     }
 }
@@ -106,6 +117,10 @@ void Editor::DeleteEntityCmd::undo(){
             entityData.entity = allEntities[0];
 
             ProjectUtils::moveEntityOrderByIndex(sceneProject->scene, sceneProject->entities, entityData.entity, entityData.parent, entityData.entityIndex, entityData.hasTransform);
+
+            if (entityData.wasMainCamera){
+                sceneProject->mainCamera = entityData.entity;
+            }
 
         }else{
 

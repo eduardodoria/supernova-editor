@@ -39,6 +39,7 @@ namespace Supernova::Editor{
         EntityCreationType type;
         std::vector<Entity> lastSelected;
         bool addToShared;
+        bool wasMainCamera;
 
         // Component type -> property name -> property setter function
         std::unordered_map<ComponentType, std::unordered_map<std::string, std::function<void(Entity)>>> propertySetters;
