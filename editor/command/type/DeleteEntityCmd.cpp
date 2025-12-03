@@ -32,12 +32,6 @@ Editor::DeleteEntityCmd::DeleteEntityCmd(Project* project, uint32_t sceneId, Ent
         }
     }
 
-    if (signature.test(scene->getComponentId<CameraComponent>())){
-        if (sceneProject->mainCamera == entity){
-            entityData.wasMainCamera = true;
-        }
-    }
-
     this->entities.push_back(entityData);
 
     this->wasModified = project->getScene(sceneId)->isModified;
@@ -118,14 +112,9 @@ void Editor::DeleteEntityCmd::undo(){
 
             ProjectUtils::moveEntityOrderByIndex(sceneProject->scene, sceneProject->entities, entityData.entity, entityData.parent, entityData.entityIndex, entityData.hasTransform);
 
-            if (entityData.wasMainCamera){
-                sceneProject->mainCamera = entityData.entity;
-            }
-
         }else{
 
             project->addEntityToSharedGroup(sceneId, entityData.recoverySharedData, entityData.parent, entityData.instanceId, true);
-
         }
     }
 

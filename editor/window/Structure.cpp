@@ -304,18 +304,15 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     if (hasSearch && node.matchesSearch) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 0.5f, 1.0f)); // Yellow for search matches
         pushedHighlightColor = true;
-    } else if (node.isMainCamera) {
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.9f, 0.8f, 1.0f)); // Soft green for main camera
-        pushedHighlightColor = true;
     } else if (node.isShared) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.7f, 1.0f, 1.0f)); // Light blue for shared
         pushedHighlightColor = true;
     }
 
     std::string label = node.icon + "  " + node.name;
-    //if (node.isMainCamera){
-    //    label += "  " ICON_FA_EYE;
-    //}
+    if (node.isMainCamera){
+        label += "  " ICON_FA_ASTERISK;
+    }
     label += "###" + getNodeImGuiId(node);
 
     bool nodeOpen = ImGui::TreeNodeEx(label.c_str(), flags);

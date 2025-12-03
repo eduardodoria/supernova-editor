@@ -706,7 +706,12 @@ void Editor::Project::finalizeStart(SceneProject* sceneProject) {
     Engine::onViewChanged.call();
 
     if (sceneProject->mainCamera != NULL_ENTITY) {
-        sceneProject->scene->setCamera(sceneProject->mainCamera);
+        if (sceneProject->scene->isEntityCreated(sceneProject->mainCamera)) {
+            sceneProject->scene->setCamera(sceneProject->mainCamera);
+        } else {
+            Out::error("Main camera entity is not valid, reverting to default camera");
+            sceneProject->mainCamera = NULL_ENTITY;
+        }
     }
 
     sceneProject->sceneRender->setPlayMode(true);
