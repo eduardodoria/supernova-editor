@@ -38,19 +38,20 @@ namespace Supernova::Editor{
     };
 
     struct SceneProject{
-        uint32_t id;
-        std::string name;
-        Scene* scene;
+        uint32_t id = NULL_PROJECT_SCENE;
+        std::string name = "Unknown";
+        Scene* scene = nullptr;
         SceneType sceneType;
         std::vector<Entity> entities;
         Entity mainCamera = NULL_ENTITY;
-        SceneRender* sceneRender;
+        SceneRender* sceneRender = nullptr;
         std::vector<Entity> selectedEntities;
         fs::path filepath;
-        bool needUpdateRender;
-        bool isModified;
-        bool isVisible;
-        ScenePlayState playState;
+        bool needUpdateRender = true;
+        bool isModified = false;
+        bool isVisible = false;
+        bool opened = true;
+        ScenePlayState playState = ScenePlayState::STOPPED;
         YAML::Node playStateSnapshot;
     };
 
@@ -149,7 +150,8 @@ namespace Supernova::Editor{
         void saveLastSelectedScene();
 
         uint32_t createNewScene(std::string sceneName, SceneType type);
-        void openScene(fs::path filepath);
+        void loadScene(fs::path filepath, bool opened, bool isNewScene = true);
+        void openScene(fs::path filepath, bool closePrevious = true);
         void closeScene(uint32_t sceneId);
 
         Entity findObjectByRay(uint32_t sceneId, float x, float y);

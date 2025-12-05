@@ -26,7 +26,7 @@ void Editor::SceneWindow::handleCloseScene(uint32_t sceneId) {
         if (project->getSelectedSceneId() == sceneId) {
             // Find another scene to select
             for (const auto& otherScene : project->getScenes()) {
-                if (otherScene.id != sceneId) {
+                if (otherScene.id != sceneId && otherScene.opened) {
                     project->setSelectedSceneId(otherScene.id);
                     ImGui::SetWindowFocus(("###Scene" + std::to_string(otherScene.id)).c_str());
                     break;
@@ -291,10 +291,17 @@ void Editor::SceneWindow::show() {
 
     windowFocused = false;
 
+    int openedScenesCount = 0;
+    for (const auto& s : project->getScenes()) {
+        if (s.opened) openedScenesCount++;
+    }
+
     // Iterate through all scenes in the project
     for (auto& sceneProject : project->getScenes()) {
+        if (!sceneProject.opened) continue;
+
         // Disable close button if this is the only open scene
-        bool canClose = project->getScenes().size() > 1;
+        bool canClose = openedScenesCount > 1;
         bool isOpen = true;
 
         ImGui::SetNextWindowSizeConstraints(ImVec2(200, 200), ImVec2(FLT_MAX, FLT_MAX));

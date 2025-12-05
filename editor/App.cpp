@@ -312,6 +312,7 @@ void Editor::App::buildDockspace(){
     ImGui::DockBuilderDockWindow("Output", dock_id_middle_bottom);
 
     for (auto& sceneProject : project.getScenes()) {
+        if (!sceneProject.opened) continue;
         addNewSceneToDock(sceneProject.id);
     }
 
@@ -521,6 +522,8 @@ void Editor::App::engineViewLoaded(){
 
 void Editor::App::engineRender(){
     for (auto& sceneProject : project.getScenes()) {
+        if (!sceneProject.opened) continue;
+
         if (sceneProject.needUpdateRender || sceneProject.id == project.getSelectedSceneId()){
             int width = sceneWindow->getWidth(sceneProject.id);
             int height = sceneWindow->getHeight(sceneProject.id);

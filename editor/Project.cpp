@@ -88,11 +88,8 @@ uint32_t Editor::Project::createNewScene(std::string sceneName, SceneType type){
     }else if (data.sceneType == SceneType::SCENE_UI){
         data.sceneRender = new SceneRender2D(data.scene, windowWidth, windowHeight, true);
     }
-    data.selectedEntities.clear();
-    data.needUpdateRender = true;
     data.isModified = true;
     data.isVisible = true;
-    data.playState = ScenePlayState::STOPPED;
 
     pauseEngineScene(&data, true);
 
@@ -117,67 +114,127 @@ uint32_t Editor::Project::createNewScene(std::string sceneName, SceneType type){
     return data.id;
 }
 
-void Editor::Project::openScene(fs::path filepath){
+void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene){
     try {
         YAML::Node sceneNode = YAML::LoadFile(filepath.string());
+        SceneProject* targetScene = nullptr;
 
-        SceneProject data;
-        data.id = NULL_PROJECT_SCENE;
-        data.name = "Unknown";
-        data.scene = nullptr;
-        data.selectedEntities.clear();
-        data.needUpdateRender = true;
-        data.isModified = false;
-        data.filepath = filepath;
-        data.playState = ScenePlayState::STOPPED;
+        if (isNewScene) {
+            scenes.emplace_back();
+            targetScene = &scenes.back();
+            targetScene->filepath = filepath;
+        } else {
+            auto it = std::find_if(scenes.begin(), scenes.end(),
+                [&filepath](const SceneProject& scene) { return scene.filepath == filepath; });
+            targetScene = &(*it);
+            targetScene->entities.clear();
+            targetScene->selectedEntities.clear();
+            // Ensure pointers are clean (they should be deleted by closeScene)
+            targetScene->scene = nullptr;
+            targetScene->sceneRender = nullptr;
+        }
 
-        Stream::decodeSceneProject(&data, sceneNode);
+        Stream::decodeSceneProject(targetScene, sceneNode);
 
-        if (data.id == NULL_PROJECT_SCENE || getScene(data.id) != nullptr) {
-            uint32_t oldId = data.id;
-            data.id = ++nextSceneId;
-            if (oldId == NULL_PROJECT_SCENE){
-                Out::warning("Scene ID was NULL_PROJECT_SCENE, assigning new ID %u", data.id);
-            }else{
-                Out::warning("Scene ID %u already exists, assigning new ID %u", oldId, data.id);
+        // Check for ID collisions
+        SceneProject* existing = getScene(targetScene->id);
+        if (targetScene->id == NULL_PROJECT_SCENE || (existing && existing != targetScene)) {
+            uint32_t oldId = targetScene->id;
+            targetScene->id = ++nextSceneId;
+            if (oldId != NULL_PROJECT_SCENE) {
+                Out::warning("Scene with ID '%u' already exists, using ID %u", oldId, targetScene->id);
+            } else {
+                Out::warning("Scene has no ID, assigning ID %u", targetScene->id);
             }
         }
 
-        if (data.sceneType == SceneType::SCENE_3D){
-            data.sceneRender = new SceneRender3D(data.scene);
-        }else if (data.sceneType == SceneType::SCENE_2D){
-            data.sceneRender = new SceneRender2D(data.scene, windowWidth, windowHeight, false);
-        }else if (data.sceneType == SceneType::SCENE_UI){
-            data.sceneRender = new SceneRender2D(data.scene, windowWidth, windowHeight, true);
+        targetScene->scene = new Scene();
+
+        if (targetScene->sceneType == SceneType::SCENE_3D) {
+            targetScene->sceneRender = new SceneRender3D(targetScene->scene);
+        } else if (targetScene->sceneType == SceneType::SCENE_2D) {
+            targetScene->sceneRender = new SceneRender2D(targetScene->scene, windowWidth, windowHeight, false);
+        } else if (targetScene->sceneType == SceneType::SCENE_UI) {
+            targetScene->sceneRender = new SceneRender2D(targetScene->scene, windowWidth, windowHeight, true);
         }
 
-        Stream::decodeSceneProjectEntities(this, &data, sceneNode);
+        Stream::decodeSceneProjectEntities(this, targetScene, sceneNode);
 
-        if (getScene(data.id) != nullptr) {
-            uint32_t old = data.id;
-            data.id = ++nextSceneId;
-            Out::warning("Scene with ID '%u' already exists, usind ID %u", old, data.id);
-        }
+        pauseEngineScene(targetScene, true);
 
-        pauseEngineScene(&data, true);
+        targetScene->opened = opened;
+        targetScene->isModified = false;
+        targetScene->needUpdateRender = true;
 
-        scenes.push_back(data);
+        setSelectedSceneId(targetScene->id);
 
-        setSelectedSceneId(scenes.back().id);
-
-        Backend::getApp().addNewSceneToDock(scenes.back().id);
+        Backend::getApp().addNewSceneToDock(targetScene->id);
 
     } catch (const YAML::Exception& e) {
+        if (isNewScene && !scenes.empty()) scenes.pop_back();
         Out::error("Failed to open scene: %s", e.what());
         Backend::getApp().registerAlert("Error", "Failed to open scene file!");
     } catch (const std::exception& e) {
+        if (isNewScene && !scenes.empty()) scenes.pop_back();
         Out::error("Failed to open scene: %s", e.what());
         Backend::getApp().registerAlert("Error", "Failed to open scene file!");
     }
 }
 
+void Editor::Project::openScene(fs::path filepath, bool closePrevious){
+    uint32_t sceneToClose = NULL_PROJECT_SCENE;
+    if (closePrevious) {
+        SceneProject* selectedScene = getSelectedScene();
+        if (selectedScene) {
+            sceneToClose = selectedScene->id;
+        }
+    }
+
+    auto it = std::find_if(scenes.begin(), scenes.end(),
+        [&filepath](const SceneProject& scene) { return scene.filepath == filepath; });
+
+    if (it != scenes.end()) {
+        if (it->opened) {
+            setSelectedSceneId(it->id);
+            if (sceneToClose != NULL_PROJECT_SCENE && sceneToClose != it->id) {
+                closeScene(sceneToClose);
+            }
+            return;
+        }
+        // Scene exists in project but is closed
+        loadScene(filepath, true, false);
+        if (sceneToClose != NULL_PROJECT_SCENE && sceneToClose != it->id) {
+            closeScene(sceneToClose);
+        }
+        return;
+    }
+
+    // Scene is not in project
+    Backend::getApp().registerConfirmAlert(
+        "Add Scene",
+        "This scene is not part of the current project. Do you want to add it?",
+        [this, filepath, sceneToClose]() {
+            loadScene(filepath, true, true);
+            if (sceneToClose != NULL_PROJECT_SCENE) {
+                closeScene(sceneToClose);
+            }
+        },
+        []() {
+            // Do nothing
+        }
+    );
+}
+
 void Editor::Project::closeScene(uint32_t sceneId) {
-    if (scenes.size() == 1) {
+    // Count opened scenes
+    int openedCount = 0;
+    for (const auto& scene : scenes) {
+        if (scene.opened) {
+            openedCount++;
+        }
+    }
+
+    if (openedCount == 1) {
         Out::error("Cannot close last scene");
         return;
     }
@@ -193,7 +250,7 @@ void Editor::Project::closeScene(uint32_t sceneId) {
 
         deleteSceneProject(&(*it));
 
-        scenes.erase(it);
+        it->opened = false;
     }
 }
 

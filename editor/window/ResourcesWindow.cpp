@@ -643,6 +643,13 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories){
             }
 
             if (ImGui::BeginPopup("FileContextMenu")){
+                if (file.type == FileType::SCENE){
+                    if (ImGui::MenuItem(ICON_FA_FOLDER_PLUS " Open (Add)")) {
+                        project->openScene(currentPath / file.name, false);
+                    }
+                    ImGui::Separator();
+                }
+
                 if (ImGui::MenuItem(ICON_FA_COPY " Copy")) copySelectedFiles(false);
                 if (ImGui::MenuItem(ICON_FA_SCISSORS " Cut")) copySelectedFiles(true);
                 if (ImGui::MenuItem(ICON_FA_PASTE " Paste", nullptr, false, !clipboardFiles.empty())){

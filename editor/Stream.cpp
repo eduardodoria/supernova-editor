@@ -764,6 +764,7 @@ YAML::Node Editor::Stream::encodeProject(Project* project) {
         YAML::Node sceneNode;
         if (!sceneProject.filepath.empty()) {
             sceneNode["filepath"] = sceneProject.filepath.string();
+            sceneNode["opened"] = sceneProject.opened;
             scenesNode.push_back(sceneNode);
         }
     }
@@ -799,15 +800,21 @@ void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
     }
 
     // Load scenes information
+    bool anyOpened = false;
     if (node["scenes"]) {
         for (const auto& sceneNode : node["scenes"]) {
             if (sceneNode["filepath"]) {
                 fs::path scenePath = sceneNode["filepath"].as<std::string>();
+                bool opened = sceneNode["opened"] ? sceneNode["opened"].as<bool>() : false;
+                if (opened) anyOpened = true;
                 if (fs::exists(scenePath)) {
-                    project->openScene(scenePath);
+                    project->loadScene(scenePath, opened);
                 }
             }
         }
+    }
+    if (!anyOpened && project->getScenes().size() > 0){
+        project->getScenes()[0].opened = true;
     }
 }
 
