@@ -377,14 +377,10 @@ std::vector<Editor::ScriptSource> Editor::Project::collectCppScriptSourceFiles()
                         if (path.is_relative()) {
                             path = getProjectPath() / path;
                         }
-                        fs::path headerPath = scriptEntry.headerPath;
-                        if (headerPath.is_relative()) {
-                            headerPath = getProjectPath() / headerPath;
-                        }
                         if (std::filesystem::exists(path)) {
                             std::string key = path.lexically_normal().generic_string();
                             if (uniqueScripts.insert(key).second) {
-                                scriptFiles.push_back(Editor::ScriptSource{path, headerPath, scriptEntry.className, sceneProject.scene, entity});
+                                scriptFiles.push_back(Editor::ScriptSource{scriptEntry.path, scriptEntry.headerPath, scriptEntry.className, sceneProject.scene, entity});
                             }
                         } else {
                             Out::error("Script file not found: %s", path.string().c_str());

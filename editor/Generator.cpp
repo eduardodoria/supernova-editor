@@ -347,13 +347,14 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     std::string scriptDirs = "";
     std::string scriptSources = "set(SCRIPT_SOURCES\n";
     for (const auto& s : scriptFiles) {
-        // Make path relative to project path and add CMake variable prefix
-        fs::path relativePath = fs::relative(s.path, projectPath);
-        scriptSources += "    ${CMAKE_CURRENT_SOURCE_DIR}/" + relativePath.generic_string() + "\n";
+        if (s.path.is_relative()) {
+            scriptSources += "    ${CMAKE_CURRENT_SOURCE_DIR}/" + s.path.generic_string() + "\n";
+        } else {
+            scriptSources += "    " + s.path.generic_string() + "\n";
+        }
 
-        if (!s.headerPath.empty()) {
-            fs::path relativeHeaderPath = fs::relative(s.headerPath, projectPath);
-            fs::path relativeDir = relativeHeaderPath.parent_path();
+        if (!s.headerPath.empty() && s.headerPath.is_relative()) {
+            fs::path relativeDir = s.headerPath.parent_path();
             scriptDirs += "    ${CMAKE_CURRENT_SOURCE_DIR}/" + relativeDir.generic_string() + "\n";
         }
     }
@@ -429,8 +430,12 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     sourceContent += "#include \"Supernova.h\"\n\n";
 
     for (const auto& s : scriptFiles) {
-        if (!s.headerPath.empty() && fs::exists(s.headerPath) && fs::is_regular_file(s.headerPath)) {
-            fs::path relativePath = fs::relative(s.headerPath, projectPath);
+        fs::path headerPath = s.headerPath;
+        if (headerPath.is_relative()) {
+            headerPath = projectPath / headerPath;
+        }
+        if (!headerPath.empty() && fs::exists(headerPath) && fs::is_regular_file(headerPath)) {
+            fs::path relativePath = fs::relative(headerPath, projectPath);
             std::string inc = relativePath.generic_string();
             sourceContent += "#include \"" + inc + "\"\n";
         }
