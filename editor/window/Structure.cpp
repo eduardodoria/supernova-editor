@@ -264,7 +264,7 @@ void Editor::Structure::showAddChildSceneMenu() {
     if (ImGui::BeginMenu(ICON_FA_FOLDER_TREE "  Add child scene")) {
         uint32_t currentSceneId = project->getSelectedSceneId();
         const auto& scenes = project->getScenes();
-        
+
         bool hasAvailableScenes = false;
         for (const auto& scene : scenes) {
             // Skip current scene and already added child scenes
@@ -274,18 +274,18 @@ void Editor::Structure::showAddChildSceneMenu() {
             if (project->hasChildScene(currentSceneId, scene.id)) {
                 continue;
             }
-            
+
             hasAvailableScenes = true;
             std::string menuLabel = scene.name + " (ID: " + std::to_string(scene.id) + ")";
             if (ImGui::MenuItem(menuLabel.c_str())) {
                 project->addChildScene(currentSceneId, scene.id);
             }
         }
-        
+
         if (!hasAvailableScenes) {
             ImGui::TextDisabled("No available scenes");
         }
-        
+
         ImGui::EndMenu();
     }
 }

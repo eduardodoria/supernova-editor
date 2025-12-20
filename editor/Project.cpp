@@ -298,7 +298,7 @@ void Editor::Project::removeChildScene(uint32_t sceneId, uint32_t childSceneId) 
     if (it != childScenes.end()) {
         childScenes.erase(it);
         sceneProject->isModified = true;
-
+ 
         const SceneProject* childScene = getScene(childSceneId);
         if (childScene) {
             Out::info("Removed child scene '%s' from scene '%s'", childScene->name.c_str(), sceneProject->name.c_str());
