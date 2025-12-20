@@ -39,7 +39,8 @@ namespace Supernova::Editor {
         std::vector<uint32_t> closeSceneQueue;
 
         void handleCloseScene(uint32_t sceneId);
-        void sceneEventHandler(Project* project, uint32_t sceneId);
+        void sceneEventHandler(SceneProject* sceneProject);
+        void handleResourceFileDragDrop(SceneProject* sceneProject);
         std::string getWindowTitle(const SceneProject& sceneProject) const;
         
     public:

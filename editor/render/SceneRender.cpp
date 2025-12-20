@@ -21,6 +21,7 @@ Editor::SceneRender::SceneRender(Scene* scene, bool use2DGizmos, bool enableView
 
     this->scene = scene;
     this->camera = new Camera(scene);
+    this->playCamera = this->camera; // For 3D scenes, the playCamera is the same as the editor camera
 
     this->multipleEntitiesSelected = false;
 
@@ -38,6 +39,9 @@ Editor::SceneRender::SceneRender(Scene* scene, bool use2DGizmos, bool enableView
 Editor::SceneRender::~SceneRender(){
     framebuffer.destroy();
 
+    if (playCamera != camera){
+        delete playCamera;
+    }
     delete camera;
 }
 
@@ -165,6 +169,10 @@ void Editor::SceneRender::setPlayMode(bool isPlaying){
     if (!isPlaying){
         scene->setCamera(camera);
     }
+}
+
+Camera* Editor::SceneRender::getPlayCamera(){
+    return playCamera;
 }
 
 void Editor::SceneRender::activate(){

@@ -8,10 +8,14 @@ using namespace Supernova;
 Editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned int height, bool isUI): SceneRender(scene, true, false, 40, 2){
     this->isUI = isUI;
 
+    this->playCamera = new Camera(scene);
+
     if (isUI){
         camera->setType(CameraType::CAMERA_2D);
+        playCamera->setType(CameraType::CAMERA_2D);
     }else{
         camera->setType(CameraType::CAMERA_ORTHO);
+        playCamera->setType(CameraType::CAMERA_ORTHO);
     }
 
     camera->slide(-50);

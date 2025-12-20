@@ -53,7 +53,166 @@ std::string Editor::SceneWindow::getWindowTitle(const SceneProject& sceneProject
     return icon + sceneProject.name + (sceneProject.isModified ? " *" : "") + "###Scene" + std::to_string(sceneProject.id);
 }
 
-void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
+void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject) {
+    static bool draggingResourceFile = false;
+    static Image* tempImage = nullptr;
+    static MeshComponent* selMesh = nullptr;
+    static UIComponent* selUI = nullptr;
+    static Texture originalTex;
+    static Entity lastSelEntity = NULL_ENTITY;
+
+    if (ImGui::BeginDragDropTarget()) {
+        draggingResourceFile = true;
+        ImVec2 windowPos = ImGui::GetWindowPos();
+        ImGuiIO& io = ImGui::GetIO();
+        ImVec2 mousePos = io.MousePos;
+        float x = mousePos.x - windowPos.x;
+        float y = mousePos.y - windowPos.y;
+        Entity selEntity = project->findObjectByRay(sceneProject->id, x, y);
+
+        if (selEntity == NULL_ENTITY || lastSelEntity != selEntity) {
+            if (selMesh) {
+                if (selMesh->submeshes[0].material.baseColorTexture != originalTex) {
+                    selMesh->submeshes[0].material.baseColorTexture = originalTex;
+                    selMesh->submeshes[0].needUpdateTexture = true;
+                }
+                selMesh = nullptr;
+            }
+            if (selUI) {
+                if (selUI->texture != originalTex) {
+                    selUI->texture = originalTex;
+                    selUI->needUpdateTexture = true;
+                }
+                selUI = nullptr;
+            }
+        }
+
+        if (selEntity != NULL_ENTITY) {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
+                lastSelEntity = selEntity;
+                std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
+                if (receivedStrings.size() > 0) {
+                    if (tempImage != nullptr) {
+                        delete tempImage;
+                        tempImage = nullptr;
+                    }
+                    if (MeshComponent* mesh = sceneProject->scene->findComponent<MeshComponent>(selEntity)) {
+                        if (!selMesh) {
+                            selMesh = mesh;
+                            originalTex = mesh->submeshes[0].material.baseColorTexture;
+                        }
+                        Texture newTex(receivedStrings[0]);
+                        if (mesh->submeshes[0].material.baseColorTexture != newTex) {
+                            mesh->submeshes[0].material.baseColorTexture = newTex;
+                            mesh->submeshes[0].needUpdateTexture = true;
+                        }
+                        if (payload->IsDelivery()) {
+                            std::string propName = "submeshes[0].material.baseColorTexture";
+                            selMesh->submeshes[0].material.baseColorTexture = originalTex;
+
+                            PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(project, sceneProject->id, selEntity, ComponentType::MeshComponent, propName, newTex);
+                            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(cmd);
+
+                            selMesh = nullptr;
+
+                            ImGui::SetWindowFocus();
+                        }
+                    } else if (UIComponent* ui = sceneProject->scene->findComponent<UIComponent>(selEntity)) {
+                        if (!selUI) {
+                            selUI = ui;
+                            originalTex = ui->texture;
+                        }
+                        Texture newTex(receivedStrings[0]);
+                        if (ui->texture != newTex) {
+                            ui->texture = newTex;
+                            ui->needUpdateTexture = true;
+                        }
+                        if (payload->IsDelivery()) {
+                            std::string propName = "texture";
+                            selUI->texture = originalTex;
+
+                            PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(project, sceneProject->id, selEntity, ComponentType::UIComponent, propName, newTex);
+                            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(cmd);
+
+                            selUI = nullptr;
+
+                            ImGui::SetWindowFocus();
+                        }
+                    }
+                }
+            }
+        } else if (sceneProject->sceneType != SceneType::SCENE_3D) {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
+                std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
+                if (receivedStrings.size() > 0) {
+                    if (!tempImage) {
+                        tempImage = new Image(sceneProject->scene);
+                        tempImage->setTexture(receivedStrings[0]);
+                        tempImage->setAlpha(0.5f);
+                    }
+                    Ray ray = sceneProject->sceneRender->getCamera()->screenToRay(x, y);
+                    RayReturn rreturn = ray.intersects(Plane(Vector3(0, 0, 1), Vector3(0, 0, 0)));
+                    if (rreturn) {
+                        tempImage->setPosition(rreturn.point);
+                    }
+                    if (payload->IsDelivery()) {
+                        CreateEntityCmd* cmd = nullptr;
+
+                        if (sceneProject->sceneType == SceneType::SCENE_2D) {
+                            cmd = new CreateEntityCmd(project, sceneProject->id, "Sprite", EntityCreationType::SPRITE);
+
+                            cmd->addProperty<Vector3>(ComponentType::Transform, "position", rreturn.point);
+                            cmd->addProperty<Texture>(ComponentType::MeshComponent, "submeshes[0].material.baseColorTexture", Texture(receivedStrings[0]));
+                            cmd->addProperty<unsigned int>(ComponentType::SpriteComponent, "width", tempImage->getWidth());
+                            cmd->addProperty<unsigned int>(ComponentType::SpriteComponent, "height", tempImage->getHeight());
+                        } else {
+                            cmd = new CreateEntityCmd(project, sceneProject->id, "Image", EntityCreationType::IMAGE);
+
+                            cmd->addProperty<Vector3>(ComponentType::Transform, "position", rreturn.point);
+                            cmd->addProperty<Texture>(ComponentType::UIComponent, "texture", Texture(receivedStrings[0]));
+                            cmd->addProperty<unsigned int>(ComponentType::UILayoutComponent, "width", tempImage->getWidth());
+                            cmd->addProperty<unsigned int>(ComponentType::UILayoutComponent, "height", tempImage->getHeight());
+                        }
+
+                        CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(cmd);
+
+                        delete tempImage;
+                        tempImage = nullptr;
+
+                        ImGui::SetWindowFocus();
+                    }
+                }
+            }
+        }
+        ImGui::EndDragDropTarget();
+    } else {
+        if (draggingResourceFile) {
+            // If user released mouse (ended drag) and we have a temp texture applied, revert it
+            if (selMesh) {
+                if (selMesh->submeshes[0].material.baseColorTexture != originalTex) {
+                    selMesh->submeshes[0].material.baseColorTexture = originalTex;
+                    selMesh->submeshes[0].needUpdateTexture = true;
+                }
+                selMesh = nullptr;
+            }
+            if (selUI) {
+                if (selUI->texture != originalTex) {
+                    selUI->texture = originalTex;
+                    selUI->needUpdateTexture = true;
+                }
+                selUI = nullptr;
+            }
+            draggingResourceFile = false; // Reset flag
+            lastSelEntity = NULL_ENTITY;
+        }
+        if (tempImage != nullptr) {
+            delete tempImage;
+            tempImage = nullptr;
+        }
+    }
+}
+
+void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
     // Get the current window's position and size
     ImVec2 windowPos = ImGui::GetWindowPos();
     ImVec2 windowSize = ImGui::GetWindowSize();
@@ -66,7 +225,7 @@ void Editor::SceneWindow::sceneEventHandler(Project* project, uint32_t sceneId){
     bool isMouseInWindow = ImGui::IsWindowHovered() && (mousePos.x >= windowPos.x && mousePos.x <= windowPos.x + windowSize.x &&
                             mousePos.y >= windowPos.y && mousePos.y <= windowPos.y + windowSize.y);
 
-    SceneProject* sceneProject = project->getScene(sceneId);
+    size_t sceneId = sceneProject->id;
 
     bool disableSelection = 
         sceneProject->sceneRender->getCursorSelected() == CursorSelected::HAND || 
@@ -490,15 +649,6 @@ void Editor::SceneWindow::show() {
 
             ImGui::BeginChild(("Canvas" + std::to_string(sceneProject.id)).c_str());
             {
-                if (ImGui::IsWindowHovered()) {
-                    CursorSelected cursorSelected = sceneProject.sceneRender->getCursorSelected();
-                    if (cursorSelected == CursorSelected::HAND) {
-                        ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
-                    }
-                }
-
-                sceneEventHandler(project, sceneProject.id);
-
                 int widthNew = ImGui::GetContentRegionAvail().x;
                 int heightNew = ImGui::GetContentRegionAvail().y;
 
@@ -510,162 +660,17 @@ void Editor::SceneWindow::show() {
                 }
 
                 ImGui::Image((ImTextureID)(intptr_t)sceneProject.sceneRender->getTexture().getGLHandler(), ImGui::GetContentRegionAvail(), ImVec2(0, 1), ImVec2(1, 0));
-                
-                static bool draggingResourceFile = false;
-                static Image* tempImage = nullptr;
-                static MeshComponent* selMesh = nullptr;
-                static UIComponent* selUI = nullptr;
-                static Texture originalTex;
-                static Entity lastSelEntity = NULL_ENTITY;
 
-                if (ImGui::BeginDragDropTarget()) {
-                    draggingResourceFile = true;
-                    ImVec2 windowPos = ImGui::GetWindowPos();
-                    ImGuiIO& io = ImGui::GetIO();
-                    ImVec2 mousePos = io.MousePos;
-                    float x = mousePos.x - windowPos.x;
-                    float y = mousePos.y - windowPos.y;
-                    Entity selEntity = project->findObjectByRay(sceneProject.id, x, y);
-
-                    if (selEntity == NULL_ENTITY || lastSelEntity != selEntity) {
-                        if (selMesh) {
-                            if (selMesh->submeshes[0].material.baseColorTexture != originalTex) {
-                                selMesh->submeshes[0].material.baseColorTexture = originalTex;
-                                selMesh->submeshes[0].needUpdateTexture = true;
-                            }
-                            selMesh = nullptr;
-                        }
-                        if (selUI) {
-                            if (selUI->texture != originalTex) {
-                                selUI->texture = originalTex;
-                                selUI->needUpdateTexture = true;
-                            }
-                            selUI = nullptr;
+                if (sceneProject.playState == ScenePlayState::STOPPED){
+                    if (ImGui::IsWindowHovered()) {
+                        CursorSelected cursorSelected = sceneProject.sceneRender->getCursorSelected();
+                        if (cursorSelected == CursorSelected::HAND) {
+                            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
                         }
                     }
 
-                    if (selEntity != NULL_ENTITY) {
-                        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
-                            lastSelEntity = selEntity;
-                            std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
-                            if (receivedStrings.size() > 0){
-                                if (tempImage != nullptr) {
-                                    delete tempImage;
-                                    tempImage = nullptr;
-                                }
-                                if (MeshComponent* mesh = sceneProject.scene->findComponent<MeshComponent>(selEntity)) {
-                                    if (!selMesh) {
-                                        selMesh = mesh;
-                                        originalTex = mesh->submeshes[0].material.baseColorTexture;
-                                    }
-                                    Texture newTex(receivedStrings[0]);
-                                    if (mesh->submeshes[0].material.baseColorTexture != newTex) {
-                                        mesh->submeshes[0].material.baseColorTexture = newTex;
-                                        mesh->submeshes[0].needUpdateTexture = true;
-                                    }
-                                    if (payload->IsDelivery()) {
-                                        std::string propName = "submeshes[0].material.baseColorTexture";
-                                        selMesh->submeshes[0].material.baseColorTexture = originalTex;
-
-                                        PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(project, sceneProject.id, selEntity, ComponentType::MeshComponent, propName, newTex);
-                                        CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(cmd);
-
-                                        selMesh = nullptr;
-
-                                        ImGui::SetWindowFocus();
-                                    }
-                                }else if (UIComponent* ui = sceneProject.scene->findComponent<UIComponent>(selEntity)){
-                                    if (!selUI) {
-                                        selUI = ui;
-                                        originalTex = ui->texture;
-                                    }
-                                    Texture newTex(receivedStrings[0]);
-                                    if (ui->texture != newTex) {
-                                        ui->texture = newTex;
-                                        ui->needUpdateTexture = true;
-                                    }
-                                    if (payload->IsDelivery()) {
-                                        std::string propName = "texture";
-                                        selUI->texture = originalTex;
-
-                                        PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(project, sceneProject.id, selEntity, ComponentType::UIComponent, propName, newTex);
-                                        CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(cmd);
-
-                                        selUI = nullptr;
-
-                                        ImGui::SetWindowFocus();
-                                    }
-                                }
-                            }
-                        }
-                    }else if (sceneProject.sceneType != SceneType::SCENE_3D){
-                        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
-                            std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
-                            if (receivedStrings.size() > 0){
-                                if (!tempImage){
-                                    tempImage = new Image(sceneProject.scene);
-                                    tempImage->setTexture(receivedStrings[0]);
-                                    tempImage->setAlpha(0.5f);
-                                }
-                                Ray ray = sceneProject.sceneRender->getCamera()->screenToRay(x, y);
-                                RayReturn rreturn = ray.intersects(Plane(Vector3(0, 0, 1), Vector3(0, 0, 0)));
-                                if (rreturn){
-                                    tempImage->setPosition(rreturn.point);
-                                }
-                                if (payload->IsDelivery()) {
-                                    CreateEntityCmd* cmd = nullptr;
-
-                                    if (sceneProject.sceneType == SceneType::SCENE_2D){
-                                        cmd = new CreateEntityCmd(project, sceneProject.id, "Sprite", EntityCreationType::SPRITE);
-
-                                        cmd->addProperty<Vector3>(ComponentType::Transform, "position", rreturn.point);
-                                        cmd->addProperty<Texture>(ComponentType::MeshComponent, "submeshes[0].material.baseColorTexture", Texture(receivedStrings[0]));
-                                        cmd->addProperty<unsigned int>(ComponentType::SpriteComponent, "width", tempImage->getWidth());
-                                        cmd->addProperty<unsigned int>(ComponentType::SpriteComponent, "height", tempImage->getHeight());
-                                    }else{
-                                        cmd = new CreateEntityCmd(project, sceneProject.id, "Image", EntityCreationType::IMAGE);
-
-                                        cmd->addProperty<Vector3>(ComponentType::Transform, "position", rreturn.point);
-                                        cmd->addProperty<Texture>(ComponentType::UIComponent, "texture", Texture(receivedStrings[0]));
-                                        cmd->addProperty<unsigned int>(ComponentType::UILayoutComponent, "width", tempImage->getWidth());
-                                        cmd->addProperty<unsigned int>(ComponentType::UILayoutComponent, "height", tempImage->getHeight());
-                                    }
-
-                                    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(cmd);
-
-                                    delete tempImage;
-                                    tempImage = nullptr;
-
-                                    ImGui::SetWindowFocus();
-                                }
-                            }
-                        }
-                    }
-                    ImGui::EndDragDropTarget();
-                }else{
-                    if (draggingResourceFile) {
-                        // If user released mouse (ended drag) and we have a temp texture applied, revert it
-                        if (selMesh) {
-                            if (selMesh->submeshes[0].material.baseColorTexture != originalTex) {
-                                selMesh->submeshes[0].material.baseColorTexture = originalTex;
-                                selMesh->submeshes[0].needUpdateTexture = true;
-                            }
-                            selMesh = nullptr;
-                        }
-                        if (selUI) {
-                            if (selUI->texture != originalTex) {
-                                selUI->texture = originalTex;
-                                selUI->needUpdateTexture = true;
-                            }
-                            selUI = nullptr;
-                        }
-                        draggingResourceFile = false; // Reset flag
-                        lastSelEntity = NULL_ENTITY;
-                    }
-                    if (tempImage != nullptr) {
-                        delete tempImage;
-                        tempImage = nullptr;
-                    }
+                    sceneEventHandler(&sceneProject);
+                    handleResourceFileDragDrop(&sceneProject);
                 }
             }
             ImGui::EndChild();
