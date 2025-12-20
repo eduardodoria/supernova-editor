@@ -14,6 +14,7 @@ namespace Supernova::Editor{
         std::string icon;
         std::string name;
         bool isScene = false;
+        bool isChildScene = false;
         bool isShared = false;
         bool isParentShared = false;
         bool isMainCamera = false;
@@ -24,6 +25,8 @@ namespace Supernova::Editor{
         uint32_t id = 0;
         size_t order = 0;
         uint32_t parent = NULL_ENTITY;
+        uint32_t childSceneId = 0;          // Scene ID for child scene nodes
+        uint32_t ownerSceneId = 0;          // Parent/owner scene ID (for child scene nodes)
         std::vector<TreeNode> children;
     };
 
@@ -49,6 +52,8 @@ namespace Supernova::Editor{
         std::string getObjectIcon(Signature signature, Scene* scene);
         TreeNode* findNode(Editor::TreeNode* root, Entity entity);
         void handleEntityFilesDrop(const std::vector<std::string>& filePaths, Entity parent = NULL_ENTITY);
+        void handleSceneFilesDropAsChildScenes(const std::vector<std::string>& filePaths, uint32_t ownerSceneId);
+        void showAddChildSceneMenu();
 
         // Search-related methods
         bool nodeMatchesSearch(const TreeNode& node, const std::string& searchLower);

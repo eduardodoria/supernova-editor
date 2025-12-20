@@ -53,6 +53,7 @@ namespace Supernova::Editor{
         bool opened = true;
         ScenePlayState playState = ScenePlayState::STOPPED;
         YAML::Node playStateSnapshot;
+        std::vector<uint32_t> childScenes;
     };
 
     struct MergeResult {
@@ -153,6 +154,11 @@ namespace Supernova::Editor{
         void loadScene(fs::path filepath, bool opened, bool isNewScene = true);
         void openScene(fs::path filepath, bool closePrevious = true);
         void closeScene(uint32_t sceneId);
+
+        void addChildScene(uint32_t sceneId, uint32_t childSceneId);
+        void removeChildScene(uint32_t sceneId, uint32_t childSceneId);
+        bool hasChildScene(uint32_t sceneId, uint32_t childSceneId) const;
+        std::vector<uint32_t> getChildScenes(uint32_t sceneId) const;
 
         Entity findObjectByRay(uint32_t sceneId, float x, float y);
 

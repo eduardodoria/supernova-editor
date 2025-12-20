@@ -254,6 +254,76 @@ void Editor::Project::closeScene(uint32_t sceneId) {
     }
 }
 
+void Editor::Project::addChildScene(uint32_t sceneId, uint32_t childSceneId) {
+    SceneProject* sceneProject = getScene(sceneId);
+    if (!sceneProject) {
+        Out::error("Scene with ID %u not found", sceneId);
+        return;
+    }
+
+    // Prevent adding self as child
+    if (sceneId == childSceneId) {
+        Out::error("Cannot add a scene as its own child");
+        return;
+    }
+
+    // Check if child scene exists
+    const SceneProject* childScene = getScene(childSceneId);
+    if (!childScene) {
+        Out::error("Child scene with ID %u not found", childSceneId);
+        return;
+    }
+
+    // Check if already added
+    auto& childScenes = sceneProject->childScenes;
+    if (std::find(childScenes.begin(), childScenes.end(), childSceneId) != childScenes.end()) {
+        Out::warning("Child scene '%s' already exists in scene '%s'", childScene->name.c_str(), sceneProject->name.c_str());
+        return;
+    }
+
+    childScenes.push_back(childSceneId);
+    sceneProject->isModified = true;
+    Out::info("Added child scene '%s' to scene '%s'", childScene->name.c_str(), sceneProject->name.c_str());
+}
+
+void Editor::Project::removeChildScene(uint32_t sceneId, uint32_t childSceneId) {
+    SceneProject* sceneProject = getScene(sceneId);
+    if (!sceneProject) {
+        Out::error("Scene with ID %u not found", sceneId);
+        return;
+    }
+
+    auto& childScenes = sceneProject->childScenes;
+    auto it = std::find(childScenes.begin(), childScenes.end(), childSceneId);
+    if (it != childScenes.end()) {
+        childScenes.erase(it);
+        sceneProject->isModified = true;
+
+        const SceneProject* childScene = getScene(childSceneId);
+        if (childScene) {
+            Out::info("Removed child scene '%s' from scene '%s'", childScene->name.c_str(), sceneProject->name.c_str());
+        }
+    }
+}
+
+bool Editor::Project::hasChildScene(uint32_t sceneId, uint32_t childSceneId) const {
+    const SceneProject* sceneProject = getScene(sceneId);
+    if (!sceneProject) {
+        return false;
+    }
+
+    const auto& childScenes = sceneProject->childScenes;
+    return std::find(childScenes.begin(), childScenes.end(), childSceneId) != childScenes.end();
+}
+
+std::vector<uint32_t> Editor::Project::getChildScenes(uint32_t sceneId) const {
+    const SceneProject* sceneProject = getScene(sceneId);
+    if (!sceneProject) {
+        return {};
+    }
+    return sceneProject->childScenes;
+}
+
 Entity Editor::Project::createNewEntity(uint32_t sceneId, std::string entityName){
     for (int i = 0; i < scenes.size(); i++){
         if (scenes[i].id == sceneId){

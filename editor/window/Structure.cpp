@@ -17,6 +17,7 @@
 #include "Stream.h"
 #include <algorithm>
 #include <cctype>
+#include <filesystem>
 
 using namespace Supernova;
 
@@ -211,6 +212,84 @@ void Editor::Structure::handleEntityFilesDrop(const std::vector<std::string>& fi
     }
 }
 
+void Editor::Structure::handleSceneFilesDropAsChildScenes(const std::vector<std::string>& filePaths, uint32_t ownerSceneId) {
+    if (ownerSceneId == NULL_PROJECT_SCENE) {
+        return;
+    }
+
+    auto normalizeDroppedPath = [this](const std::filesystem::path& p) -> std::filesystem::path {
+        if (p.empty()) {
+            return p;
+        }
+        if (p.is_relative()) {
+            return (project->getProjectPath() / p).lexically_normal();
+        }
+        return p.lexically_normal();
+    };
+
+    auto pathsReferToSameFile = [](const std::filesystem::path& a, const std::filesystem::path& b) -> bool {
+        std::error_code ec;
+        if (std::filesystem::exists(a, ec) && std::filesystem::exists(b, ec)) {
+            if (std::filesystem::equivalent(a, b, ec) && !ec) {
+                return true;
+            }
+        }
+        return a.lexically_normal() == b.lexically_normal();
+    };
+
+    for (const std::string& filePath : filePaths) {
+        std::filesystem::path droppedPath = normalizeDroppedPath(std::filesystem::path(filePath));
+        if (droppedPath.extension() != ".scene") {
+            continue;
+        }
+
+        uint32_t droppedSceneId = NULL_PROJECT_SCENE;
+        for (const auto& scene : project->getScenes()) {
+            if (!scene.filepath.empty() && pathsReferToSameFile(scene.filepath, droppedPath)) {
+                droppedSceneId = scene.id;
+                break;
+            }
+        }
+
+        if (droppedSceneId == NULL_PROJECT_SCENE) {
+            Out::warning("Dropped scene is not part of the current project: %s", droppedPath.string().c_str());
+            continue;
+        }
+
+        project->addChildScene(ownerSceneId, droppedSceneId);
+    }
+}
+
+void Editor::Structure::showAddChildSceneMenu() {
+    if (ImGui::BeginMenu(ICON_FA_FOLDER_TREE "  Add child scene")) {
+        uint32_t currentSceneId = project->getSelectedSceneId();
+        const auto& scenes = project->getScenes();
+        
+        bool hasAvailableScenes = false;
+        for (const auto& scene : scenes) {
+            // Skip current scene and already added child scenes
+            if (scene.id == currentSceneId) {
+                continue;
+            }
+            if (project->hasChildScene(currentSceneId, scene.id)) {
+                continue;
+            }
+            
+            hasAvailableScenes = true;
+            std::string menuLabel = scene.name + " (ID: " + std::to_string(scene.id) + ")";
+            if (ImGui::MenuItem(menuLabel.c_str())) {
+                project->addChildScene(currentSceneId, scene.id);
+            }
+        }
+        
+        if (!hasAvailableScenes) {
+            ImGui::TextDisabled("No available scenes");
+        }
+        
+        ImGui::EndMenu();
+    }
+}
+
 bool Editor::Structure::nodeMatchesSearch(const TreeNode& node, const std::string& searchLower) {
     std::string nodeName = node.name;
     std::string searchStr = searchLower;
@@ -268,7 +347,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         flags |= ImGuiTreeNodeFlags_Selected;
     }
 
-    if (project->isSelectedEntity(project->getSelectedSceneId(), node.id)) {
+    if (!node.isScene && !node.isChildScene && project->isSelectedEntity(project->getSelectedSceneId(), node.id)) {
         flags |= ImGuiTreeNodeFlags_Selected;
     }
 
@@ -288,7 +367,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     node.isShared = false;
     std::filesystem::path sharedFilepath;
 
-    if (!node.isScene) {
+    if (!node.isScene && !node.isChildScene) {
         sharedFilepath = project->findGroupPathFor(project->getSelectedSceneId(), node.id);
         node.isShared = !sharedFilepath.empty();
 
@@ -303,6 +382,9 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     // Highlight matching nodes when searching
     if (hasSearch && node.matchesSearch) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 0.5f, 1.0f)); // Yellow for search matches
+        pushedHighlightColor = true;
+    } else if (node.isChildScene) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.9f, 0.6f, 1.0f)); // Light green for child scenes
         pushedHighlightColor = true;
     } else if (node.isShared) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.7f, 1.0f, 1.0f)); // Light blue for shared
@@ -324,6 +406,8 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
 
     if (node.isScene){
         ImGui::SetItemTooltip("Id: %u", node.id);
+    }else if (node.isChildScene){
+        ImGui::SetItemTooltip("Child Scene\nId: %u", node.childSceneId);
     }else{
         if (node.isShared) {
             ImGui::SetItemTooltip("Entity: %u (Shared)\nPath: %s", node.id, sharedFilepath.string().c_str());
@@ -332,7 +416,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         }
     }
 
-    if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+    if (!node.isChildScene && ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
         // Add entity drag drop payload for dragging to resources
         if (!node.isScene) {
             SceneProject* sceneProject = project->getSelectedScene();
@@ -360,7 +444,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     bool insertBefore = false;
     bool insertAfter = false;
 
-    if (ImGui::BeginDragDropTarget()) {
+    if (!node.isChildScene && ImGui::BeginDragDropTarget()) {
         bool allowEntityDragDrop = false;
         const ImGuiPayload* payload = ImGui::GetDragDropPayload();
         Entity sourceEntity = 0;
@@ -475,16 +559,20 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                 offset += path.size() + 1; // +1 for null terminator
             }
 
-            // Determine the parent entity for the drop
-            Entity parentEntity = NULL_ENTITY;
-            if (!node.isScene) {
-                // If dropping on an entity, use it as parent if it has transform, otherwise use its parent
+            // Dropping on the scene root: allow adding child scenes via .scene files,
+            // and keep supporting .entity imports.
+            if (node.isScene) {
+                handleSceneFilesDropAsChildScenes(droppedPaths, node.id);
+                handleEntityFilesDrop(droppedPaths, NULL_ENTITY);
+            } else {
+                // Determine the parent entity for the drop
+                Entity parentEntity = NULL_ENTITY;
+                // If dropping on an entity, use it as parent if it has transform
                 if (node.hasTransform) {
                     parentEntity = node.id;
                 }
+                handleEntityFilesDrop(droppedPaths, parentEntity);
             }
-
-            handleEntityFilesDrop(droppedPaths, parentEntity);
         }
 
         ImGui::EndDragDropTarget();
@@ -498,7 +586,12 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     // Check for selection on mouse release (not click) to allow drag without selection
     bool wasItemActivePrevFrame = ImGui::IsItemActive();
     if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left) && !ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
-        if (!node.isScene){
+        if (node.isChildScene) {
+            // Selecting a child scene switches the selected scene
+            project->clearSelectedEntities(project->getSelectedSceneId());
+            selectedScenes.clear();
+            project->setSelectedSceneId(node.childSceneId);
+        } else if (!node.isScene){
             ImGuiIO& io = ImGui::GetIO();
             if (!io.KeyShift){
                 project->clearSelectedEntities(project->getSelectedSceneId());
@@ -515,6 +608,11 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         selectedScenes.clear();
     }
 
+    // Handle double-click on child scene to select it (kept for UX consistency)
+    if (node.isChildScene && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+        project->setSelectedSceneId(node.childSceneId);
+    }
+
     std::string popupId = "##ContextMenu" + getNodeImGuiId(node);
 
     if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
@@ -524,74 +622,94 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     }
 
     if (ImGui::BeginPopup(popupId.c_str())) {
-        ImGui::Text("Name:");
-
-        ImGui::PushItemWidth(200);
-        if (ImGui::InputText("##ChangeNameInput", nameBuffer, IM_ARRAYSIZE(nameBuffer), ImGuiInputTextFlags_EnterReturnsTrue)){
-            ImGui::CloseCurrentPopup();
-        }
-        if (ImGui::IsItemDeactivatedAfterEdit()) {
-            if (nameBuffer[0] != '\0' && strcmp(nameBuffer, node.name.c_str()) != 0) {
-                if (node.isScene){
-                    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new SceneNameCmd(project, node.id, nameBuffer));
-                }else{
-                    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new EntityNameCmd(project, project->getSelectedSceneId(), node.id, nameBuffer));
-                }
-            }
-        }
-
-        ImGui::Separator();
-        if (ImGui::MenuItem(ICON_FA_COPY"  Duplicate")){
-            // Action for SubItem 1
-        }
-        if (ImGui::MenuItem(ICON_FA_TRASH"  Delete")){
-            if (!node.isScene){
-                CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new DeleteEntityCmd(project, project->getSelectedSceneId(), node.id));
-            }
-        }
-        if (node.isParentShared){
+        // Child scene context menu
+        if (node.isChildScene) {
+            ImGui::Text("Child Scene: %s", node.name.c_str());
             ImGui::Separator();
-            if (ImGui::MenuItem(ICON_FA_LOCK_OPEN"  Make this entity local", nullptr, false, node.isShared)){
-                if (node.isShared){
-                    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new MakeEntityLocalCmd(project, project->getSelectedSceneId(), node.id, node.parent));
-                }
+            if (ImGui::MenuItem(ICON_FA_ARROW_POINTER "  Select scene")) {
+                project->setSelectedSceneId(node.childSceneId);
             }
-            if (ImGui::MenuItem(ICON_FA_LINK"  Make this entity shared", nullptr, false, !node.isShared)){
-                if (!node.isShared){
-                    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new MakeEntitySharedCmd(project, project->getSelectedSceneId(), node.id, node.parent));
-                }
+            if (ImGui::MenuItem(ICON_FA_TRASH "  Remove child scene")) {
+                project->removeChildScene(node.ownerSceneId, node.childSceneId);
             }
-        }
-        if (node.hasTransform || node.isScene){
-            ImGui::Separator();
-            static bool createSharedChild = false;
-            if (node.isShared){
-                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(ImGui::GetStyle().FramePadding.x, ImGui::GetStyle().FramePadding.y * 0.5f));
-                ImGui::Checkbox("Create new shared", &createSharedChild);
-                ImGui::PopStyleVar(1);
-            }
-            if (ImGui::BeginMenu(ICON_FA_CIRCLE_DOT"  Create child")){
-                showNewEntityMenu(node.isScene, node.id, createSharedChild);
-            }
-        }
+            ImGui::EndPopup();
+        } else {
+            // Regular entity/scene context menu
+            ImGui::Text("Name:");
 
-        if (!node.isScene) {
-            SceneProject* sceneProject = project->getSelectedScene();
-            if (sceneProject->scene->getSignature(node.id).test(sceneProject->scene->getComponentId<CameraComponent>())) {
+            ImGui::PushItemWidth(200);
+            if (ImGui::InputText("##ChangeNameInput", nameBuffer, IM_ARRAYSIZE(nameBuffer), ImGuiInputTextFlags_EnterReturnsTrue)){
+                ImGui::CloseCurrentPopup();
+            }
+            if (ImGui::IsItemDeactivatedAfterEdit()) {
+                if (nameBuffer[0] != '\0' && strcmp(nameBuffer, node.name.c_str()) != 0) {
+                    if (node.isScene){
+                        CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new SceneNameCmd(project, node.id, nameBuffer));
+                    }else{
+                        CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new EntityNameCmd(project, project->getSelectedSceneId(), node.id, nameBuffer));
+                    }
+                }
+            }
+
+            ImGui::Separator();
+            if (ImGui::MenuItem(ICON_FA_COPY"  Duplicate")){
+                // Action for SubItem 1
+            }
+            if (ImGui::MenuItem(ICON_FA_TRASH"  Delete")){
+                if (!node.isScene){
+                    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new DeleteEntityCmd(project, project->getSelectedSceneId(), node.id));
+                }
+            }
+            if (node.isParentShared){
                 ImGui::Separator();
-                if (node.isMainCamera) {
-                    if (ImGui::MenuItem(ICON_FA_VIDEO"  Unset as Main Camera", nullptr, false, node.isMainCamera)) {
-                        CommandHandle::get(project->getSelectedSceneId())->addCommand(new SetMainCameraCmd(project, project->getSelectedSceneId(), NULL_ENTITY));
+                if (ImGui::MenuItem(ICON_FA_LOCK_OPEN"  Make this entity local", nullptr, false, node.isShared)){
+                    if (node.isShared){
+                        CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new MakeEntityLocalCmd(project, project->getSelectedSceneId(), node.id, node.parent));
                     }
-                } else {
-                    if (ImGui::MenuItem(ICON_FA_VIDEO"  Set as Main Camera", nullptr, false, !node.isMainCamera)) {
-                        CommandHandle::get(project->getSelectedSceneId())->addCommand(new SetMainCameraCmd(project, project->getSelectedSceneId(), node.id));
+                }
+                if (ImGui::MenuItem(ICON_FA_LINK"  Make this entity shared", nullptr, false, !node.isShared)){
+                    if (!node.isShared){
+                        CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new MakeEntitySharedCmd(project, project->getSelectedSceneId(), node.id, node.parent));
                     }
                 }
             }
-        }
+            if (node.hasTransform || node.isScene){
+                ImGui::Separator();
+                static bool createSharedChild = false;
+                if (node.isShared){
+                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(ImGui::GetStyle().FramePadding.x, ImGui::GetStyle().FramePadding.y * 0.5f));
+                    ImGui::Checkbox("Create new shared", &createSharedChild);
+                    ImGui::PopStyleVar(1);
+                }
+                if (ImGui::BeginMenu(ICON_FA_CIRCLE_DOT"  Create child")){
+                    showNewEntityMenu(node.isScene, node.id, createSharedChild);
+                }
+            }
 
-        ImGui::EndPopup();
+            // Scene-specific options
+            if (node.isScene) {
+                ImGui::Separator();
+                showAddChildSceneMenu();
+            }
+
+            if (!node.isScene) {
+                SceneProject* sceneProject = project->getSelectedScene();
+                if (sceneProject->scene->getSignature(node.id).test(sceneProject->scene->getComponentId<CameraComponent>())) {
+                    ImGui::Separator();
+                    if (node.isMainCamera) {
+                        if (ImGui::MenuItem(ICON_FA_VIDEO"  Unset as Main Camera", nullptr, false, node.isMainCamera)) {
+                            CommandHandle::get(project->getSelectedSceneId())->addCommand(new SetMainCameraCmd(project, project->getSelectedSceneId(), NULL_ENTITY));
+                        }
+                    } else {
+                        if (ImGui::MenuItem(ICON_FA_VIDEO"  Set as Main Camera", nullptr, false, !node.isMainCamera)) {
+                            CommandHandle::get(project->getSelectedSceneId())->addCommand(new SetMainCameraCmd(project, project->getSelectedSceneId(), node.id));
+                        }
+                    }
+                }
+            }
+
+            ImGui::EndPopup();
+        }
     }
 
     if (node.separator){
@@ -610,12 +728,18 @@ std::string Editor::Structure::getNodeImGuiId(TreeNode& node){
     std::string id;
     if (node.isScene){
         id += "ItemScene";
+        id += std::to_string(node.id);
+    }else if (node.isChildScene){
+        id += "ItemChildScene";
+        id += std::to_string(node.ownerSceneId);
+        id += "_";
+        id += std::to_string(node.childSceneId);
     }else{
         id += "ItemScene";
         id += std::to_string(project->getSelectedSceneId());
         id += "Entity";
+        id += std::to_string(node.id);
     }
-    id += std::to_string(node.id);
 
     return id;
 }
@@ -633,11 +757,36 @@ void Editor::Structure::show(){
     root.order = order++;
     root.name = sceneProject->name;
 
+    // child scenes (shown before entities)
+    bool hasChildScenes = !sceneProject->childScenes.empty();
+    for (const auto& childSceneId : sceneProject->childScenes) {
+        const SceneProject* childScene = project->getScene(childSceneId);
+        if (!childScene) {
+            continue; // Skip invalid child scene references
+        }
+
+        TreeNode childSceneNode;
+        childSceneNode.icon = ICON_FA_FILM;
+        childSceneNode.name = childScene->name;
+        childSceneNode.isChildScene = true;
+        childSceneNode.childSceneId = childSceneId;
+        childSceneNode.ownerSceneId = sceneProject->id;
+        childSceneNode.order = order++;
+        root.children.push_back(childSceneNode);
+    }
+
+    bool separatorAfterChildScenes = hasChildScenes;
+
     // non-hierarchical entities
     for (auto& entity : sceneProject->entities) {
         Signature signature = sceneProject->scene->getSignature(entity);
 
         if (!signature.test(sceneProject->scene->getComponentId<Transform>())){
+            if (separatorAfterChildScenes && !root.children.empty()) {
+                root.children.back().separator = true;
+                separatorAfterChildScenes = false;
+            }
+
             TreeNode child;
             child.icon = getObjectIcon(signature, sceneProject->scene);
             child.id = entity;
@@ -665,6 +814,11 @@ void Editor::Structure::show(){
             if (applySeparator){
                 root.children.back().separator = true;
                 applySeparator = false;
+            }
+
+            if (separatorAfterChildScenes && !root.children.empty()) {
+                root.children.back().separator = true;
+                separatorAfterChildScenes = false;
             }
 
             TreeNode child;
@@ -737,6 +891,7 @@ void Editor::Structure::show(){
                 offset += path.size() + 1; // +1 for null terminator
             }
 
+            handleSceneFilesDropAsChildScenes(droppedPaths, project->getSelectedSceneId());
             handleEntityFilesDrop(droppedPaths);
         }
         ImGui::EndDragDropTarget();

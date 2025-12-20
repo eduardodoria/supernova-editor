@@ -837,6 +837,15 @@ YAML::Node Editor::Stream::encodeSceneProject(const Project* project, const Scen
         }
     }
     root["entities"] = entitiesNode;
+
+    if (!sceneProject->childScenes.empty()) {
+        YAML::Node childScenesNode;
+        for (const auto& childSceneId : sceneProject->childScenes) {
+            childScenesNode.push_back(childSceneId);
+        }
+        root["childScenes"] = childScenesNode;
+    }
+
     return root;
 }
 
@@ -846,6 +855,13 @@ void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::
     if (node["scene"]) sceneProject->scene = decodeScene(sceneProject->scene, node["scene"]);
     if (node["sceneType"]) sceneProject->sceneType = stringToSceneType(node["sceneType"].as<std::string>());
     if (node["mainCamera"]) sceneProject->mainCamera = node["mainCamera"].as<Entity>();
+
+    sceneProject->childScenes.clear();
+    if (node["childScenes"]) {
+        for (const auto& childSceneNode : node["childScenes"]) {
+            sceneProject->childScenes.push_back(childSceneNode.as<uint32_t>());
+        }
+    }
 }
 
 void Editor::Stream::decodeSceneProjectEntities(Project* project, SceneProject* sceneProject, const YAML::Node& node){
