@@ -128,6 +128,8 @@ namespace Supernova::Editor{
         void finalizeStart(SceneProject* sceneProject);
         void finalizeStop(SceneProject* sceneProject);
 
+        void collectInvolvedScenes(uint32_t sceneId, std::vector<uint32_t>& involvedSceneIds);
+
     public:
         Project();
 

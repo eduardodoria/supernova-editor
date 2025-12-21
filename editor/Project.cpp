@@ -2727,6 +2727,20 @@ bool Editor::Project::sharedGroupNameChanged(uint32_t sceneId, Entity entity, st
     return true;
 }
 
+void Editor::Project::collectInvolvedScenes(uint32_t sceneId, std::vector<uint32_t>& involvedSceneIds) {
+    SceneProject* sceneProject = getScene(sceneId);
+    if (!sceneProject) return;
+
+    // Avoid duplicates if the scene is already in the list
+    if (std::find(involvedSceneIds.begin(), involvedSceneIds.end(), sceneId) == involvedSceneIds.end()) {
+        involvedSceneIds.push_back(sceneId);
+    }
+
+    for (uint32_t childId : sceneProject->childScenes) {
+        collectInvolvedScenes(childId, involvedSceneIds);
+    }
+}
+
 void Editor::Project::start(uint32_t sceneId) {
     SceneProject* sceneProject = getScene(sceneId);
     if (!sceneProject) {
@@ -2758,12 +2772,7 @@ void Editor::Project::start(uint32_t sceneId) {
         };
 
     std::vector<uint32_t> involvedSceneIds;
-    involvedSceneIds.push_back(sceneId);
-    for (uint32_t childId : sceneProject->childScenes) {
-        if (getScene(childId)) {
-            involvedSceneIds.push_back(childId);
-        }
-    }
+    collectInvolvedScenes(sceneId, involvedSceneIds);
 
     for (uint32_t id : involvedSceneIds) {
         SceneProject* sceneProject = getScene(id);
@@ -2885,12 +2894,7 @@ void Editor::Project::stop(uint32_t sceneId) {
     }
 
     std::vector<uint32_t> involvedSceneIds;
-    involvedSceneIds.push_back(sceneId);
-    for (uint32_t childId : sceneProject->childScenes) {
-        if (getScene(childId)) {
-            involvedSceneIds.push_back(childId);
-        }
-    }
+    collectInvolvedScenes(sceneId, involvedSceneIds);
 
     // Mark cancelling state so UI can reflect it immediately
     for (uint32_t id : involvedSceneIds) {
