@@ -164,9 +164,18 @@ OBB Editor::SceneRender::getFamilyOBB(Entity entity, float offset){
     return obb;
 }
 
+void Editor::SceneRender::hideAllGizmos(){
+    selLines->setVisible(false);
+    toolslayer.setGizmoVisible(false);
+    uilayer.setViewGizmoImageVisible(false);
+    uilayer.setSelectionBoxVisible(false);
+}
+
 void Editor::SceneRender::setPlayMode(bool isPlaying){
     this->isPlaying = isPlaying;
-    if (!isPlaying){
+    if (isPlaying){
+        hideAllGizmos();
+    }else{
         scene->setCamera(camera);
     }
 }
@@ -198,6 +207,10 @@ void Editor::SceneRender::updateRenderSystem(){
 }
 
 void Editor::SceneRender::update(std::vector<Entity> selEntities, std::vector<Entity> entities, Entity mainCamera){
+    if (isPlaying){
+        return;
+    }
+
     Entity cameraEntity = camera->getEntity();
     CameraComponent& cameracomp = scene->getComponent<CameraComponent>(cameraEntity);
     Transform& cameratransform = scene->getComponent<Transform>(cameraEntity);
@@ -254,35 +267,25 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities, std::vector<En
             }
         }
 
-        if (!isPlaying){
-            toolslayer.updateGizmo(camera, gizmoPosition, gizmoRotation, scale, totalSelBB, mouseRay, mouseClicked);
+        toolslayer.updateGizmo(camera, gizmoPosition, gizmoRotation, scale, totalSelBB, mouseRay, mouseClicked);
 
-            if (selBB.size() == 0){
-                selLines->setVisible(false);
-            }else{
-                selLines->setVisible(true);
+        if (selBB.size() == 0){
+            selLines->setVisible(false);
+        }else{
+            selLines->setVisible(true);
 
-                updateSelLines(selBB);
-            }
+            updateSelLines(selBB);
         }
     }
     toolslayer.updateCamera(cameracomp, cameratransform);
 
-    if (isPlaying){
-        selLines->setVisible(false);
+    selLines->setVisible(selectionVisibility);
+    if (toolslayer.getGizmoSelected() == GizmoSelected::OBJECT2D && !sameRotation){
         toolslayer.setGizmoVisible(false);
-        uilayer.setViewGizmoImageVisible(false);
-
-        uilayer.setSelectionBoxVisible(false); // only set invisible
     }else{
-        selLines->setVisible(selectionVisibility);
-        if (toolslayer.getGizmoSelected() == GizmoSelected::OBJECT2D && !sameRotation){
-            toolslayer.setGizmoVisible(false);
-        }else{
-            toolslayer.setGizmoVisible(selectionVisibility);
-        }
-        uilayer.setViewGizmoImageVisible(true);
+        toolslayer.setGizmoVisible(selectionVisibility);
     }
+    uilayer.setViewGizmoImageVisible(true);
 }
 
 void Editor::SceneRender::mouseHoverEvent(float x, float y){

@@ -56,6 +56,8 @@ namespace Supernova::Editor{
 
         Camera* playCamera;
 
+        virtual void hideAllGizmos();
+
     public:
         SceneRender(Scene* scene, bool use2DGizmos, bool enableViewGizmo, float gizmoScale, float selectionOffset);
         virtual ~SceneRender();

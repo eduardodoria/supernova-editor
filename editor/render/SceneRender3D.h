@@ -57,18 +57,21 @@ namespace Supernova::Editor{
         void createPointLightSphere(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected);
         void createSpotLightCones(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected);
 
+    protected:
+        void hideAllGizmos() override;
+
     public:
         SceneRender3D(Scene* scene);
         virtual ~SceneRender3D();
 
-        virtual void activate();
-        virtual void updateSelLines(std::vector<OBB> obbs);
+        void activate() override;
+        void updateSelLines(std::vector<OBB> obbs) override;
 
-        virtual void update(std::vector<Entity> selEntities, std::vector<Entity> entities, Entity mainCamera);
-        virtual void mouseHoverEvent(float x, float y);
-        virtual void mouseClickEvent(float x, float y, std::vector<Entity> selEntities);
-        virtual void mouseReleaseEvent(float x, float y);
-        virtual void mouseDragEvent(float x, float y, float origX, float origY, Project* project, size_t sceneId, std::vector<Entity> selEntities, bool disableSelection);
+        void update(std::vector<Entity> selEntities, std::vector<Entity> entities, Entity mainCamera) override;
+        void mouseHoverEvent(float x, float y) override;
+        void mouseClickEvent(float x, float y, std::vector<Entity> selEntities) override;
+        void mouseReleaseEvent(float x, float y) override;
+        void mouseDragEvent(float x, float y, float origX, float origY, Project* project, size_t sceneId, std::vector<Entity> selEntities, bool disableSelection) override;
 
         ViewportGizmo* getViewportGizmo();
     };

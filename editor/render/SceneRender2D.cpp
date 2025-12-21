@@ -51,6 +51,12 @@ void Editor::SceneRender2D::createLines(unsigned int width, unsigned int height)
     lines->addLine(Vector3(width, height, 0), Vector3(width, 0, 0), Vector4(0.8, 0.8, 0.8, 1.0));
 }
 
+void Editor::SceneRender2D::hideAllGizmos(){
+    SceneRender::hideAllGizmos();
+
+    lines->setVisible(false);
+}
+
 void Editor::SceneRender2D::activate(){
     SceneRender::activate();
 }
@@ -105,7 +111,11 @@ void Editor::SceneRender2D::updateSelLines(std::vector<OBB> obbs){
 void Editor::SceneRender2D::update(std::vector<Entity> selEntities, std::vector<Entity> entities, Entity mainCamera){
     SceneRender::update(selEntities, entities, mainCamera);
 
-    lines->setVisible(!isPlaying);
+    if (isPlaying){
+        return;
+    }
+
+    lines->setVisible(true);
 }
 
 void Editor::SceneRender2D::mouseHoverEvent(float x, float y){

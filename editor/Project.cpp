@@ -2757,19 +2757,33 @@ void Editor::Project::start(uint32_t sceneId) {
             }).detach();
         };
 
-    updateAllScriptsProperties(sceneId);
-
-    if (sceneProject->isModified && !sceneProject->filepath.empty()) {
-        saveSceneToPath(sceneId, sceneProject->filepath);
+    std::vector<uint32_t> involvedSceneIds;
+    involvedSceneIds.push_back(sceneId);
+    for (uint32_t childId : sceneProject->childScenes) {
+        if (getScene(childId)) {
+            involvedSceneIds.push_back(childId);
+        }
     }
+
+    for (uint32_t id : involvedSceneIds) {
+        SceneProject* sceneProject = getScene(id);
+        if (!sceneProject) continue;
+
+        updateAllScriptsProperties(id);
+
+        if (sceneProject->isModified && !sceneProject->filepath.empty()) {
+            saveSceneToPath(id, sceneProject->filepath);
+        }
+
+        // Save current scene state before starting
+        sceneProject->playStateSnapshot = Stream::encodeSceneProject(nullptr, sceneProject);
+        sceneProject->playState = ScenePlayState::PLAYING;
+
+        resolveEntityRefs(sceneProject);
+    }
+
     Backend::getApp().getCodeEditor()->saveAll();
 
-    // Save current scene state before starting
-    sceneProject->playStateSnapshot = Stream::encodeSceneProject(nullptr, sceneProject);
-
-    sceneProject->playState = ScenePlayState::PLAYING;
-
-    resolveEntityRefs(sceneProject);
     std::vector<Editor::ScriptSource> scriptFiles = collectCppScriptSourceFiles();
 
     // Check if we have C++ scripts that need building
@@ -2781,26 +2795,51 @@ void Editor::Project::start(uint32_t sceneId) {
 
         generator.build(getProjectPath(), getProjectInternalPath(), buildPath, libName, scriptFiles);
 
-        std::thread connectThread([this, sceneProject, buildPath, libName]() {
+        std::thread connectThread([this, sceneId, involvedSceneIds, buildPath, libName]() {
             generator.waitForBuildToComplete();
 
+            SceneProject* mainSceneProject = getScene(sceneId);
+
             if (!generator.didLastBuildSucceed()) {
-                sceneProject->playState = ScenePlayState::STOPPED;
+                for (uint32_t id : involvedSceneIds) {
+                    if (SceneProject* sceneProject = getScene(id))
+                        sceneProject->playState = ScenePlayState::STOPPED;
+                }
                 return;
             }
 
             if (conector.connect(buildPath, libName)) {
-                conector.execute(sceneProject);
-                finalizeStart(sceneProject);
+                for (uint32_t id : involvedSceneIds) {
+                    SceneProject* sceneProject = getScene(id);
+                    if (!sceneProject) continue;
+
+                    conector.execute(sceneProject);
+                    finalizeStart(sceneProject);
+                    if (sceneProject != mainSceneProject) {
+                        Engine::addSceneLayer(sceneProject->scene);
+                    }
+                }
             } else {
                 Out::error("Failed to connect to library");
-                sceneProject->playState = ScenePlayState::STOPPED;
+                for (uint32_t id : involvedSceneIds) {
+                    if (SceneProject* sceneProject = getScene(id))
+                        sceneProject->playState = ScenePlayState::STOPPED;
+                }
             }
         });
         connectThread.detach();
     } else {
         // No C++ scripts, just initialize Lua scripts directly
-        finalizeStart(sceneProject);
+        SceneProject* mainSceneProject = getScene(sceneId);
+        for (uint32_t id : involvedSceneIds) {
+            SceneProject* sceneProject = getScene(id);
+            if (!sceneProject) continue;
+
+            finalizeStart(sceneProject);
+            if (sceneProject != mainSceneProject) {
+                Engine::addSceneLayer(sceneProject->scene);
+            }
+        }
     }
 }
 
@@ -2845,8 +2884,19 @@ void Editor::Project::stop(uint32_t sceneId) {
         return;
     }
 
+    std::vector<uint32_t> involvedSceneIds;
+    involvedSceneIds.push_back(sceneId);
+    for (uint32_t childId : sceneProject->childScenes) {
+        if (getScene(childId)) {
+            involvedSceneIds.push_back(childId);
+        }
+    }
+
     // Mark cancelling state so UI can reflect it immediately
-    sceneProject->playState = ScenePlayState::CANCELLING;
+    for (uint32_t id : involvedSceneIds) {
+        if (SceneProject* sceneProject = getScene(id))
+            sceneProject->playState = ScenePlayState::CANCELLING;
+    }
 
     // Clear crash handler when stopping
     Supernova::FunctionSubscribeGlobal::getCrashHandler() = nullptr;
@@ -2859,30 +2909,44 @@ void Editor::Project::stop(uint32_t sceneId) {
         auto cancelFuture = generator.cancelBuild();
 
         // Cleanup script instances / disconnect if the library is currently connected.
-        conector.cleanup(sceneProject);
+        for (uint32_t id : involvedSceneIds) {
+            if (SceneProject* sceneProject = getScene(id))
+                conector.cleanup(sceneProject);
+        }
         conector.disconnect();
 
         // After cancellation completes perform the rest of the stop work on a background thread
-        uint32_t sceneIdCopy = sceneId;
-        std::thread finalizeStopThread([this, sceneIdCopy, cancelFuture = std::move(cancelFuture)]() mutable {
+        std::thread finalizeStopThread([this, sceneId, involvedSceneIds, cancelFuture = std::move(cancelFuture)]() mutable {
             if (cancelFuture.valid()) {
                 // wait for cancellation to finish
                 cancelFuture.wait();
             }
 
-            // Get scene pointer again - it should still be valid unless scene was deleted
-            SceneProject* sceneProject = getScene(sceneIdCopy);
-            if (!sceneProject) {
-                Out::warning("Scene %u no longer exists after build cancellation", sceneIdCopy);
-                return;
-            }
+            SceneProject* mainSceneProject = getScene(sceneId);
 
-            finalizeStop(sceneProject);
+            for (uint32_t id : involvedSceneIds) {
+                SceneProject* sceneProject = getScene(id);
+                if (!sceneProject) {
+                    Out::warning("Scene %u no longer exists after build cancellation", id);
+                    continue;
+                }
+                finalizeStop(sceneProject);
+                if (sceneProject != mainSceneProject) {
+                    Engine::removeScene(sceneProject->scene);
+                }
+            }
         });
         finalizeStopThread.detach();
     } else {
         // No C++ library connected, just finalize directly
-        finalizeStop(sceneProject);
+        for (uint32_t id : involvedSceneIds) {
+            if (SceneProject* sceneProject = getScene(id)) {
+                finalizeStop(sceneProject);
+                if (sceneProject != sceneProject) {
+                    Engine::removeScene(sceneProject->scene);
+                }
+            }
+        }
     }
 }
 

@@ -591,6 +591,20 @@ void Editor::SceneRender3D::createSpotLightCones(Entity entity, const Transform&
     lo.lines->addLine(position, endPos, Vector4(0.8, 0.8, 0.8, 1.0));
 }
 
+void Editor::SceneRender3D::hideAllGizmos(){
+    SceneRender::hideAllGizmos();
+
+    lines->setVisible(false);
+    for (auto& pair : lightObjects) {
+        pair.second.icon->setVisible(false);
+        pair.second.lines->setVisible(false);
+    }
+    for (auto& pair : cameraObjects) {
+        pair.second.icon->setVisible(false);
+        pair.second.lines->setVisible(false);
+    }
+}
+
 void Editor::SceneRender3D::activate(){
     SceneRender::activate();
 
@@ -644,15 +658,6 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
     SceneRender::update(selEntities, entities, mainCamera);
 
     if (isPlaying){
-        lines->setVisible(false);
-        for (auto& pair : lightObjects) {
-            pair.second.icon->setVisible(false);
-            pair.second.lines->setVisible(false);
-        }
-        for (auto& pair : cameraObjects) {
-            pair.second.icon->setVisible(false);
-            pair.second.lines->setVisible(false);
-        }
         return;
     }
 
