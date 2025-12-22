@@ -226,6 +226,7 @@ add_executable(
 
     ${EDITOR_DIR}/command/CommandHandle.cpp
     ${EDITOR_DIR}/command/CommandHistory.cpp
+    ${EDITOR_DIR}/command/type/AddChildSceneCmd.cpp
     ${EDITOR_DIR}/command/type/AddComponentCmd.cpp
     ${EDITOR_DIR}/command/type/ComponentToLocalCmd.cpp
     ${EDITOR_DIR}/command/type/ComponentToSharedCmd.cpp
@@ -234,6 +235,7 @@ add_executable(
     ${EDITOR_DIR}/command/type/DeleteEntityCmd.cpp
     ${EDITOR_DIR}/command/type/MoveEntityOrderCmd.cpp
     ${EDITOR_DIR}/command/type/ObjectTransformCmd.cpp
+    ${EDITOR_DIR}/command/type/RemoveChildSceneCmd.cpp
     ${EDITOR_DIR}/command/type/EntityNameCmd.cpp
     ${EDITOR_DIR}/command/type/ImportSharedEntityCmd.cpp
     ${EDITOR_DIR}/command/type/MakeEntityLocalCmd.cpp
