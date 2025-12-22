@@ -22,6 +22,15 @@ Editor::SceneWindow::SceneWindow(Project* project) {
 void Editor::SceneWindow::handleCloseScene(uint32_t sceneId) {
     SceneProject* sceneProject = project->getScene(sceneId);
     if (sceneProject) {
+        project->checkUnsavedAndExecute(sceneId, [this, sceneId]() {
+            closeSceneInternal(sceneId);
+        });
+    }
+}
+
+void Editor::SceneWindow::closeSceneInternal(uint32_t sceneId) {
+    SceneProject* sceneProject = project->getScene(sceneId);
+    if (sceneProject) {
         // If we're closing the currently selected scene
         if (project->getSelectedSceneId() == sceneId) {
             // Find another scene to select

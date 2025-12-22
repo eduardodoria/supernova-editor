@@ -130,6 +130,9 @@ namespace Supernova::Editor{
 
         void collectInvolvedScenes(uint32_t sceneId, std::vector<uint32_t>& involvedSceneIds);
 
+        uint32_t createNewSceneInternal(std::string sceneName, SceneType type, uint32_t previousSceneId);
+        void openSceneInternal(fs::path filepath, uint32_t sceneToClose);
+
     public:
         Project();
 
@@ -146,6 +149,8 @@ namespace Supernova::Editor{
         bool openProject();
 
         bool loadProject(const std::filesystem::path path);
+
+        void checkUnsavedAndExecute(uint32_t sceneId, std::function<void()> action);
 
         void saveScene(uint32_t sceneId);
         void saveSceneToPath(uint32_t sceneId, const std::filesystem::path& path);

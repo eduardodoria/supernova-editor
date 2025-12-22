@@ -38,6 +38,36 @@ Editor::Project::Project(){
     resetConfigs();
 }
 
+void Editor::Project::checkUnsavedAndExecute(uint32_t sceneId, std::function<void()> action) {
+    SceneProject* sceneProject = getScene(sceneId);
+
+    if (sceneProject && sceneProject->isModified) {
+        Backend::getApp().registerConfirmAlert(
+            "Unsaved Changes",
+            "The current scene has unsaved changes. Do you want to save first?",
+            [this, sceneId, action]() {
+                // Yes callback - save and then execute action
+                SceneProject* sceneProject = getScene(sceneId);
+                if (sceneProject && !sceneProject->filepath.empty()) {
+                    // Scene has filepath, save synchronously and execute action
+                    saveScene(sceneId);
+                    if (action) action();
+                } else {
+                    // Scene needs save dialog, pass action as callback
+                    Backend::getApp().registerSaveSceneDialog(sceneId, action);
+                }
+            },
+            [action]() {
+                // No callback - execute action without saving
+                if (action) action();
+            }
+        );
+    } else {
+        // No unsaved changes, execute action directly
+        if (action) action();
+    }
+}
+
 std::string Editor::Project::getName() const {
     return name; 
 }
@@ -61,6 +91,16 @@ unsigned int Editor::Project::getWindowHeight() const{
 }
 
 uint32_t Editor::Project::createNewScene(std::string sceneName, SceneType type){
+    uint32_t previousSceneId = getSelectedSceneId();
+
+    checkUnsavedAndExecute(previousSceneId, [this, sceneName, type, previousSceneId]() {
+        createNewSceneInternal(sceneName, type, previousSceneId);
+    });
+
+    return NULL_PROJECT_SCENE; // Scene may be created asynchronously
+}
+
+uint32_t Editor::Project::createNewSceneInternal(std::string sceneName, SceneType type, uint32_t previousSceneId){
     unsigned int nameCount = 2;
     std::string baseName = sceneName;
     bool foundName = true;
@@ -110,6 +150,11 @@ uint32_t Editor::Project::createNewScene(std::string sceneName, SceneType type){
     }
 
     Backend::getApp().addNewSceneToDock(data.id);
+
+    // Close the previous scene after the new one is created
+    if (previousSceneId != NULL_PROJECT_SCENE) {
+        closeScene(previousSceneId);
+    }
 
     return data.id;
 }
@@ -190,6 +235,12 @@ void Editor::Project::openScene(fs::path filepath, bool closePrevious){
         }
     }
 
+    checkUnsavedAndExecute(sceneToClose, [this, filepath, sceneToClose]() {
+        openSceneInternal(filepath, sceneToClose);
+    });
+}
+
+void Editor::Project::openSceneInternal(fs::path filepath, uint32_t sceneToClose){
     auto it = std::find_if(scenes.begin(), scenes.end(),
         [&filepath](const SceneProject& scene) { return scene.filepath == filepath; });
 
