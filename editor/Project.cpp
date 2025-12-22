@@ -2994,10 +2994,11 @@ void Editor::Project::stop(uint32_t sceneId) {
         finalizeStopThread.detach();
     } else {
         // No C++ library connected, just finalize directly
+        SceneProject* mainSceneProject = getScene(sceneId);
         for (uint32_t id : involvedSceneIds) {
             if (SceneProject* sceneProject = getScene(id)) {
                 finalizeStop(sceneProject);
-                if (sceneProject != sceneProject) {
+                if (sceneProject != mainSceneProject) {
                     Engine::removeScene(sceneProject->scene);
                 }
             }
