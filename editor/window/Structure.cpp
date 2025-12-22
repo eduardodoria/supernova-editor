@@ -3,6 +3,8 @@
 #include "external/IconsFontAwesome6.h"
 #include "command/CommandHandle.h"
 #include "command/type/MoveEntityOrderCmd.h"
+#include "command/type/AddChildSceneCmd.h"
+#include "command/type/RemoveChildSceneCmd.h"
 #include "command/type/CreateEntityCmd.h"
 #include "command/type/EntityNameCmd.h"
 #include "command/type/SceneNameCmd.h"
@@ -256,7 +258,7 @@ void Editor::Structure::handleSceneFilesDropAsChildScenes(const std::vector<std:
             continue;
         }
 
-        project->addChildScene(ownerSceneId, droppedSceneId);
+        CommandHandle::get(ownerSceneId)->addCommand(new AddChildSceneCmd(project, ownerSceneId, droppedSceneId));
     }
 }
 
@@ -278,7 +280,7 @@ void Editor::Structure::showAddChildSceneMenu() {
             hasAvailableScenes = true;
             std::string menuLabel = scene.name + " (ID: " + std::to_string(scene.id) + ")";
             if (ImGui::MenuItem(menuLabel.c_str())) {
-                project->addChildScene(currentSceneId, scene.id);
+                CommandHandle::get(currentSceneId)->addCommand(new AddChildSceneCmd(project, currentSceneId, scene.id));
             }
         }
 
@@ -587,10 +589,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     bool wasItemActivePrevFrame = ImGui::IsItemActive();
     if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left) && !ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
         if (node.isChildScene) {
-            // Selecting a child scene switches the selected scene
-            project->clearSelectedEntities(project->getSelectedSceneId());
-            selectedScenes.clear();
-            project->setSelectedSceneId(node.childSceneId);
+            // Do nothing
         } else if (!node.isScene){
             ImGuiIO& io = ImGui::GetIO();
             if (!io.KeyShift){
@@ -610,7 +609,10 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
 
     // Handle double-click on child scene to select it (kept for UX consistency)
     if (node.isChildScene && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-        project->setSelectedSceneId(node.childSceneId);
+        SceneProject* childScene = project->getScene(node.childSceneId);
+        if (childScene) {
+            project->openScene(childScene->filepath);
+        }
     }
 
     std::string popupId = "##ContextMenu" + getNodeImGuiId(node);
@@ -630,7 +632,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                 project->setSelectedSceneId(node.childSceneId);
             }
             if (ImGui::MenuItem(ICON_FA_TRASH "  Remove child scene")) {
-                project->removeChildScene(node.ownerSceneId, node.childSceneId);
+                CommandHandle::get(node.ownerSceneId)->addCommand(new RemoveChildSceneCmd(project, node.ownerSceneId, node.childSceneId));
             }
             ImGui::EndPopup();
         } else {
