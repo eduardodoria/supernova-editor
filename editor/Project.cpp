@@ -172,14 +172,38 @@ void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene)
             auto it = std::find_if(scenes.begin(), scenes.end(),
                 [&filepath](const SceneProject& scene) { return scene.filepath == filepath; });
             targetScene = &(*it);
+
+            if (targetScene->scene != nullptr || targetScene->sceneRender != nullptr) {
+                Out::error("Scene is already loaded");
+                return;
+            }
+
             targetScene->entities.clear();
             targetScene->selectedEntities.clear();
-            // Ensure pointers are clean (they should be deleted by closeScene)
-            targetScene->scene = nullptr;
-            targetScene->sceneRender = nullptr;
         }
 
-        Stream::decodeSceneProject(targetScene, sceneNode);
+        Stream::decodeSceneProject(targetScene, sceneNode, opened);
+
+        if (opened){
+            if (targetScene->sceneType == SceneType::SCENE_3D) {
+                targetScene->sceneRender = new SceneRender3D(targetScene->scene);
+            } else if (targetScene->sceneType == SceneType::SCENE_2D) {
+                targetScene->sceneRender = new SceneRender2D(targetScene->scene, windowWidth, windowHeight, false);
+            } else if (targetScene->sceneType == SceneType::SCENE_UI) {
+                targetScene->sceneRender = new SceneRender2D(targetScene->scene, windowWidth, windowHeight, true);
+            }
+
+            Stream::decodeSceneProjectEntities(this, targetScene, sceneNode);
+            pauseEngineScene(targetScene, true);
+
+            targetScene->needUpdateRender = true;
+
+            setSelectedSceneId(targetScene->id);
+
+            Backend::getApp().addNewSceneToDock(targetScene->id);
+        }
+
+        targetScene->isModified = false;
 
         // Check for ID collisions
         SceneProject* existing = getScene(targetScene->id);
@@ -192,28 +216,6 @@ void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene)
                 Out::warning("Scene has no ID, assigning ID %u", targetScene->id);
             }
         }
-
-        targetScene->scene = new Scene();
-
-        if (targetScene->sceneType == SceneType::SCENE_3D) {
-            targetScene->sceneRender = new SceneRender3D(targetScene->scene);
-        } else if (targetScene->sceneType == SceneType::SCENE_2D) {
-            targetScene->sceneRender = new SceneRender2D(targetScene->scene, windowWidth, windowHeight, false);
-        } else if (targetScene->sceneType == SceneType::SCENE_UI) {
-            targetScene->sceneRender = new SceneRender2D(targetScene->scene, windowWidth, windowHeight, true);
-        }
-
-        Stream::decodeSceneProjectEntities(this, targetScene, sceneNode);
-
-        pauseEngineScene(targetScene, true);
-
-        targetScene->opened = opened;
-        targetScene->isModified = false;
-        targetScene->needUpdateRender = true;
-
-        setSelectedSceneId(targetScene->id);
-
-        Backend::getApp().addNewSceneToDock(targetScene->id);
 
     } catch (const YAML::Exception& e) {
         if (isNewScene && !scenes.empty()) scenes.pop_back();
@@ -411,6 +413,9 @@ bool Editor::Project::createNewComponent(uint32_t sceneId, Entity entity, Compon
 void Editor::Project::deleteSceneProject(SceneProject* sceneProject){
     delete sceneProject->sceneRender;
     delete sceneProject->scene;
+
+    sceneProject->sceneRender = nullptr;
+    sceneProject->scene = nullptr;
 }
 
 void Editor::Project::resetConfigs() {
