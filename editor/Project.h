@@ -116,7 +116,7 @@ namespace Supernova::Editor{
         size_t countEntitiesInBranch(const YAML::Node& entityNode);
         void insertNewChild(YAML::Node& node, YAML::Node child, size_t index);
 
-        std::vector<Editor::ScriptSource> collectCppScriptSourceFiles() const;
+        std::vector<Editor::ScriptSource> collectCppScriptSourceFiles(const std::vector<uint32_t>& sceneIds) const;
 
         void pauseEngineScene(SceneProject* sceneProject, bool pause);
 
@@ -125,8 +125,8 @@ namespace Supernova::Editor{
         void initializeLuaScripts(SceneProject* sceneProject);
         void cleanupLuaScripts(SceneProject* sceneProject);
 
-        void finalizeStart(SceneProject* sceneProject);
-        void finalizeStop(SceneProject* sceneProject);
+        void finalizeStart(SceneProject* mainSceneProject, const std::vector<uint32_t>& involvedSceneIds);
+        void finalizeStop(SceneProject* mainSceneProject, const std::vector<uint32_t>& involvedSceneIds);
 
         void collectInvolvedScenes(uint32_t sceneId, std::vector<uint32_t>& involvedSceneIds);
 

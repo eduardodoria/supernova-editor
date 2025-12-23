@@ -474,14 +474,16 @@ void Editor::Project::insertNewChild(YAML::Node& node, YAML::Node child, size_t 
     }
 }
 
-// Collect unique script source files from all scenes/entities
-std::vector<Editor::ScriptSource> Editor::Project::collectCppScriptSourceFiles() const {
+// Collect unique script source files from specified scenes/entities
+std::vector<Editor::ScriptSource> Editor::Project::collectCppScriptSourceFiles(const std::vector<uint32_t>& sceneIds) const {
     std::unordered_set<std::string> uniqueScripts;
     std::vector<Editor::ScriptSource> scriptFiles;
 
-    for (const auto& sceneProject : scenes) {
-        Scene* scene = sceneProject.scene;
-        for (Entity entity : sceneProject.entities) {
+    for (uint32_t sceneId : sceneIds) {
+        const SceneProject* sceneProject = getScene(sceneId);
+        if (!sceneProject) continue;
+        Scene* scene = sceneProject->scene;
+        for (Entity entity : sceneProject->entities) {
             Signature signature = scene->getSignature(entity);
             if (signature.test(scene->getComponentId<ScriptComponent>())) {
                 const ScriptComponent& scriptComponent = scene->getComponent<ScriptComponent>(entity);
@@ -501,7 +503,7 @@ std::vector<Editor::ScriptSource> Editor::Project::collectCppScriptSourceFiles()
                         if (std::filesystem::exists(path)) {
                             std::string key = path.lexically_normal().generic_string();
                             if (uniqueScripts.insert(key).second) {
-                                scriptFiles.push_back(Editor::ScriptSource{scriptEntry.path, scriptEntry.headerPath, scriptEntry.className, sceneProject.scene, entity});
+                                scriptFiles.push_back(Editor::ScriptSource{scriptEntry.path, scriptEntry.headerPath, scriptEntry.className, sceneProject->scene, entity});
                             }
                         } else {
                             Out::error("Script file not found: %s", path.string().c_str());
@@ -870,59 +872,92 @@ void Editor::Project::cleanupLuaScripts(SceneProject* sceneProject) {
     }
 }
 
-void Editor::Project::finalizeStart(SceneProject* sceneProject) {
-    initializeLuaScripts(sceneProject);
+void Editor::Project::finalizeStart(SceneProject* mainSceneProject, const std::vector<uint32_t>& involvedSceneIds) {
 
-    pauseEngineScene(sceneProject, false);
     Engine::pauseGameEvents(false);
-
     Engine::onViewLoaded.call();
     Engine::onViewChanged.call();
 
-    if (sceneProject->mainCamera != NULL_ENTITY) {
-        if (sceneProject->scene->isEntityCreated(sceneProject->mainCamera)) {
-            sceneProject->scene->setCamera(sceneProject->mainCamera);
-        } else {
-            Out::error("Main camera entity is not valid, reverting to default camera");
-            sceneProject->mainCamera = NULL_ENTITY;
+    for (uint32_t id : involvedSceneIds) {
+        SceneProject* sceneProject = getScene(id);
+        if (!sceneProject || !sceneProject->scene) {
+            continue;
         }
-    }else{
-        sceneProject->scene->setCamera(sceneProject->sceneRender->getPlayCamera());
+
+        pauseEngineScene(sceneProject, false);
+        initializeLuaScripts(sceneProject);
+
+        if (sceneProject->mainCamera != NULL_ENTITY) {
+            if (sceneProject->scene->isEntityCreated(sceneProject->mainCamera)) {
+                sceneProject->scene->setCamera(sceneProject->mainCamera);
+            } else {
+                Out::error("Main camera entity is not valid, reverting to default camera");
+                sceneProject->mainCamera = NULL_ENTITY;
+            }
+        } else {
+            sceneProject->scene->setCamera(sceneProject->sceneRender->getPlayCamera());
+        }
+
+        sceneProject->sceneRender->setPlayMode(true);
+
+        if (sceneProject != mainSceneProject) {
+            Engine::addSceneLayer(sceneProject->scene);
+        }
     }
 
-    sceneProject->sceneRender->setPlayMode(true);
-
-    Out::success("Scene '%s' started", sceneProject->name.c_str());
+    if (mainSceneProject) {
+        Out::success("Scene '%s' started", mainSceneProject->name.c_str());
+    }
 }
 
-void Editor::Project::finalizeStop(SceneProject* sceneProject) {
+void Editor::Project::finalizeStop(SceneProject* mainSceneProject, const std::vector<uint32_t>& involvedSceneIds) {
+
     Engine::onViewDestroyed.call();
     Engine::onShutdown.call();
-
-    pauseEngineScene(sceneProject, true);
     Engine::pauseGameEvents(true);
 
-    cleanupLuaScripts(sceneProject);
-
-    // Restore snapshot if present
-    if (sceneProject->playStateSnapshot && !sceneProject->playStateSnapshot.IsNull()) {
-        Stream::decodeScene(sceneProject->scene, sceneProject->playStateSnapshot["scene"]);
-
-        auto entitiesNode = sceneProject->playStateSnapshot["entities"];
-        for (const auto& entityNode : entitiesNode) {
-            Stream::decodeEntity(entityNode, sceneProject->scene, nullptr, nullptr, sceneProject, NULL_ENTITY, true, false);
+    for (uint32_t id : involvedSceneIds) {
+        SceneProject* sceneProject = getScene(id);
+        if (!sceneProject || !sceneProject->scene) {
+            Out::warning("Scene %u no longer exists after build cancellation", id);
+            continue;
         }
 
-        // Clear the snapshot
-        sceneProject->playStateSnapshot = YAML::Node();
+        cleanupLuaScripts(sceneProject);
+        pauseEngineScene(sceneProject, true);
+
+        // Restore snapshot if present
+        if (sceneProject->playStateSnapshot && !sceneProject->playStateSnapshot.IsNull()) {
+            Stream::decodeScene(sceneProject->scene, sceneProject->playStateSnapshot["scene"]);
+
+            auto entitiesNode = sceneProject->playStateSnapshot["entities"];
+            for (const auto& entityNode : entitiesNode) {
+                Stream::decodeEntity(entityNode, sceneProject->scene, nullptr, nullptr, sceneProject, NULL_ENTITY, true, false);
+            }
+
+            // Clear the snapshot
+            sceneProject->playStateSnapshot = YAML::Node();
+        }
+
+        sceneProject->playState = ScenePlayState::STOPPED;
+
+        Entity cameraEntity = sceneProject->scene->getCamera();
+        if (cameraEntity != NULL_ENTITY && sceneProject->scene->isEntityCreated(cameraEntity)) {
+            if (CameraComponent* cameraComponent = sceneProject->scene->findComponent<CameraComponent>(cameraEntity)) {
+                cameraComponent->needUpdate = true;
+            }
+        }
+
+        sceneProject->sceneRender->setPlayMode(false);
+
+        if (sceneProject != mainSceneProject) {
+            Engine::removeScene(sceneProject->scene);
+        }
     }
 
-    sceneProject->playState = ScenePlayState::STOPPED;
-    sceneProject->scene->getComponent<CameraComponent>(sceneProject->scene->getCamera()).needUpdate = true;
-
-    sceneProject->sceneRender->setPlayMode(false);
-
-    Out::success("Scene '%s' stopped", sceneProject->name.c_str());
+    if (mainSceneProject) {
+        Out::success("Scene '%s' stopped", mainSceneProject->name.c_str());
+    }
 }
 
 bool Editor::Project::createTempProject(std::string projectName, bool deleteIfExists) {
@@ -2844,7 +2879,7 @@ void Editor::Project::start(uint32_t sceneId) {
 
     Backend::getApp().getCodeEditor()->saveAll();
 
-    std::vector<Editor::ScriptSource> scriptFiles = collectCppScriptSourceFiles();
+    std::vector<Editor::ScriptSource> scriptFiles = collectCppScriptSourceFiles(involvedSceneIds);
 
     // Check if we have C++ scripts that need building
     bool hasCppScripts = !scriptFiles.empty();
@@ -2874,11 +2909,9 @@ void Editor::Project::start(uint32_t sceneId) {
                     if (!sceneProject) continue;
 
                     conector.execute(sceneProject);
-                    finalizeStart(sceneProject);
-                    if (sceneProject != mainSceneProject) {
-                        Engine::addSceneLayer(sceneProject->scene);
-                    }
                 }
+
+                finalizeStart(mainSceneProject, involvedSceneIds);
             } else {
                 Out::error("Failed to connect to library");
                 for (uint32_t id : involvedSceneIds) {
@@ -2891,15 +2924,8 @@ void Editor::Project::start(uint32_t sceneId) {
     } else {
         // No C++ scripts, just initialize Lua scripts directly
         SceneProject* mainSceneProject = getScene(sceneId);
-        for (uint32_t id : involvedSceneIds) {
-            SceneProject* sceneProject = getScene(id);
-            if (!sceneProject) continue;
 
-            finalizeStart(sceneProject);
-            if (sceneProject != mainSceneProject) {
-                Engine::addSceneLayer(sceneProject->scene);
-            }
-        }
+        finalizeStart(mainSceneProject, involvedSceneIds);
     }
 }
 
@@ -2979,30 +3005,14 @@ void Editor::Project::stop(uint32_t sceneId) {
 
             SceneProject* mainSceneProject = getScene(sceneId);
 
-            for (uint32_t id : involvedSceneIds) {
-                SceneProject* sceneProject = getScene(id);
-                if (!sceneProject) {
-                    Out::warning("Scene %u no longer exists after build cancellation", id);
-                    continue;
-                }
-                finalizeStop(sceneProject);
-                if (sceneProject != mainSceneProject) {
-                    Engine::removeScene(sceneProject->scene);
-                }
-            }
+            finalizeStop(mainSceneProject, involvedSceneIds);
         });
         finalizeStopThread.detach();
     } else {
         // No C++ library connected, just finalize directly
         SceneProject* mainSceneProject = getScene(sceneId);
-        for (uint32_t id : involvedSceneIds) {
-            if (SceneProject* sceneProject = getScene(id)) {
-                finalizeStop(sceneProject);
-                if (sceneProject != mainSceneProject) {
-                    Engine::removeScene(sceneProject->scene);
-                }
-            }
-        }
+
+        finalizeStop(mainSceneProject, involvedSceneIds);
     }
 }
 
