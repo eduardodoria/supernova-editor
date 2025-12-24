@@ -521,6 +521,8 @@ void Editor::App::engineViewLoaded(){
 }
 
 void Editor::App::engineRender(){
+    processMainThreadTasks();
+
     for (auto& sceneProject : project.getScenes()) {
         if (!sceneProject.opened) continue;
 
@@ -562,6 +564,12 @@ void Editor::App::engineRender(){
             }
         }
     }
+}
+
+void Editor::App::enqueueMainThreadTask(std::function<void()> task) {
+    if (!task) return;
+    std::lock_guard<std::mutex> lock(mainThreadTaskMutex);
+    mainThreadTasks.push(std::move(task));
 }
 
 void Editor::App::engineViewDestroyed(){
@@ -880,6 +888,20 @@ void Editor::App::processNextSaveDialog() {
                 processNextSaveDialog();
             }
         );
+    }
+}
+
+void Editor::App::processMainThreadTasks() {
+    std::queue<std::function<void()>> tasks;
+    {
+        std::lock_guard<std::mutex> lock(mainThreadTaskMutex);
+        std::swap(tasks, mainThreadTasks);
+    }
+
+    while (!tasks.empty()) {
+        auto task = std::move(tasks.front());
+        tasks.pop();
+        if (task) task();
     }
 }
 

@@ -849,10 +849,10 @@ YAML::Node Editor::Stream::encodeSceneProject(const Project* project, const Scen
     return root;
 }
 
-void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::Node& node, bool opened) {
+void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::Node& node, bool loadScene) {
     if (node["id"]) sceneProject->id = node["id"].as<uint32_t>();
     if (node["name"]) sceneProject->name = node["name"].as<std::string>();
-    if (opened){
+    if (loadScene){
         if (node["scene"]) sceneProject->scene = decodeScene(sceneProject->scene, node["scene"]);
     }
     if (node["sceneType"]) sceneProject->sceneType = stringToSceneType(node["sceneType"].as<std::string>());
@@ -864,7 +864,6 @@ void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::
             sceneProject->childScenes.push_back(childSceneNode.as<uint32_t>());
         }
     }
-    sceneProject->opened = opened;
 }
 
 void Editor::Stream::decodeSceneProjectEntities(Project* project, SceneProject* sceneProject, const YAML::Node& node){

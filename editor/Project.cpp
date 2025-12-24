@@ -204,6 +204,7 @@ void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene)
         }
 
         targetScene->isModified = false;
+        targetScene->opened = opened;
 
         // Check for ID collisions
         SceneProject* existing = getScene(targetScene->id);
@@ -906,7 +907,9 @@ void Editor::Project::finalizeStart(SceneProject* mainSceneProject, const std::v
         sceneProject->sceneRender->setPlayMode(true);
 
         if (sceneProject != mainSceneProject) {
-            Engine::addSceneLayer(sceneProject->scene);
+            Backend::getApp().enqueueMainThreadTask([sceneProject]() {
+                Engine::addSceneLayer(sceneProject->scene);
+            });
         }
     }
 
@@ -956,7 +959,9 @@ void Editor::Project::finalizeStop(SceneProject* mainSceneProject, const std::ve
         sceneProject->sceneRender->setPlayMode(false);
 
         if (sceneProject != mainSceneProject) {
-            Engine::removeScene(sceneProject->scene);
+            Backend::getApp().enqueueMainThreadTask([sceneProject]() {
+                Engine::removeScene(sceneProject->scene);
+            });
         }
     }
 
@@ -2869,10 +2874,31 @@ void Editor::Project::start(uint32_t sceneId) {
         SceneProject* sceneProject = getScene(id);
         if (!sceneProject) continue;
 
-        updateAllScriptsProperties(id);
+        if (sceneProject->opened){
+            updateAllScriptsProperties(id);
 
-        if (sceneProject->isModified && !sceneProject->filepath.empty()) {
-            saveSceneToPath(id, sceneProject->filepath);
+            if (sceneProject->isModified && !sceneProject->filepath.empty()) {
+                saveSceneToPath(id, sceneProject->filepath);
+            }
+        }else{
+            sceneProject->entities.clear();
+            sceneProject->selectedEntities.clear();
+
+            YAML::Node sceneNode = YAML::LoadFile(sceneProject->filepath);
+
+            Stream::decodeSceneProject(sceneProject, sceneNode, true);
+
+            if (sceneProject->sceneType == SceneType::SCENE_3D) {
+                sceneProject->sceneRender = new SceneRender3D(sceneProject->scene);
+            } else if (sceneProject->sceneType == SceneType::SCENE_2D) {
+                sceneProject->sceneRender = new SceneRender2D(sceneProject->scene, windowWidth, windowHeight, false);
+            } else if (sceneProject->sceneType == SceneType::SCENE_UI) {
+                sceneProject->sceneRender = new SceneRender2D(sceneProject->scene, windowWidth, windowHeight, true);
+            }
+
+            Stream::decodeSceneProjectEntities(this, sceneProject, sceneNode);
+            pauseEngineScene(sceneProject, true);
+            sceneProject->needUpdateRender = true;
         }
 
         // Save current scene state before starting

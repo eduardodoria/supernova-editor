@@ -19,6 +19,9 @@
 
 #include "render/SceneRender.h"
 
+#include <mutex>
+#include <queue>
+
 namespace Supernova::Editor{
 
     enum class AlertType {
@@ -51,6 +54,9 @@ namespace Supernova::Editor{
     class App{
     private:
         Project project;
+
+        std::mutex mainThreadTaskMutex;
+        std::queue<std::function<void()>> mainThreadTasks;
 
         ImGuiID dockspace_id;
         ImGuiID dock_id_middle_top;
@@ -94,6 +100,8 @@ namespace Supernova::Editor{
         void kewtStyleTheme();
         void processNextSaveDialog();
 
+        void processMainThreadTasks();
+
         void closeWindow();
 
     public:
@@ -131,6 +139,9 @@ namespace Supernova::Editor{
         void registerThreeButtonAlert(std::string title, std::string message, std::function<void()> onYes, std::function<void()> onNo = nullptr, std::function<void()> onCancel = nullptr);
         void registerSaveSceneDialog(uint32_t sceneId, std::function<void()> callback = nullptr);
         void registerProjectSaveDialog(std::function<void()> callback = nullptr);
+
+        // Thread-safe: schedules a task to run on the main/GL thread during the next frame.
+        void enqueueMainThreadTask(std::function<void()> task);
 
         CodeEditor* getCodeEditor() const;
 
