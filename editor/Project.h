@@ -254,6 +254,8 @@ namespace Supernova::Editor{
 
         //=== end Shared Entities part ===
 
+        bool isAnyScenePlaying() const;
+
         void start(uint32_t sceneId);
         void pause(uint32_t sceneId);
         void resume(uint32_t sceneId);

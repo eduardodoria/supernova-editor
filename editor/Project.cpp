@@ -91,6 +91,11 @@ unsigned int Editor::Project::getWindowHeight() const{
 }
 
 uint32_t Editor::Project::createNewScene(std::string sceneName, SceneType type){
+    if (isAnyScenePlaying()){
+        Out::warning("Cannot create a new scene while a scene is playing.");
+        return NULL_PROJECT_SCENE;
+    }
+
     uint32_t previousSceneId = getSelectedSceneId();
 
     checkUnsavedAndExecute(previousSceneId, [this, sceneName, type, previousSceneId]() {
@@ -230,6 +235,11 @@ void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene)
 }
 
 void Editor::Project::openScene(fs::path filepath, bool closePrevious){
+    if (isAnyScenePlaying()){
+        Out::warning("Cannot open a new scene while a scene is playing.");
+        return;
+    }
+
     uint32_t sceneToClose = NULL_PROJECT_SCENE;
     if (closePrevious) {
         SceneProject* selectedScene = getSelectedScene();
@@ -2840,6 +2850,15 @@ void Editor::Project::collectInvolvedScenes(uint32_t sceneId, std::vector<uint32
     for (uint32_t childId : sceneProject->childScenes) {
         collectInvolvedScenes(childId, involvedSceneIds);
     }
+}
+
+bool Editor::Project::isAnyScenePlaying() const{
+    for (const auto& sceneProject : scenes) {
+        if (sceneProject.playState == ScenePlayState::PLAYING || sceneProject.playState == ScenePlayState::PAUSED) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void Editor::Project::start(uint32_t sceneId) {

@@ -487,7 +487,7 @@ void Editor::SceneWindow::show() {
             bool isCancelling = (sceneProject.playState == ScenePlayState::CANCELLING);
 
             // Play button - disabled when already playing
-            ImGui::BeginDisabled(isPlaying || isCancelling);
+            ImGui::BeginDisabled(isPlaying || isCancelling || (isStopped && project->isAnyScenePlaying()));
             if (ImGui::Button(ICON_FA_PLAY " Play")) {
                 if (!isPaused) {
                     project->start(sceneProject.id);
