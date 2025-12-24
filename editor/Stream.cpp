@@ -867,6 +867,9 @@ void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::
 }
 
 void Editor::Stream::decodeSceneProjectEntities(Project* project, SceneProject* sceneProject, const YAML::Node& node){
+    sceneProject->entities.clear();
+    sceneProject->selectedEntities.clear();
+
     auto entitiesNode = node["entities"];
     for (const auto& entityNode : entitiesNode){
         decodeEntity(entityNode, sceneProject->scene, &sceneProject->entities, project, sceneProject);

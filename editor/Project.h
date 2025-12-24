@@ -98,6 +98,8 @@ namespace Supernova::Editor{
         uint32_t nextSceneId;
 
         std::vector<SceneProject> scenes;
+
+        void initializeSceneRender(SceneProject* sceneProject, YAML::Node& sceneNode);
         uint32_t selectedScene;
 
         std::filesystem::path projectPath;

@@ -159,6 +159,19 @@ uint32_t Editor::Project::createNewSceneInternal(std::string sceneName, SceneTyp
     return data.id;
 }
 
+void Editor::Project::initializeSceneRender(SceneProject* sceneProject, YAML::Node& sceneNode) {
+    if (sceneProject->sceneType == SceneType::SCENE_3D) {
+        sceneProject->sceneRender = new SceneRender3D(sceneProject->scene);
+    } else if (sceneProject->sceneType == SceneType::SCENE_2D) {
+        sceneProject->sceneRender = new SceneRender2D(sceneProject->scene, windowWidth, windowHeight, false);
+    } else if (sceneProject->sceneType == SceneType::SCENE_UI) {
+        sceneProject->sceneRender = new SceneRender2D(sceneProject->scene, windowWidth, windowHeight, true);
+    }
+
+    Stream::decodeSceneProjectEntities(this, sceneProject, sceneNode);
+    pauseEngineScene(sceneProject, true);
+}
+
 void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene){
     try {
         YAML::Node sceneNode = YAML::LoadFile(filepath.string());
@@ -177,32 +190,19 @@ void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene)
                 Out::error("Scene is already loaded");
                 return;
             }
-
-            targetScene->entities.clear();
-            targetScene->selectedEntities.clear();
         }
 
         Stream::decodeSceneProject(targetScene, sceneNode, opened);
 
         if (opened){
-            if (targetScene->sceneType == SceneType::SCENE_3D) {
-                targetScene->sceneRender = new SceneRender3D(targetScene->scene);
-            } else if (targetScene->sceneType == SceneType::SCENE_2D) {
-                targetScene->sceneRender = new SceneRender2D(targetScene->scene, windowWidth, windowHeight, false);
-            } else if (targetScene->sceneType == SceneType::SCENE_UI) {
-                targetScene->sceneRender = new SceneRender2D(targetScene->scene, windowWidth, windowHeight, true);
-            }
-
-            Stream::decodeSceneProjectEntities(this, targetScene, sceneNode);
-            pauseEngineScene(targetScene, true);
-
-            targetScene->needUpdateRender = true;
+            initializeSceneRender(targetScene, sceneNode);
 
             setSelectedSceneId(targetScene->id);
 
             Backend::getApp().addNewSceneToDock(targetScene->id);
         }
 
+        targetScene->needUpdateRender = true;
         targetScene->isModified = false;
         targetScene->opened = opened;
 
@@ -959,8 +959,13 @@ void Editor::Project::finalizeStop(SceneProject* mainSceneProject, const std::ve
         sceneProject->sceneRender->setPlayMode(false);
 
         if (sceneProject != mainSceneProject) {
-            Backend::getApp().enqueueMainThreadTask([sceneProject]() {
+            Backend::getApp().enqueueMainThreadTask([this, sceneProject]() {
                 Engine::removeScene(sceneProject->scene);
+
+                // Delete scene because its not opened in editor
+                if (!sceneProject->opened) {
+                    deleteSceneProject(sceneProject);
+                }
             });
         }
     }
@@ -2881,24 +2886,10 @@ void Editor::Project::start(uint32_t sceneId) {
                 saveSceneToPath(id, sceneProject->filepath);
             }
         }else{
-            sceneProject->entities.clear();
-            sceneProject->selectedEntities.clear();
-
+            // Create scene because its not opened in editor
             YAML::Node sceneNode = YAML::LoadFile(sceneProject->filepath);
-
             Stream::decodeSceneProject(sceneProject, sceneNode, true);
-
-            if (sceneProject->sceneType == SceneType::SCENE_3D) {
-                sceneProject->sceneRender = new SceneRender3D(sceneProject->scene);
-            } else if (sceneProject->sceneType == SceneType::SCENE_2D) {
-                sceneProject->sceneRender = new SceneRender2D(sceneProject->scene, windowWidth, windowHeight, false);
-            } else if (sceneProject->sceneType == SceneType::SCENE_UI) {
-                sceneProject->sceneRender = new SceneRender2D(sceneProject->scene, windowWidth, windowHeight, true);
-            }
-
-            Stream::decodeSceneProjectEntities(this, sceneProject, sceneNode);
-            pauseEngineScene(sceneProject, true);
-            sceneProject->needUpdateRender = true;
+            initializeSceneRender(sceneProject, sceneNode);
         }
 
         // Save current scene state before starting
