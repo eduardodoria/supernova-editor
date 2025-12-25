@@ -15,6 +15,9 @@
 #include "yaml-cpp/yaml.h"
 
 #include <filesystem>
+#include <memory>
+#include <mutex>
+#include <atomic>
 
 namespace Supernova::Editor{
 
@@ -99,6 +102,28 @@ namespace Supernova::Editor{
 
         std::vector<SceneProject> scenes;
 
+        struct PlayRuntimeScene {
+            uint32_t sourceSceneId = NULL_PROJECT_SCENE;
+            SceneProject* runtime = nullptr; // Scene used by the Engine while playing
+            bool ownedRuntime = false;       // true when runtime was cloned and must be deleted
+            bool manageSourceState = false;  // true when we changed source playState/snapshot
+        };
+
+        struct PlaySession {
+            uint32_t mainSceneId = NULL_PROJECT_SCENE;
+            std::vector<uint32_t> involvedSceneIds;
+            std::vector<PlayRuntimeScene> runtimeScenes;
+            std::atomic<bool> cancelled{false};
+            std::atomic<bool> startupThreadDone{false};  // Set when connect thread exits
+            std::atomic<bool> startupSucceeded{false};   // True only if finalizeStart was called
+        };
+
+        mutable std::mutex playSessionMutex;
+        std::shared_ptr<PlaySession> activePlaySession;
+
+        SceneProject* createRuntimeCloneFromSource(const SceneProject* source);
+        void cleanupPlaySession(const std::shared_ptr<PlaySession>& session);
+
         void initializeSceneRender(SceneProject* sceneProject, YAML::Node& sceneNode);
         uint32_t selectedScene;
 
@@ -127,8 +152,8 @@ namespace Supernova::Editor{
         void initializeLuaScripts(SceneProject* sceneProject);
         void cleanupLuaScripts(SceneProject* sceneProject);
 
-        void finalizeStart(SceneProject* mainSceneProject, const std::vector<uint32_t>& involvedSceneIds);
-        void finalizeStop(SceneProject* mainSceneProject, const std::vector<uint32_t>& involvedSceneIds);
+        void finalizeStart(SceneProject* mainRuntimeSceneProject, const std::vector<PlayRuntimeScene>& runtimeScenes);
+        void finalizeStop(SceneProject* mainRuntimeSceneProject, const std::vector<PlayRuntimeScene>& runtimeScenes);
 
         void collectInvolvedScenes(uint32_t sceneId, std::vector<uint32_t>& involvedSceneIds);
 
