@@ -38,6 +38,44 @@ Editor::Project::Project(){
     resetConfigs();
 }
 
+Editor::SceneRender* Editor::Project::createSceneRender(SceneType type, Scene* scene) const {
+    if (!scene) {
+        return nullptr;
+    }
+
+    switch (type) {
+        case SceneType::SCENE_3D:
+            return new SceneRender3D(scene);
+        case SceneType::SCENE_2D:
+            return new SceneRender2D(scene, windowWidth, windowHeight, false);
+        case SceneType::SCENE_UI:
+            return new SceneRender2D(scene, windowWidth, windowHeight, true);
+        default:
+            return new SceneRender3D(scene);
+    }
+}
+
+Supernova::Camera* Editor::Project::createDefaultCamera(SceneType type, Scene* scene) const {
+    if (!scene) {
+        return nullptr;
+    }
+
+    Camera* camera = nullptr;
+
+    switch (type) {
+        case SceneType::SCENE_UI:
+            camera = new Camera(scene);
+            camera->setType(CameraType::CAMERA_2D);
+            break;
+        case SceneType::SCENE_2D:
+            camera = new Camera(scene);
+            camera->setType(CameraType::CAMERA_ORTHO);
+            break;
+    }
+
+    return camera;
+}
+
 void Editor::Project::checkUnsavedAndExecute(uint32_t sceneId, std::function<void()> action) {
     SceneProject* sceneProject = getScene(sceneId);
 
@@ -126,13 +164,8 @@ uint32_t Editor::Project::createNewSceneInternal(std::string sceneName, SceneTyp
     data.name = sceneName;
     data.scene = new Scene();
     data.sceneType = type;
-    if (data.sceneType == SceneType::SCENE_3D){
-        data.sceneRender = new SceneRender3D(data.scene);
-    }else if (data.sceneType == SceneType::SCENE_2D){
-        data.sceneRender = new SceneRender2D(data.scene, windowWidth, windowHeight, false);
-    }else if (data.sceneType == SceneType::SCENE_UI){
-        data.sceneRender = new SceneRender2D(data.scene, windowWidth, windowHeight, true);
-    }
+    data.sceneRender = createSceneRender(data.sceneType, data.scene);
+    data.defaultCamera = createDefaultCamera(data.sceneType, data.scene);
     data.isModified = true;
     data.isVisible = true;
 
@@ -168,10 +201,6 @@ Editor::SceneProject* Editor::Project::createRuntimeCloneFromSource(const SceneP
     if (!source) {
         return nullptr;
     }
-    //if (!source->scene) {
-    //    Out::error("Cannot clone runtime scene: source scene is null (id=%u)", source->id);
-    //    return nullptr;
-    //}
 
     SceneProject* runtime = new SceneProject();
     runtime->opened = false;
@@ -182,7 +211,11 @@ Editor::SceneProject* Editor::Project::createRuntimeCloneFromSource(const SceneP
 
     YAML::Node sceneNode = YAML::LoadFile(runtime->filepath.string());
     Stream::decodeSceneProject(runtime, sceneNode, true);
-    initializeSceneRender(runtime, sceneNode);
+    //runtime->sceneRender = createSceneRender(runtime->sceneType, runtime->scene);
+    runtime->defaultCamera = createDefaultCamera(runtime->sceneType, runtime->scene);
+    Stream::decodeSceneProjectEntities(this, runtime, sceneNode);
+    pauseEngineScene(runtime, true);
+
     return runtime;
 }
 
@@ -202,19 +235,6 @@ void Editor::Project::cleanupPlaySession(const std::shared_ptr<PlaySession>& ses
             delete runtime;
         }
     }
-}
-
-void Editor::Project::initializeSceneRender(SceneProject* sceneProject, YAML::Node& sceneNode) {
-    if (sceneProject->sceneType == SceneType::SCENE_3D) {
-        sceneProject->sceneRender = new SceneRender3D(sceneProject->scene);
-    } else if (sceneProject->sceneType == SceneType::SCENE_2D) {
-        sceneProject->sceneRender = new SceneRender2D(sceneProject->scene, windowWidth, windowHeight, false);
-    } else if (sceneProject->sceneType == SceneType::SCENE_UI) {
-        sceneProject->sceneRender = new SceneRender2D(sceneProject->scene, windowWidth, windowHeight, true);
-    }
-
-    Stream::decodeSceneProjectEntities(this, sceneProject, sceneNode);
-    pauseEngineScene(sceneProject, true);
 }
 
 void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene){
@@ -240,7 +260,10 @@ void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene)
         Stream::decodeSceneProject(targetScene, sceneNode, opened);
 
         if (opened){
-            initializeSceneRender(targetScene, sceneNode);
+            targetScene->sceneRender = createSceneRender(targetScene->sceneType, targetScene->scene);
+            targetScene->defaultCamera = createDefaultCamera(targetScene->sceneType, targetScene->scene);
+            Stream::decodeSceneProjectEntities(this, targetScene, sceneNode);
+            pauseEngineScene(targetScene, true);
 
             setSelectedSceneId(targetScene->id);
 
@@ -462,10 +485,15 @@ bool Editor::Project::createNewComponent(uint32_t sceneId, Entity entity, Compon
 }
 
 void Editor::Project::deleteSceneProject(SceneProject* sceneProject){
-    delete sceneProject->sceneRender;
-    delete sceneProject->scene;
+    if (sceneProject->sceneRender)
+        delete sceneProject->sceneRender;
+    if (sceneProject->defaultCamera)
+        delete sceneProject->defaultCamera;
+    if (sceneProject->scene)
+        delete sceneProject->scene;
 
     sceneProject->sceneRender = nullptr;
+    sceneProject->defaultCamera = nullptr;
     sceneProject->scene = nullptr;
 
     sceneProject->entities.clear();
@@ -941,7 +969,7 @@ void Editor::Project::finalizeStart(SceneProject* mainSceneProject, const std::v
 
     for (const auto& entry : runtimeScenes) {
         SceneProject* sceneProject = entry.runtime;
-        if (!sceneProject || !sceneProject->scene || !sceneProject->sceneRender) {
+        if (!sceneProject || !sceneProject->scene) {
             continue;
         }
 
@@ -956,10 +984,14 @@ void Editor::Project::finalizeStart(SceneProject* mainSceneProject, const std::v
                 sceneProject->mainCamera = NULL_ENTITY;
             }
         } else {
-            sceneProject->scene->setCamera(sceneProject->sceneRender->getPlayCamera());
+            if (sceneProject->defaultCamera){
+                sceneProject->scene->setCamera(sceneProject->defaultCamera);
+            }
         }
 
-        sceneProject->sceneRender->setPlayMode(true);
+        if (sceneProject->sceneRender){
+            sceneProject->sceneRender->setPlayMode(true);
+        }
 
         if (sceneProject != mainSceneProject) {
             Backend::getApp().enqueueMainThreadTask([sceneProject]() {
@@ -981,7 +1013,7 @@ void Editor::Project::finalizeStop(SceneProject* mainSceneProject, const std::ve
 
     for (const auto& entry : runtimeScenes) {
         SceneProject* sceneProject = entry.runtime;
-        if (!sceneProject || !sceneProject->scene || !sceneProject->sceneRender) {
+        if (!sceneProject || !sceneProject->scene) {
             continue;
         }
 
@@ -1010,7 +1042,9 @@ void Editor::Project::finalizeStop(SceneProject* mainSceneProject, const std::ve
             }
         }
 
-        sceneProject->sceneRender->setPlayMode(false);
+        if (sceneProject->sceneRender){
+            sceneProject->sceneRender->setPlayMode(false);
+        }
 
         if (sceneProject != mainSceneProject) {
             Backend::getApp().enqueueMainThreadTask([this, sceneProject, entry]() {
