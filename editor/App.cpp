@@ -536,6 +536,7 @@ void Editor::App::engineRender(){
 
             if (lastActivatedScene != sceneProject.id){
                 sceneProject.sceneRender->activate();
+                project.restoreRuntimeLayers(sceneProject.id);
                 lastActivatedScene = sceneProject.id;
                 sceneChanged = true;
                 #ifdef _DEBUG

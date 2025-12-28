@@ -3226,6 +3226,26 @@ void Editor::Project::stop(uint32_t sceneId) {
     }
 }
 
+void Editor::Project::restoreRuntimeLayers(uint32_t sceneId) {
+    std::scoped_lock lock(playSessionMutex);
+    if (!activePlaySession || activePlaySession->mainSceneId != sceneId) {
+        return;
+    }
+
+    if (!activePlaySession->startupSucceeded.load(std::memory_order_acquire)) {
+        return;
+    }
+
+    for (const auto& entry : activePlaySession->runtimeScenes) {
+        SceneProject* runtimeProject = entry.runtime;
+        if (runtimeProject && runtimeProject->scene) {
+             if (entry.sourceSceneId != sceneId) {
+                 Engine::addSceneLayer(runtimeProject->scene);
+             }
+        }
+    }
+}
+
 void Editor::Project::debugSceneHierarchy(){
     if (SceneProject* sceneProject = getSelectedScene()){
         printf("Debug scene: %s\n", sceneProject->name.c_str());

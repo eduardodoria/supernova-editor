@@ -103,12 +103,10 @@ namespace Supernova::Editor{
             uint32_t sourceSceneId = NULL_PROJECT_SCENE;
             SceneProject* runtime = nullptr; // Scene used by the Engine while playing
             bool ownedRuntime = false;       // true when runtime was cloned and must be deleted
-            //bool manageSourceState = false;  // true when we changed source playState/snapshot
         };
 
         struct PlaySession {
             uint32_t mainSceneId = NULL_PROJECT_SCENE;
-            //std::vector<uint32_t> involvedSceneIds;
             std::vector<PlayRuntimeScene> runtimeScenes;
             std::atomic<bool> cancelled{false};
             std::atomic<bool> startupThreadDone{false};  // Set when connect thread exits
@@ -282,6 +280,8 @@ namespace Supernova::Editor{
         void pause(uint32_t sceneId);
         void resume(uint32_t sceneId);
         void stop(uint32_t sceneId);
+
+        void restoreRuntimeLayers(uint32_t sceneId);
 
         void debugSceneHierarchy();
     };
