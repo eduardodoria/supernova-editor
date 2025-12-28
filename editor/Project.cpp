@@ -467,6 +467,9 @@ void Editor::Project::deleteSceneProject(SceneProject* sceneProject){
 
     sceneProject->sceneRender = nullptr;
     sceneProject->scene = nullptr;
+
+    sceneProject->entities.clear();
+    sceneProject->selectedEntities.clear();
 }
 
 void Editor::Project::resetConfigs() {

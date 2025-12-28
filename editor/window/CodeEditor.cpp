@@ -147,6 +147,9 @@ std::string Editor::CodeEditor::getWindowTitle(const EditorInstance& instance) c
 void Editor::CodeEditor::updateScriptProperties(const EditorInstance& instance){
     // Update script properties if this is a script file
     for (auto& sceneProject : project->getScenes()) {
+        if (!sceneProject.scene)
+            continue;
+
         for (Entity entity : sceneProject.entities) {
             ScriptComponent* scriptComponent = sceneProject.scene->findComponent<ScriptComponent>(entity);
             if (!scriptComponent)
