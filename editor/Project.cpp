@@ -169,7 +169,7 @@ uint32_t Editor::Project::createNewSceneInternal(std::string sceneName, SceneTyp
     data.isModified = true;
     data.isVisible = true;
 
-    pauseEngineScene(&data, true);
+    pauseEngineScene(data.scene, true);
 
     scenes.push_back(data);
 
@@ -214,7 +214,7 @@ Editor::SceneProject* Editor::Project::createRuntimeCloneFromSource(const SceneP
     //runtime->sceneRender = createSceneRender(runtime->sceneType, runtime->scene);
     runtime->defaultCamera = createDefaultCamera(runtime->sceneType, runtime->scene);
     Stream::decodeSceneProjectEntities(this, runtime, sceneNode);
-    pauseEngineScene(runtime, true);
+    pauseEngineScene(runtime->scene, true);
 
     return runtime;
 }
@@ -263,7 +263,7 @@ void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene)
             targetScene->sceneRender = createSceneRender(targetScene->sceneType, targetScene->scene);
             targetScene->defaultCamera = createDefaultCamera(targetScene->sceneType, targetScene->scene);
             Stream::decodeSceneProjectEntities(this, targetScene, sceneNode);
-            pauseEngineScene(targetScene, true);
+            pauseEngineScene(targetScene->scene, true);
 
             setSelectedSceneId(targetScene->id);
 
@@ -567,49 +567,45 @@ std::vector<Editor::ScriptSource> Editor::Project::collectCppScriptSourceFiles(c
     std::vector<Editor::ScriptSource> scriptFiles;
 
     for (const auto& entry : runtimeScenes) {
-        SceneProject* sceneProject = entry.runtime;
-        if (!sceneProject || !sceneProject->scene || !sceneProject->sceneRender) {
-            continue;
-        }
-        Scene* scene = sceneProject->scene;
-        for (Entity entity : sceneProject->entities) {
-            Signature signature = scene->getSignature(entity);
-            if (signature.test(scene->getComponentId<ScriptComponent>())) {
-                const ScriptComponent& scriptComponent = scene->getComponent<ScriptComponent>(entity);
 
-                // Iterate through all scripts in the component
-                for (const auto& scriptEntry : scriptComponent.scripts) {
-                    if (!scriptEntry.enabled)
-                        continue;
-                    if (scriptEntry.type == ScriptType::SCRIPT_LUA)
-                        continue; // Skip Lua scripts
+        auto scriptsArray = entry.runtime->scene->getComponentArray<ScriptComponent>();
 
-                    if (!scriptEntry.path.empty()) {
-                        fs::path path = scriptEntry.path;
-                        if (path.is_relative()) {
-                            path = getProjectPath() / path;
+        for (int i = 0; i < scriptsArray->size(); i++) {
+            const ScriptComponent& scriptComponent = scriptsArray->getComponentFromIndex(i);
+            Entity entity = scriptsArray->getEntity(i);
+            // Iterate through all scripts in the component
+            for (const auto& scriptEntry : scriptComponent.scripts) {
+                if (!scriptEntry.enabled)
+                    continue;
+                if (scriptEntry.type == ScriptType::SCRIPT_LUA)
+                    continue; // Skip Lua scripts
+
+                if (!scriptEntry.path.empty()) {
+                    fs::path path = scriptEntry.path;
+                    if (path.is_relative()) {
+                        path = getProjectPath() / path;
+                    }
+                    if (std::filesystem::exists(path)) {
+                        std::string key = path.lexically_normal().generic_string();
+                        if (uniqueScripts.insert(key).second) {
+                            scriptFiles.push_back(Editor::ScriptSource{scriptEntry.path, scriptEntry.headerPath, scriptEntry.className, entry.runtime->scene, entity});
                         }
-                        if (std::filesystem::exists(path)) {
-                            std::string key = path.lexically_normal().generic_string();
-                            if (uniqueScripts.insert(key).second) {
-                                scriptFiles.push_back(Editor::ScriptSource{scriptEntry.path, scriptEntry.headerPath, scriptEntry.className, sceneProject->scene, entity});
-                            }
-                        } else {
-                            Out::error("Script file not found: %s", path.string().c_str());
-                        }
+                    } else {
+                        Out::error("Script file not found: %s", path.string().c_str());
                     }
                 }
             }
         }
+
     }
 
     return scriptFiles;
 }
 
-void Editor::Project::pauseEngineScene(SceneProject* sceneProject, bool pause){
-    sceneProject->scene->getSystem<PhysicsSystem>()->setPaused(pause);
-    sceneProject->scene->getSystem<ActionSystem>()->setPaused(pause);
-    sceneProject->scene->getSystem<AudioSystem>()->setPaused(pause);
+void Editor::Project::pauseEngineScene(Scene* scene, bool pause){
+    scene->getSystem<PhysicsSystem>()->setPaused(pause);
+    scene->getSystem<ActionSystem>()->setPaused(pause);
+    scene->getSystem<AudioSystem>()->setPaused(pause);
 }
 
 void Editor::Project::copyEngineApiToProject() {
@@ -648,8 +644,8 @@ void Editor::Project::copyEngineApiToProject() {
     }
 }
 
-void Editor::Project::initializeLuaScripts(SceneProject* sceneProject) {
-    if (!sceneProject || !sceneProject->scene) {
+void Editor::Project::initializeLuaScripts(Scene* scene) {
+    if (!scene) {
         return;
     }
 
@@ -659,7 +655,6 @@ void Editor::Project::initializeLuaScripts(SceneProject* sceneProject) {
         return;
     }
 
-    Scene* scene = sceneProject->scene;
     auto scriptsArray = scene->getComponentArray<ScriptComponent>();
 
     // PASS 1: Create all Lua script instances (without resolving EntityRef properties)
@@ -806,7 +801,7 @@ void Editor::Project::initializeLuaScripts(SceneProject* sceneProject) {
                 EntityRef& entityRef = std::get<EntityRef>(prop.value);
 
                 // Resolve the EntityRef
-                resolveEntityRef(entityRef, sceneProject, entity);
+                //resolveEntityRef(entityRef, sceneProject, entity);
 
                 if (entityRef.entity != NULL_ENTITY && entityRef.scene) {
                     ScriptComponent* targetScriptComp = entityRef.scene->findComponent<ScriptComponent>(entityRef.entity);
@@ -925,8 +920,8 @@ void Editor::Project::initializeLuaScripts(SceneProject* sceneProject) {
     }
 }
 
-void Editor::Project::cleanupLuaScripts(SceneProject* sceneProject) {
-    if (!sceneProject || !sceneProject->scene) {
+void Editor::Project::cleanupLuaScripts(Scene* scene) {
+    if (!scene) {
         return;
     }
 
@@ -935,7 +930,6 @@ void Editor::Project::cleanupLuaScripts(SceneProject* sceneProject) {
         return;
     }
 
-    Scene* scene = sceneProject->scene;
     auto scriptsArray = scene->getComponentArray<ScriptComponent>();
 
     for (size_t i = 0; i < scriptsArray->size(); i++) {
@@ -973,8 +967,8 @@ void Editor::Project::finalizeStart(SceneProject* mainSceneProject, const std::v
             continue;
         }
 
-        pauseEngineScene(sceneProject, false);
-        initializeLuaScripts(sceneProject);
+        pauseEngineScene(sceneProject->scene, false);
+        initializeLuaScripts(sceneProject->scene);
 
         if (sceneProject->mainCamera != NULL_ENTITY) {
             if (sceneProject->scene->isEntityCreated(sceneProject->mainCamera)) {
@@ -1017,8 +1011,8 @@ void Editor::Project::finalizeStop(SceneProject* mainSceneProject, const std::ve
             continue;
         }
 
-        cleanupLuaScripts(sceneProject);
-        pauseEngineScene(sceneProject, true);
+        cleanupLuaScripts(sceneProject->scene);
+        pauseEngineScene(sceneProject->scene, true);
 
         // Restore snapshot if present
         if (sceneProject->playStateSnapshot && !sceneProject->playStateSnapshot.IsNull()) {
@@ -1813,11 +1807,11 @@ void Editor::Project::resolveEntityRefs(SceneProject* sceneProject){
     Scene* scene = sceneProject->scene;
     if (!scene) return;
 
-    auto scriptComps = scene->getComponentArray<ScriptComponent>();
+    auto scriptsArray = scene->getComponentArray<ScriptComponent>();
 
-    for (size_t i = 0; i < scriptComps->size(); ++i) {
-        Entity entity = scriptComps->getEntity(i);
-        ScriptComponent& scriptComponent = scriptComps->getComponentFromIndex(i);
+    for (size_t i = 0; i < scriptsArray->size(); ++i) {
+        Entity entity = scriptsArray->getEntity(i);
+        ScriptComponent& scriptComponent = scriptsArray->getComponentFromIndex(i);
         for (auto& scriptEntry : scriptComponent.scripts){
             for (auto& prop : scriptEntry.properties){
                 if (prop.type != ScriptPropertyType::EntityPointer) continue;
@@ -3017,7 +3011,7 @@ void Editor::Project::start(uint32_t sceneId) {
             continue;
         }
 
-        resolveEntityRefs(involvedScene);
+        resolveEntityRefs(entry.runtime);
         session->runtimeScenes.push_back(entry);
     }
 
@@ -3123,12 +3117,10 @@ void Editor::Project::pause(uint32_t sceneId) {
 
             for (const auto& entry : session->runtimeScenes) {
                 if (!entry.runtime) continue;
-                pauseEngineScene(entry.runtime, true);
-                if (entry.sourceSceneId == sceneId) {
-                    entry.runtime->playState = ScenePlayState::PAUSED;
-                }
+                pauseEngineScene(entry.runtime->scene, true);
             }
             Engine::pauseGameEvents(true);
+            sceneProject->playState = ScenePlayState::PAUSED;
         }
         return;
     }
@@ -3155,12 +3147,10 @@ void Editor::Project::resume(uint32_t sceneId) {
 
             for (const auto& entry : session->runtimeScenes) {
                 if (!entry.runtime) continue;
-                pauseEngineScene(entry.runtime, false);
-                if (entry.sourceSceneId == sceneId) {
-                    entry.runtime->playState = ScenePlayState::PLAYING;
-                }
+                pauseEngineScene(entry.runtime->scene, false);
             }
             Engine::pauseGameEvents(false);
+            sceneProject->playState = ScenePlayState::PLAYING;
         }
         return;
     }
@@ -3192,11 +3182,7 @@ void Editor::Project::stop(uint32_t sceneId) {
     }
 
     session->cancelled.store(true, std::memory_order_release);
-    for (const auto& entry : session->runtimeScenes) {
-        if (entry.sourceSceneId == sceneId && entry.runtime) {
-            entry.runtime->playState = ScenePlayState::CANCELLING;
-        }
-    }
+    sceneProject->playState = ScenePlayState::CANCELLING;
 
     // Clear crash handler when stopping
     Supernova::FunctionSubscribeGlobal::getCrashHandler() = nullptr;

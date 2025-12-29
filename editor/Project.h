@@ -142,12 +142,12 @@ namespace Supernova::Editor{
 
         std::vector<Editor::ScriptSource> collectCppScriptSourceFiles(const std::vector<PlayRuntimeScene>& runtimeScenes) const;
 
-        void pauseEngineScene(SceneProject* sceneProject, bool pause);
+        void pauseEngineScene(Scene* scene, bool pause);
 
         void copyEngineApiToProject();
 
-        void initializeLuaScripts(SceneProject* sceneProject);
-        void cleanupLuaScripts(SceneProject* sceneProject);
+        void initializeLuaScripts(Scene* scene);
+        void cleanupLuaScripts(Scene* scene);
 
         void finalizeStart(SceneProject* mainSceneProject, const std::vector<PlayRuntimeScene>& runtimeScenes);
         void finalizeStop(SceneProject* mainSceneProject, const std::vector<PlayRuntimeScene>& runtimeScenes);

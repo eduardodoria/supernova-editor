@@ -166,11 +166,12 @@ void Editor::CodeEditor::updateScriptProperties(const EditorInstance& instance){
                     (scriptEntry.type == ScriptType::SCRIPT_LUA);
 
                 // For C++ scripts we compare headerPath, for Lua we compare .lua path
+                fs::path relativeInternalPath = fs::relative(instance.filepath, project->getProjectPath());
                 bool matchesFile = false;
                 if (isCppScript && !scriptEntry.headerPath.empty()) {
-                    matchesFile = (scriptEntry.headerPath == instance.filepath.string());
+                    matchesFile = (scriptEntry.headerPath == relativeInternalPath.string());
                 } else if (isLuaScript && !scriptEntry.path.empty()) {
-                    matchesFile = (scriptEntry.path == instance.filepath.string());
+                    matchesFile = (scriptEntry.path == relativeInternalPath.string());
                 }
 
                 if (matchesFile) {
