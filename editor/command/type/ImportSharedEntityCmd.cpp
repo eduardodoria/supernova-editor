@@ -34,7 +34,7 @@ bool Editor::ImportSharedEntityCmd::execute(){
 
     lastSelected = project->getSelectedEntities(sceneId);
 
-    importedEntities = project->importSharedEntity(sceneProject, &sceneProject->entities, filepath, parent, needSaveScene, extendNode);
+    importedEntities = project->importSharedEntity(sceneProject, &sceneProject->instance.entities, filepath, parent, needSaveScene, extendNode);
 
     if (importedEntities.empty()){
         return false;
@@ -59,7 +59,7 @@ void Editor::ImportSharedEntityCmd::undo(){
     }
 
     // Get entity info to recover same ids
-    extendNode = Stream::encodeEntity(importedEntities[0], sceneProject->scene, project, sceneProject);
+    extendNode = Stream::encodeEntity(importedEntities[0], sceneProject->instance.scene, project, sceneProject);
 
     // Unimport the shared entity
     project->unimportSharedEntity(sceneId, filepath, importedEntities);

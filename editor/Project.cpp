@@ -162,10 +162,10 @@ uint32_t Editor::Project::createNewSceneInternal(std::string sceneName, SceneTyp
     SceneProject data;
     data.id = ++nextSceneId;
     data.name = sceneName;
-    data.scene = new Scene();
-    data.sceneType = type;
-    data.sceneRender = createSceneRender(data.sceneType, data.scene);
-    data.defaultCamera = createDefaultCamera(data.sceneType, data.scene);
+    data.instance.scene = new Scene();
+    data.instance.sceneType = type;
+    data.sceneRender = createSceneRender(data.instance.sceneType, data.instance.scene);
+    data.instance.defaultCamera = createDefaultCamera(data.instance.sceneType, data.instance.scene);
     data.isModified = true;
     data.isVisible = true;
 
@@ -175,7 +175,7 @@ uint32_t Editor::Project::createNewSceneInternal(std::string sceneName, SceneTyp
 
     setSelectedSceneId(data.id);
 
-    if (data.sceneType == SceneType::SCENE_3D){
+    if (data.instance.sceneType == SceneType::SCENE_3D){
         CreateEntityCmd sunCreator(this, data.id, "Sun", EntityCreationType::DIRECTIONAL_LIGHT);
         sunCreator.addProperty<Vector3>(ComponentType::Transform, "position", Vector3(0.0f, 10.0f, 0.0f));
         sunCreator.addProperty<float>(ComponentType::LightComponent, "intensity", 4.0f);
@@ -197,24 +197,35 @@ uint32_t Editor::Project::createNewSceneInternal(std::string sceneName, SceneTyp
     return data.id;
 }
 
-Editor::SceneProject* Editor::Project::createRuntimeCloneFromSource(const SceneProject* source) {
+Editor::SceneInstance* Editor::Project::createRuntimeCloneFromSource(const SceneProject* source) {
     if (!source) {
         return nullptr;
     }
+    if (source->filepath.empty()) {
+        return nullptr;
+    }
 
-    SceneProject* runtime = new SceneProject();
-    runtime->opened = false;
-    runtime->isModified = false;
-    runtime->isVisible = false;
-    runtime->needUpdateRender = false;
-    runtime->filepath = source->filepath;
+    SceneProject decoded;
+    decoded.opened = false;
+    decoded.isModified = false;
+    decoded.isVisible = false;
+    decoded.needUpdateRender = false;
+    decoded.filepath = source->filepath;
 
-    YAML::Node sceneNode = YAML::LoadFile(runtime->filepath.string());
-    Stream::decodeSceneProject(runtime, sceneNode, true);
-    //runtime->sceneRender = createSceneRender(runtime->sceneType, runtime->scene);
-    runtime->defaultCamera = createDefaultCamera(runtime->sceneType, runtime->scene);
-    Stream::decodeSceneProjectEntities(this, runtime, sceneNode);
-    pauseEngineScene(runtime, true);
+    YAML::Node sceneNode = YAML::LoadFile(decoded.filepath.string());
+    Stream::decodeSceneProject(&decoded, sceneNode, true);
+    Stream::decodeSceneProjectEntities(this, &decoded, sceneNode);
+    pauseEngineScene(decoded.instance.scene, true);
+
+    auto* runtime = new SceneInstance();
+    runtime->scene = decoded.instance.scene;
+    runtime->sceneType = decoded.instance.sceneType;
+    runtime->entities = std::move(decoded.instance.entities);
+    runtime->defaultCamera = nullptr;
+
+    decoded.instance.scene = nullptr;
+    decoded.instance.defaultCamera = nullptr;
+    decoded.instance.entities.clear();
 
     return runtime;
 }
@@ -225,15 +236,22 @@ void Editor::Project::cleanupPlaySession(const std::shared_ptr<PlaySession>& ses
     }
 
     for (const auto& entry : session->runtimeScenes) {
-        SceneProject* runtime = entry.runtime;
-        if (!runtime) {
+        SceneInstance* runtime = entry.runtime;
+        if (!runtime || !runtime->scene) {
             continue;
         }
 
-        if (entry.ownedRuntime) {
-            deleteSceneProject(runtime);
-            delete runtime;
+        if (runtime->defaultCamera) {
+            delete runtime->defaultCamera;
+            runtime->defaultCamera = nullptr;
         }
+
+        if (entry.ownedRuntime) {
+            delete runtime->scene;
+            runtime->scene = nullptr;
+        }
+
+        delete runtime;
     }
 }
 
@@ -251,7 +269,7 @@ void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene)
                 [&filepath](const SceneProject& scene) { return scene.filepath == filepath; });
             targetScene = &(*it);
 
-            if (targetScene->scene != nullptr || targetScene->sceneRender != nullptr) {
+            if (targetScene->instance.scene != nullptr || targetScene->sceneRender != nullptr) {
                 Out::error("Scene is already loaded");
                 return;
             }
@@ -260,8 +278,8 @@ void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene)
         Stream::decodeSceneProject(targetScene, sceneNode, opened);
 
         if (opened){
-            targetScene->sceneRender = createSceneRender(targetScene->sceneType, targetScene->scene);
-            targetScene->defaultCamera = createDefaultCamera(targetScene->sceneType, targetScene->scene);
+            targetScene->sceneRender = createSceneRender(targetScene->instance.sceneType, targetScene->instance.scene);
+            targetScene->instance.defaultCamera = createDefaultCamera(targetScene->instance.sceneType, targetScene->instance.scene);
             Stream::decodeSceneProjectEntities(this, targetScene, sceneNode);
             pauseEngineScene(targetScene, true);
 
@@ -454,10 +472,10 @@ std::vector<uint32_t> Editor::Project::getChildScenes(uint32_t sceneId) const {
 Entity Editor::Project::createNewEntity(uint32_t sceneId, std::string entityName){
     for (int i = 0; i < scenes.size(); i++){
         if (scenes[i].id == sceneId){
-            Entity entity = scenes[i].scene->createEntity();
-            scenes[i].scene->setEntityName(entity, entityName);
+            Entity entity = scenes[i].instance.scene->createEntity();
+            scenes[i].instance.scene->setEntityName(entity, entityName);
 
-            scenes[i].entities.push_back(entity);
+            scenes[i].instance.entities.push_back(entity);
 
             setSelectedEntity(sceneId, entity);
 
@@ -472,10 +490,10 @@ bool Editor::Project::createNewComponent(uint32_t sceneId, Entity entity, Compon
     for (int i = 0; i < scenes.size(); i++){
         if (scenes[i].id == sceneId){
             if (component == ComponentType::Transform){
-                scenes[i].scene->addComponent<Transform>(entity, {});
+                scenes[i].instance.scene->addComponent<Transform>(entity, {});
             }
             if (component == ComponentType::MeshComponent){
-                scenes[i].scene->addComponent<MeshComponent>(entity, {});
+                scenes[i].instance.scene->addComponent<MeshComponent>(entity, {});
             }
             return true;
         }
@@ -487,16 +505,16 @@ bool Editor::Project::createNewComponent(uint32_t sceneId, Entity entity, Compon
 void Editor::Project::deleteSceneProject(SceneProject* sceneProject){
     if (sceneProject->sceneRender)
         delete sceneProject->sceneRender;
-    if (sceneProject->defaultCamera)
-        delete sceneProject->defaultCamera;
-    if (sceneProject->scene)
-        delete sceneProject->scene;
+    if (sceneProject->instance.defaultCamera)
+        delete sceneProject->instance.defaultCamera;
+    if (sceneProject->instance.scene)
+        delete sceneProject->instance.scene;
 
     sceneProject->sceneRender = nullptr;
-    sceneProject->defaultCamera = nullptr;
-    sceneProject->scene = nullptr;
+    sceneProject->instance.defaultCamera = nullptr;
+    sceneProject->instance.scene = nullptr;
 
-    sceneProject->entities.clear();
+    sceneProject->instance.entities.clear();
     sceneProject->selectedEntities.clear();
 }
 
@@ -567,12 +585,12 @@ std::vector<Editor::ScriptSource> Editor::Project::collectCppScriptSourceFiles(c
     std::vector<Editor::ScriptSource> scriptFiles;
 
     for (const auto& entry : runtimeScenes) {
-        SceneProject* sceneProject = entry.runtime;
-        if (!sceneProject || !sceneProject->scene || !sceneProject->sceneRender) {
+        const SceneProject* sceneProject = getScene(entry.sourceSceneId);
+        if (!sceneProject || !entry.runtime || !entry.runtime->scene || !sceneProject->sceneRender) {
             continue;
         }
-        Scene* scene = sceneProject->scene;
-        for (Entity entity : sceneProject->entities) {
+        Scene* scene = entry.runtime->scene;
+        for (Entity entity : entry.runtime->entities) {
             Signature signature = scene->getSignature(entity);
             if (signature.test(scene->getComponentId<ScriptComponent>())) {
                 const ScriptComponent& scriptComponent = scene->getComponent<ScriptComponent>(entity);
@@ -592,7 +610,7 @@ std::vector<Editor::ScriptSource> Editor::Project::collectCppScriptSourceFiles(c
                         if (std::filesystem::exists(path)) {
                             std::string key = path.lexically_normal().generic_string();
                             if (uniqueScripts.insert(key).second) {
-                                scriptFiles.push_back(Editor::ScriptSource{scriptEntry.path, scriptEntry.headerPath, scriptEntry.className, sceneProject->scene, entity});
+                                scriptFiles.push_back(Editor::ScriptSource{scriptEntry.path, scriptEntry.headerPath, scriptEntry.className, scene, entity});
                             }
                         } else {
                             Out::error("Script file not found: %s", path.string().c_str());
@@ -607,9 +625,16 @@ std::vector<Editor::ScriptSource> Editor::Project::collectCppScriptSourceFiles(c
 }
 
 void Editor::Project::pauseEngineScene(SceneProject* sceneProject, bool pause){
-    sceneProject->scene->getSystem<PhysicsSystem>()->setPaused(pause);
-    sceneProject->scene->getSystem<ActionSystem>()->setPaused(pause);
-    sceneProject->scene->getSystem<AudioSystem>()->setPaused(pause);
+    pauseEngineScene(sceneProject ? sceneProject->instance.scene : nullptr, pause);
+}
+
+void Editor::Project::pauseEngineScene(Scene* scene, bool pause){
+    if (!scene) {
+        return;
+    }
+    scene->getSystem<PhysicsSystem>()->setPaused(pause);
+    scene->getSystem<ActionSystem>()->setPaused(pause);
+    scene->getSystem<AudioSystem>()->setPaused(pause);
 }
 
 void Editor::Project::copyEngineApiToProject() {
@@ -648,8 +673,8 @@ void Editor::Project::copyEngineApiToProject() {
     }
 }
 
-void Editor::Project::initializeLuaScripts(SceneProject* sceneProject) {
-    if (!sceneProject || !sceneProject->scene) {
+void Editor::Project::initializeLuaScripts(Scene* scene, uint32_t sceneId) {
+    if (!scene) {
         return;
     }
 
@@ -659,7 +684,9 @@ void Editor::Project::initializeLuaScripts(SceneProject* sceneProject) {
         return;
     }
 
-    Scene* scene = sceneProject->scene;
+    SceneProject shim;
+    shim.id = sceneId;
+    shim.instance.scene = scene;
     auto scriptsArray = scene->getComponentArray<ScriptComponent>();
 
     // PASS 1: Create all Lua script instances (without resolving EntityRef properties)
@@ -806,7 +833,7 @@ void Editor::Project::initializeLuaScripts(SceneProject* sceneProject) {
                 EntityRef& entityRef = std::get<EntityRef>(prop.value);
 
                 // Resolve the EntityRef
-                resolveEntityRef(entityRef, sceneProject, entity);
+                resolveEntityRef(entityRef, &shim, entity);
 
                 if (entityRef.entity != NULL_ENTITY && entityRef.scene) {
                     ScriptComponent* targetScriptComp = entityRef.scene->findComponent<ScriptComponent>(entityRef.entity);
@@ -925,8 +952,8 @@ void Editor::Project::initializeLuaScripts(SceneProject* sceneProject) {
     }
 }
 
-void Editor::Project::cleanupLuaScripts(SceneProject* sceneProject) {
-    if (!sceneProject || !sceneProject->scene) {
+void Editor::Project::cleanupLuaScripts(Scene* scene) {
+    if (!scene) {
         return;
     }
 
@@ -935,7 +962,6 @@ void Editor::Project::cleanupLuaScripts(SceneProject* sceneProject) {
         return;
     }
 
-    Scene* scene = sceneProject->scene;
     auto scriptsArray = scene->getComponentArray<ScriptComponent>();
 
     for (size_t i = 0; i < scriptsArray->size(); i++) {
@@ -968,34 +994,43 @@ void Editor::Project::finalizeStart(SceneProject* mainSceneProject, const std::v
     Engine::onViewChanged.call();
 
     for (const auto& entry : runtimeScenes) {
-        SceneProject* sceneProject = entry.runtime;
-        if (!sceneProject || !sceneProject->scene) {
+        const SceneProject* sceneProject = getScene(entry.sourceSceneId);
+        if (!sceneProject || !entry.runtime || !entry.runtime->scene) {
             continue;
         }
 
-        pauseEngineScene(sceneProject, false);
-        initializeLuaScripts(sceneProject);
+        pauseEngineScene(entry.runtime->scene, false);
+        initializeLuaScripts(entry.runtime->scene, entry.sourceSceneId);
+
+        Scene* scene = entry.runtime->scene;
 
         if (sceneProject->mainCamera != NULL_ENTITY) {
-            if (sceneProject->scene->isEntityCreated(sceneProject->mainCamera)) {
-                sceneProject->scene->setCamera(sceneProject->mainCamera);
+            if (scene->isEntityCreated(sceneProject->mainCamera)) {
+                scene->setCamera(sceneProject->mainCamera);
             } else {
                 Out::error("Main camera entity is not valid, reverting to default camera");
-                sceneProject->mainCamera = NULL_ENTITY;
             }
         } else {
-            if (sceneProject->defaultCamera){
-                sceneProject->scene->setCamera(sceneProject->defaultCamera);
+            if (entry.sourceSceneId == (mainSceneProject ? mainSceneProject->id : NULL_PROJECT_SCENE)) {
+                if (sceneProject->instance.defaultCamera) {
+                    scene->setCamera(sceneProject->instance.defaultCamera);
+                }
+            } else {
+                if (entry.runtime->defaultCamera) {
+                    scene->setCamera(entry.runtime->defaultCamera);
+                }
             }
         }
 
-        if (sceneProject->sceneRender){
-            sceneProject->sceneRender->setPlayMode(true);
+        if (entry.sourceSceneId == (mainSceneProject ? mainSceneProject->id : NULL_PROJECT_SCENE)) {
+            if (sceneProject->sceneRender){
+                sceneProject->sceneRender->setPlayMode(true);
+            }
         }
 
-        if (sceneProject != mainSceneProject) {
-            Backend::getApp().enqueueMainThreadTask([sceneProject]() {
-                Engine::addSceneLayer(sceneProject->scene);
+        if (mainSceneProject && entry.sourceSceneId != mainSceneProject->id) {
+            Backend::getApp().enqueueMainThreadTask([scene]() {
+                Engine::addSceneLayer(scene);
             });
         }
     }
@@ -1012,48 +1047,51 @@ void Editor::Project::finalizeStop(SceneProject* mainSceneProject, const std::ve
     Engine::pauseGameEvents(true);
 
     for (const auto& entry : runtimeScenes) {
-        SceneProject* sceneProject = entry.runtime;
-        if (!sceneProject || !sceneProject->scene) {
+        const SceneProject* sourceSceneProject = getScene(entry.sourceSceneId);
+        if (!entry.runtime || !entry.runtime->scene) {
             continue;
         }
 
-        cleanupLuaScripts(sceneProject);
-        pauseEngineScene(sceneProject, true);
+        Scene* scene = entry.runtime->scene;
 
-        // Restore snapshot if present
-        if (sceneProject->playStateSnapshot && !sceneProject->playStateSnapshot.IsNull()) {
-            Stream::decodeScene(sceneProject->scene, sceneProject->playStateSnapshot["scene"]);
+        cleanupLuaScripts(scene);
+        pauseEngineScene(scene, true);
 
-            auto entitiesNode = sceneProject->playStateSnapshot["entities"];
-            for (const auto& entityNode : entitiesNode) {
-                Stream::decodeEntity(entityNode, sceneProject->scene, nullptr, nullptr, sceneProject, NULL_ENTITY, true, false);
+        if (mainSceneProject && entry.sourceSceneId == mainSceneProject->id) {
+            // Restore snapshot if present (main scene only)
+            if (mainSceneProject->playStateSnapshot && !mainSceneProject->playStateSnapshot.IsNull()) {
+                Stream::decodeScene(scene, mainSceneProject->playStateSnapshot["scene"]);
+
+                auto entitiesNode = mainSceneProject->playStateSnapshot["entities"];
+                for (const auto& entityNode : entitiesNode) {
+                    Stream::decodeEntity(entityNode, scene, nullptr, nullptr, mainSceneProject, NULL_ENTITY, true, false);
+                }
+
+                mainSceneProject->playStateSnapshot = YAML::Node();
             }
 
-            // Clear the snapshot
-            sceneProject->playStateSnapshot = YAML::Node();
+            mainSceneProject->playState = ScenePlayState::STOPPED;
         }
 
-        sceneProject->playState = ScenePlayState::STOPPED;
-
-        Entity cameraEntity = sceneProject->scene->getCamera();
-        if (cameraEntity != NULL_ENTITY && sceneProject->scene->isEntityCreated(cameraEntity)) {
-            if (CameraComponent* cameraComponent = sceneProject->scene->findComponent<CameraComponent>(cameraEntity)) {
+        Entity cameraEntity = scene->getCamera();
+        if (cameraEntity != NULL_ENTITY && scene->isEntityCreated(cameraEntity)) {
+            if (CameraComponent* cameraComponent = scene->findComponent<CameraComponent>(cameraEntity)) {
                 cameraComponent->needUpdate = true;
             }
         }
 
-        if (sceneProject->sceneRender){
-            sceneProject->sceneRender->setPlayMode(false);
+        if (mainSceneProject && entry.sourceSceneId == mainSceneProject->id && sourceSceneProject && sourceSceneProject->sceneRender){
+            sourceSceneProject->sceneRender->setPlayMode(false);
         }
 
-        if (sceneProject != mainSceneProject) {
-            Backend::getApp().enqueueMainThreadTask([this, sceneProject, entry]() {
-                Engine::removeScene(sceneProject->scene);
+        if (mainSceneProject && entry.sourceSceneId != mainSceneProject->id) {
+            Backend::getApp().enqueueMainThreadTask([scene, entry]() {
+                Engine::removeScene(entry.runtime->scene);
 
                 // Delete scene because its not opened in editor
                 if (entry.ownedRuntime) {
-                    deleteSceneProject(sceneProject);
-                    delete sceneProject;
+                    //deleteSceneProject(sceneProject);
+                    //delete sceneProject;
                 }
             });
         }
@@ -1332,30 +1370,31 @@ void Editor::Project::saveLastSelectedScene(){
 
 Entity Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
     SceneProject* scenedata = getScene(sceneId);
+    Scene* scene = scenedata->instance.scene;
     Ray ray = scenedata->sceneRender->getCamera()->screenToRay(x, y);
 
     float distance = FLT_MAX;
     size_t index = 0;
     Entity selEntity = NULL_ENTITY;
-    for (auto& entity : scenedata->entities) {
+    for (auto& entity : scenedata->instance.entities) {
         AABB aabb;
-        Signature signature = scenedata->scene->getSignature(entity);
+        Signature signature = scene->getSignature(entity);
 
-        if (!signature.test(scenedata->scene->getComponentId<Transform>())){
+        if (!signature.test(scene->getComponentId<Transform>())){
             continue;
         }
 
-        if (signature.test(scenedata->scene->getComponentId<MeshComponent>())){
-            MeshComponent& mesh = scenedata->scene->getComponent<MeshComponent>(entity);
+        if (signature.test(scene->getComponentId<MeshComponent>())){
+            MeshComponent& mesh = scene->getComponent<MeshComponent>(entity);
             aabb = mesh.worldAABB;
-        }else if (signature.test(scenedata->scene->getComponentId<UIComponent>())){
-            UIComponent& ui = scenedata->scene->getComponent<UIComponent>(entity);
+        }else if (signature.test(scene->getComponentId<UIComponent>())){
+            UIComponent& ui = scene->getComponent<UIComponent>(entity);
             aabb = ui.worldAABB;
-        }else if (signature.test(scenedata->scene->getComponentId<LightComponent>()) || 
-                  signature.test(scenedata->scene->getComponentId<CameraComponent>())){
-            Transform& transform = scenedata->scene->getComponent<Transform>(entity);
-            Transform& camtransform = scenedata->scene->getComponent<Transform>(scenedata->scene->getCamera());
-            CameraComponent& camera = scenedata->scene->getComponent<CameraComponent>(scenedata->scene->getCamera());
+        }else if (signature.test(scene->getComponentId<LightComponent>()) || 
+                  signature.test(scene->getComponentId<CameraComponent>())){
+            Transform& transform = scene->getComponent<Transform>(entity);
+            Transform& camtransform = scene->getComponent<Transform>(scene->getCamera());
+            CameraComponent& camera = scene->getComponent<CameraComponent>(scene->getCamera());
             float dist = (transform.worldPosition - camtransform.worldPosition).length();
             float size = dist * tan(camera.yfov) * 0.01;
             aabb = transform.modelMatrix * AABB(-size, -size, -size, size, size, size);
@@ -1364,8 +1403,8 @@ Entity Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
         if (!aabb.isNull() && !aabb.isInfinite()){
             RayReturn rreturn = ray.intersects(aabb);
             if (rreturn.hit){
-                size_t nIndex = scenedata->scene->getComponentArray<Transform>()->getIndex(entity);
-                if (rreturn.distance < distance || (nIndex >= index && scenedata->sceneType != SceneType::SCENE_3D)){
+                size_t nIndex = scene->getComponentArray<Transform>()->getIndex(entity);
+                if (rreturn.distance < distance || (nIndex >= index && scenedata->instance.sceneType != SceneType::SCENE_3D)){
                     distance = rreturn.distance;
                     index = nIndex;
                     selEntity = entity;
@@ -1400,35 +1439,37 @@ bool Editor::Project::selectObjectByRay(uint32_t sceneId, float x, float y, bool
 bool Editor::Project::selectObjectsByRect(uint32_t sceneId, Vector2 start, Vector2 end){
     SceneProject* scenedata = getScene(sceneId);
 
+    Scene* scene = scenedata->instance.scene;
+
     Camera* camera = scenedata->sceneRender->getCamera();
 
     clearSelectedEntities(sceneId);
 
     float distance = FLT_MAX;
     Entity selEntity = NULL_ENTITY;
-    for (auto& entity : scenedata->entities) {
+    for (auto& entity : scenedata->instance.entities) {
 
         AABB aabb;
-        Signature signature = scenedata->scene->getSignature(entity);
+        Signature signature = scene->getSignature(entity);
 
-        if (!signature.test(scenedata->scene->getComponentId<Transform>())){
+        if (!signature.test(scene->getComponentId<Transform>())){
             continue;
         }
 
-        if (signature.test(scenedata->scene->getComponentId<MeshComponent>())){
-            MeshComponent& mesh = scenedata->scene->getComponent<MeshComponent>(entity);
+        if (signature.test(scene->getComponentId<MeshComponent>())){
+            MeshComponent& mesh = scene->getComponent<MeshComponent>(entity);
             aabb = mesh.aabb;
-        }else if (signature.test(scenedata->scene->getComponentId<UIComponent>())){
-            UIComponent& ui = scenedata->scene->getComponent<UIComponent>(entity);
+        }else if (signature.test(scene->getComponentId<UIComponent>())){
+            UIComponent& ui = scene->getComponent<UIComponent>(entity);
             aabb = ui.aabb;
-        }else if (signature.test(scenedata->scene->getComponentId<LightComponent>()) || 
-                  signature.test(scenedata->scene->getComponentId<CameraComponent>())){
-            Transform& transform = scenedata->scene->getComponent<Transform>(entity);
+        }else if (signature.test(scene->getComponentId<LightComponent>()) || 
+                  signature.test(scene->getComponentId<CameraComponent>())){
+            Transform& transform = scene->getComponent<Transform>(entity);
             aabb = AABB::ZERO; // just a point
         }
 
         if (!aabb.isNull() && !aabb.isInfinite()){
-            Transform& transform = scenedata->scene->getComponent<Transform>(entity);
+            Transform& transform = scene->getComponent<Transform>(entity);
 
             const Vector3* corners = aabb.getCorners();
 
@@ -1570,7 +1611,7 @@ fs::path Editor::Project::getThumbnailPath(const fs::path& originalPath) const {
 }
 
 std::vector<Entity> Editor::Project::getEntities(uint32_t sceneId) const{
-    return getScene(sceneId)->entities;
+    return getScene(sceneId)->instance.entities;
 }
 
 void Editor::Project::replaceSelectedEntities(uint32_t sceneId, std::vector<Entity> selectedEntities){
@@ -1588,7 +1629,7 @@ void Editor::Project::setSelectedEntity(uint32_t sceneId, Entity selectedEntity)
 
 void Editor::Project::addSelectedEntity(uint32_t sceneId, Entity selectedEntity){
     std::vector<Entity>& entities = getScene(sceneId)->selectedEntities;
-    Scene* scene = getScene(sceneId)->scene;
+    Scene* scene = getScene(sceneId)->instance.scene;
     auto transforms = scene->getComponentArray<Transform>();
 
     if (selectedEntity != NULL_ENTITY){
@@ -1668,10 +1709,12 @@ void Editor::Project::updateAllScriptsProperties(uint32_t sceneId){
     SceneProject* sceneProject = getScene(sceneId);
     if (!sceneProject) return;
 
-    for (Entity entity : sceneProject->entities) {
-        Signature signature = sceneProject->scene->getSignature(entity);
-        if (signature.test(sceneProject->scene->getComponentId<ScriptComponent>())) {
-            ScriptComponent& scriptComponent = sceneProject->scene->getComponent<ScriptComponent>(entity);
+    Scene* scene = sceneProject->instance.scene;
+
+    for (Entity entity : sceneProject->instance.entities) {
+        Signature signature = scene->getSignature(entity);
+        if (signature.test(scene->getComponentId<ScriptComponent>())) {
+            ScriptComponent& scriptComponent = scene->getComponent<ScriptComponent>(entity);
             updateScriptProperties(sceneProject, entity, scriptComponent.scripts);
         }
     }
@@ -1788,7 +1831,7 @@ void Editor::Project::updateScriptProperties(SceneProject* sceneProject, Entity 
 void Editor::Project::resolveEntityRef(EntityRef& ref, SceneProject* sceneProject, Entity entity){
     if (ref.locator.kind == EntityRefKind::LocalEntity){
         if (sceneProject->id == ref.locator.sceneId){
-            ref.scene = sceneProject->scene;
+            ref.scene = sceneProject->instance.scene;
             ref.entity = ref.locator.scopedEntity;
         }
     }else if (ref.locator.kind == EntityRefKind::SharedEntity){
@@ -1802,7 +1845,7 @@ void Editor::Project::resolveEntityRef(EntityRef& ref, SceneProject* sceneProjec
         if (instanceId != 0 && ref.locator.scopedEntity != NULL_ENTITY) {
             Entity local = group->getLocalEntity(sceneProject->id, instanceId, ref.locator.scopedEntity);
             if (local != NULL_ENTITY) {
-                ref.scene  = sceneProject->scene;
+                ref.scene  = sceneProject->instance.scene;
                 ref.entity = local;
             }
         }
@@ -1810,7 +1853,7 @@ void Editor::Project::resolveEntityRef(EntityRef& ref, SceneProject* sceneProjec
 }
 
 void Editor::Project::resolveEntityRefs(SceneProject* sceneProject){
-    Scene* scene = sceneProject->scene;
+    Scene* scene = sceneProject->instance.scene;
     if (!scene) return;
 
     auto scriptComps = scene->getComponentArray<ScriptComponent>();
@@ -1871,7 +1914,7 @@ bool Editor::Project::markEntityShared(uint32_t sceneId, Entity entity, fs::path
         newInstance.members.push_back({branchEntities[i], regEntities[i]});
     }
 
-    Scene* scene = sceneProject->scene;
+    Scene* scene = sceneProject->instance.scene;
 
     // Mark Transform component of root entity as overridden for this scene
     // This allows each scene to position the shared entity independently
@@ -1959,7 +2002,7 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
     }
 
     // decode into brand‐new local entities (root + children)
-    Scene* scene = sceneProject->scene;
+    Scene* scene = sceneProject->instance.scene;
     std::vector<Entity> newEntities = Stream::decodeEntity(node, scene, entities, this, sceneProject, parent, false);
     scene->addEntityChild(parent, newEntities[0], false);
 
@@ -2010,7 +2053,7 @@ bool Editor::Project::unimportSharedEntity(uint32_t sceneId, const std::filesyst
         return false;
     }
 
-    Scene* scene = sceneProject->scene;
+    Scene* scene = sceneProject->instance.scene;
 
     // Remove from shared group
     SharedGroup* group = getSharedGroup(filepath);
@@ -2038,7 +2081,7 @@ bool Editor::Project::unimportSharedEntity(uint32_t sceneId, const std::filesyst
     if (destroyEntities){
         // Destroy all imported entities
         for (Entity entity : entities) {
-            DeleteEntityCmd::destroyEntity(scene, entity, sceneProject->entities, this, sceneId);
+            DeleteEntityCmd::destroyEntity(scene, entity, sceneProject->instance.entities, this, sceneId);
         }
     }
 
@@ -2053,7 +2096,7 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Entity entity, En
         return false;
     }
 
-    Scene* scene = sceneProject->scene;
+    Scene* scene = sceneProject->instance.scene;
 
     // Find which shared group and instance the parent belongs to
     fs::path filepath = findGroupPathFor(sceneId, parent);
@@ -2072,17 +2115,17 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, Entity entity, En
     std::vector<Entity> instanceEntities = group->getAllEntities(sceneId, instanceId);
 
     // Find the entity in the entities list
-    auto entityIt = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), entity);
-    if (entityIt != sceneProject->entities.end()) {
+    auto entityIt = std::find(sceneProject->instance.entities.begin(), sceneProject->instance.entities.end(), entity);
+    if (entityIt != sceneProject->instance.entities.end()) {
         // Look backwards for a shared entity
-        for (auto it = entityIt - 1; it != sceneProject->entities.begin(); --it) {
+        for (auto it = entityIt - 1; it != sceneProject->instance.entities.begin(); --it) {
             if (std::find(instanceEntities.begin(), instanceEntities.end(), *it) != instanceEntities.end()) {
                 beforeSharedEntity = *it;
                 break;
             }
         }
         // Look forwards for a shared entity
-        for (auto it = entityIt + 1; it != sceneProject->entities.end(); ++it) {
+        for (auto it = entityIt + 1; it != sceneProject->instance.entities.end(); ++it) {
             if (std::find(instanceEntities.begin(), instanceEntities.end(), *it) != instanceEntities.end()) {
                 afterSharedEntity = *it;
                 break;
@@ -2223,8 +2266,8 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, const Editor::Nod
                     continue;
                 }
 
-                newOtherEntities = Stream::decodeEntity(nodeData, otherScene->scene, &otherScene->entities);
-                ProjectUtils::moveEntityOrderByTransform(otherScene->scene, otherScene->entities, newOtherEntities[0], otherParent, transformIndex, hasRecoveryData);
+                newOtherEntities = Stream::decodeEntity(nodeData, otherScene->instance.scene, &otherScene->instance.entities);
+                ProjectUtils::moveEntityOrderByTransform(otherScene->instance.scene, otherScene->instance.entities, newOtherEntities[0], otherParent, transformIndex, hasRecoveryData);
             } else {
                 // Just collect the entities from the node without creating them
                 collectEntities(nodeData, newOtherEntities);
@@ -2303,7 +2346,7 @@ Editor::NodeRecovery Editor::Project::removeEntityFromSharedGroup(uint32_t scene
                 continue;
             }
 
-            YAML::Node nodeExtend = Stream::encodeEntity(otherEntity, otherScene->scene, this, otherScene);
+            YAML::Node nodeExtend = Stream::encodeEntity(otherEntity, otherScene->instance.scene, this, otherScene);
 
             std::vector<Entity> allEntities;
             std::vector<Entity> sharedEntities;
@@ -2313,7 +2356,7 @@ Editor::NodeRecovery Editor::Project::removeEntityFromSharedGroup(uint32_t scene
             YAML::Node node = YAML::Clone(regData);
             std::vector<MergeResult> mergeResults = mergeEntityNodes(nodeExtend, node);
 
-            transformIndex = ProjectUtils::getTransformIndex(otherScene->scene, otherEntity);
+            transformIndex = ProjectUtils::getTransformIndex(otherScene->instance.scene, otherEntity);
 
             std::string recoveryKey = std::to_string(otherSceneId) + "_" + std::to_string(instance.instanceId);
             recovery[recoveryKey] = {node, mergeResults, transformIndex};
@@ -2336,7 +2379,7 @@ Editor::NodeRecovery Editor::Project::removeEntityFromSharedGroup(uint32_t scene
             // Destroy the entities if needed
             if ((otherSceneId != sceneId) || (instance.instanceId != instanceId) || destroyItself) {
                 for (const Entity& entityToDestroy : allEntities) {
-                    DeleteEntityCmd::destroyEntity(otherScene->scene, entityToDestroy, otherScene->entities, this, otherSceneId);
+                    DeleteEntityCmd::destroyEntity(otherScene->instance.scene, entityToDestroy, otherScene->instance.entities, this, otherSceneId);
                 }
             }
 
@@ -2391,7 +2434,7 @@ Editor::SharedMoveRecovery Editor::Project::moveEntityFromSharedGroup(uint32_t s
             return {};
         }
 
-        auto& entities = getScene(sceneId)->entities;
+        auto& entities = getScene(sceneId)->instance.entities;
         auto entityIt = std::find(entities.begin(), entities.end(), entity);
         auto targetIt = std::find(entities.begin(), entities.end(), target);
 
@@ -2451,7 +2494,7 @@ Editor::SharedMoveRecovery Editor::Project::moveEntityFromSharedGroup(uint32_t s
                         Entity otherOldParent;
                         size_t otherOldIndex;
                         bool otherHasTransform;
-                        ProjectUtils::moveEntityOrderByTarget(otherScene->scene, otherScene->entities, otherEntity, otherTarget, type, otherOldParent, otherOldIndex, otherHasTransform);
+                        ProjectUtils::moveEntityOrderByTarget(otherScene->instance.scene, otherScene->instance.entities, otherEntity, otherTarget, type, otherOldParent, otherOldIndex, otherHasTransform);
                         std::string recoveryKey = std::to_string(otherSceneId) + "_" + std::to_string(instance.instanceId);
                         recovery[recoveryKey] = {otherOldParent, otherOldIndex, otherHasTransform};
 
@@ -2501,7 +2544,7 @@ bool Editor::Project::undoMoveEntityInSharedGroup(uint32_t sceneId, Entity entit
                         Entity otherEntity = group->getLocalEntity(otherSceneId, instance.instanceId, registryEntity);
                         Entity otherTarget = group->getLocalEntity(otherSceneId, instance.instanceId, registryTarget);
                         if (otherEntity != NULL_ENTITY && otherTarget != NULL_ENTITY) {
-                            ProjectUtils::moveEntityOrderByIndex(otherScene->scene, otherScene->entities, otherEntity, recovery.at(recoveryKey).oldParent, recovery.at(recoveryKey).oldIndex, recovery.at(recoveryKey).hasTransform);
+                            ProjectUtils::moveEntityOrderByIndex(otherScene->instance.scene, otherScene->instance.entities, otherEntity, recovery.at(recoveryKey).oldParent, recovery.at(recoveryKey).oldIndex, recovery.at(recoveryKey).hasTransform);
                         }
                     }
                 }
@@ -2571,7 +2614,7 @@ bool Editor::Project::addComponentToSharedGroup(uint32_t sceneId, Entity entity,
                                 }
                             }
 
-                            ProjectUtils::addEntityComponent(otherScene->scene, otherEntity, componentType, otherScene->entities, compNode);
+                            ProjectUtils::addEntityComponent(otherScene->instance.scene, otherEntity, componentType, otherScene->instance.entities, compNode);
 
                             otherScene->isModified = true;
                         }
@@ -2623,7 +2666,7 @@ Editor::ComponentRecovery Editor::Project::removeComponentToSharedGroup(uint32_t
                         if (!group->hasComponentOverride(otherSceneId, otherEntity, componentType)) {
                             std::string recoveryKey = std::to_string(otherSceneId) + "_" + std::to_string(instance.instanceId);
                             recovery[recoveryKey].entity = otherEntity;
-                            recovery[recoveryKey].node = ProjectUtils::removeEntityComponent(otherScene->scene, otherEntity, componentType, otherScene->entities, encodeComponent);
+                            recovery[recoveryKey].node = ProjectUtils::removeEntityComponent(otherScene->instance.scene, otherEntity, componentType, otherScene->instance.entities, encodeComponent);
 
                             otherScene->isModified = true;
                         }
@@ -2837,10 +2880,10 @@ bool Editor::Project::sharedGroupPropertyChanged(uint32_t sceneId, Entity entity
         }
         EntityRegistry* registry = group->registry.get();
         if (properties.size() == 0){
-            Catalog::copyComponent(getScene(sceneId)->scene, entity, registry, registryEntity, componentType);
+            Catalog::copyComponent(getScene(sceneId)->instance.scene, entity, registry, registryEntity, componentType);
         }else{
             for (const auto& property : properties) {
-                Catalog::copyPropertyValue(getScene(sceneId)->scene, entity, registry, registryEntity, componentType, property);
+                Catalog::copyPropertyValue(getScene(sceneId)->instance.scene, entity, registry, registryEntity, componentType, property);
             }
         }
 
@@ -2857,10 +2900,10 @@ bool Editor::Project::sharedGroupPropertyChanged(uint32_t sceneId, Entity entity
                                 otherScene->needUpdateRender = true;
                             }
                             if (properties.size() == 0){
-                                Catalog::copyComponent(getScene(sceneId)->scene, entity, otherScene->scene, otherEntity, componentType);
+                                Catalog::copyComponent(getScene(sceneId)->instance.scene, entity, otherScene->instance.scene, otherEntity, componentType);
                             }else{
                                 for (const auto& property : properties) {
-                                    Catalog::copyPropertyValue(getScene(sceneId)->scene, entity, otherScene->scene, otherEntity, componentType, property);
+                                    Catalog::copyPropertyValue(getScene(sceneId)->instance.scene, entity, otherScene->instance.scene, otherEntity, componentType, property);
                                 }
                             }
                         }
@@ -2903,7 +2946,7 @@ bool Editor::Project::sharedGroupNameChanged(uint32_t sceneId, Entity entity, st
                 SceneProject* otherScene = getScene(otherSceneId);
                 if (otherScene) {
 
-                    otherScene->scene->setEntityName(otherEntity, name);
+                    otherScene->instance.scene->setEntityName(otherEntity, name);
                     otherScene->isModified = true;
 
                 }
@@ -3002,18 +3045,20 @@ void Editor::Project::start(uint32_t sceneId) {
 
         if (id == sceneId) {
             // Main scene plays in-place
-            entry.runtime = involvedScene;
+            entry.runtime = &involvedScene->instance;
             entry.ownedRuntime = false;
-            //entry.manageSourceState = true;
         } else {
             // Child scene: clone for runtime to keep standalone tab independent
             entry.runtime = createRuntimeCloneFromSource(involvedScene);
             entry.ownedRuntime = true;
-            //entry.manageSourceState = false;
         }
 
-        if (!entry.runtime) {
+        if (!entry.runtime || !entry.runtime->scene) {
             Out::error("Failed to prepare runtime scene for id=%u", id);
+            if (entry.runtime) {
+                delete entry.runtime;
+                entry.runtime = nullptr;
+            }
             continue;
         }
 
@@ -3071,8 +3116,8 @@ void Editor::Project::start(uint32_t sceneId) {
 
             if (conector.connect(buildPath, libName)) {
                 for (const auto& entry : session->runtimeScenes) {
-                    if (!entry.runtime) continue;
-                    conector.execute(entry.runtime);
+                    if (!entry.runtime || !entry.runtime->scene) continue;
+                    conector.execute(entry.runtime->scene);
                 }
 
                 if (session->cancelled.load(std::memory_order_acquire)) {
@@ -3122,12 +3167,10 @@ void Editor::Project::pause(uint32_t sceneId) {
             Engine::onPause.call();
 
             for (const auto& entry : session->runtimeScenes) {
-                if (!entry.runtime) continue;
-                pauseEngineScene(entry.runtime, true);
-                if (entry.sourceSceneId == sceneId) {
-                    entry.runtime->playState = ScenePlayState::PAUSED;
-                }
+                if (!entry.runtime || !entry.runtime->scene) continue;
+                pauseEngineScene(entry.runtime->scene, true);
             }
+            sceneProject->playState = ScenePlayState::PAUSED;
             Engine::pauseGameEvents(true);
         }
         return;
@@ -3154,12 +3197,10 @@ void Editor::Project::resume(uint32_t sceneId) {
             Engine::onResume.call();
 
             for (const auto& entry : session->runtimeScenes) {
-                if (!entry.runtime) continue;
-                pauseEngineScene(entry.runtime, false);
-                if (entry.sourceSceneId == sceneId) {
-                    entry.runtime->playState = ScenePlayState::PLAYING;
-                }
+                if (!entry.runtime || !entry.runtime->scene) continue;
+                pauseEngineScene(entry.runtime->scene, false);
             }
+            sceneProject->playState = ScenePlayState::PLAYING;
             Engine::pauseGameEvents(false);
         }
         return;
@@ -3192,11 +3233,7 @@ void Editor::Project::stop(uint32_t sceneId) {
     }
 
     session->cancelled.store(true, std::memory_order_release);
-    for (const auto& entry : session->runtimeScenes) {
-        if (entry.sourceSceneId == sceneId && entry.runtime) {
-            entry.runtime->playState = ScenePlayState::CANCELLING;
-        }
-    }
+    sceneProject->playState = ScenePlayState::CANCELLING;
 
     // Clear crash handler when stopping
     Supernova::FunctionSubscribeGlobal::getCrashHandler() = nullptr;
@@ -3209,8 +3246,8 @@ void Editor::Project::stop(uint32_t sceneId) {
     if (hasLibraryConnected) {
         // Cleanup script instances / disconnect if the library is currently connected.
         for (const auto& entry : session->runtimeScenes) {
-            if (entry.runtime) {
-                conector.cleanup(entry.runtime);
+            if (entry.runtime && entry.runtime->scene) {
+                conector.cleanup(entry.runtime->scene);
             }
         }
         conector.disconnect();
@@ -3271,11 +3308,8 @@ void Editor::Project::restoreRuntimeLayers(uint32_t sceneId) {
     }
 
     for (const auto& entry : activePlaySession->runtimeScenes) {
-        SceneProject* runtimeProject = entry.runtime;
-        if (runtimeProject && runtimeProject->scene) {
-             if (entry.sourceSceneId != sceneId) {
-                 Engine::addSceneLayer(runtimeProject->scene);
-             }
+        if (entry.runtime && entry.runtime->scene && entry.sourceSceneId != sceneId) {
+            Engine::addSceneLayer(entry.runtime->scene);
         }
     }
 }
@@ -3283,10 +3317,10 @@ void Editor::Project::restoreRuntimeLayers(uint32_t sceneId) {
 void Editor::Project::debugSceneHierarchy(){
     if (SceneProject* sceneProject = getSelectedScene()){
         printf("Debug scene: %s\n", sceneProject->name.c_str());
-        auto transforms = sceneProject->scene->getComponentArray<Transform>();
+        auto transforms = sceneProject->instance.scene->getComponentArray<Transform>();
         for (int i = 0; i < transforms->size(); i++){
             auto transform = transforms->getComponentFromIndex(i);
-            printf("Transform %i - Entity: %i - Parent: %i: %s\n", i, transforms->getEntity(i), transform.parent, sceneProject->scene->getEntityName(transforms->getEntity(i)).c_str());
+            printf("Transform %i - Entity: %i - Parent: %i: %s\n", i, transforms->getEntity(i), transform.parent, sceneProject->instance.scene->getEntityName(transforms->getEntity(i)).c_str());
         }
         printf("\n");
     }

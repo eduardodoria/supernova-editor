@@ -28,7 +28,7 @@ bool Editor::ObjectTransformCmd::execute(){
         return false;
     }
     for (auto& [entity, property] : props){
-        if (Transform* transform = sceneProject->scene->findComponent<Transform>(entity)){
+        if (Transform* transform = sceneProject->instance.scene->findComponent<Transform>(entity)){
             property.oldPosition = transform->position;
             property.oldRotation = transform->rotation;
             property.oldScale = transform->scale;
@@ -56,7 +56,7 @@ void Editor::ObjectTransformCmd::undo(){
         return;
     }
     for (auto const& [entity, property] : props){
-        if (Transform* transform = sceneProject->scene->findComponent<Transform>(entity)){
+        if (Transform* transform = sceneProject->instance.scene->findComponent<Transform>(entity)){
             transform->position = property.oldPosition;
             transform->rotation = property.oldRotation;
             transform->scale = property.oldScale;

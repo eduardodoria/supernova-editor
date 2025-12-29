@@ -29,7 +29,7 @@ bool Editor::MoveEntityOrderCmd::execute(){
                 return false;
             }
         }else{
-            Transform* transformTarget = sceneProject->scene->findComponent<Transform>(target);
+            Transform* transformTarget = sceneProject->instance.scene->findComponent<Transform>(target);
             if (transformTarget){
                 fs::path parentSharedPath = project->findGroupPathFor(sceneId, transformTarget->parent);
 
@@ -49,7 +49,7 @@ bool Editor::MoveEntityOrderCmd::execute(){
             sharedMoveRecovery = project->moveEntityFromSharedGroup(sceneId, source, target, type, false);
         }
     }
-    ProjectUtils::moveEntityOrderByTarget(sceneProject->scene, sceneProject->entities, source, target, type, oldParent, oldIndex, hasTransform);
+        ProjectUtils::moveEntityOrderByTarget(sceneProject->instance.scene, sceneProject->instance.entities, source, target, type, oldParent, oldIndex, hasTransform);
 
     sceneProject->isModified = true;
 
@@ -62,7 +62,7 @@ void Editor::MoveEntityOrderCmd::undo(){
     if (sharedMoveRecovery.size() > 0){
         project->undoMoveEntityInSharedGroup(sceneId, source, target, sharedMoveRecovery, false);
     }
-    ProjectUtils::moveEntityOrderByIndex(sceneProject->scene, sceneProject->entities, source, oldParent, oldIndex, hasTransform);
+    ProjectUtils::moveEntityOrderByIndex(sceneProject->instance.scene, sceneProject->instance.entities, source, oldParent, oldIndex, hasTransform);
 
     sceneProject->isModified = wasModified;
 }

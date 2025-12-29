@@ -25,8 +25,8 @@ bool Editor::ComponentToSharedCmd::execute() {
         if (sceneProject && !filepath.empty()) {
             SharedGroup* group = project->getSharedGroup(filepath);
 
-            Signature signature = Catalog::componentTypeToSignature(sceneProject->scene, componentType);
-            entityData.recovery = Stream::encodeComponents(entityData.entity, sceneProject->scene, signature);
+            Signature signature = Catalog::componentTypeToSignature(sceneProject->instance.scene, componentType);
+            entityData.recovery = Stream::encodeComponents(entityData.entity, sceneProject->instance.scene, signature);
 
             if (!group->hasComponentOverride(sceneId, entityData.entity, componentType)){
                 return false;
@@ -36,7 +36,7 @@ bool Editor::ComponentToSharedCmd::execute() {
             group->clearComponentOverride(sceneProject->id, entityData.entity, componentType);
 
             Entity registryEntity = group->getRegistryEntity(sceneId, entityData.entity);
-            Catalog::copyComponent(group->registry.get(), registryEntity, sceneProject->scene, entityData.entity, componentType);
+            Catalog::copyComponent(group->registry.get(), registryEntity, sceneProject->instance.scene, entityData.entity, componentType);
         }
 
     }
@@ -59,10 +59,10 @@ void Editor::ComponentToSharedCmd::undo() {
 
             Entity parent = NULL_ENTITY;
             if (componentType == ComponentType::Transform){
-                parent = sceneProject->scene->getComponent<Transform>(entityData.entity).parent;
+                parent = sceneProject->instance.scene->getComponent<Transform>(entityData.entity).parent;
             }
 
-            Stream::decodeComponents(entityData.entity, parent, sceneProject->scene, entityData.recovery);
+            Stream::decodeComponents(entityData.entity, parent, sceneProject->instance.scene, entityData.recovery);
         }
 
     }

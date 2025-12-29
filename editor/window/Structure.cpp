@@ -422,7 +422,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         // Add entity drag drop payload for dragging to resources
         if (!node.isScene) {
             SceneProject* sceneProject = project->getSelectedScene();
-            YAML::Node entityData = Stream::encodeEntity(node.id, sceneProject->scene, project, sceneProject);
+            YAML::Node entityData = Stream::encodeEntity(node.id, sceneProject->instance.scene, project, sceneProject);
             std::string yamlString = YAML::Dump(entityData);
 
             size_t yamlSize = yamlString.size();
@@ -696,7 +696,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
 
             if (!node.isScene) {
                 SceneProject* sceneProject = project->getSelectedScene();
-                if (sceneProject->scene->getSignature(node.id).test(sceneProject->scene->getComponentId<CameraComponent>())) {
+                if (sceneProject->instance.scene->getSignature(node.id).test(sceneProject->instance.scene->getComponentId<CameraComponent>())) {
                     ImGui::Separator();
                     if (node.isMainCamera) {
                         if (ImGui::MenuItem(ICON_FA_VIDEO"  Unset as Main Camera", nullptr, false, node.isMainCamera)) {
@@ -780,21 +780,21 @@ void Editor::Structure::show(){
     bool separatorAfterChildScenes = hasChildScenes;
 
     // non-hierarchical entities
-    for (auto& entity : sceneProject->entities) {
-        Signature signature = sceneProject->scene->getSignature(entity);
+    for (auto& entity : sceneProject->instance.entities) {
+        Signature signature = sceneProject->instance.scene->getSignature(entity);
 
-        if (!signature.test(sceneProject->scene->getComponentId<Transform>())){
+        if (!signature.test(sceneProject->instance.scene->getComponentId<Transform>())){
             if (separatorAfterChildScenes && !root.children.empty()) {
                 root.children.back().separator = true;
                 separatorAfterChildScenes = false;
             }
 
             TreeNode child;
-            child.icon = getObjectIcon(signature, sceneProject->scene);
+            child.icon = getObjectIcon(signature, sceneProject->instance.scene);
             child.id = entity;
             child.isMainCamera = (entity == mainCamera);
             child.order = order++;
-            child.name = sceneProject->scene->getEntityName(entity);
+            child.name = sceneProject->instance.scene->getEntityName(entity);
 
             root.children.push_back(child);
         }
@@ -806,13 +806,13 @@ void Editor::Structure::show(){
     }
 
     // hierarchical entities
-    auto transforms = sceneProject->scene->getComponentArray<Transform>();
+    auto transforms = sceneProject->instance.scene->getComponentArray<Transform>();
     for (int i = 0; i < transforms->size(); i++){
         Transform& transform = transforms->getComponentFromIndex(i);
         Entity entity = transforms->getEntity(i);
-        Signature signature = sceneProject->scene->getSignature(entity);
+        Signature signature = sceneProject->instance.scene->getSignature(entity);
 
-        if (std::count(sceneProject->entities.begin(), sceneProject->entities.end(), entity) > 0){
+        if (std::count(sceneProject->instance.entities.begin(), sceneProject->instance.entities.end(), entity) > 0){
             if (applySeparator){
                 root.children.back().separator = true;
                 applySeparator = false;
@@ -824,12 +824,12 @@ void Editor::Structure::show(){
             }
 
             TreeNode child;
-            child.icon = getObjectIcon(signature, sceneProject->scene);
+            child.icon = getObjectIcon(signature, sceneProject->instance.scene);
             child.id = entity;
             child.isMainCamera = (entity == mainCamera);
             child.hasTransform = true;
             child.order = order++;
-            child.name = sceneProject->scene->getEntityName(entity);
+            child.name = sceneProject->instance.scene->getEntityName(entity);
             if (transform.parent == NULL_ENTITY){
                 root.children.push_back(child);
             }else{

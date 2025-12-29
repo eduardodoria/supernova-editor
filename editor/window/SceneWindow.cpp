@@ -52,11 +52,11 @@ bool Editor::SceneWindow::isFocused() const {
 
 std::string Editor::SceneWindow::getWindowTitle(const SceneProject& sceneProject) const {
     std::string icon;
-    if (sceneProject.sceneType == SceneType::SCENE_3D){
+    if (sceneProject.instance.sceneType == SceneType::SCENE_3D){
         icon = ICON_FA_CUBES + std::string("  ");
-    }else if (sceneProject.sceneType == SceneType::SCENE_2D){
+    }else if (sceneProject.instance.sceneType == SceneType::SCENE_2D){
         icon = ICON_FA_CUBES_STACKED + std::string("  ");
-    }else if (sceneProject.sceneType == SceneType::SCENE_UI){
+    }else if (sceneProject.instance.sceneType == SceneType::SCENE_UI){
         icon = ICON_FA_WINDOW_RESTORE + std::string("  ");
     }
     return icon + sceneProject.name + (sceneProject.isModified ? " *" : "") + "###Scene" + std::to_string(sceneProject.id);
@@ -105,7 +105,7 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
                         delete tempImage;
                         tempImage = nullptr;
                     }
-                    if (MeshComponent* mesh = sceneProject->scene->findComponent<MeshComponent>(selEntity)) {
+                    if (MeshComponent* mesh = sceneProject->instance.scene->findComponent<MeshComponent>(selEntity)) {
                         if (!selMesh) {
                             selMesh = mesh;
                             originalTex = mesh->submeshes[0].material.baseColorTexture;
@@ -126,7 +126,7 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
 
                             ImGui::SetWindowFocus();
                         }
-                    } else if (UIComponent* ui = sceneProject->scene->findComponent<UIComponent>(selEntity)) {
+                    } else if (UIComponent* ui = sceneProject->instance.scene->findComponent<UIComponent>(selEntity)) {
                         if (!selUI) {
                             selUI = ui;
                             originalTex = ui->texture;
@@ -150,12 +150,12 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
                     }
                 }
             }
-        } else if (sceneProject->sceneType != SceneType::SCENE_3D) {
+        } else if (sceneProject->instance.sceneType != SceneType::SCENE_3D) {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
                 std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
                 if (receivedStrings.size() > 0) {
                     if (!tempImage) {
-                        tempImage = new Image(sceneProject->scene);
+                        tempImage = new Image(sceneProject->instance.scene);
                         tempImage->setTexture(receivedStrings[0]);
                         tempImage->setAlpha(0.5f);
                     }
@@ -167,7 +167,7 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
                     if (payload->IsDelivery()) {
                         CreateEntityCmd* cmd = nullptr;
 
-                        if (sceneProject->sceneType == SceneType::SCENE_2D) {
+                        if (sceneProject->instance.sceneType == SceneType::SCENE_2D) {
                             cmd = new CreateEntityCmd(project, sceneProject->id, "Sprite", EntityCreationType::SPRITE);
 
                             cmd->addProperty<Vector3>(ComponentType::Transform, "position", rreturn.point);
@@ -239,7 +239,7 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
     bool disableSelection = 
         sceneProject->sceneRender->getCursorSelected() == CursorSelected::HAND || 
         sceneProject->sceneRender->isAnyGizmoSideSelected() ||
-        sceneProject->sceneType != SceneType::SCENE_3D && ImGui::IsKeyDown(ImGuiKey_Space);
+        sceneProject->instance.sceneType != SceneType::SCENE_3D && ImGui::IsKeyDown(ImGuiKey_Space);
 
     if (isMouseInWindow){
 
@@ -308,7 +308,7 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
 
     bool walkingMode = false;
 
-    if (sceneProject->sceneType == SceneType::SCENE_3D){
+    if (sceneProject->instance.sceneType == SceneType::SCENE_3D){
 
         float distanceFromTarget = camera->getDistanceFromTarget();
 
@@ -398,7 +398,7 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
             float slideX = -currentZoom * mouseDelta.x;
             float slideY = -currentZoom * mouseDelta.y;
 
-            if (sceneProject->sceneType == SceneType::SCENE_2D){
+            if (sceneProject->instance.sceneType == SceneType::SCENE_2D){
                 slideY = -slideY;
             }
 
@@ -413,7 +413,7 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
                 float mouseX = mousePos.x - windowPos.x;
                 float mouseY = mousePos.y - windowPos.y;
 
-                if (sceneProject->sceneType == SceneType::SCENE_2D){
+                if (sceneProject->instance.sceneType == SceneType::SCENE_2D){
                     mouseY = height[sceneProject->id] - mouseY;
                 }
 
@@ -428,7 +428,7 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
         if (project->getSelectedSceneId() == sceneId){
             if (!walkingMode){
 
-                if (sceneProject->sceneType != SceneType::SCENE_UI){
+                if (sceneProject->instance.sceneType != SceneType::SCENE_UI){
                     if (ImGui::IsKeyPressed(ImGuiKey_W)) {
                         sceneProject->sceneRender->getToolsLayer()->enableTranslateGizmo();
                     }
@@ -542,9 +542,9 @@ void Editor::SceneWindow::show() {
             GizmoSelected gizmoSelected = sceneProject.sceneRender->getToolsLayer()->getGizmoSelected();
             bool multipleEntitiesSelected = sceneProject.sceneRender->isMultipleEntitesSelected();
 
-            if (sceneProject.sceneType != SceneType::SCENE_UI){
+            if (sceneProject.instance.sceneType != SceneType::SCENE_UI){
 
-                if (sceneProject.sceneType != SceneType::SCENE_3D){
+                if (sceneProject.instance.sceneType != SceneType::SCENE_3D){
                     ImGui::BeginDisabled(gizmoSelected == GizmoSelected::OBJECT2D);
                     ImGui::SameLine();
                     if (ImGui::Button(ICON_FA_EXPAND)) {
@@ -626,7 +626,7 @@ void Editor::SceneWindow::show() {
                     ImGui::EndTable();
                 }
 
-                LightState currentLightState = Supernova::Editor::Catalog::getSceneProperty<LightState>(sceneProject.scene, "light_state");
+                LightState currentLightState = Supernova::Editor::Catalog::getSceneProperty<LightState>(sceneProject.instance.scene, "light_state");
 
                 if (currentLightState != LightState::OFF) {
                     ImGui::SeparatorText("Global Illumination");

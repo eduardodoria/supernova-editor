@@ -50,7 +50,7 @@ bool Editor::CreateEntityCmd::execute(){
         return false;
     }
 
-    Scene* scene = sceneProject->scene;
+    Scene* scene = sceneProject->instance.scene;
 
     if (entity == NULL_ENTITY){
         entity = scene->createUserEntity();
@@ -65,7 +65,7 @@ bool Editor::CreateEntityCmd::execute(){
     bool foundName = true;
     while (foundName){
         foundName = false;
-        for (auto& entity : sceneProject->entities) {
+        for (auto& entity : sceneProject->instance.entities) {
             std::string usedName = scene->getEntityName(entity);
             if (usedName == entityName){
                 entityName = baseName + " " + std::to_string(nameCount);
@@ -224,7 +224,7 @@ bool Editor::CreateEntityCmd::execute(){
 
     Catalog::updateEntity(scene, entity, updateFlags);
 
-    sceneProject->entities.push_back(entity);
+    sceneProject->instance.entities.push_back(entity);
 
     lastSelected = project->getSelectedEntities(sceneId);
     project->setSelectedEntity(sceneId, entity);
@@ -254,7 +254,7 @@ void Editor::CreateEntityCmd::undo(){
             sceneProject->mainCamera = NULL_ENTITY;
         }
 
-        DeleteEntityCmd::destroyEntity(sceneProject->scene, entity, sceneProject->entities, project, sceneId);
+        DeleteEntityCmd::destroyEntity(sceneProject->instance.scene, entity, sceneProject->instance.entities, project, sceneId);
 
         sceneProject->isModified = true;
     }

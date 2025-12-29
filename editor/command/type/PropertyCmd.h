@@ -51,13 +51,13 @@ namespace Supernova::Editor{
                 return false;
             }
             for (auto& [entity, value] : values){
-                PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, type, propertyName);
+                PropertyData prop = Catalog::getProperty(sceneProject->instance.scene, entity, type, propertyName);
                 T* valueRef = static_cast<T*>(prop.ref);
 
                 value.oldValue = T(*valueRef);
                 *valueRef = value.newValue;
 
-                Catalog::updateEntity(sceneProject->scene, entity, prop.updateFlags);
+                Catalog::updateEntity(sceneProject->instance.scene, entity, prop.updateFlags);
 
                 if (project->isEntityShared(sceneId, entity)){
                     project->sharedGroupPropertyChanged(sceneId, entity, type, {propertyName});
@@ -79,12 +79,12 @@ namespace Supernova::Editor{
                 return;
             }
             for (auto const& [entity, value] : values){
-                PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, type, propertyName);
+                PropertyData prop = Catalog::getProperty(sceneProject->instance.scene, entity, type, propertyName);
                 T* valueRef = static_cast<T*>(prop.ref);
 
                 *valueRef = value.oldValue;
 
-                Catalog::updateEntity(sceneProject->scene, entity, prop.updateFlags);
+                Catalog::updateEntity(sceneProject->instance.scene, entity, prop.updateFlags);
 
                 if (project->isEntityShared(sceneId, entity)){
                     project->sharedGroupPropertyChanged(sceneId, entity, type, {propertyName});

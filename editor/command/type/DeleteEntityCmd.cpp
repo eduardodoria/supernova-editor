@@ -15,7 +15,7 @@ Editor::DeleteEntityCmd::DeleteEntityCmd(Project* project, uint32_t sceneId, Ent
     entityData.entity = entity;
 
     SceneProject* sceneProject = project->getScene(sceneId);
-    Scene* scene = sceneProject->scene;
+    Scene* scene = sceneProject->instance.scene;
 
     Signature signature = scene->getSignature(entity);
     if (signature.test(scene->getComponentId<Transform>())) {
@@ -26,9 +26,9 @@ Editor::DeleteEntityCmd::DeleteEntityCmd(Project* project, uint32_t sceneId, Ent
         entityData.parent = transform.parent;
     }else{
         entityData.hasTransform = false;
-        auto it = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), entity);
-        if (it != sceneProject->entities.end()) {
-            entityData.entityIndex = std::distance(sceneProject->entities.begin(), it);
+        auto it = std::find(sceneProject->instance.entities.begin(), sceneProject->instance.entities.end(), entity);
+        if (it != sceneProject->instance.entities.end()) {
+            entityData.entityIndex = std::distance(sceneProject->instance.entities.begin(), it);
         }
     }
 
@@ -63,7 +63,7 @@ bool Editor::DeleteEntityCmd::execute(){
     lastSelected = project->getSelectedEntities(sceneId);
 
     for (DeleteEntityData& entityData : entities){
-        entityData.data = Stream::encodeEntity(entityData.entity, sceneProject->scene, project, sceneProject);
+        entityData.data = Stream::encodeEntity(entityData.entity, sceneProject->instance.scene, project, sceneProject);
 
         std::vector<Entity> allEntities;
         std::vector<Entity> sharedEntities;
@@ -90,7 +90,7 @@ bool Editor::DeleteEntityCmd::execute(){
         if (entityData.recoverySharedData.size() == 0){
             for (const Entity& entity : allEntities) {
 
-                destroyEntity(sceneProject->scene, entity, sceneProject->entities, project, sceneId);
+                destroyEntity(sceneProject->instance.scene, entity, sceneProject->instance.entities, project, sceneId);
 
             }
         }
@@ -107,10 +107,10 @@ void Editor::DeleteEntityCmd::undo(){
     for (DeleteEntityData& entityData : entities){
         if (entityData.recoverySharedData.size() == 0){
 
-            std::vector<Entity> allEntities = Stream::decodeEntity(entityData.data, sceneProject->scene, &sceneProject->entities, project, sceneProject);
+            std::vector<Entity> allEntities = Stream::decodeEntity(entityData.data, sceneProject->instance.scene, &sceneProject->instance.entities, project, sceneProject);
             entityData.entity = allEntities[0];
 
-            ProjectUtils::moveEntityOrderByIndex(sceneProject->scene, sceneProject->entities, entityData.entity, entityData.parent, entityData.entityIndex, entityData.hasTransform);
+            ProjectUtils::moveEntityOrderByIndex(sceneProject->instance.scene, sceneProject->instance.entities, entityData.entity, entityData.parent, entityData.entityIndex, entityData.hasTransform);
 
         }else{
 

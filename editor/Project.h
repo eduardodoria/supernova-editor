@@ -37,13 +37,17 @@ namespace Supernova::Editor{
         INTO
     };
 
-    struct SceneProject{
-        uint32_t id = NULL_PROJECT_SCENE;
-        std::string name = "Unknown";
+    struct SceneInstance{
         Scene* scene = nullptr;
         SceneType sceneType;
         std::vector<Entity> entities;
         Camera* defaultCamera = nullptr;
+    };
+
+    struct SceneProject{
+        uint32_t id = NULL_PROJECT_SCENE;
+        std::string name = "Unknown";
+        SceneInstance instance;
         Entity mainCamera = NULL_ENTITY;
         SceneRender* sceneRender = nullptr;
         std::vector<Entity> selectedEntities;
@@ -102,8 +106,8 @@ namespace Supernova::Editor{
 
         struct PlayRuntimeScene {
             uint32_t sourceSceneId = NULL_PROJECT_SCENE;
-            SceneProject* runtime = nullptr; // Scene used by the Engine while playing
-            bool ownedRuntime = false;       // true when runtime was cloned and must be deleted
+            SceneInstance* runtime = nullptr; // Scene used by the Engine while playing (always separate from SceneProject::instance)
+            bool ownedRuntime = false;        // true when runtime->scene was cloned and must be deleted
         };
 
         struct PlaySession {
@@ -117,7 +121,7 @@ namespace Supernova::Editor{
         mutable std::mutex playSessionMutex;
         std::shared_ptr<PlaySession> activePlaySession;
 
-        SceneProject* createRuntimeCloneFromSource(const SceneProject* source);
+        SceneInstance* createRuntimeCloneFromSource(const SceneProject* source);
         void cleanupPlaySession(const std::shared_ptr<PlaySession>& session);
 
         SceneRender* createSceneRender(SceneType type, Scene* scene) const;
@@ -143,11 +147,12 @@ namespace Supernova::Editor{
         std::vector<Editor::ScriptSource> collectCppScriptSourceFiles(const std::vector<PlayRuntimeScene>& runtimeScenes) const;
 
         void pauseEngineScene(SceneProject* sceneProject, bool pause);
+        void pauseEngineScene(Scene* scene, bool pause);
 
         void copyEngineApiToProject();
 
-        void initializeLuaScripts(SceneProject* sceneProject);
-        void cleanupLuaScripts(SceneProject* sceneProject);
+        void initializeLuaScripts(Scene* scene, uint32_t sceneId);
+        void cleanupLuaScripts(Scene* scene);
 
         void finalizeStart(SceneProject* mainSceneProject, const std::vector<PlayRuntimeScene>& runtimeScenes);
         void finalizeStop(SceneProject* mainSceneProject, const std::vector<PlayRuntimeScene>& runtimeScenes);

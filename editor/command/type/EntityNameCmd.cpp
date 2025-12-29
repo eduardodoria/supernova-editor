@@ -12,13 +12,13 @@ Editor::EntityNameCmd::EntityNameCmd(Project* project, uint32_t sceneId, Entity 
 bool Editor::EntityNameCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
-    oldName = sceneProject->scene->getEntityName(entity);
+    oldName = sceneProject->instance.scene->getEntityName(entity);
     wasModified = project->getScene(sceneId)->isModified;
 
     if (project->isEntityShared(sceneId, entity)){
         project->sharedGroupNameChanged(sceneId, entity, newName, false);
     }
-    sceneProject->scene->setEntityName(entity, newName);
+    sceneProject->instance.scene->setEntityName(entity, newName);
 
     sceneProject->isModified = true;
 
@@ -31,7 +31,7 @@ void Editor::EntityNameCmd::undo(){
     if (project->isEntityShared(sceneId, entity)){
         project->sharedGroupNameChanged(sceneId, entity, oldName, false);
     }
-    sceneProject->scene->setEntityName(entity, oldName);
+    sceneProject->instance.scene->setEntityName(entity, oldName);
 
     sceneProject->isModified = wasModified;
 }

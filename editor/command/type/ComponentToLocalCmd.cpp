@@ -43,7 +43,7 @@ void Editor::ComponentToLocalCmd::undo() {
             group->clearComponentOverride(sceneProject->id, entity, componentType);
 
             Entity registryEntity = group->getRegistryEntity(sceneId, entity);
-            Catalog::copyComponent(group->registry.get(), registryEntity, sceneProject->scene, entity, componentType);
+            Catalog::copyComponent(group->registry.get(), registryEntity, sceneProject->instance.scene, entity, componentType);
         }
     }
 

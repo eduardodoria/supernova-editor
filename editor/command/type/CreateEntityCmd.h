@@ -59,7 +59,7 @@ namespace Supernova::Editor{
 
         template<typename T>
         void addProperty(ComponentType componentType, const std::string& propertyName, T value) {
-            Scene* scene = project->getScene(sceneId)->scene;
+            Scene* scene = project->getScene(sceneId)->instance.scene;
 
             auto properties = Catalog::getProperties(componentType, nullptr);
             auto it = properties.find(propertyName);

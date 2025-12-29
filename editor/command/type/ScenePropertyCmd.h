@@ -33,8 +33,8 @@ namespace Supernova::Editor {
 
         bool execute() override {
             // Store the old value before changing it
-            value.oldValue = Catalog::getSceneProperty<T>(sceneProject->scene, propertyName);
-            Catalog::setSceneProperty<T>(sceneProject->scene, propertyName, value.newValue);
+            value.oldValue = Catalog::getSceneProperty<T>(sceneProject->instance.scene, propertyName);
+            Catalog::setSceneProperty<T>(sceneProject->instance.scene, propertyName, value.newValue);
 
             sceneProject->isModified = true;
 
@@ -42,7 +42,7 @@ namespace Supernova::Editor {
         }
 
         void undo() override {
-            Catalog::setSceneProperty<T>(sceneProject->scene, propertyName, value.oldValue);
+            Catalog::setSceneProperty<T>(sceneProject->instance.scene, propertyName, value.oldValue);
 
             sceneProject->isModified = wasModified;
         }
@@ -50,7 +50,7 @@ namespace Supernova::Editor {
         bool mergeWith(Editor::Command* otherCommand) override {
             ScenePropertyCmd* otherCmd = dynamic_cast<ScenePropertyCmd*>(otherCommand);
             if (otherCmd != nullptr) {
-                if (sceneProject->scene == otherCmd->sceneProject->scene && propertyName == otherCmd->propertyName) {
+                if (sceneProject->instance.scene == otherCmd->sceneProject->instance.scene && propertyName == otherCmd->propertyName) {
                     // Update oldValue from the earliest command
                     value.oldValue = otherCmd->value.oldValue;
                     value.newValue = otherCmd->value.newValue;

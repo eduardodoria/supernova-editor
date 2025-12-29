@@ -22,7 +22,7 @@ Editor::RemoveComponentCmd::RemoveComponentCmd(Project* project, size_t sceneId,
 bool Editor::RemoveComponentCmd::execute() {
     SceneProject* sceneProject = project->getScene(sceneId);
     if (sceneProject) {
-        Scene* scene = sceneProject->scene;
+        Scene* scene = sceneProject->instance.scene;
 
         for (RemoveComponentData& entityData : entities){
 
@@ -40,7 +40,7 @@ bool Editor::RemoveComponentCmd::execute() {
 
             }else{
 
-                entityData.oldComponent = ProjectUtils::removeEntityComponent(scene, entityData.entity, componentType, sceneProject->entities, true);
+                entityData.oldComponent = ProjectUtils::removeEntityComponent(scene, entityData.entity, componentType, sceneProject->instance.entities, true);
 
                 if (group){
                     entityData.hasOverride = group->hasComponentOverride(sceneId, entityData.entity, componentType);
@@ -61,7 +61,7 @@ bool Editor::RemoveComponentCmd::execute() {
 void Editor::RemoveComponentCmd::undo() {
     SceneProject* sceneProject = project->getScene(sceneId);
     if (sceneProject) {
-        Scene* scene = sceneProject->scene;
+        Scene* scene = sceneProject->instance.scene;
 
         for (RemoveComponentData& entityData : entities){
             if (entityData.recovery.size() > 0){
@@ -70,7 +70,7 @@ void Editor::RemoveComponentCmd::undo() {
 
             }else{
 
-                ProjectUtils::addEntityComponent(scene, entityData.entity, componentType, sceneProject->entities, entityData.oldComponent);
+                ProjectUtils::addEntityComponent(scene, entityData.entity, componentType, sceneProject->instance.entities, entityData.oldComponent);
 
                 if (entityData.hasOverride){
                     fs::path filepath = project->findGroupPathFor(sceneId, entityData.entity);

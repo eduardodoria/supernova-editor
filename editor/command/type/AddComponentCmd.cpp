@@ -16,10 +16,10 @@ Editor::AddComponentCmd::AddComponentCmd(Project* project, size_t sceneId, Entit
 bool Editor::AddComponentCmd::execute() {
     SceneProject* sceneProject = project->getScene(sceneId);
     if (sceneProject) {
-        Scene* scene = sceneProject->scene;
+        Scene* scene = sceneProject->instance.scene;
 
         for (Entity& entity : entities){
-            ProjectUtils::addEntityComponent(scene, entity, componentType, sceneProject->entities);
+            ProjectUtils::addEntityComponent(scene, entity, componentType, sceneProject->instance.entities);
 
             if (project->isEntityShared(sceneId, entity)){
                 project->addComponentToSharedGroup(sceneId, entity, componentType, false);
@@ -35,10 +35,10 @@ bool Editor::AddComponentCmd::execute() {
 void Editor::AddComponentCmd::undo() {
     SceneProject* sceneProject = project->getScene(sceneId);
     if (sceneProject) {
-        Scene* scene = sceneProject->scene;
+        Scene* scene = sceneProject->instance.scene;
 
         for (Entity& entity : entities){
-            ProjectUtils::removeEntityComponent(scene, entity, componentType, sceneProject->entities);
+            ProjectUtils::removeEntityComponent(scene, entity, componentType, sceneProject->instance.entities);
 
             if (project->isEntityShared(sceneId, entity)){
                 project->removeComponentToSharedGroup(sceneId, entity, componentType, false, false);

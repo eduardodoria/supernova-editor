@@ -5,9 +5,11 @@
 
 namespace fs = std::filesystem;
 
-namespace Supernova::Editor{
+namespace Supernova {
+    class Scene;
+}
 
-    struct SceneProject;
+namespace Supernova::Editor{
 
     class Conector{
     private:
@@ -23,8 +25,8 @@ namespace Supernova::Editor{
 
         bool connect(const fs::path& buildPath, std::string libName);
         void disconnect();
-        void cleanup(SceneProject* sceneProject);
-        void execute(SceneProject* sceneProject);
+        void cleanup(Supernova::Scene* scene);
+        void execute(Supernova::Scene* scene);
 
         bool isLibraryConnected() const;
     };

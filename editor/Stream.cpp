@@ -822,18 +822,18 @@ YAML::Node Editor::Stream::encodeSceneProject(const Project* project, const Scen
     YAML::Node root;
     root["id"] = sceneProject->id;
     root["name"] = sceneProject->name;
-    root["scene"] = encodeScene(sceneProject->scene);
-    root["sceneType"] = sceneTypeToString(sceneProject->sceneType);
+    root["scene"] = encodeScene(sceneProject->instance.scene);
+    root["sceneType"] = sceneTypeToString(sceneProject->instance.sceneType);
     root["mainCamera"] = sceneProject->mainCamera;
 
     YAML::Node entitiesNode;
-    for (Entity entity : sceneProject->entities) {
-        if (Transform* transform = sceneProject->scene->findComponent<Transform>(entity)) {
+    for (Entity entity : sceneProject->instance.entities) {
+        if (Transform* transform = sceneProject->instance.scene->findComponent<Transform>(entity)) {
             if (transform->parent == NULL_ENTITY) {
-                entitiesNode.push_back(encodeEntity(entity, sceneProject->scene, project, sceneProject));
+                entitiesNode.push_back(encodeEntity(entity, sceneProject->instance.scene, project, sceneProject));
             }
         }else{
-            entitiesNode.push_back(encodeEntity(entity, sceneProject->scene, project, sceneProject));
+            entitiesNode.push_back(encodeEntity(entity, sceneProject->instance.scene, project, sceneProject));
         }
     }
     root["entities"] = entitiesNode;
@@ -853,9 +853,9 @@ void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::
     if (node["id"]) sceneProject->id = node["id"].as<uint32_t>();
     if (node["name"]) sceneProject->name = node["name"].as<std::string>();
     if (loadScene){
-        if (node["scene"]) sceneProject->scene = decodeScene(sceneProject->scene, node["scene"]);
+        if (node["scene"]) sceneProject->instance.scene = decodeScene(sceneProject->instance.scene, node["scene"]);
     }
-    if (node["sceneType"]) sceneProject->sceneType = stringToSceneType(node["sceneType"].as<std::string>());
+    if (node["sceneType"]) sceneProject->instance.sceneType = stringToSceneType(node["sceneType"].as<std::string>());
     if (node["mainCamera"]) sceneProject->mainCamera = node["mainCamera"].as<Entity>();
 
     sceneProject->childScenes.clear();
@@ -867,12 +867,12 @@ void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::
 }
 
 void Editor::Stream::decodeSceneProjectEntities(Project* project, SceneProject* sceneProject, const YAML::Node& node){
-    sceneProject->entities.clear();
+    sceneProject->instance.entities.clear();
     sceneProject->selectedEntities.clear();
 
     auto entitiesNode = node["entities"];
     for (const auto& entityNode : entitiesNode){
-        decodeEntity(entityNode, sceneProject->scene, &sceneProject->entities, project, sceneProject);
+        decodeEntity(entityNode, sceneProject->instance.scene, &sceneProject->instance.entities, project, sceneProject);
     }
 }
 
@@ -929,7 +929,7 @@ YAML::Node Editor::Stream::encodeEntity(const Entity entity, const EntityRegistr
 
     bool hasCurrentEntity = true;
     if (sceneProject){
-        std::vector<Entity> entities = sceneProject->entities;
+        std::vector<Entity> entities = sceneProject->instance.entities;
         hasCurrentEntity = std::find(entities.begin(), entities.end(), entity) != entities.end();
     }
 
@@ -947,7 +947,7 @@ YAML::Node Editor::Stream::encodeEntity(const Entity entity, const EntityRegistr
                 Entity currentEntity = transforms->getEntity(i);
 
                 if (sceneProject){
-                    std::vector<Entity> entities = sceneProject->entities;
+                    std::vector<Entity> entities = sceneProject->instance.entities;
                     hasCurrentEntity = std::find(entities.begin(), entities.end(), currentEntity) != entities.end();
                 }
 

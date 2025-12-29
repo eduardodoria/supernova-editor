@@ -237,18 +237,18 @@ void Editor::Properties::dragDropResources(ComponentType cpType, std::string id,
                 if (!hasTextureDrag.count(id)){
                     hasTextureDrag[id] = true;
                     for (Entity& entity : entities){
-                        Texture* valueRef = Catalog::getPropertyRef<Texture>(sceneProject->scene, entity, cpType, id);
+                        Texture* valueRef = Catalog::getPropertyRef<Texture>(sceneProject->instance.scene, entity, cpType, id);
                         originalTex[id][entity] = Texture(*valueRef);
                         if (*valueRef != Texture(receivedStrings[0])){
                             *valueRef = Texture(receivedStrings[0]);
                             if (componentType == ComponentType::MeshComponent){
-                                unsigned int numSubmeshes = sceneProject->scene->getComponent<MeshComponent>(entity).numSubmeshes;
+                                unsigned int numSubmeshes = sceneProject->instance.scene->getComponent<MeshComponent>(entity).numSubmeshes;
                                 for (unsigned int i = 0; i < numSubmeshes; i++){
-                                    sceneProject->scene->getComponent<MeshComponent>(entity).submeshes[i].needUpdateTexture = true;
+                                    sceneProject->instance.scene->getComponent<MeshComponent>(entity).submeshes[i].needUpdateTexture = true;
                                 }
                             }
                             if (componentType == ComponentType::UIComponent){
-                                sceneProject->scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
+                                sceneProject->instance.scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
                             }
                             //printf("needUpdateTexture %s\n", name.c_str());
                         }
@@ -257,7 +257,7 @@ void Editor::Properties::dragDropResources(ComponentType cpType, std::string id,
                 if (payload->IsDelivery()){
                     Texture texture(receivedStrings[0]);
                     for (Entity& entity : entities){
-                        Texture* valueRef = Catalog::getPropertyRef<Texture>(sceneProject->scene, entity, cpType, id);
+                        Texture* valueRef = Catalog::getPropertyRef<Texture>(sceneProject->instance.scene, entity, cpType, id);
                         *valueRef = originalTex[id][entity];
                         cmd = new PropertyCmd<Texture>(project, sceneProject->id, entity, cpType, id, texture);
                         CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -276,17 +276,17 @@ void Editor::Properties::dragDropResources(ComponentType cpType, std::string id,
     }else{
         if (hasTextureDrag.count(id) && hasTextureDrag[id]){
             for (Entity& entity : entities){
-                Texture* valueRef = Catalog::getPropertyRef<Texture>(sceneProject->scene, entity, cpType, id);
+                Texture* valueRef = Catalog::getPropertyRef<Texture>(sceneProject->instance.scene, entity, cpType, id);
                 if (*valueRef != originalTex[id][entity]){
                     *valueRef = originalTex[id][entity];
                     if (componentType == ComponentType::MeshComponent){
-                        unsigned int numSubmeshes = sceneProject->scene->getComponent<MeshComponent>(entity).numSubmeshes;
+                        unsigned int numSubmeshes = sceneProject->instance.scene->getComponent<MeshComponent>(entity).numSubmeshes;
                         for (unsigned int i = 0; i < numSubmeshes; i++){
-                            sceneProject->scene->getComponent<MeshComponent>(entity).submeshes[i].needUpdateTexture = true;
+                            sceneProject->instance.scene->getComponent<MeshComponent>(entity).submeshes[i].needUpdateTexture = true;
                         }
                     }
                     if (componentType == ComponentType::UIComponent){
-                        sceneProject->scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
+                        sceneProject->instance.scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
                     }
                     //printf("needUpdateTexture %s\n", id.c_str());
                 }
@@ -345,7 +345,7 @@ void Editor::Properties::handleComponentMenu(SceneProject* sceneProject, std::ve
 
 bool Editor::Properties::canAddComponent(SceneProject* sceneProject, Entity entity, ComponentType cpType) {
     // Check if entity already has this component
-    std::vector<ComponentType> existingComponents = Catalog::findComponents(sceneProject->scene, entity);
+    std::vector<ComponentType> existingComponents = Catalog::findComponents(sceneProject->instance.scene, entity);
     return std::find(existingComponents.begin(), existingComponents.end(), cpType) == existingComponents.end();
 }
 
@@ -552,7 +552,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         std::map<Entity, Vector2> eValue;
         float* defArr = nullptr;
         for (Entity& entity : entities){
-            PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
+            PropertyData prop = Catalog::getProperty(sceneProject->instance.scene, entity, cpType, id);
             defArr = static_cast<float*>(prop.def);
             eValue[entity] = *static_cast<Vector2*>(prop.ref);
             if (value){
@@ -615,7 +615,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         std::map<Entity, Vector3> eValue;
         float* defArr = nullptr;
         for (Entity& entity : entities){
-            PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
+            PropertyData prop = Catalog::getProperty(sceneProject->instance.scene, entity, cpType, id);
             defArr = static_cast<float*>(prop.def);
             eValue[entity] = *static_cast<Vector3*>(prop.ref);
             if (value){
@@ -789,7 +789,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         std::map<Entity, Vector4> eValue;
         float* defArr = nullptr;
         for (Entity& entity : entities){
-            PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
+            PropertyData prop = Catalog::getProperty(sceneProject->instance.scene, entity, cpType, id);
             defArr = static_cast<float*>(prop.def);
             eValue[entity] = *static_cast<Vector4*>(prop.ref);
             if (value){
@@ -882,7 +882,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         Quaternion qValue;
         float* defArr = nullptr;
         for (Entity& entity : entities){
-            PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
+            PropertyData prop = Catalog::getProperty(sceneProject->instance.scene, entity, cpType, id);
             defArr = static_cast<float*>(prop.def);
             qValue = *static_cast<Quaternion*>(prop.ref);
             eValue[entity] = roundZero(Quaternion(qValue).normalize().getEulerAngles(order), zeroThreshold);
@@ -1008,7 +1008,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         bool dif = false;
         bool* defArr = nullptr;
         for (Entity& entity : entities){
-            PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
+            PropertyData prop = Catalog::getProperty(sceneProject->instance.scene, entity, cpType, id);
             defArr = static_cast<bool*>(prop.def);
             eValue[entity] = *static_cast<bool*>(prop.ref);
             if (value){
@@ -1050,7 +1050,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         bool dif = false;
         float* defArr = nullptr;
         for (Entity& entity : entities){
-            PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
+            PropertyData prop = Catalog::getProperty(sceneProject->instance.scene, entity, cpType, id);
             defArr = static_cast<float*>(prop.def);
             eValue[entity] = *static_cast<float*>(prop.ref);
             if (type == RowPropertyType::HalfCone){
@@ -1120,7 +1120,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         bool dif = false;
         unsigned int* defArr = nullptr;
         for (Entity& entity : entities){
-            PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
+            PropertyData prop = Catalog::getProperty(sceneProject->instance.scene, entity, cpType, id);
             defArr = static_cast<unsigned int*>(prop.def);
             eValue[entity] = *static_cast<unsigned int*>(prop.ref);
             if (value){
@@ -1162,7 +1162,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         bool dif = false;
         int* defArr = nullptr;
         for (Entity& entity : entities){
-            PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
+            PropertyData prop = Catalog::getProperty(sceneProject->instance.scene, entity, cpType, id);
             defArr = static_cast<int*>(prop.def);
             eValue[entity] = *static_cast<int*>(prop.ref);
             if (value){
@@ -1204,7 +1204,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         bool dif = false;
         float* defArr = nullptr;
         for (Entity& entity : entities){
-            PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
+            PropertyData prop = Catalog::getProperty(sceneProject->instance.scene, entity, cpType, id);
             defArr = static_cast<float*>(prop.def);
             eValue[entity] = *static_cast<Vector3*>(prop.ref);
             if (value){
@@ -1247,7 +1247,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         bool dif = false;
         float* defArr = nullptr;
         for (Entity& entity : entities){
-            PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
+            PropertyData prop = Catalog::getProperty(sceneProject->instance.scene, entity, cpType, id);
             defArr = static_cast<float*>(prop.def);
             eValue[entity] = *static_cast<Vector4*>(prop.ref);
             if (value){
@@ -1291,7 +1291,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         void* defArr = nullptr;
         std::vector<int>* sliderValues = nullptr;
         for (Entity& entity : entities){
-            PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
+            PropertyData prop = Catalog::getProperty(sceneProject->instance.scene, entity, cpType, id);
             defArr = prop.def;
             sliderValues = settings.sliderValues;
             if (type == RowPropertyType::IntSlider) {
@@ -1366,7 +1366,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         int* defArr = nullptr;
         std::vector<EnumEntry>* enumEntries = nullptr;
         for (Entity& entity : entities){
-            PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
+            PropertyData prop = Catalog::getProperty(sceneProject->instance.scene, entity, cpType, id);
             defArr = static_cast<int*>(prop.def);
             enumEntries = settings.enumEntries;
             eValue[entity] = *static_cast<int*>(prop.ref);
@@ -1432,7 +1432,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         bool dif = false;
         Texture* defArr = nullptr;
         for (Entity& entity : entities){
-            PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
+            PropertyData prop = Catalog::getProperty(sceneProject->instance.scene, entity, cpType, id);
             defArr = static_cast<Texture*>(prop.def);
             eValue[entity] = *static_cast<Texture*>(prop.ref);
             if (value){
@@ -1550,7 +1550,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         bool dif = false;
         Material* defArr = nullptr;
         for (Entity& entity : entities){
-            PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
+            PropertyData prop = Catalog::getProperty(sceneProject->instance.scene, entity, cpType, id);
             defArr = static_cast<Material*>(prop.def);
             eValue[entity] = *static_cast<Material*>(prop.ref);
             if (value){
@@ -1642,7 +1642,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         EntityRef* defVal = nullptr;
 
         for (Entity& entity : entities){
-            PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
+            PropertyData prop = Catalog::getProperty(sceneProject->instance.scene, entity, cpType, id);
             defVal = static_cast<EntityRef*>(prop.def);
             eValue[entity] = *static_cast<EntityRef*>(prop.ref);
             if (value){
@@ -1674,8 +1674,8 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
         // Display entity name or "None"
         std::string entityName = "None";
-        if (newValue.entity != NULL_ENTITY && sceneProject->scene->isEntityCreated(newValue.entity)) {
-            entityName = sceneProject->scene->getEntityName(newValue.entity);
+        if (newValue.entity != NULL_ENTITY && sceneProject->instance.scene->isEntityCreated(newValue.entity)) {
+            entityName = sceneProject->instance.scene->getEntityName(newValue.entity);
             if (entityName.empty()) {
                 entityName = "Entity " + std::to_string(newValue.entity);
             }
@@ -1788,7 +1788,7 @@ void Editor::Properties::drawTransform(ComponentType cpType, SceneProject* scene
     RowSettings settingsPos;
     if (sceneProject) {
         Camera* camera = sceneProject->sceneRender->getCamera();
-        if (sceneProject->sceneType == SceneType::SCENE_3D) {
+        if (sceneProject->instance.sceneType == SceneType::SCENE_3D) {
             // For 3D scenes, scale step based on distance from target
             float distanceFromTarget = camera->getDistanceFromTarget();
             settingsPos.stepSize = std::max(0.01f, distanceFromTarget / 200.0f);
@@ -2015,8 +2015,8 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, SceneProject* s
         // Create geometry button
         if (ImGui::Button("Apply", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
             for (Entity& entity : entities) {
-                std::shared_ptr<Supernova::MeshSystem> meshSys = sceneProject->scene->getSystem<MeshSystem>();
-                MeshComponent meshComp = sceneProject->scene->getComponent<MeshComponent>(entity);
+                std::shared_ptr<Supernova::MeshSystem> meshSys = sceneProject->instance.scene->getSystem<MeshSystem>();
+                MeshComponent meshComp = sceneProject->instance.scene->getComponent<MeshComponent>(entity);
 
                 updateMeshShape(meshComp, meshSys.get(), shapeParams);
 
@@ -2034,9 +2034,9 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, SceneProject* s
 
     endTable();
 
-    unsigned int numSubmeshes = sceneProject->scene->getComponent<MeshComponent>(entities[0]).numSubmeshes;
+    unsigned int numSubmeshes = sceneProject->instance.scene->getComponent<MeshComponent>(entities[0]).numSubmeshes;
     for (Entity& entity : entities){
-        numSubmeshes = std::min(numSubmeshes, sceneProject->scene->getComponent<MeshComponent>(entity).numSubmeshes);
+        numSubmeshes = std::min(numSubmeshes, sceneProject->instance.scene->getComponent<MeshComponent>(entity).numSubmeshes);
     }
 
     for (int s = 0; s < numSubmeshes; s++){
@@ -2106,10 +2106,10 @@ void Editor::Properties::drawImageComponent(ComponentType cpType, SceneProject* 
     ImGui::SeparatorText("Nine-patch rect");
 
     if (entities.size() == 1) {
-        if (UIComponent* ui = sceneProject->scene->findComponent<UIComponent>(entities[0])){
+        if (UIComponent* ui = sceneProject->instance.scene->findComponent<UIComponent>(entities[0])){
             Texture* thumbTexture = findThumbnail(ui->texture.getId());
             if (thumbTexture) {
-                drawNinePatchesPreview(sceneProject->scene->getComponent<ImageComponent>(entities[0]), &ui->texture, thumbTexture, ImVec2(THUMBNAIL_SIZE, THUMBNAIL_SIZE));
+                drawNinePatchesPreview(sceneProject->instance.scene->getComponent<ImageComponent>(entities[0]), &ui->texture, thumbTexture, ImVec2(THUMBNAIL_SIZE, THUMBNAIL_SIZE));
             }
         }
     }
@@ -2155,7 +2155,7 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
 }
 
 void Editor::Properties::drawCameraComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
-    Scene* scene = sceneProject->scene;
+    Scene* scene = sceneProject->instance.scene;
     CameraComponent& camera = scene->getComponent<CameraComponent>(entities[0]);
 
     float firstColSize = getLabelSize("Auto Resize");
@@ -2202,7 +2202,7 @@ void Editor::Properties::drawCameraComponent(ComponentType cpType, SceneProject*
 }
 
 void Editor::Properties::drawLightComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
-    LightComponent& light = sceneProject->scene->getComponent<LightComponent>(entities[0]);
+    LightComponent& light = sceneProject->instance.scene->getComponent<LightComponent>(entities[0]);
 
     RowSettings settingsFloat;
     settingsFloat.secondColSize = 6 * ImGui::GetFontSize();
@@ -2278,7 +2278,7 @@ void Editor::Properties::drawLightComponent(ComponentType cpType, SceneProject* 
 void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     if (entities.empty()) return;
 
-    ScriptComponent& firstScriptComp = sceneProject->scene->getComponent<ScriptComponent>(entities[0]);
+    ScriptComponent& firstScriptComp = sceneProject->instance.scene->getComponent<ScriptComponent>(entities[0]);
 
     // Identify common scripts by index
     std::vector<size_t> commonIndices;
@@ -2286,7 +2286,7 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
         const ScriptEntry& refScript = firstScriptComp.scripts[i];
         bool isCommon = true;
         for (size_t e = 1; e < entities.size(); e++) {
-            ScriptComponent& otherScriptComp = sceneProject->scene->getComponent<ScriptComponent>(entities[e]);
+            ScriptComponent& otherScriptComp = sceneProject->instance.scene->getComponent<ScriptComponent>(entities[e]);
             if (i >= otherScriptComp.scripts.size()) {
                 isCommon = false;
                 break;
@@ -2353,7 +2353,7 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
             bool canMoveUp = scriptIdx > 0;
             if (ImGui::MenuItem(ICON_FA_ARROW_UP " Move Up", nullptr, false, canMoveUp)) {
                 for (const Entity& entity : entities) {
-                    ScriptComponent& sc = sceneProject->scene->getComponent<ScriptComponent>(entity);
+                    ScriptComponent& sc = sceneProject->instance.scene->getComponent<ScriptComponent>(entity);
                     std::vector<ScriptEntry> newScripts = sc.scripts;
                     if (scriptIdx < newScripts.size() && scriptIdx > 0) {
                         std::swap(newScripts[scriptIdx], newScripts[scriptIdx - 1]);
@@ -2370,7 +2370,7 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
             bool canMoveDown = scriptIdx < firstScriptComp.scripts.size() - 1;
             if (ImGui::MenuItem(ICON_FA_ARROW_DOWN " Move Down", nullptr, false, canMoveDown)) {
                 for (const Entity& entity : entities) {
-                    ScriptComponent& sc = sceneProject->scene->getComponent<ScriptComponent>(entity);
+                    ScriptComponent& sc = sceneProject->instance.scene->getComponent<ScriptComponent>(entity);
                     std::vector<ScriptEntry> newScripts = sc.scripts;
                     if (scriptIdx < newScripts.size() - 1) {
                         std::swap(newScripts[scriptIdx], newScripts[scriptIdx + 1]);
@@ -2387,7 +2387,7 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
             if (ImGui::MenuItem(ICON_FA_TRASH " Remove")) {
                 // Remove this script entry from all selected entities
                 for (const Entity& entity : entities) {
-                    ScriptComponent& sc = sceneProject->scene->getComponent<ScriptComponent>(entity);
+                    ScriptComponent& sc = sceneProject->instance.scene->getComponent<ScriptComponent>(entity);
                     std::vector<ScriptEntry> newScripts = sc.scripts;
                     if (scriptIdx < newScripts.size()) {
                         newScripts.erase(newScripts.begin() + scriptIdx);
@@ -2420,7 +2420,7 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
             bool allEnabled = true;
             bool anyEnabled = false;
             for (const Entity& e : entities) {
-                bool en = sceneProject->scene->getComponent<ScriptComponent>(e).scripts[scriptIdx].enabled;
+                bool en = sceneProject->instance.scene->getComponent<ScriptComponent>(e).scripts[scriptIdx].enabled;
                 if (en) anyEnabled = true;
                 else allEnabled = false;
             }
@@ -2568,7 +2568,7 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
                     std::string newHeader = hdrPath.string();
 
                     for (const Entity& entity : entities) {
-                        ScriptComponent& sc = sceneProject->scene->getComponent<ScriptComponent>(entity);
+                        ScriptComponent& sc = sceneProject->instance.scene->getComponent<ScriptComponent>(entity);
                         std::vector<ScriptEntry> newScripts = sc.scripts;
                         if (scriptIdx < newScripts.size()) {
                             newScripts[scriptIdx].className = newName;
@@ -2663,7 +2663,7 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
                     RowSettings propSettings;
                     propSettings.onValueChanged = [this, sceneProject, entities, scriptIdx, propName = prop.name]() {
                         for (const Entity& e : entities) {
-                            ScriptComponent& sc = sceneProject->scene->getComponent<ScriptComponent>(e);
+                            ScriptComponent& sc = sceneProject->instance.scene->getComponent<ScriptComponent>(e);
                             if (scriptIdx < sc.scripts.size()) {
                                 ScriptEntry& se = sc.scripts[scriptIdx];
                                 for (ScriptProperty& sp : se.properties) {
@@ -2701,7 +2701,7 @@ void Editor::Properties::show(){
     std::vector<Entity> entities = project->getSelectedEntities(sceneProject->id);
 
     std::vector<ComponentType> components;
-    Scene* scene = sceneProject->scene;
+    Scene* scene = sceneProject->instance.scene;
 
     if (entities.size() > 0){
 
@@ -2805,7 +2805,7 @@ void Editor::Properties::show(){
             std::string defaultName = "NewScript";
             Entity firstEntity = entities.empty() ? NULL_ENTITY : entities[0];
             scriptCreateDialog.open(
-                sceneProject->scene,
+                sceneProject->instance.scene,
                 firstEntity,
                 project->getProjectPath(),
                 defaultName,
@@ -2818,7 +2818,7 @@ void Editor::Properties::show(){
 
                     for (const Entity& entity : entities) {
                         bool hasScriptComponent = false;
-                        std::vector<ComponentType> existingComponents = Catalog::findComponents(sceneProject->scene, entity);
+                        std::vector<ComponentType> existingComponents = Catalog::findComponents(sceneProject->instance.scene, entity);
                         for (ComponentType ct : existingComponents) {
                             if (ct == ComponentType::ScriptComponent) {
                                 hasScriptComponent = true;
@@ -2832,7 +2832,7 @@ void Editor::Properties::show(){
                             auto addCmd = std::make_unique<Editor::AddComponentCmd>(project, sceneProject->id, entity, ComponentType::ScriptComponent);
                             multiCmd->addCommand(std::move(addCmd));
                         } else {
-                            ScriptComponent& scriptComp = sceneProject->scene->getComponent<ScriptComponent>(entity);
+                            ScriptComponent& scriptComp = sceneProject->instance.scene->getComponent<ScriptComponent>(entity);
                             newScripts = scriptComp.scripts;
                         }
 

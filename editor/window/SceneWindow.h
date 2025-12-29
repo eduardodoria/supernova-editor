@@ -55,7 +55,7 @@ namespace Supernova::Editor {
 
         template<typename T>
         void drawSceneProperty(SceneProject* sceneProject, const std::string& propertyName, const char* label, ScenePropertyType inputType, float minValue = 0.0f, float maxValue = 1.0f, float col2Size = -1.0f) {
-            T value = Supernova::Editor::Catalog::getSceneProperty<T>(sceneProject->scene, propertyName);
+            T value = Supernova::Editor::Catalog::getSceneProperty<T>(sceneProject->instance.scene, propertyName);
             bool changed = false;
 
             Command* cmd = nullptr;

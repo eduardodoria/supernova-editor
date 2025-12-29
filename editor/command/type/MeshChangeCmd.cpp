@@ -16,8 +16,8 @@ Editor::MeshChangeCmd::MeshChangeCmd(Project* project, uint32_t sceneId, Entity 
 bool Editor::MeshChangeCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
-    oldMesh = Stream::encodeMeshComponent(sceneProject->scene->getComponent<MeshComponent>(entity));
-    sceneProject->scene->getComponent<MeshComponent>(entity) = Stream::decodeMeshComponent(newMesh);
+    oldMesh = Stream::encodeMeshComponent(sceneProject->instance.scene->getComponent<MeshComponent>(entity));
+    sceneProject->instance.scene->getComponent<MeshComponent>(entity) = Stream::decodeMeshComponent(newMesh);
 
     sceneProject->isModified = true;
 
@@ -31,7 +31,7 @@ bool Editor::MeshChangeCmd::execute(){
 void Editor::MeshChangeCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
-    sceneProject->scene->getComponent<MeshComponent>(entity) = Stream::decodeMeshComponent(oldMesh);
+    sceneProject->instance.scene->getComponent<MeshComponent>(entity) = Stream::decodeMeshComponent(oldMesh);
 
     sceneProject->isModified = wasModified;
 

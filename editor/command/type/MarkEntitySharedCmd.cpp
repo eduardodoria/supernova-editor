@@ -50,14 +50,14 @@ bool Editor::MarkEntitySharedCmd::execute(){
     if (providedEntityNode && !providedEntityNode.IsNull()) {
         savedEntityNode = providedEntityNode;
     } else {
-        savedEntityNode = Stream::encodeEntity(entity, sceneProject->scene, nullptr, sceneProject);
+        savedEntityNode = Stream::encodeEntity(entity, sceneProject->instance.scene, nullptr, sceneProject);
     }
 
     // Mark the entity as shared (this will also save it to disk)
     wasSuccessful = project->markEntityShared(sceneId, entity, filepath, savedEntityNode);
 
     if (wasSuccessful) {
-        Editor::Out::info("Marked entity '%s' as shared at '%s'", sceneProject->scene->getEntityName(entity).c_str(), filepath.string().c_str());
+        Editor::Out::info("Marked entity '%s' as shared at '%s'", sceneProject->instance.scene->getEntityName(entity).c_str(), filepath.string().c_str());
 
         return true;
     }
@@ -76,7 +76,7 @@ void Editor::MarkEntitySharedCmd::undo(){
     }
 
     // Verify the entity still exists
-    if (! sceneProject->scene->isEntityCreated(entity)) {
+    if (! sceneProject->instance.scene->isEntityCreated(entity)) {
         Editor::Out::warning("Cannot undo - entity no longer exists");
         return;
     }
@@ -103,7 +103,7 @@ void Editor::MarkEntitySharedCmd::undo(){
     // Restore modified state
     sceneProject->isModified = wasModified;
 
-    Editor::Out::info("Unmarked entity '%s' from shared group at '%s'", sceneProject->scene->getEntityName(entity).c_str(), filepath.string().c_str());
+    Editor::Out::info("Unmarked entity '%s' from shared group at '%s'", sceneProject->instance.scene->getEntityName(entity).c_str(), filepath.string().c_str());
 }
 
 bool Editor::MarkEntitySharedCmd::mergeWith(Editor::Command* otherCommand){
