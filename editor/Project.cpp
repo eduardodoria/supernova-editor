@@ -3072,7 +3072,7 @@ void Editor::Project::start(uint32_t sceneId) {
             if (conector.connect(buildPath, libName)) {
                 for (const auto& entry : session->runtimeScenes) {
                     if (!entry.runtime) continue;
-                    conector.execute(entry.runtime);
+                    conector.execute(entry.runtime->scene);
                 }
 
                 if (session->cancelled.load(std::memory_order_acquire)) {
@@ -3210,7 +3210,7 @@ void Editor::Project::stop(uint32_t sceneId) {
         // Cleanup script instances / disconnect if the library is currently connected.
         for (const auto& entry : session->runtimeScenes) {
             if (entry.runtime) {
-                conector.cleanup(entry.runtime);
+                conector.cleanup(entry.runtime->scene);
             }
         }
         conector.disconnect();

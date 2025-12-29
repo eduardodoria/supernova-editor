@@ -1,7 +1,6 @@
 #include "Conector.h"
 
 #include "editor/Out.h"
-#include "Scene.h"
 #include "Project.h"
 
 #include <iostream>
@@ -94,7 +93,7 @@ void Editor::Conector::disconnect(){
     }
 }
 
-void Editor::Conector::cleanup(SceneProject* sceneProject){
+void Editor::Conector::cleanup(Scene* scene){
     if (!libHandle) {
         Out::error("Cannot cleanup: Not connected to library");
         return;
@@ -118,7 +117,7 @@ void Editor::Conector::cleanup(SceneProject* sceneProject){
 
     if (cleanupFn) {
         try {
-            cleanupFn(sceneProject->scene);
+            cleanupFn(scene);
         } catch (const std::exception& e) {
             Out::error("Exception in cleanup(): %s", e.what());
         } catch (...) {
@@ -129,7 +128,7 @@ void Editor::Conector::cleanup(SceneProject* sceneProject){
     }
 }
 
-void Editor::Conector::execute(SceneProject* sceneProject){
+void Editor::Conector::execute(Scene* scene){
     if (!libHandle) {
         Out::error("Cannot execute: Not connected to library");
         return;
@@ -153,7 +152,7 @@ void Editor::Conector::execute(SceneProject* sceneProject){
 
     if (initSceneFn) {
         try {
-            initSceneFn(sceneProject->scene);
+            initSceneFn(scene);
         } catch (const std::exception& e) {
             Out::error("Exception in initScene(): %s", e.what());
         } catch (...) {

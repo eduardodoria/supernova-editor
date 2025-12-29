@@ -2,12 +2,11 @@
 
 #include <filesystem>
 #include <string>
+#include "Scene.h"
 
 namespace fs = std::filesystem;
 
 namespace Supernova::Editor{
-
-    struct SceneProject;
 
     class Conector{
     private:
@@ -23,8 +22,8 @@ namespace Supernova::Editor{
 
         bool connect(const fs::path& buildPath, std::string libName);
         void disconnect();
-        void cleanup(SceneProject* sceneProject);
-        void execute(SceneProject* sceneProject);
+        void cleanup(Scene* sceneProject);
+        void execute(Scene* sceneProject);
 
         bool isLibraryConnected() const;
     };
