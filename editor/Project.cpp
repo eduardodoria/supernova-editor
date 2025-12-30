@@ -3000,6 +3000,8 @@ void Editor::Project::start(uint32_t sceneId) {
 
     std::vector<Editor::ScriptSource> scriptFiles = collectCppScriptSourceFiles(session->runtimeScenes);
 
+    generator.configure(sceneProject->scene, sceneProject->name, sceneProject->entities, getProjectInternalPath());
+
     // Check if we have C++ scripts that need building
     bool hasCppScripts = !scriptFiles.empty();
 

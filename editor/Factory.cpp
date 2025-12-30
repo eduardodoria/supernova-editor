@@ -4,10 +4,80 @@
 #include "Catalog.h"
 #include <sstream>
 #include <iomanip>
+#include <cctype>
+#include <unordered_set>
 
 using namespace Supernova;
 
 Editor::Factory::Factory(){
+}
+
+std::string Editor::Factory::indentation(int spaces) {
+    if (spaces <= 0) {
+        return "";
+    }
+    return std::string(static_cast<size_t>(spaces), ' ');
+}
+
+std::string Editor::Factory::toIdentifier(const std::string& name) {
+    std::string out;
+    out.reserve(name.size());
+
+    auto isIdentStart = [](unsigned char c) {
+        return std::isalpha(c) || c == '_';
+    };
+    auto isIdentChar = [](unsigned char c) {
+        return std::isalnum(c) || c == '_';
+    };
+
+    bool lastWasUnderscore = false;
+    for (unsigned char c : name) {
+        if (isIdentChar(c)) {
+            out.push_back(static_cast<char>(c));
+            lastWasUnderscore = (c == '_');
+        } else {
+            if (!out.empty() && !lastWasUnderscore) {
+                out.push_back('_');
+                lastWasUnderscore = true;
+            }
+        }
+    }
+
+    while (!out.empty() && out.front() == '_') {
+        out.erase(out.begin());
+    }
+    while (!out.empty() && out.back() == '_') {
+        out.pop_back();
+    }
+
+    if (out.empty()) {
+        out = "var";
+    }
+
+    if (!isIdentStart(static_cast<unsigned char>(out[0]))) {
+        out.insert(out.begin(), '_');
+    }
+
+    static const std::unordered_set<std::string> kCppKeywords = {
+        "alignas", "alignof", "and", "and_eq", "asm", "auto", "bitand", "bitor",
+        "bool", "break", "case", "catch", "char", "char8_t", "char16_t", "char32_t",
+        "class", "compl", "concept", "const", "consteval", "constexpr", "constinit",
+        "const_cast", "continue", "co_await", "co_return", "co_yield", "decltype",
+        "default", "delete", "do", "double", "dynamic_cast", "else", "enum", "explicit",
+        "export", "extern", "false", "float", "for", "friend", "goto", "if", "inline",
+        "int", "long", "mutable", "namespace", "new", "noexcept", "not", "not_eq",
+        "nullptr", "operator", "or", "or_eq", "private", "protected", "public", "register",
+        "reinterpret_cast", "requires", "return", "short", "signed", "sizeof", "static",
+        "static_assert", "static_cast", "struct", "switch", "template", "this", "thread_local",
+        "throw", "true", "try", "typedef", "typeid", "typename", "union", "unsigned",
+        "using", "virtual", "void", "volatile", "wchar_t", "while", "xor", "xor_eq"
+    };
+
+    if (kCppKeywords.find(out) != kCppKeywords.end()) {
+        out.push_back('_');
+    }
+
+    return out;
 }
 
 std::string Editor::Factory::formatVector2(const Vector2& v) {
@@ -110,7 +180,7 @@ std::string Editor::Factory::formatPropertyValue(const PropertyData& property, c
     }
 }
 
-std::string Editor::Factory::createComponent(Scene* scene, Entity entity, ComponentType componentType) {
+std::string Editor::Factory::createComponent(int indentSpaces, Scene* scene, Entity entity, ComponentType componentType, std::string sceneName) {
     // Get all properties for this component
     std::map<std::string, PropertyData> properties = Catalog::findEntityProperties(scene, entity, componentType);
 
@@ -121,38 +191,79 @@ std::string Editor::Factory::createComponent(Scene* scene, Entity entity, Compon
     std::ostringstream code;
     std::string componentName = Catalog::getComponentName(componentType, false);
     std::string varName = Catalog::getComponentName(componentType, true);
+    const std::string ind = indentation(indentSpaces);
 
     // Convert first letter to lowercase for variable name
     if (!varName.empty()) {
         varName[0] = std::tolower(varName[0]);
     }
 
-    code << "    " << componentName << " " << varName << ";\n";
+    code << ind << componentName << " " << varName << ";\n";
 
     // Generate code for each property
     for (const auto& [propertyName, propertyData] : properties) {
         std::string formattedValue = formatPropertyValue(propertyData, propertyName);
-        code << "    " << varName << "." << propertyName << " = " << formattedValue << ";\n";
+        code << ind << varName << "." << propertyName << " = " << formattedValue << ";\n";
+    }
+
+    if (!sceneName.empty()) {
+        code << ind << sceneName << ".addComponent<" << componentName << ">(" << entity << ", " << varName << ");\n";
     }
 
     return code.str();
 }
 
-std::string Editor::Factory::createAllComponents(Scene* scene, Entity entity) {
+std::string Editor::Factory::createAllComponents(int indentSpaces, Scene* scene, Entity entity, std::string sceneName) {
     // Find all components for this entity
     std::vector<ComponentType> components = Catalog::findComponents(scene, entity);
 
     std::ostringstream code;
-    code << "// Entity components initialization\n";
+    const std::string ind = indentation(indentSpaces);
+    code << ind << "// Entity components initialization\n";
 
     for (ComponentType componentType : components) {
-        std::string componentCode = createComponent(scene, entity, componentType);
+        std::string componentCode = createComponent(indentSpaces, scene, entity, componentType, sceneName);
         if (!componentCode.empty()) {
             code << componentCode << "\n";
         }
     }
 
     return code.str();
+}
+
+std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::string name, std::vector<Entity> entities){
+    std::ostringstream out;
+
+    std::string mainSceneVar = toIdentifier(name);
+    const std::string ind = indentation(indentSpaces);
+
+    out << ind << "#include \"Supernova.h\"\n";
+    out << ind << "using namespace Supernova;\n\n";
+    out << ind << "Scene " << mainSceneVar << ";\n";
+    //out << ind << "Scene " << childSceneVar << ";\n\n";
+    out << ind << "void init(){\n\n";
+
+    const std::string ind2 = indentation(indentSpaces+4);
+
+    for (Entity entity : entities) {
+        out << ind2 << "// Entity " << entity << "\n";
+        out << ind2 << mainSceneVar << ".recreateEntity(" << entity << ");\n\n";
+
+        // Create and set all components
+        std::string componentsCode = createAllComponents(indentSpaces+4, scene, entity, mainSceneVar);
+        out << componentsCode;
+
+        out << "\n";
+    }
+
+    //out << "\n";
+    out << ind2 << "Engine::setCanvasSize(" << "1000, 480);\n";
+    //out << "\n";
+    out << ind2 << "Engine::setScene(&" << mainSceneVar << ");\n";
+    //out << ind2 << "    Engine::addSceneLayer(&" << childSceneVar << ");\n";
+    out << ind << "}\n";
+
+    return out.str();
 }
 
 std::string Editor::Factory::setComponent(Scene* scene, Entity entity, ComponentType componentType) {

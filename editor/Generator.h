@@ -55,6 +55,7 @@ namespace Supernova::Editor {
         Generator();
         ~Generator();
 
+        void configure(Scene* scene, std::string name, std::vector<Entity> entities, const fs::path& projectInternalPath);
         void build(const fs::path projectPath, const fs::path projectInternalPath, const fs::path buildPath, std::string libName, const std::vector<ScriptSource>& scriptFiles);
         bool isBuildInProgress() const;
         void waitForBuildToComplete();
