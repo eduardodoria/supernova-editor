@@ -2,12 +2,33 @@
 
 #include "lua.hpp"
 
+#include <string>
+
+#include "LuaBridge.h"
+#include "Out.h"
+
 #include "Project.h"
 #include "script/ScriptProperty.h"
 
 namespace Supernova::Editor {
 
 class ProjectUtils {
+private:
+    template <typename T>
+    static bool pushEntityHandleTyped(lua_State* L, Scene* scene, Entity entity, const char* typeNameForLog) {
+        T* handle = new T(scene, entity);
+        printf("[DEBUG]   No Lua script instance found, creating '%s' type\n", typeNameForLog);
+
+        if (!luabridge::push<T*>(L, handle)) {
+            delete handle;
+            Out::error("Failed to push %s for EntityRef property", typeNameForLog);
+            lua_pushnil(L);
+            return false;
+        }
+
+        return true;
+    }
+
 public:
     static size_t getTransformIndex(EntityRegistry* registry, Entity entity);
     static void sortEntitiesByTransformOrder(EntityRegistry* registry, std::vector<Entity>& entities);
@@ -23,6 +44,9 @@ public:
 
     static ScriptPropertyValue luaValueToScriptPropertyValue(lua_State* L, int idx, ScriptPropertyType type);
     static void loadLuaScriptProperties(ScriptEntry& entry, const std::string& luaPath);
+
+    static std::string normalizePtrTypeName(std::string value);
+    static bool pushEntityHandleByPtrTypeName(lua_State* L, Scene* scene, Entity entity, const std::string& ptrTypeName);
 };
 
 } // namespace Supernova::Editor

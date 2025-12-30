@@ -800,9 +800,6 @@ void Editor::Project::initializeLuaScripts(Scene* scene) {
 
                 EntityRef& entityRef = std::get<EntityRef>(prop.value);
 
-                // Resolve the EntityRef
-                //resolveEntityRef(entityRef, sceneProject, entity);
-
                 if (entityRef.entity != NULL_ENTITY && entityRef.scene) {
                     ScriptComponent* targetScriptComp = entityRef.scene->findComponent<ScriptComponent>(entityRef.entity);
                     bool foundScript = false;
@@ -826,16 +823,7 @@ void Editor::Project::initializeLuaScripts(Scene* scene) {
 
                             // If no Lua script matched, create EntityHandle
                             if (!foundScript) {
-                                EntityHandle* handle = new EntityHandle(entityRef.scene, entityRef.entity);
-                                printf("[DEBUG]   No Lua script instance found, creating 'EntityHandle' type\n");
-
-                                if (!luabridge::push<EntityHandle*>(L, handle)) {
-                                    delete handle;
-                                    Out::error("Failed to push EntityHandle for EntityRef property");
-                                    lua_pushnil(L);
-                                } else {
-                                    foundScript = true;
-                                }
+                                foundScript = ProjectUtils::pushEntityHandleByPtrTypeName(L, entityRef.scene, entityRef.entity, prop.ptrTypeName);
                             }
                         } else {
                             // No ptrTypeName specified, return first Lua script or EntityHandle
@@ -852,30 +840,12 @@ void Editor::Project::initializeLuaScripts(Scene* scene) {
                             }
 
                             if (!foundScript) {
-                                EntityHandle* handle = new EntityHandle(entityRef.scene, entityRef.entity);
-                                printf("[DEBUG]   No Lua script instance found, creating 'EntityHandle' type\n");
-
-                                if (!luabridge::push<EntityHandle*>(L, handle)) {
-                                    delete handle;
-                                    Out::error("Failed to push EntityHandle for EntityRef property");
-                                    lua_pushnil(L);
-                                } else {
-                                    foundScript = true;
-                                }
+                                foundScript = ProjectUtils::pushEntityHandleByPtrTypeName(L, entityRef.scene, entityRef.entity, prop.ptrTypeName);
                             }
                         }
                     } else {
                         // No script component, create EntityHandle wrapper
-                        EntityHandle* handle = new EntityHandle(entityRef.scene, entityRef.entity);
-                        printf("[DEBUG]   No Lua script instance found, creating 'EntityHandle' type\n");
-
-                        if (!luabridge::push<EntityHandle*>(L, handle)) {
-                            delete handle;
-                            Out::error("Failed to push EntityHandle for EntityRef property");
-                            lua_pushnil(L);
-                        } else {
-                            foundScript = true;
-                        }
+                        foundScript = ProjectUtils::pushEntityHandleByPtrTypeName(L, entityRef.scene, entityRef.entity, prop.ptrTypeName);
                     }
 
                     if (!foundScript) {
@@ -1052,6 +1022,8 @@ void Editor::Project::finalizeStop(SceneProject* mainSceneProject, const std::ve
             });
         }
     }
+
+    Engine::clearAllSubscriptions(true);
 
     if (mainSceneProject) {
         Out::success("Scene '%s' stopped", mainSceneProject->name.c_str());
