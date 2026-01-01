@@ -2058,7 +2058,7 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, SceneProject* s
 
             endTable();
             beginTable(cpType, getLabelSize("Met. Roug. Texture"), "material_table");
-            propertyRow(RowPropertyType::Color4L, cpType, "submeshes["+std::to_string(s)+"].material.baseColor", "Base Color", sceneProject, entities, settingsMaterial);
+            propertyRow(RowPropertyType::Color4L, cpType, "submeshes["+std::to_string(s)+"].material.baseColorFactor", "Base Color", sceneProject, entities, settingsMaterial);
             propertyRow(RowPropertyType::Texture, cpType, "submeshes["+std::to_string(s)+"].material.baseColorTexture", "Base Texture", sceneProject, entities,settingsMaterial);
             propertyRow(RowPropertyType::Float_0_1, cpType, "submeshes["+std::to_string(s)+"].material.metallicFactor", "Metallic Factor", sceneProject, entities, settingsFactor);
             propertyRow(RowPropertyType::Float_0_1, cpType, "submeshes["+std::to_string(s)+"].material.roughnessFactor", "Roughness Factor", sceneProject, entities, settingsFactor);
@@ -2433,7 +2433,7 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
             if (mixed) ImGui::PopStyleColor();
 
             if (ImGui::IsItemDeactivatedAfterEdit()) {
-                std::string propName = "script[" + std::to_string(scriptIdx) + "].enabled";
+                std::string propName = "scripts[" + std::to_string(scriptIdx) + "].enabled";
                 for (const Entity& entity : entities) {
                     cmd = new PropertyCmd<bool>(project, sceneProject->id, entity, ComponentType::ScriptComponent, propName, enabled);
                     CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -2655,7 +2655,7 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
                 for (size_t propIdx = 0; propIdx < script.properties.size(); propIdx++) {
                     ScriptProperty& prop = script.properties[propIdx];
 
-                    std::string propertyId = "script[" + std::to_string(scriptIdx) + "]." + prop.name;
+                    std::string propertyId = "scripts[" + std::to_string(scriptIdx) + "]." + prop.name;
                     std::string displayName = prop.displayName.empty() ? prop.name : prop.displayName;
 
                     RowPropertyType propType = scriptPropertyTypeToRowPropertyType(prop.type);

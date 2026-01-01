@@ -16,6 +16,10 @@ namespace Supernova::Editor{
         static std::string formatVector2(const Vector2& v);
         static std::string formatVector3(const Vector3& v);
         static std::string formatVector4(const Vector4& v);
+        static std::string formatRect(const Rect& r);
+        static std::string formatPrimitiveType(PrimitiveType type);
+        static std::string formatPivotPreset(PivotPreset preset);
+        static std::string formatScriptType(ScriptType type);
         static std::string formatQuaternion(const Quaternion& q);
         static std::string formatBool(bool value);
         static std::string formatFloat(float value);
@@ -34,6 +38,16 @@ namespace Supernova::Editor{
 
         static std::string setComponent(Scene* scene, Entity entity, ComponentType componentType);
         static std::string setAllComponents(Scene* scene, Entity entity);
+
+        static std::string createTransform(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "");
+        static std::string createMeshComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "");
+        static std::string createUIComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "");
+        static std::string createUILayoutComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "");
+        static std::string createImageComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "");
+        static std::string createSpriteComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "");
+        static std::string createLightComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "");
+        static std::string createCameraComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "");
+        static std::string createScriptComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "");
     };
 
 }

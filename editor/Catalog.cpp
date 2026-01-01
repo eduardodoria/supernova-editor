@@ -391,7 +391,7 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
             std::string idx = (compRef) ? std::to_string(s) : "";
             ps["submeshes["+idx+"].material"] = {PropertyType::Material, UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material, (compRef) ? (void*)&comp->submeshes[s].material : nullptr};
             ps["submeshes["+idx+"].material.name"] = {PropertyType::String, UpdateFlags_None, (void*)&def->submeshes[0].material.name, (compRef) ? (void*)&comp->submeshes[s].material.name : nullptr};
-            ps["submeshes["+idx+"].material.baseColor"] = {PropertyType::Vector4, UpdateFlags_None, (void*)&def->submeshes[0].material.baseColorFactor, (compRef) ? (void*)&comp->submeshes[s].material.baseColorFactor : nullptr};
+            ps["submeshes["+idx+"].material.baseColorFactor"] = {PropertyType::Vector4, UpdateFlags_None, (void*)&def->submeshes[0].material.baseColorFactor, (compRef) ? (void*)&comp->submeshes[s].material.baseColorFactor : nullptr};
             ps["submeshes["+idx+"].material.metallicFactor"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->submeshes[0].material.metallicFactor, (compRef) ? (void*)&comp->submeshes[s].material.metallicFactor : nullptr};
             ps["submeshes["+idx+"].material.roughnessFactor"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->submeshes[0].material.roughnessFactor, (compRef) ? (void*)&comp->submeshes[s].material.roughnessFactor : nullptr};
             ps["submeshes["+idx+"].material.emissiveFactor"] = {PropertyType::Vector3, UpdateFlags_None, (void*)&def->submeshes[0].material.emissiveFactor, (compRef) ? (void*)&comp->submeshes[s].material.emissiveFactor : nullptr};
@@ -484,11 +484,11 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
                 auto& script = comp->scripts[i];
 
                 // Enabled flag exposed individually (no layout row will be added, only used by checkbox)
-                std::string enabledKey = "script[" + std::to_string(i) + "].enabled";
+                std::string enabledKey = "scripts[" + std::to_string(i) + "].enabled";
                 ps[enabledKey] = {PropertyType::Bool, UpdateFlags_None, nullptr, (void*)&script.enabled};
 
                 for (auto& prop : script.properties) {
-                    std::string key = "script[" + std::to_string(i) + "]." + prop.name;
+                    std::string key = "scripts[" + std::to_string(i) + "]." + prop.name;
                     PropertyData propData;
                     propData.type = scriptPropertyTypeToPropertyType(prop.type);
                     propData.updateFlags = UpdateFlags_None;
