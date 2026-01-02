@@ -504,7 +504,13 @@ std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::st
 
     const std::string ind2 = indentation(indentSpaces+4);
 
+    bool firstEntity = true;
+
     for (Entity entity : entities) {
+        if (!firstEntity) {
+            out << "\n";
+        }
+        firstEntity = false;
         out << ind2 << "// Entity " << entity << "\n";
         out << ind2 << "scene->recreateEntity(" << entity << ");\n\n";
 
