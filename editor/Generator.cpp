@@ -625,7 +625,7 @@ void Editor::Generator::terminateCurrentProcess() {
 
 void Editor::Generator::configure(const std::vector<SceneData>& scenes, const fs::path& projectInternalPath){
     for (const auto& sceneData : scenes) {
-        std::string sceneContent = Factory::createScene(0, sceneData.scene, sceneData.name, sceneData.entities);
+        std::string sceneContent = Factory::createScene(0, sceneData.scene, sceneData.name, sceneData.entities, sceneData.camera);
 
         std::string filename = Factory::toIdentifier(sceneData.name) + ".cpp";
         const fs::path sourceFile = projectInternalPath / filename;

@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <cctype>
 #include <unordered_set>
+#include <algorithm>
 
 using namespace Supernova;
 
@@ -139,6 +140,15 @@ std::string Editor::Factory::formatLightType(LightType type) {
         case LightType::POINT: return "LightType::POINT";
         case LightType::SPOT: return "LightType::SPOT";
         default: return "LightType::DIRECTIONAL";
+    }
+}
+
+std::string Editor::Factory::formatCameraType(CameraType type) {
+    switch (type) {
+        case CameraType::CAMERA_2D: return "CameraType::CAMERA_2D";
+        case CameraType::CAMERA_ORTHO: return "CameraType::CAMERA_ORTHO";
+        case CameraType::CAMERA_PERSPECTIVE: return "CameraType::CAMERA_PERSPECTIVE";
+        default: return "CameraType::CAMERA_2D";
     }
 }
 
@@ -393,7 +403,7 @@ std::string Editor::Factory::createCameraComponent(int indentSpaces, Scene* scen
     std::ostringstream code;
     const std::string ind = indentation(indentSpaces);
     code << ind << "CameraComponent camera;\n";
-    code << ind << "camera.type = " << formatInt((int)camera.type) << ";\n";
+    code << ind << "camera.type = " << formatCameraType(camera.type) << ";\n";
     code << ind << "camera.target = " << formatVector3(camera.target) << ";\n";
     code << ind << "camera.up = " << formatVector3(camera.up) << ";\n";
     code << ind << "camera.leftClip = " << formatFloat(camera.leftClip) << ";\n";
@@ -481,7 +491,7 @@ std::string Editor::Factory::createAllComponents(int indentSpaces, Scene* scene,
     return code.str();
 }
 
-std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::string name, std::vector<Entity> entities){
+std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::string name, std::vector<Entity> entities, Entity camera) {
     std::ostringstream out;
 
     std::string mainSceneVar = toIdentifier(name);
@@ -501,6 +511,17 @@ std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::st
         // Create and set all components
         std::string componentsCode = createAllComponents(indentSpaces+4, scene, entity, "scene");
         out << componentsCode;
+    }
+
+    if (camera != NULL_ENTITY){
+        if (std::find(entities.begin(), entities.end(), camera) == entities.end()) {
+            out << "\n";
+            out << ind2 << "// Default Camera " << camera << "\n";
+            std::string componentsCode = createAllComponents(indentSpaces+4, scene, camera, "scene");
+            out << componentsCode;
+        }
+        out << "\n";
+        out << ind2 << "scene->setCamera(" << camera << ");\n";
     }
 
     out << ind << "}\n";

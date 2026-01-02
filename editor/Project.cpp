@@ -55,25 +55,34 @@ Editor::SceneRender* Editor::Project::createSceneRender(SceneType type, Scene* s
     }
 }
 
-Supernova::Camera* Editor::Project::createDefaultCamera(SceneType type, Scene* scene) const {
+Entity Editor::Project::createDefaultCamera(SceneType type, Scene* scene) const {
     if (!scene) {
-        return nullptr;
+        return NULL_ENTITY;
+    }
+    if (type == SceneType::SCENE_3D){
+        return NULL_ENTITY; // 3D scenes use Camera entity created in SceneRender3D
     }
 
-    Camera* camera = nullptr;
+    Entity defaultCamera = scene->createSystemEntity();
+    scene->addComponent<CameraComponent>(defaultCamera, {});
+    scene->addComponent<Transform>(defaultCamera, {});
+
+    CameraComponent& camera = scene->getComponent<CameraComponent>(defaultCamera);
+    camera.transparentSort = false;
 
     switch (type) {
         case SceneType::SCENE_UI:
-            camera = new Camera(scene);
-            camera->setType(CameraType::CAMERA_2D);
+            camera.type = CameraType::CAMERA_2D;
             break;
         case SceneType::SCENE_2D:
-            camera = new Camera(scene);
-            camera->setType(CameraType::CAMERA_ORTHO);
+            camera.type = CameraType::CAMERA_ORTHO;
             break;
     }
 
-    return camera;
+    Transform& cameratransform = scene->getComponent<Transform>(defaultCamera);
+    cameratransform.position = Vector3(0.0, 0.0, 1.0);
+
+    return defaultCamera;
 }
 
 void Editor::Project::checkUnsavedAndExecute(uint32_t sceneId, std::function<void()> action) {
@@ -487,14 +496,14 @@ bool Editor::Project::createNewComponent(uint32_t sceneId, Entity entity, Compon
 void Editor::Project::deleteSceneProject(SceneProject* sceneProject){
     if (sceneProject->sceneRender)
         delete sceneProject->sceneRender;
-    if (sceneProject->defaultCamera)
-        delete sceneProject->defaultCamera;
     if (sceneProject->scene)
         delete sceneProject->scene;
 
     sceneProject->sceneRender = nullptr;
-    sceneProject->defaultCamera = nullptr;
     sceneProject->scene = nullptr;
+
+    sceneProject->mainCamera = NULL_ENTITY;
+    sceneProject->defaultCamera = NULL_ENTITY;
 
     sceneProject->entities.clear();
     sceneProject->selectedEntities.clear();
@@ -939,19 +948,6 @@ void Editor::Project::finalizeStart(SceneProject* mainSceneProject, const std::v
 
         pauseEngineScene(sceneProject->scene, false);
         initializeLuaScripts(sceneProject->scene);
-
-        if (sceneProject->mainCamera != NULL_ENTITY) {
-            if (sceneProject->scene->isEntityCreated(sceneProject->mainCamera)) {
-                sceneProject->scene->setCamera(sceneProject->mainCamera);
-            } else {
-                Out::error("Main camera entity is not valid, reverting to default camera");
-                sceneProject->mainCamera = NULL_ENTITY;
-            }
-        } else {
-            if (sceneProject->defaultCamera){
-                sceneProject->scene->setCamera(sceneProject->defaultCamera);
-            }
-        }
 
         if (sceneProject->sceneRender){
             sceneProject->sceneRender->setPlayMode(true);
@@ -3002,11 +2998,27 @@ void Editor::Project::start(uint32_t sceneId) {
 
     std::vector<Editor::SceneData> scenesToGenerate;
     for (const auto& runtimeScene : session->runtimeScenes) {
-        if (runtimeScene.runtime) {
+        SceneProject* sceneRuntime = runtimeScene.runtime;
+        if (sceneRuntime) {
+
+            // Setting scene camera
+            if (sceneRuntime->mainCamera != NULL_ENTITY) {
+                if (sceneRuntime->scene->isEntityCreated(sceneRuntime->mainCamera)) {
+                    sceneRuntime->scene->setCamera(sceneRuntime->mainCamera);
+                } else {
+                    Out::error("Main camera entity is not valid, reverting to default camera");
+                    sceneRuntime->mainCamera = NULL_ENTITY;
+                }
+            } else if (sceneRuntime->defaultCamera != NULL_ENTITY) {
+                sceneRuntime->scene->setCamera(sceneRuntime->defaultCamera);
+            }
+
             bool isMain = (runtimeScene.sourceSceneId == session->mainSceneId);
-            scenesToGenerate.push_back({runtimeScene.runtime->scene, runtimeScene.runtime->name, runtimeScene.runtime->entities, isMain});
+            Entity camera = sceneRuntime->scene->getCamera();
+            scenesToGenerate.push_back({sceneRuntime->scene, sceneRuntime->name, sceneRuntime->entities, camera, isMain});
         }
     }
+
     generator.configure(scenesToGenerate, getProjectInternalPath());
 
     // Check if we have C++ scripts that need building

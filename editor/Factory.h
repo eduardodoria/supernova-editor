@@ -18,6 +18,7 @@ namespace Supernova::Editor{
         static std::string formatPrimitiveType(PrimitiveType type);
         static std::string formatPivotPreset(PivotPreset preset);
         static std::string formatLightType(LightType type);
+        static std::string formatCameraType(CameraType type);
         static std::string formatScriptType(ScriptType type);
         static std::string formatQuaternion(const Quaternion& q);
         static std::string formatBool(bool value);
@@ -35,7 +36,7 @@ namespace Supernova::Editor{
 
         static std::string createComponent(int indentSpaces, Scene* scene, Entity entity, ComponentType componentType, std::string sceneName = "");
         static std::string createAllComponents(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "");
-        static std::string createScene(int indentSpaces, Scene* scene, std::string name, std::vector<Entity> entities);
+        static std::string createScene(int indentSpaces, Scene* scene, std::string name, std::vector<Entity> entities, Entity camera);
 
         static std::string setComponent(Scene* scene, Entity entity, ComponentType componentType);
         static std::string setAllComponents(Scene* scene, Entity entity);

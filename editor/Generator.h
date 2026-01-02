@@ -33,6 +33,7 @@ namespace Supernova::Editor {
         Scene* scene;
         std::string name;
         std::vector<Entity> entities;
+        Entity camera = NULL_ENTITY;
         bool isMain;
     };
 

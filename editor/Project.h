@@ -43,8 +43,8 @@ namespace Supernova::Editor{
         Scene* scene = nullptr;
         SceneType sceneType;
         std::vector<Entity> entities;
-        Camera* defaultCamera = nullptr;
         Entity mainCamera = NULL_ENTITY;
+        Entity defaultCamera = NULL_ENTITY;
         SceneRender* sceneRender = nullptr;
         std::vector<Entity> selectedEntities;
         fs::path filepath;
@@ -121,7 +121,7 @@ namespace Supernova::Editor{
         void cleanupPlaySession(const std::shared_ptr<PlaySession>& session);
 
         SceneRender* createSceneRender(SceneType type, Scene* scene) const;
-        Camera* createDefaultCamera(SceneType type, Scene* scene) const;
+        Entity createDefaultCamera(SceneType type, Scene* scene) const;
         uint32_t selectedScene;
 
         std::filesystem::path projectPath;
