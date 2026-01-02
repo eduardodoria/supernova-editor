@@ -17,6 +17,7 @@ namespace Supernova::Editor{
         static std::string formatRect(const Rect& r);
         static std::string formatPrimitiveType(PrimitiveType type);
         static std::string formatPivotPreset(PivotPreset preset);
+        static std::string formatLightType(LightType type);
         static std::string formatScriptType(ScriptType type);
         static std::string formatQuaternion(const Quaternion& q);
         static std::string formatBool(bool value);

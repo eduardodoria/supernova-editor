@@ -33,6 +33,7 @@ namespace Supernova::Editor {
         Scene* scene;
         std::string name;
         std::vector<Entity> entities;
+        bool isMain;
     };
 
     class Generator {
@@ -54,7 +55,7 @@ namespace Supernova::Editor {
         bool runCommand(const std::string& command, const fs::path& workingDir);
         bool writeIfChanged(const fs::path& filePath, const std::string& newContent);
 
-        void writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, std::string libName, const std::vector<ScriptSource>& scriptFiles);
+        void writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, std::string libName, const std::vector<ScriptSource>& scriptFiles, const std::vector<SceneData>& scenes);
         void terminateCurrentProcess();
 
     public:
@@ -62,7 +63,7 @@ namespace Supernova::Editor {
         ~Generator();
 
         void configure(const std::vector<SceneData>& scenes, const fs::path& projectInternalPath);
-        void build(const fs::path projectPath, const fs::path projectInternalPath, const fs::path buildPath, std::string libName, const std::vector<ScriptSource>& scriptFiles);
+        void build(const fs::path projectPath, const fs::path projectInternalPath, const fs::path buildPath, std::string libName, const std::vector<ScriptSource>& scriptFiles, const std::vector<SceneData>& scenes);
         bool isBuildInProgress() const;
         void waitForBuildToComplete();
         bool didLastBuildSucceed() const;

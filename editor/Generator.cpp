@@ -336,7 +336,7 @@ bool Editor::Generator::writeIfChanged(const fs::path& filePath, const std::stri
     return false;
 }
 
-void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, std::string libName, const std::vector<ScriptSource>& scriptFiles) {
+void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, std::string libName, const std::vector<ScriptSource>& scriptFiles, const std::vector<SceneData>& scenes) {
     fs::path relativeInternalPath = fs::relative(projectInternalPath, projectPath);
     fs::path engineApiRelativePath = relativeInternalPath / "engine-api";
 
@@ -632,10 +632,46 @@ void Editor::Generator::configure(const std::vector<SceneData>& scenes, const fs
 
         writeIfChanged(sourceFile, sceneContent);
     }
+
+    // Build init.cpp content
+    std::string initContent;
+    initContent += "#include \"Supernova.h\"\n";
+    for (const auto& sceneData : scenes) {
+        std::string filename = Factory::toIdentifier(sceneData.name) + ".cpp";
+        initContent += "#include \"" + filename + "\"\n";
+    }
+    initContent += "\n";
+    initContent += "using namespace Supernova;\n\n";
+
+    for (const auto& sceneData : scenes) {
+        std::string sceneName = Factory::toIdentifier(sceneData.name);
+        initContent += "Scene " + sceneName + ";\n";
+    }
+    initContent += "\n";
+
+    initContent += "void init(){\n";
+    for (const auto& sceneData : scenes) {
+        std::string sceneName = Factory::toIdentifier(sceneData.name);
+        initContent += "    init_" + sceneName + "(&" + sceneName + ");\n";
+    }
+    initContent += "\n";
+    initContent += "    Engine::setCanvasSize(1000, 480);\n";
+    for (const auto& sceneData : scenes) {
+        std::string sceneName = Factory::toIdentifier(sceneData.name);
+        if (sceneData.isMain) {
+            initContent += "    Engine::setScene(&" + sceneName + ");\n";
+        } else {
+            initContent += "    Engine::addSceneLayer(&" + sceneName + ");\n";
+        }
+    }
+    initContent += "}\n";
+
+    const fs::path initFile = projectInternalPath / "init.cpp";
+    writeIfChanged(initFile, initContent);
 }
 
-void Editor::Generator::build(const fs::path projectPath, const fs::path projectInternalPath, const fs::path buildPath, std::string libName, const std::vector<ScriptSource>& scriptFiles) {
-    writeSourceFiles(projectPath, projectInternalPath, libName, scriptFiles);
+void Editor::Generator::build(const fs::path projectPath, const fs::path projectInternalPath, const fs::path buildPath, std::string libName, const std::vector<ScriptSource>& scriptFiles, const std::vector<SceneData>& scenes) {
+    writeSourceFiles(projectPath, projectInternalPath, libName, scriptFiles, scenes);
 
     cancelBuild();
     waitForBuildToComplete();

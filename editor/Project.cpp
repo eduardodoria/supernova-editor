@@ -3003,7 +3003,8 @@ void Editor::Project::start(uint32_t sceneId) {
     std::vector<Editor::SceneData> scenesToGenerate;
     for (const auto& runtimeScene : session->runtimeScenes) {
         if (runtimeScene.runtime) {
-            scenesToGenerate.push_back({runtimeScene.runtime->scene, runtimeScene.runtime->name, runtimeScene.runtime->entities});
+            bool isMain = (runtimeScene.sourceSceneId == session->mainSceneId);
+            scenesToGenerate.push_back({runtimeScene.runtime->scene, runtimeScene.runtime->name, runtimeScene.runtime->entities, isMain});
         }
     }
     generator.configure(scenesToGenerate, getProjectInternalPath());
@@ -3015,7 +3016,7 @@ void Editor::Project::start(uint32_t sceneId) {
         std::string libName = "projectlib";
         fs::path buildPath = getProjectInternalPath() / "build";
 
-        generator.build(getProjectPath(), getProjectInternalPath(), buildPath, libName, scriptFiles);
+        generator.build(getProjectPath(), getProjectInternalPath(), buildPath, libName, scriptFiles, scenesToGenerate);
 
         std::thread connectThread([this, session, sceneId, buildPath, libName]() {
             generator.waitForBuildToComplete();
