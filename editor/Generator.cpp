@@ -623,12 +623,15 @@ void Editor::Generator::terminateCurrentProcess() {
     #endif
 }
 
-void Editor::Generator::configure(Scene* scene, std::string name, std::vector<Entity> entities, const fs::path& projectInternalPath){
-    std::string sceneContent = Factory::createScene(0, scene, name, entities);
+void Editor::Generator::configure(const std::vector<SceneData>& scenes, const fs::path& projectInternalPath){
+    for (const auto& sceneData : scenes) {
+        std::string sceneContent = Factory::createScene(0, sceneData.scene, sceneData.name, sceneData.entities);
 
-    const fs::path sourceFile = projectInternalPath / "GeneratedScene.cpp";
+        std::string filename = Factory::toIdentifier(sceneData.name) + ".cpp";
+        const fs::path sourceFile = projectInternalPath / filename;
 
-    writeIfChanged(sourceFile, sceneContent);
+        writeIfChanged(sourceFile, sceneContent);
+    }
 }
 
 void Editor::Generator::build(const fs::path projectPath, const fs::path projectInternalPath, const fs::path buildPath, std::string libName, const std::vector<ScriptSource>& scriptFiles) {

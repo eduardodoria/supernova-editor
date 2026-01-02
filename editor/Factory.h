@@ -10,8 +10,6 @@ namespace Supernova::Editor{
 
     class Factory{
     private:
-        static std::string toIdentifier(const std::string& name);
-
         static std::string indentation(int spaces);
         static std::string formatVector2(const Vector2& v);
         static std::string formatVector3(const Vector3& v);
@@ -31,6 +29,8 @@ namespace Supernova::Editor{
 
     public:
         Factory();
+
+        static std::string toIdentifier(const std::string& name);
 
         static std::string createComponent(int indentSpaces, Scene* scene, Entity entity, ComponentType componentType, std::string sceneName = "");
         static std::string createAllComponents(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "");
