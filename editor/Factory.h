@@ -29,27 +29,29 @@ namespace Supernova::Editor{
 
         static std::string formatPropertyValue(const PropertyData& property, const std::string& propertyName);
 
+        static void addComponentCode(std::ostringstream& code, const std::string& ind, const std::string& sceneName, const std::string& entityName, Entity entity, const std::string& componentType, const std::string& varName);
+
     public:
         Factory();
 
         static std::string toIdentifier(const std::string& name);
 
-        static std::string createComponent(int indentSpaces, Scene* scene, Entity entity, ComponentType componentType, std::string sceneName = "");
-        static std::string createAllComponents(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "");
+        static std::string createComponent(int indentSpaces, Scene* scene, Entity entity, ComponentType componentType, std::string sceneName = "", std::string entityName = "");
+        static std::string createAllComponents(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
         static std::string createScene(int indentSpaces, Scene* scene, std::string name, std::vector<Entity> entities, Entity camera);
 
         static std::string setComponent(Scene* scene, Entity entity, ComponentType componentType);
         static std::string setAllComponents(Scene* scene, Entity entity);
 
-        static std::string createTransform(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "");
-        static std::string createMeshComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "");
-        static std::string createUIComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "");
-        static std::string createUILayoutComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "");
-        static std::string createImageComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "");
-        static std::string createSpriteComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "");
-        static std::string createLightComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "");
-        static std::string createCameraComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "");
-        static std::string createScriptComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "");
+        static std::string createTransform(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
+        static std::string createMeshComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
+        static std::string createUIComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
+        static std::string createUILayoutComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
+        static std::string createImageComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
+        static std::string createSpriteComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
+        static std::string createLightComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
+        static std::string createCameraComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
+        static std::string createScriptComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
     };
 
 }
