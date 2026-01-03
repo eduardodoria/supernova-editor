@@ -492,9 +492,12 @@ std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::st
             out << "\n";
             std::string componentsCode = createAllComponents(indentSpaces+4, scene, camera, "scene", "cameraEntity");
             out << componentsCode;
+        }else{
+            out << "\n";
+            out << ind2 << "Entity cameraEntity = " << camera << ";\n";
         }
         out << "\n";
-        out << ind2 << "scene->setCamera(" << camera << ");\n";
+        out << ind2 << "scene->setCamera(cameraEntity);\n";
     }
 
     out << ind << "}\n";
