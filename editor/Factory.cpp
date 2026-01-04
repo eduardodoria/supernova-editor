@@ -465,9 +465,10 @@ std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::st
     out << ind << "#include \"Supernova.h\"\n";
     out << ind << "using namespace Supernova;\n\n";
 
-    out << ind << "void init_" << mainSceneVar << "(Scene* scene){\n";
+    out << ind << "void create_" << mainSceneVar << "(Scene* scene){\n";
 
     const std::string ind2 = indentation(indentSpaces+4);
+    const std::string ind3 = indentation(indentSpaces+8);
 
     bool firstEntity = true;
 
@@ -476,12 +477,14 @@ std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::st
             out << "\n";
         }
         firstEntity = false;
-        out << ind2 << "// Entity " << entity << "\n";
-        out << ind2 << "scene->recreateEntity(" << entity << ");\n\n";
+        out << ind2 << "{\n";
+        out << ind3 << "// Entity " << entity << "\n";
+        out << ind3 << "scene->recreateEntity(" << entity << ");\n\n";
 
         // Create and set all components
-        std::string componentsCode = createAllComponents(indentSpaces+4, scene, entity, "scene");
+        std::string componentsCode = createAllComponents(indentSpaces+8, scene, entity, "scene");
         out << componentsCode;
+        out << ind2 << "}\n";
     }
 
     if (camera != NULL_ENTITY){

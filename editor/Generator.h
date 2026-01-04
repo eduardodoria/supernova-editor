@@ -43,6 +43,8 @@ namespace Supernova::Editor {
         std::atomic<bool> lastBuildSucceeded;
         std::atomic<bool> cancelRequested;
 
+        static fs::path getExecutableDir();
+
     #ifdef _WIN32
         HANDLE currentProcessHandle;
         std::mutex processHandleMutex;
