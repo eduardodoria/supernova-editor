@@ -672,15 +672,18 @@ void Editor::Generator::configure(const std::vector<SceneData>& scenes, const fs
     // Build init.cpp content
     std::string initContent;
     initContent += "#include \"Supernova.h\"\n";
-    for (const auto& sceneData : scenes) {
-        std::string filename = Factory::toIdentifier(sceneData.name) + ".cpp";
-        initContent += "#include \"" + filename + "\"\n";
-    }
     initContent += "\n";
     initContent += "using namespace Supernova;\n\n";
 
     // initScene is generated in project_main.cpp; call it after initializing each scene
     initContent += "extern \"C\" void initScene(Supernova::Scene* scene);\n\n";
+
+    // Forward declarations for per-scene initialization functions (defined in generated scene .cpp files)
+    for (const auto& sceneData : scenes) {
+        std::string sceneName = Factory::toIdentifier(sceneData.name);
+        initContent += "void create_" + sceneName + "(Scene* scene);\n";
+    }
+    initContent += "\n";
 
     for (const auto& sceneData : scenes) {
         std::string sceneName = Factory::toIdentifier(sceneData.name);
