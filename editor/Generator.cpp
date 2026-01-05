@@ -70,7 +70,7 @@ bool Editor::Generator::configureCMake(const fs::path& projectPath, const fs::pa
     cmakeCommand += "-DCMAKE_BUILD_TYPE=" + configType + " ";
     // When configuring from inside the editor, ensure the generated project builds
     // in "plugin" mode (no Factory init.cpp/scene sources added).
-    cmakeCommand += "-DSUPERNOVA_EDITOR=ON ";
+    cmakeCommand += "-DSUPERNOVA_EDITOR_PLUGIN=ON ";
     cmakeCommand += "\"" + projectPath.string() + "\" ";
     cmakeCommand += "-B \"" + buildPath.string() + "\" ";
     cmakeCommand += "-DSUPERNOVA_LIB_DIR=\"" + exePath.string() + "\"";
@@ -342,6 +342,113 @@ bool Editor::Generator::writeIfChanged(const fs::path& filePath, const std::stri
     return false;
 }
 
+std::string Editor::Generator::getPlatformCMakeConfig() {
+    std::string content;
+    content += "if (NOT SUPERNOVA_EDITOR_PLUGIN)\n";
+    content += "    add_definitions(\"-DDEFAULT_WINDOW_WIDTH=960\")\n";
+    content += "    add_definitions(\"-DDEFAULT_WINDOW_HEIGHT=540\")\n";
+    content += "\n";
+    content += "    if(NOT GRAPHIC_BACKEND)\n";
+    content += "        if(CMAKE_SYSTEM_NAME STREQUAL \"Emscripten\")\n";
+    content += "            set(GRAPHIC_BACKEND \"gles3\")\n";
+    content += "        elseif(CMAKE_SYSTEM_NAME STREQUAL \"Android\")\n";
+    content += "            set(GRAPHIC_BACKEND \"gles3\")\n";
+    content += "        elseif(CMAKE_SYSTEM_NAME STREQUAL \"Windows\")\n";
+    content += "            set(GRAPHIC_BACKEND \"d3d11\")\n";
+    content += "            #set(GRAPHIC_BACKEND \"glcore\")\n";
+    content += "        elseif(CMAKE_SYSTEM_NAME STREQUAL \"Linux\")\n";
+    content += "            set(GRAPHIC_BACKEND \"glcore\")\n";
+    content += "        elseif(CMAKE_SYSTEM_NAME STREQUAL \"FreeBSD\")\n";
+    content += "            set(GRAPHIC_BACKEND \"glcore\")\n";
+    content += "        elseif(CMAKE_SYSTEM_NAME STREQUAL \"Darwin\")\n";
+    content += "            set(GRAPHIC_BACKEND \"metal\")\n";
+    content += "            #set(GRAPHIC_BACKEND \"glcore\")\n";
+    content += "        elseif(CMAKE_SYSTEM_NAME STREQUAL \"iOS\")\n";
+    content += "            set(GRAPHIC_BACKEND \"metal\")\n";
+    content += "        else()\n";
+    content += "            message(FATAL_ERROR \"GRAPHIC_BACKEND is not set\")\n";
+    content += "        endif()\n";
+    content += "    endif()\n";
+    content += "    message(STATUS \"Graphic backend is set to ${GRAPHIC_BACKEND}\")\n";
+    content += "\n";
+    content += "    if(NOT APP_BACKEND)\n";
+    content += "        if(CMAKE_SYSTEM_NAME STREQUAL \"Emscripten\")\n";
+    content += "            set(APP_BACKEND \"emscripten\")\n";
+    content += "        elseif(CMAKE_SYSTEM_NAME STREQUAL \"Android\")\n";
+    content += "            set(APP_BACKEND \"android\")\n";
+    content += "        elseif(CMAKE_SYSTEM_NAME STREQUAL \"Windows\")\n";
+    content += "            set(APP_BACKEND \"sokol\")\n";
+    content += "        elseif(CMAKE_SYSTEM_NAME STREQUAL \"Linux\")\n";
+    content += "            #set(APP_BACKEND \"sokol\")\n";
+    content += "            set(APP_BACKEND \"glfw\")\n";
+    content += "        elseif(CMAKE_SYSTEM_NAME STREQUAL \"FreeBSD\")\n";
+    content += "            #set(APP_BACKEND \"sokol\")\n";
+    content += "            set(APP_BACKEND \"glfw\")\n";
+    content += "        elseif(CMAKE_SYSTEM_NAME STREQUAL \"Darwin\")\n";
+    content += "            if (CMAKE_GENERATOR STREQUAL \"Xcode\")\n";
+    content += "                set(APP_BACKEND \"apple\")\n";
+    content += "            else()\n";
+    content += "                set(APP_BACKEND \"sokol\")\n";
+    content += "                #set(APP_BACKEND \"glfw\")\n";
+    content += "            endif()\n";
+    content += "        elseif(CMAKE_SYSTEM_NAME STREQUAL \"iOS\")\n";
+    content += "            set(APP_BACKEND \"apple\")\n";
+    content += "        else()\n";
+    content += "            message(FATAL_ERROR \"APP_BACKEND is not set\")\n";
+    content += "        endif()\n";
+    content += "    endif()\n";
+    content += "    message(STATUS \"Application backend is set to ${APP_BACKEND}\")\n";
+    content += "\n";
+    content += "    set(COMPILE_ZLIB OFF)\n";
+    content += "    set(IS_ARM OFF)\n";
+    content += "\n";
+    content += "    if((CMAKE_SYSTEM_NAME STREQUAL \"Linux\") OR (CMAKE_SYSTEM_NAME STREQUAL \"FreeBSD\"))\n";
+    content += "        if(GRAPHIC_BACKEND STREQUAL \"glcore\")\n";
+    content += "            add_definitions(\"-DSOKOL_GLCORE\")\n";
+    content += "        endif()\n";
+    content += "\n";
+    content += "        add_definitions(\"-DWITH_MINIAUDIO\") # For SoLoud\n";
+    content += "\n";
+    content += "        if (EXISTS \"${PROJECT_ROOT}/assets\")\n";
+    content += "            set(ASSETS_DEST_DIR ${CMAKE_BINARY_DIR}/assets)\n";
+    content += "        endif()\n";
+    content += "        if (EXISTS \"${PROJECT_ROOT}/lua\")\n";
+    content += "            set(LUA_DEST_DIR ${CMAKE_BINARY_DIR}/lua)\n";
+    content += "        endif()\n";
+    content += "\n";
+    content += "        if (APP_BACKEND STREQUAL \"glfw\")\n";
+    content += "            add_definitions(\"-DSUPERNOVA_GLFW\")\n";
+    content += "            message(STATUS \"Using GLFW as application backend\")\n";
+    content += "\n";
+    content += "            set(PLATFORM_ROOT ${INTERNAL_DIR}/platform/glfw)\n";
+    content += "\n";
+    content += "            list(APPEND PLATFORM_SOURCE\n";
+    content += "                ${PLATFORM_ROOT}/SupernovaGLFW.cpp\n";
+    content += "                ${PLATFORM_ROOT}/main.cpp\n";
+    content += "            )\n";
+    content += "\n";
+    content += "            list(APPEND PLATFORM_LIBS\n";
+    content += "                GL dl m glfw\n";
+    content += "            )\n";
+    content += "        else()\n";
+    content += "            add_definitions(\"-DSUPERNOVA_SOKOL\")\n";
+    content += "\n";
+    content += "            set(PLATFORM_ROOT  ${INTERNAL_DIR}/platform/sokol)\n";
+    content += "\n";
+    content += "            list(APPEND PLATFORM_SOURCE\n";
+    content += "                ${PLATFORM_ROOT}/SupernovaSokol.cpp\n";
+    content += "                ${PLATFORM_ROOT}/main.cpp\n";
+    content += "            )\n";
+    content += "\n";
+    content += "            list(APPEND PLATFORM_LIBS\n";
+    content += "\n";
+    content += "            )\n";
+    content += "        endif()\n";
+    content += "    endif()\n";
+    content += "endif() \n";
+    return content;
+}
+
 void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, std::string libName, const std::vector<ScriptSource>& scriptFiles, const std::vector<SceneData>& scenes) {
     const fs::path exePath = getExecutableDir();
 
@@ -381,26 +488,41 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     cmakeContent += "# This file is auto-generated by Supernova Editor. Do not edit manually.\n\n";
     cmakeContent += "cmake_minimum_required(VERSION 3.15)\n";
     cmakeContent += "project(ProjectLib)\n\n";
+    cmakeContent += "set(PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})\n";
+    cmakeContent += "set(INTERNAL_DIR ${PROJECT_ROOT}/.supernova)\n\n";
+
+    cmakeContent += getPlatformCMakeConfig() + "\n";
+
     cmakeContent += "# Specify C++ standard\n";
     cmakeContent += "set(CMAKE_CXX_STANDARD 17)\n";
     cmakeContent += "set(CMAKE_CXX_STANDARD_REQUIRED ON)\n\n";
 
     cmakeContent += "# Build mode: when ON, build as Supernova Editor plugin (shared library)\n";
-    cmakeContent += "option(SUPERNOVA_EDITOR \"Build as Supernova Editor plugin\" OFF)\n";
-    cmakeContent += "if(SUPERNOVA_EDITOR)\n";
-    cmakeContent += "    add_compile_definitions(SUPERNOVA_EDITOR)\n";
+    cmakeContent += "option(SUPERNOVA_EDITOR_PLUGIN \"Build as Supernova Editor plugin\" OFF)\n";
+    cmakeContent += "if(SUPERNOVA_EDITOR_PLUGIN)\n";
+    cmakeContent += "    add_compile_definitions(SUPERNOVA_EDITOR_PLUGIN)\n";
     cmakeContent += "endif()\n\n";
 
     cmakeContent += scriptSources + "\n";
     cmakeContent += factorySources + "\n";
-    cmakeContent += "# Project library target\n";
-    cmakeContent += "add_library(" + libName + " SHARED\n";
-    cmakeContent += "    " + internalPathStr + "/project_main.cpp\n";
-    cmakeContent += "    ${SCRIPT_SOURCES}\n";
-    cmakeContent += ")\n\n";
+    cmakeContent += "set(PROJECT_MAIN_SOURCE " + internalPathStr + "/project_main.cpp)\n\n";
+    cmakeContent += "# Project target\n";
+    cmakeContent += "if(NOT CMAKE_SYSTEM_NAME STREQUAL \"Android\" AND NOT SUPERNOVA_EDITOR_PLUGIN)\n";
+    cmakeContent += "    add_executable(" + libName + "\n";
+    cmakeContent += "        ${PROJECT_MAIN_SOURCE}\n";
+    cmakeContent += "        ${SCRIPT_SOURCES}\n";
+    cmakeContent += "        ${PLATFORM_SOURCE}\n";
+    cmakeContent += "    )\n";
+    cmakeContent += "else()\n";
+    cmakeContent += "    add_library(" + libName + " SHARED\n";
+    cmakeContent += "        ${PROJECT_MAIN_SOURCE}\n";
+    cmakeContent += "        ${SCRIPT_SOURCES}\n";
+    cmakeContent += "        ${PLATFORM_SOURCE}\n";
+    cmakeContent += "    )\n";
+    cmakeContent += "endif()\n\n";
 
     cmakeContent += "# When building outside the editor, also compile Factory-generated sources\n";
-    cmakeContent += "if(NOT SUPERNOVA_EDITOR)\n";
+    cmakeContent += "if(NOT SUPERNOVA_EDITOR_PLUGIN)\n";
     cmakeContent += "    target_sources(" + libName + " PRIVATE ${FACTORY_SOURCES})\n";
     cmakeContent += "endif()\n\n";
     cmakeContent += "# To suppress warnings if not Debug\n";
@@ -435,7 +557,7 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     cmakeContent += "if(NOT SUPERNOVA_LIB)\n";
     cmakeContent += "    message(FATAL_ERROR \"Supernova library not found in ${SUPERNOVA_LIB_DIR}\")\n";
     cmakeContent += "endif()\n\n";
-    cmakeContent += "target_link_libraries(" + libName + " PRIVATE ${SUPERNOVA_LIB})\n\n";
+    cmakeContent += "target_link_libraries(" + libName + " PRIVATE ${SUPERNOVA_LIB} ${PLATFORM_LIBS})\n\n";
     cmakeContent += "# Set compile options based on compiler and platform\n";
     cmakeContent += "if(MSVC)\n";
     cmakeContent += "    target_compile_options(" + libName + " PRIVATE /W4 /EHsc)\n";
