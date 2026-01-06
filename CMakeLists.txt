@@ -84,7 +84,7 @@ add_definitions("-DSUPERNOVA_EDITOR")
 add_definitions("-DSUPERNOVA_CRASH_GUARD")
 
 add_definitions("-DNO_LUA_INIT")
-add_definitions("-DNO_CPP_INIT")
+#add_definitions("-DNO_CPP_INIT")
 add_definitions("-DSOKOL_GLCORE")
 add_definitions("-DWITH_MINIAUDIO") # For SoLoud
 set(NFD_PORTAL ON CACHE BOOL "Use xdg-desktop-portal instead of GTK") # For NFD
