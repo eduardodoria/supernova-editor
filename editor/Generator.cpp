@@ -813,7 +813,7 @@ void Editor::Generator::configure(const std::vector<SceneData>& scenes, const fs
     }
     initContent += "\n";
 
-    initContent += "void init(){\n";
+    initContent += "SUPERNOVA_INIT void init(){\n";
     for (const auto& sceneData : scenes) {
         std::string sceneName = Factory::toIdentifier(sceneData.name);
         initContent += "    create_" + sceneName + "(&" + sceneName + ");\n";
