@@ -272,6 +272,8 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories){
         for (auto& file : files){
             if (!showDirectories && file.isDirectory) continue;
 
+            bool deferredDirectoryChange = false;
+
             ImGui::TableNextColumn();
             ImGui::PushID(file.name.c_str());
 
@@ -348,8 +350,7 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories){
                 clickedInFile = true;
 
                 if (file.isDirectory){
-                    scanDirectory(currentPath / file.name);
-                    selectedFiles.clear();
+                    deferredDirectoryChange = true;
                 }else{
                     std::string extension = file.extension;
                     if (extension == ".scene")
@@ -671,6 +672,12 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories){
             }
 
             ImGui::PopID();
+
+            if (deferredDirectoryChange){
+                scanDirectory(currentPath / file.name);
+                selectedFiles.clear();
+                break;
+            }
         }
 
         ImGui::EndTable();
