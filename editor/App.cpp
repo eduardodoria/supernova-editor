@@ -506,9 +506,9 @@ void Editor::App::engineInit(int argc, char** argv) {
     Engine::systemInit(argc, argv, new Editor::Platform());
     Engine::pauseGameEvents(true);
 
-    ShaderPool::setShaderBuilder([](Supernova::ShaderKey shaderKey) -> Supernova::ShaderBuildResult {
+    ShaderPool::setShaderBuilder([this](Supernova::ShaderKey shaderKey) -> Supernova::ShaderBuildResult {
         static Supernova::Editor::ShaderBuilder builder;  // Make static to reuse
-        return builder.buildShader(shaderKey);
+        return builder.buildShader(shaderKey, &project);
     });
 
     TextureDataPool::setAsyncLoading(true);
@@ -780,6 +780,14 @@ void Editor::App::registerProjectSaveDialog(std::function<void()> callback) {
         processNextSaveDialog();
     }
     // If queue has more items or another dialog is open, they'll be processed later
+}
+
+Editor::Project* Editor::App::getProject(){
+    return &project;
+}
+
+const Editor::Project* Editor::App::getProject() const{
+    return &project;
 }
 
 Editor::CodeEditor* Editor::App::getCodeEditor() const{

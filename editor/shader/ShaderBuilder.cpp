@@ -5,6 +5,7 @@
 
 #include <cstring>
 #include <cstdint>
+#include <filesystem>
 
 //#include <thread>
 //#include <chrono>
@@ -271,7 +272,7 @@ void Editor::ShaderBuilder::addLinesPropertyDefinitions(std::vector<supershader:
     if (prop & (1 << 1))  defs.push_back({"HAS_VERTEX_COLOR_VEC4", "1"});    // 'Vc4'
 }
 
-ShaderBuildResult Editor::ShaderBuilder::buildShader(ShaderKey shaderKey){
+ShaderBuildResult Editor::ShaderBuilder::buildShader(ShaderKey shaderKey, Project* project) {
     std::lock_guard<std::mutex> lock(cacheMutex);
 
     // Check if already in cache
@@ -305,8 +306,8 @@ ShaderBuildResult Editor::ShaderBuilder::buildShader(ShaderKey shaderKey){
 
     // Use thread pool instead of std::async
     pendingBuilds[shaderKey] = ThreadPoolManager::getInstance().enqueue(
-        [this, shaderKey]() {
-            return buildShaderInternal(shaderKey);
+        [this, shaderKey, project]() {
+            return buildShaderInternal(shaderKey, project);
         }
     );
 
@@ -326,7 +327,7 @@ void Editor::ShaderBuilder::requestShutdown() {
     pendingBuilds.clear();
 }
 
-ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey){
+ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey, Project* project){
     if (shutdownRequested) {
         throw std::runtime_error("Shutdown requested");
     }
@@ -419,7 +420,29 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey){
     if (shutdownRequested) {
         throw std::runtime_error("Shutdown requested");
     }
-    ResourceProgress::updateProgress(shaderKey, 0.95f); // Cross-compilation done
+    ResourceProgress::updateProgress(shaderKey, 0.9f); // Cross-compilation done
+
+    // Generate .sbs file inside <project>/.supernova/shaders before converting to ShaderData
+    {
+        std::filesystem::path shadersDir = project->getProjectInternalPath() / "shaders";
+        std::error_code ec;
+        std::filesystem::create_directories(shadersDir, ec);
+        if (ec) {
+            ResourceProgress::failBuild(shaderKey);
+            throw std::runtime_error("Failed to create shaders output directory: " + shadersDir.string());
+        }
+
+        args.output_basename = ShaderPool::getShaderStr(shaderType, properties) + "_glsl410";
+        args.output_dir = shadersDir.generic_string();
+        if (!args.output_dir.empty() && args.output_dir.back() != '/') {
+            args.output_dir.push_back('/');
+        }
+
+        if (!supershader::generate_sbs(spirvcrossvec, inputs, args)) {
+            ResourceProgress::failBuild(shaderKey);
+            throw std::runtime_error("Failed to generate .sbs file");
+        }
+    }
 
     ShaderData shaderData = convertToShaderData(spirvcrossvec, inputs, args);
 

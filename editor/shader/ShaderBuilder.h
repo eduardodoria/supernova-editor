@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Project.h"
+
 #include "pool/ShaderPool.h"
 #include "ShaderData.h"
 #include <vector>
@@ -47,14 +49,14 @@ namespace Supernova::Editor {
         void addPointsPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop);
         void addLinesPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop);
 
-        ShaderData buildShaderInternal(ShaderKey shaderKey);
+        ShaderData buildShaderInternal(ShaderKey shaderKey, Project* project);
         std::string getShaderDisplayName(ShaderKey key);
 
     public:
         ShaderBuilder();
         virtual ~ShaderBuilder();
 
-        ShaderBuildResult buildShader(ShaderKey shaderKey);
+        ShaderBuildResult buildShader(ShaderKey shaderKey, Project* project);
 
         static void requestShutdown();
 
