@@ -1078,6 +1078,21 @@ bool Editor::Project::saveProject(bool userCalled, std::function<void()> callbac
     return saveret;
 }
 
+void Editor::Project::clearTrash() {
+    if (projectPath.empty())
+        return;
+
+    std::filesystem::path trashPath = projectPath / ".trash";
+    if (std::filesystem::exists(trashPath)) {
+        try {
+            std::filesystem::remove_all(trashPath);
+            Out::info("Cleared trash directory: %s", trashPath.string().c_str());
+        } catch (const std::exception& e) {
+            Out::error("Failed to clear trash directory: %s", e.what());
+        }
+    }
+}
+
 bool Editor::Project::saveProjectToPath(const std::filesystem::path& path) {
     // Try to create the directory if it doesn't exist
     if (!std::filesystem::exists(path)) {
@@ -1188,6 +1203,8 @@ bool Editor::Project::loadProject(const std::filesystem::path path) {
         if (!isTempProject()) {
             AppSettings::setLastProjectPath(projectPath);
         }
+
+        clearTrash();
 
         Out::info("Project loaded successfully: \"%s\"", projectPath.string().c_str());
         return true;

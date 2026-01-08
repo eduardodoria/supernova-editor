@@ -335,6 +335,10 @@ bool Editor::Generator::writeIfChanged(const fs::path& filePath, const std::stri
     }
 
     if (shouldWrite) {
+        std::error_code ec;
+        if (filePath.has_parent_path()) {
+            fs::create_directories(filePath.parent_path(), ec);
+        }
         std::ofstream ofs(filePath, std::ios::out | std::ios::binary);
         ofs << newContent;
         return true;

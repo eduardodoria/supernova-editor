@@ -985,6 +985,8 @@ void Editor::App::closeWindow(){
         }
     }
 
+    project.clearTrash();
+
     Editor::ShaderBuilder::requestShutdown();
     Backend::closeWindow();
 }

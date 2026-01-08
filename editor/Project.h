@@ -169,6 +169,7 @@ namespace Supernova::Editor{
 
         bool createTempProject(std::string projectName, bool deleteIfExists = false);
         bool saveProjectToPath(const std::filesystem::path& path);
+        void clearTrash();
         bool saveProject(bool userCalled = false, std::function<void()> callback = nullptr);
         bool openProject();
 
