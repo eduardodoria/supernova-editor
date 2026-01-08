@@ -335,6 +335,10 @@ bool Editor::Generator::writeIfChanged(const fs::path& filePath, const std::stri
     }
 
     if (shouldWrite) {
+        std::error_code ec;
+        if (filePath.has_parent_path()) {
+            fs::create_directories(filePath.parent_path(), ec);
+        }
         std::ofstream ofs(filePath, std::ios::out | std::ios::binary);
         ofs << newContent;
         return true;
@@ -446,6 +450,137 @@ std::string Editor::Generator::getPlatformCMakeConfig() {
     content += "        endif()\n";
     content += "    endif()\n";
     content += "endif() \n";
+    return content;
+}
+
+std::string Editor::Generator::getCopyShadersCMakeConfig(const std::string& targetName) {
+    std::string content;
+    content += "\n";
+    content += "# Copy Supernova shaders into the binary output directory\n";
+    content += "if(NOT SUPERNOVA_EDITOR_PLUGIN)\n";
+    content += "    set(SHADERS_SOURCE_DIR \"${CMAKE_CURRENT_SOURCE_DIR}/.supernova/shaders\")\n";
+    content += "    set(SHADERS_DEST_DIR \"${CMAKE_BINARY_DIR}/assets/shaders\")\n";
+    content += "\n";
+    content += "    if(EXISTS \"${SHADERS_SOURCE_DIR}\")\n";
+    content += "        add_custom_command(TARGET projectlib POST_BUILD\n";
+    content += "            COMMAND ${CMAKE_COMMAND} -E copy_directory\n";
+    content += "                \"${SHADERS_SOURCE_DIR}\" \"${SHADERS_DEST_DIR}\"\n";
+    content += "            COMMENT \"Copying shader headers to build directory\"\n";
+    content += "        )\n";
+    content += "    endif()\n";
+    content += "endif()\n";
+    return content;
+}
+
+std::string Editor::Generator::getCopyProjectAssetsCMakeConfig(const std::string& targetName) {
+    std::string content;
+    content += "\n";
+    content += "# Copy project assets and lua scripts to the binary output directory\n";
+    content += "if(NOT SUPERNOVA_EDITOR_PLUGIN)\n";
+    content += "    # Copy assets directory (excluding hidden files, scene files, and C++ files)\n";
+    content += "    set(ASSET_EXCLUDE_DIRS \"\\\\.[^/]+\" \"build\" \"cmake\")\n";
+    content += "    set(ASSET_EXCLUDE_FILES \"project.yaml\" \"CMakeLists.txt\")\n";
+    content += "    set(ASSET_EXCLUDE_EXTS \".scene\" \".cpp\" \".h\" \".hpp\")\n";
+    content += "    add_custom_command(TARGET " + targetName + " POST_BUILD\n";
+    content += "        COMMAND ${CMAKE_COMMAND}\n";
+    content += "            \"-DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}\"\n";
+    content += "            \"-DDEST_DIR=${CMAKE_BINARY_DIR}/assets\"\n";
+    content += "            \"-DEXCLUDE_DIRS=${ASSET_EXCLUDE_DIRS}\"\n";
+    content += "            \"-DEXCLUDE_FILES=${ASSET_EXCLUDE_FILES}\"\n";
+    content += "            \"-DEXCLUDE_EXTENSIONS=${ASSET_EXCLUDE_EXTS}\"\n";
+    content += "            -P \"${CMAKE_CURRENT_SOURCE_DIR}/cmake/copy_tree_excluding.cmake\"\n";
+    content += "        VERBATIM\n";
+    content += "        COMMENT \"Copying assets to build directory\"\n";
+    content += "    )\n";
+    content += "\n";
+    content += "    # Copy lua directory\n";
+    content += "    if(EXISTS \"${PROJECT_ROOT}/lua\")\n";
+    content += "        add_custom_command(TARGET " + targetName + " POST_BUILD\n";
+    content += "            COMMAND ${CMAKE_COMMAND}\n";
+    content += "                \"-DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/lua\"\n";
+    content += "                \"-DDEST_DIR=${CMAKE_BINARY_DIR}/lua\"\n";
+    content += "                \"-DEXCLUDE_DIRS=${ASSET_EXCLUDE_DIRS}\"\n";
+    content += "                \"-DEXCLUDE_FILES=${ASSET_EXCLUDE_FILES}\"\n";
+    content += "                \"-DEXCLUDE_EXTENSIONS=${ASSET_EXCLUDE_EXTS}\"\n";
+    content += "                -P \"${CMAKE_CURRENT_SOURCE_DIR}/cmake/copy_tree_excluding.cmake\"\n";
+    content += "            VERBATIM\n";
+    content += "            COMMENT \"Copying lua scripts to build directory\"\n";
+    content += "        )\n";
+    content += "    endif()\n";
+    content += "endif()\n";
+    return content;
+}
+
+std::string Editor::Generator::getCopyTreeExcludingCMakeScript() {
+    std::string content;
+    content += "# CMake script to copy a directory tree while excluding certain patterns\n";
+    content += "# Usage: cmake -DSOURCE_DIR=<src> -DDEST_DIR=<dst> -DEXCLUDE_DIRS=\"dir1;dir2\" -DEXCLUDE_EXTENSIONS=\".ext1;.ext2\" -P copy_tree_excluding.cmake\n";
+    content += "\n";
+    content += "if(NOT DEFINED SOURCE_DIR OR NOT DEFINED DEST_DIR)\n";
+    content += "    message(FATAL_ERROR \"SOURCE_DIR and DEST_DIR must be defined\")\n";
+    content += "endif()\n";
+    content += "\n";
+    content += "if(NOT EXISTS \"${SOURCE_DIR}\")\n";
+    content += "    return()\n";
+    content += "endif()\n";
+    content += "\n";
+    content += "# Get all files recursively\n";
+    content += "file(GLOB_RECURSE ALL_FILES RELATIVE \"${SOURCE_DIR}\" \"${SOURCE_DIR}/*\")\n";
+    content += "\n";
+    content += "foreach(FILE_PATH IN LISTS ALL_FILES)\n";
+    content += "    set(SHOULD_EXCLUDE FALSE)\n";
+    content += "\n";
+    content += "    # Check if file path contains any excluded directory\n";
+    content += "    if(DEFINED EXCLUDE_DIRS)\n";
+    content += "        foreach(DIR_NAME IN LISTS EXCLUDE_DIRS)\n";
+    content += "            if(FILE_PATH MATCHES \"(^|/)${DIR_NAME}(/|$)\")\n";
+    content += "                set(SHOULD_EXCLUDE TRUE)\n";
+    content += "                break()\n";
+    content += "            endif()\n";
+    content += "        endforeach()\n";
+    content += "    endif()\n";
+    content += "\n";
+    content += "    # Check if file is in excluded files\n";
+    content += "    if(NOT SHOULD_EXCLUDE AND DEFINED EXCLUDE_FILES)\n";
+    content += "        foreach(FILE_NAME IN LISTS EXCLUDE_FILES)\n";
+    content += "            if(FILE_PATH STREQUAL FILE_NAME)\n";
+    content += "                set(SHOULD_EXCLUDE TRUE)\n";
+    content += "                break()\n";
+    content += "            endif()\n";
+    content += "        endforeach()\n";
+    content += "    endif()\n";
+    content += "\n";
+    content += "    # Check if file has an excluded extension\n";
+    content += "    if(NOT SHOULD_EXCLUDE AND DEFINED EXCLUDE_EXTENSIONS)\n";
+    content += "        get_filename_component(FILE_EXT \"${FILE_PATH}\" EXT)\n";
+    content += "        foreach(EXT IN LISTS EXCLUDE_EXTENSIONS)\n";
+    content += "            if(FILE_EXT STREQUAL EXT)\n";
+    content += "                set(SHOULD_EXCLUDE TRUE)\n";
+    content += "                break()\n";
+    content += "            endif()\n";
+    content += "        endforeach()\n";
+    content += "    endif()\n";
+    content += "\n";
+    content += "    if(NOT SHOULD_EXCLUDE)\n";
+    content += "        set(SRC_FILE \"${SOURCE_DIR}/${FILE_PATH}\")\n";
+    content += "        set(DST_FILE \"${DEST_DIR}/${FILE_PATH}\")\n";
+    content += "\n";
+    content += "        # Get parent directory and create it if needed\n";
+    content += "        get_filename_component(DST_DIR \"${DST_FILE}\" DIRECTORY)\n";
+    content += "        file(MAKE_DIRECTORY \"${DST_DIR}\")\n";
+    content += "\n";
+    content += "        # Copy file if source is newer or destination doesn't exist\n";
+    content += "        if(NOT EXISTS \"${DST_FILE}\")\n";
+    content += "            file(COPY \"${SRC_FILE}\" DESTINATION \"${DST_DIR}\")\n";
+    content += "        else()\n";
+    content += "            file(TIMESTAMP \"${SRC_FILE}\" SRC_TIME)\n";
+    content += "            file(TIMESTAMP \"${DST_FILE}\" DST_TIME)\n";
+    content += "            if(SRC_TIME IS_NEWER_THAN DST_TIME)\n";
+    content += "                file(COPY \"${SRC_FILE}\" DESTINATION \"${DST_DIR}\")\n";
+    content += "            endif()\n";
+    content += "        endif()\n";
+    content += "    endif()\n";
+    content += "endforeach()\n";
     return content;
 }
 
@@ -578,6 +713,9 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     cmakeContent += "    OUTPUT_NAME \"" + libName + "\"\n";
     cmakeContent += "    PREFIX \"\"\n";
     cmakeContent += ")\n";
+
+    cmakeContent += getCopyProjectAssetsCMakeConfig(libName);
+    cmakeContent += getCopyShadersCMakeConfig(libName);
 
     // Build C++ source content
     std::string sourceContent;
@@ -747,9 +885,11 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
 
     const fs::path cmakeFile = projectPath / "CMakeLists.txt";
     const fs::path sourceFile = projectInternalPath / "project_main.cpp";
+    const fs::path copyTreeScriptFile = projectPath / "cmake" / "copy_tree_excluding.cmake";
 
     writeIfChanged(cmakeFile, cmakeContent);
     writeIfChanged(sourceFile, sourceContent);
+    writeIfChanged(copyTreeScriptFile, getCopyTreeExcludingCMakeScript());
 }
 
 void Editor::Generator::terminateCurrentProcess() {
