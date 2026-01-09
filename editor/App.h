@@ -143,6 +143,8 @@ namespace Supernova::Editor{
         // Thread-safe: schedules a task to run on the main/GL thread during the next frame.
         void enqueueMainThreadTask(std::function<void()> task);
 
+        static std::filesystem::path getUserCacheBaseDir();
+
         Project* getProject();
         const Project* getProject() const;
 

@@ -17,6 +17,14 @@
 
 #include "shader/ShaderBuilder.h"
 
+#include <filesystem>
+#include <cstdlib>
+
+#if defined(_WIN32)
+  #include <windows.h>
+  #include <shlobj.h>
+#endif
+
 using namespace Supernova;
 
 ImVec4 Editor::App::ThemeColors::ButtonActivated;
@@ -780,6 +788,54 @@ void Editor::App::registerProjectSaveDialog(std::function<void()> callback) {
         processNextSaveDialog();
     }
     // If queue has more items or another dialog is open, they'll be processed later
+}
+
+std::filesystem::path Editor::App::getUserCacheBaseDir() {
+    // Cache the result to avoid repeated syscalls/env lookups
+    static std::filesystem::path cached = []() -> std::filesystem::path {
+    #if defined(_WIN32)
+        // Ensure COM is initialized for SHGetKnownFolderPath
+        // Using COINIT_APARTMENTTHREADED is safe for most GUI apps
+        HRESULT hrInit = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+        // hrInit == S_OK means we initialized, RPC_E_CHANGED_MODE means already initialized differently (OK)
+        // We don't call CoUninitialize here since we want COM available for the app lifetime
+
+        PWSTR widePath = nullptr;
+        if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &widePath)) && widePath) {
+            std::filesystem::path p(widePath);
+            CoTaskMemFree(widePath);
+            return p; // e.g. C:\Users\<you>\AppData\Local
+        }
+        // Fallback to environment variable
+        if (const char* localAppData = std::getenv("LOCALAPPDATA"); localAppData && *localAppData) {
+            return std::filesystem::path(localAppData);
+        }
+        return std::filesystem::temp_directory_path();
+
+    #elif defined(__APPLE__)
+        // Conventional macOS cache location: ~/Library/Caches
+        const char* home = std::getenv("HOME");
+        if (home && *home) {
+            return std::filesystem::path(home) / "Library" / "Caches";
+        }
+        return std::filesystem::temp_directory_path();
+
+    #else
+        // Linux / other Unix: XDG Base Dir spec
+        // Prefer $XDG_CACHE_HOME, fallback to ~/.cache
+        const char* xdg = std::getenv("XDG_CACHE_HOME");
+        if (xdg && *xdg) {
+            return std::filesystem::path(xdg);
+        }
+        const char* home = std::getenv("HOME");
+        if (home && *home) {
+            return std::filesystem::path(home) / ".cache";
+        }
+        return std::filesystem::temp_directory_path();
+    #endif
+    }();
+
+    return cached;
 }
 
 Editor::Project* Editor::App::getProject(){

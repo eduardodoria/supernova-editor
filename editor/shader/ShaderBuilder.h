@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <mutex>
 #include <future>
+#include <filesystem>
 
 #include "supershader.h"
 #include "shaders.h"
@@ -52,6 +53,8 @@ namespace Supernova::Editor {
         ShaderData buildShaderInternal(ShaderKey shaderKey, Project* project);
         std::string getShaderDisplayName(ShaderKey key);
 
+        static std::filesystem::path getShaderCachePath(ShaderKey shaderKey, Project* project);
+
     public:
         ShaderBuilder();
         virtual ~ShaderBuilder();
@@ -59,6 +62,9 @@ namespace Supernova::Editor {
         ShaderBuildResult buildShader(ShaderKey shaderKey, Project* project);
 
         static void requestShutdown();
+
+        // Serialize ShaderData cache on demand (no disk I/O inside buildShaderInternal).
+        static bool saveShaderDataCache(ShaderKey shaderKey, Project* project, const ShaderData& shaderData, std::string* err = nullptr);
 
         ShaderData& getShaderData(ShaderKey shaderKey);
     };

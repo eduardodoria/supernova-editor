@@ -1,5 +1,8 @@
 #include "ShaderBuilder.h"
 
+#include "ShaderDataSerializer.h"
+#include "App.h"
+
 #include "thread/ResourceProgress.h"
 #include "thread/ThreadPoolManager.h"
 
@@ -273,11 +276,26 @@ void Editor::ShaderBuilder::addLinesPropertyDefinitions(std::vector<supershader:
 }
 
 ShaderBuildResult Editor::ShaderBuilder::buildShader(ShaderKey shaderKey, Project* project) {
-    std::lock_guard<std::mutex> lock(cacheMutex);
+    std::unique_lock<std::mutex> lock(cacheMutex);
 
     // Check if already in cache
     if (shaderDataCache.count(shaderKey)){
         return ShaderBuildResult(shaderDataCache[shaderKey], ResourceLoadState::Finished);
+    }
+
+    // Try disk cache (<cache>/supernova/shaders/<version>/<basename>.sdat)
+    if (project) {
+        lock.unlock();
+        ShaderData diskData;
+        std::string err;
+        const std::filesystem::path cachePath = getShaderCachePath(shaderKey, project);
+        if (ShaderDataSerializer::readFromFile(cachePath.string(), shaderKey, diskData, &err)) {
+            lock.lock();
+            shaderDataCache[shaderKey] = diskData;
+            printf("Shader loaded from disk cache: %s\n", cachePath.string().c_str());
+            return ShaderBuildResult(diskData, ResourceLoadState::Finished);
+        }
+        lock.lock();
     }
 
     // Check if already building
@@ -289,6 +307,11 @@ ShaderBuildResult Editor::ShaderBuilder::buildShader(ShaderKey shaderKey, Projec
                 ShaderData data = future.get();
                 shaderDataCache[shaderKey] = data;
                 pendingBuilds.erase(shaderKey);
+
+                lock.unlock();
+                // Persist cache after build finishes (outside lock).
+                (void)saveShaderDataCache(shaderKey, project, data);
+
                 return ShaderBuildResult(data, ResourceLoadState::Finished);
             } catch (const std::exception& e) {
                 pendingBuilds.erase(shaderKey);
@@ -422,28 +445,8 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey, Proje
     }
     ResourceProgress::updateProgress(shaderKey, 0.9f); // Cross-compilation done
 
-    // Generate .sbs file inside <project>/.supernova/shaders before converting to ShaderData
-    {
-        std::filesystem::path shadersDir = project->getProjectInternalPath() / "shaders";
-        std::error_code ec;
-        std::filesystem::create_directories(shadersDir, ec);
-        if (ec) {
-            ResourceProgress::failBuild(shaderKey);
-            throw std::runtime_error("Failed to create shaders output directory: " + shadersDir.string());
-        }
-
-        args.output_basename = ShaderPool::getShaderStr(shaderType, properties) + "_glsl410";
-        args.output_dir = shadersDir.generic_string();
-        if (!args.output_dir.empty() && args.output_dir.back() != '/') {
-            args.output_dir.push_back('/');
-        }
-
-        if (!supershader::generate_sbs(spirvcrossvec, inputs, args)) {
-            ResourceProgress::failBuild(shaderKey);
-            throw std::runtime_error("Failed to generate .sbs file");
-        }
-    }
-
+    // Use a deterministic basename for stage naming and disk cache
+    args.output_basename = ShaderPool::getShaderStr(shaderType, properties) + "_glsl410";
     ShaderData shaderData = convertToShaderData(spirvcrossvec, inputs, args);
 
     if (shutdownRequested) {
@@ -455,6 +458,40 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey, Proje
     printf("Shader (%s, %s, %u) generated successfully\n", args.vert_file.c_str(), args.frag_file.c_str(), properties);
 
     return shaderData;
+}
+
+std::filesystem::path Editor::ShaderBuilder::getShaderCachePath(ShaderKey shaderKey, Project* project) {
+    if (!project) {
+        return {};
+    }
+
+    ShaderType shaderType = ShaderPool::getShaderTypeFromKey(shaderKey);
+    uint32_t properties = ShaderPool::getPropertiesFromKey(shaderKey);
+    std::string basename = ShaderPool::getShaderStr(shaderType, properties) + "_glsl410";
+
+    return App::getUserCacheBaseDir() / "supernova" / "shaders" / "v1" / (basename + ".sdat");
+}
+
+bool Editor::ShaderBuilder::saveShaderDataCache(ShaderKey shaderKey, Project* project, const ShaderData& shaderData, std::string* err) {
+    if (!project) {
+        return false;
+    }
+
+    const std::filesystem::path cachePath = getShaderCachePath(shaderKey, project);
+    if (cachePath.empty()) {
+        return false;
+    }
+
+    std::error_code ec;
+    std::filesystem::create_directories(cachePath.parent_path(), ec);
+    if (ec) {
+        if (err) {
+            *err = "Failed to create shader cache directory: " + cachePath.parent_path().string();
+        }
+        return false;
+    }
+
+    return ShaderDataSerializer::writeToFile(cachePath.string(), shaderKey, shaderData, err);
 }
 
 std::string Editor::ShaderBuilder::getShaderDisplayName(ShaderKey key) {
