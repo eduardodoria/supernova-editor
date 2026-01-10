@@ -58,6 +58,8 @@ namespace Supernova::Editor {
         bool runCommand(const std::string& command, const fs::path& workingDir);
         bool writeIfChanged(const fs::path& filePath, const std::string& newContent);
         std::string getPlatformCMakeConfig();
+        std::string getPlatformEditorHeader();
+        std::string getPlatformEditorSource();
 
         void writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, std::string libName, const std::vector<ScriptSource>& scriptFiles, const std::vector<SceneData>& scenes);
         void terminateCurrentProcess();

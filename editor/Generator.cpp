@@ -352,103 +352,20 @@ std::string Editor::Generator::getPlatformCMakeConfig() {
     content += "    add_definitions(\"-DDEFAULT_WINDOW_WIDTH=960\")\n";
     content += "    add_definitions(\"-DDEFAULT_WINDOW_HEIGHT=540\")\n";
     content += "\n";
-    content += "    if(NOT GRAPHIC_BACKEND)\n";
-    content += "        if(CMAKE_SYSTEM_NAME STREQUAL \"Emscripten\")\n";
-    content += "            set(GRAPHIC_BACKEND \"gles3\")\n";
-    content += "        elseif(CMAKE_SYSTEM_NAME STREQUAL \"Android\")\n";
-    content += "            set(GRAPHIC_BACKEND \"gles3\")\n";
-    content += "        elseif(CMAKE_SYSTEM_NAME STREQUAL \"Windows\")\n";
-    content += "            set(GRAPHIC_BACKEND \"d3d11\")\n";
-    content += "            #set(GRAPHIC_BACKEND \"glcore\")\n";
-    content += "        elseif(CMAKE_SYSTEM_NAME STREQUAL \"Linux\")\n";
-    content += "            set(GRAPHIC_BACKEND \"glcore\")\n";
-    content += "        elseif(CMAKE_SYSTEM_NAME STREQUAL \"FreeBSD\")\n";
-    content += "            set(GRAPHIC_BACKEND \"glcore\")\n";
-    content += "        elseif(CMAKE_SYSTEM_NAME STREQUAL \"Darwin\")\n";
-    content += "            set(GRAPHIC_BACKEND \"metal\")\n";
-    content += "            #set(GRAPHIC_BACKEND \"glcore\")\n";
-    content += "        elseif(CMAKE_SYSTEM_NAME STREQUAL \"iOS\")\n";
-    content += "            set(GRAPHIC_BACKEND \"metal\")\n";
-    content += "        else()\n";
-    content += "            message(FATAL_ERROR \"GRAPHIC_BACKEND is not set\")\n";
-    content += "        endif()\n";
-    content += "    endif()\n";
-    content += "    message(STATUS \"Graphic backend is set to ${GRAPHIC_BACKEND}\")\n";
-    content += "\n";
-    content += "    if(NOT APP_BACKEND)\n";
-    content += "        if(CMAKE_SYSTEM_NAME STREQUAL \"Emscripten\")\n";
-    content += "            set(APP_BACKEND \"emscripten\")\n";
-    content += "        elseif(CMAKE_SYSTEM_NAME STREQUAL \"Android\")\n";
-    content += "            set(APP_BACKEND \"android\")\n";
-    content += "        elseif(CMAKE_SYSTEM_NAME STREQUAL \"Windows\")\n";
-    content += "            set(APP_BACKEND \"sokol\")\n";
-    content += "        elseif(CMAKE_SYSTEM_NAME STREQUAL \"Linux\")\n";
-    content += "            #set(APP_BACKEND \"sokol\")\n";
-    content += "            set(APP_BACKEND \"glfw\")\n";
-    content += "        elseif(CMAKE_SYSTEM_NAME STREQUAL \"FreeBSD\")\n";
-    content += "            #set(APP_BACKEND \"sokol\")\n";
-    content += "            set(APP_BACKEND \"glfw\")\n";
-    content += "        elseif(CMAKE_SYSTEM_NAME STREQUAL \"Darwin\")\n";
-    content += "            if (CMAKE_GENERATOR STREQUAL \"Xcode\")\n";
-    content += "                set(APP_BACKEND \"apple\")\n";
-    content += "            else()\n";
-    content += "                set(APP_BACKEND \"sokol\")\n";
-    content += "                #set(APP_BACKEND \"glfw\")\n";
-    content += "            endif()\n";
-    content += "        elseif(CMAKE_SYSTEM_NAME STREQUAL \"iOS\")\n";
-    content += "            set(APP_BACKEND \"apple\")\n";
-    content += "        else()\n";
-    content += "            message(FATAL_ERROR \"APP_BACKEND is not set\")\n";
-    content += "        endif()\n";
-    content += "    endif()\n";
-    content += "    message(STATUS \"Application backend is set to ${APP_BACKEND}\")\n";
-    content += "\n";
     content += "    set(COMPILE_ZLIB OFF)\n";
     content += "    set(IS_ARM OFF)\n";
     content += "\n";
-    content += "    if((CMAKE_SYSTEM_NAME STREQUAL \"Linux\") OR (CMAKE_SYSTEM_NAME STREQUAL \"FreeBSD\"))\n";
-    content += "        if(GRAPHIC_BACKEND STREQUAL \"glcore\")\n";
-    content += "            add_definitions(\"-DSOKOL_GLCORE\")\n";
-    content += "        endif()\n";
+    content += "    add_definitions(\"-DSOKOL_GLCORE\")\n";
+    content += "    add_definitions(\"-DWITH_MINIAUDIO\") # For SoLoud\n";
     content += "\n";
-    content += "        add_definitions(\"-DWITH_MINIAUDIO\") # For SoLoud\n";
+    content += "    list(APPEND PLATFORM_SOURCE\n";
+    content += "        ${INTERNAL_DIR}/generated/PlatformEditor.cpp\n";
+    content += "        ${INTERNAL_DIR}/generated/main.cpp\n";
+    content += "    )\n";
     content += "\n";
-    content += "        if (EXISTS \"${PROJECT_ROOT}/assets\")\n";
-    content += "            set(ASSETS_DEST_DIR ${CMAKE_BINARY_DIR}/assets)\n";
-    content += "        endif()\n";
-    content += "        if (EXISTS \"${PROJECT_ROOT}/lua\")\n";
-    content += "            set(LUA_DEST_DIR ${CMAKE_BINARY_DIR}/lua)\n";
-    content += "        endif()\n";
-    content += "\n";
-    content += "        if (APP_BACKEND STREQUAL \"glfw\")\n";
-    content += "            add_definitions(\"-DSUPERNOVA_GLFW\")\n";
-    content += "            message(STATUS \"Using GLFW as application backend\")\n";
-    content += "\n";
-    content += "            set(PLATFORM_ROOT ${INTERNAL_DIR}/platform/glfw)\n";
-    content += "\n";
-    content += "            list(APPEND PLATFORM_SOURCE\n";
-    content += "                ${PLATFORM_ROOT}/SupernovaGLFW.cpp\n";
-    content += "                ${PLATFORM_ROOT}/main.cpp\n";
-    content += "            )\n";
-    content += "\n";
-    content += "            list(APPEND PLATFORM_LIBS\n";
-    content += "                GL dl m glfw\n";
-    content += "            )\n";
-    content += "        else()\n";
-    content += "            add_definitions(\"-DSUPERNOVA_SOKOL\")\n";
-    content += "\n";
-    content += "            set(PLATFORM_ROOT  ${INTERNAL_DIR}/platform/sokol)\n";
-    content += "\n";
-    content += "            list(APPEND PLATFORM_SOURCE\n";
-    content += "                ${PLATFORM_ROOT}/SupernovaSokol.cpp\n";
-    content += "                ${PLATFORM_ROOT}/main.cpp\n";
-    content += "            )\n";
-    content += "\n";
-    content += "            list(APPEND PLATFORM_LIBS\n";
-    content += "\n";
-    content += "            )\n";
-    content += "        endif()\n";
-    content += "    endif()\n";
+    content += "    list(APPEND PLATFORM_LIBS\n";
+    content += "        GL dl m glfw\n";
+    content += "    )\n";
     content += "endif() \n";
     return content;
 }
@@ -464,10 +381,10 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
 
     // Build FACTORY_SOURCES list for CMake (generated by Factory in configure())
     std::string factorySources = "set(FACTORY_SOURCES\n";
-    factorySources += "    " + internalPathStr + "/init.cpp\n";
+    factorySources += "    " + internalPathStr + "/generated/init.cpp\n";
     for (const auto& sceneData : scenes) {
         std::string filename = Factory::toIdentifier(sceneData.name) + ".cpp";
-        factorySources += "    " + internalPathStr + "/" + filename + "\n";
+        factorySources += "    " + internalPathStr + "/generated/" + filename + "\n";
     }
     factorySources += ")\n";
 
@@ -495,8 +412,6 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     cmakeContent += "set(PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})\n";
     cmakeContent += "set(INTERNAL_DIR ${PROJECT_ROOT}/.supernova)\n\n";
 
-    cmakeContent += getPlatformCMakeConfig() + "\n";
-
     cmakeContent += "# Specify C++ standard\n";
     cmakeContent += "set(CMAKE_CXX_STANDARD 17)\n";
     cmakeContent += "set(CMAKE_CXX_STANDARD_REQUIRED ON)\n\n";
@@ -507,19 +422,21 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     cmakeContent += "    add_compile_definitions(SUPERNOVA_EDITOR_PLUGIN)\n";
     cmakeContent += "endif()\n\n";
 
+    cmakeContent += getPlatformCMakeConfig() + "\n";
+
     cmakeContent += scriptSources + "\n";
     cmakeContent += factorySources + "\n";
-    cmakeContent += "set(PROJECT_MAIN_SOURCE " + internalPathStr + "/project_main.cpp)\n\n";
+    cmakeContent += "set(PROJECT_SOURCE " + internalPathStr + "/init_scripts.cpp)\n\n";
     cmakeContent += "# Project target\n";
     cmakeContent += "if(NOT CMAKE_SYSTEM_NAME STREQUAL \"Android\" AND NOT SUPERNOVA_EDITOR_PLUGIN)\n";
     cmakeContent += "    add_executable(" + libName + "\n";
-    cmakeContent += "        ${PROJECT_MAIN_SOURCE}\n";
+    cmakeContent += "        ${PROJECT_SOURCE}\n";
     cmakeContent += "        ${SCRIPT_SOURCES}\n";
     cmakeContent += "        ${PLATFORM_SOURCE}\n";
     cmakeContent += "    )\n";
     cmakeContent += "else()\n";
     cmakeContent += "    add_library(" + libName + " SHARED\n";
-    cmakeContent += "        ${PROJECT_MAIN_SOURCE}\n";
+    cmakeContent += "        ${PROJECT_SOURCE}\n";
     cmakeContent += "        ${SCRIPT_SOURCES}\n";
     cmakeContent += "        ${PLATFORM_SOURCE}\n";
     cmakeContent += "    )\n";
@@ -750,7 +667,7 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     sourceContent += "}\n";
 
     const fs::path cmakeFile = projectPath / "CMakeLists.txt";
-    const fs::path sourceFile = projectInternalPath / "project_main.cpp";
+    const fs::path sourceFile = projectInternalPath / "init_scripts.cpp";
 
     writeIfChanged(cmakeFile, cmakeContent);
     writeIfChanged(sourceFile, sourceContent);
@@ -786,11 +703,33 @@ void Editor::Generator::terminateCurrentProcess() {
 }
 
 void Editor::Generator::configure(const std::vector<SceneData>& scenes, const fs::path& projectInternalPath){
+    const fs::path generatedPath = projectInternalPath / "generated";
+
+    if (generatedPath.empty() || generatedPath == generatedPath.root_path()) {
+        Out::error("Refusing to clear generated directory: invalid path '%s'", generatedPath.string().c_str());
+        return;
+    }
+
+    std::error_code ec;
+    if (fs::exists(generatedPath, ec)) {
+        fs::remove_all(generatedPath, ec);
+        if (ec) {
+            Out::warning("Failed to clear generated directory '%s': %s", generatedPath.string().c_str(), ec.message().c_str());
+        }
+    }
+
+    ec.clear();
+    fs::create_directories(generatedPath, ec);
+    if (ec) {
+        Out::error("Failed to create generated directory '%s': %s", generatedPath.string().c_str(), ec.message().c_str());
+        return;
+    }
+
     for (const auto& sceneData : scenes) {
         std::string sceneContent = Factory::createScene(0, sceneData.scene, sceneData.name, sceneData.entities, sceneData.camera);
 
         std::string filename = Factory::toIdentifier(sceneData.name) + ".cpp";
-        const fs::path sourceFile = projectInternalPath / filename;
+        const fs::path sourceFile = generatedPath / filename;
 
         writeIfChanged(sourceFile, sceneContent);
     }
@@ -801,7 +740,7 @@ void Editor::Generator::configure(const std::vector<SceneData>& scenes, const fs
     initContent += "\n";
     initContent += "using namespace Supernova;\n\n";
 
-    // initScene is generated in project_main.cpp; call it after initializing each scene
+    // initScene is generated in init_scripts.cpp; call it after initializing each scene
     initContent += "extern \"C\" void initScene(Supernova::Scene* scene);\n\n";
 
     // Forward declarations for per-scene initialization functions (defined in generated scene .cpp files)
@@ -817,7 +756,7 @@ void Editor::Generator::configure(const std::vector<SceneData>& scenes, const fs
     }
     initContent += "\n";
 
-    initContent += "SUPERNOVA_INIT void init(){\n";
+    initContent += "SUPERNOVA_INIT void init() {\n";
     for (const auto& sceneData : scenes) {
         std::string sceneName = Factory::toIdentifier(sceneData.name);
         initContent += "    create_" + sceneName + "(&" + sceneName + ");\n";
@@ -839,8 +778,262 @@ void Editor::Generator::configure(const std::vector<SceneData>& scenes, const fs
     }
     initContent += "}\n";
 
-    const fs::path initFile = projectInternalPath / "init.cpp";
+    const fs::path initFile = generatedPath / "init.cpp";
     writeIfChanged(initFile, initContent);
+
+    // Build main.cpp content
+    std::string mainContent;
+    mainContent += "#include \"PlatformEditor.h\"\n";
+    mainContent += "\n";
+
+    mainContent += "int main(int argc, char* argv[]) {\n";
+    mainContent += "    return PlatformEditor::init(argc, argv);\n";
+    mainContent += "}\n";
+
+    const fs::path mainFile = generatedPath / "main.cpp";
+    writeIfChanged(mainFile, mainContent);
+
+    const fs::path platformHeaderFile = generatedPath / "PlatformEditor.h";
+    writeIfChanged(platformHeaderFile, getPlatformEditorHeader());
+
+    const fs::path platformSourceFile = generatedPath / "PlatformEditor.cpp";
+    writeIfChanged(platformSourceFile, getPlatformEditorSource());
+}
+
+std::string Editor::Generator::getPlatformEditorHeader() {
+    std::string content;
+    content += "#pragma once\n\n";
+    content += "#define GLFW_INCLUDE_NONE\n";
+    content += "#include \"GLFW/glfw3.h\"\n\n";
+    content += "#include \"System.h\"\n\n";
+    content += "class PlatformEditor: public Supernova::System{\n\n";
+    content += "private:\n\n";
+    content += "    static int windowPosX;\n";
+    content += "    static int windowPosY;\n";
+    content += "    static int windowWidth;\n";
+    content += "    static int windowHeight;\n\n";
+    content += "    static int screenWidth;\n";
+    content += "    static int screenHeight;\n\n";
+    content += "    static double mousePosX;\n";
+    content += "    static double mousePosY;\n\n";
+    content += "    static int sampleCount;\n\n";
+    content += "    static GLFWwindow* window;\n";
+    content += "    static GLFWmonitor* monitor;\n\n";
+    content += "public:\n\n";
+    content += "    PlatformEditor();\n\n";
+    content += "    static int init(int argc, char **argv);\n\n";
+    content += "    virtual int getScreenWidth();\n";
+    content += "    virtual int getScreenHeight();\n\n";
+    content += "    virtual int getSampleCount();\n\n";
+    content += "    virtual bool isFullscreen();\n";
+    content += "    virtual void requestFullscreen();\n";
+    content += "    virtual void exitFullscreen();\n\n";
+    content += "    virtual void setMouseCursor(Supernova::CursorType type);\n";
+    content += "    virtual void setShowCursor(bool showCursor);\n\n";
+    content += "    virtual std::string getAssetPath();\n";
+    content += "    virtual std::string getUserDataPath();\n";
+    content += "    virtual std::string getLuaPath();\n\n";
+    content += "};\n";
+    return content;
+}
+
+std::string Editor::Generator::getPlatformEditorSource() {
+    std::string content;
+    content += "#include \"PlatformEditor.h\"\n\n";
+    content += "#include \"Engine.h\"\n\n";
+    content += "int PlatformEditor::windowPosX;\n";
+    content += "int PlatformEditor::windowPosY;\n";
+    content += "int PlatformEditor::windowWidth;\n";
+    content += "int PlatformEditor::windowHeight;\n\n";
+    content += "int PlatformEditor::screenWidth;\n";
+    content += "int PlatformEditor::screenHeight;\n\n";
+    content += "double PlatformEditor::mousePosX;\n";
+    content += "double PlatformEditor::mousePosY;\n\n";
+    content += "int PlatformEditor::sampleCount;\n\n";
+    content += "GLFWwindow* PlatformEditor::window;\n";
+    content += "GLFWmonitor* PlatformEditor::monitor;\n\n\n";
+    content += "PlatformEditor::PlatformEditor(){\n\n";
+    content += "}\n\n";
+    content += "int PlatformEditor::init(int argc, char **argv){\n";
+    content += "    windowWidth = DEFAULT_WINDOW_WIDTH;\n";
+    content += "    windowHeight = DEFAULT_WINDOW_HEIGHT;\n\n";
+    content += "    sampleCount = 1;\n\n";
+    content += "    Supernova::Engine::systemInit(argc, argv, new PlatformEditor());\n\n";
+    content += "    /* create window and GL context via GLFW */\n";
+    content += "    glfwInit();\n";
+    content += "    glfwWindowHint(GLFW_SAMPLES, (sampleCount == 1) ? 0 : sampleCount);\n";
+    content += "    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);\n";
+    content += "    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);\n";
+    content += "    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);\n";
+    content += "    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);\n";
+    content += "    window = glfwCreateWindow(windowWidth, windowHeight, \"Supernova\", 0, 0);\n\n";
+    content += "    glfwMakeContextCurrent(window);\n";
+    content += "    glfwSwapInterval(1);\n\n";
+    content += "    monitor = glfwGetPrimaryMonitor();\n\n";
+    content += "    glfwSetMouseButtonCallback(window, [](GLFWwindow*, int btn, int action, int mods) {\n";
+    content += "        if (action==GLFW_PRESS){\n";
+    content += "            Supernova::Engine::systemMouseDown(btn, float(mousePosX), float(mousePosY), mods);\n";
+    content += "        }else if (action==GLFW_RELEASE){\n";
+    content += "            Supernova::Engine::systemMouseUp(btn, float(mousePosX), float(mousePosY), mods);\n";
+    content += "        }\n";
+    content += "    });\n";
+    content += "    glfwSetCursorPosCallback(window, [](GLFWwindow*, double pos_x, double pos_y) {\n";
+    content += "        float xscale, yscale;\n";
+    content += "        glfwGetWindowContentScale(window, &xscale, &yscale);\n\n";
+    content += "        mousePosX = pos_x * xscale;\n";
+    content += "        mousePosY = pos_y * yscale;\n";
+    content += "        Supernova::Engine::systemMouseMove(float(pos_x), float(pos_y), 0);\n";
+    content += "    });\n";
+    content += "    glfwSetScrollCallback(window, [](GLFWwindow*, double pos_x, double pos_y){\n";
+    content += "        Supernova::Engine::systemMouseScroll((float)pos_x, (float)pos_y, 0);\n";
+    content += "    });\n";
+    content += "    glfwSetKeyCallback(window, [](GLFWwindow*, int key, int /*scancode*/, int action, int mods){\n";
+    content += "        if (action==GLFW_PRESS){\n";
+    content += "            if (key == GLFW_KEY_TAB)\n";
+    content += "                Supernova::Engine::systemCharInput('\\t');\n";
+    content += "            if (key == GLFW_KEY_BACKSPACE)\n";
+    content += "                Supernova::Engine::systemCharInput('\\b');\n";
+    content += "            if (key == GLFW_KEY_ENTER)\n";
+    content += "                Supernova::Engine::systemCharInput('\\r');\n";
+    content += "            if (key == GLFW_KEY_ESCAPE)\n";
+    content += "                Supernova::Engine::systemCharInput('\\e');\n";
+    content += "            Supernova::Engine::systemKeyDown(key, false, mods);\n";
+    content += "        }else if (action==GLFW_REPEAT){\n";
+    content += "            Supernova::Engine::systemKeyDown(key, true, mods);\n";
+    content += "        }else if (action==GLFW_RELEASE){\n";
+    content += "            Supernova::Engine::systemKeyUp(key, false, mods);\n";
+    content += "        }\n";
+    content += "    });\n";
+    content += "    glfwSetCharCallback(window, [](GLFWwindow*, unsigned int codepoint){\n";
+    content += "        Supernova::Engine::systemCharInput(codepoint);\n";
+    content += "    });\n\n";
+    content += "    int cur_width, cur_height;\n";
+    content += "    glfwGetFramebufferSize(window, &cur_width, &cur_height);\n\n";
+    content += "    PlatformEditor::screenWidth = cur_width;\n";
+    content += "    PlatformEditor::screenHeight = cur_height;\n\n";
+    content += "    Supernova::Engine::systemViewLoaded();\n";
+    content += "    Supernova::Engine::systemViewChanged();\n\n";
+    content += "    /* draw loop */\n";
+    content += "    while (!glfwWindowShouldClose(window)) {\n";
+    content += "        int cur_width, cur_height;\n";
+    content += "        glfwGetFramebufferSize(window, &cur_width, &cur_height);\n\n";
+    content += "        if (cur_width != PlatformEditor::screenWidth || cur_height != PlatformEditor::screenHeight){\n";
+    content += "            PlatformEditor::screenWidth = cur_width;\n";
+    content += "            PlatformEditor::screenHeight = cur_height;\n";
+    content += "            Supernova::Engine::systemViewChanged();\n";
+    content += "        }\n\n";
+    content += "        Supernova::Engine::systemDraw();\n\n";
+    content += "        glfwSwapBuffers(window);\n";
+    content += "        glfwPollEvents();\n";
+    content += "    }\n\n";
+    content += "    Supernova::Engine::systemViewDestroyed();\n";
+    content += "    Supernova::Engine::systemShutdown();\n";
+    content += "    glfwTerminate();\n";
+    content += "    return 0;\n";
+    content += "}\n\n";
+    content += "int PlatformEditor::getScreenWidth(){\n";
+    content += "    return PlatformEditor::screenWidth;\n";
+    content += "}\n\n";
+    content += "int PlatformEditor::getScreenHeight(){\n";
+    content += "    return PlatformEditor::screenHeight;\n";
+    content += "}\n\n";
+    content += "int PlatformEditor::getSampleCount(){\n";
+    content += "    return PlatformEditor::sampleCount;\n";
+    content += "}\n\n";
+    content += "bool PlatformEditor::isFullscreen(){\n";
+    content += "    return glfwGetWindowMonitor(window) != nullptr;\n";
+    content += "}\n\n";
+    content += "void PlatformEditor::requestFullscreen(){\n";
+    content += "    if (isFullscreen())\n";
+    content += "        return;\n\n";
+    content += "    // backup window position and window size\n";
+    content += "    glfwGetWindowPos(window, &windowPosX, &windowPosY);\n";
+    content += "    glfwGetWindowSize(window, &windowWidth, &windowHeight);\n\n";
+    content += "    // get resolution of monitor\n";
+    content += "    const GLFWvidmode * mode = glfwGetVideoMode(monitor);\n\n";
+    content += "    // switch to full screen\n";
+    content += "    glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, 0 );\n";
+    content += "}\n\n";
+    content += "void PlatformEditor::exitFullscreen(){\n";
+    content += "    if (!isFullscreen())\n";
+    content += "        return;\n\n";
+    content += "    // restore last window size and position\n";
+    content += "    glfwSetWindowMonitor(window, nullptr,  windowPosX, windowPosY, windowWidth, windowHeight, 0);\n";
+    content += "}\n\n";
+    content += "void PlatformEditor::setMouseCursor(Supernova::CursorType type){\n";
+    content += "    GLFWcursor* cursor = NULL;\n\n";
+    content += "    if (type == Supernova::CursorType::ARROW){\n";
+    content += "        cursor = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);\n";
+    content += "    }else if (type == Supernova::CursorType::IBEAM){\n";
+    content += "        cursor = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);\n";
+    content += "    }else if (type == Supernova::CursorType::CROSSHAIR){\n";
+    content += "        cursor = glfwCreateStandardCursor(GLFW_CROSSHAIR_CURSOR);\n";
+    content += "    }else if (type == Supernova::CursorType::POINTING_HAND){\n";
+    content += "        #ifdef GLFW_POINTING_HAND_CURSOR\n";
+    content += "        cursor = glfwCreateStandardCursor(GLFW_POINTING_HAND_CURSOR);\n";
+    content += "        #else\n";
+    content += "        cursor = glfwCreateStandardCursor(GLFW_HAND_CURSOR);\n";
+    content += "        #endif\n";
+    content += "    }else if (type == Supernova::CursorType::RESIZE_EW){\n";
+    content += "        #ifdef GLFW_RESIZE_EW_CURSOR\n";
+    content += "        cursor = glfwCreateStandardCursor(GLFW_RESIZE_EW_CURSOR);\n";
+    content += "        #else\n";
+    content += "        cursor = glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR);\n";
+    content += "        #endif\n";
+    content += "    }else if (type == Supernova::CursorType::RESIZE_NS){\n";
+    content += "        #ifdef GLFW_RESIZE_NS_CURSOR\n";
+    content += "        cursor = glfwCreateStandardCursor(GLFW_RESIZE_NS_CURSOR);\n";
+    content += "        #else\n";
+    content += "        cursor = glfwCreateStandardCursor(GLFW_VRESIZE_CURSOR);\n";
+    content += "        #endif\n";
+    content += "    }else if (type == Supernova::CursorType::RESIZE_NWSE){\n";
+    content += "        #ifdef GLFW_RESIZE_NWSE_CURSOR\n";
+    content += "        cursor = glfwCreateStandardCursor(GLFW_RESIZE_NWSE_CURSOR);\n";
+    content += "        #else\n";
+    content += "        cursor = glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR);\n";
+    content += "        #endif\n";
+    content += "    }else if (type == Supernova::CursorType::RESIZE_NESW){\n";
+    content += "        #ifdef GLFW_RESIZE_NESW_CURSOR\n";
+    content += "        cursor = glfwCreateStandardCursor(GLFW_RESIZE_NESW_CURSOR);\n";
+    content += "        #else\n";
+    content += "        cursor = glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR);\n";
+    content += "        #endif\n";
+    content += "    }else if (type == Supernova::CursorType::RESIZE_ALL){\n";
+    content += "        #ifdef GLFW_RESIZE_ALL_CURSOR\n";
+    content += "        cursor = glfwCreateStandardCursor(GLFW_RESIZE_ALL_CURSOR);\n";
+    content += "        #else\n";
+    content += "        cursor = glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR);\n";
+    content += "        #endif\n";
+    content += "    }else if (type == Supernova::CursorType::NOT_ALLOWED){\n";
+    content += "        #ifdef GLFW_NOT_ALLOWED_CURSOR\n";
+    content += "        cursor = glfwCreateStandardCursor(GLFW_NOT_ALLOWED_CURSOR);\n";
+    content += "        #else\n";
+    content += "        cursor = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);\n";
+    content += "        #endif\n";
+    content += "    }\n\n";
+    content += "    if (cursor) {\n";
+    content += "        glfwSetCursor(window, cursor);\n";
+    content += "    } else {\n";
+    content += "        // Handle error: cursor creation failed\n";
+    content += "    }\n";
+    content += "}\n\n";
+    content += "void PlatformEditor::setShowCursor(bool showCursor){\n";
+    content += "    if (showCursor){\n";
+    content += "        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);\n";
+    content += "    }else{\n";
+    content += "        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);\n";
+    content += "    }\n";
+    content += "}\n\n";
+    content += "std::string PlatformEditor::getAssetPath(){\n";
+    content += "    return \"assets\";\n";
+    content += "}\n\n";
+    content += "std::string PlatformEditor::getUserDataPath(){\n";
+    content += "    return \".\";\n";
+    content += "}\n\n";
+    content += "std::string PlatformEditor::getLuaPath(){\n";
+    content += "    return \"lua\";\n";
+    content += "}\n";
+    return content;
 }
 
 void Editor::Generator::build(const fs::path projectPath, const fs::path projectInternalPath, const fs::path buildPath, std::string libName, const std::vector<ScriptSource>& scriptFiles, const std::vector<SceneData>& scenes) {
