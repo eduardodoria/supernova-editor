@@ -580,8 +580,10 @@ std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::st
         }
         firstEntity = false;
         out << ind2 << "{\n";
-        out << ind3 << "// Entity " << entity << "\n";
-        out << ind3 << "scene->recreateEntity(" << entity << ");\n\n";
+        std::string entityName = scene->getEntityName(entity);
+        out << ind3 << "// Entity " << entity << " (" << entityName << ")\n";
+        out << ind3 << "scene->recreateEntity(" << entity << ");\n";
+        out << ind3 << "scene->setEntityName(" << entity << ", " << formatString(entityName) << ");\n\n";
 
         // Create and set all components
         std::string componentsCode = createAllComponents(indentSpaces+8, scene, entity, "scene");
