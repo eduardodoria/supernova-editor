@@ -838,6 +838,10 @@ std::filesystem::path Editor::App::getUserCacheBaseDir() {
     return cached;
 }
 
+std::filesystem::path Editor::App::getUserShaderCacheDir(){
+    return App::getUserCacheBaseDir() / "supernova" / "shaders" / "v1";
+}
+
 Editor::Project* Editor::App::getProject(){
     return &project;
 }

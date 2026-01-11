@@ -1,6 +1,7 @@
 // Generator.cpp
 #include "Generator.h"
 #include "Factory.h"
+#include "App.h"
 #include "editor/Out.h"
 
 #include <cstdlib>
@@ -832,7 +833,8 @@ std::string Editor::Generator::getPlatformEditorHeader() {
     content += "    virtual void setShowCursor(bool showCursor);\n\n";
     content += "    virtual std::string getAssetPath();\n";
     content += "    virtual std::string getUserDataPath();\n";
-    content += "    virtual std::string getLuaPath();\n\n";
+    content += "    virtual std::string getLuaPath();\n";
+    content += "    virtual std::string getShaderPath();\n\n";
     content += "};\n";
     return content;
 }
@@ -1025,13 +1027,16 @@ std::string Editor::Generator::getPlatformEditorSource() {
     content += "    }\n";
     content += "}\n\n";
     content += "std::string PlatformEditor::getAssetPath(){\n";
-    content += "    return \"assets\";\n";
+    content += "    return \"..\";\n";
     content += "}\n\n";
     content += "std::string PlatformEditor::getUserDataPath(){\n";
     content += "    return \".\";\n";
     content += "}\n\n";
     content += "std::string PlatformEditor::getLuaPath(){\n";
-    content += "    return \"lua\";\n";
+    content += "    return \"..\";\n";
+    content += "}\n\n";
+    content += "std::string PlatformEditor::getShaderPath(){\n";
+    content += "    return \"" + App::getUserShaderCacheDir().string() + "\";\n";
     content += "}\n";
     return content;
 }

@@ -144,6 +144,7 @@ namespace Supernova::Editor{
         void enqueueMainThreadTask(std::function<void()> task);
 
         static std::filesystem::path getUserCacheBaseDir();
+        static std::filesystem::path getUserShaderCacheDir();
 
         Project* getProject();
         const Project* getProject() const;

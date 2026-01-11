@@ -469,7 +469,7 @@ std::filesystem::path Editor::ShaderBuilder::getShaderCachePath(ShaderKey shader
     uint32_t properties = ShaderPool::getPropertiesFromKey(shaderKey);
     std::string basename = ShaderPool::getShaderStr(shaderType, properties) + "_glsl410";
 
-    return App::getUserCacheBaseDir() / "supernova" / "shaders" / "v1" / (basename + ".sdat");
+    return App::getUserShaderCacheDir() / (basename + ".sdat");
 }
 
 bool Editor::ShaderBuilder::saveShaderDataCache(ShaderKey shaderKey, Project* project, const ShaderData& shaderData, std::string* err) {
