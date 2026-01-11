@@ -7,8 +7,10 @@
 #include <cctype>
 #include <unordered_set>
 #include <algorithm>
+#include <filesystem>
 
 using namespace Supernova;
+namespace fs = std::filesystem;
 
 Editor::Factory::Factory(){
 }
@@ -245,6 +247,54 @@ std::string Editor::Factory::formatAttributeDataType(AttributeDataType type) {
     }
 }
 
+std::string Editor::Factory::formatTextureFilter(TextureFilter filter) {
+    switch (filter) {
+        case TextureFilter::NEAREST: return "TextureFilter::NEAREST";
+        case TextureFilter::LINEAR: return "TextureFilter::LINEAR";
+        case TextureFilter::NEAREST_MIPMAP_NEAREST: return "TextureFilter::NEAREST_MIPMAP_NEAREST";
+        case TextureFilter::NEAREST_MIPMAP_LINEAR: return "TextureFilter::NEAREST_MIPMAP_LINEAR";
+        case TextureFilter::LINEAR_MIPMAP_NEAREST: return "TextureFilter::LINEAR_MIPMAP_NEAREST";
+        case TextureFilter::LINEAR_MIPMAP_LINEAR: return "TextureFilter::LINEAR_MIPMAP_LINEAR";
+        default: return "TextureFilter::LINEAR";
+    }
+}
+
+std::string Editor::Factory::formatTextureWrap(TextureWrap wrap) {
+    switch (wrap) {
+        case TextureWrap::REPEAT: return "TextureWrap::REPEAT";
+        case TextureWrap::MIRRORED_REPEAT: return "TextureWrap::MIRRORED_REPEAT";
+        case TextureWrap::CLAMP_TO_EDGE: return "TextureWrap::CLAMP_TO_EDGE";
+        case TextureWrap::CLAMP_TO_BORDER: return "TextureWrap::CLAMP_TO_BORDER";
+        default: return "TextureWrap::REPEAT";
+    }
+}
+
+std::string Editor::Factory::formatTexture(int indentSpaces, const Texture& texture, const std::string& variableName, const std::string& projectPath) {
+    if (texture.empty()) return "";
+    std::ostringstream code;
+    std::string ind = indentation(indentSpaces);
+
+    if (!texture.getPath().empty()){
+        std::string path = texture.getPath();
+        if (!projectPath.empty()) {
+            fs::path pPath = projectPath;
+            fs::path tPath = path;
+            try {
+                path = fs::relative(tPath, pPath).string();
+            } catch (...) {
+            }
+        }
+        code << ind << variableName << ".setPath(" << formatString(path) << ");\n";
+    }
+
+    code << ind << variableName << ".setMinFilter(" << formatTextureFilter(texture.getMinFilter()) << ");\n";
+    code << ind << variableName << ".setMagFilter(" << formatTextureFilter(texture.getMagFilter()) << ");\n";
+    code << ind << variableName << ".setWrapU(" << formatTextureWrap(texture.getWrapU()) << ");\n";
+    code << ind << variableName << ".setWrapV(" << formatTextureWrap(texture.getWrapV()) << ");\n";
+
+    return code.str();
+}
+
 std::string Editor::Factory::formatPropertyValue(const PropertyData& property, const std::string& propertyName) {
     switch (property.type) {
         case PropertyType::Bool: {
@@ -322,7 +372,7 @@ std::string Editor::Factory::createTransform(int indentSpaces, Scene* scene, Ent
     return code.str();
 }
 
-std::string Editor::Factory::createMeshComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createMeshComponent(int indentSpaces, Scene* scene, Entity entity, const std::string& projectPath, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<MeshComponent>(entity)) return "";
     MeshComponent& mesh = scene->getComponent<MeshComponent>(entity);
     std::ostringstream code;
@@ -340,6 +390,12 @@ std::string Editor::Factory::createMeshComponent(int indentSpaces, Scene* scene,
         code << ind << "mesh.submeshes[" << idx << "].material.metallicFactor = " << formatFloat(mesh.submeshes[s].material.metallicFactor) << ";\n";
         code << ind << "mesh.submeshes[" << idx << "].material.roughnessFactor = " << formatFloat(mesh.submeshes[s].material.roughnessFactor) << ";\n";
         code << ind << "mesh.submeshes[" << idx << "].material.emissiveFactor = " << formatVector3(mesh.submeshes[s].material.emissiveFactor) << ";\n";
+
+        code << formatTexture(indentSpaces, mesh.submeshes[s].material.baseColorTexture, "mesh.submeshes[" + idx + "].material.baseColorTexture", projectPath);
+        code << formatTexture(indentSpaces, mesh.submeshes[s].material.emissiveTexture, "mesh.submeshes[" + idx + "].material.emissiveTexture", projectPath);
+        code << formatTexture(indentSpaces, mesh.submeshes[s].material.metallicRoughnessTexture, "mesh.submeshes[" + idx + "].material.metallicRoughnessTexture", projectPath);
+        code << formatTexture(indentSpaces, mesh.submeshes[s].material.occlusionTexture, "mesh.submeshes[" + idx + "].material.occlusionTexture", projectPath);
+        code << formatTexture(indentSpaces, mesh.submeshes[s].material.normalTexture, "mesh.submeshes[" + idx + "].material.normalTexture", projectPath);
 
         code << ind << "mesh.submeshes[" << idx << "].primitiveType = " << formatPrimitiveType(mesh.submeshes[s].primitiveType) << ";\n";
         code << ind << "mesh.submeshes[" << idx << "].vertexCount = " << formatUInt(mesh.submeshes[s].vertexCount) << ";\n";
@@ -397,13 +453,14 @@ std::string Editor::Factory::createMeshComponent(int indentSpaces, Scene* scene,
     return code.str();
 }
 
-std::string Editor::Factory::createUIComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createUIComponent(int indentSpaces, Scene* scene, Entity entity, const std::string& projectPath, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<UIComponent>(entity)) return "";
     UIComponent& ui = scene->getComponent<UIComponent>(entity);
     std::ostringstream code;
     const std::string ind = indentation(indentSpaces);
     code << ind << "UIComponent ui;\n";
     code << ind << "ui.color = " << formatVector4(ui.color) << ";\n";
+    code << formatTexture(indentSpaces, ui.texture, "ui.texture", projectPath);
     addComponentCode(code, ind, sceneName, entityName, entity, "UIComponent", "ui");
     return code.str();
 }
@@ -520,11 +577,11 @@ std::string Editor::Factory::createScriptComponent(int indentSpaces, Scene* scen
     return code.str();
 }
 
-std::string Editor::Factory::createComponent(int indentSpaces, Scene* scene, Entity entity, ComponentType componentType, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createComponent(int indentSpaces, Scene* scene, Entity entity, ComponentType componentType, const std::string& projectPath, std::string sceneName, std::string entityName) {
     switch (componentType) {
         case ComponentType::Transform: return createTransform(indentSpaces, scene, entity, sceneName, entityName);
-        case ComponentType::MeshComponent: return createMeshComponent(indentSpaces, scene, entity, sceneName, entityName);
-        case ComponentType::UIComponent: return createUIComponent(indentSpaces, scene, entity, sceneName, entityName);
+        case ComponentType::MeshComponent: return createMeshComponent(indentSpaces, scene, entity, projectPath, sceneName, entityName);
+        case ComponentType::UIComponent: return createUIComponent(indentSpaces, scene, entity, projectPath, sceneName, entityName);
         case ComponentType::UILayoutComponent: return createUILayoutComponent(indentSpaces, scene, entity, sceneName, entityName);
         case ComponentType::ImageComponent: return createImageComponent(indentSpaces, scene, entity, sceneName, entityName);
         case ComponentType::SpriteComponent: return createSpriteComponent(indentSpaces, scene, entity, sceneName, entityName);
@@ -535,7 +592,7 @@ std::string Editor::Factory::createComponent(int indentSpaces, Scene* scene, Ent
     }
 }
 
-std::string Editor::Factory::createAllComponents(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createAllComponents(int indentSpaces, Scene* scene, Entity entity, const std::string& projectPath, std::string sceneName, std::string entityName) {
     // Find all components for this entity
     std::vector<ComponentType> components = Catalog::findComponents(scene, entity);
 
@@ -545,7 +602,7 @@ std::string Editor::Factory::createAllComponents(int indentSpaces, Scene* scene,
 
     bool first = true;
     for (ComponentType componentType : components) {
-        std::string componentCode = createComponent(indentSpaces, scene, entity, componentType, sceneName, entityName);
+        std::string componentCode = createComponent(indentSpaces, scene, entity, componentType, projectPath, sceneName, entityName);
         if (!componentCode.empty()) {
             if (!first) {
                 code << "\n";
@@ -558,7 +615,7 @@ std::string Editor::Factory::createAllComponents(int indentSpaces, Scene* scene,
     return code.str();
 }
 
-std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::string name, std::vector<Entity> entities, Entity camera) {
+std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::string name, std::vector<Entity> entities, Entity camera, const std::string& projectPath) {
     std::ostringstream out;
 
     std::string mainSceneVar = toIdentifier(name);
@@ -586,7 +643,7 @@ std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::st
         out << ind3 << "scene->setEntityName(" << entity << ", " << formatString(entityName) << ");\n\n";
 
         // Create and set all components
-        std::string componentsCode = createAllComponents(indentSpaces+8, scene, entity, "scene");
+        std::string componentsCode = createAllComponents(indentSpaces+8, scene, entity, projectPath, "scene");
         out << componentsCode;
         out << ind2 << "}\n";
     }
@@ -597,7 +654,7 @@ std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::st
             out << ind2 << "// Default Camera " << camera << "\n";
             out << ind2 << "Entity cameraEntity = scene->createSystemEntity();\n";
             out << "\n";
-            std::string componentsCode = createAllComponents(indentSpaces+4, scene, camera, "scene", "cameraEntity");
+            std::string componentsCode = createAllComponents(indentSpaces+4, scene, camera, projectPath, "scene", "cameraEntity");
             out << componentsCode;
         }else{
             out << "\n";
@@ -612,7 +669,7 @@ std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::st
     return out.str();
 }
 
-std::string Editor::Factory::setComponent(Scene* scene, Entity entity, ComponentType componentType) {
+std::string Editor::Factory::setComponent(Scene* scene, Entity entity, ComponentType componentType, const std::string& projectPath) {
     // Check if entity has this component
     Signature signature = scene->getSignature(entity);
     ComponentId compId = Catalog::getComponentId(scene, componentType);
@@ -642,8 +699,13 @@ std::string Editor::Factory::setComponent(Scene* scene, Entity entity, Component
 
     // Generate code for each property
     for (const auto& [propertyName, propertyData] : properties) {
-        std::string formattedValue = formatPropertyValue(propertyData, propertyName);
-        code << "        " << varName << "." << propertyName << " = " << formattedValue << ";\n";
+        if (propertyData.type == PropertyType::Texture){
+            Texture* tex = static_cast<Texture*>(propertyData.ref);
+            code << formatTexture(8, *tex, varName + "." + propertyName, projectPath);
+        }else{
+            std::string formattedValue = formatPropertyValue(propertyData, propertyName);
+            code << "        " << varName << "." << propertyName << " = " << formattedValue << ";\n";
+        }
     }
 
     code << "    }\n";
@@ -651,7 +713,7 @@ std::string Editor::Factory::setComponent(Scene* scene, Entity entity, Component
     return code.str();
 }
 
-std::string Editor::Factory::setAllComponents(Scene* scene, Entity entity) {
+std::string Editor::Factory::setAllComponents(Scene* scene, Entity entity, const std::string& projectPath) {
     // Find all components for this entity
     std::vector<ComponentType> components = Catalog::findComponents(scene, entity);
 
@@ -662,7 +724,7 @@ std::string Editor::Factory::setAllComponents(Scene* scene, Entity entity) {
 
     bool first = true;
     for (ComponentType componentType : components) {
-        std::string componentCode = setComponent(scene, entity, componentType);
+        std::string componentCode = setComponent(scene, entity, componentType, projectPath);
         if (!componentCode.empty()) {
             if (!first) {
                 code << "\n";
