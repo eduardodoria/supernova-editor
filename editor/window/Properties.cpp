@@ -225,7 +225,7 @@ void Editor::Properties::drawImageWithBorderAndRounding(Texture* texture, const 
 
 void Editor::Properties::dragDropResources(ComponentType cpType, std::string id, SceneProject* sceneProject, std::vector<Entity> entities, ComponentType componentType){
     // Block DnD while playing for non-script components
-    if (sceneProject) {
+    if (sceneProject && sceneProject->playState != ScenePlayState::STOPPED) {
         return;
     }
 
