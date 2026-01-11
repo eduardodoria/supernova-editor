@@ -191,6 +191,60 @@ std::string Editor::Factory::formatString(const std::string& value) {
     return "\"" + value + "\"";
 }
 
+std::string Editor::Factory::formatAttributeType(AttributeType type) {
+    switch (type) {
+        case AttributeType::INDEX: return "AttributeType::INDEX";
+        case AttributeType::POSITION: return "AttributeType::POSITION";
+        case AttributeType::TEXCOORD1: return "AttributeType::TEXCOORD1";
+        case AttributeType::NORMAL: return "AttributeType::NORMAL";
+        case AttributeType::TANGENT: return "AttributeType::TANGENT";
+        case AttributeType::COLOR: return "AttributeType::COLOR";
+        case AttributeType::POINTSIZE: return "AttributeType::POINTSIZE";
+        case AttributeType::POINTROTATION: return "AttributeType::POINTROTATION";
+        case AttributeType::TEXTURERECT: return "AttributeType::TEXTURERECT";
+        case AttributeType::BONEWEIGHTS: return "AttributeType::BONEWEIGHTS";
+        case AttributeType::BONEIDS: return "AttributeType::BONEIDS";
+        case AttributeType::MORPHTARGET0: return "AttributeType::MORPHTARGET0";
+        case AttributeType::MORPHTARGET1: return "AttributeType::MORPHTARGET1";
+        case AttributeType::MORPHTARGET2: return "AttributeType::MORPHTARGET2";
+        case AttributeType::MORPHTARGET3: return "AttributeType::MORPHTARGET3";
+        case AttributeType::MORPHTARGET4: return "AttributeType::MORPHTARGET4";
+        case AttributeType::MORPHTARGET5: return "AttributeType::MORPHTARGET5";
+        case AttributeType::MORPHTARGET6: return "AttributeType::MORPHTARGET6";
+        case AttributeType::MORPHTARGET7: return "AttributeType::MORPHTARGET7";
+        case AttributeType::MORPHNORMAL0: return "AttributeType::MORPHNORMAL0";
+        case AttributeType::MORPHNORMAL1: return "AttributeType::MORPHNORMAL1";
+        case AttributeType::MORPHNORMAL2: return "AttributeType::MORPHNORMAL2";
+        case AttributeType::MORPHNORMAL3: return "AttributeType::MORPHNORMAL3";
+        case AttributeType::MORPHTANGENT0: return "AttributeType::MORPHTANGENT0";
+        case AttributeType::MORPHTANGENT1: return "AttributeType::MORPHTANGENT1";
+        case AttributeType::INSTANCEMATRIXCOL1: return "AttributeType::INSTANCEMATRIXCOL1";
+        case AttributeType::INSTANCEMATRIXCOL2: return "AttributeType::INSTANCEMATRIXCOL2";
+        case AttributeType::INSTANCEMATRIXCOL3: return "AttributeType::INSTANCEMATRIXCOL3";
+        case AttributeType::INSTANCEMATRIXCOL4: return "AttributeType::INSTANCEMATRIXCOL4";
+        case AttributeType::INSTANCECOLOR: return "AttributeType::INSTANCECOLOR";
+        case AttributeType::INSTANCETEXTURERECT: return "AttributeType::INSTANCETEXTURERECT";
+        case AttributeType::TERRAINNODEPOSITION: return "AttributeType::TERRAINNODEPOSITION";
+        case AttributeType::TERRAINNODESIZE: return "AttributeType::TERRAINNODESIZE";
+        case AttributeType::TERRAINNODERANGE: return "AttributeType::TERRAINNODERANGE";
+        case AttributeType::TERRAINNODERESOLUTION: return "AttributeType::TERRAINNODERESOLUTION";
+        default: return "AttributeType::POSITION";
+    }
+}
+
+std::string Editor::Factory::formatAttributeDataType(AttributeDataType type) {
+    switch (type) {
+        case AttributeDataType::BYTE: return "AttributeDataType::BYTE";
+        case AttributeDataType::UNSIGNED_BYTE: return "AttributeDataType::UNSIGNED_BYTE";
+        case AttributeDataType::SHORT: return "AttributeDataType::SHORT";
+        case AttributeDataType::UNSIGNED_SHORT: return "AttributeDataType::UNSIGNED_SHORT";
+        case AttributeDataType::INT: return "AttributeDataType::INT";
+        case AttributeDataType::UNSIGNED_INT: return "AttributeDataType::UNSIGNED_INT";
+        case AttributeDataType::FLOAT: return "AttributeDataType::FLOAT";
+        default: return "AttributeDataType::FLOAT";
+    }
+}
+
 std::string Editor::Factory::formatPropertyValue(const PropertyData& property, const std::string& propertyName) {
     switch (property.type) {
         case PropertyType::Bool: {
@@ -276,6 +330,7 @@ std::string Editor::Factory::createMeshComponent(int indentSpaces, Scene* scene,
     code << ind << "MeshComponent mesh;\n";
     code << ind << "mesh.castShadows = " << formatBool(mesh.castShadows) << ";\n";
     code << ind << "mesh.receiveShadows = " << formatBool(mesh.receiveShadows) << ";\n";
+    code << ind << "mesh.vertexCount = " << formatUInt(mesh.vertexCount) << ";\n";
     //code << ind << "mesh.submeshes.resize(" << formatUInt(mesh.numSubmeshes) << ");\n";
     code << ind << "mesh.numSubmeshes = " << formatUInt(mesh.numSubmeshes) << ";\n";
     for (unsigned int s = 0; s < mesh.numSubmeshes; s++){
@@ -287,10 +342,57 @@ std::string Editor::Factory::createMeshComponent(int indentSpaces, Scene* scene,
         code << ind << "mesh.submeshes[" << idx << "].material.emissiveFactor = " << formatVector3(mesh.submeshes[s].material.emissiveFactor) << ";\n";
 
         code << ind << "mesh.submeshes[" << idx << "].primitiveType = " << formatPrimitiveType(mesh.submeshes[s].primitiveType) << ";\n";
+        code << ind << "mesh.submeshes[" << idx << "].vertexCount = " << formatUInt(mesh.submeshes[s].vertexCount) << ";\n";
         code << ind << "mesh.submeshes[" << idx << "].faceCulling = " << formatBool(mesh.submeshes[s].faceCulling) << ";\n";
         code << ind << "mesh.submeshes[" << idx << "].textureShadow = " << formatBool(mesh.submeshes[s].textureShadow) << ";\n";
         code << ind << "mesh.submeshes[" << idx << "].textureRect = " << formatRect(mesh.submeshes[s].textureRect) << ";\n";
     }
+
+    if (mesh.buffer.getSize() > 0){
+        code << ind << "mesh.buffer.clearAll();\n";
+        std::map<AttributeType, Attribute> attributes = mesh.buffer.getAttributes();
+
+        std::vector<std::pair<AttributeType, Attribute>> sortedAttributes(attributes.begin(), attributes.end());
+        std::sort(sortedAttributes.begin(), sortedAttributes.end(), 
+            [](const std::pair<AttributeType, Attribute>& a, const std::pair<AttributeType, Attribute>& b) {
+                return a.second.getOffset() < b.second.getOffset();
+            });
+
+        for (auto const& [type, val] : sortedAttributes) {
+            std::string perInstanceCode = "";
+            if (val.getPerInstance())
+                perInstanceCode = ", true";
+            code << ind << "mesh.buffer.addAttribute(" << formatAttributeType(type) << ", " << val.getElements() << perInstanceCode << ");\n";
+        }
+
+        code << ind << "{\n";
+        code << ind << "    unsigned char data[] = {";
+        unsigned char* bufData = mesh.buffer.getData();
+        for(size_t i=0; i<mesh.buffer.getSize(); i++){
+                if (i % 50 == 0) code << "\n" << ind << "        ";
+                code << "0x" << std::hex << (int)bufData[i] << std::dec << ", ";
+        }
+        code << "};\n";
+        code << ind << "    mesh.buffer.importData(data, sizeof(data));\n";
+        code << ind << "}\n";
+        code << ind << "mesh.buffer.setCount(" << formatUInt(mesh.buffer.getCount()) << ");\n";
+    }
+
+    if (mesh.indices.getSize() > 0){
+        code << ind << "mesh.indices.clearAll();\n";
+        code << ind << "{\n";
+        code << ind << "    unsigned char data[] = {";
+        unsigned char* idxData = mesh.indices.getData();
+        for(size_t i=0; i<mesh.indices.getSize(); i++){
+                if (i % 50 == 0) code << "\n" << ind << "        ";
+                code << "0x" << std::hex << (int)idxData[i] << std::dec << ", ";
+        }
+        code << "};\n";
+        code << ind << "    mesh.indices.importData(data, sizeof(data));\n";
+        code << ind << "}\n";
+        code << ind << "mesh.indices.setCount(" << formatUInt(mesh.indices.getCount()) << ");\n";
+    }
+
     addComponentCode(code, ind, sceneName, entityName, entity, "MeshComponent", "mesh");
     return code.str();
 }

@@ -26,6 +26,8 @@ namespace Supernova::Editor{
         static std::string formatInt(int value);
         static std::string formatUInt(unsigned int value);
         static std::string formatString(const std::string& value);
+        static std::string formatAttributeType(AttributeType type);
+        static std::string formatAttributeDataType(AttributeDataType type);
 
         static std::string formatPropertyValue(const PropertyData& property, const std::string& propertyName);
 
