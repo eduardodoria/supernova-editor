@@ -58,6 +58,7 @@ namespace Supernova::Editor{
         static std::string createLightComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
         static std::string createCameraComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
         static std::string createScriptComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
+        static std::string createSkyComponent(int indentSpaces, Scene* scene, Entity entity, const std::string& projectPath, std::string sceneName = "", std::string entityName = "");
     };
 
 }

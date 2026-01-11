@@ -539,6 +539,13 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
                 }
             }
         }
+    }else if (component == ComponentType::SkyComponent){
+        SkyComponent* comp = static_cast<SkyComponent*>(compRef);
+        static SkyComponent* def = new SkyComponent;
+
+        ps["texture"] = {PropertyType::Texture, UpdateFlags_Sky_Texture, (void*)&def->texture, (compRef) ? (void*)&comp->texture : nullptr};
+        ps["color"] = {PropertyType::Vector4, UpdateFlags_None, (void*)&def->color, (compRef) ? (void*)&comp->color : nullptr};
+        ps["rotation"] = {PropertyType::Float, UpdateFlags_Sky, (void*)&def->rotation, (compRef) ? (void*)&comp->rotation : nullptr};
     }
 
     return ps;
@@ -723,6 +730,10 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::findEntityPropertie
         if (ScriptComponent* compRef = registry->findComponent<ScriptComponent>(entity)){
             return getProperties(component, compRef);
         }
+    }else if (component == ComponentType::SkyComponent){
+        if (SkyComponent* compRef = registry->findComponent<SkyComponent>(entity)){
+            return getProperties(component, compRef);
+        }
     }
 
     return std::map<std::string, Editor::PropertyData>();
@@ -768,6 +779,12 @@ void Editor::Catalog::updateEntity(EntityRegistry* registry, Entity entity, int 
     }
     if (updateFlags & UpdateFlags_Layout_Sizes){
         registry->getComponent<UILayoutComponent>(entity).needUpdateSizes = true;
+    if (updateFlags & UpdateFlags_Sky_Texture){
+        registry->getComponent<SkyComponent>(entity).needUpdateTexture = true;
+    }
+    if (updateFlags & UpdateFlags_Sky){
+        registry->getComponent<SkyComponent>(entity).needUpdateSky = true;
+    }
     }
     if (updateFlags & UpdateFlags_Sprite){
         registry->getComponent<SpriteComponent>(entity).needUpdateSprite = true;
@@ -826,6 +843,12 @@ void Editor::Catalog::copyComponent(EntityRegistry* sourceRegistry, Entity sourc
         case ComponentType::CameraComponent: {
             YAML::Node encoded = Stream::encodeCameraComponent(sourceRegistry->getComponent<CameraComponent>(sourceEntity));
             targetRegistry->getComponent<CameraComponent>(targetEntity) = Stream::decodeCameraComponent(encoded);
+            break;
+        }
+
+        case ComponentType::SkyComponent: {
+            YAML::Node encoded = Stream::encodeSkyComponent(sourceRegistry->getComponent<SkyComponent>(sourceEntity));
+            targetRegistry->getComponent<SkyComponent>(targetEntity) = Stream::decodeSkyComponent(encoded);
             break;
         }
 

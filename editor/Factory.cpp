@@ -577,6 +577,21 @@ std::string Editor::Factory::createScriptComponent(int indentSpaces, Scene* scen
     return code.str();
 }
 
+std::string Editor::Factory::createSkyComponent(int indentSpaces, Scene* scene, Entity entity, const std::string& projectPath, std::string sceneName, std::string entityName) {
+    if (!scene->findComponent<SkyComponent>(entity)) return "";
+    SkyComponent& sky = scene->getComponent<SkyComponent>(entity);
+    std::ostringstream code;
+    const std::string ind = indentation(indentSpaces);
+    code << ind << "SkyComponent sky;\n";
+
+    code << formatTexture(indentSpaces, sky.texture, "sky.texture", projectPath);
+    code << ind << "sky.color = " << formatVector4(sky.color) << ";\n";
+    code << ind << "sky.rotation = " << formatFloat(sky.rotation) << ";\n";
+
+    addComponentCode(code, ind, sceneName, entityName, entity, "SkyComponent", "sky");
+    return code.str();
+}
+
 std::string Editor::Factory::createComponent(int indentSpaces, Scene* scene, Entity entity, ComponentType componentType, const std::string& projectPath, std::string sceneName, std::string entityName) {
     switch (componentType) {
         case ComponentType::Transform: return createTransform(indentSpaces, scene, entity, sceneName, entityName);
@@ -588,6 +603,7 @@ std::string Editor::Factory::createComponent(int indentSpaces, Scene* scene, Ent
         case ComponentType::LightComponent: return createLightComponent(indentSpaces, scene, entity, sceneName, entityName);
         case ComponentType::CameraComponent: return createCameraComponent(indentSpaces, scene, entity, sceneName, entityName);
         case ComponentType::ScriptComponent: return createScriptComponent(indentSpaces, scene, entity, sceneName, entityName);
+        case ComponentType::SkyComponent: return createSkyComponent(indentSpaces, scene, entity, projectPath, sceneName, entityName);
         default: return "";
     }
 }

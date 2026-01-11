@@ -24,6 +24,7 @@ namespace Supernova::Editor{
         POINT_LIGHT,
         DIRECTIONAL_LIGHT,
         SPOT_LIGHT,
+        SKY,
         CAMERA
     };
 

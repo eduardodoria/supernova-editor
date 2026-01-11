@@ -19,7 +19,9 @@ namespace Supernova::Editor{
         UpdateFlags_Layout_Sizes        = 1 << 8,
         UpdateFlags_Sprite              = 1 << 9,
         UpdateFlags_LightShadowMap      = 1 << 10,
-        UpdateFlags_LightShadowCamera   = 1 << 11
+        UpdateFlags_LightShadowCamera   = 1 << 11,
+        UpdateFlags_Sky_Texture         = 1 << 12,
+        UpdateFlags_Sky                 = 1 << 13
     };
 
     // the order of components here affects properties window

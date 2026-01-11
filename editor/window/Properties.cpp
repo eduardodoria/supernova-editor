@@ -2694,6 +2694,16 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
     }
 }
 
+void Editor::Properties::drawSkyComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+    beginTable(cpType, getLabelSize("rotation"));
+
+    propertyRow(RowPropertyType::Texture, cpType, "texture", "Texture", sceneProject, entities);
+    propertyRow(RowPropertyType::Color4L, cpType, "color", "Color", sceneProject, entities);
+    propertyRow(RowPropertyType::Float, cpType, "rotation", "Rotation", sceneProject, entities);
+
+    endTable();
+}
+
 void Editor::Properties::show(){
     ImGui::Begin("Properties");
 
@@ -2947,8 +2957,9 @@ void Editor::Properties::show(){
                     drawLightComponent(cpType, sceneProject, entities);
                 }else if (cpType == ComponentType::CameraComponent){
                     drawCameraComponent(cpType, sceneProject, entities);
+                }else if (cpType == ComponentType::SkyComponent){
+                    drawSkyComponent(cpType, sceneProject, entities);
                 }else if (cpType == ComponentType::ScriptComponent){
-                    // ScriptComponent remains editable while playing
                     drawScriptComponent(cpType, sceneProject, entities);
                 }
 

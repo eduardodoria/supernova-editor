@@ -1304,6 +1304,11 @@ YAML::Node Editor::Stream::encodeComponents(const Entity entity, const EntityReg
         compNode[Catalog::getComponentName(ComponentType::ScriptComponent, true)] = encodeScriptComponent(script);
     }
 
+    if (signature.test(registry->getComponentId<SkyComponent>())) {
+        SkyComponent sky = registry->getComponent<SkyComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::SkyComponent, true)] = encodeSkyComponent(sky);
+    }
+
     return compNode;
 }
 
@@ -1401,6 +1406,16 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
             registry->addComponent<ScriptComponent>(entity, script);
         }else{
             registry->getComponent<ScriptComponent>(entity) = script;
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::SkyComponent, true);
+    if (compNode[compName]) {
+        SkyComponent sky = decodeSkyComponent(compNode[compName], registry->findComponent<SkyComponent>(entity));
+        if (!signature.test(registry->getComponentId<SkyComponent>())){
+            registry->addComponent<SkyComponent>(entity, sky);
+        }else{
+            registry->getComponent<SkyComponent>(entity) = sky;
         }
     }
 }
@@ -2002,4 +2017,28 @@ ScriptComponent Editor::Stream::decodeScriptComponent(const YAML::Node& node, co
     }
 
     return script;
+}
+
+YAML::Node Editor::Stream::encodeSkyComponent(const SkyComponent& sky) {
+    YAML::Node node;
+
+    node["texture"] = encodeTexture(sky.texture);
+    node["color"] = encodeVector4(sky.color);
+    node["rotation"] = sky.rotation;
+
+    return node;
+}
+
+SkyComponent Editor::Stream::decodeSkyComponent(const YAML::Node& node, const SkyComponent* oldSky) {
+    SkyComponent sky;
+
+    if (oldSky) {
+        sky = *oldSky;
+    }
+
+    if (node["texture"]) sky.texture = decodeTexture(node["texture"]);
+    if (node["color"]) sky.color = decodeVector4(node["color"]);
+    if (node["rotation"]) sky.rotation = node["rotation"].as<float>();
+
+    return sky;
 }

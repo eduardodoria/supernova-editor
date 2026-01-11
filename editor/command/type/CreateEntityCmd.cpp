@@ -184,6 +184,10 @@ bool Editor::CreateEntityCmd::execute(){
         light.range = 10.0f;
         light.intensity = 30.0f;
 
+    }else if (type == EntityCreationType::SKY){
+
+        scene->addComponent<SkyComponent>(entity, {});
+
     }else if (type == EntityCreationType::CAMERA){
 
         scene->addComponent<Transform>(entity, {});

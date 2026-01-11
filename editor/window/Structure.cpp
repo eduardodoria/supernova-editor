@@ -110,6 +110,11 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addT
         ImGui::EndMenu();
     }
 
+    if (ImGui::MenuItem(ICON_FA_CLOUD"  Sky")){
+        CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Sky", EntityCreationType::SKY, parent, addToShared));
+        openParent = parent;
+    }
+
     if (ImGui::MenuItem(ICON_FA_PERSON_RUNNING"  Model")){
         // Action for Item 2
     }
@@ -163,6 +168,8 @@ std::string Editor::Structure::getObjectIcon(Signature signature, Scene* scene){
         return ICON_FA_PERSON_WALKING;
     }else if (signature.test(scene->getComponentId<MeshComponent>())){
         return ICON_FA_CUBE;
+    }else if (signature.test(scene->getComponentId<SkyComponent>())){
+        return ICON_FA_CLOUD;
     }else if (signature.test(scene->getComponentId<UIComponent>())){
         return ICON_FA_IMAGE;
     }else if (signature.test(scene->getComponentId<LightComponent>())){
