@@ -45,6 +45,11 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addT
         openParent = parent;
     }
 
+    if (ImGui::MenuItem(ICON_FA_CLOUD"  Sky")){
+        CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Sky", EntityCreationType::SKY, parent, addToShared));
+        openParent = parent;
+    }
+
     if (ImGui::MenuItem(ICON_FA_VIDEO"  Camera")){
         CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Camera", EntityCreationType::CAMERA, parent, addToShared));
         openParent = parent;
@@ -108,11 +113,6 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addT
             openParent = parent;
         }
         ImGui::EndMenu();
-    }
-
-    if (ImGui::MenuItem(ICON_FA_CLOUD"  Sky")){
-        CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Sky", EntityCreationType::SKY, parent, addToShared));
-        openParent = parent;
     }
 
     if (ImGui::MenuItem(ICON_FA_PERSON_RUNNING"  Model")){

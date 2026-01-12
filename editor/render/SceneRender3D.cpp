@@ -21,7 +21,7 @@ Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, tr
     linesOffset = Vector2(0, 0);
 
     lines = new Lines(scene);
-    sky = new SkyBox(scene);
+    //sky = new SkyBox(scene);
 
     TextureData skyBack;
     TextureData skyBottom;
@@ -37,7 +37,7 @@ Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, tr
     skyRight.loadTextureFromMemory(Daylight_Box_Right_png, Daylight_Box_Right_png_len);
     skyTop.loadTextureFromMemory(Daylight_Box_Top_png, Daylight_Box_Top_png_len);
 
-    sky->setTextures("editor:resources:default_sky", skyBack, skyFront, skyLeft, skyRight, skyTop, skyBottom);
+    //sky->setTextures("editor:resources:default_sky", skyFront, skyBack, skyLeft, skyRight, skyTop, skyBottom);
 
     lightObjects.clear();
     cameraObjects.clear();
@@ -63,7 +63,7 @@ Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, tr
 
 Editor::SceneRender3D::~SceneRender3D(){
     delete lines;
-    delete sky;
+    //delete sky;
     delete selLines;
 
     for (auto& pair : lightObjects) {
