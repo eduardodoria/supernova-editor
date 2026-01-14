@@ -461,39 +461,97 @@ Matrix4 Editor::Stream::decodeMatrix4(const YAML::Node& node) {
 
 YAML::Node Editor::Stream::encodeTexture(const Texture& texture) {
     YAML::Node node;
-    if (!texture.empty()) {
-        node["id"] = texture.getId();
-        node["path"] = texture.getPath();
-        node["minFilter"] = textureFilterToString(texture.getMinFilter());
-        node["magFilter"] = textureFilterToString(texture.getMagFilter());
-        node["wrapU"] = textureWrapToString(texture.getWrapU());
-        node["wrapV"] = textureWrapToString(texture.getWrapV());
+    if (texture.empty() || texture.isFramebuffer())
+        return node;
 
-        if (texture.isFramebuffer()) {
-            node["isFramebuffer"] = true;
+    const bool isCube = texture.isCubeMap() || (texture.getNumFaces() == 6);
+    node["textureType"] = isCube ? "CUBE" : "2D";
+
+    // Source selection: prefer filesystem paths; fall back to id only when there is no path.
+    if (!isCube) {
+        const std::string path = texture.getPath(0);
+        if (!path.empty()) {
+            node["source"] = "path";
+            node["path"] = path;
+        } else {
+            node["source"] = "id";
+            node["id"] = texture.getId();
+        }
+    } else {
+        bool hasAnyNonZeroFace = false;
+        bool hasAnyEmptyFace = false;
+        for (int f = 1; f < 6; f++) {
+            if (!texture.getPath((size_t)f).empty()) hasAnyNonZeroFace = true;
+            if (texture.getPath((size_t)f).empty()) hasAnyEmptyFace = true;
         }
 
-        // Add texture dimensions if available
-        if (texture.getWidth() > 0 && texture.getHeight() > 0) {
-            node["width"] = texture.getWidth();
-            node["height"] = texture.getHeight();
+        const bool singleFileCube = !texture.getPath(0).empty() && !hasAnyNonZeroFace;
+        if (singleFileCube) {
+            node["cubeMode"] = "single";
+            node["source"] = "path";
+            node["path"] = texture.getPath(0);
+        } else {
+            node["cubeMode"] = "faces";
+            node["source"] = "paths";
+            YAML::Node pathsNode;
+            pathsNode.SetStyle(YAML::EmitterStyle::Flow);
+            for (int f = 0; f < 6; f++) {
+                pathsNode.push_back(texture.getPath((size_t)f));
+            }
+            node["paths"] = pathsNode;
+            node["hasEmptyFaces"] = hasAnyEmptyFace;
         }
-
-        node["transparent"] = texture.isTransparent();
-        node["releaseDataAfterLoad"] = texture.isReleaseDataAfterLoad();
     }
+
+    node["minFilter"] = textureFilterToString(texture.getMinFilter());
+    node["magFilter"] = textureFilterToString(texture.getMagFilter());
+    node["wrapU"] = textureWrapToString(texture.getWrapU());
+    node["wrapV"] = textureWrapToString(texture.getWrapV());
+    node["releaseDataAfterLoad"] = texture.isReleaseDataAfterLoad();
     return node;
 }
 
 Texture Editor::Stream::decodeTexture(const YAML::Node& node) {
     Texture texture;
     if (node.IsMap()) { // Check if node has data
-        texture.setId(node["id"].as<std::string>());
-        texture.setPath(node["path"].as<std::string>());
-        texture.setMinFilter(stringToTextureFilter(node["minFilter"].as<std::string>()));
-        texture.setMagFilter(stringToTextureFilter(node["magFilter"].as<std::string>()));
-        texture.setWrapU(stringToTextureWrap(node["wrapU"].as<std::string>()));
-        texture.setWrapV(stringToTextureWrap(node["wrapV"].as<std::string>()));
+        const std::string textureType = node["textureType"] ? node["textureType"].as<std::string>() : std::string();
+        const std::string source = node["source"] ? node["source"].as<std::string>() : std::string();
+
+        if (textureType == "CUBE") {
+            const std::string cubeMode = node["cubeMode"] ? node["cubeMode"].as<std::string>() : std::string();
+            if (cubeMode == "single") {
+                if (node["path"]) {
+                    texture.setCubeMap(node["path"].as<std::string>());
+                }
+            } else {
+                if (node["paths"] && node["paths"].IsSequence() && node["paths"].size() == 6) {
+                    std::array<std::string, 6> paths;
+                    for (size_t f = 0; f < 6; f++) {
+                        paths[f] = node["paths"][f].as<std::string>();
+                    }
+
+                    // Set per-face paths individually (supports incomplete cubemaps).
+                    for (size_t f = 0; f < 6; f++) {
+                        texture.setCubePath(f, paths[f]);
+                    }
+                }
+            }
+        } else if (textureType == "2D") {
+            if (source == "path") {
+                if (node["path"]) {
+                    texture.setPath(node["path"].as<std::string>());
+                }
+            } else if (source == "id") {
+                if (node["id"]) {
+                    texture.setId(node["id"].as<std::string>());
+                }
+            }
+        }
+
+        if (node["minFilter"]) texture.setMinFilter(stringToTextureFilter(node["minFilter"].as<std::string>()));
+        if (node["magFilter"]) texture.setMagFilter(stringToTextureFilter(node["magFilter"].as<std::string>()));
+        if (node["wrapU"]) texture.setWrapU(stringToTextureWrap(node["wrapU"].as<std::string>()));
+        if (node["wrapV"]) texture.setWrapV(stringToTextureWrap(node["wrapV"].as<std::string>()));
 
         //if (node["isFramebuffer"] && node["isFramebuffer"].as<bool>()) {
         //    texture.setIsFramebuffer(true);
@@ -504,8 +562,7 @@ Texture Editor::Stream::decodeTexture(const YAML::Node& node) {
         //    texture.setHeight(node["height"].as<int>());
         //}
 
-        //texture.setTransparent(node["transparent"].as<bool>());
-        texture.setReleaseDataAfterLoad(node["releaseDataAfterLoad"].as<bool>());
+        if (node["releaseDataAfterLoad"]) texture.setReleaseDataAfterLoad(node["releaseDataAfterLoad"].as<bool>());
     }
     return texture;
 }

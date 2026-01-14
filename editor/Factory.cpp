@@ -274,17 +274,56 @@ std::string Editor::Factory::formatTexture(int indentSpaces, const Texture& text
     std::ostringstream code;
     std::string ind = indentation(indentSpaces);
 
-    if (!texture.getPath().empty()){
-        std::string path = texture.getPath();
-        if (!projectPath.empty()) {
+    auto normalizePath = [&](const std::string& inPath) {
+        std::string outPath = inPath;
+        if (!outPath.empty() && !projectPath.empty()) {
             fs::path pPath = projectPath;
-            fs::path tPath = path;
+            fs::path tPath = outPath;
             try {
-                path = fs::relative(tPath, pPath).string();
+                outPath = fs::relative(tPath, pPath).string();
             } catch (...) {
             }
         }
-        code << ind << variableName << ".setPath(" << formatString(path) << ");\n";
+        return outPath;
+    };
+
+    const bool isCube = texture.isCubeMap() || (texture.getNumFaces() == 6);
+    if (isCube) {
+        bool hasAnyNonZeroFace = false;
+        for (int f = 1; f < 6; f++) {
+            if (!texture.getPath((size_t)f).empty()) {
+                hasAnyNonZeroFace = true;
+                break;
+            }
+        }
+
+        const std::string p0 = normalizePath(texture.getPath(0));
+        const bool singleFileCube = !p0.empty() && !hasAnyNonZeroFace;
+        if (singleFileCube) {
+            code << ind << variableName << ".setCubeMap(" << formatString(p0) << ");\n";
+        } else {
+            // Face indices (engine order): 0=Right(+X), 1=Left(-X), 2=Top(+Y), 3=Bottom(-Y), 4=Front(+Z), 5=Back(-Z)
+            const std::string p1 = normalizePath(texture.getPath(1));
+            const std::string p2 = normalizePath(texture.getPath(2));
+            const std::string p3 = normalizePath(texture.getPath(3));
+            const std::string p4 = normalizePath(texture.getPath(4));
+            const std::string p5 = normalizePath(texture.getPath(5));
+
+            // setCubePaths takes OpenGL-style naming: (front, back, left, right, up, down)
+            code << ind << variableName << ".setCubePaths(";
+            code << formatString(p4) << ", " << formatString(p5) << ", ";
+            code << formatString(p1) << ", " << formatString(p0) << ", ";
+            code << formatString(p2) << ", " << formatString(p3);
+            code << ");\n";
+        }
+    } else {
+        const std::string p0 = normalizePath(texture.getPath(0));
+        if (!p0.empty()) {
+            code << ind << variableName << ".setPath(" << formatString(p0) << ");\n";
+        } else if (!texture.getId().empty()) {
+            // Path-less textures (e.g., runtime provided). Note: setId() alone does not force a file load.
+            code << ind << variableName << ".setId(" << formatString(texture.getId()) << ");\n";
+        }
     }
 
     code << ind << variableName << ".setMinFilter(" << formatTextureFilter(texture.getMinFilter()) << ");\n";
