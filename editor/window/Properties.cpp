@@ -1744,8 +1744,6 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         ImGui::PushID(("texturecube_"+id).c_str());
 
         auto isSingleFileCube = [](const Texture& t) -> bool {
-            if (t.getPath(0).empty())
-                return false;
             for (size_t i = 1; i < 6; i++){
                 if (!t.getPath(i).empty())
                     return false;
@@ -1763,9 +1761,9 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         ImGui::TextUnformatted("Mode");
         ImGui::SameLine();
         {
-            static const char* modeItems[] = {"Single file", "6 files"};
+            static const char* modeItems[] = {"Cubemap file", "Separate files"};
             int modeIndex = singleMode ? 0 : 1;
-            ImGui::SetNextItemWidth(160.0f);
+            ImGui::SetNextItemWidth(-1);
             if (ImGui::Combo("##cube_mode", &modeIndex, modeItems, IM_ARRAYSIZE(modeItems))){
                 singleMode = (modeIndex == 0);
             }
