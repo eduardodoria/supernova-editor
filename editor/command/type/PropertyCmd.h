@@ -25,7 +25,6 @@ namespace Supernova::Editor{
         uint32_t sceneId;
         ComponentType type;
         std::string propertyName;
-        int updateFlags;
         bool wasModified;
         std::function<void()> onValueChanged;
 
@@ -38,7 +37,6 @@ namespace Supernova::Editor{
             this->sceneId = sceneId;
             this->type = type;
             this->propertyName = propertyName;
-            this->updateFlags = updateFlags;
             this->onValueChanged = onValueChanged;
 
             this->values[entity].newValue = newValue;
@@ -109,7 +107,6 @@ namespace Supernova::Editor{
                             values[otherEntity] = otherValue;
                         }
                     }
-                    updateFlags |= otherCmd->updateFlags;
                     wasModified = wasModified && otherCmd->wasModified;
                     // Keep the most recent callback
                     if (otherCmd->onValueChanged) {

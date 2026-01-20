@@ -332,6 +332,9 @@ void Editor::Properties::dragDropResourcesTextureCubeFace(ComponentType cpType, 
                             if (componentType == ComponentType::UIComponent){
                                 sceneProject->scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
                             }
+                            if (componentType == ComponentType::SkyComponent){
+                                sceneProject->scene->getComponent<SkyComponent>(entity).needUpdateTexture = true;
+                            }
                         }
                     }
                 }
@@ -371,6 +374,9 @@ void Editor::Properties::dragDropResourcesTextureCubeFace(ComponentType cpType, 
                     }
                     if (componentType == ComponentType::UIComponent){
                         sceneProject->scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
+                    }
+                    if (componentType == ComponentType::SkyComponent){
+                        sceneProject->scene->getComponent<SkyComponent>(entity).needUpdateTexture = true;
                     }
                 }
             }
@@ -415,6 +421,9 @@ void Editor::Properties::dragDropResourcesTextureCubeSingleFile(ComponentType cp
                             if (componentType == ComponentType::UIComponent){
                                 sceneProject->scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
                             }
+                            if (componentType == ComponentType::SkyComponent){
+                                sceneProject->scene->getComponent<SkyComponent>(entity).needUpdateTexture = true;
+                            }
                         }
                     }
                 }
@@ -454,6 +463,9 @@ void Editor::Properties::dragDropResourcesTextureCubeSingleFile(ComponentType cp
                     }
                     if (componentType == ComponentType::UIComponent){
                         sceneProject->scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
+                    }
+                    if (componentType == ComponentType::SkyComponent){
+                        sceneProject->scene->getComponent<SkyComponent>(entity).needUpdateTexture = true;
                     }
                 }
             }
