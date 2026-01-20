@@ -779,12 +779,12 @@ void Editor::Catalog::updateEntity(EntityRegistry* registry, Entity entity, int 
     }
     if (updateFlags & UpdateFlags_Layout_Sizes){
         registry->getComponent<UILayoutComponent>(entity).needUpdateSizes = true;
+    }
     if (updateFlags & UpdateFlags_Sky_Texture){
         registry->getComponent<SkyComponent>(entity).needUpdateTexture = true;
     }
     if (updateFlags & UpdateFlags_Sky){
         registry->getComponent<SkyComponent>(entity).needUpdateSky = true;
-    }
     }
     if (updateFlags & UpdateFlags_Sprite){
         registry->getComponent<SpriteComponent>(entity).needUpdateSprite = true;

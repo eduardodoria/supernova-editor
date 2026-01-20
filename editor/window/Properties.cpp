@@ -1778,6 +1778,12 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             ImGui::SetNextItemWidth(-1);
             if (ImGui::Combo("##cube_mode", &modeIndex, modeItems, IM_ARRAYSIZE(modeItems))){
                 singleMode = (modeIndex == 0);
+
+                for (Entity& entity : entities){
+                    cmd = new PropertyCmd<Texture>(project, sceneProject->id, entity, cpType, id, *defArr, settings.onValueChanged);
+                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                    finishProperty = true;
+                }
             }
         }
 
@@ -1886,11 +1892,9 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             }
         }else{
             // Engine cubemap indexing (sokol/OpenGL-style):
-            // 0=Right(+X), 1=Left(-X), 2=Up(+Y), 3=Down(-Y), 4=Front(+Z), 5=Back(-Z)
-            // UI order we want to present:
-            // Front, Back, Left, Right, Up, Down
-            static const char* faceNames[6] = {"Front", "Back", "Left", "Right", "Up", "Down"};
-            static const size_t faceIndexMap[6] = {4, 5, 1, 0, 2, 3};
+            // 0=(+X), 1=(-X), 2=(+Y), 3=(-Y), 4=(+Z), 5=(-Z)
+            static const char* faceNames[6] = {"Positive X", "Negative X", "Positive Y", "Negative Y", "Positive Z", "Negative Z"};
+            static const size_t faceIndexMap[6] = {0, 1, 2, 3, 4, 5};
 
             for (size_t uiFace = 0; uiFace < 6; uiFace++){
                 const size_t faceIndex = faceIndexMap[uiFace];
