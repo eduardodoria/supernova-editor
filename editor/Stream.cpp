@@ -2,6 +2,7 @@
 
 #include "Base64.h"
 #include "Out.h"
+#include "util/ProjectUtils.h"
 
 using namespace Supernova;
 
@@ -2079,6 +2080,8 @@ ScriptComponent Editor::Stream::decodeScriptComponent(const YAML::Node& node, co
 YAML::Node Editor::Stream::encodeSkyComponent(const SkyComponent& sky) {
     YAML::Node node;
 
+    const bool useDefaultTexture = (sky.texture.getId() == "editor:resources:default_sky");
+    node["useDefaultTexture"] = useDefaultTexture;
     node["texture"] = encodeTexture(sky.texture);
     node["color"] = encodeVector4(sky.color);
     node["rotation"] = sky.rotation;
@@ -2093,7 +2096,23 @@ SkyComponent Editor::Stream::decodeSkyComponent(const YAML::Node& node, const Sk
         sky = *oldSky;
     }
 
-    if (node["texture"]) sky.texture = decodeTexture(node["texture"]);
+    const bool useDefaultTexture = node["useDefaultTexture"] ? node["useDefaultTexture"].as<bool>() : false;
+    if (useDefaultTexture) {
+        ProjectUtils::setDefaultSkyTexture(sky.texture);
+    }
+
+    if (node["texture"]) {
+        if (useDefaultTexture) {
+            const YAML::Node& texNode = node["texture"];
+            if (texNode["minFilter"]) sky.texture.setMinFilter(stringToTextureFilter(texNode["minFilter"].as<std::string>()));
+            if (texNode["magFilter"]) sky.texture.setMagFilter(stringToTextureFilter(texNode["magFilter"].as<std::string>()));
+            if (texNode["wrapU"]) sky.texture.setWrapU(stringToTextureWrap(texNode["wrapU"].as<std::string>()));
+            if (texNode["wrapV"]) sky.texture.setWrapV(stringToTextureWrap(texNode["wrapV"].as<std::string>()));
+            if (texNode["releaseDataAfterLoad"]) sky.texture.setReleaseDataAfterLoad(texNode["releaseDataAfterLoad"].as<bool>());
+        } else {
+            sky.texture = decodeTexture(node["texture"]);
+        }
+    }
     if (node["color"]) sky.color = decodeVector4(node["color"]);
     if (node["rotation"]) sky.rotation = node["rotation"].as<float>();
 
