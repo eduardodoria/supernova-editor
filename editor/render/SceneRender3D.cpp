@@ -1,11 +1,5 @@
 #include "SceneRender3D.h"
 
-#include "resources/sky/Daylight_Box_Back_png.h"
-#include "resources/sky/Daylight_Box_Bottom_png.h"
-#include "resources/sky/Daylight_Box_Front_png.h"
-#include "resources/sky/Daylight_Box_Left_png.h"
-#include "resources/sky/Daylight_Box_Right_png.h"
-#include "resources/sky/Daylight_Box_Top_png.h"
 #include "resources/icons/sun-icon_png.h"
 #include "resources/icons/bulb-icon_png.h"
 #include "resources/icons/spot-icon_png.h"
@@ -21,23 +15,6 @@ Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, tr
     linesOffset = Vector2(0, 0);
 
     lines = new Lines(scene);
-    //sky = new SkyBox(scene);
-
-    TextureData skyBack;
-    TextureData skyBottom;
-    TextureData skyFront;
-    TextureData skyLeft;
-    TextureData skyRight;
-    TextureData skyTop;
-
-    skyBack.loadTextureFromMemory(Daylight_Box_Back_png, Daylight_Box_Back_png_len);
-    skyBottom.loadTextureFromMemory(Daylight_Box_Bottom_png, Daylight_Box_Bottom_png_len);
-    skyFront.loadTextureFromMemory(Daylight_Box_Front_png, Daylight_Box_Front_png_len);
-    skyLeft.loadTextureFromMemory(Daylight_Box_Left_png, Daylight_Box_Left_png_len);
-    skyRight.loadTextureFromMemory(Daylight_Box_Right_png, Daylight_Box_Right_png_len);
-    skyTop.loadTextureFromMemory(Daylight_Box_Top_png, Daylight_Box_Top_png_len);
-
-    //sky->setTextures("editor:resources:default_sky", skyFront, skyBack, skyLeft, skyRight, skyTop, skyBottom);
 
     lightObjects.clear();
     cameraObjects.clear();
@@ -63,7 +40,6 @@ Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, tr
 
 Editor::SceneRender3D::~SceneRender3D(){
     delete lines;
-    //delete sky;
     delete selLines;
 
     for (auto& pair : lightObjects) {

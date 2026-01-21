@@ -38,7 +38,6 @@ namespace Supernova::Editor{
     private:
 
         Lines* lines;
-        //SkyBox* sky;
 
         std::map<Entity, LightObjects> lightObjects;
         std::map<Entity, CameraObjects> cameraObjects;

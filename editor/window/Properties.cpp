@@ -20,6 +20,13 @@
 #include "Stream.h"
 #include "Out.h"
 
+#include "resources/sky/Daylight_Box_Back_png.h"
+#include "resources/sky/Daylight_Box_Bottom_png.h"
+#include "resources/sky/Daylight_Box_Front_png.h"
+#include "resources/sky/Daylight_Box_Left_png.h"
+#include "resources/sky/Daylight_Box_Right_png.h"
+#include "resources/sky/Daylight_Box_Top_png.h"
+
 #include <map>
 
 using namespace Supernova;
@@ -1662,6 +1669,9 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         if (std::filesystem::exists(texName)) {
             texName = std::filesystem::path(texName).filename().string();
         }
+        if (texName.empty()) {
+            texName = "< Not set >";
+        }
 
         float textWidth = ImGui::CalcTextSize(texName.c_str()).x;
         float availWidth = ImGui::GetContentRegionAvail().x;
@@ -3167,7 +3177,58 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
 }
 
 void Editor::Properties::drawSkyComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
-    beginTable(cpType, getLabelSize("rotation"));
+    beginTable(cpType, getLabelSize("Default sky"));
+
+    bool allDefault = true;
+    for (auto& entity : entities){
+        PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, "texture");
+        Texture* tex = static_cast<Texture*>(prop.ref);
+        if (tex->getId() != "editor:resources:default_sky") {
+            allDefault = false;
+            break;
+        }
+    }
+
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGui::AlignTextToFramePadding();
+    ImGui::Text("Default sky");
+    ImGui::TableNextColumn();
+
+    if (allDefault) ImGui::BeginDisabled();
+    if (ImGui::Button("Apply")){
+        for (auto& entity : entities){
+            PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, "texture");
+            Texture newTex;
+
+            TextureData skyBack;
+            TextureData skyBottom;
+            TextureData skyFront;
+            TextureData skyLeft;
+            TextureData skyRight;
+            TextureData skyTop;
+
+            skyBack.loadTextureFromMemory(Daylight_Box_Back_png, Daylight_Box_Back_png_len);
+            skyBottom.loadTextureFromMemory(Daylight_Box_Bottom_png, Daylight_Box_Bottom_png_len);
+            skyFront.loadTextureFromMemory(Daylight_Box_Front_png, Daylight_Box_Front_png_len);
+            skyLeft.loadTextureFromMemory(Daylight_Box_Left_png, Daylight_Box_Left_png_len);
+            skyRight.loadTextureFromMemory(Daylight_Box_Right_png, Daylight_Box_Right_png_len);
+            skyTop.loadTextureFromMemory(Daylight_Box_Top_png, Daylight_Box_Top_png_len);
+
+            newTex.setId("editor:resources:default_sky");
+            newTex.setCubeDatas("editor:resources:default_sky", skyFront, skyBack, skyLeft, skyRight, skyTop, skyBottom);
+
+            cmd = new PropertyCmd<Texture>(project, sceneProject->id, entity, cpType, "texture", newTex, nullptr);
+            CommandHandle::get(sceneProject->id)->addCommand(cmd);
+        }
+    }
+    if (allDefault) ImGui::EndDisabled();
+
+    endTable();
+
+    ImGui::SeparatorText("Sky settings");
+
+    beginTable(cpType, getLabelSize("Rotation"));
 
     propertyRow(RowPropertyType::TextureCube, cpType, "texture", "Texture", sceneProject, entities);
     propertyRow(RowPropertyType::Color4L, cpType, "color", "Color", sceneProject, entities);
