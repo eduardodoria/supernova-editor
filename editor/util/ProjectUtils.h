@@ -10,6 +10,8 @@
 #include "Project.h"
 #include "script/ScriptProperty.h"
 
+#include "texture/Texture.h"
+
 namespace Supernova::Editor {
 
 class ProjectUtils {
@@ -47,6 +49,9 @@ public:
 
     static std::string normalizePtrTypeName(std::string value);
     static bool pushEntityHandleByPtrTypeName(lua_State* L, Scene* scene, Entity entity, const std::string& ptrTypeName);
+
+    // Fills a Texture with the editor built-in default skybox cubemap.
+    static void setDefaultSkyTexture(Texture& outTexture);
 };
 
 } // namespace Supernova::Editor

@@ -18,7 +18,33 @@
 #include "Light.h"
 #include "Camera.h"
 
+#include "resources/sky/Daylight_Box_Back_png.h"
+#include "resources/sky/Daylight_Box_Bottom_png.h"
+#include "resources/sky/Daylight_Box_Front_png.h"
+#include "resources/sky/Daylight_Box_Left_png.h"
+#include "resources/sky/Daylight_Box_Right_png.h"
+#include "resources/sky/Daylight_Box_Top_png.h"
+
 using namespace Supernova;
+
+void Editor::ProjectUtils::setDefaultSkyTexture(Texture& outTexture) {
+    TextureData skyBack;
+    TextureData skyBottom;
+    TextureData skyFront;
+    TextureData skyLeft;
+    TextureData skyRight;
+    TextureData skyTop;
+
+    skyBack.loadTextureFromMemory(Daylight_Box_Back_png, Daylight_Box_Back_png_len);
+    skyBottom.loadTextureFromMemory(Daylight_Box_Bottom_png, Daylight_Box_Bottom_png_len);
+    skyFront.loadTextureFromMemory(Daylight_Box_Front_png, Daylight_Box_Front_png_len);
+    skyLeft.loadTextureFromMemory(Daylight_Box_Left_png, Daylight_Box_Left_png_len);
+    skyRight.loadTextureFromMemory(Daylight_Box_Right_png, Daylight_Box_Right_png_len);
+    skyTop.loadTextureFromMemory(Daylight_Box_Top_png, Daylight_Box_Top_png_len);
+
+    outTexture.setId("editor:resources:default_sky");
+    outTexture.setCubeDatas("editor:resources:default_sky", skyFront, skyBack, skyLeft, skyRight, skyTop, skyBottom);
+}
 
 std::string Editor::ProjectUtils::normalizePtrTypeName(std::string value) {
     auto isSpace = [](unsigned char c) { return std::isspace(c) != 0; };

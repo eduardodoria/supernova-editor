@@ -32,6 +32,8 @@
 #include "util/GraphicUtils.h"
 #include "util/ProjectUtils.h"
 
+#include "texture/Texture.h"
+
 using namespace Supernova;
 
 Editor::Project::Project(){
@@ -192,6 +194,12 @@ uint32_t Editor::Project::createNewSceneInternal(std::string sceneName, SceneTyp
         sunCreator.addProperty<bool>(ComponentType::LightComponent, "shadows", true);
         sunCreator.addProperty<float>(ComponentType::LightComponent, "range", 100);
         sunCreator.execute();
+
+        CreateEntityCmd skyCreator(this, data.id, "Sky", EntityCreationType::SKY);
+        Texture defaultSky;
+        ProjectUtils::setDefaultSkyTexture(defaultSky);
+        skyCreator.addProperty<Texture>(ComponentType::SkyComponent, "texture", defaultSky);
+        skyCreator.execute();
 
         clearSelectedEntities(data.id);
     }

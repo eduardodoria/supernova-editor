@@ -17,15 +17,9 @@
 #include "command/type/ComponentToLocalCmd.h"
 #include "render/SceneRender2D.h"
 #include "util/SHA1.h"
+#include "util/ProjectUtils.h"
 #include "Stream.h"
 #include "Out.h"
-
-#include "resources/sky/Daylight_Box_Back_png.h"
-#include "resources/sky/Daylight_Box_Bottom_png.h"
-#include "resources/sky/Daylight_Box_Front_png.h"
-#include "resources/sky/Daylight_Box_Left_png.h"
-#include "resources/sky/Daylight_Box_Right_png.h"
-#include "resources/sky/Daylight_Box_Top_png.h"
 
 #include <map>
 
@@ -3201,22 +3195,7 @@ void Editor::Properties::drawSkyComponent(ComponentType cpType, SceneProject* sc
             PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, "texture");
             Texture newTex;
 
-            TextureData skyBack;
-            TextureData skyBottom;
-            TextureData skyFront;
-            TextureData skyLeft;
-            TextureData skyRight;
-            TextureData skyTop;
-
-            skyBack.loadTextureFromMemory(Daylight_Box_Back_png, Daylight_Box_Back_png_len);
-            skyBottom.loadTextureFromMemory(Daylight_Box_Bottom_png, Daylight_Box_Bottom_png_len);
-            skyFront.loadTextureFromMemory(Daylight_Box_Front_png, Daylight_Box_Front_png_len);
-            skyLeft.loadTextureFromMemory(Daylight_Box_Left_png, Daylight_Box_Left_png_len);
-            skyRight.loadTextureFromMemory(Daylight_Box_Right_png, Daylight_Box_Right_png_len);
-            skyTop.loadTextureFromMemory(Daylight_Box_Top_png, Daylight_Box_Top_png_len);
-
-            newTex.setId("editor:resources:default_sky");
-            newTex.setCubeDatas("editor:resources:default_sky", skyFront, skyBack, skyLeft, skyRight, skyTop, skyBottom);
+            ProjectUtils::setDefaultSkyTexture(newTex);
 
             cmd = new PropertyCmd<Texture>(project, sceneProject->id, entity, cpType, "texture", newTex, nullptr);
             CommandHandle::get(sceneProject->id)->addCommand(cmd);
