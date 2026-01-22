@@ -8,12 +8,14 @@
 #include <array>
 #include "Project.h"
 
+namespace fs = std::filesystem;
+
 namespace Supernova::Editor{
 
     class Factory{
     private:
-        static bool writeBinaryFileIfMissing(const std::filesystem::path& path, const unsigned char* data, size_t len);
-        static bool ensureDefaultSkyFiles(const std::string& projectPath, std::array<std::string, 6>& outPaths);
+        static bool writeHeaderIfChanged(const std::filesystem::path& path, const std::string& varName, const unsigned char* data, size_t len);
+        static bool ensureDefaultSkyFiles(const fs::path& baseDir);
 
         static std::string indentation(int spaces);
         static std::string formatVector2(const Vector2& v);
@@ -49,7 +51,7 @@ namespace Supernova::Editor{
 
         static std::string createComponent(int indentSpaces, Scene* scene, Entity entity, ComponentType componentType, const std::string& projectPath, std::string sceneName = "", std::string entityName = "");
         static std::string createAllComponents(int indentSpaces, Scene* scene, Entity entity, const std::string& projectPath, std::string sceneName = "", std::string entityName = "");
-        static std::string createScene(int indentSpaces, Scene* scene, std::string name, std::vector<Entity> entities, Entity camera, const std::string& projectPath);
+        static std::string createScene(int indentSpaces, Scene* scene, std::string name, std::vector<Entity> entities, Entity camera, const std::string& projectPath, const std::string& generatedPath);
 
         static std::string setComponent(Scene* scene, Entity entity, ComponentType componentType, const std::string& projectPath);
         static std::string setAllComponents(Scene* scene, Entity entity, const std::string& projectPath);

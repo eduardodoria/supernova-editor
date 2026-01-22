@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <filesystem>
 
+#include "util/FileUtils.h"
+
 #include "resources/sky/Daylight_Box_Back_png.h"
 #include "resources/sky/Daylight_Box_Bottom_png.h"
 #include "resources/sky/Daylight_Box_Front_png.h"
@@ -20,54 +22,45 @@
 
 using namespace Supernova;
 
-namespace fs = std::filesystem;
+bool Editor::Factory::writeHeaderIfChanged(const fs::path& path, const std::string& varName, const unsigned char* data, size_t len) {
+    std::ostringstream out;
+    out << "#ifndef " << varName << "_H\n";
+    out << "#define " << varName << "_H\n\n";
 
-bool Editor::Factory::writeBinaryFileIfMissing(const fs::path& path, const unsigned char* data, size_t len) {
-    std::error_code ec;
-    if (fs::exists(path, ec)) {
-        return true;
+    out << "unsigned char " << varName << "_data[] = {";
+    for (size_t i = 0; i < len; i++) {
+        if (i % 20 == 0) {
+            out << "\n    ";
+        }
+        out << "0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(data[i]) << ", ";
     }
+    out << "\n};\n";
+    out << "const unsigned int " << varName << "_len = " << std::dec << len << ";\n\n";
 
-    fs::create_directories(path.parent_path(), ec);
-    if (ec) {
-        return false;
-    }
+    out << "#endif // " << varName << "_H\n";
 
-    std::ofstream out(path, std::ios::binary | std::ios::trunc);
-    if (!out) {
-        return false;
-    }
-
-    out.write(reinterpret_cast<const char*>(data), static_cast<std::streamsize>(len));
-    return static_cast<bool>(out);
+    return FileUtils::writeIfChanged(path, out.str());
 }
 
-bool Editor::Factory::ensureDefaultSkyFiles(const std::string& projectPath, std::array<std::string, 6>& outPaths) {
-    if (projectPath.empty()) {
+bool Editor::Factory::ensureDefaultSkyFiles(const fs::path& baseDir) {
+    if (baseDir.empty()) {
         return false;
     }
 
-    const fs::path baseDir = fs::path(projectPath) / "resources" / "sky";
-    const fs::path frontPath = baseDir / "Daylight_Box_Front.png";
-    const fs::path backPath = baseDir / "Daylight_Box_Back.png";
-    const fs::path leftPath = baseDir / "Daylight_Box_Left.png";
-    const fs::path rightPath = baseDir / "Daylight_Box_Right.png";
-    const fs::path topPath = baseDir / "Daylight_Box_Top.png";
-    const fs::path bottomPath = baseDir / "Daylight_Box_Bottom.png";
+    const fs::path frontPath = baseDir / "Daylight_Box_Front.h";
+    const fs::path backPath = baseDir / "Daylight_Box_Back.h";
+    const fs::path leftPath = baseDir / "Daylight_Box_Left.h";
+    const fs::path rightPath = baseDir / "Daylight_Box_Right.h";
+    const fs::path topPath = baseDir / "Daylight_Box_Top.h";
+    const fs::path bottomPath = baseDir / "Daylight_Box_Bottom.h";
 
-    if (!writeBinaryFileIfMissing(frontPath, Daylight_Box_Front_png, Daylight_Box_Front_png_len)) return false;
-    if (!writeBinaryFileIfMissing(backPath, Daylight_Box_Back_png, Daylight_Box_Back_png_len)) return false;
-    if (!writeBinaryFileIfMissing(leftPath, Daylight_Box_Left_png, Daylight_Box_Left_png_len)) return false;
-    if (!writeBinaryFileIfMissing(rightPath, Daylight_Box_Right_png, Daylight_Box_Right_png_len)) return false;
-    if (!writeBinaryFileIfMissing(topPath, Daylight_Box_Top_png, Daylight_Box_Top_png_len)) return false;
-    if (!writeBinaryFileIfMissing(bottomPath, Daylight_Box_Bottom_png, Daylight_Box_Bottom_png_len)) return false;
+    if (!writeHeaderIfChanged(frontPath, "Daylight_Box_Front", Daylight_Box_Front_png, Daylight_Box_Front_png_len)) return false;
+    if (!writeHeaderIfChanged(backPath, "Daylight_Box_Back", Daylight_Box_Back_png, Daylight_Box_Back_png_len)) return false;
+    if (!writeHeaderIfChanged(leftPath, "Daylight_Box_Left", Daylight_Box_Left_png, Daylight_Box_Left_png_len)) return false;
+    if (!writeHeaderIfChanged(rightPath, "Daylight_Box_Right", Daylight_Box_Right_png, Daylight_Box_Right_png_len)) return false;
+    if (!writeHeaderIfChanged(topPath, "Daylight_Box_Top", Daylight_Box_Top_png, Daylight_Box_Top_png_len)) return false;
+    if (!writeHeaderIfChanged(bottomPath, "Daylight_Box_Bottom", Daylight_Box_Bottom_png, Daylight_Box_Bottom_png_len)) return false;
 
-    outPaths[0] = rightPath.generic_string();
-    outPaths[1] = leftPath.generic_string();
-    outPaths[2] = topPath.generic_string();
-    outPaths[3] = bottomPath.generic_string();
-    outPaths[4] = frontPath.generic_string();
-    outPaths[5] = backPath.generic_string();
     return true;
 }
 
@@ -682,17 +675,30 @@ std::string Editor::Factory::createSkyComponent(int indentSpaces, Scene* scene, 
     const std::string ind = indentation(indentSpaces);
     code << ind << "SkyComponent sky;\n";
 
-    Texture textureForCode = sky.texture;
-    if (sky.texture.getId() == "editor:resources:default_sky") {
-        std::array<std::string, 6> paths;
-        if (ensureDefaultSkyFiles(projectPath, paths)) {
-            for (size_t i = 0; i < 6; i++) {
-                textureForCode.setCubePath(i, paths[i]);
-            }
-        }
-    }
+    if (sky.texture.getId() == DEFAULT_SKY_ID) {
+        code << ind << "TextureData skyFront;\n";
+        code << ind << "TextureData skyBack;\n";
+        code << ind << "TextureData skyLeft;\n";
+        code << ind << "TextureData skyRight;\n";
+        code << ind << "TextureData skyTop;\n";
+        code << ind << "TextureData skyBottom;\n";
 
-    code << formatTexture(indentSpaces, textureForCode, "sky.texture", projectPath);
+        code << ind << "skyFront.loadTextureFromMemory(Daylight_Box_Front_data, Daylight_Box_Front_len);\n";
+        code << ind << "skyBack.loadTextureFromMemory(Daylight_Box_Back_data, Daylight_Box_Back_len);\n";
+        code << ind << "skyLeft.loadTextureFromMemory(Daylight_Box_Left_data, Daylight_Box_Left_len);\n";
+        code << ind << "skyRight.loadTextureFromMemory(Daylight_Box_Right_data, Daylight_Box_Right_len);\n";
+        code << ind << "skyTop.loadTextureFromMemory(Daylight_Box_Top_data, Daylight_Box_Top_len);\n";
+        code << ind << "skyBottom.loadTextureFromMemory(Daylight_Box_Bottom_data, Daylight_Box_Bottom_len);\n";
+
+        code << ind << "sky.texture.setId(" << formatString(sky.texture.getId()) << ");\n";
+        code << ind << "sky.texture.setCubeDatas(" << formatString(sky.texture.getId()) << ", skyFront, skyBack, skyLeft, skyRight, skyTop, skyBottom);\n";
+        code << ind << "sky.texture.setMinFilter(" << formatTextureFilter(sky.texture.getMinFilter()) << ");\n";
+        code << ind << "sky.texture.setMagFilter(" << formatTextureFilter(sky.texture.getMagFilter()) << ");\n";
+        code << ind << "sky.texture.setWrapU(" << formatTextureWrap(sky.texture.getWrapU()) << ");\n";
+        code << ind << "sky.texture.setWrapV(" << formatTextureWrap(sky.texture.getWrapV()) << ");\n";
+    } else {
+        code << formatTexture(indentSpaces, sky.texture, "sky.texture", projectPath);
+    }
     code << ind << "sky.color = " << formatVector4(sky.color) << ";\n";
     code << ind << "sky.rotation = " << formatFloat(sky.rotation) << ";\n";
 
@@ -739,13 +745,33 @@ std::string Editor::Factory::createAllComponents(int indentSpaces, Scene* scene,
     return code.str();
 }
 
-std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::string name, std::vector<Entity> entities, Entity camera, const std::string& projectPath) {
+std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::string name, std::vector<Entity> entities, Entity camera, const std::string& projectPath, const std::string& generatedPath) {
     std::ostringstream out;
 
     std::string mainSceneVar = toIdentifier(name);
     const std::string ind = indentation(indentSpaces);
 
+    bool usesDefaultSky = false;
+    for (Entity entity : entities) {
+        if (scene->findComponent<SkyComponent>(entity)) {
+            SkyComponent& sky = scene->getComponent<SkyComponent>(entity);
+            if (sky.texture.getId() == DEFAULT_SKY_ID) {
+                usesDefaultSky = true;
+                break;
+            }
+        }
+    }
+
     out << ind << "#include \"Supernova.h\"\n";
+    fs::path skyResourcesPath = fs::path(generatedPath) / "resources" / "sky";
+    if (usesDefaultSky && ensureDefaultSkyFiles(skyResourcesPath )) {
+        out << ind << "#include \"resources/sky/Daylight_Box_Front.h\"\n";
+        out << ind << "#include \"resources/sky/Daylight_Box_Back.h\"\n";
+        out << ind << "#include \"resources/sky/Daylight_Box_Left.h\"\n";
+        out << ind << "#include \"resources/sky/Daylight_Box_Right.h\"\n";
+        out << ind << "#include \"resources/sky/Daylight_Box_Top.h\"\n";
+        out << ind << "#include \"resources/sky/Daylight_Box_Bottom.h\"\n";
+    }
     out << ind << "using namespace Supernova;\n\n";
 
     out << ind << "void create_" << mainSceneVar << "(Scene* scene){\n";

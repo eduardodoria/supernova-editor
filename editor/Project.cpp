@@ -3044,7 +3044,7 @@ void Editor::Project::start(uint32_t sceneId) {
         }
     }
 
-    generator.configure(scenesToGenerate, getProjectInternalPath());
+    generator.configure(scenesToGenerate, getProjectPath(), getProjectInternalPath());
 
     // Check if we have C++ scripts that need building
     bool hasCppScripts = !scriptFiles.empty();

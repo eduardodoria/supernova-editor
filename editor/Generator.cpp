@@ -3,6 +3,7 @@
 #include "Factory.h"
 #include "App.h"
 #include "editor/Out.h"
+#include "util/FileUtils.h"
 
 #include <cstdlib>
 #include <stdexcept>
@@ -321,30 +322,6 @@ bool Editor::Generator::runCommand(const std::string& command, const fs::path& w
         }
         return false;
     #endif
-}
-
-bool Editor::Generator::writeIfChanged(const fs::path& filePath, const std::string& newContent) {
-    std::string currentContent;
-    bool shouldWrite = true;
-
-    if (fs::exists(filePath)) {
-        std::ifstream ifs(filePath, std::ios::in | std::ios::binary);
-        if (ifs) {
-            currentContent.assign((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-            shouldWrite = (currentContent != newContent);
-        }
-    }
-
-    if (shouldWrite) {
-        std::error_code ec;
-        if (filePath.has_parent_path()) {
-            fs::create_directories(filePath.parent_path(), ec);
-        }
-        std::ofstream ofs(filePath, std::ios::out | std::ios::binary);
-        ofs << newContent;
-        return true;
-    }
-    return false;
 }
 
 std::string Editor::Generator::getPlatformCMakeConfig() {
@@ -670,8 +647,8 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     const fs::path cmakeFile = projectPath / "CMakeLists.txt";
     const fs::path sourceFile = projectInternalPath / "init_scripts.cpp";
 
-    writeIfChanged(cmakeFile, cmakeContent);
-    writeIfChanged(sourceFile, sourceContent);
+    FileUtils::writeIfChanged(cmakeFile, cmakeContent);
+    FileUtils::writeIfChanged(sourceFile, sourceContent);
 }
 
 void Editor::Generator::terminateCurrentProcess() {
@@ -703,7 +680,7 @@ void Editor::Generator::terminateCurrentProcess() {
     #endif
 }
 
-void Editor::Generator::configure(const std::vector<SceneData>& scenes, const fs::path& projectInternalPath){
+void Editor::Generator::configure(const std::vector<SceneData>& scenes, const fs::path& projectPath, const fs::path& projectInternalPath){
     const fs::path generatedPath = projectInternalPath / "generated";
 
     if (generatedPath.empty() || generatedPath == generatedPath.root_path()) {
@@ -727,13 +704,12 @@ void Editor::Generator::configure(const std::vector<SceneData>& scenes, const fs
     }
 
     for (const auto& sceneData : scenes) {
-        fs::path projectPath = projectInternalPath.parent_path();
-        std::string sceneContent = Factory::createScene(0, sceneData.scene, sceneData.name, sceneData.entities, sceneData.camera, projectPath.string());
+        std::string sceneContent = Factory::createScene(0, sceneData.scene, sceneData.name, sceneData.entities, sceneData.camera, projectPath, generatedPath);
 
         std::string filename = Factory::toIdentifier(sceneData.name) + ".cpp";
         const fs::path sourceFile = generatedPath / filename;
 
-        writeIfChanged(sourceFile, sceneContent);
+        FileUtils::writeIfChanged(sourceFile, sceneContent);
     }
 
     // Build init.cpp content
@@ -781,7 +757,7 @@ void Editor::Generator::configure(const std::vector<SceneData>& scenes, const fs
     initContent += "}\n";
 
     const fs::path initFile = generatedPath / "init.cpp";
-    writeIfChanged(initFile, initContent);
+    FileUtils::writeIfChanged(initFile, initContent);
 
     // Build main.cpp content
     std::string mainContent;
@@ -793,13 +769,13 @@ void Editor::Generator::configure(const std::vector<SceneData>& scenes, const fs
     mainContent += "}\n";
 
     const fs::path mainFile = generatedPath / "main.cpp";
-    writeIfChanged(mainFile, mainContent);
+    FileUtils::writeIfChanged(mainFile, mainContent);
 
     const fs::path platformHeaderFile = generatedPath / "PlatformEditor.h";
-    writeIfChanged(platformHeaderFile, getPlatformEditorHeader());
+    FileUtils::writeIfChanged(platformHeaderFile, getPlatformEditorHeader());
 
     const fs::path platformSourceFile = generatedPath / "PlatformEditor.cpp";
-    writeIfChanged(platformSourceFile, getPlatformEditorSource());
+    FileUtils::writeIfChanged(platformSourceFile, getPlatformEditorSource());
 }
 
 std::string Editor::Generator::getPlatformEditorHeader() {

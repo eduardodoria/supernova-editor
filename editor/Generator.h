@@ -56,7 +56,6 @@ namespace Supernova::Editor {
         bool configureCMake(const fs::path& projectPath, const fs::path& buildPath, const std::string& configType);
         bool buildProject(const fs::path& projectPath, const fs::path& buildPath, const std::string& configType);
         bool runCommand(const std::string& command, const fs::path& workingDir);
-        bool writeIfChanged(const fs::path& filePath, const std::string& newContent);
         std::string getPlatformCMakeConfig();
         std::string getPlatformEditorHeader();
         std::string getPlatformEditorSource();
@@ -68,7 +67,7 @@ namespace Supernova::Editor {
         Generator();
         ~Generator();
 
-        void configure(const std::vector<SceneData>& scenes, const fs::path& projectInternalPath);
+        void configure(const std::vector<SceneData>& scenes, const fs::path& projectPath, const fs::path& projectInternalPath);
         void build(const fs::path projectPath, const fs::path projectInternalPath, const fs::path buildPath, std::string libName, const std::vector<ScriptSource>& scriptFiles, const std::vector<SceneData>& scenes);
         bool isBuildInProgress() const;
         void waitForBuildToComplete();
