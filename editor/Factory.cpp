@@ -11,83 +11,64 @@
 #include <algorithm>
 #include <filesystem>
 
+#include "resources/sky/Daylight_Box_Back_png.h"
+#include "resources/sky/Daylight_Box_Bottom_png.h"
+#include "resources/sky/Daylight_Box_Front_png.h"
+#include "resources/sky/Daylight_Box_Left_png.h"
+#include "resources/sky/Daylight_Box_Right_png.h"
+#include "resources/sky/Daylight_Box_Top_png.h"
 
 using namespace Supernova;
+
 namespace fs = std::filesystem;
 
-extern const unsigned char Daylight_Box_Back_png[];
-extern const unsigned int Daylight_Box_Back_png_len;
-extern const unsigned char Daylight_Box_Bottom_png[];
-extern const unsigned int Daylight_Box_Bottom_png_len;
-extern const unsigned char Daylight_Box_Front_png[];
-extern const unsigned int Daylight_Box_Front_png_len;
-extern const unsigned char Daylight_Box_Left_png[];
-extern const unsigned int Daylight_Box_Left_png_len;
-extern const unsigned char Daylight_Box_Right_png[];
-extern const unsigned int Daylight_Box_Right_png_len;
-extern const unsigned char Daylight_Box_Top_png[];
-extern const unsigned int Daylight_Box_Top_png_len;
-
-namespace {
-    constexpr const char* kDefaultSkyId = "editor:resources:default_sky";
-
-    struct DefaultSkyPaths {
-        std::string front;
-        std::string back;
-        std::string left;
-        std::string right;
-        std::string top;
-        std::string bottom;
-    };
-
-    bool writeBinaryFileIfMissing(const fs::path& path, const unsigned char* data, size_t len) {
-        std::error_code ec;
-        if (fs::exists(path, ec)) {
-            return true;
-        }
-
-        fs::create_directories(path.parent_path(), ec);
-        if (ec) {
-            return false;
-        }
-
-        std::ofstream out(path, std::ios::binary | std::ios::trunc);
-        if (!out) {
-            return false;
-        }
-
-        out.write(reinterpret_cast<const char*>(data), static_cast<std::streamsize>(len));
-        return static_cast<bool>(out);
-    }
-
-    bool ensureDefaultSkyFiles(const std::string& projectPath, DefaultSkyPaths& outPaths) {
-        if (projectPath.empty()) {
-            return false;
-        }
-
-        const fs::path baseDir = fs::path(projectPath) / "resources" / "sky";
-        const fs::path frontPath = baseDir / "Daylight_Box_Front.png";
-        const fs::path backPath = baseDir / "Daylight_Box_Back.png";
-        const fs::path leftPath = baseDir / "Daylight_Box_Left.png";
-        const fs::path rightPath = baseDir / "Daylight_Box_Right.png";
-        const fs::path topPath = baseDir / "Daylight_Box_Top.png";
-        const fs::path bottomPath = baseDir / "Daylight_Box_Bottom.png";
-
-        if (!writeBinaryFileIfMissing(frontPath, Daylight_Box_Front_png, Daylight_Box_Front_png_len)) return false;
-        if (!writeBinaryFileIfMissing(backPath, Daylight_Box_Back_png, Daylight_Box_Back_png_len)) return false;
-        if (!writeBinaryFileIfMissing(leftPath, Daylight_Box_Left_png, Daylight_Box_Left_png_len)) return false;
-        if (!writeBinaryFileIfMissing(rightPath, Daylight_Box_Right_png, Daylight_Box_Right_png_len)) return false;
-        if (!writeBinaryFileIfMissing(topPath, Daylight_Box_Top_png, Daylight_Box_Top_png_len)) return false;
-        if (!writeBinaryFileIfMissing(bottomPath, Daylight_Box_Bottom_png, Daylight_Box_Bottom_png_len)) return false;
-
-        outPaths.front = frontPath.generic_string();
-        outPaths.back = backPath.generic_string();
-        outPaths.left = leftPath.generic_string();
-        outPaths.right = rightPath.generic_string();
-        outPaths.top = topPath.generic_string();
-        outPaths.bottom = bottomPath.generic_string();
+bool Editor::Factory::writeBinaryFileIfMissing(const fs::path& path, const unsigned char* data, size_t len) {
+    std::error_code ec;
+    if (fs::exists(path, ec)) {
         return true;
     }
+
+    fs::create_directories(path.parent_path(), ec);
+    if (ec) {
+        return false;
+    }
+
+    std::ofstream out(path, std::ios::binary | std::ios::trunc);
+    if (!out) {
+        return false;
+    }
+
+    out.write(reinterpret_cast<const char*>(data), static_cast<std::streamsize>(len));
+    return static_cast<bool>(out);
+}
+
+bool Editor::Factory::ensureDefaultSkyFiles(const std::string& projectPath, std::array<std::string, 6>& outPaths) {
+    if (projectPath.empty()) {
+        return false;
+    }
+
+    const fs::path baseDir = fs::path(projectPath) / "resources" / "sky";
+    const fs::path frontPath = baseDir / "Daylight_Box_Front.png";
+    const fs::path backPath = baseDir / "Daylight_Box_Back.png";
+    const fs::path leftPath = baseDir / "Daylight_Box_Left.png";
+    const fs::path rightPath = baseDir / "Daylight_Box_Right.png";
+    const fs::path topPath = baseDir / "Daylight_Box_Top.png";
+    const fs::path bottomPath = baseDir / "Daylight_Box_Bottom.png";
+
+    if (!writeBinaryFileIfMissing(frontPath, Daylight_Box_Front_png, Daylight_Box_Front_png_len)) return false;
+    if (!writeBinaryFileIfMissing(backPath, Daylight_Box_Back_png, Daylight_Box_Back_png_len)) return false;
+    if (!writeBinaryFileIfMissing(leftPath, Daylight_Box_Left_png, Daylight_Box_Left_png_len)) return false;
+    if (!writeBinaryFileIfMissing(rightPath, Daylight_Box_Right_png, Daylight_Box_Right_png_len)) return false;
+    if (!writeBinaryFileIfMissing(topPath, Daylight_Box_Top_png, Daylight_Box_Top_png_len)) return false;
+    if (!writeBinaryFileIfMissing(bottomPath, Daylight_Box_Bottom_png, Daylight_Box_Bottom_png_len)) return false;
+
+    outPaths[0] = rightPath.generic_string();
+    outPaths[1] = leftPath.generic_string();
+    outPaths[2] = topPath.generic_string();
+    outPaths[3] = bottomPath.generic_string();
+    outPaths[4] = frontPath.generic_string();
+    outPaths[5] = backPath.generic_string();
+    return true;
 }
 
 Editor::Factory::Factory(){
@@ -702,16 +683,12 @@ std::string Editor::Factory::createSkyComponent(int indentSpaces, Scene* scene, 
     code << ind << "SkyComponent sky;\n";
 
     Texture textureForCode = sky.texture;
-    if (sky.texture.getId() == kDefaultSkyId) {
-        DefaultSkyPaths paths;
+    if (sky.texture.getId() == "editor:resources:default_sky") {
+        std::array<std::string, 6> paths;
         if (ensureDefaultSkyFiles(projectPath, paths)) {
-            // Face indices (engine order): 0=Right(+X), 1=Left(-X), 2=Top(+Y), 3=Bottom(-Y), 4=Front(+Z), 5=Back(-Z)
-            textureForCode.setCubePath(0, paths.right);
-            textureForCode.setCubePath(1, paths.left);
-            textureForCode.setCubePath(2, paths.top);
-            textureForCode.setCubePath(3, paths.bottom);
-            textureForCode.setCubePath(4, paths.front);
-            textureForCode.setCubePath(5, paths.back);
+            for (size_t i = 0; i < 6; i++) {
+                textureForCode.setCubePath(i, paths[i]);
+            }
         }
     }
 

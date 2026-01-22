@@ -4,12 +4,17 @@
 #include "Catalog.h"
 #include <string>
 #include <sstream>
+#include <filesystem>
+#include <array>
 #include "Project.h"
 
 namespace Supernova::Editor{
 
     class Factory{
     private:
+        static bool writeBinaryFileIfMissing(const std::filesystem::path& path, const unsigned char* data, size_t len);
+        static bool ensureDefaultSkyFiles(const std::string& projectPath, std::array<std::string, 6>& outPaths);
+
         static std::string indentation(int spaces);
         static std::string formatVector2(const Vector2& v);
         static std::string formatVector3(const Vector3& v);
