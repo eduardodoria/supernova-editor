@@ -29,11 +29,8 @@ namespace Supernova::Editor {
         Entity entity;
     };
 
-    struct SceneData {
-        Scene* scene;
+    struct SceneBuildInfo {
         std::string name;
-        std::vector<Entity> entities;
-        Entity camera = NULL_ENTITY;
         bool isMain;
     };
 
@@ -60,15 +57,15 @@ namespace Supernova::Editor {
         std::string getPlatformEditorHeader();
         std::string getPlatformEditorSource();
 
-        void writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, std::string libName, const std::vector<ScriptSource>& scriptFiles, const std::vector<SceneData>& scenes);
+        void writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, std::string libName, const std::vector<ScriptSource>& scriptFiles, const std::vector<SceneBuildInfo>& scenes);
         void terminateCurrentProcess();
 
     public:
         Generator();
         ~Generator();
-
-        void configure(const std::vector<SceneData>& scenes, const fs::path& projectPath, const fs::path& projectInternalPath);
-        void build(const fs::path projectPath, const fs::path projectInternalPath, const fs::path buildPath, std::string libName, const std::vector<ScriptSource>& scriptFiles, const std::vector<SceneData>& scenes);
+        void writeSceneSource(Scene* scene, const std::string& sceneName, const std::vector<Entity>& entities, const Entity camera, const fs::path& projectPath, const fs::path& projectInternalPath);
+        void configure(const std::vector<SceneBuildInfo>& scenes, std::string libName, const std::vector<ScriptSource>& scriptFiles, const fs::path& projectPath, const fs::path& projectInternalPath);
+        void build(const fs::path projectPath, const fs::path projectInternalPath, const fs::path buildPath);
         bool isBuildInProgress() const;
         void waitForBuildToComplete();
         bool didLastBuildSucceed() const;

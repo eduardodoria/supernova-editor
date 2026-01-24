@@ -348,7 +348,7 @@ std::string Editor::Generator::getPlatformCMakeConfig() {
     return content;
 }
 
-void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, std::string libName, const std::vector<ScriptSource>& scriptFiles, const std::vector<SceneData>& scenes) {
+void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, std::string libName, const std::vector<ScriptSource>& scriptFiles, const std::vector<Editor::SceneBuildInfo>& scenes) {
     const fs::path exePath = getExecutableDir();
 
     fs::path relativeInternalPath = fs::relative(projectInternalPath, projectPath);
@@ -680,7 +680,18 @@ void Editor::Generator::terminateCurrentProcess() {
     #endif
 }
 
-void Editor::Generator::configure(const std::vector<SceneData>& scenes, const fs::path& projectPath, const fs::path& projectInternalPath){
+void Editor::Generator::writeSceneSource(Scene* scene, const std::string& sceneName, const std::vector<Entity>& entities, const Entity camera, const fs::path& projectPath, const fs::path& projectInternalPath){
+    const fs::path generatedPath = projectInternalPath / "generated";
+
+    std::string sceneContent = Factory::createScene(0, scene, sceneName, entities, camera, projectPath, generatedPath);
+
+    std::string filename = Factory::toIdentifier(sceneName) + ".cpp";
+    const fs::path sourceFile = generatedPath / filename;
+
+    FileUtils::writeIfChanged(sourceFile, sceneContent);
+}
+
+void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& scenes, std::string libName, const std::vector<ScriptSource>& scriptFiles, const fs::path& projectPath, const fs::path& projectInternalPath){
     const fs::path generatedPath = projectInternalPath / "generated";
 
     if (generatedPath.empty() || generatedPath == generatedPath.root_path()) {
@@ -701,15 +712,6 @@ void Editor::Generator::configure(const std::vector<SceneData>& scenes, const fs
     if (ec) {
         Out::error("Failed to create generated directory '%s': %s", generatedPath.string().c_str(), ec.message().c_str());
         return;
-    }
-
-    for (const auto& sceneData : scenes) {
-        std::string sceneContent = Factory::createScene(0, sceneData.scene, sceneData.name, sceneData.entities, sceneData.camera, projectPath, generatedPath);
-
-        std::string filename = Factory::toIdentifier(sceneData.name) + ".cpp";
-        const fs::path sourceFile = generatedPath / filename;
-
-        FileUtils::writeIfChanged(sourceFile, sceneContent);
     }
 
     // Build init.cpp content
@@ -776,6 +778,8 @@ void Editor::Generator::configure(const std::vector<SceneData>& scenes, const fs
 
     const fs::path platformSourceFile = generatedPath / "PlatformEditor.cpp";
     FileUtils::writeIfChanged(platformSourceFile, getPlatformEditorSource());
+
+    writeSourceFiles(projectPath, projectInternalPath, libName, scriptFiles, scenes);
 }
 
 std::string Editor::Generator::getPlatformEditorHeader() {
@@ -1018,9 +1022,7 @@ std::string Editor::Generator::getPlatformEditorSource() {
     return content;
 }
 
-void Editor::Generator::build(const fs::path projectPath, const fs::path projectInternalPath, const fs::path buildPath, std::string libName, const std::vector<ScriptSource>& scriptFiles, const std::vector<SceneData>& scenes) {
-    writeSourceFiles(projectPath, projectInternalPath, libName, scriptFiles, scenes);
-
+void Editor::Generator::build(const fs::path projectPath, const fs::path projectInternalPath, const fs::path buildPath) {
     cancelBuild();
     waitForBuildToComplete();
 

@@ -236,6 +236,16 @@ Editor::SceneProject* Editor::Project::createRuntimeCloneFromSource(const SceneP
     return runtime;
 }
 
+Entity Editor::Project::getSceneCamera(const SceneProject* sceneProject) const {
+    if (sceneProject->mainCamera != NULL_ENTITY && sceneProject->scene->isEntityCreated(sceneProject->mainCamera)) {
+        return sceneProject->mainCamera;
+    } else if (sceneProject->defaultCamera != NULL_ENTITY) {
+        return sceneProject->defaultCamera;
+    } else {
+        return sceneProject->scene->getCamera();
+    }
+}
+
 void Editor::Project::cleanupPlaySession(const std::shared_ptr<PlaySession>& session) {
     if (!session) {
         return;
@@ -954,6 +964,9 @@ void Editor::Project::finalizeStart(SceneProject* mainSceneProject, const std::v
             continue;
         }
 
+        Entity camera = getSceneCamera(sceneProject);
+        sceneProject->scene->setCamera(camera);
+
         pauseEngineScene(sceneProject->scene, false);
         initializeLuaScripts(sceneProject->scene);
 
@@ -1301,6 +1314,8 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
     sceneProject->filepath = path;
     sceneProject->isModified = false;
     saveProject();
+
+    generator.writeSceneSource(sceneProject->scene, sceneProject->name, sceneProject->entities, getSceneCamera(sceneProject), getProjectPath(), getProjectInternalPath());
 
     Out::info("Scene saved to: \"%s\"", path.string().c_str());
 }
@@ -2975,12 +2990,14 @@ void Editor::Project::start(uint32_t sceneId) {
     for (uint32_t id : involvedSceneIds) {
         SceneProject* involvedScene = getScene(id);
         if (!involvedScene) continue;
+        bool savedNow = false;
 
         if (involvedScene->opened){
             updateAllScriptsProperties(id);
 
             if (involvedScene->isModified && !involvedScene->filepath.empty()) {
                 saveSceneToPath(id, involvedScene->filepath);
+                savedNow = true;
             }
         }
 
@@ -3004,6 +3021,10 @@ void Editor::Project::start(uint32_t sceneId) {
             continue;
         }
 
+        if (!savedNow) {
+            generator.writeSceneSource(entry.runtime->scene, entry.runtime->name, entry.runtime->entities, getSceneCamera(entry.runtime), getProjectPath(), getProjectInternalPath());
+        }
+
         resolveEntityRefs(entry.runtime);
         session->runtimeScenes.push_back(entry);
     }
@@ -3017,43 +3038,30 @@ void Editor::Project::start(uint32_t sceneId) {
     sceneProject->playStateSnapshot = Stream::encodeSceneProject(nullptr, sceneProject);
     sceneProject->playState = ScenePlayState::PLAYING;
 
+    const std::string libName = "projectlib";
+
     Backend::getApp().getCodeEditor()->saveAll();
+
+    std::vector<Editor::SceneBuildInfo> scenesToGenerate;
+    for (const auto& runtimeScene : session->runtimeScenes) {
+        SceneProject* sceneRuntime = runtimeScene.runtime;
+
+        //Entity camera = getSceneCamera(sceneRuntime);
+        bool isMain = (runtimeScene.sourceSceneId == session->mainSceneId);
+        scenesToGenerate.push_back({sceneRuntime->name, isMain});
+    }
 
     std::vector<Editor::ScriptSource> scriptFiles = collectCppScriptSourceFiles(session->runtimeScenes);
 
-    std::vector<Editor::SceneData> scenesToGenerate;
-    for (const auto& runtimeScene : session->runtimeScenes) {
-        SceneProject* sceneRuntime = runtimeScene.runtime;
-        if (sceneRuntime) {
-
-            // Setting scene camera
-            if (sceneRuntime->mainCamera != NULL_ENTITY) {
-                if (sceneRuntime->scene->isEntityCreated(sceneRuntime->mainCamera)) {
-                    sceneRuntime->scene->setCamera(sceneRuntime->mainCamera);
-                } else {
-                    Out::error("Main camera entity is not valid, reverting to default camera");
-                    sceneRuntime->mainCamera = NULL_ENTITY;
-                }
-            } else if (sceneRuntime->defaultCamera != NULL_ENTITY) {
-                sceneRuntime->scene->setCamera(sceneRuntime->defaultCamera);
-            }
-
-            bool isMain = (runtimeScene.sourceSceneId == session->mainSceneId);
-            Entity camera = sceneRuntime->scene->getCamera();
-            scenesToGenerate.push_back({sceneRuntime->scene, sceneRuntime->name, sceneRuntime->entities, camera, isMain});
-        }
-    }
-
-    generator.configure(scenesToGenerate, getProjectPath(), getProjectInternalPath());
+    generator.configure(scenesToGenerate, libName, scriptFiles, getProjectPath(), getProjectInternalPath());
 
     // Check if we have C++ scripts that need building
     bool hasCppScripts = !scriptFiles.empty();
 
     if (hasCppScripts) {
-        std::string libName = "projectlib";
         fs::path buildPath = getProjectInternalPath() / "build";
 
-        generator.build(getProjectPath(), getProjectInternalPath(), buildPath, libName, scriptFiles, scenesToGenerate);
+        generator.build(getProjectPath(), getProjectInternalPath(), buildPath);
 
         std::thread connectThread([this, session, sceneId, buildPath, libName]() {
             generator.waitForBuildToComplete();
