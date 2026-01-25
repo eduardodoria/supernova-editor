@@ -42,6 +42,10 @@ fs::path Editor::Generator::getExecutableDir() {
 #endif
 }
 
+fs::path Editor::Generator::getGeneratedPath(const fs::path& projectInternalPath) {
+    return projectInternalPath / "generated";
+}
+
 Editor::Generator::Generator() :
     lastBuildSucceeded(false),
     cancelRequested(false)
@@ -681,7 +685,7 @@ void Editor::Generator::terminateCurrentProcess() {
 }
 
 void Editor::Generator::writeSceneSource(Scene* scene, const std::string& sceneName, const std::vector<Entity>& entities, const Entity camera, const fs::path& projectPath, const fs::path& projectInternalPath){
-    const fs::path generatedPath = projectInternalPath / "generated";
+    const fs::path generatedPath = getGeneratedPath(projectInternalPath);
 
     std::string sceneContent = Factory::createScene(0, scene, sceneName, entities, camera, projectPath, generatedPath);
 
@@ -691,26 +695,34 @@ void Editor::Generator::writeSceneSource(Scene* scene, const std::string& sceneN
     FileUtils::writeIfChanged(sourceFile, sceneContent);
 }
 
+bool Editor::Generator::prepareDirectory(const fs::path& path) {
+    if (path.empty() || path == path.root_path()) {
+        Out::error("Refusing to clear generated directory: invalid path '%s'", path.string().c_str());
+        return false;
+    }
+
+    std::error_code ec;
+    if (fs::exists(path, ec)) {
+        fs::remove_all(path, ec);
+        if (ec) {
+            Out::warning("Failed to clear generated directory '%s': %s", path.string().c_str(), ec.message().c_str());
+        }
+    }
+
+    ec.clear();
+    fs::create_directories(path, ec);
+    if (ec) {
+        Out::error("Failed to create generated directory '%s': %s", path.string().c_str(), ec.message().c_str());
+        return false;
+    }
+
+    return true;
+}
+
 void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& scenes, std::string libName, const std::vector<ScriptSource>& scriptFiles, const fs::path& projectPath, const fs::path& projectInternalPath){
-    const fs::path generatedPath = projectInternalPath / "generated";
+    const fs::path generatedPath = getGeneratedPath(projectInternalPath);
 
-    //if (generatedPath.empty() || generatedPath == generatedPath.root_path()) {
-    //    Out::error("Refusing to clear generated directory: invalid path '%s'", generatedPath.string().c_str());
-    //    return;
-    //}
-
-    //std::error_code ec;
-    //if (fs::exists(generatedPath, ec)) {
-    //    fs::remove_all(generatedPath, ec);
-    //    if (ec) {
-    //        Out::warning("Failed to clear generated directory '%s': %s", generatedPath.string().c_str(), ec.message().c_str());
-    //    }
-    //}
-
-    //ec.clear();
-    //fs::create_directories(generatedPath, ec);
-    //if (ec) {
-    //    Out::error("Failed to create generated directory '%s': %s", generatedPath.string().c_str(), ec.message().c_str());
+    //if (!prepareDirectory(generatedPath)) {
     //    return;
     //}
 

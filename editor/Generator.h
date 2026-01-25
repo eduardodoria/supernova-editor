@@ -41,6 +41,8 @@ namespace Supernova::Editor {
         std::atomic<bool> cancelRequested;
 
         static fs::path getExecutableDir();
+        static fs::path getGeneratedPath(const fs::path& projectInternalPath);
+        bool prepareDirectory(const fs::path& path);
 
     #ifdef _WIN32
         HANDLE currentProcessHandle;
