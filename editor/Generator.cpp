@@ -694,25 +694,25 @@ void Editor::Generator::writeSceneSource(Scene* scene, const std::string& sceneN
 void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& scenes, std::string libName, const std::vector<ScriptSource>& scriptFiles, const fs::path& projectPath, const fs::path& projectInternalPath){
     const fs::path generatedPath = projectInternalPath / "generated";
 
-    if (generatedPath.empty() || generatedPath == generatedPath.root_path()) {
-        Out::error("Refusing to clear generated directory: invalid path '%s'", generatedPath.string().c_str());
-        return;
-    }
+    //if (generatedPath.empty() || generatedPath == generatedPath.root_path()) {
+    //    Out::error("Refusing to clear generated directory: invalid path '%s'", generatedPath.string().c_str());
+    //    return;
+    //}
 
-    std::error_code ec;
-    if (fs::exists(generatedPath, ec)) {
-        fs::remove_all(generatedPath, ec);
-        if (ec) {
-            Out::warning("Failed to clear generated directory '%s': %s", generatedPath.string().c_str(), ec.message().c_str());
-        }
-    }
+    //std::error_code ec;
+    //if (fs::exists(generatedPath, ec)) {
+    //    fs::remove_all(generatedPath, ec);
+    //    if (ec) {
+    //        Out::warning("Failed to clear generated directory '%s': %s", generatedPath.string().c_str(), ec.message().c_str());
+    //    }
+    //}
 
-    ec.clear();
-    fs::create_directories(generatedPath, ec);
-    if (ec) {
-        Out::error("Failed to create generated directory '%s': %s", generatedPath.string().c_str(), ec.message().c_str());
-        return;
-    }
+    //ec.clear();
+    //fs::create_directories(generatedPath, ec);
+    //if (ec) {
+    //    Out::error("Failed to create generated directory '%s': %s", generatedPath.string().c_str(), ec.message().c_str());
+    //    return;
+    //}
 
     // Build init.cpp content
     std::string initContent;

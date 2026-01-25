@@ -764,7 +764,9 @@ std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::st
 
     out << ind << "#include \"Supernova.h\"\n";
     fs::path skyResourcesPath = fs::path(generatedPath) / "resources" / "sky";
-    if (usesDefaultSky && ensureDefaultSkyFiles(skyResourcesPath )) {
+    if (usesDefaultSky) {
+        ensureDefaultSkyFiles(skyResourcesPath);
+
         out << ind << "#include \"resources/sky/Daylight_Box_Front.h\"\n";
         out << ind << "#include \"resources/sky/Daylight_Box_Back.h\"\n";
         out << ind << "#include \"resources/sky/Daylight_Box_Left.h\"\n";
@@ -772,6 +774,7 @@ std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::st
         out << ind << "#include \"resources/sky/Daylight_Box_Top.h\"\n";
         out << ind << "#include \"resources/sky/Daylight_Box_Bottom.h\"\n";
     }
+    out << ind << "\n";
     out << ind << "using namespace Supernova;\n\n";
 
     out << ind << "void create_" << mainSceneVar << "(Scene* scene){\n";

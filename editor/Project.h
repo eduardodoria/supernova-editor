@@ -130,6 +130,8 @@ namespace Supernova::Editor{
 
         std::map<std::filesystem::path, SharedGroup> sharedGroups;
 
+        const std::string libName = "projectlib";
+
         template<typename T>
         T* findScene(uint32_t sceneId) const;
 
@@ -141,7 +143,7 @@ namespace Supernova::Editor{
         size_t countEntitiesInBranch(const YAML::Node& entityNode);
         void insertNewChild(YAML::Node& node, YAML::Node child, size_t index);
 
-        std::vector<Editor::ScriptSource> collectCppScriptSourceFiles(const std::vector<PlayRuntimeScene>& runtimeScenes) const;
+        std::vector<Editor::ScriptSource> collectCppScriptSourceFiles(const std::vector<uint32_t>& sceneIds) const;
 
         void pauseEngineScene(Scene* scene, bool pause);
 
