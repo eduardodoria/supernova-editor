@@ -41,7 +41,7 @@ namespace Supernova::Editor{
         static std::string formatScriptPropertyValue(const ScriptPropertyValue& value);
         static std::string formatEntityRefKind(EntityRefKind kind);
 
-        static std::string formatTexture(int indentSpaces, const Texture& texture, const std::string& variableName, const std::string& projectPath);
+        static std::string formatTexture(int indentSpaces, const Texture& texture, const std::string& variableName, const fs::path& projectPath);
 
         static std::string formatPropertyValue(const PropertyData& property, const std::string& propertyName);
 
@@ -52,23 +52,23 @@ namespace Supernova::Editor{
 
         static std::string toIdentifier(const std::string& name);
 
-        static std::string createComponent(int indentSpaces, Scene* scene, Entity entity, ComponentType componentType, const std::string& projectPath, std::string sceneName = "", std::string entityName = "");
-        static std::string createAllComponents(int indentSpaces, Scene* scene, Entity entity, const std::string& projectPath, std::string sceneName = "", std::string entityName = "");
-        static std::string createScene(int indentSpaces, Scene* scene, std::string name, std::vector<Entity> entities, Entity camera, const std::string& projectPath, const std::string& generatedPath);
+        static std::string createComponent(int indentSpaces, Scene* scene, Entity entity, ComponentType componentType, const fs::path& projectPath, std::string sceneName = "", std::string entityName = "");
+        static std::string createAllComponents(int indentSpaces, Scene* scene, Entity entity, const fs::path& projectPath, std::string sceneName = "", std::string entityName = "");
+        static std::string createScene(int indentSpaces, Scene* scene, std::string name, std::vector<Entity> entities, Entity camera, const fs::path& projectPath, const fs::path& generatedPath);
 
-        static std::string setComponent(Scene* scene, Entity entity, ComponentType componentType, const std::string& projectPath);
-        static std::string setAllComponents(Scene* scene, Entity entity, const std::string& projectPath);
+        static std::string setComponent(Scene* scene, Entity entity, ComponentType componentType, const fs::path& projectPath);
+        static std::string setAllComponents(Scene* scene, Entity entity, const fs::path& projectPath);
 
         static std::string createTransform(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
-        static std::string createMeshComponent(int indentSpaces, Scene* scene, Entity entity, const std::string& projectPath, std::string sceneName = "", std::string entityName = "");
-        static std::string createUIComponent(int indentSpaces, Scene* scene, Entity entity, const std::string& projectPath, std::string sceneName = "", std::string entityName = "");
+        static std::string createMeshComponent(int indentSpaces, Scene* scene, Entity entity, const fs::path& projectPath, std::string sceneName = "", std::string entityName = "");
+        static std::string createUIComponent(int indentSpaces, Scene* scene, Entity entity, const fs::path& projectPath, std::string sceneName = "", std::string entityName = "");
         static std::string createUILayoutComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
         static std::string createImageComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
         static std::string createSpriteComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
         static std::string createLightComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
         static std::string createCameraComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
         static std::string createScriptComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
-        static std::string createSkyComponent(int indentSpaces, Scene* scene, Entity entity, const std::string& projectPath, std::string sceneName = "", std::string entityName = "");
+        static std::string createSkyComponent(int indentSpaces, Scene* scene, Entity entity, const fs::path& projectPath, std::string sceneName = "", std::string entityName = "");
     };
 
 }

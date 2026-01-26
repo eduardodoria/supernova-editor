@@ -378,7 +378,7 @@ std::string Editor::Factory::formatEntityRefKind(EntityRefKind kind) {
     }
 }
 
-std::string Editor::Factory::formatTexture(int indentSpaces, const Texture& texture, const std::string& variableName, const std::string& projectPath) {
+std::string Editor::Factory::formatTexture(int indentSpaces, const Texture& texture, const std::string& variableName, const fs::path& projectPath) {
     if (texture.empty()) return "";
     std::ostringstream code;
     std::string ind = indentation(indentSpaces);
@@ -386,10 +386,9 @@ std::string Editor::Factory::formatTexture(int indentSpaces, const Texture& text
     auto normalizePath = [&](const std::string& inPath) {
         std::string outPath = inPath;
         if (!outPath.empty() && !projectPath.empty()) {
-            fs::path pPath = projectPath;
             fs::path tPath = outPath;
             try {
-                outPath = fs::relative(tPath, pPath).string();
+                outPath = fs::relative(tPath, projectPath).string();
             } catch (...) {
             }
         }
@@ -520,7 +519,7 @@ std::string Editor::Factory::createTransform(int indentSpaces, Scene* scene, Ent
     return code.str();
 }
 
-std::string Editor::Factory::createMeshComponent(int indentSpaces, Scene* scene, Entity entity, const std::string& projectPath, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createMeshComponent(int indentSpaces, Scene* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<MeshComponent>(entity)) return "";
     MeshComponent& mesh = scene->getComponent<MeshComponent>(entity);
     std::ostringstream code;
@@ -601,7 +600,7 @@ std::string Editor::Factory::createMeshComponent(int indentSpaces, Scene* scene,
     return code.str();
 }
 
-std::string Editor::Factory::createUIComponent(int indentSpaces, Scene* scene, Entity entity, const std::string& projectPath, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createUIComponent(int indentSpaces, Scene* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<UIComponent>(entity)) return "";
     UIComponent& ui = scene->getComponent<UIComponent>(entity);
     std::ostringstream code;
@@ -734,7 +733,7 @@ std::string Editor::Factory::createScriptComponent(int indentSpaces, Scene* scen
     return code.str();
 }
 
-std::string Editor::Factory::createSkyComponent(int indentSpaces, Scene* scene, Entity entity, const std::string& projectPath, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createSkyComponent(int indentSpaces, Scene* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<SkyComponent>(entity)) return "";
     SkyComponent& sky = scene->getComponent<SkyComponent>(entity);
     std::ostringstream code;
@@ -772,7 +771,7 @@ std::string Editor::Factory::createSkyComponent(int indentSpaces, Scene* scene, 
     return code.str();
 }
 
-std::string Editor::Factory::createComponent(int indentSpaces, Scene* scene, Entity entity, ComponentType componentType, const std::string& projectPath, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createComponent(int indentSpaces, Scene* scene, Entity entity, ComponentType componentType, const fs::path& projectPath, std::string sceneName, std::string entityName) {
     switch (componentType) {
         case ComponentType::Transform: return createTransform(indentSpaces, scene, entity, sceneName, entityName);
         case ComponentType::MeshComponent: return createMeshComponent(indentSpaces, scene, entity, projectPath, sceneName, entityName);
@@ -788,7 +787,7 @@ std::string Editor::Factory::createComponent(int indentSpaces, Scene* scene, Ent
     }
 }
 
-std::string Editor::Factory::createAllComponents(int indentSpaces, Scene* scene, Entity entity, const std::string& projectPath, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createAllComponents(int indentSpaces, Scene* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName) {
     // Find all components for this entity
     std::vector<ComponentType> components = Catalog::findComponents(scene, entity);
 
@@ -811,7 +810,7 @@ std::string Editor::Factory::createAllComponents(int indentSpaces, Scene* scene,
     return code.str();
 }
 
-std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::string name, std::vector<Entity> entities, Entity camera, const std::string& projectPath, const std::string& generatedPath) {
+std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::string name, std::vector<Entity> entities, Entity camera, const fs::path& projectPath, const fs::path& generatedPath) {
     std::ostringstream out;
 
     std::string mainSceneVar = toIdentifier(name);
@@ -829,7 +828,7 @@ std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::st
     }
 
     out << ind << "#include \"Supernova.h\"\n";
-    fs::path skyResourcesPath = fs::path(generatedPath) / "resources" / "sky";
+    fs::path skyResourcesPath = generatedPath / "resources" / "sky";
     if (usesDefaultSky) {
         ensureDefaultSkyFiles(skyResourcesPath);
 
@@ -888,7 +887,7 @@ std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::st
     return out.str();
 }
 
-std::string Editor::Factory::setComponent(Scene* scene, Entity entity, ComponentType componentType, const std::string& projectPath) {
+std::string Editor::Factory::setComponent(Scene* scene, Entity entity, ComponentType componentType, const fs::path& projectPath) {
     // Check if entity has this component
     Signature signature = scene->getSignature(entity);
     ComponentId compId = Catalog::getComponentId(scene, componentType);
@@ -932,7 +931,7 @@ std::string Editor::Factory::setComponent(Scene* scene, Entity entity, Component
     return code.str();
 }
 
-std::string Editor::Factory::setAllComponents(Scene* scene, Entity entity, const std::string& projectPath) {
+std::string Editor::Factory::setAllComponents(Scene* scene, Entity entity, const fs::path& projectPath) {
     // Find all components for this entity
     std::vector<ComponentType> components = Catalog::findComponents(scene, entity);
 
