@@ -89,6 +89,17 @@ void Editor::App::openProjectFunc(){
 }
 
 void Editor::App::showMenu(){
+    SceneProject* selectedScene = project.getSelectedScene();
+    uint32_t selectedSceneId = project.getSelectedSceneId();
+    bool hasSelectedScene = selectedScene != nullptr;
+    bool isPlaying = hasSelectedScene && selectedScene->playState == ScenePlayState::PLAYING;
+    bool isPaused = hasSelectedScene && selectedScene->playState == ScenePlayState::PAUSED;
+    bool canRun = hasSelectedScene && !project.isAnyScenePlaying();
+    bool canPause = hasSelectedScene && isPlaying;
+    bool canResume = hasSelectedScene && isPaused;
+    bool canStop = hasSelectedScene && (isPlaying || isPaused);
+    bool canRemove = hasSelectedScene && !project.isAnyScenePlaying();
+
     // Remove menu bar border
     //ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
     //ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
@@ -96,7 +107,7 @@ void Editor::App::showMenu(){
     // Create the main menu bar
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("New")) {
+            if (ImGui::MenuItem("New Project")) {
                 std::string projectName = "MySupernovaProject";
                 if (project.hasScenesUnsavedChanges() || codeEditor->hasUnsavedChanges() || project.isTempUnsavedProject()) {
                     Backend::getApp().registerConfirmAlert(
@@ -165,6 +176,9 @@ void Editor::App::showMenu(){
                 project.saveProject(true);
             }
             ImGui::EndDisabled();
+            if (ImGui::MenuItem("Save Project As...")) {
+                registerProjectSaveDialog([](){});
+            }
             ImGui::Separator();
             bool canSave = false;
             if (lastFocusedWindow == LastFocusedWindow::Scene) {
@@ -186,7 +200,7 @@ void Editor::App::showMenu(){
             ImGui::EndDisabled();
             ImGui::Separator();
             if (ImGui::MenuItem("Exit")) {
-                // Handle exit action
+                exit();
             }
             ImGui::EndMenu();
         }
@@ -199,6 +213,77 @@ void Editor::App::showMenu(){
             }
             if (ImGui::MenuItem("Reset layout")) {
                 buildDockspace();
+            }
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("View")) {
+            if (ImGui::MenuItem("Reset Layout")) {
+                 buildDockspace();
+            }
+             ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Create")) {
+             if (ImGui::MenuItem("New Scene")) {
+                 project.createNewScene("New Scene", SceneType::SCENE_3D);
+             }
+             ImGui::BeginDisabled(!hasSelectedScene);
+             if (ImGui::BeginMenu("Entity")) {
+                 if (ImGui::MenuItem("Create Empty")) {
+                 }
+                 ImGui::EndMenu();
+             }
+             ImGui::EndDisabled();
+             ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Project")) {
+            if (ImGui::MenuItem("Clear Trash")) {
+                project.clearTrash();
+            }
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Scene")) {
+            ImGui::BeginDisabled(!canRun);
+            if (ImGui::MenuItem("Run")) {
+                project.start(selectedSceneId);
+            }
+            ImGui::EndDisabled();
+
+            ImGui::BeginDisabled(!canPause);
+            if (ImGui::MenuItem("Pause")) {
+                project.pause(selectedSceneId);
+            }
+            ImGui::EndDisabled();
+
+            ImGui::BeginDisabled(!canResume);
+            if (ImGui::MenuItem("Resume")) {
+                project.resume(selectedSceneId);
+            }
+            ImGui::EndDisabled();
+
+            ImGui::BeginDisabled(!canStop);
+            if (ImGui::MenuItem("Stop")) {
+                project.stop(selectedSceneId);
+            }
+            ImGui::EndDisabled();
+
+            ImGui::Separator();
+
+            ImGui::BeginDisabled(!canRemove);
+            if (ImGui::MenuItem("Remove")) {
+                project.checkUnsavedAndExecute(selectedSceneId, [this, selectedSceneId]() {
+                    project.removeScene(selectedSceneId);
+                });
+            }
+            ImGui::EndDisabled();
+
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Help")) {
+            if (ImGui::MenuItem("About Supernova")) {
+                registerAlert("About Supernova", "Supernova Engine Editor\n\nVersion: 0.1.0\n\nDeveloped by Supernova Team");
+            }
+            if (ImGui::MenuItem("Documentation")) {
+                // TODO: Open URL
             }
             ImGui::EndMenu();
         }
