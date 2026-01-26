@@ -1,3 +1,4 @@
+
 #include "Factory.h"
 
 #include "Scene.h"
@@ -318,6 +319,62 @@ std::string Editor::Factory::formatTextureWrap(TextureWrap wrap) {
         case TextureWrap::CLAMP_TO_EDGE: return "TextureWrap::CLAMP_TO_EDGE";
         case TextureWrap::CLAMP_TO_BORDER: return "TextureWrap::CLAMP_TO_BORDER";
         default: return "TextureWrap::REPEAT";
+    }
+}
+
+std::string Editor::Factory::formatScriptPropertyType(ScriptPropertyType type) {
+    switch (type) {
+        case ScriptPropertyType::Bool: return "ScriptPropertyType::Bool";
+        case ScriptPropertyType::Int: return "ScriptPropertyType::Int";
+        case ScriptPropertyType::Float: return "ScriptPropertyType::Float";
+        case ScriptPropertyType::String: return "ScriptPropertyType::String";
+        case ScriptPropertyType::Vector2: return "ScriptPropertyType::Vector2";
+        case ScriptPropertyType::Vector3: return "ScriptPropertyType::Vector3";
+        case ScriptPropertyType::Vector4: return "ScriptPropertyType::Vector4";
+        case ScriptPropertyType::Color3: return "ScriptPropertyType::Color3";
+        case ScriptPropertyType::Color4: return "ScriptPropertyType::Color4";
+        case ScriptPropertyType::EntityPointer: return "ScriptPropertyType::EntityPointer";
+        default: return "ScriptPropertyType::Bool";
+    }
+}
+
+std::string Editor::Factory::formatScriptPropertyValue(const ScriptPropertyValue& value) {
+    if (std::holds_alternative<bool>(value)) {
+        return formatBool(std::get<bool>(value));
+    } else if (std::holds_alternative<int>(value)) {
+        return formatInt(std::get<int>(value));
+    } else if (std::holds_alternative<float>(value)) {
+        return formatFloat(std::get<float>(value));
+    } else if (std::holds_alternative<std::string>(value)) {
+        return formatString(std::get<std::string>(value));
+    } else if (std::holds_alternative<Vector2>(value)) {
+        return formatVector2(std::get<Vector2>(value));
+    } else if (std::holds_alternative<Vector3>(value)) {
+        return formatVector3(std::get<Vector3>(value));
+    } else if (std::holds_alternative<Vector4>(value)) {
+        return formatVector4(std::get<Vector4>(value));
+    } else if (std::holds_alternative<EntityRef>(value)) {
+        const EntityRef& ref = std::get<EntityRef>(value);
+        std::string res = "EntityRef{";
+        res += std::to_string(ref.entity) + ", ";
+        res += "nullptr, "; // scene is null at code generation
+        res += "EntityLocator{";
+        res += formatEntityRefKind(ref.locator.kind) + ", ";
+        res += std::to_string(ref.locator.scopedEntity) + ", ";
+        res += std::to_string(ref.locator.sceneId) + ", ";
+        res += formatString(ref.locator.sharedPath);
+        res += "}}";
+        return res;
+    }
+    return "ScriptPropertyValue{}";
+}
+
+std::string Editor::Factory::formatEntityRefKind(EntityRefKind kind) {
+    switch (kind) {
+        case EntityRefKind::None: return "EntityRefKind::None";
+        case EntityRefKind::LocalEntity: return "EntityRefKind::LocalEntity";
+        case EntityRefKind::SharedEntity: return "EntityRefKind::SharedEntity";
+        default: return "EntityRefKind::None";
     }
 }
 
@@ -662,6 +719,15 @@ std::string Editor::Factory::createScriptComponent(int indentSpaces, Scene* scen
         code << ind << "script.scripts[" << idx << "].headerPath = " << formatString(script.scripts[i].headerPath) << ";\n";
         code << ind << "script.scripts[" << idx << "].className = " << formatString(script.scripts[i].className) << ";\n";
         code << ind << "script.scripts[" << idx << "].enabled = " << formatBool(script.scripts[i].enabled) << ";\n";
+
+        for (size_t p = 0; p < script.scripts[i].properties.size(); p++) {
+            const ScriptProperty& prop = script.scripts[i].properties[p];
+            std::string pidx = std::to_string(p);
+            code << ind << "script.scripts[" << idx << "].properties.push_back(ScriptProperty());\n";
+            code << ind << "script.scripts[" << idx << "].properties[" << pidx << "].name = " << formatString(prop.name) << ";\n";
+            code << ind << "script.scripts[" << idx << "].properties[" << pidx << "].type = " << formatScriptPropertyType(prop.type) << ";\n";
+            code << ind << "script.scripts[" << idx << "].properties[" << pidx << "].value = " << formatScriptPropertyValue(prop.value) << ";\n";
+        }
     }
 
     addComponentCode(code, ind, sceneName, entityName, entity, "ScriptComponent", "script");
