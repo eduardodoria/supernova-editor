@@ -42,7 +42,6 @@ namespace Supernova::Editor {
 
         static fs::path getExecutableDir();
         static fs::path getGeneratedPath(const fs::path& projectInternalPath);
-        bool prepareDirectory(const fs::path& path);
 
     #ifdef _WIN32
         HANDLE currentProcessHandle;
@@ -66,6 +65,7 @@ namespace Supernova::Editor {
         Generator();
         ~Generator();
         void writeSceneSource(Scene* scene, const std::string& sceneName, const std::vector<Entity>& entities, const Entity camera, const fs::path& projectPath, const fs::path& projectInternalPath);
+        void clearSceneSource(const std::string& sceneName, const fs::path& projectInternalPath);
         void configure(const std::vector<SceneBuildInfo>& scenes, std::string libName, const std::vector<ScriptSource>& scriptFiles, const fs::path& projectPath, const fs::path& projectInternalPath);
         void build(const fs::path projectPath, const fs::path projectInternalPath, const fs::path buildPath);
         bool isBuildInProgress() const;

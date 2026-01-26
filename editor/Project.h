@@ -189,6 +189,7 @@ namespace Supernova::Editor{
         void loadScene(fs::path filepath, bool opened, bool isNewScene = true);
         void openScene(fs::path filepath, bool closePrevious = true);
         void closeScene(uint32_t sceneId);
+        void removeScene(uint32_t sceneId);
 
         void addChildScene(uint32_t sceneId, uint32_t childSceneId);
         void removeChildScene(uint32_t sceneId, uint32_t childSceneId);

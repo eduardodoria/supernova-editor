@@ -1,4 +1,5 @@
 #include "Project.h"
+#include "Factory.h"
 
 #include "Backend.h"
 
@@ -405,6 +406,42 @@ void Editor::Project::closeScene(uint32_t sceneId) {
         deleteSceneProject(&(*it));
 
         it->opened = false;
+    }
+}
+
+void Editor::Project::removeScene(uint32_t sceneId) {
+    if (scenes.size() <= 1) {
+        Out::error("Cannot remove last scene");
+        return;
+    }
+
+    auto it = std::find_if(scenes.begin(), scenes.end(),
+        [sceneId](const SceneProject& scene) { return scene.id == sceneId; });
+
+    if (it != scenes.end()) {
+        // If selected, select another scene
+        if (selectedScene == sceneId) {
+             // Try to select the first one that is not this one
+            for (const auto& scene : scenes) {
+                if (scene.id != sceneId) {
+                    setSelectedSceneId(scene.id);
+                    break;
+                }
+            }
+        }
+
+        // Cleanup resources
+        deleteSceneProject(&(*it));
+
+        // Remove C++ source file
+        generator.clearSceneSource(it->name, getProjectInternalPath());
+
+        // Cleanup SharedGroups
+        for (auto& pair : sharedGroups) {
+            pair.second.instances.erase(sceneId);
+        }
+
+        scenes.erase(it);
     }
 }
 
