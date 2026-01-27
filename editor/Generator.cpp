@@ -573,7 +573,9 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
                                 sourceContent += "                                    if (targetScript.type != ScriptType::SCRIPT_LUA) {\n";
                                 sourceContent += "                                        if (targetScript.className == \"" + prop.ptrTypeName + "\" && targetScript.instance) {\n";
                                 sourceContent += "                                            instancePtr = targetScript.instance;\n";
+                                sourceContent += "                                            #ifdef SUPERNOVA_EDITOR_PLUGIN\n";
                                 sourceContent += "                                            printf(\"[DEBUG]   Found matching C++ script instance: '%s'\\n\", targetScript.className.c_str());\n";
+                                sourceContent += "                                            #endif\n";
                                 sourceContent += "                                            break;\n";
                                 sourceContent += "                                        }\n";
                                 sourceContent += "                                    }\n";
@@ -582,7 +584,9 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
                                 sourceContent += "\n";
                                 if (!prop.ptrTypeName.empty()) {
                                     sourceContent += "                            if (!instancePtr) {\n";
+                                    sourceContent += "                                #ifdef SUPERNOVA_EDITOR_PLUGIN\n";
                                     sourceContent += "                                printf(\"[DEBUG]   No C++ script instance found, creating '" + prop.ptrTypeName + "' type\\n\");\n";
+                                    sourceContent += "                                #endif\n";
                                     sourceContent += "                                instancePtr = new " + prop.ptrTypeName + "(entityRef.scene, entityRef.entity);\n";
                                     sourceContent += "                            }\n";
                                 }

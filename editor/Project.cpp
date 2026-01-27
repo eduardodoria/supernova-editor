@@ -1356,6 +1356,8 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
     sceneProject->isModified = false;
     saveProject();
 
+    resolveEntityRefs(sceneProject);
+
     generator.writeSceneSource(sceneProject->scene, sceneProject->name, sceneProject->entities, getSceneCamera(sceneProject), getProjectPath(), getProjectInternalPath());
 
     std::vector<uint32_t> involvedSceneIds;

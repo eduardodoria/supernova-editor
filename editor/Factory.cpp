@@ -338,7 +338,7 @@ std::string Editor::Factory::formatScriptPropertyType(ScriptPropertyType type) {
     }
 }
 
-std::string Editor::Factory::formatScriptPropertyValue(const ScriptPropertyValue& value) {
+std::string Editor::Factory::formatScriptPropertyValue(const Scene* scene, const ScriptPropertyValue& value) {
     if (std::holds_alternative<bool>(value)) {
         return formatBool(std::get<bool>(value));
     } else if (std::holds_alternative<int>(value)) {
@@ -356,8 +356,13 @@ std::string Editor::Factory::formatScriptPropertyValue(const ScriptPropertyValue
     } else if (std::holds_alternative<EntityRef>(value)) {
         const EntityRef& ref = std::get<EntityRef>(value);
         std::string res = "EntityRef{";
-        res += std::to_string(ref.entity) + ", ";
-        res += "nullptr, "; // scene is null at code generation
+        if (ref.scene == scene){
+            res += std::to_string(ref.entity) + ", ";
+            res += "scene, ";
+        } else {
+            res += "NULL_ENTITY, ";
+            res += "nullptr, "; // different scene, set to nullptr
+        }
         res += "EntityLocator{";
         res += formatEntityRefKind(ref.locator.kind) + ", ";
         res += std::to_string(ref.locator.scopedEntity) + ", ";
@@ -725,7 +730,7 @@ std::string Editor::Factory::createScriptComponent(int indentSpaces, Scene* scen
             code << ind << "script.scripts[" << idx << "].properties.push_back(ScriptProperty());\n";
             code << ind << "script.scripts[" << idx << "].properties[" << pidx << "].name = " << formatString(prop.name) << ";\n";
             code << ind << "script.scripts[" << idx << "].properties[" << pidx << "].type = " << formatScriptPropertyType(prop.type) << ";\n";
-            code << ind << "script.scripts[" << idx << "].properties[" << pidx << "].value = " << formatScriptPropertyValue(prop.value) << ";\n";
+            code << ind << "script.scripts[" << idx << "].properties[" << pidx << "].value = " << formatScriptPropertyValue(scene, prop.value) << ";\n";
         }
     }
 

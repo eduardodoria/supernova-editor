@@ -38,7 +38,7 @@ namespace Supernova::Editor{
         static std::string formatTextureFilter(TextureFilter filter);
         static std::string formatTextureWrap(TextureWrap wrap);
         static std::string formatScriptPropertyType(ScriptPropertyType type);
-        static std::string formatScriptPropertyValue(const ScriptPropertyValue& value);
+        static std::string formatScriptPropertyValue(const Scene* scene, const ScriptPropertyValue& value);
         static std::string formatEntityRefKind(EntityRefKind kind);
 
         static std::string formatTexture(int indentSpaces, const Texture& texture, const std::string& variableName, const fs::path& projectPath);
