@@ -136,27 +136,27 @@ void Editor::Conector::execute(Scene* scene){
 
     using InitSceneFunc = void (*)(Scene*);
     #ifdef _WIN32
-        InitSceneFunc initSceneFn = reinterpret_cast<InitSceneFunc>(GetProcAddress(static_cast<HMODULE>(libHandle), "initScene"));
-        if (!initSceneFn) {
-            Out::error("Failed to find function 'initScene' in the library (Error code: %lu)", GetLastError());
+        InitSceneFunc initSceneScriptsFn = reinterpret_cast<InitSceneFunc>(GetProcAddress(static_cast<HMODULE>(libHandle), "initSceneScripts"));
+        if (!initSceneScriptsFn) {
+            Out::error("Failed to find function 'initSceneScripts' in the library (Error code: %lu)", GetLastError());
         }
     #else
         dlerror(); // clear any existing error
-        InitSceneFunc initSceneFn = reinterpret_cast<InitSceneFunc>(dlsym(libHandle, "initScene"));
+        InitSceneFunc initSceneScriptsFn = reinterpret_cast<InitSceneFunc>(dlsym(libHandle, "initSceneScripts"));
         const char* err = dlerror();
         if (err) {
-            Out::error("Failed to find function 'initScene' in the library (Error: %s)", err);
-            initSceneFn = nullptr;
+            Out::error("Failed to find function 'initSceneScripts' in the library (Error: %s)", err);
+            initSceneScriptsFn = nullptr;
         }
     #endif
 
-    if (initSceneFn) {
+    if (initSceneScriptsFn) {
         try {
-            initSceneFn(scene);
+            initSceneScriptsFn(scene);
         } catch (const std::exception& e) {
-            Out::error("Exception in initScene(): %s", e.what());
+            Out::error("Exception in initSceneScripts(): %s", e.what());
         } catch (...) {
-            Out::error("Unknown exception in initScene()");
+            Out::error("Unknown exception in initSceneScripts()");
         }
     }
 }

@@ -512,7 +512,7 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     sourceContent += "    #define PROJECT_API\n";
     sourceContent += "#endif\n\n";
 
-    sourceContent += "extern \"C\" void PROJECT_API initScene(Supernova::Scene* scene) {\n";
+    sourceContent += "extern \"C\" void PROJECT_API initSceneScripts(Supernova::Scene* scene) {\n";
 
     if (!scriptFiles.empty()) {
 
@@ -718,8 +718,8 @@ void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& sce
     initContent += "\n";
     initContent += "using namespace Supernova;\n\n";
 
-    // initScene is generated in init_scripts.cpp; call it after initializing each scene
-    initContent += "extern \"C\" void initScene(Supernova::Scene* scene);\n\n";
+    // initSceneScripts is generated in init_scripts.cpp; call it after initializing each scene
+    initContent += "extern \"C\" void initSceneScripts(Supernova::Scene* scene);\n\n";
 
     // Forward declarations for per-scene initialization functions (defined in generated scene .cpp files)
     for (const auto& sceneData : scenes) {
@@ -742,7 +742,7 @@ void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& sce
 
     for (const auto& sceneData : scenes) {
         std::string sceneName = Factory::toIdentifier(sceneData.name);
-        initContent += "    initScene(&" + sceneName + ");\n";
+        initContent += "    initSceneScripts(&" + sceneName + ");\n";
     }
     initContent += "\n";
     initContent += "    Engine::setCanvasSize(1000, 480);\n";
