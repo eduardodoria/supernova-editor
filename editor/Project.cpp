@@ -577,6 +577,7 @@ void Editor::Project::resetConfigs() {
     windowWidth = 1280;
     windowHeight = 720;
     selectedScene = NULL_PROJECT_SCENE;
+    selectedSceneForProperties = NULL_PROJECT_SCENE;
     nextSceneId = 0;
     projectPath.clear();
     sharedGroups.clear();
@@ -1439,6 +1440,8 @@ Entity Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
 bool Editor::Project::selectObjectByRay(uint32_t sceneId, float x, float y, bool shiftPressed){
     SceneProject* scenedata = getScene(sceneId);
 
+    setSelectedSceneForProperties(sceneId);
+
     Entity selEntity = findObjectByRay(sceneId, x, y);
 
     if (!scenedata->sceneRender->isAnyGizmoSideSelected()){
@@ -1458,6 +1461,8 @@ bool Editor::Project::selectObjectByRay(uint32_t sceneId, float x, float y, bool
 
 bool Editor::Project::selectObjectsByRect(uint32_t sceneId, Vector2 start, Vector2 end){
     SceneProject* scenedata = getScene(sceneId);
+
+    setSelectedSceneForProperties(sceneId);
 
     Camera* camera = scenedata->sceneRender->getCamera();
 
@@ -1563,6 +1568,7 @@ uint32_t Editor::Project::getNextSceneId() const{
 void Editor::Project::setSelectedSceneId(uint32_t selectedScene){
     if (this->selectedScene != selectedScene){
         this->selectedScene = selectedScene;
+        this->selectedSceneForProperties = selectedScene;
 
         //debugSceneHierarchy();
     }
@@ -1570,6 +1576,14 @@ void Editor::Project::setSelectedSceneId(uint32_t selectedScene){
 
 uint32_t Editor::Project::getSelectedSceneId() const{
     return selectedScene;
+}
+
+void Editor::Project::setSelectedSceneForProperties(uint32_t selectedScene){
+    this->selectedSceneForProperties = selectedScene;
+}
+
+uint32_t Editor::Project::getSelectedSceneForProperties() const{
+    return selectedSceneForProperties;
 }
 
 bool Editor::Project::isTempProject() const{

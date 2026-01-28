@@ -590,23 +590,29 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered() && ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows)) {
         project->clearSelectedEntities(project->getSelectedSceneId());
         selectedScenes.clear();
+        project->setSelectedSceneForProperties(project->getSelectedSceneId());
     }
 
     // Check for selection on mouse release (not click) to allow drag without selection
     bool wasItemActivePrevFrame = ImGui::IsItemActive();
     if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left) && !ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
         if (node.isChildScene) {
-            // Do nothing
+            project->clearSelectedEntities(project->getSelectedSceneId());
+            selectedScenes.clear();
+            selectedScenes.push_back(&node);
+            project->setSelectedSceneForProperties(node.childSceneId);
         } else if (!node.isScene){
             ImGuiIO& io = ImGui::GetIO();
             if (!io.KeyShift){
                 project->clearSelectedEntities(project->getSelectedSceneId());
             }
             project->addSelectedEntity(project->getSelectedSceneId(), node.id);
+            project->setSelectedSceneForProperties(project->getSelectedSceneId());
         }else{
             project->clearSelectedEntities(project->getSelectedSceneId());
             selectedScenes.clear();
             selectedScenes.push_back(&node);
+            project->setSelectedSceneForProperties(node.id);
         }
     }
 

@@ -15,6 +15,7 @@
 #include "command/type/RemoveComponentCmd.h"
 #include "command/type/ComponentToSharedCmd.h"
 #include "command/type/ComponentToLocalCmd.h"
+#include "command/type/ScenePropertyCmd.h"
 #include "render/SceneRender2D.h"
 #include "util/SHA1.h"
 #include "util/ProjectUtils.h"
@@ -22,6 +23,7 @@
 #include "Out.h"
 
 #include <map>
+#include <type_traits>
 
 using namespace Supernova;
 
@@ -57,6 +59,85 @@ static std::vector<Editor::EnumEntry> entriesCameraType = {
 
 static std::vector<int> cascadeValues = { 1, 2, 3, 4, 5, 6 };
 static std::vector<int> po2Values = { 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384 };
+
+namespace {
+    enum class ScenePropertyInputType {
+        Checkbox,
+        DragFloat,
+        SliderFloat,
+        ColorRGB,
+        ColorRGBA,
+        Combo
+    };
+
+    template<typename T>
+    void drawScenePropertyRow(Editor::SceneProject* sceneProject, const std::string& propertyName, const char* label, ScenePropertyInputType inputType, float minValue = 0.0f, float maxValue = 1.0f) {
+        T value = Supernova::Editor::Catalog::getSceneProperty<T>(sceneProject->scene, propertyName);
+        bool changed = false;
+
+        Editor::Command* cmd = nullptr;
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::Text("%s", label);
+        ImGui::TableSetColumnIndex(1);
+
+        switch (inputType) {
+            case ScenePropertyInputType::Checkbox:
+                if constexpr (std::is_same_v<T, bool>) {
+                    changed = ImGui::Checkbox(("##" + propertyName).c_str(), &value);
+                }
+                break;
+            case ScenePropertyInputType::DragFloat:
+                if constexpr (std::is_same_v<T, float>) {
+                    changed = ImGui::DragFloat(("##" + propertyName).c_str(), &value, 0.01f);
+                } else if constexpr (std::is_same_v<T, Vector3>) {
+                    changed = ImGui::DragFloat3(("##" + propertyName).c_str(), (float*)&value.x);
+                } else if constexpr (std::is_same_v<T, Vector4>) {
+                    changed = ImGui::DragFloat4(("##" + propertyName).c_str(), (float*)&value.x);
+                }
+                break;
+            case ScenePropertyInputType::SliderFloat:
+                if constexpr (std::is_same_v<T, float>) {
+                    ImGui::SetNextItemWidth(-1);
+                    changed = ImGui::SliderFloat(("##" + propertyName).c_str(), &value, minValue, maxValue);
+                }
+                break;
+            case ScenePropertyInputType::ColorRGB:
+                if constexpr (std::is_same_v<T, Vector3>) {
+                    changed = ImGui::ColorEdit3(("##" + propertyName).c_str(), (float*)&value.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf);
+                }
+                break;
+            case ScenePropertyInputType::ColorRGBA:
+                if constexpr (std::is_same_v<T, Vector4>) {
+                    changed = ImGui::ColorEdit4(("##" + propertyName).c_str(), (float*)&value.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf);
+                }
+                break;
+            case ScenePropertyInputType::Combo:
+                if constexpr (std::is_same_v<T, LightState>) {
+                    const char* lightStateNames[] = { "Off", "On", "Auto" };
+                    int currentItem = static_cast<int>(value);
+                    changed = ImGui::Combo(("##" + propertyName).c_str(), &currentItem, lightStateNames, IM_ARRAYSIZE(lightStateNames));
+                    if (changed) {
+                        value = static_cast<LightState>(currentItem);
+                    }
+                }
+                break;
+        }
+
+        if (changed) {
+            cmd = new Editor::ScenePropertyCmd<T>(sceneProject, propertyName, value);
+            Editor::CommandHandle::get(sceneProject->id)->addCommand(cmd);
+        }
+
+        if (ImGui::IsItemDeactivatedAfterEdit()) {
+            if (cmd) {
+                cmd->setNoMerge();
+                cmd = nullptr;
+            }
+        }
+    }
+}
 
 Editor::Properties::Properties(Project* project){
     this->project = project;
@@ -3219,7 +3300,16 @@ void Editor::Properties::drawSkyComponent(ComponentType cpType, SceneProject* sc
 void Editor::Properties::show(){
     ImGui::Begin("Properties");
 
-    SceneProject* sceneProject = project->getSelectedScene();
+    uint32_t propertiesSceneId = project->getSelectedSceneForProperties();
+    SceneProject* sceneProject = project->getScene(propertiesSceneId);
+    if (!sceneProject) {
+        sceneProject = project->getSelectedScene();
+    }
+    if (!sceneProject) {
+        ImGui::End();
+        return;
+    }
+
     std::vector<Entity> entities = project->getSelectedEntities(sceneProject->id);
 
     std::vector<ComponentType> components;
@@ -3480,6 +3570,47 @@ void Editor::Properties::show(){
         }
 
     }else{
+        ImGui::Text("Scene: %s", sceneProject->name.c_str());
+        ImGui::Separator();
+
+        ImGuiTableFlags tableFlags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchSame;
+
+        if (ImGui::BeginTable("scene_settings_table", 2, tableFlags)) {
+            ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("Background").x);
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+            drawScenePropertyRow<Vector4>(sceneProject, "background_color", "Background", ScenePropertyInputType::ColorRGBA);
+            drawScenePropertyRow<LightState>(sceneProject, "light_state", "Lights", ScenePropertyInputType::Combo);
+
+            ImGui::EndTable();
+        }
+
+        LightState currentLightState = Supernova::Editor::Catalog::getSceneProperty<LightState>(sceneProject->scene, "light_state");
+        if (currentLightState != LightState::OFF) {
+            ImGui::SeparatorText("Global Illumination");
+
+            if (ImGui::BeginTable("scene_globalillum_table", 2, tableFlags)) {
+                ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("Intensity").x);
+                ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+                drawScenePropertyRow<Vector3>(sceneProject, "global_illumination_color", "Color", ScenePropertyInputType::ColorRGB);
+                drawScenePropertyRow<float>(sceneProject, "global_illumination_intensity", "Intensity", ScenePropertyInputType::SliderFloat, 0.0f, 1.0f);
+
+                ImGui::EndTable();
+            }
+
+            ImGui::SeparatorText("Shadows");
+
+            if (ImGui::BeginTable("scene_shadow_settings_table", 2, tableFlags)) {
+                ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("Enable PCF").x);
+                ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+                drawScenePropertyRow<bool>(sceneProject, "shadows_pcf", "Enable PCF", ScenePropertyInputType::Checkbox);
+
+                ImGui::EndTable();
+            }
+        }
+
         thumbnailTextures.clear();
     }
 

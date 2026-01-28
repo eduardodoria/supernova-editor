@@ -124,6 +124,7 @@ namespace Supernova::Editor{
         SceneRender* createSceneRender(SceneType type, Scene* scene) const;
         Entity createDefaultCamera(SceneType type, Scene* scene) const;
         uint32_t selectedScene;
+        uint32_t selectedSceneForProperties;
 
         std::filesystem::path projectPath;
         bool resourcesFocused;
@@ -213,6 +214,9 @@ namespace Supernova::Editor{
 
         void setSelectedSceneId(uint32_t selectedScene);
         uint32_t getSelectedSceneId() const;
+
+        void setSelectedSceneForProperties(uint32_t selectedScene);
+        uint32_t getSelectedSceneForProperties() const;
 
         bool isTempProject() const;
         bool isTempUnsavedProject() const;
