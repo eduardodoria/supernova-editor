@@ -3079,11 +3079,12 @@ void Editor::Project::start(uint32_t sceneId) {
             continue;
         }
 
+        resolveEntityRefs(entry.runtime);
+
         if (!savedNow) {
             generator.writeSceneSource(entry.runtime->scene, entry.runtime->name, entry.runtime->entities, getSceneCamera(entry.runtime), getProjectPath(), getProjectInternalPath());
         }
 
-        resolveEntityRefs(entry.runtime);
         session->runtimeScenes.push_back(entry);
 
         bool isMain = (sceneId == id);
