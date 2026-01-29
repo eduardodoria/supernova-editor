@@ -1,6 +1,6 @@
 #pragma once
 #include "imgui.h"
-#include "TextEditor.h"
+#include "widget/CustomTextEditor.h"
 #include "Project.h"
 #include <string>
 #include <unordered_map>
@@ -11,24 +11,18 @@ namespace fs = std::filesystem;
 
 namespace Supernova::Editor {
 
-    enum class LanguageType {
-        CPP,
-        LUA,
-        UNKNOWN
-    };
-
     struct EditorInstance {
-        std::unique_ptr<TextEditor> editor;
+        std::unique_ptr<CustomTextEditor> editor;
         bool isOpen;
         fs::path filepath;
-        LanguageType languageType;
+        SyntaxLanguage languageType;
         fs::file_time_type lastWriteTime;
         bool isModified;
         double lastCheckTime;
         bool hasExternalChanges;
         int savedUndoIndex;
 
-        EditorInstance() : isOpen(true), languageType(LanguageType::UNKNOWN), isModified(false), lastCheckTime(0.0), hasExternalChanges(false), savedUndoIndex(0) {}
+        EditorInstance() : isOpen(true), languageType(SyntaxLanguage::None), isModified(false), lastCheckTime(0.0), hasExternalChanges(false), savedUndoIndex(0) {}
     };
 
     class CodeEditor {

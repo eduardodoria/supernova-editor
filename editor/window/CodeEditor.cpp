@@ -279,26 +279,34 @@ void Editor::CodeEditor::openFile(const std::string& filepath) {
 
     auto& instance = editors[filepath];
     instance.filepath = filepath;
-    instance.editor = std::make_unique<TextEditor>();
+    instance.editor = std::make_unique<CustomTextEditor>();
 
-    // Detect language from extension
+    // Detect language from extension and filename
     std::string ext = instance.filepath.extension().string();
     std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+    std::string filename = instance.filepath.filename().string();
 
     if (ext == ".cpp" || ext == ".cc" || ext == ".cxx" || ext == ".c" ||
         ext == ".hpp" || ext == ".hh" || ext == ".hxx" || ext == ".h") {
-        instance.languageType = LanguageType::CPP;
-        instance.editor->SetLanguageDefinition(TextEditor::LanguageDefinitionId::Cpp);
+        instance.languageType = SyntaxLanguage::Cpp;
+        instance.editor->SetLanguage(SyntaxLanguage::Cpp);
     } else if (ext == ".lua") {
-        instance.languageType = LanguageType::LUA;
-        instance.editor->SetLanguageDefinition(TextEditor::LanguageDefinitionId::Lua);
+        instance.languageType = SyntaxLanguage::Lua;
+        instance.editor->SetLanguage(SyntaxLanguage::Lua);
+    } else if (ext == ".cmake" || filename == "CMakeLists.txt") {
+        instance.languageType = SyntaxLanguage::CMake;
+        instance.editor->SetLanguage(SyntaxLanguage::CMake);
     } else {
-        instance.languageType = LanguageType::UNKNOWN;
-        instance.editor->SetLanguageDefinition(TextEditor::LanguageDefinitionId::None);
+        // Default to plain text for all other files
+        instance.languageType = SyntaxLanguage::None;
+        instance.editor->SetLanguage(SyntaxLanguage::None);
     }
 
-    instance.editor->SetPalette(TextEditor::PaletteId::Dark);
     instance.editor->SetTabSize(4);
+    instance.editor->SetAutoIndent(true);
+    instance.editor->SetHighlightCurrentLine(true);
+    instance.editor->SetMatchBrackets(true);
+    instance.editor->SetAutoComplete(true);
 
     // Load the file content
     if (!loadFileContent(instance)) {
@@ -425,8 +433,8 @@ void Editor::CodeEditor::show() {
             ImGui::Text("%6d/%-6d %6d lines  | %s | %s", 
                 line + 1, 
                 column + 1,
-                (int)instance.editor->GetTextLines().size(),
-                instance.editor->GetLanguageDefinitionName(),
+                instance.editor->GetLineCount(),
+                instance.editor->GetLanguageName(),
                 instance.isModified ? "*" : " ");
 
             ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]); // font needs to be monospace

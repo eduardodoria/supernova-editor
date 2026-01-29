@@ -37,7 +37,6 @@ if(WIN32)
 endif()
 
 set(IMGUI_DIR libs/imgui)
-set(IMGUICOLORTEXTEDIT_DIR libs/ImGuiColorTextEdit)
 set(EDITOR_DIR editor)
 
 # Find OpenGL
@@ -157,13 +156,6 @@ set(IMGUI_SOURCES
     ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
 )
 
-set(IMGUICOLORTEXTEDIT_SOURCES
-    ${IMGUICOLORTEXTEDIT_DIR}/TextEditor.cpp
-    ${IMGUICOLORTEXTEDIT_DIR}/LanguageDefinitions.cpp
-    #${IMGUICOLORTEXTEDIT_DIR}/ImGuiDebugPanel.cpp
-    #${IMGUICOLORTEXTEDIT_DIR}/UnitTests.cpp
-)
-
 include_directories (${EDITOR_DIR})
 
 if(UNIX AND NOT APPLE)
@@ -209,6 +201,7 @@ add_executable(
     ${EDITOR_DIR}/window/dialog/ComponentAddDialog.cpp
     ${EDITOR_DIR}/window/dialog/ProjectSaveDialog.cpp
     ${EDITOR_DIR}/window/dialog/ScriptCreateDialog.cpp
+    ${EDITOR_DIR}/window/widget/CustomTextEditor.cpp
 
     ${EDITOR_DIR}/render/ToolsLayer.cpp
     ${EDITOR_DIR}/render/UILayer.cpp
@@ -250,7 +243,6 @@ add_executable(
     ${EDITOR_DIR}/command/type/SetMainCameraCmd.cpp
 
     ${IMGUI_SOURCES}
-    ${IMGUICOLORTEXTEDIT_SOURCES}
     ${BACKEND_SOURCES}
 )
 
@@ -260,8 +252,6 @@ add_dependencies(supernova-editor generate_shaders)
 target_include_directories(supernova-editor PRIVATE
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
-    ${IMGUICOLORTEXTEDIT_DIR}
-    ${IMGUICOLORTEXTEDIT_DIR}/vendor/regex/include
     ${OPENGL_INCLUDE_DIR}
     ${GENERATED_DIR}
 )

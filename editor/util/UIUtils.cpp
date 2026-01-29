@@ -4,7 +4,7 @@
 
 namespace Supernova::Editor {
 
-bool UIUtils::searchInput(const char* id, std::string hint, char* buffer, size_t bufferSize, bool autoFocus, bool* matchCase) {
+bool UIUtils::searchInput(const char* id, std::string hint, char* buffer, size_t bufferSize, bool autoFocus, bool* matchCase, float fixedWidth) {
     ImGui::BeginGroup();
 
     ImGuiStyle& style = ImGui::GetStyle();
@@ -13,9 +13,10 @@ bool UIUtils::searchInput(const char* id, std::string hint, char* buffer, size_t
     ImVec2 iconSize = ImGui::CalcTextSize(ICON_FA_MAGNIFYING_GLASS);
     float buttonWidth = iconSize.x + style.FramePadding.x * 2.0f;
 
-    // Calculate input field width (total width minus button, no spacing)
-    float availWidth = ImGui::GetContentRegionAvail().x;
-    float inputWidth = availWidth - buttonWidth;
+    // Calculate input field width
+    float totalWidth = (fixedWidth > 0.0f) ? fixedWidth : ImGui::GetContentRegionAvail().x;
+    float inputWidth = totalWidth - buttonWidth;
+    if (inputWidth < 50.0f) inputWidth = 50.0f; // Minimum width
 
     ImGui::PushItemWidth(inputWidth);
 
