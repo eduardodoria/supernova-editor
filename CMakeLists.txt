@@ -202,6 +202,7 @@ add_executable(
     ${EDITOR_DIR}/window/dialog/ProjectSaveDialog.cpp
     ${EDITOR_DIR}/window/dialog/ScriptCreateDialog.cpp
     ${EDITOR_DIR}/window/widget/CustomTextEditor.cpp
+    ${EDITOR_DIR}/window/widget/SemanticSuggestions.cpp
 
     ${EDITOR_DIR}/render/ToolsLayer.cpp
     ${EDITOR_DIR}/render/UILayer.cpp

@@ -1,4 +1,5 @@
 #include "CustomTextEditor.h"
+#include "SemanticSuggestions.h"
 #include "external/IconsFontAwesome6.h"
 #include "util/UIUtils.h"
 #include "App.h"
@@ -38,6 +39,8 @@ CustomTextEditor::CustomTextEditor()
     , scrollY(0)
     , showAutoComplete(false)
     , autoCompleteIndex(0)
+    , suggestionIndex(0)
+    , suggestionsHovered(false)
     , showTooltipFlag(false)
     , currentSearchResult(-1)
     , showFindDialog(false)
@@ -48,12 +51,15 @@ CustomTextEditor::CustomTextEditor()
     , lineNumberWidth(0)
     , leftMargin(10)
     , textStartX(0)
+    , suggestions(std::make_unique<SemanticSuggestions>())
+    , scrollToSuggestion(false)
 {
     lines.push_back("");
     cursors.push_back(Cursor());
     memset(findInputBuffer, 0, sizeof(findInputBuffer));
     initializePalette();
     initializeLanguage();
+    initializeSuggestions();
 }
 
 CustomTextEditor::~CustomTextEditor() {
@@ -197,10 +203,86 @@ void CustomTextEditor::initializeLanguage() {
     tokenizeAll();
 }
 
+void CustomTextEditor::initializeSuggestions() {
+    if (!suggestions) return;
+    
+    // Configure the suggestions engine
+    suggestions->SetMinPrefixLength(1);
+    suggestions->SetMaxSuggestions(15);
+    suggestions->SetFuzzyMatching(true);
+    suggestions->SetCaseSensitive(false);
+    
+    // Pass language definitions to suggestions engine
+    suggestions->SetKeywords(languageDef.keywords);
+    suggestions->SetTypes(languageDef.types);
+    suggestions->SetBuiltinFunctions(languageDef.builtinFunctions);
+    
+    // Add common snippets for C++
+    if (language == SyntaxLanguage::Cpp) {
+        suggestions->AddSnippet("if", "if (${1:condition}) {\n\t${2}\n}", "if statement");
+        suggestions->AddSnippet("else", "else {\n\t${1}\n}", "else clause");
+        suggestions->AddSnippet("elif", "else if (${1:condition}) {\n\t${2}\n}", "else if statement");
+        suggestions->AddSnippet("for", "for (${1:int i = 0}; ${2:i < count}; ${3:++i}) {\n\t${4}\n}", "for loop");
+        suggestions->AddSnippet("fori", "for (int ${1:i} = 0; ${1:i} < ${2:count}; ++${1:i}) {\n\t${3}\n}", "for loop with index");
+        suggestions->AddSnippet("foreach", "for (const auto& ${1:item} : ${2:container}) {\n\t${3}\n}", "range-based for loop");
+        suggestions->AddSnippet("while", "while (${1:condition}) {\n\t${2}\n}", "while loop");
+        suggestions->AddSnippet("do", "do {\n\t${1}\n} while (${2:condition});", "do-while loop");
+        suggestions->AddSnippet("switch", "switch (${1:expression}) {\n\tcase ${2:value}:\n\t\t${3}\n\t\tbreak;\n\tdefault:\n\t\tbreak;\n}", "switch statement");
+        suggestions->AddSnippet("class", "class ${1:ClassName} {\npublic:\n\t${1:ClassName}();\n\t~${1:ClassName}();\n\nprivate:\n\t${2}\n};", "class definition");
+        suggestions->AddSnippet("struct", "struct ${1:StructName} {\n\t${2}\n};", "struct definition");
+        suggestions->AddSnippet("func", "${1:void} ${2:functionName}(${3}) {\n\t${4}\n}", "function definition");
+        suggestions->AddSnippet("main", "int main(int argc, char* argv[]) {\n\t${1}\n\treturn 0;\n}", "main function");
+        suggestions->AddSnippet("inc", "#include <${1:header}>", "include system header");
+        suggestions->AddSnippet("incp", "#include \"${1:header}\"", "include local header");
+        suggestions->AddSnippet("ifndef", "#ifndef ${1:GUARD}\n#define ${1:GUARD}\n\n${2}\n\n#endif // ${1:GUARD}", "include guard");
+        suggestions->AddSnippet("pragma", "#pragma once", "pragma once");
+        suggestions->AddSnippet("cout", "std::cout << ${1} << std::endl;", "cout statement");
+        suggestions->AddSnippet("cerr", "std::cerr << ${1} << std::endl;", "cerr statement");
+        suggestions->AddSnippet("try", "try {\n\t${1}\n} catch (${2:const std::exception& e}) {\n\t${3}\n}", "try-catch block");
+        suggestions->AddSnippet("lambda", "[${1:capture}](${2:params}) {\n\t${3}\n}", "lambda expression");
+        suggestions->AddSnippet("nullptr", "nullptr", "null pointer");
+        suggestions->AddSnippet("auto", "auto ${1:var} = ${2:value};", "auto variable");
+        suggestions->AddSnippet("const", "const ${1:type} ${2:name} = ${3:value};", "const variable");
+        suggestions->AddSnippet("constexpr", "constexpr ${1:type} ${2:name} = ${3:value};", "constexpr variable");
+    } else if (language == SyntaxLanguage::Lua) {
+        suggestions->AddSnippet("if", "if ${1:condition} then\n\t${2}\nend", "if statement");
+        suggestions->AddSnippet("ife", "if ${1:condition} then\n\t${2}\nelse\n\t${3}\nend", "if-else statement");
+        suggestions->AddSnippet("elif", "elseif ${1:condition} then\n\t${2}", "elseif clause");
+        suggestions->AddSnippet("for", "for ${1:i} = ${2:1}, ${3:10} do\n\t${4}\nend", "numeric for loop");
+        suggestions->AddSnippet("forp", "for ${1:k}, ${2:v} in pairs(${3:table}) do\n\t${4}\nend", "pairs loop");
+        suggestions->AddSnippet("fori", "for ${1:i}, ${2:v} in ipairs(${3:table}) do\n\t${4}\nend", "ipairs loop");
+        suggestions->AddSnippet("while", "while ${1:condition} do\n\t${2}\nend", "while loop");
+        suggestions->AddSnippet("repeat", "repeat\n\t${1}\nuntil ${2:condition}", "repeat-until loop");
+        suggestions->AddSnippet("func", "function ${1:name}(${2:args})\n\t${3}\nend", "function definition");
+        suggestions->AddSnippet("lfunc", "local function ${1:name}(${2:args})\n\t${3}\nend", "local function");
+        suggestions->AddSnippet("local", "local ${1:name} = ${2:value}", "local variable");
+        suggestions->AddSnippet("req", "local ${1:module} = require(\"${2:module}\")", "require module");
+        suggestions->AddSnippet("ret", "return ${1:value}", "return statement");
+        suggestions->AddSnippet("print", "print(${1:value})", "print statement");
+    } else if (language == SyntaxLanguage::CMake) {
+        suggestions->AddSnippet("if", "if(${1:condition})\n\t${2}\nendif()", "if statement");
+        suggestions->AddSnippet("ife", "if(${1:condition})\n\t${2}\nelse()\n\t${3}\nendif()", "if-else statement");
+        suggestions->AddSnippet("foreach", "foreach(${1:item} IN LISTS ${2:list})\n\t${3}\nendforeach()", "foreach loop");
+        suggestions->AddSnippet("func", "function(${1:name} ${2:args})\n\t${3}\nendfunction()", "function definition");
+        suggestions->AddSnippet("macro", "macro(${1:name} ${2:args})\n\t${3}\nendmacro()", "macro definition");
+        suggestions->AddSnippet("add_exe", "add_executable(${1:target}\n\t${2:sources}\n)", "add executable");
+        suggestions->AddSnippet("add_lib", "add_library(${1:target} ${2:STATIC}\n\t${3:sources}\n)", "add library");
+        suggestions->AddSnippet("target_link", "target_link_libraries(${1:target}\n\t${2:PRIVATE}\n\t${3:libraries}\n)", "link libraries");
+        suggestions->AddSnippet("target_inc", "target_include_directories(${1:target}\n\t${2:PRIVATE}\n\t${3:directories}\n)", "include directories");
+        suggestions->AddSnippet("find", "find_package(${1:package} ${2:REQUIRED})", "find package");
+        suggestions->AddSnippet("set", "set(${1:variable} ${2:value})", "set variable");
+        suggestions->AddSnippet("msg", "message(STATUS \"${1:message}\")", "status message");
+        suggestions->AddSnippet("option", "option(${1:OPTION_NAME} \"${2:description}\" ${3:OFF})", "option definition");
+        suggestions->AddSnippet("cmake_min", "cmake_minimum_required(VERSION ${1:3.16})", "cmake minimum version");
+        suggestions->AddSnippet("project", "project(${1:name}\n\tVERSION ${2:1.0.0}\n\tLANGUAGES ${3:CXX}\n)", "project definition");
+    }
+}
+
 void CustomTextEditor::SetLanguage(SyntaxLanguage lang) {
     if (language != lang) {
         language = lang;
         initializeLanguage();
+        initializeSuggestions();
     }
 }
 
@@ -1516,31 +1598,109 @@ char CustomTextEditor::findMatchingBracket(const TextPosition& pos, TextPosition
     return target;
 }
 
+SuggestionContext CustomTextEditor::buildSuggestionContext() const {
+    SuggestionContext ctx;
+    
+    if (cursors.empty()) return ctx;
+    
+    const TextPosition& pos = cursors[primaryCursor].position;
+    
+    // Get current word being typed
+    TextPosition wordStart = findWordStart(pos);
+    ctx.currentWord = getRange(wordStart, pos);
+    
+    // Get line content
+    if (pos.line >= 0 && pos.line < static_cast<int>(lines.size())) {
+        ctx.lineContent = lines[pos.line];
+    }
+    
+    ctx.cursorColumn = pos.column;
+    ctx.lineNumber = pos.line;
+    
+    // Check for member access operators
+    int checkCol = wordStart.column - 1;
+    if (checkCol >= 0 && ctx.lineContent.size() > 0) {
+        if (checkCol < static_cast<int>(ctx.lineContent.size())) {
+            char c = ctx.lineContent[checkCol];
+            if (c == '.') {
+                ctx.afterDot = true;
+            } else if (c == '>' && checkCol > 0 && ctx.lineContent[checkCol - 1] == '-') {
+                ctx.afterArrow = true;
+            } else if (c == ':' && checkCol > 0 && ctx.lineContent[checkCol - 1] == ':') {
+                ctx.afterDoubleColon = true;
+            }
+        }
+    }
+    
+    // Get previous word for context
+    if (wordStart.column > 1) {
+        TextPosition prevEnd(pos.line, wordStart.column - 1);
+        // Skip whitespace
+        while (prevEnd.column > 0 && std::isspace(ctx.lineContent[prevEnd.column - 1])) {
+            prevEnd.column--;
+        }
+        if (prevEnd.column > 0) {
+            TextPosition prevStart = findWordStart(prevEnd);
+            ctx.previousWord = getRange(prevStart, prevEnd);
+        }
+    }
+    
+    return ctx;
+}
+
 void CustomTextEditor::TriggerAutoComplete() {
-    if (!autoComplete || readOnly) return;
+    if (!autoComplete || readOnly || !suggestions) return;
     
     autoCompleteAnchor = cursors[primaryCursor].position;
-    updateAutoComplete();
-    showAutoComplete = !autoCompleteItems.empty();
-    autoCompleteIndex = 0;
+    updateSuggestions();
+    showAutoComplete = !currentSuggestions.empty();
+    suggestionIndex = 0;
 }
 
 void CustomTextEditor::CloseAutoComplete() {
     showAutoComplete = false;
+    currentSuggestions.clear();
     autoCompleteItems.clear();
 }
 
+void CustomTextEditor::updateSuggestions() {
+    if (!suggestions) return;
+    
+    // Update document words in the suggestions engine
+    suggestions->UpdateDocumentWords(lines);
+    
+    // Build context and get suggestions
+    SuggestionContext ctx = buildSuggestionContext();
+    autoCompleteAnchor = findWordStart(cursors[primaryCursor].position);
+    
+    currentSuggestions = suggestions->GetSuggestions(ctx);
+    
+    // Also populate the old autoCompleteItems for backward compatibility
+    autoCompleteItems.clear();
+    for (const auto& sugg : currentSuggestions) {
+        AutoCompleteItem item;
+        item.label = sugg.label;
+        item.insertText = sugg.insertText;
+        item.detail = sugg.detail;
+        // Map suggestion kind to token type for compatibility
+        switch (sugg.kind) {
+            case SuggestionKind::Keyword: item.kind = TokenType::Keyword; break;
+            case SuggestionKind::Type: item.kind = TokenType::Type; break;
+            case SuggestionKind::Function: 
+            case SuggestionKind::Method: item.kind = TokenType::Function; break;
+            default: item.kind = TokenType::Identifier; break;
+        }
+        autoCompleteItems.push_back(item);
+    }
+}
+
 void CustomTextEditor::updateAutoComplete() {
-    TextPosition pos = cursors[primaryCursor].position;
-    TextPosition wordStart = findWordStart(pos);
-    
-    autoCompleteFilter = getRange(wordStart, pos);
-    autoCompleteAnchor = wordStart;
-    
-    autoCompleteItems = getCompletionItems(autoCompleteFilter);
+    updateSuggestions();
 }
 
 std::vector<AutoCompleteItem> CustomTextEditor::getCompletionItems(const std::string& prefix) const {
+    // This method is kept for backward compatibility
+    // The new system uses updateSuggestions() instead
     std::vector<AutoCompleteItem> items;
     
     auto addItems = [&](const std::unordered_set<std::string>& source, TokenType kind) {
@@ -1594,10 +1754,12 @@ std::vector<AutoCompleteItem> CustomTextEditor::getCompletionItems(const std::st
     return items;
 }
 
-void CustomTextEditor::applyAutoComplete() {
-    if (!showAutoComplete || autoCompleteIndex >= static_cast<int>(autoCompleteItems.size())) return;
+void CustomTextEditor::applySuggestion() {
+    if (!showAutoComplete || suggestionIndex >= static_cast<int>(currentSuggestions.size())) return;
     
-    const auto& item = autoCompleteItems[autoCompleteIndex];
+    addUndoRecord();
+    
+    const auto& item = currentSuggestions[suggestionIndex];
     
     // Delete the current word being typed
     TextPosition pos = cursors[primaryCursor].position;
@@ -1606,10 +1768,41 @@ void CustomTextEditor::applyAutoComplete() {
     cursors[primaryCursor].selection.start = autoCompleteAnchor;
     cursors[primaryCursor].selection.end = autoCompleteAnchor;
     
-    // Insert the completion
-    InsertText(item.insertText);
+    // Process snippet placeholders (simple version - just remove ${n:text} markers)
+    std::string textToInsert = item.insertText;
+    std::string processed;
+    size_t i = 0;
+    while (i < textToInsert.size()) {
+        if (textToInsert[i] == '$' && i + 1 < textToInsert.size() && textToInsert[i + 1] == '{') {
+            // Find the matching }
+            size_t start = i + 2;
+            size_t end = textToInsert.find('}', start);
+            if (end != std::string::npos) {
+                // Extract content after : if present
+                std::string placeholder = textToInsert.substr(start, end - start);
+                size_t colonPos = placeholder.find(':');
+                if (colonPos != std::string::npos) {
+                    processed += placeholder.substr(colonPos + 1);
+                }
+                i = end + 1;
+                continue;
+            }
+        }
+        processed += textToInsert[i];
+        ++i;
+    }
     
+    // Insert the completion
+    InsertText(processed, false);
+    
+    finalizeUndoRecord();
     CloseAutoComplete();
+    
+    if (onTextChanged) onTextChanged();
+}
+
+void CustomTextEditor::applyAutoComplete() {
+    applySuggestion();
 }
 
 void CustomTextEditor::ShowTooltip(const std::string& text, const ImVec2& pos) {
@@ -1647,14 +1840,42 @@ void CustomTextEditor::handleKeyboardInput() {
     bool shift = io.KeyShift;
     bool alt = io.KeyAlt;
     
+    // Handle autocomplete navigation first - must return to prevent editor from also processing keys
+    if (showAutoComplete && !currentSuggestions.empty()) {
+        if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+            CloseAutoComplete();
+            return;
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
+            suggestionIndex = std::max(0, suggestionIndex - 1);
+            scrollToSuggestion = true;
+            return;
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
+            suggestionIndex = std::min(static_cast<int>(currentSuggestions.size()) - 1, suggestionIndex + 1);
+            scrollToSuggestion = true;
+            return;
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_Tab)) {
+            applySuggestion();
+            return;
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_PageUp)) {
+            suggestionIndex = std::max(0, suggestionIndex - 5);
+            scrollToSuggestion = true;
+            return;
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_PageDown)) {
+            suggestionIndex = std::min(static_cast<int>(currentSuggestions.size()) - 1, suggestionIndex + 5);
+            scrollToSuggestion = true;
+            return;
+        }
+    }
+    
     // Handle special keys
     if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
-        if (showAutoComplete) {
-            CloseAutoComplete();
-        } else {
-            ClearExtraCursors();
-            ClearSelection();
-        }
+        ClearExtraCursors();
+        ClearSelection();
     }
     
     if (ctrl && ImGui::IsKeyPressed(ImGuiKey_A)) {
@@ -1715,22 +1936,6 @@ void CustomTextEditor::handleKeyboardInput() {
                     }
                 }
             }
-        }
-    }
-    
-    // Auto-complete navigation
-    if (showAutoComplete) {
-        if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
-            autoCompleteIndex = std::max(0, autoCompleteIndex - 1);
-            return;
-        }
-        if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
-            autoCompleteIndex = std::min(static_cast<int>(autoCompleteItems.size()) - 1, autoCompleteIndex + 1);
-            return;
-        }
-        if (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_Tab)) {
-            applyAutoComplete();
-            return;
         }
     }
     
@@ -2326,43 +2531,146 @@ void CustomTextEditor::renderMatchingBrackets(ImDrawList* drawList, const ImVec2
     }
 }
 
-void CustomTextEditor::renderAutoComplete(const ImVec2& origin) {
-    if (!showAutoComplete || autoCompleteItems.empty()) return;
+void CustomTextEditor::renderSuggestions(const ImVec2& origin) {
+    if (!showAutoComplete || currentSuggestions.empty()) return;
     
+    // Position popup directly under the current word being typed
     TextPosition pos = autoCompleteAnchor;
     ImVec2 screenPos = textToScreen(pos, origin);
-    screenPos.y += lineHeight;
+    // Offset by 1 pixel to be directly under the text baseline
+    screenPos.y += lineHeight + 1.0f;
+    
+    // Popup dimensions - use GetTextLineHeight for exact line height without spacing
+    float popupWidth = 350.0f;
+    float itemHeight = ImGui::GetTextLineHeight() + 4.0f; // Add small padding
+    float maxVisibleItems = 10.0f;
+    float popupMaxHeight = itemHeight * maxVisibleItems + 8.0f; // 8 for padding
+    float popupActualHeight = std::min(popupMaxHeight, itemHeight * currentSuggestions.size() + 8.0f);
+    
+    // Ensure popup doesn't go off-screen
+    ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+    
+    if (screenPos.x + popupWidth > displaySize.x) {
+        screenPos.x = displaySize.x - popupWidth - 10;
+    }
+    if (screenPos.x < 0) {
+        screenPos.x = 10;
+    }
+    
+    // If popup would go below screen, show it above the cursor instead
+    if (screenPos.y + popupActualHeight > displaySize.y) {
+        screenPos.y = textToScreen(pos, origin).y - popupActualHeight - 2.0f;
+    }
     
     ImGui::SetNextWindowPos(screenPos);
-    ImGui::SetNextWindowSize(ImVec2(300, 0));
+    ImGui::SetNextWindowSize(ImVec2(popupWidth, popupActualHeight));
     
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
                              ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
-                             ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_AlwaysAutoResize;
+                             ImGuiWindowFlags_NoFocusOnAppearing;
     
-    if (ImGui::Begin("##AutoComplete", nullptr, flags)) {
-        for (int i = 0; i < static_cast<int>(autoCompleteItems.size()); ++i) {
-            const auto& item = autoCompleteItems[i];
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 0));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 4.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 10.0f);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.12f, 0.12f, 0.12f, 0.98f));
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.3f, 0.3f, 0.3f, 0.8f));
+    ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, ImVec4(0.12f, 0.12f, 0.12f, 0.5f));
+    ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, ImVec4(0.4f, 0.4f, 0.4f, 0.8f));
+    ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, ImVec4(0.5f, 0.5f, 0.5f, 0.8f));
+    ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, ImVec4(0.6f, 0.6f, 0.6f, 0.8f));
+    
+    // Reset hover state before checking
+    suggestionsHovered = false;
+    
+    if (ImGui::Begin("##SemanticSuggestions", nullptr, flags)) {
+        // Check if mouse is hovering this window to block editor scroll
+        suggestionsHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem | 
+                                                     ImGuiHoveredFlags_ChildWindows |
+                                                     ImGuiHoveredFlags_RootAndChildWindows);
+        
+        for (int i = 0; i < static_cast<int>(currentSuggestions.size()); ++i) {
+            const auto& item = currentSuggestions[i];
             
-            bool selected = (i == autoCompleteIndex);
+            bool selected = (i == suggestionIndex);
             
             ImGui::PushID(i);
-            if (ImGui::Selectable(item.label.c_str(), selected)) {
-                autoCompleteIndex = i;
-                applyAutoComplete();
+            
+            // Calculate row bounds for custom rendering
+            ImVec2 cursorPos = ImGui::GetCursorScreenPos();
+            float availWidth = ImGui::GetContentRegionAvail().x;
+            
+            // VSCode-like dark blue selection color
+            ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.016f, 0.224f, 0.369f, 1.0f)); // #04395e
+            ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.17f, 0.27f, 0.44f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.016f, 0.224f, 0.369f, 1.0f));
+            
+            // Render selectable with exact item height
+            if (ImGui::Selectable("##item", selected, ImGuiSelectableFlags_None, ImVec2(availWidth, itemHeight))) {
+                suggestionIndex = i;
+                applySuggestion();
             }
-            if (selected) {
-                ImGui::SetItemDefaultFocus();
+            
+            ImGui::PopStyleColor(3);
+            
+            // Scroll to selected item only if navigation occurred
+            if (selected && scrollToSuggestion) {
+                ImGui::SetScrollHereY();
             }
+            
+            // Save cursor position for next item (after selectable advances it)
+            ImVec2 nextItemPos = ImGui::GetCursorPos();
+            
+            // Draw content on top of selectable - center vertically
+            float textY = cursorPos.y + (itemHeight - ImGui::GetTextLineHeight()) * 0.5f;
+            ImGui::SetCursorScreenPos(ImVec2(cursorPos.x + 4.0f, textY));
+            
+            // Icon with color
+            ImVec4 iconColor = SemanticSuggestions::GetKindColor(item.kind);
+            const char* icon = SemanticSuggestions::GetKindIcon(item.kind);
+            ImGui::TextColored(iconColor, "%s", icon);
+            ImGui::SameLine();
+            
+            // Label
+            ImGui::TextUnformatted(item.label.c_str());
+            
+            // Detail (right-aligned, dimmed)
+            if (!item.detail.empty()) {
+                float labelWidth = ImGui::CalcTextSize(item.label.c_str()).x;
+                float iconWidth = ImGui::CalcTextSize(icon).x + ImGui::GetStyle().ItemSpacing.x;
+                float detailWidth = ImGui::CalcTextSize(item.detail.c_str()).x;
+                float spacing = availWidth - labelWidth - iconWidth - detailWidth - 20;
+                
+                if (spacing > 20) {
+                    ImGui::SameLine(0, spacing);
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+                    ImGui::TextUnformatted(item.detail.c_str());
+                    ImGui::PopStyleColor();
+                }
+            }
+            
+            // Restore cursor position for next item
+            ImGui::SetCursorPos(nextItemPos);
+            
             ImGui::PopID();
             
-            // Show tooltip with details
-            if (ImGui::IsItemHovered() && !item.detail.empty()) {
-                ImGui::SetTooltip("%s", item.detail.c_str());
+            // Show documentation tooltip on hover
+            if (ImGui::IsItemHovered() && !item.documentation.empty()) {
+                ImGui::SetTooltip("%s", item.documentation.c_str());
             }
         }
+        
+        // Reset scroll flag after rendering
+        scrollToSuggestion = false;
     }
     ImGui::End();
+    
+    ImGui::PopStyleColor(6);
+    ImGui::PopStyleVar(4);
+}
+
+void CustomTextEditor::renderAutoComplete(const ImVec2& origin) {
+    renderSuggestions(origin);
 }
 
 void CustomTextEditor::renderTooltip() {
@@ -2507,6 +2815,10 @@ void CustomTextEditor::Render(const char* title, const ImVec2& size, bool border
     
     ImGuiWindowFlags flags = ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags_NoMove;
     
+    // Prevent ImGui from handling navigation (scrolling with arrows etc) for this window
+    // This fixes the issue where pressing Up/Down in the suggestions popup would also scroll the editor
+    flags |= ImGuiWindowFlags_NoNavInputs;
+    
     ImVec2 contentSize = size;
     if (contentSize.x == 0) contentSize.x = ImGui::GetContentRegionAvail().x;
     if (contentSize.y == 0) contentSize.y = ImGui::GetContentRegionAvail().y;
@@ -2543,12 +2855,24 @@ void CustomTextEditor::Render(const char* title, const ImVec2& size, bool border
         ImGui::Dummy(ImVec2(totalWidth, totalHeight));
         ImGui::SetCursorPos(cursorBackup);
         
-        // Use ImGui's scroll position
-        scrollY = ImGui::GetScrollY();
-        scrollX = ImGui::GetScrollX();
+        // Use ImGui's scroll position (but don't update if suggestions popup is hovered)
+        // Also restore scroll position if popup is hovered to prevent drift
+        if (!suggestionsHovered) {
+            scrollY = ImGui::GetScrollY();
+            scrollX = ImGui::GetScrollX();
+        } else {
+            // Restore scroll position to prevent parent window from scrolling
+            ImGui::SetScrollY(scrollY);
+            ImGui::SetScrollX(scrollX);
+        }
         
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         ImVec2 origin = ImGui::GetCursorScreenPos();
+        
+        // Render autocomplete popup first (so it can capture mouse events)
+        ImGui::PushFont(ImGui::GetIO().FontDefault);
+        renderAutoComplete(origin);
+        ImGui::PopFont();
         
         // Handle pending scroll (from Find dialog)
         if (pendingScrollToCursor) {
@@ -2556,13 +2880,13 @@ void CustomTextEditor::Render(const char* title, const ImVec2& size, bool border
             pendingScrollToCursor = false;
         }
         
-        // Handle input
-        bool isHovered = ImGui::IsWindowHovered();
+        // Handle input (but not mouse input if suggestions popup is hovered)
+        bool isHovered = ImGui::IsWindowHovered() && !suggestionsHovered;
         if (ImGui::IsWindowFocused()) {
             handleKeyboardInput();
             handleTextInput();
         }
-        if (isHovered || isDragging || isDraggingText) {
+        if ((isHovered || isDragging || isDraggingText) && !suggestionsHovered) {
             handleMouseInput();
         }
 
@@ -2640,8 +2964,7 @@ void CustomTextEditor::Render(const char* title, const ImVec2& size, bool border
     
     ImGui::PopStyleColor();
     
-    // Render overlays
-    renderAutoComplete(ImGui::GetCursorScreenPos());
+    // Render tooltip overlay
     renderTooltip();
 }
 

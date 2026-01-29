@@ -12,6 +12,12 @@
 
 namespace Supernova::Editor {
 
+    // Forward declarations
+    class SemanticSuggestions;
+    struct SuggestionItem;
+    struct SuggestionContext;
+    enum class SuggestionKind;
+
     enum class SyntaxLanguage {
         None,
         Cpp,
@@ -251,6 +257,7 @@ namespace Supernova::Editor {
         int autoCompleteIndex;
         TextPosition autoCompleteAnchor;
         std::string autoCompleteFilter;
+        bool suggestionsHovered;  // Track if suggestions popup is hovered
 
         // Tooltip state
         bool showTooltipFlag;
@@ -288,9 +295,20 @@ namespace Supernova::Editor {
         // Callback
         TextChangedCallback onTextChanged;
 
+        // Semantic suggestions engine
+        std::unique_ptr<SemanticSuggestions> suggestions;
+        std::vector<SuggestionItem> currentSuggestions;
+        int suggestionIndex;
+        bool scrollToSuggestion; // Flag to sync scroll with selection only on change
+
         // Internal methods
         void initializeLanguage();
         void initializePalette();
+        void initializeSuggestions();
+        void updateSuggestions();
+        void applySuggestion();
+        void renderSuggestions(const ImVec2& origin);
+        SuggestionContext buildSuggestionContext() const;
         void tokenizeLine(int lineIndex);
         void tokenizeAll();
         TokenType classifyWord(const std::string& word) const;
