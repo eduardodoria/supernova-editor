@@ -2373,6 +2373,10 @@ void CustomTextEditor::handleTextInput() {
                 // Update auto-complete
                 if (autoComplete && std::isalnum(c)) {
                     TriggerAutoComplete();
+                } else if (showAutoComplete) {
+                    // Close autocomplete when typing non-identifier characters
+                    // like space, parentheses, operators, etc.
+                    CloseAutoComplete();
                 }
             }
         }
