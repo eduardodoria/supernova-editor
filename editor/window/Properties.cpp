@@ -1262,6 +1262,52 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         ImGui::EndGroup();
         //ImGui::SetItemTooltip("%s in degrees (X, Y, Z)", prop.label.c_str());
 
+    }else if (type == RowPropertyType::String){
+        std::string* value = nullptr;
+        std::map<Entity, std::string> eValue;
+        bool dif = false;
+        std::string* defArr = nullptr;
+        for (Entity& entity : entities){
+            PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
+            defArr = static_cast<std::string*>(prop.def);
+            eValue[entity] = *static_cast<std::string*>(prop.ref);
+            if (value){
+                if (*value != eValue[entity])
+                    dif = true;
+            }
+            value = &eValue[entity];
+        }
+
+        std::string newValue = *value;
+
+        std::vector<char> buffer(newValue.begin(), newValue.end());
+        buffer.resize(std::max((size_t)1024, newValue.size() + 256));
+        buffer[newValue.size()] = '\0';
+
+        bool defChanged = false;
+        if (defArr){
+            defChanged = (newValue != *defArr);
+        }
+        if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<std::string>(project, sceneProject->id, entity, cpType, id, *defArr, settings.onValueChanged);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                finishProperty = true;
+            }
+        }
+
+        if (dif)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+
+        if (ImGui::InputText(("##input_string_"+id).c_str(), buffer.data(), buffer.size())){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<std::string>(project, sceneProject->id, entity, cpType, id, std::string(buffer.data()), settings.onValueChanged);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
+            }
+        }
+        if (dif)
+            ImGui::PopStyleColor();
+
     }else if (type == RowPropertyType::Bool){
         bool* value = nullptr;
         std::map<Entity, bool> eValue;
@@ -2647,6 +2693,24 @@ void Editor::Properties::drawUIComponent(ComponentType cpType, SceneProject* sce
     endTable();
 }
 
+void Editor::Properties::drawTextComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+    RowSettings settingsInt;
+    settingsInt.stepSize = 1.0f;
+    settingsInt.secondColSize = 6 * ImGui::GetFontSize();
+
+    beginTable(cpType, getLabelSize("MaxTextSize"));
+    propertyRow(RowPropertyType::String, cpType, "text", "Text", sceneProject, entities);
+    propertyRow(RowPropertyType::String, cpType, "font", "Font", sceneProject, entities);
+    propertyRow(RowPropertyType::UInt, cpType, "fontSize", "FontSize", sceneProject, entities, settingsInt);
+    propertyRow(RowPropertyType::Bool, cpType, "multiline", "Multiline", sceneProject, entities);
+    propertyRow(RowPropertyType::UInt, cpType, "maxTextSize", "MaxTextSize", sceneProject, entities, settingsInt);
+    propertyRow(RowPropertyType::Bool, cpType, "fixedWidth", "FixedWidth", sceneProject, entities);
+    propertyRow(RowPropertyType::Bool, cpType, "fixedHeight", "FixedHeight", sceneProject, entities);
+    propertyRow(RowPropertyType::Bool, cpType, "pivotBaseline", "PivotBaseline", sceneProject, entities);
+    propertyRow(RowPropertyType::Bool, cpType, "pivotCentered", "PivotCentered", sceneProject, entities);
+    endTable();
+}
+
 void Editor::Properties::drawUILayoutComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     RowSettings settings;
     settings.stepSize = 1.0f;
@@ -3549,6 +3613,8 @@ void Editor::Properties::show(){
                     drawMeshComponent(cpType, sceneProject, entities);
                 }else if (cpType == ComponentType::UIComponent){
                     drawUIComponent(cpType, sceneProject, entities);
+                }else if (cpType == ComponentType::TextComponent){
+                    drawTextComponent(cpType, sceneProject, entities);
                 }else if (cpType == ComponentType::UILayoutComponent){
                     drawUILayoutComponent(cpType, sceneProject, entities);
                 }else if (cpType == ComponentType::ImageComponent){

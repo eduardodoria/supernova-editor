@@ -144,6 +144,17 @@ bool Editor::CreateEntityCmd::execute(){
         layout.width = 100;
         layout.height = 100;
 
+    }else if (type == EntityCreationType::TEXT){
+
+        scene->addComponent<Transform>(entity, {});
+        scene->addComponent<UILayoutComponent>(entity, {});
+        scene->addComponent<UIComponent>(entity, {});
+        scene->addComponent<TextComponent>(entity, {});
+
+        TextComponent& textComp = scene->getComponent<TextComponent>(entity);
+        textComp.text = "Text";
+        textComp.needUpdateText = true;
+
     }else if (type == EntityCreationType::SPRITE){
 
         scene->addComponent<Transform>(entity, {});

@@ -1337,6 +1337,11 @@ YAML::Node Editor::Stream::encodeComponents(const Entity entity, const EntityReg
         compNode[Catalog::getComponentName(ComponentType::UILayoutComponent, true)] = encodeUILayoutComponent(layout);
     }
 
+    if (signature.test(registry->getComponentId<TextComponent>())) {
+        TextComponent text = registry->getComponent<TextComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::TextComponent, true)] = encodeTextComponent(text);
+    }
+
     if (signature.test(registry->getComponentId<ImageComponent>())) {
         ImageComponent image = registry->getComponent<ImageComponent>(entity);
         compNode[Catalog::getComponentName(ComponentType::ImageComponent, true)] = encodeImageComponent(image);
@@ -1414,6 +1419,16 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
             registry->addComponent<UILayoutComponent>(entity, layout);
         }else{
             registry->getComponent<UILayoutComponent>(entity) = layout;
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::TextComponent, true);
+    if (compNode[compName]) {
+        TextComponent text = decodeTextComponent(compNode[compName], registry->findComponent<TextComponent>(entity));
+        if (!signature.test(registry->getComponentId<TextComponent>())){
+            registry->addComponent<TextComponent>(entity, text);
+        }else{
+            registry->getComponent<TextComponent>(entity) = text;
         }
     }
 
@@ -1815,6 +1830,43 @@ UILayoutComponent Editor::Stream::decodeUILayoutComponent(const YAML::Node& node
     //layout.needUpdateSizes = node["needUpdateSizes"].as<bool>();
 
     return layout;
+}
+
+YAML::Node Editor::Stream::encodeTextComponent(const TextComponent& text) {
+    YAML::Node node;
+
+    node["font"] = text.font;
+    node["text"] = text.text;
+    node["fontSize"] = text.fontSize;
+    node["multiline"] = text.multiline;
+    node["maxTextSize"] = text.maxTextSize;
+    node["fixedWidth"] = text.fixedWidth;
+    node["fixedHeight"] = text.fixedHeight;
+    node["pivotBaseline"] = text.pivotBaseline;
+    node["pivotCentered"] = text.pivotCentered;
+
+    return node;
+}
+
+TextComponent Editor::Stream::decodeTextComponent(const YAML::Node& node, const TextComponent* oldText) {
+    TextComponent text;
+
+    if (oldText) {
+        text = *oldText;
+        text.needUpdateText = true;
+    }
+
+    if (node["font"]) text.font = node["font"].as<std::string>();
+    if (node["text"]) text.text = node["text"].as<std::string>();
+    if (node["fontSize"]) text.fontSize = node["fontSize"].as<unsigned int>();
+    if (node["multiline"]) text.multiline = node["multiline"].as<bool>();
+    if (node["maxTextSize"]) text.maxTextSize = node["maxTextSize"].as<unsigned int>();
+    if (node["fixedWidth"]) text.fixedWidth = node["fixedWidth"].as<bool>();
+    if (node["fixedHeight"]) text.fixedHeight = node["fixedHeight"].as<bool>();
+    if (node["pivotBaseline"]) text.pivotBaseline = node["pivotBaseline"].as<bool>();
+    if (node["pivotCentered"]) text.pivotCentered = node["pivotCentered"].as<bool>();
+
+    return text;
 }
 
 YAML::Node Editor::Stream::encodeImageComponent(const ImageComponent& image) {

@@ -21,6 +21,7 @@ namespace Supernova::Editor{
         TORUS,
         IMAGE,
         SPRITE,
+        TEXT,
         POINT_LIGHT,
         DIRECTIONAL_LIGHT,
         SPOT_LIGHT,

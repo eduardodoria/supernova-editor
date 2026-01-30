@@ -147,6 +147,9 @@ namespace Supernova::Editor {
         static YAML::Node encodeUILayoutComponent(const UILayoutComponent& layout);
         static UILayoutComponent decodeUILayoutComponent(const YAML::Node& node, const UILayoutComponent* oldLayout = nullptr);
 
+        static YAML::Node encodeTextComponent(const TextComponent& text);
+        static TextComponent decodeTextComponent(const YAML::Node& node, const TextComponent* oldText = nullptr);
+
         static YAML::Node encodeImageComponent(const ImageComponent& image);
         static ImageComponent decodeImageComponent(const YAML::Node& node, const ImageComponent* oldImage = nullptr);
 

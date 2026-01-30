@@ -537,12 +537,12 @@ void Editor::SceneWindow::show() {
 
             ImGui::SameLine(0, 10);
             ImGui::Dummy(ImVec2(1, 20));
-            ImGui::SameLine(0, 10);
 
             GizmoSelected gizmoSelected = sceneProject.sceneRender->getToolsLayer()->getGizmoSelected();
             bool multipleEntitiesSelected = sceneProject.sceneRender->isMultipleEntitesSelected();
 
             if (sceneProject.sceneType != SceneType::SCENE_UI){
+                ImGui::SameLine(0, 10);
 
                 if (sceneProject.sceneType != SceneType::SCENE_3D){
                     ImGui::BeginDisabled(gizmoSelected == GizmoSelected::OBJECT2D);

@@ -546,6 +546,19 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["texture"] = {PropertyType::Texture, UpdateFlags_Sky_Texture, (void*)&def->texture, (compRef) ? (void*)&comp->texture : nullptr};
         ps["color"] = {PropertyType::Vector4, UpdateFlags_None, (void*)&def->color, (compRef) ? (void*)&comp->color : nullptr};
         ps["rotation"] = {PropertyType::Float, UpdateFlags_Sky, (void*)&def->rotation, (compRef) ? (void*)&comp->rotation : nullptr};
+    }else if (component == ComponentType::TextComponent){
+        TextComponent* comp = static_cast<TextComponent*>(compRef);
+        static TextComponent* def = new TextComponent;
+
+        ps["text"] = {PropertyType::String, UpdateFlags_Text, (void*)&def->text, (compRef) ? (void*)&comp->text : nullptr};
+        ps["font"] = {PropertyType::String, UpdateFlags_Text_Atlas, (void*)&def->font, (compRef) ? (void*)&comp->font : nullptr};
+        ps["fontSize"] = {PropertyType::UInt, UpdateFlags_Text | UpdateFlags_Text_Atlas, (void*)&def->fontSize, (compRef) ? (void*)&comp->fontSize : nullptr};
+        ps["multiline"] = {PropertyType::Bool, UpdateFlags_Text, (void*)&def->multiline, (compRef) ? (void*)&comp->multiline : nullptr};
+        ps["maxTextSize"] = {PropertyType::UInt, UpdateFlags_Text, (void*)&def->maxTextSize, (compRef) ? (void*)&comp->maxTextSize : nullptr};
+        ps["fixedWidth"] = {PropertyType::Bool, UpdateFlags_Text, (void*)&def->fixedWidth, (compRef) ? (void*)&comp->fixedWidth : nullptr};
+        ps["fixedHeight"] = {PropertyType::Bool, UpdateFlags_Text, (void*)&def->fixedHeight, (compRef) ? (void*)&comp->fixedHeight : nullptr};
+        ps["pivotBaseline"] = {PropertyType::Bool, UpdateFlags_Text, (void*)&def->pivotBaseline, (compRef) ? (void*)&comp->pivotBaseline : nullptr};
+        ps["pivotCentered"] = {PropertyType::Bool, UpdateFlags_Text, (void*)&def->pivotCentered, (compRef) ? (void*)&comp->pivotCentered : nullptr};
     }
 
     return ps;
@@ -714,6 +727,10 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::findEntityPropertie
         if (ImageComponent* compRef = registry->findComponent<ImageComponent>(entity)){
             return getProperties(component, compRef);
         }
+    }else if (component == ComponentType::TextComponent){
+        if (TextComponent* compRef = registry->findComponent<TextComponent>(entity)){
+            return getProperties(component, compRef);
+        }
     }else if (component == ComponentType::SpriteComponent){
         if (SpriteComponent* compRef = registry->findComponent<SpriteComponent>(entity)){
             return getProperties(component, compRef);
@@ -789,6 +806,12 @@ void Editor::Catalog::updateEntity(EntityRegistry* registry, Entity entity, int 
     if (updateFlags & UpdateFlags_Sprite){
         registry->getComponent<SpriteComponent>(entity).needUpdateSprite = true;
     }
+    if (updateFlags & UpdateFlags_Text){
+        registry->getComponent<TextComponent>(entity).needUpdateText = true;
+    }
+    if (updateFlags & UpdateFlags_Text_Atlas){
+        registry->getComponent<TextComponent>(entity).needReloadAtlas = true;
+    }
 }
 
 void Editor::Catalog::copyComponent(EntityRegistry* sourceRegistry, Entity sourceEntity,
@@ -825,6 +848,12 @@ void Editor::Catalog::copyComponent(EntityRegistry* sourceRegistry, Entity sourc
         case ComponentType::ImageComponent: {
             YAML::Node encoded = Stream::encodeImageComponent(sourceRegistry->getComponent<ImageComponent>(sourceEntity));
             targetRegistry->getComponent<ImageComponent>(targetEntity) = Stream::decodeImageComponent(encoded);
+            break;
+        }
+
+        case ComponentType::TextComponent: {
+            YAML::Node encoded = Stream::encodeTextComponent(sourceRegistry->getComponent<TextComponent>(sourceEntity));
+            targetRegistry->getComponent<TextComponent>(targetEntity) = Stream::decodeTextComponent(encoded);
             break;
         }
 
