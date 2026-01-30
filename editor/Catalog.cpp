@@ -551,12 +551,12 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         static TextComponent* def = new TextComponent;
 
         ps["text"] = {PropertyType::String, UpdateFlags_Text, (void*)&def->text, (compRef) ? (void*)&comp->text : nullptr};
-        ps["font"] = {PropertyType::String, UpdateFlags_Text_Atlas, (void*)&def->font, (compRef) ? (void*)&comp->font : nullptr};
+        ps["font"] = {PropertyType::String, UpdateFlags_Text | UpdateFlags_Text_Atlas, (void*)&def->font, (compRef) ? (void*)&comp->font : nullptr};
         ps["fontSize"] = {PropertyType::UInt, UpdateFlags_Text | UpdateFlags_Text_Atlas, (void*)&def->fontSize, (compRef) ? (void*)&comp->fontSize : nullptr};
         ps["multiline"] = {PropertyType::Bool, UpdateFlags_Text, (void*)&def->multiline, (compRef) ? (void*)&comp->multiline : nullptr};
         ps["maxTextSize"] = {PropertyType::UInt, UpdateFlags_Text, (void*)&def->maxTextSize, (compRef) ? (void*)&comp->maxTextSize : nullptr};
-        ps["fixedWidth"] = {PropertyType::Bool, UpdateFlags_Text, (void*)&def->fixedWidth, (compRef) ? (void*)&comp->fixedWidth : nullptr};
-        ps["fixedHeight"] = {PropertyType::Bool, UpdateFlags_Text, (void*)&def->fixedHeight, (compRef) ? (void*)&comp->fixedHeight : nullptr};
+        ps["fixedWidth"] = {PropertyType::Bool, UpdateFlags_None, (void*)&def->fixedWidth, (compRef) ? (void*)&comp->fixedWidth : nullptr};
+        ps["fixedHeight"] = {PropertyType::Bool, UpdateFlags_None, (void*)&def->fixedHeight, (compRef) ? (void*)&comp->fixedHeight : nullptr};
         ps["pivotBaseline"] = {PropertyType::Bool, UpdateFlags_Text, (void*)&def->pivotBaseline, (compRef) ? (void*)&comp->pivotBaseline : nullptr};
         ps["pivotCentered"] = {PropertyType::Bool, UpdateFlags_Text, (void*)&def->pivotCentered, (compRef) ? (void*)&comp->pivotCentered : nullptr};
     }

@@ -631,6 +631,25 @@ std::string Editor::Factory::createUILayoutComponent(int indentSpaces, Scene* sc
     return code.str();
 }
 
+std::string Editor::Factory::createTextComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+    if (!scene->findComponent<TextComponent>(entity)) return "";
+    TextComponent& text = scene->getComponent<TextComponent>(entity);
+    std::ostringstream code;
+    const std::string ind = indentation(indentSpaces);
+    code << ind << "TextComponent text;\n";
+    code << ind << "text.font = " << formatString(text.font) << ";\n";
+    code << ind << "text.text = " << formatString(text.text) << ";\n";
+    code << ind << "text.fontSize = " << formatUInt(text.fontSize) << ";\n";
+    code << ind << "text.multiline = " << formatBool(text.multiline) << ";\n";
+    code << ind << "text.maxTextSize = " << formatUInt(text.maxTextSize) << ";\n";
+    code << ind << "text.fixedWidth = " << formatBool(text.fixedWidth) << ";\n";
+    code << ind << "text.fixedHeight = " << formatBool(text.fixedHeight) << ";\n";
+    code << ind << "text.pivotBaseline = " << formatBool(text.pivotBaseline) << ";\n";
+    code << ind << "text.pivotCentered = " << formatBool(text.pivotCentered) << ";\n";
+    addComponentCode(code, ind, sceneName, entityName, entity, "TextComponent", "text");
+    return code.str();
+}
+
 std::string Editor::Factory::createImageComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<ImageComponent>(entity)) return "";
     ImageComponent& image = scene->getComponent<ImageComponent>(entity);
@@ -783,6 +802,7 @@ std::string Editor::Factory::createComponent(int indentSpaces, Scene* scene, Ent
         case ComponentType::MeshComponent: return createMeshComponent(indentSpaces, scene, entity, projectPath, sceneName, entityName);
         case ComponentType::UIComponent: return createUIComponent(indentSpaces, scene, entity, projectPath, sceneName, entityName);
         case ComponentType::UILayoutComponent: return createUILayoutComponent(indentSpaces, scene, entity, sceneName, entityName);
+        case ComponentType::TextComponent: return createTextComponent(indentSpaces, scene, entity, sceneName, entityName);
         case ComponentType::ImageComponent: return createImageComponent(indentSpaces, scene, entity, sceneName, entityName);
         case ComponentType::SpriteComponent: return createSpriteComponent(indentSpaces, scene, entity, sceneName, entityName);
         case ComponentType::LightComponent: return createLightComponent(indentSpaces, scene, entity, sceneName, entityName);
