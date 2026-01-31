@@ -294,6 +294,107 @@ void Editor::App::showMenu(){
     //ImGui::PopStyleVar(2);
 }
 
+void Editor::App::showFooter(){
+    ImGuiViewport* viewport = ImGui::GetMainViewport();
+    if (!viewport) {
+        return;
+    }
+
+    const float fontScale = 0.8f;
+    const float footerHeight = (ImGui::GetTextLineHeight() * fontScale) + 6.0f;
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration |
+                            ImGuiWindowFlags_NoMove |
+                            ImGuiWindowFlags_NoDocking |
+                            ImGuiWindowFlags_NoSavedSettings |
+                            ImGuiWindowFlags_NoNav |
+                            ImGuiWindowFlags_NoScrollbar |
+                            ImGuiWindowFlags_NoFocusOnAppearing;
+
+    // Position at the bottom of the main viewport
+    ImGui::SetNextWindowViewport(viewport->ID);
+    ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x, viewport->Pos.y + viewport->Size.y - footerHeight));
+    ImGui::SetNextWindowSize(ImVec2(viewport->Size.x, footerHeight));
+    ImGui::SetNextWindowBgAlpha(1.0f);
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 3));
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImGui::GetStyleColorVec4(ImGuiCol_Border));
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.60f, 0.60f, 0.60f, 1.00f));
+
+    if (ImGui::Begin("##Footer", nullptr, flags)) {
+        ImGui::SetWindowFontScale(fontScale);
+
+        const float fps = Engine::getFramerate();
+        const float deltaMs = Engine::getDeltatime() * 1000.0f;
+        const size_t queuedResources = Engine::getQueuedResourceCount();
+        SceneProject* selectedScene = project.getSelectedScene();
+
+        // Left side: Status
+        bool statusShown = false;
+        if (queuedResources > 0) {
+            ImGui::Text(ICON_FA_SPINNER " Loading resources: %zu", queuedResources);
+            statusShown = true;
+        } else {
+             if (selectedScene) {
+                if (selectedScene->playState == ScenePlayState::PLAYING){
+                    ImGui::TextColored(ImVec4(0.4f, 0.8f, 0.4f, 1.0f), ICON_FA_PLAY " Playing");
+                    statusShown = true;
+                } else if (selectedScene->playState == ScenePlayState::PAUSED){
+                    ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.4f, 1.0f), ICON_FA_PAUSE " Paused");
+                    statusShown = true;
+                }
+             }
+        }
+
+        if (!statusShown) {
+            ImGui::TextDisabled(ICON_FA_CHECK " Ready");
+        }
+
+        // Middle: Scene Info & Selection
+        if (selectedScene) {
+            ImGui::SameLine();
+            ImGui::TextDisabled("|");
+            ImGui::SameLine();
+            ImGui::Text("Scene: %s", selectedScene->name.c_str());
+
+            ImGui::SameLine();
+            ImGui::TextDisabled("|");
+            ImGui::SameLine();
+
+            size_t selectionCount = selectedScene->selectedEntities.size();
+            if (selectionCount == 0) {
+                ImGui::TextDisabled("No Selection");
+            } else if (selectionCount == 1) {
+                ImGui::Text("Selected: 1 Entity");
+            } else {
+                ImGui::Text("Selected: %zu Entities", selectionCount);
+            }
+        }
+
+        // Right side: Performance stats
+        char fpsText[32];
+        char msText[32];
+        sprintf(fpsText, ICON_FA_GAUGE_HIGH " %.1f FPS", fps);
+        sprintf(msText, ICON_FA_CLOCK " %.2f ms", deltaMs);
+
+        // Calculate width to position at right
+        float width = ImGui::CalcTextSize(fpsText).x + ImGui::CalcTextSize(msText).x + 30.0f; // + padding/separators
+        ImGui::SameLine(ImGui::GetWindowWidth() - width);
+
+        ImGui::Text("%s", fpsText);
+        ImGui::SameLine();
+        ImGui::TextDisabled("|");
+        ImGui::SameLine();
+        ImGui::Text("%s", msText);
+    }
+    ImGui::End();
+
+    ImGui::PopStyleColor(2);
+    ImGui::PopStyleVar();
+
+    // Reserve space from the viewport work area so dockspace doesn't overlap
+    viewport->WorkSize.y -= footerHeight;
+}
+
 void Editor::App::showAlert(){
     if (alert.needShow) {
         ImGui::OpenPopup((alert.title + "##AlertModal").c_str());
@@ -547,6 +648,7 @@ void Editor::App::show(){
     dockspace_id = ImGui::GetID("MyDockspace");
 
     showMenu();
+    showFooter();
 
     isInitialized = true;
 

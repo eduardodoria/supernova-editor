@@ -95,6 +95,7 @@ namespace Supernova::Editor{
 
         void showMenu();
         void showAlert();
+        void showFooter();
         void showStyleEditor();
         void buildDockspace();
         void kewtStyleTheme();
