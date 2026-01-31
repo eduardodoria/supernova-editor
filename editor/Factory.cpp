@@ -521,6 +521,7 @@ std::string Editor::Factory::createTransform(int indentSpaces, Scene* scene, Ent
     code << ind << "transform.fakeBillboard = " << formatBool(transform.fakeBillboard) << ";\n";
     code << ind << "transform.cylindricalBillboard = " << formatBool(transform.cylindricalBillboard) << ";\n";
     code << ind << "transform.billboardRotation = " << formatQuaternion(transform.billboardRotation) << ";\n";
+    code << ind << "transform.parent = " << transform.parent << ";\n";
     addComponentCode(code, ind, sceneName, entityName, entity, "Transform", "transform");
     return code.str();
 }

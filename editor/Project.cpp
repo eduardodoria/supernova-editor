@@ -1177,6 +1177,11 @@ bool Editor::Project::saveProjectToPath(const std::filesystem::path& path) {
     // If we're moving from a temp path, handle the file transfers
     if (wasTemp && oldPath != path) {
         try {
+            std::filesystem::path oldBuildPath = getProjectInternalPath() / "build";
+            if (std::filesystem::exists(oldBuildPath)) {
+                std::filesystem::remove_all(oldBuildPath);
+            }
+
             // Copy all project files from temp dir to the new location
             for (const auto& entry : std::filesystem::directory_iterator(oldPath)) {
                 std::filesystem::path destPath = path / entry.path().filename();
