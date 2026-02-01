@@ -397,7 +397,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 0.5f, 1.0f)); // Yellow for search matches
         pushedHighlightColor = true;
     } else if (node.isChildScene) {
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.9f, 0.6f, 1.0f)); // Light green for child scenes
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 0.80f, 0.85f, 1.0f)); // Soft teal for child scenes
         pushedHighlightColor = true;
     } else if (node.isShared) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.7f, 1.0f, 1.0f)); // Light blue for shared
@@ -405,12 +405,12 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     }
 
     std::string label = node.icon + "  " + node.name;
-    if (node.isMainCamera){
-        label += "  " ICON_FA_ASTERISK;
-    }
     label += "###" + getNodeImGuiId(node);
 
     bool nodeOpen = ImGui::TreeNodeEx(label.c_str(), flags);
+    bool nodeHovered = ImGui::IsItemHovered();
+    bool nodeActive = ImGui::IsItemActive();
+    bool nodeRightClicked = ImGui::IsItemClicked(ImGuiMouseButton_Right);
 
     // Pop color if we pushed it
     if (pushedHighlightColor) {
@@ -598,8 +598,8 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     }
 
     // Check for selection on mouse release (not click) to allow drag without selection
-    bool wasItemActivePrevFrame = ImGui::IsItemActive();
-    if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left) && !ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+    bool wasItemActivePrevFrame = nodeActive;
+    if (nodeHovered && ImGui::IsMouseReleased(ImGuiMouseButton_Left) && !ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
         if (node.isChildScene) {
             project->clearSelectedEntities(project->getSelectedSceneId());
             selectedScenes.clear();
@@ -625,7 +625,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     }
 
     // Handle double-click on child scene to select it (kept for UX consistency)
-    if (node.isChildScene && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+    if (node.isChildScene && nodeHovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
         SceneProject* childScene = project->getScene(node.childSceneId);
         if (childScene) {
             project->openScene(childScene->filepath);
@@ -634,7 +634,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
 
     std::string popupId = "##ContextMenu" + getNodeImGuiId(node);
 
-    if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+    if (nodeRightClicked) {
         strncpy(nameBuffer, node.name.c_str(), sizeof(nameBuffer) - 1);
         nameBuffer[sizeof(nameBuffer) - 1] = '\0';
         ImGui::OpenPopup(popupId.c_str());
@@ -716,11 +716,11 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                 if (sceneProject->scene->getSignature(node.id).test(sceneProject->scene->getComponentId<CameraComponent>())) {
                     ImGui::Separator();
                     if (node.isMainCamera) {
-                        if (ImGui::MenuItem(ICON_FA_VIDEO"  Unset as Main Camera", nullptr, false, node.isMainCamera)) {
+                        if (ImGui::MenuItem(ICON_FA_EYE_SLASH"  Unset as Main Camera", nullptr, false, node.isMainCamera)) {
                             CommandHandle::get(project->getSelectedSceneId())->addCommand(new SetMainCameraCmd(project, project->getSelectedSceneId(), NULL_ENTITY));
                         }
                     } else {
-                        if (ImGui::MenuItem(ICON_FA_VIDEO"  Set as Main Camera", nullptr, false, !node.isMainCamera)) {
+                        if (ImGui::MenuItem(ICON_FA_EYE"  Set as Main Camera", nullptr, false, !node.isMainCamera)) {
                             CommandHandle::get(project->getSelectedSceneId())->addCommand(new SetMainCameraCmd(project, project->getSelectedSceneId(), node.id));
                         }
                     }
@@ -729,6 +729,16 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
 
             ImGui::EndPopup();
         }
+    }
+
+    if (node.isMainCamera) {
+        ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.70f, 0.70f, 0.70f, 1.0f));
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().FramePadding.y * 0.5f);
+        ImGui::SetWindowFontScale(0.7f);
+        ImGui::TextUnformatted(ICON_FA_EYE);
+        ImGui::SetWindowFontScale(1.0f);
+        ImGui::PopStyleColor();
     }
 
     if (node.separator){
@@ -785,7 +795,17 @@ void Editor::Structure::show(){
         }
 
         TreeNode childSceneNode;
-        childSceneNode.icon = ICON_FA_FILM;
+        switch (childScene->sceneType) {
+            case SceneType::SCENE_3D:
+                childSceneNode.icon = ICON_FA_CUBES;
+                break;
+            case SceneType::SCENE_2D:
+                childSceneNode.icon = ICON_FA_CUBES_STACKED;
+                break;
+            case SceneType::SCENE_UI:
+                childSceneNode.icon = ICON_FA_WINDOW_RESTORE;
+                break;
+        }
         childSceneNode.name = childScene->name;
         childSceneNode.isChildScene = true;
         childSceneNode.childSceneId = childSceneId;
