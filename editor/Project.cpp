@@ -1182,6 +1182,11 @@ bool Editor::Project::saveProjectToPath(const std::filesystem::path& path) {
                 std::filesystem::remove_all(oldBuildPath);
             }
 
+            std::filesystem::path oldExtBuildPath = getProjectInternalPath() / "externalbuild";
+            if (std::filesystem::exists(oldExtBuildPath)) {
+                std::filesystem::remove_all(oldExtBuildPath);
+            }
+
             // Copy all project files from temp dir to the new location
             for (const auto& entry : std::filesystem::directory_iterator(oldPath)) {
                 std::filesystem::path destPath = path / entry.path().filename();

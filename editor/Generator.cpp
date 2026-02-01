@@ -656,6 +656,20 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
 
     FileUtils::writeIfChanged(cmakeFile, cmakeContent);
     FileUtils::writeIfChanged(sourceFile, sourceContent);
+
+    // Generate .vscode/settings.json for VS Code if it doesn't exist
+    fs::path vscodeDir = projectPath / ".vscode";
+    if (!fs::exists(vscodeDir)) {
+        fs::create_directories(vscodeDir);
+    }
+    fs::path settingsFile = vscodeDir / "settings.json";
+    if (!fs::exists(settingsFile)) {
+        std::string settingsContent;
+        settingsContent += "{\n";
+        settingsContent += "    \"cmake.buildDirectory\": \"${workspaceFolder}/" + relativeInternalPath.generic_string() + "/externalbuild\"\n";
+        settingsContent += "}\n";
+        FileUtils::writeIfChanged(settingsFile, settingsContent);
+    }
 }
 
 void Editor::Generator::terminateCurrentProcess() {
