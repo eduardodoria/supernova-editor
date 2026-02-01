@@ -58,7 +58,7 @@ void Editor::ToolsLayer::updateCamera(CameraComponent& extCamera, Transform& ext
     }
 }
 
-void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quaternion& rotation, float scale, OBB obb, Ray& mouseRay, bool mouseClicked){
+void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quaternion& rotation, float scale, Vector2 uiSize, float selectionOffset, OBB obb, Ray& mouseRay, bool mouseClicked){
     gizmoScale = scale;
 
     if (gizmoSelected == GizmoSelected::TRANSLATE){
@@ -92,14 +92,20 @@ void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quater
     // only for single selections
     // do not use gizmo position and rotation
     if (gizmoSelected == GizmoSelected::OBJECT2D){
-        Vector3 center = obb.getCenter();
-        Vector3 size = obb.getHalfExtents() * 2.0f;
-
         oGizmo->setPosition(position);
         oGizmo->setRotation(rotation);
         oGizmo->setScale(scale);
-        oGizmo->setCenter(rotation.getRotationMatrix().inverse() * (center - position) / scale);
-        oGizmo->setSize(size.x / scale, size.y / scale);
+
+        if (uiSize == Vector2::ZERO){
+            Vector3 center = obb.getCenter();
+            Vector3 size = obb.getHalfExtents() * 2.0f;
+            oGizmo->setCenter(rotation.getRotationMatrix().inverse() * (center - position) / scale);
+            oGizmo->setSize(size.x / scale, size.y / scale);
+        }else{
+            float uiSelOffset = selectionOffset * 2.0f;
+            oGizmo->setCenter(Vector3(((uiSize.x + uiSelOffset) / 2.0f) - (uiSelOffset / 2.0f), ((uiSize.y + uiSelOffset) / 2.0f) - (uiSelOffset / 2.0f), 0) / scale);
+            oGizmo->setSize((uiSize.x + uiSelOffset) / scale, (uiSize.y + uiSelOffset) / scale);
+        }
 
         if (!mouseClicked){
             gizmoSideSelected = GizmoSideSelected::NONE;

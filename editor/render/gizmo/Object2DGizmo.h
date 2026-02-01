@@ -13,6 +13,7 @@ namespace Supernova::Editor{
     private:
         Object* center;
         Polygon* rects[8];
+        Lines* lines;
 
         float width;
         float height;
@@ -21,6 +22,7 @@ namespace Supernova::Editor{
         static const float sizeOffset;
 
         void updateRects();
+        void updateLines();
 
     public:
         Object2DGizmo(Scene* scene);
@@ -28,6 +30,8 @@ namespace Supernova::Editor{
 
         void setCenter(Vector3 point);
         void setSize(float width, float height);
+
+        void setUseLines(bool useLines);
 
         Gizmo2DSideSelected checkHover(const Ray& ray, const OBB& obb);
     };

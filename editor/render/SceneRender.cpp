@@ -219,6 +219,8 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities, std::vector<En
     std::vector<OBB> selBB;
     OBB totalSelBB;
 
+    multipleEntitiesSelected = selEntities.size() > 1;
+
     for (Entity& entity: selEntities){
         if (Transform* transform = scene->findComponent<Transform>(entity)){
             numTEntities++;
@@ -240,9 +242,17 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities, std::vector<En
 
             totalSelBB.enclose(getOBB(entity, false));
         }
+
     }
 
-    multipleEntitiesSelected = selEntities.size() > 1;
+    Vector2 uiSize = Vector2::ZERO;
+    if (selEntities.size() == 1){
+        if (UILayoutComponent* uilayout = scene->findComponent<UILayoutComponent>(selEntities[0])){
+            uiSize = Vector2((float)uilayout->width, (float)uilayout->height);
+        }
+    }
+
+    totalSelBB.setHalfExtents(totalSelBB.getHalfExtents() + Vector3(selectionOffset));
 
     bool selectionVisibility = false;
     if (numTEntities > 0){
@@ -259,19 +269,21 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities, std::vector<En
             }
         }
 
-        toolslayer.updateGizmo(camera, gizmoPosition, gizmoRotation, scale, totalSelBB, mouseRay, mouseClicked);
+        toolslayer.updateGizmo(camera, gizmoPosition, gizmoRotation, scale, uiSize, selectionOffset, totalSelBB, mouseRay, mouseClicked);
 
-        if (selBB.size() == 0){
-            selLines->setVisible(false);
-        }else{
-            selLines->setVisible(true);
-
+        if (selBB.size() > 0) {
             updateSelLines(selBB);
         }
     }
     toolslayer.updateCamera(cameracomp, cameratransform);
 
-    selLines->setVisible(selectionVisibility);
+    // Determine selLines visibility: hide for single entity with OBJECT2D gizmo or empty selBB
+    bool showSelLines = selectionVisibility;
+    if (!multipleEntitiesSelected && (toolslayer.getGizmoSelected() == GizmoSelected::OBJECT2D || selBB.size() == 0)) {
+        showSelLines = false;
+    }
+    selLines->setVisible(showSelLines);
+
     if (toolslayer.getGizmoSelected() == GizmoSelected::OBJECT2D && !sameRotation){
         toolslayer.setGizmoVisible(false);
     }else{
@@ -499,6 +511,7 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                 if (toolslayer.getGizmoSelected() == GizmoSelected::OBJECT2D){
                     bool isSprite = scene->getComponentArray<SpriteComponent>()->hasEntity(entity);
                     bool isLayout = scene->getComponentArray<UILayoutComponent>()->hasEntity(entity);
+                    bool isText = scene->getComponentArray<TextComponent>()->hasEntity(entity);
 
                     Vector3 newPos = gizmoRMatrix.inverse() * ((rretrun.point + cursorStartOffset) - gizmoPosition);
 
@@ -556,6 +569,10 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                         if (isLayout){
                             multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entity, ComponentType::UILayoutComponent, "width", static_cast<unsigned int>(size.x));
                             multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entity, ComponentType::UILayoutComponent, "height", static_cast<unsigned int>(size.y));
+                            if (isText){
+                                multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entity, ComponentType::TextComponent, "fixedWidth", true);
+                                multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entity, ComponentType::TextComponent, "fixedHeight", true);
+                            }
                         }else if (isSprite){
                             multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entity, ComponentType::SpriteComponent, "width", static_cast<unsigned int>(size.x));
                             multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entity, ComponentType::SpriteComponent, "height", static_cast<unsigned int>(size.y));

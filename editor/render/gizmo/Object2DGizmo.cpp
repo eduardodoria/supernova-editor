@@ -3,13 +3,15 @@
 using namespace Supernova;
 
 const float Editor::Object2DGizmo::rectSize = 0.20;
-const float Editor::Object2DGizmo::sizeOffset = 0.15;
+const float Editor::Object2DGizmo::sizeOffset = 0.1;
 
 Editor::Object2DGizmo::Object2DGizmo(Scene* scene): Object(scene){
     width = 0.0;
     height = 0.0;
 
     center = new Object(scene);
+    lines = new Lines(scene);
+    lines->setVisible(false);
 
     for (int i = 0; i < 8; i++){
         rects[i] = new Polygon(scene);
@@ -18,11 +20,12 @@ Editor::Object2DGizmo::Object2DGizmo(Scene* scene): Object(scene){
         rects[i]->addVertex(rectSize, 0);
         rects[i]->addVertex(0, rectSize);
         rects[i]->addVertex(rectSize, rectSize);
-        rects[i]->setColor(0.9, 0.5, 0.3, 1.0);
+        rects[i]->setColor(0.9f, 0.5f, 0.3f, 1.0f);
 
         center->addChild(rects[i]);
     }
 
+    center->addChild(lines);
     this->addChild(center);
 }
 
@@ -30,6 +33,7 @@ Editor::Object2DGizmo::~Object2DGizmo(){
     for (int i = 0; i < 8; i++){
         delete rects[i];
     }
+    delete lines;
 }
 
 void Editor::Object2DGizmo::updateRects(){
@@ -47,6 +51,28 @@ void Editor::Object2DGizmo::updateRects(){
     rects[7]->setPosition(-halfRect, -halfHeight-halfRect-sizeOffset, 0);
 }
 
+void Editor::Object2DGizmo::updateLines(){
+    if (!lines){
+        return;
+    }
+
+    lines->clearLines();
+
+    float halfWidth = width / 2.0f;
+    float halfHeight = height / 2.0f;
+    Vector4 color(0.9f, 0.5f, 0.3f, 1.0f);
+
+    Vector3 bl(-halfWidth, -halfHeight, 0);
+    Vector3 br(halfWidth, -halfHeight, 0);
+    Vector3 tr(halfWidth, halfHeight, 0);
+    Vector3 tl(-halfWidth, halfHeight, 0);
+
+    lines->addLine(bl, br, color);
+    lines->addLine(br, tr, color);
+    lines->addLine(tr, tl, color);
+    lines->addLine(tl, bl, color);
+}
+
 void Editor::Object2DGizmo::setCenter(Vector3 point){
     center->setPosition(point);
 }
@@ -57,6 +83,7 @@ void Editor::Object2DGizmo::setSize(float width, float height){
         this->height = height;
 
         updateRects();
+        updateLines();
     }
 }
 
