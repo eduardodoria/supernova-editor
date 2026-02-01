@@ -643,11 +643,21 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     if (ImGui::BeginPopup(popupId.c_str())) {
         // Child scene context menu
         if (node.isChildScene) {
-            ImGui::Text("Child Scene: %s", node.name.c_str());
-            ImGui::Separator();
-            if (ImGui::MenuItem(ICON_FA_ARROW_POINTER "  Select scene")) {
-                project->setSelectedSceneId(node.childSceneId);
+            ImGui::Text("Name:");
+            ImGui::PushItemWidth(200);
+            ImGui::BeginDisabled(true);
+            if (ImGui::InputText("##ChangeChildSceneNameInput", nameBuffer, IM_ARRAYSIZE(nameBuffer), ImGuiInputTextFlags_EnterReturnsTrue)){
+                ImGui::CloseCurrentPopup();
             }
+            ImGui::EndDisabled();
+            if (ImGui::IsItemDeactivatedAfterEdit()) {
+                if (nameBuffer[0] != '\0' && strcmp(nameBuffer, node.name.c_str()) != 0) {
+                    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new SceneNameCmd(project, node.childSceneId, nameBuffer));
+                }
+            }
+            ImGui::PopItemWidth();
+
+            ImGui::Separator();
             if (ImGui::MenuItem(ICON_FA_TRASH "  Remove child scene")) {
                 CommandHandle::get(node.ownerSceneId)->addCommand(new RemoveChildSceneCmd(project, node.ownerSceneId, node.childSceneId));
             }

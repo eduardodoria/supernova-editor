@@ -10,6 +10,7 @@
 #include "command/type/PropertyCmd.h"
 #include "command/type/MultiPropertyCmd.h"
 #include "command/type/EntityNameCmd.h"
+#include "command/type/SceneNameCmd.h"
 #include "command/type/MeshChangeCmd.h"
 #include "command/type/AddComponentCmd.h"
 #include "command/type/RemoveComponentCmd.h"
@@ -3636,44 +3637,62 @@ void Editor::Properties::show(){
         }
 
     }else{
-        ImGui::Text("Scene: %s", sceneProject->name.c_str());
+        ImGui::Text("Scene");
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(-1);
+        static char nameBuffer[128];
+        strncpy(nameBuffer, sceneProject->name.c_str(), sizeof(nameBuffer) - 1);
+        nameBuffer[sizeof(nameBuffer) - 1] = '\0';
+
+        bool isMainScene = (sceneProject->id == project->getSelectedSceneId());
+        ImGui::BeginDisabled(!isMainScene);
+        ImGui::InputText("##input_scene_name", nameBuffer, IM_ARRAYSIZE(nameBuffer));
+        ImGui::EndDisabled();
+
+        if (ImGui::IsItemDeactivatedAfterEdit()) {
+            if (isMainScene && nameBuffer[0] != '\0' && strcmp(nameBuffer, sceneProject->name.c_str()) != 0) {
+                CommandHandle::get(sceneProject->id)->addCommandNoMerge(new SceneNameCmd(project, sceneProject->id, nameBuffer));
+            }
+        }
         ImGui::Separator();
 
-        ImGuiTableFlags tableFlags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchSame;
+        if (sceneProject->scene) {
+            ImGuiTableFlags tableFlags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchSame;
 
-        if (ImGui::BeginTable("scene_settings_table", 2, tableFlags)) {
-            ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("Background").x);
-            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
-
-            drawScenePropertyRow<Vector4>(sceneProject, "background_color", "Background", ScenePropertyInputType::ColorRGBA);
-            drawScenePropertyRow<LightState>(sceneProject, "light_state", "Lights", ScenePropertyInputType::Combo);
-
-            ImGui::EndTable();
-        }
-
-        LightState currentLightState = Supernova::Editor::Catalog::getSceneProperty<LightState>(sceneProject->scene, "light_state");
-        if (currentLightState != LightState::OFF) {
-            ImGui::SeparatorText("Global Illumination");
-
-            if (ImGui::BeginTable("scene_globalillum_table", 2, tableFlags)) {
-                ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("Intensity").x);
+            if (ImGui::BeginTable("scene_settings_table", 2, tableFlags)) {
+                ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("Background").x);
                 ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
-                drawScenePropertyRow<Vector3>(sceneProject, "global_illumination_color", "Color", ScenePropertyInputType::ColorRGB);
-                drawScenePropertyRow<float>(sceneProject, "global_illumination_intensity", "Intensity", ScenePropertyInputType::SliderFloat, 0.0f, 1.0f);
+                drawScenePropertyRow<Vector4>(sceneProject, "background_color", "Background", ScenePropertyInputType::ColorRGBA);
+                drawScenePropertyRow<LightState>(sceneProject, "light_state", "Lights", ScenePropertyInputType::Combo);
 
                 ImGui::EndTable();
             }
 
-            ImGui::SeparatorText("Shadows");
+            LightState currentLightState = Supernova::Editor::Catalog::getSceneProperty<LightState>(sceneProject->scene, "light_state");
+            if (currentLightState != LightState::OFF) {
+                ImGui::SeparatorText("Global Illumination");
 
-            if (ImGui::BeginTable("scene_shadow_settings_table", 2, tableFlags)) {
-                ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("Enable PCF").x);
-                ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+                if (ImGui::BeginTable("scene_globalillum_table", 2, tableFlags)) {
+                    ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("Intensity").x);
+                    ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
-                drawScenePropertyRow<bool>(sceneProject, "shadows_pcf", "Enable PCF", ScenePropertyInputType::Checkbox);
+                    drawScenePropertyRow<Vector3>(sceneProject, "global_illumination_color", "Color", ScenePropertyInputType::ColorRGB);
+                    drawScenePropertyRow<float>(sceneProject, "global_illumination_intensity", "Intensity", ScenePropertyInputType::SliderFloat, 0.0f, 1.0f);
 
-                ImGui::EndTable();
+                    ImGui::EndTable();
+                }
+
+                ImGui::SeparatorText("Shadows");
+
+                if (ImGui::BeginTable("scene_shadow_settings_table", 2, tableFlags)) {
+                    ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("Enable PCF").x);
+                    ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+                    drawScenePropertyRow<bool>(sceneProject, "shadows_pcf", "Enable PCF", ScenePropertyInputType::Checkbox);
+
+                    ImGui::EndTable();
+                }
             }
         }
 
