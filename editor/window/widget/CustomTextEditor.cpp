@@ -2491,6 +2491,9 @@ void CustomTextEditor::renderText(ImDrawList* drawList, const ImVec2& origin, in
 }
 
 void CustomTextEditor::renderCursors(ImDrawList* drawList, const ImVec2& origin) {
+    // Only show cursor when window is focused
+    if (!ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)) return;
+
     // Blink cursor
     float time = ImGui::GetTime();
     bool showCursor = isDraggingText || (fmod(time, 1.0f) < 0.5f);
