@@ -590,7 +590,7 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                         if (isLayout){
                             multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entity, ComponentType::UILayoutComponent, "width", static_cast<unsigned int>(size.x));
                             multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entity, ComponentType::UILayoutComponent, "height", static_cast<unsigned int>(size.y));
-                            if (isText){
+                            if (isText && toolslayer.getGizmo2DSideSelected() != Gizmo2DSideSelected::CENTER){
                                 multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entity, ComponentType::TextComponent, "fixedWidth", true);
                                 multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entity, ComponentType::TextComponent, "fixedHeight", true);
                             }

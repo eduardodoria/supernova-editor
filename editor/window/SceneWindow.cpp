@@ -247,6 +247,21 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
         float y = mousePos.y - windowPos.y;
 
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)){
+            // Selecting and dragging an unselected object at same time (just for 2D object mode)
+            GizmoSelected gizmoSelected = sceneProject->sceneRender->getToolsLayer()->getGizmoSelected();
+            if (!disableSelection && gizmoSelected == GizmoSelected::OBJECT2D) {
+                Entity hitEntity = project->findObjectByRay(sceneId, x, y);
+                if (hitEntity != NULL_ENTITY) {
+                    bool alreadySelected = project->isSelectedEntity(sceneId, hitEntity);
+                    if (!alreadySelected || io.KeyShift) {
+                        bool changed = project->selectObjectByRay(sceneId, x, y, io.KeyShift);
+                        if (changed) {
+                            sceneProject->sceneRender->update(project->getSelectedEntities(sceneId), project->getEntities(sceneId), sceneProject->mainCamera);
+                            sceneProject->sceneRender->mouseHoverEvent(x, y);
+                        }
+                    }
+                }
+            }
             sceneProject->sceneRender->mouseClickEvent(x, y, project->getSelectedEntities(sceneId));
         }
 
