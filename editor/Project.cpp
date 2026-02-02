@@ -1421,6 +1421,13 @@ Entity Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
         }else if (signature.test(scenedata->scene->getComponentId<UIComponent>())){
             UIComponent& ui = scenedata->scene->getComponent<UIComponent>(entity);
             aabb = ui.worldAABB;
+            if (signature.test(scenedata->scene->getComponentId<UILayoutComponent>())){
+                UILayoutComponent& layout = scenedata->scene->getComponent<UILayoutComponent>(entity);
+                if (layout.width > 0 && layout.height > 0){
+                    Transform& transform = scenedata->scene->getComponent<Transform>(entity);
+                    aabb = transform.modelMatrix * AABB(0, 0, 0, layout.width, layout.height, 0);
+                }
+            }
         }else if (signature.test(scenedata->scene->getComponentId<LightComponent>()) || 
                   signature.test(scenedata->scene->getComponentId<CameraComponent>())){
             Transform& transform = scenedata->scene->getComponent<Transform>(entity);
@@ -1495,6 +1502,12 @@ bool Editor::Project::selectObjectsByRect(uint32_t sceneId, Vector2 start, Vecto
         }else if (signature.test(scenedata->scene->getComponentId<UIComponent>())){
             UIComponent& ui = scenedata->scene->getComponent<UIComponent>(entity);
             aabb = ui.aabb;
+            if (signature.test(scenedata->scene->getComponentId<UILayoutComponent>())){
+                UILayoutComponent& layout = scenedata->scene->getComponent<UILayoutComponent>(entity);
+                if (layout.width > 0 && layout.height > 0){
+                    aabb = AABB(0, 0, 0, layout.width, layout.height, 0);
+                }
+            }
         }else if (signature.test(scenedata->scene->getComponentId<LightComponent>()) || 
                   signature.test(scenedata->scene->getComponentId<CameraComponent>())){
             Transform& transform = scenedata->scene->getComponent<Transform>(entity);

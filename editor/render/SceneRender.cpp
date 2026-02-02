@@ -51,6 +51,22 @@ AABB Editor::SceneRender::getAABB(Entity entity, bool local){
             return mesh.worldAABB;
         }
     }else if (signature.test(scene->getComponentId<UIComponent>())){
+        if (signature.test(scene->getComponentId<UILayoutComponent>())){
+            UILayoutComponent& layout = scene->getComponent<UILayoutComponent>(entity);
+            if (layout.width > 0 && layout.height > 0){
+                AABB aabb = AABB(0, 0, 0, layout.width, layout.height, 0);
+                if (local){
+                    return aabb;
+                }else{
+                    if (signature.test(scene->getComponentId<Transform>())){
+                        Transform& transform = scene->getComponent<Transform>(entity);
+                        return transform.modelMatrix * aabb;
+                    }
+                    return aabb;
+                }
+            }
+        }
+
         UIComponent& ui = scene->getComponent<UIComponent>(entity);
         if (local){
             return ui.aabb;
@@ -111,6 +127,18 @@ OBB Editor::SceneRender::getOBB(Entity entity, bool local){
                 return modelMatrix * mesh.aabb.getOBB();
             }
         }else if (signature.test(scene->getComponentId<UIComponent>())){
+            if (signature.test(scene->getComponentId<UILayoutComponent>())){
+                UILayoutComponent& layout = scene->getComponent<UILayoutComponent>(entity);
+                if (layout.width > 0 && layout.height > 0){
+                    AABB aabb = AABB(0, 0, 0, layout.width, layout.height, 0);
+                    if (local){
+                        return aabb.getOBB();
+                    }else{
+                        return modelMatrix * aabb.getOBB();
+                    }
+                }
+            }
+
             UIComponent& ui = scene->getComponent<UIComponent>(entity);
             if (local){
                 return ui.aabb.getOBB();
@@ -245,13 +273,6 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities, std::vector<En
 
     }
 
-    Vector2 uiSize = Vector2::ZERO;
-    if (selEntities.size() == 1){
-        if (UILayoutComponent* uilayout = scene->findComponent<UILayoutComponent>(selEntities[0])){
-            uiSize = Vector2((float)uilayout->width, (float)uilayout->height);
-        }
-    }
-
     totalSelBB.setHalfExtents(totalSelBB.getHalfExtents() + Vector3(selectionOffset));
 
     bool selectionVisibility = false;
@@ -269,7 +290,7 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities, std::vector<En
             }
         }
 
-        toolslayer.updateGizmo(camera, gizmoPosition, gizmoRotation, scale, uiSize, selectionOffset, totalSelBB, mouseRay, mouseClicked);
+        toolslayer.updateGizmo(camera, gizmoPosition, gizmoRotation, scale, totalSelBB, mouseRay, mouseClicked);
 
         if (selBB.size() > 0) {
             updateSelLines(selBB);
