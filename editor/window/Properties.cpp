@@ -1263,7 +1263,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         ImGui::EndGroup();
         //ImGui::SetItemTooltip("%s in degrees (X, Y, Z)", prop.label.c_str());
 
-    }else if (type == RowPropertyType::String){
+    }else if (type == RowPropertyType::String || type == RowPropertyType::MultilineString){
         std::string* value = nullptr;
         std::map<Entity, std::string> eValue;
         bool dif = false;
@@ -1300,7 +1300,14 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         if (dif)
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
 
-        if (ImGui::InputText(("##input_string_"+id).c_str(), buffer.data(), buffer.size())){
+        bool inputChanged = false;
+        if (type == RowPropertyType::MultilineString){
+            inputChanged = ImGui::InputTextMultiline(("##input_string_"+id).c_str(), buffer.data(), buffer.size(), ImVec2(0, ImGui::GetTextLineHeight() * 6));
+        }else{
+            inputChanged = ImGui::InputText(("##input_string_"+id).c_str(), buffer.data(), buffer.size());
+        }
+
+        if (inputChanged){
             for (Entity& entity : entities){
                 cmd = new PropertyCmd<std::string>(project, sceneProject->id, entity, cpType, id, std::string(buffer.data()), settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -2700,7 +2707,7 @@ void Editor::Properties::drawTextComponent(ComponentType cpType, SceneProject* s
     settingsInt.secondColSize = 6 * ImGui::GetFontSize();
 
     beginTable(cpType, getLabelSize("MaxTextSize"));
-    propertyRow(RowPropertyType::String, cpType, "text", "Text", sceneProject, entities);
+    propertyRow(RowPropertyType::MultilineString, cpType, "text", "Text", sceneProject, entities);
     propertyRow(RowPropertyType::String, cpType, "font", "Font", sceneProject, entities);
     propertyRow(RowPropertyType::UInt, cpType, "fontSize", "FontSize", sceneProject, entities, settingsInt);
     propertyRow(RowPropertyType::Bool, cpType, "multiline", "Multiline", sceneProject, entities);
