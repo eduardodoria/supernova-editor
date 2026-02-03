@@ -141,7 +141,8 @@ void Editor::App::showMenu(){
                     ImGui::MenuItem("No Recent Projects", nullptr, false, false);
                 } else {
                     for (const auto& path : recentProjects) {
-                        if (ImGui::MenuItem(path.filename().string().c_str())) {
+                        std::string label = path.filename().string() + " (" + path.string() + ")";
+                        if (ImGui::MenuItem(label.c_str())) {
                             if (project.hasScenesUnsavedChanges() || codeEditor->hasUnsavedChanges() || project.isTempUnsavedProject()) {
                                 registerConfirmAlert(
                                     "Unsaved Changes",
