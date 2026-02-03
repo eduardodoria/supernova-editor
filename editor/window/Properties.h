@@ -34,7 +34,8 @@ namespace Supernova::Editor{
         Direction,
         Enum,
         Custom,
-        EntityPointer
+        EntityPointer,
+        Font
     };
 
     struct EnumEntry {

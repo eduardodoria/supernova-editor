@@ -41,6 +41,8 @@ namespace Supernova::Editor{
         static std::string formatScriptPropertyValue(const Scene* scene, const ScriptPropertyValue& value);
         static std::string formatEntityRefKind(EntityRefKind kind);
 
+        static std::string normalizePath(const std::string& path, const std::filesystem::path& projectPath);
+
         static std::string formatTexture(int indentSpaces, const Texture& texture, const std::string& variableName, const fs::path& projectPath);
 
         static std::string formatPropertyValue(const PropertyData& property, const std::string& propertyName);
@@ -63,7 +65,7 @@ namespace Supernova::Editor{
         static std::string createMeshComponent(int indentSpaces, Scene* scene, Entity entity, const fs::path& projectPath, std::string sceneName = "", std::string entityName = "");
         static std::string createUIComponent(int indentSpaces, Scene* scene, Entity entity, const fs::path& projectPath, std::string sceneName = "", std::string entityName = "");
         static std::string createUILayoutComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
-        static std::string createTextComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
+        static std::string createTextComponent(int indentSpaces, Scene* scene, Entity entity, const fs::path& projectPath, std::string sceneName = "", std::string entityName = "");
         static std::string createImageComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
         static std::string createSpriteComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
         static std::string createLightComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");

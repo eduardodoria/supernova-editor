@@ -7,10 +7,17 @@
 #include "nfd.hpp"
 
 namespace Supernova::Editor{
+
+    enum FileDialogType {
+        FILE_DIALOG_ALL = 0,
+        FILE_DIALOG_IMAGE = 1 << 0,
+        FILE_DIALOG_FONT = 1 << 1
+    };
+
     class FileDialogs{
 
     public:
-        inline static std::string openFileDialog(std::string defaultPath = "", bool onlyImages = false, bool selectDirectory = false) {
+        inline static std::string openFileDialog(std::string defaultPath = "", int filterFlags = FILE_DIALOG_ALL, bool selectDirectory = false) {
             std::string retPath;
 
             if (selectDirectory) {
@@ -34,13 +41,19 @@ namespace Supernova::Editor{
                 nfdu8char_t* path;
                 nfdopendialogu8args_t args = {0};
 
-                if (onlyImages) {
-                    nfdfilteritem_t filterItem[1] = {
-                        { "Image files", "jpeg,jpg,png,bmp,psd,tga,gif,hdr,pic,pnm" }
-                    };
-                    args.filterCount = 1;
-                    args.filterList = filterItem;
+                std::vector<nfdfilteritem_t> filterItems;
+                if (filterFlags & FILE_DIALOG_IMAGE) {
+                    filterItems.push_back({ "Image files", "jpeg,jpg,png,bmp,psd,tga,gif,hdr,pic,pnm" });
                 }
+                if (filterFlags & FILE_DIALOG_FONT) {
+                    filterItems.push_back({ "Font files", "ttf,otf" });
+                }
+
+                if (!filterItems.empty()) {
+                    args.filterCount = (nfdfiltersize_t)filterItems.size();
+                    args.filterList = filterItems.data();
+                }
+
                 args.defaultPath = defaultPath.c_str();
                 args.parentWindow = *static_cast<nfdwindowhandle_t*>(Backend::getNFDWindowHandle());
 

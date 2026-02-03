@@ -1740,6 +1740,128 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         if (dif)
             ImGui::PopStyleColor();
 
+    }else if (type == RowPropertyType::Font){
+        std::string* value = nullptr;
+        std::map<Entity, std::string> eValue;
+        bool dif = false;
+        std::string* defArr = nullptr;
+        for (Entity& entity : entities){
+            PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
+            defArr = static_cast<std::string*>(prop.def);
+            eValue[entity] = *static_cast<std::string*>(prop.ref);
+            if (value){
+                if (*value != eValue[entity])
+                    dif = true;
+            }
+            value = &eValue[entity];
+        }
+
+        std::string newValue = *value;
+
+        bool defChanged = false;
+        if (defArr){
+            defChanged = (newValue != *defArr);
+        }
+        if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<std::string>(project, sceneProject->id, entity, cpType, id, *defArr, settings.onValueChanged);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                finishProperty = true;
+            }
+        }
+
+        ImGui::BeginGroup();
+        ImGui::PushID(("font_"+id).c_str());
+
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, textureLabel);
+
+        // Use calculated width for the frame
+        ImGui::BeginChild("fontframe", ImVec2(- ImGui::CalcTextSize(ICON_FA_GEAR).x - ImGui::GetStyle().ItemSpacing.x * 2 - ImGui::GetStyle().FramePadding.x * 2, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2), 
+            false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+
+        std::string fontName = newValue;
+        std::error_code ec;
+        if (std::filesystem::exists(fontName, ec)) {
+            fontName = std::filesystem::path(fontName).filename().string();
+        }
+        if (fontName.empty()) {
+            fontName = "< Default >";
+        }
+
+        float textWidth = ImGui::CalcTextSize(fontName.c_str()).x;
+        float availWidth = ImGui::GetContentRegionAvail().x;
+        ImGui::SetCursorPosX(availWidth - textWidth - 2);
+        ImGui::SetCursorPosY(ImGui::GetStyle().FramePadding.y);
+        if (dif)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        ImGui::Text("%s", fontName.c_str());
+        if (dif)
+            ImGui::PopStyleColor();
+
+        ImGui::EndChild();
+        if (!newValue.empty()){
+            ImGui::SetItemTooltip("%s", newValue.c_str());
+        }
+        ImGui::PopStyleColor();
+
+        ImGui::SameLine();
+
+        if (ImGui::Button(ICON_FA_FOLDER_OPEN)) {
+            std::string path = Editor::FileDialogs::openFileDialog(project->getProjectPath().string(), FILE_DIALOG_FONT);
+            if (!path.empty()) {
+                std::filesystem::path projectPath = project->getProjectPath();
+                std::filesystem::path filePath = std::filesystem::absolute(path);
+
+                // Check if file path is within project directory
+                std::error_code ec;
+                auto relative = std::filesystem::relative(filePath, projectPath, ec);
+                if (ec || relative.string().find("..") != std::string::npos) {
+                    ImGui::OpenPopup("File Import Error");
+                }else{
+                    std::string finalPath = filePath.string();
+                    for (Entity& entity : entities){
+                        cmd = new PropertyCmd<std::string>(project, sceneProject->id, entity, cpType, id, finalPath, settings.onValueChanged);
+                        CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                        finishProperty = true;
+                    }
+                }
+            }
+        }
+
+        // Error popup modal
+        if (ImGui::BeginPopupModal("File Import Error", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("Selected file must be within the project directory.");
+            ImGui::Separator();
+
+            float buttonWidth = 120;
+            float windowWidth = ImGui::GetWindowSize().x;
+            ImGui::SetCursorPosX((windowWidth - buttonWidth) * 0.5f);
+            if (ImGui::Button("OK", ImVec2(120, 0))) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+
+        ImGui::PopID();
+        ImGui::EndGroup();
+
+        if (ImGui::BeginDragDropTarget()){
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
+                std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
+                if (receivedStrings.size() > 0){
+                    if (payload->IsDelivery()){
+                        std::string fontPath = receivedStrings[0];
+                        for (Entity& entity : entities){
+                            cmd = new PropertyCmd<std::string>(project, sceneProject->id, entity, cpType, id, fontPath, settings.onValueChanged); 
+                            CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                            finishProperty = true;
+                        }
+                    }
+                }
+            }
+            ImGui::EndDragDropTarget();
+        }
+
     }else if (type == RowPropertyType::Texture){
         Texture* value = nullptr;
         std::map<Entity, Texture> eValue;
@@ -1776,7 +1898,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         ImGui::PushStyleColor(ImGuiCol_ChildBg, textureLabel);
 
         float thumbSize = ImGui::GetFrameHeight() * 3;
-        Texture* thumbTexture = findThumbnail(newValue.getId());
+        Texture* thumbTexture = findThumbnail(newValue.getPath());
         if (thumbTexture) {
             ImU32 border_col = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyle().Colors[ImGuiCol_FrameBg]);
             if (dif){
@@ -1821,7 +1943,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         ImGui::SameLine();
 
         if (ImGui::Button(ICON_FA_FOLDER_OPEN)) {
-            std::string path = Editor::FileDialogs::openFileDialog(project->getProjectPath().string(), true);
+            std::string path = Editor::FileDialogs::openFileDialog(project->getProjectPath().string(), FILE_DIALOG_IMAGE);
             if (!path.empty()) {
                 std::filesystem::path projectPath = project->getProjectPath();
                 std::filesystem::path filePath = std::filesystem::absolute(path);
@@ -1991,7 +2113,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             ImGui::SameLine();
 
             if (ImGui::Button(ICON_FA_FOLDER_OPEN)) {
-                std::string path = Editor::FileDialogs::openFileDialog(project->getProjectPath().string(), true);
+                std::string path = Editor::FileDialogs::openFileDialog(project->getProjectPath().string(), FILE_DIALOG_IMAGE);
                 if (!path.empty()) {
                     std::filesystem::path projectPath = project->getProjectPath();
                     std::filesystem::path filePath = std::filesystem::absolute(path);
@@ -2105,7 +2227,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
                 ImGui::SameLine();
 
                 if (ImGui::Button(ICON_FA_FOLDER_OPEN)) {
-                    std::string path = Editor::FileDialogs::openFileDialog(project->getProjectPath().string(), true);
+                    std::string path = Editor::FileDialogs::openFileDialog(project->getProjectPath().string(), FILE_DIALOG_IMAGE);
                     if (!path.empty()) {
                         std::filesystem::path projectPath = project->getProjectPath();
                         std::filesystem::path filePath = std::filesystem::absolute(path);
@@ -2708,7 +2830,7 @@ void Editor::Properties::drawTextComponent(ComponentType cpType, SceneProject* s
 
     beginTable(cpType, getLabelSize("MaxTextSize"));
     propertyRow(RowPropertyType::MultilineString, cpType, "text", "Text", sceneProject, entities);
-    propertyRow(RowPropertyType::String, cpType, "font", "Font", sceneProject, entities);
+    propertyRow(RowPropertyType::Font, cpType, "font", "Font", sceneProject, entities);
     propertyRow(RowPropertyType::UInt, cpType, "fontSize", "FontSize", sceneProject, entities, settingsInt);
     propertyRow(RowPropertyType::Bool, cpType, "multiline", "Multiline", sceneProject, entities);
     propertyRow(RowPropertyType::UInt, cpType, "maxTextSize", "MaxTextSize", sceneProject, entities, settingsInt);
@@ -2736,7 +2858,7 @@ void Editor::Properties::drawImageComponent(ComponentType cpType, SceneProject* 
 
     if (entities.size() == 1) {
         if (UIComponent* ui = sceneProject->scene->findComponent<UIComponent>(entities[0])){
-            Texture* thumbTexture = findThumbnail(ui->texture.getId());
+            Texture* thumbTexture = findThumbnail(ui->texture.getPath());
             if (thumbTexture) {
                 drawNinePatchesPreview(sceneProject->scene->getComponent<ImageComponent>(entities[0]), &ui->texture, thumbTexture, ImVec2(THUMBNAIL_SIZE, THUMBNAIL_SIZE));
             }
