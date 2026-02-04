@@ -699,7 +699,7 @@ void Editor::App::engineInit(int argc, char** argv) {
         project.createTempProject("MySupernovaProject");
     }
 
-    Engine::systemInit(argc, argv, new Editor::Platform());
+    Engine::systemInit(argc, argv, new Editor::Platform(&project));
     Engine::pauseGameEvents(true);
 
     ShaderPool::setShaderBuilder([this](Supernova::ShaderKey shaderKey) -> Supernova::ShaderBuildResult {

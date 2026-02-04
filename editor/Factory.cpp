@@ -384,18 +384,6 @@ std::string Editor::Factory::formatEntityRefKind(EntityRefKind kind) {
     }
 }
 
-std::string Editor::Factory::normalizePath(const std::string& inPath, const std::filesystem::path& projectPath) {
-    std::string outPath = inPath;
-    if (!outPath.empty() && !projectPath.empty()) {
-        fs::path tPath = outPath;
-        try {
-            outPath = fs::relative(tPath, projectPath).string();
-        } catch (...) {
-        }
-    }
-    return outPath;
-}
-
 std::string Editor::Factory::formatTexture(int indentSpaces, const Texture& texture, const std::string& variableName, const fs::path& projectPath) {
     if (texture.empty()) return "";
     std::ostringstream code;
@@ -411,17 +399,17 @@ std::string Editor::Factory::formatTexture(int indentSpaces, const Texture& text
             }
         }
 
-        const std::string p0 = normalizePath(texture.getPath(0), projectPath);
+        const std::string p0 = texture.getPath(0);
         const bool singleFileCube = !p0.empty() && !hasAnyNonZeroFace;
         if (singleFileCube) {
             code << ind << variableName << ".setCubeMap(" << formatString(p0) << ");\n";
         } else {
             // Face indices (engine order): 0=Right(+X), 1=Left(-X), 2=Top(+Y), 3=Bottom(-Y), 4=Front(+Z), 5=Back(-Z)
-            const std::string p1 = normalizePath(texture.getPath(1), projectPath);
-            const std::string p2 = normalizePath(texture.getPath(2), projectPath);
-            const std::string p3 = normalizePath(texture.getPath(3), projectPath);
-            const std::string p4 = normalizePath(texture.getPath(4), projectPath);
-            const std::string p5 = normalizePath(texture.getPath(5), projectPath);
+            const std::string p1 = texture.getPath(1);
+            const std::string p2 = texture.getPath(2);
+            const std::string p3 = texture.getPath(3);
+            const std::string p4 = texture.getPath(4);
+            const std::string p5 = texture.getPath(5);
 
             // setCubePaths takes OpenGL-style naming: (front, back, left, right, up, down)
             code << ind << variableName << ".setCubePaths(";
@@ -431,7 +419,7 @@ std::string Editor::Factory::formatTexture(int indentSpaces, const Texture& text
             code << ");\n";
         }
     } else {
-        const std::string p0 = normalizePath(texture.getPath(0), projectPath);
+        const std::string p0 = texture.getPath(0);
         if (!p0.empty()) {
             code << ind << variableName << ".setPath(" << formatString(p0) << ");\n";
         } else if (!texture.getId().empty()) {
@@ -638,7 +626,7 @@ std::string Editor::Factory::createTextComponent(int indentSpaces, Scene* scene,
     std::ostringstream code;
     const std::string ind = indentation(indentSpaces);
     code << ind << "TextComponent text;\n";
-    code << ind << "text.font = " << formatString(normalizePath(text.font, projectPath)) << ";\n";
+    code << ind << "text.font = " << formatString(text.font) << ";\n";
     code << ind << "text.text = " << formatString(text.text) << ";\n";
     code << ind << "text.fontSize = " << formatUInt(text.fontSize) << ";\n";
     code << ind << "text.multiline = " << formatBool(text.multiline) << ";\n";

@@ -317,13 +317,15 @@ void Editor::Properties::dragDropResources(ComponentType cpType, std::string id,
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
             std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
             if (receivedStrings.size() > 0){
+                const std::string droppedRelativePath = std::filesystem::relative(receivedStrings[0], project->getProjectPath()).generic_string();
+
                 if (!hasTextureDrag.count(id)){
                     hasTextureDrag[id] = true;
                     for (Entity& entity : entities){
                         Texture* valueRef = Catalog::getPropertyRef<Texture>(sceneProject->scene, entity, cpType, id);
                         originalTex[id][entity] = Texture(*valueRef);
-                        if (*valueRef != Texture(receivedStrings[0])){
-                            *valueRef = Texture(receivedStrings[0]);
+                        if (*valueRef != Texture(droppedRelativePath)){
+                            *valueRef = Texture(droppedRelativePath);
                             if (componentType == ComponentType::MeshComponent){
                                 unsigned int numSubmeshes = sceneProject->scene->getComponent<MeshComponent>(entity).numSubmeshes;
                                 for (unsigned int i = 0; i < numSubmeshes; i++){
@@ -338,7 +340,7 @@ void Editor::Properties::dragDropResources(ComponentType cpType, std::string id,
                     }
                 }
                 if (payload->IsDelivery()){
-                    Texture texture(receivedStrings[0]);
+                    Texture texture(droppedRelativePath);
                     for (Entity& entity : entities){
                         Texture* valueRef = Catalog::getPropertyRef<Texture>(sceneProject->scene, entity, cpType, id);
                         *valueRef = originalTex[id][entity];
@@ -394,7 +396,7 @@ void Editor::Properties::dragDropResourcesTextureCubeFace(ComponentType cpType, 
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
             std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
             if (!receivedStrings.empty()){
-                const std::string& droppedPath = receivedStrings[0];
+                const std::string droppedRelativePath = std::filesystem::relative(receivedStrings[0], project->getProjectPath()).generic_string();
 
                 if (!hasTextureDrag.count(dragId)){
                     hasTextureDrag[dragId] = true;
@@ -403,7 +405,7 @@ void Editor::Properties::dragDropResourcesTextureCubeFace(ComponentType cpType, 
                         originalTex[dragId][entity] = Texture(*valueRef);
 
                         Texture updated = Texture(*valueRef);
-                        updated.setCubePath(faceIndex, droppedPath);
+                        updated.setCubePath(faceIndex, droppedRelativePath);
                         if (*valueRef != updated){
                             *valueRef = updated;
                             if (componentType == ComponentType::MeshComponent){
@@ -428,7 +430,7 @@ void Editor::Properties::dragDropResourcesTextureCubeFace(ComponentType cpType, 
                         *valueRef = originalTex[dragId][entity];
 
                         Texture updated = Texture(*valueRef);
-                        updated.setCubePath(faceIndex, droppedPath);
+                        updated.setCubePath(faceIndex, droppedRelativePath);
                         cmd = new PropertyCmd<Texture>(project, sceneProject->id, entity, cpType, id, updated);
                         CommandHandle::get(sceneProject->id)->addCommand(cmd);
                         if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)){
@@ -483,7 +485,7 @@ void Editor::Properties::dragDropResourcesTextureCubeSingleFile(ComponentType cp
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
             std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
             if (!receivedStrings.empty()){
-                const std::string& droppedPath = receivedStrings[0];
+                const std::string droppedRelativePath = std::filesystem::relative(receivedStrings[0], project->getProjectPath()).generic_string();
 
                 if (!hasTextureDrag.count(dragId)){
                     hasTextureDrag[dragId] = true;
@@ -492,7 +494,7 @@ void Editor::Properties::dragDropResourcesTextureCubeSingleFile(ComponentType cp
                         originalTex[dragId][entity] = Texture(*valueRef);
 
                         Texture updated = Texture(*valueRef);
-                        updated.setCubeMap(droppedPath);
+                        updated.setCubeMap(droppedRelativePath);
                         if (*valueRef != updated){
                             *valueRef = updated;
                             if (componentType == ComponentType::MeshComponent){
@@ -517,7 +519,7 @@ void Editor::Properties::dragDropResourcesTextureCubeSingleFile(ComponentType cp
                         *valueRef = originalTex[dragId][entity];
 
                         Texture updated = Texture(*valueRef);
-                        updated.setCubeMap(droppedPath);
+                        updated.setCubeMap(droppedRelativePath);
                         cmd = new PropertyCmd<Texture>(project, sceneProject->id, entity, cpType, id, updated);
                         CommandHandle::get(sceneProject->id)->addCommand(cmd);
                         if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)){
@@ -1818,7 +1820,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
                 if (ec || relative.string().find("..") != std::string::npos) {
                     ImGui::OpenPopup("File Import Error");
                 }else{
-                    std::string finalPath = filePath.string();
+                    std::string finalPath = relative.string();
                     for (Entity& entity : entities){
                         cmd = new PropertyCmd<std::string>(project, sceneProject->id, entity, cpType, id, finalPath, settings.onValueChanged);
                         CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -1850,9 +1852,10 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
                 std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
                 if (receivedStrings.size() > 0){
                     if (payload->IsDelivery()){
-                        std::string fontPath = receivedStrings[0];
+                        const std::string relativeFontPath = std::filesystem::relative(receivedStrings[0], project->getProjectPath()).generic_string();
+
                         for (Entity& entity : entities){
-                            cmd = new PropertyCmd<std::string>(project, sceneProject->id, entity, cpType, id, fontPath, settings.onValueChanged); 
+                            cmd = new PropertyCmd<std::string>(project, sceneProject->id, entity, cpType, id, relativeFontPath, settings.onValueChanged);
                             CommandHandle::get(sceneProject->id)->addCommand(cmd);
                             finishProperty = true;
                         }
@@ -1954,7 +1957,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
                 if (ec || relative.string().find("..") != std::string::npos) {
                     ImGui::OpenPopup("File Import Error");
                 }else{
-                    Texture texture(filePath.string());
+                    Texture texture(relative.string());
                     for (Entity& entity : entities){
                         cmd = new PropertyCmd<Texture>(project, sceneProject->id, entity, cpType, id, texture, settings.onValueChanged);
                         CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -2124,7 +2127,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
                         ImGui::OpenPopup("File Import Error##cube");
                     }else{
                         Texture texture = newValue;
-                        texture.setCubeMap(filePath.string());
+                        texture.setCubeMap(relative.string());
                         for (Entity& entity : entities){
                             cmd = new PropertyCmd<Texture>(project, sceneProject->id, entity, cpType, id, texture, settings.onValueChanged);
                             CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -2239,7 +2242,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
                             ImGui::OpenPopup("File Import Error##cube");
                         }else{
                             Texture texture = newValue;
-                            texture.setCubePath(faceIndex, filePath.string());
+                            texture.setCubePath(faceIndex, relative.string());
                             for (Entity& entity : entities){
                                 cmd = new PropertyCmd<Texture>(project, sceneProject->id, entity, cpType, id, texture, settings.onValueChanged);
                                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
