@@ -40,7 +40,7 @@ namespace Supernova::Editor{
         bool matchCase = false;
         char searchBuffer[256] = "";
 
-        std::vector<TreeNode*> selectedScenes;
+        std::vector<uint32_t> selectedScenes;
 
         Entity openParent;
 

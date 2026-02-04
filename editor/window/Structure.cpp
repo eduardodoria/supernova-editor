@@ -356,7 +356,8 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         flags |= ImGuiTreeNodeFlags_Leaf;
     }
 
-    if (std::find(selectedScenes.begin(), selectedScenes.end(), &node) != selectedScenes.end()) {
+    if ((node.isScene && std::find(selectedScenes.begin(), selectedScenes.end(), node.id) != selectedScenes.end()) ||
+        (node.isChildScene && std::find(selectedScenes.begin(), selectedScenes.end(), node.childSceneId) != selectedScenes.end())) {
         flags |= ImGuiTreeNodeFlags_Selected;
     }
 
@@ -603,7 +604,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         if (node.isChildScene) {
             project->clearSelectedEntities(project->getSelectedSceneId());
             selectedScenes.clear();
-            selectedScenes.push_back(&node);
+            selectedScenes.push_back(node.childSceneId);
             project->setSelectedSceneForProperties(node.childSceneId);
         } else if (!node.isScene){
             ImGuiIO& io = ImGui::GetIO();
@@ -615,7 +616,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         }else{
             project->clearSelectedEntities(project->getSelectedSceneId());
             selectedScenes.clear();
-            selectedScenes.push_back(&node);
+            selectedScenes.push_back(node.id);
             project->setSelectedSceneForProperties(node.id);
         }
     }
