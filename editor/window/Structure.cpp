@@ -15,6 +15,7 @@
 #include "command/type/SetMainCameraCmd.h"
 #include "util/EntityPayload.h"
 #include "util/UIUtils.h"
+#include "util/Util.h"
 #include "Out.h"
 #include "Stream.h"
 #include <algorithm>
@@ -557,35 +558,64 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
 
         }
 
-        if (ImGui::AcceptDragDropPayload("resource_files")) {
-            // Parse the dropped file paths
-            std::vector<std::string> droppedPaths;
-            const char* data = (const char*)payload->Data;
-            size_t dataSize = payload->DataSize;
+        bool allowResourceDragDrop = false;
+        if (const ImGuiPayload* payload = ImGui::GetDragDropPayload()) {
+            if (payload->IsDataType("resource_files")) {
+                const char* data = (const char*)payload->Data;
+                size_t dataSize = payload->DataSize;
 
-            // Parse null-terminated strings from the payload
-            size_t offset = 0;
-            while (offset < dataSize) {
-                std::string path(data + offset);
-                if (!path.empty()) {
-                    droppedPaths.push_back(path);
+                size_t offset = 0;
+                while (offset < dataSize) {
+                    std::string path(data + offset);
+                    if (!path.empty()) {
+                        if (node.isScene) {
+                            if (Util::isSceneFile(path) || Util::isEntityFile(path)) {
+                                allowResourceDragDrop = true;
+                                break;
+                            }
+                        } else {
+                            if (Util::isEntityFile(path)) {
+                                allowResourceDragDrop = true;
+                                break;
+                            }
+                        }
+                    }
+                    offset += path.size() + 1;
                 }
-                offset += path.size() + 1; // +1 for null terminator
             }
+        }
 
-            // Dropping on the scene root: allow adding child scenes via .scene files,
-            // and keep supporting .entity imports.
-            if (node.isScene) {
-                handleSceneFilesDropAsChildScenes(droppedPaths, node.id);
-                handleEntityFilesDrop(droppedPaths, NULL_ENTITY);
-            } else {
-                // Determine the parent entity for the drop
-                Entity parentEntity = NULL_ENTITY;
-                // If dropping on an entity, use it as parent if it has transform
-                if (node.hasTransform) {
-                    parentEntity = node.id;
+        if (allowResourceDragDrop) {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
+                // Parse the dropped file paths
+                std::vector<std::string> droppedPaths;
+                const char* data = (const char*)payload->Data;
+                size_t dataSize = payload->DataSize;
+
+                // Parse null-terminated strings from the payload
+                size_t offset = 0;
+                while (offset < dataSize) {
+                    std::string path(data + offset);
+                    if (!path.empty()) {
+                        droppedPaths.push_back(path);
+                    }
+                    offset += path.size() + 1; // +1 for null terminator
                 }
-                handleEntityFilesDrop(droppedPaths, parentEntity);
+
+                // Dropping on the scene root: allow adding child scenes via .scene files,
+                // and keep supporting .entity imports.
+                if (node.isScene) {
+                    handleSceneFilesDropAsChildScenes(droppedPaths, node.id);
+                    handleEntityFilesDrop(droppedPaths, NULL_ENTITY);
+                } else {
+                    // Determine the parent entity for the drop
+                    Entity parentEntity = NULL_ENTITY;
+                    // If dropping on an entity, use it as parent if it has transform
+                    if (node.hasTransform) {
+                        parentEntity = node.id;
+                    }
+                    handleEntityFilesDrop(droppedPaths, parentEntity);
+                }
             }
         }
 
@@ -925,24 +955,47 @@ void Editor::Structure::show(){
 
     // Handle drag and drop for entity files
     if (ImGui::BeginDragDropTarget()) {
-        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
-            // Parse the dropped file paths
-            std::vector<std::string> droppedPaths;
-            const char* data = (const char*)payload->Data;
-            size_t dataSize = payload->DataSize;
 
-            // Parse null-terminated strings from the payload
-            size_t offset = 0;
-            while (offset < dataSize) {
-                std::string path(data + offset);
-                if (!path.empty()) {
-                    droppedPaths.push_back(path);
+        bool allowResourceDragDrop = false;
+        if (const ImGuiPayload* payload = ImGui::GetDragDropPayload()) {
+            if (payload->IsDataType("resource_files")) {
+                const char* data = (const char*)payload->Data;
+                size_t dataSize = payload->DataSize;
+
+                size_t offset = 0;
+                while (offset < dataSize) {
+                    std::string path(data + offset);
+                    if (!path.empty()) {
+                        if (Util::isSceneFile(path) || Util::isEntityFile(path)) {
+                            allowResourceDragDrop = true;
+                            break;
+                        }
+                    }
+                    offset += path.size() + 1;
                 }
-                offset += path.size() + 1; // +1 for null terminator
             }
+        }
 
-            handleSceneFilesDropAsChildScenes(droppedPaths, project->getSelectedSceneId());
-            handleEntityFilesDrop(droppedPaths);
+        if(allowResourceDragDrop) {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
+                // Parse the dropped file paths
+                std::vector<std::string> droppedPaths;
+                const char* data = (const char*)payload->Data;
+                size_t dataSize = payload->DataSize;
+
+                // Parse null-terminated strings from the payload
+                size_t offset = 0;
+                while (offset < dataSize) {
+                    std::string path(data + offset);
+                    if (!path.empty()) {
+                        droppedPaths.push_back(path);
+                    }
+                    offset += path.size() + 1; // +1 for null terminator
+                }
+
+                handleSceneFilesDropAsChildScenes(droppedPaths, project->getSelectedSceneId());
+                handleEntityFilesDrop(droppedPaths);
+            }
         }
         ImGui::EndDragDropTarget();
     }

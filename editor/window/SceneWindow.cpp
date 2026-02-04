@@ -73,172 +73,178 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
     static Entity lastSelEntity = NULL_ENTITY;
 
     if (ImGui::BeginDragDropTarget()) {
-        draggingResourceFile = true;
-        ImVec2 windowPos = ImGui::GetWindowPos();
-        ImGuiIO& io = ImGui::GetIO();
-        ImVec2 mousePos = io.MousePos;
-        float x = mousePos.x - windowPos.x;
-        float y = mousePos.y - windowPos.y;
-        Entity selEntity = project->findObjectByRay(sceneProject->id, x, y);
+        const ImGuiPayload* peekPayload = ImGui::GetDragDropPayload();
+        if (peekPayload && peekPayload->IsDataType("resource_files")) {
+            std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(peekPayload);
+            if (receivedStrings.size() > 0) {
+                const std::string droppedRelativePath = std::filesystem::relative(receivedStrings[0], project->getProjectPath()).generic_string();
+                bool isFont = Util::isFontFile(droppedRelativePath);
+                bool isImage = Util::isImageFile(droppedRelativePath);
 
-        if (selEntity == NULL_ENTITY || lastSelEntity != selEntity) {
-            if (selMesh) {
-                if (selMesh->submeshes[0].material.baseColorTexture != originalTex) {
-                    selMesh->submeshes[0].material.baseColorTexture = originalTex;
-                    selMesh->submeshes[0].needUpdateTexture = true;
-                }
-                selMesh = nullptr;
-            }
-            if (selUI) {
-                if (selUI->texture != originalTex) {
-                    selUI->texture = originalTex;
-                    selUI->needUpdateTexture = true;
-                }
-                selUI = nullptr;
-            }
-            if (selText) {
-                if (selText->font != originalFont) {
-                    selText->font = originalFont;
-                    selText->needReloadAtlas = true;
-                    selText->needUpdateText = true;
-                }
-                selText = nullptr;
-            }
-        }
+                draggingResourceFile = true;
+                ImVec2 windowPos = ImGui::GetWindowPos();
+                ImGuiIO& io = ImGui::GetIO();
+                ImVec2 mousePos = io.MousePos;
+                float x = mousePos.x - windowPos.x;
+                float y = mousePos.y - windowPos.y;
+                Entity selEntity = project->findObjectByRay(sceneProject->id, x, y);
 
-        if (selEntity != NULL_ENTITY) {
-            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
-                lastSelEntity = selEntity;
-                std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
-                if (receivedStrings.size() > 0) {
-                    const std::string droppedRelativePath = std::filesystem::relative(receivedStrings[0], project->getProjectPath()).generic_string();
-                    bool isFont = Util::isFontFile(droppedRelativePath);
-                    bool isImage = Util::isImageFile(droppedRelativePath);
-
-                    if (!isFont && !isImage) {
-                        // Block unsupported file types
-                    } else {
-                        if (tempImage != nullptr) {
-                            delete tempImage;
-                            tempImage = nullptr;
+                if (selEntity == NULL_ENTITY || lastSelEntity != selEntity) {
+                    if (selMesh) {
+                        if (selMesh->submeshes[0].material.baseColorTexture != originalTex) {
+                            selMesh->submeshes[0].material.baseColorTexture = originalTex;
+                            selMesh->submeshes[0].needUpdateTexture = true;
                         }
-
-                        if (TextComponent* text = sceneProject->scene->findComponent<TextComponent>(selEntity)) {
-                            if (isFont) {
-                            if (!selText) {
-                                selText = text;
-                                originalFont = text->font;
-                            }
-                            if (text->font != droppedRelativePath) {
-                                text->font = droppedRelativePath;
-                                text->needReloadAtlas = true;
-                                text->needUpdateText = true;
-                            }
-                            if (payload->IsDelivery()) {
-                                std::string propName = "font";
-                                text->font = originalFont;
-                                text->needReloadAtlas = true;
-                                text->needUpdateText = true;
-
-                                PropertyCmd<std::string>* cmd = new PropertyCmd<std::string>(project, sceneProject->id, selEntity, ComponentType::TextComponent, propName, droppedRelativePath);
-                                CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(cmd);
-
-                                selText = nullptr;
-
-                                ImGui::SetWindowFocus();
-                            }
+                        selMesh = nullptr;
+                    }
+                    if (selUI) {
+                        if (selUI->texture != originalTex) {
+                            selUI->texture = originalTex;
+                            selUI->needUpdateTexture = true;
                         }
-                    } else if (isImage) {
-                        if (MeshComponent* mesh = sceneProject->scene->findComponent<MeshComponent>(selEntity)) {
-                            if (!selMesh) {
-                                selMesh = mesh;
-                                originalTex = mesh->submeshes[0].material.baseColorTexture;
+                        selUI = nullptr;
+                    }
+                    if (selText) {
+                        if (selText->font != originalFont) {
+                            selText->font = originalFont;
+                            selText->needReloadAtlas = true;
+                            selText->needUpdateText = true;
+                        }
+                        selText = nullptr;
+                    }
+                }
+
+                if (selEntity != NULL_ENTITY) {
+                    bool accept = false;
+                    if (isFont && sceneProject->scene->findComponent<TextComponent>(selEntity)) {
+                        accept = true;
+                    }
+                    if (isImage && (sceneProject->scene->findComponent<MeshComponent>(selEntity) || sceneProject->scene->findComponent<UIComponent>(selEntity))) {
+                        accept = true;
+                    }
+
+                    if (accept) {
+                        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
+                            lastSelEntity = selEntity;
+
+                            if (tempImage != nullptr) {
+                                delete tempImage;
+                                tempImage = nullptr;
                             }
-                            Texture newTex(droppedRelativePath);
-                            if (mesh->submeshes[0].material.baseColorTexture != newTex) {
-                                mesh->submeshes[0].material.baseColorTexture = newTex;
-                                mesh->submeshes[0].needUpdateTexture = true;
-                            }
-                            if (payload->IsDelivery()) {
-                                std::string propName = "submeshes[0].material.baseColorTexture";
-                                selMesh->submeshes[0].material.baseColorTexture = originalTex;
 
-                                PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(project, sceneProject->id, selEntity, ComponentType::MeshComponent, propName, newTex);
-                                CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(cmd);
+                            if (TextComponent* text = sceneProject->scene->findComponent<TextComponent>(selEntity)) {
+                                if (isFont) {
+                                    if (!selText) {
+                                        selText = text;
+                                        originalFont = text->font;
+                                    }
+                                    if (text->font != droppedRelativePath) {
+                                        text->font = droppedRelativePath;
+                                        text->needReloadAtlas = true;
+                                        text->needUpdateText = true;
+                                    }
+                                    if (payload->IsDelivery()) {
+                                        std::string propName = "font";
+                                        text->font = originalFont;
+                                        text->needReloadAtlas = true;
+                                        text->needUpdateText = true;
 
-                                selMesh = nullptr;
+                                        PropertyCmd<std::string>* cmd = new PropertyCmd<std::string>(project, sceneProject->id, selEntity, ComponentType::TextComponent, propName, droppedRelativePath);
+                                        CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(cmd);
 
-                                ImGui::SetWindowFocus();
-                            }
-                        } else if (UIComponent* ui = sceneProject->scene->findComponent<UIComponent>(selEntity)) {
-                            if (!selUI) {
-                                selUI = ui;
-                                originalTex = ui->texture;
-                            }
-                            Texture newTex(droppedRelativePath);
-                            if (ui->texture != newTex) {
-                                ui->texture = newTex;
-                                ui->needUpdateTexture = true;
-                            }
-                            if (payload->IsDelivery()) {
-                                std::string propName = "texture";
-                                selUI->texture = originalTex;
+                                        selText = nullptr;
 
-                                PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(project, sceneProject->id, selEntity, ComponentType::UIComponent, propName, newTex);
-                                CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(cmd);
+                                        ImGui::SetWindowFocus();
+                                    }
+                                }
+                            } else if (isImage) {
+                                if (MeshComponent* mesh = sceneProject->scene->findComponent<MeshComponent>(selEntity)) {
+                                    if (!selMesh) {
+                                        selMesh = mesh;
+                                        originalTex = mesh->submeshes[0].material.baseColorTexture;
+                                    }
+                                    Texture newTex(droppedRelativePath);
+                                    if (mesh->submeshes[0].material.baseColorTexture != newTex) {
+                                        mesh->submeshes[0].material.baseColorTexture = newTex;
+                                        mesh->submeshes[0].needUpdateTexture = true;
+                                    }
+                                    if (payload->IsDelivery()) {
+                                        std::string propName = "submeshes[0].material.baseColorTexture";
+                                        selMesh->submeshes[0].material.baseColorTexture = originalTex;
 
-                                selUI = nullptr;
+                                        PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(project, sceneProject->id, selEntity, ComponentType::MeshComponent, propName, newTex);
+                                        CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(cmd);
 
-                                ImGui::SetWindowFocus();
+                                        selMesh = nullptr;
+
+                                        ImGui::SetWindowFocus();
+                                    }
+                                } else if (UIComponent* ui = sceneProject->scene->findComponent<UIComponent>(selEntity)) {
+                                    if (!selUI) {
+                                        selUI = ui;
+                                        originalTex = ui->texture;
+                                    }
+                                    Texture newTex(droppedRelativePath);
+                                    if (ui->texture != newTex) {
+                                        ui->texture = newTex;
+                                        ui->needUpdateTexture = true;
+                                    }
+                                    if (payload->IsDelivery()) {
+                                        std::string propName = "texture";
+                                        selUI->texture = originalTex;
+
+                                        PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(project, sceneProject->id, selEntity, ComponentType::UIComponent, propName, newTex);
+                                        CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(cmd);
+
+                                        selUI = nullptr;
+
+                                        ImGui::SetWindowFocus();
+                                    }
+                                }
                             }
                         }
                     }
-                    }
-                }
-            }
-        } else if (sceneProject->sceneType != SceneType::SCENE_3D) {
-            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
-                std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
-                if (receivedStrings.size() > 0) {
-                    const std::string droppedRelativePath = std::filesystem::relative(receivedStrings[0], project->getProjectPath()).generic_string();
-                    bool isImage = Util::isImageFile(droppedRelativePath);
-
+                } else if (sceneProject->sceneType != SceneType::SCENE_3D) {
                     if (isImage) {
-                        if (!tempImage) {
-                            tempImage = new Image(sceneProject->scene);
-                            tempImage->setTexture(droppedRelativePath);
-                            tempImage->setAlpha(0.5f);
-                        }
-                        Ray ray = sceneProject->sceneRender->getCamera()->screenToRay(x, y);
-                        RayReturn rreturn = ray.intersects(Plane(Vector3(0, 0, 1), Vector3(0, 0, 0)));
-                        if (rreturn) {
-                            tempImage->setPosition(rreturn.point);
-                        }
-                        if (payload->IsDelivery()) {
-                            CreateEntityCmd* cmd = nullptr;
+                        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
 
-                            if (sceneProject->sceneType == SceneType::SCENE_2D) {
-                                cmd = new CreateEntityCmd(project, sceneProject->id, "Sprite", EntityCreationType::SPRITE);
+                            if (!tempImage) {
+                                tempImage = new Image(sceneProject->scene);
+                                tempImage->setTexture(droppedRelativePath);
+                                tempImage->setAlpha(0.5f);
+                            }
+                            Ray ray = sceneProject->sceneRender->getCamera()->screenToRay(x, y);
+                            RayReturn rreturn = ray.intersects(Plane(Vector3(0, 0, 1), Vector3(0, 0, 0)));
+                            if (rreturn) {
+                                tempImage->setPosition(rreturn.point);
+                            }
+                            if (payload->IsDelivery()) {
+                                CreateEntityCmd* cmd = nullptr;
 
-                                cmd->addProperty<Vector3>(ComponentType::Transform, "position", rreturn.point);
-                                cmd->addProperty<Texture>(ComponentType::MeshComponent, "submeshes[0].material.baseColorTexture", Texture(droppedRelativePath));
-                                cmd->addProperty<unsigned int>(ComponentType::SpriteComponent, "width", tempImage->getWidth());
-                                cmd->addProperty<unsigned int>(ComponentType::SpriteComponent, "height", tempImage->getHeight());
-                            } else {
-                                cmd = new CreateEntityCmd(project, sceneProject->id, "Image", EntityCreationType::IMAGE);
+                                if (sceneProject->sceneType == SceneType::SCENE_2D) {
+                                    cmd = new CreateEntityCmd(project, sceneProject->id, "Sprite", EntityCreationType::SPRITE);
 
-                                cmd->addProperty<Vector3>(ComponentType::Transform, "position", rreturn.point);
-                                cmd->addProperty<Texture>(ComponentType::UIComponent, "texture", Texture(droppedRelativePath));
-                                cmd->addProperty<unsigned int>(ComponentType::UILayoutComponent, "width", tempImage->getWidth());
-                                cmd->addProperty<unsigned int>(ComponentType::UILayoutComponent, "height", tempImage->getHeight());
+                                    cmd->addProperty<Vector3>(ComponentType::Transform, "position", rreturn.point);
+                                    cmd->addProperty<Texture>(ComponentType::MeshComponent, "submeshes[0].material.baseColorTexture", Texture(droppedRelativePath));
+                                    cmd->addProperty<unsigned int>(ComponentType::SpriteComponent, "width", tempImage->getWidth());
+                                    cmd->addProperty<unsigned int>(ComponentType::SpriteComponent, "height", tempImage->getHeight());
+                                } else {
+                                    cmd = new CreateEntityCmd(project, sceneProject->id, "Image", EntityCreationType::IMAGE);
+
+                                    cmd->addProperty<Vector3>(ComponentType::Transform, "position", rreturn.point);
+                                    cmd->addProperty<Texture>(ComponentType::UIComponent, "texture", Texture(droppedRelativePath));
+                                    cmd->addProperty<unsigned int>(ComponentType::UILayoutComponent, "width", tempImage->getWidth());
+                                    cmd->addProperty<unsigned int>(ComponentType::UILayoutComponent, "height", tempImage->getHeight());
+                                }
+
+                                CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(cmd);
+
+                                delete tempImage;
+                                tempImage = nullptr;
+
+                                ImGui::SetWindowFocus();
                             }
 
-                            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(cmd);
-
-                            delete tempImage;
-                            tempImage = nullptr;
-
-                            ImGui::SetWindowFocus();
                         }
                     }
                 }
