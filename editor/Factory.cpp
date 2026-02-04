@@ -199,6 +199,15 @@ std::string Editor::Factory::formatLightType(LightType type) {
     }
 }
 
+std::string Editor::Factory::formatLightState(LightState state) {
+    switch (state) {
+        case LightState::OFF: return "LightState::OFF";
+        case LightState::ON: return "LightState::ON";
+        case LightState::AUTO: return "LightState::AUTO";
+        default: return "LightState::AUTO";
+    }
+}
+
 std::string Editor::Factory::formatCameraType(CameraType type) {
     switch (type) {
         case CameraType::CAMERA_2D: return "CameraType::CAMERA_2D";
@@ -899,6 +908,12 @@ std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::st
         out << ind2 << "scene->setCamera(cameraEntity);\n";
     }
 
+    out << "\n";
+    out << ind2 << "scene->setBackgroundColor(" << formatVector4(scene->getBackgroundColor()) << ");\n";
+    out << ind2 << "scene->setShadowsPCF(" << formatBool(scene->isShadowsPCF()) << ");\n";
+    out << ind2 << "scene->setGlobalIllumination(" << formatFloat(scene->getGlobalIlluminationIntensity()) << ");\n";
+    out << ind2 << "scene->setGlobalIllumination(" << formatVector3(scene->getGlobalIlluminationColor()) << ");\n";
+    out << ind2 << "scene->setLightState(" << formatLightState(scene->getLightState()) << ");\n";
     out << "\n";
     out << ind2 << "initSceneScripts(scene);\n";
     out << ind << "}\n";
