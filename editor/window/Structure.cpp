@@ -953,8 +953,46 @@ void Editor::Structure::show(){
 
     ImGui::EndChild();
 
-    // Handle drag and drop for entity files
+    // Handle drag and drop for entity files and entities to empty space
     if (ImGui::BeginDragDropTarget()) {
+
+        // Handle entity drag-drop to move to root level (last position)
+        if (const ImGuiPayload* payload = ImGui::GetDragDropPayload()) {
+            if (payload->IsDataType("entity")) {
+                if (payload->DataSize >= sizeof(EntityPayload)) {
+                    const EntityPayload* p = reinterpret_cast<const EntityPayload*>(payload->Data);
+                    Entity sourceEntity = p->entity;
+                    bool sourceHasTransform = p->hasTransform;
+                    Entity sourceParent = p->parent;
+
+                    // Only allow moving if source has transform and is a child (has parent)
+                    if (sourceHasTransform && sourceParent != NULL_ENTITY) {
+                        if (ImGui::AcceptDragDropPayload("entity")) {
+                            if (payload->IsDelivery()) {
+                                // Find the last root entity with transform
+                                auto transforms = sceneProject->scene->getComponentArray<Transform>();
+                                Entity lastRootEntity = NULL_ENTITY;
+
+                                for (int i = transforms->size() - 1; i >= 0; i--) {
+                                    Transform& transform = transforms->getComponentFromIndex(i);
+                                    Entity entity = transforms->getEntity(i);
+
+                                    if (transform.parent == NULL_ENTITY &&
+                                        std::count(sceneProject->entities.begin(), sceneProject->entities.end(), entity) > 0) {
+                                        lastRootEntity = entity;
+                                        break;
+                                    }
+                                }
+
+                                if (lastRootEntity != NULL_ENTITY && lastRootEntity != sourceEntity) {
+                                    CommandHandle::get(project->getSelectedSceneId())->addCommand(new MoveEntityOrderCmd(project, project->getSelectedSceneId(), sourceEntity, lastRootEntity, InsertionType::AFTER));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         bool allowResourceDragDrop = false;
         if (const ImGuiPayload* payload = ImGui::GetDragDropPayload()) {
