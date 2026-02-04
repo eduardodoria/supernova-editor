@@ -319,9 +319,7 @@ void Editor::Properties::dragDropResourcesFont(ComponentType cpType, std::string
             if (receivedStrings.size() > 0){
                 const std::string droppedRelativePath = std::filesystem::relative(receivedStrings[0], project->getProjectPath()).generic_string();
 
-                std::string ext = std::filesystem::path(droppedRelativePath).extension().generic_string();
-                std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-                bool isFont = (ext == ".ttf" || ext == ".otf");
+                bool isFont = Util::isFontFile(droppedRelativePath);
 
                 if (isFont) {
                     if (!hasFontDrag.count(id)){
@@ -377,7 +375,7 @@ void Editor::Properties::dragDropResourcesFont(ComponentType cpType, std::string
 }
 
 
-void Editor::Properties::dragDropResources(ComponentType cpType, std::string id, SceneProject* sceneProject, std::vector<Entity> entities, ComponentType componentType){
+void Editor::Properties::dragDropResourcesTexture(ComponentType cpType, std::string id, SceneProject* sceneProject, std::vector<Entity> entities, ComponentType componentType){
     // Block DnD while playing for non-script components
     if (sceneProject && sceneProject->playState != ScenePlayState::STOPPED) {
         return;
@@ -390,41 +388,43 @@ void Editor::Properties::dragDropResources(ComponentType cpType, std::string id,
             if (receivedStrings.size() > 0){
                 const std::string droppedRelativePath = std::filesystem::relative(receivedStrings[0], project->getProjectPath()).generic_string();
 
-                if (!hasTextureDrag.count(id)){
-                    hasTextureDrag[id] = true;
-                    for (Entity& entity : entities){
-                        Texture* valueRef = Catalog::getPropertyRef<Texture>(sceneProject->scene, entity, cpType, id);
-                        originalTex[id][entity] = Texture(*valueRef);
-                        if (*valueRef != Texture(droppedRelativePath)){
-                            *valueRef = Texture(droppedRelativePath);
-                            if (componentType == ComponentType::MeshComponent){
-                                unsigned int numSubmeshes = sceneProject->scene->getComponent<MeshComponent>(entity).numSubmeshes;
-                                for (unsigned int i = 0; i < numSubmeshes; i++){
-                                    sceneProject->scene->getComponent<MeshComponent>(entity).submeshes[i].needUpdateTexture = true;
+                if (Util::isImageFile(droppedRelativePath)) {
+                    if (!hasTextureDrag.count(id)){
+                        hasTextureDrag[id] = true;
+                        for (Entity& entity : entities){
+                            Texture* valueRef = Catalog::getPropertyRef<Texture>(sceneProject->scene, entity, cpType, id);
+                            originalTex[id][entity] = Texture(*valueRef);
+                            if (*valueRef != Texture(droppedRelativePath)){
+                                *valueRef = Texture(droppedRelativePath);
+                                if (componentType == ComponentType::MeshComponent){
+                                    unsigned int numSubmeshes = sceneProject->scene->getComponent<MeshComponent>(entity).numSubmeshes;
+                                    for (unsigned int i = 0; i < numSubmeshes; i++){
+                                        sceneProject->scene->getComponent<MeshComponent>(entity).submeshes[i].needUpdateTexture = true;
+                                    }
                                 }
+                                if (componentType == ComponentType::UIComponent){
+                                    sceneProject->scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
+                                }
+                                //printf("needUpdateTexture %s\n", name.c_str());
                             }
-                            if (componentType == ComponentType::UIComponent){
-                                sceneProject->scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
-                            }
-                            //printf("needUpdateTexture %s\n", name.c_str());
                         }
                     }
-                }
-                if (payload->IsDelivery()){
-                    Texture texture(droppedRelativePath);
-                    for (Entity& entity : entities){
-                        Texture* valueRef = Catalog::getPropertyRef<Texture>(sceneProject->scene, entity, cpType, id);
-                        *valueRef = originalTex[id][entity];
-                        cmd = new PropertyCmd<Texture>(project, sceneProject->id, entity, cpType, id, texture);
-                        CommandHandle::get(sceneProject->id)->addCommand(cmd);
-                        if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)){
-                            finishProperty = true;
+                    if (payload->IsDelivery()){
+                        Texture texture(droppedRelativePath);
+                        for (Entity& entity : entities){
+                            Texture* valueRef = Catalog::getPropertyRef<Texture>(sceneProject->scene, entity, cpType, id);
+                            *valueRef = originalTex[id][entity];
+                            cmd = new PropertyCmd<Texture>(project, sceneProject->id, entity, cpType, id, texture);
+                            CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                            if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)){
+                                finishProperty = true;
+                            }
                         }
-                    }
 
-                    ImGui::SetWindowFocus();
-                    hasTextureDrag.erase(id);
-                    originalTex.erase(id);
+                        ImGui::SetWindowFocus();
+                        hasTextureDrag.erase(id);
+                        originalTex.erase(id);
+                    }
                 }
             }
         }
@@ -469,49 +469,51 @@ void Editor::Properties::dragDropResourcesTextureCubeFace(ComponentType cpType, 
             if (!receivedStrings.empty()){
                 const std::string droppedRelativePath = std::filesystem::relative(receivedStrings[0], project->getProjectPath()).generic_string();
 
-                if (!hasTextureDrag.count(dragId)){
-                    hasTextureDrag[dragId] = true;
-                    for (const Entity& entity : entities){
-                        Texture* valueRef = Catalog::getPropertyRef<Texture>(sceneProject->scene, entity, cpType, id);
-                        originalTex[dragId][entity] = Texture(*valueRef);
+                if (Util::isImageFile(droppedRelativePath)) {
+                    if (!hasTextureDrag.count(dragId)){
+                        hasTextureDrag[dragId] = true;
+                        for (const Entity& entity : entities){
+                            Texture* valueRef = Catalog::getPropertyRef<Texture>(sceneProject->scene, entity, cpType, id);
+                            originalTex[dragId][entity] = Texture(*valueRef);
 
-                        Texture updated = Texture(*valueRef);
-                        updated.setCubePath(faceIndex, droppedRelativePath);
-                        if (*valueRef != updated){
-                            *valueRef = updated;
-                            if (componentType == ComponentType::MeshComponent){
-                                unsigned int numSubmeshes = sceneProject->scene->getComponent<MeshComponent>(entity).numSubmeshes;
-                                for (unsigned int i = 0; i < numSubmeshes; i++){
-                                    sceneProject->scene->getComponent<MeshComponent>(entity).submeshes[i].needUpdateTexture = true;
+                            Texture updated = Texture(*valueRef);
+                            updated.setCubePath(faceIndex, droppedRelativePath);
+                            if (*valueRef != updated){
+                                *valueRef = updated;
+                                if (componentType == ComponentType::MeshComponent){
+                                    unsigned int numSubmeshes = sceneProject->scene->getComponent<MeshComponent>(entity).numSubmeshes;
+                                    for (unsigned int i = 0; i < numSubmeshes; i++){
+                                        sceneProject->scene->getComponent<MeshComponent>(entity).submeshes[i].needUpdateTexture = true;
+                                    }
+                                }
+                                if (componentType == ComponentType::UIComponent){
+                                    sceneProject->scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
+                                }
+                                if (componentType == ComponentType::SkyComponent){
+                                    sceneProject->scene->getComponent<SkyComponent>(entity).needUpdateTexture = true;
                                 }
                             }
-                            if (componentType == ComponentType::UIComponent){
-                                sceneProject->scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
-                            }
-                            if (componentType == ComponentType::SkyComponent){
-                                sceneProject->scene->getComponent<SkyComponent>(entity).needUpdateTexture = true;
-                            }
-                        }
-                    }
-                }
-
-                if (payload->IsDelivery()){
-                    for (const Entity& entity : entities){
-                        Texture* valueRef = Catalog::getPropertyRef<Texture>(sceneProject->scene, entity, cpType, id);
-                        *valueRef = originalTex[dragId][entity];
-
-                        Texture updated = Texture(*valueRef);
-                        updated.setCubePath(faceIndex, droppedRelativePath);
-                        cmd = new PropertyCmd<Texture>(project, sceneProject->id, entity, cpType, id, updated);
-                        CommandHandle::get(sceneProject->id)->addCommand(cmd);
-                        if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)){
-                            finishProperty = true;
                         }
                     }
 
-                    ImGui::SetWindowFocus();
-                    hasTextureDrag.erase(dragId);
-                    originalTex.erase(dragId);
+                    if (payload->IsDelivery()){
+                        for (const Entity& entity : entities){
+                            Texture* valueRef = Catalog::getPropertyRef<Texture>(sceneProject->scene, entity, cpType, id);
+                            *valueRef = originalTex[dragId][entity];
+
+                            Texture updated = Texture(*valueRef);
+                            updated.setCubePath(faceIndex, droppedRelativePath);
+                            cmd = new PropertyCmd<Texture>(project, sceneProject->id, entity, cpType, id, updated);
+                            CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                            if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)){
+                                finishProperty = true;
+                            }
+                        }
+
+                        ImGui::SetWindowFocus();
+                        hasTextureDrag.erase(dragId);
+                        originalTex.erase(dragId);
+                    }
                 }
             }
         }
@@ -558,49 +560,51 @@ void Editor::Properties::dragDropResourcesTextureCubeSingleFile(ComponentType cp
             if (!receivedStrings.empty()){
                 const std::string droppedRelativePath = std::filesystem::relative(receivedStrings[0], project->getProjectPath()).generic_string();
 
-                if (!hasTextureDrag.count(dragId)){
-                    hasTextureDrag[dragId] = true;
-                    for (const Entity& entity : entities){
-                        Texture* valueRef = Catalog::getPropertyRef<Texture>(sceneProject->scene, entity, cpType, id);
-                        originalTex[dragId][entity] = Texture(*valueRef);
+                if (Util::isImageFile(droppedRelativePath)) {
+                    if (!hasTextureDrag.count(dragId)){
+                        hasTextureDrag[dragId] = true;
+                        for (const Entity& entity : entities){
+                            Texture* valueRef = Catalog::getPropertyRef<Texture>(sceneProject->scene, entity, cpType, id);
+                            originalTex[dragId][entity] = Texture(*valueRef);
 
-                        Texture updated = Texture(*valueRef);
-                        updated.setCubeMap(droppedRelativePath);
-                        if (*valueRef != updated){
-                            *valueRef = updated;
-                            if (componentType == ComponentType::MeshComponent){
-                                unsigned int numSubmeshes = sceneProject->scene->getComponent<MeshComponent>(entity).numSubmeshes;
-                                for (unsigned int i = 0; i < numSubmeshes; i++){
-                                    sceneProject->scene->getComponent<MeshComponent>(entity).submeshes[i].needUpdateTexture = true;
+                            Texture updated = Texture(*valueRef);
+                            updated.setCubeMap(droppedRelativePath);
+                            if (*valueRef != updated){
+                                *valueRef = updated;
+                                if (componentType == ComponentType::MeshComponent){
+                                    unsigned int numSubmeshes = sceneProject->scene->getComponent<MeshComponent>(entity).numSubmeshes;
+                                    for (unsigned int i = 0; i < numSubmeshes; i++){
+                                        sceneProject->scene->getComponent<MeshComponent>(entity).submeshes[i].needUpdateTexture = true;
+                                    }
+                                }
+                                if (componentType == ComponentType::UIComponent){
+                                    sceneProject->scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
+                                }
+                                if (componentType == ComponentType::SkyComponent){
+                                    sceneProject->scene->getComponent<SkyComponent>(entity).needUpdateTexture = true;
                                 }
                             }
-                            if (componentType == ComponentType::UIComponent){
-                                sceneProject->scene->getComponent<UIComponent>(entity).needUpdateTexture = true;
-                            }
-                            if (componentType == ComponentType::SkyComponent){
-                                sceneProject->scene->getComponent<SkyComponent>(entity).needUpdateTexture = true;
-                            }
-                        }
-                    }
-                }
-
-                if (payload->IsDelivery()){
-                    for (const Entity& entity : entities){
-                        Texture* valueRef = Catalog::getPropertyRef<Texture>(sceneProject->scene, entity, cpType, id);
-                        *valueRef = originalTex[dragId][entity];
-
-                        Texture updated = Texture(*valueRef);
-                        updated.setCubeMap(droppedRelativePath);
-                        cmd = new PropertyCmd<Texture>(project, sceneProject->id, entity, cpType, id, updated);
-                        CommandHandle::get(sceneProject->id)->addCommand(cmd);
-                        if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)){
-                            finishProperty = true;
                         }
                     }
 
-                    ImGui::SetWindowFocus();
-                    hasTextureDrag.erase(dragId);
-                    originalTex.erase(dragId);
+                    if (payload->IsDelivery()){
+                        for (const Entity& entity : entities){
+                            Texture* valueRef = Catalog::getPropertyRef<Texture>(sceneProject->scene, entity, cpType, id);
+                            *valueRef = originalTex[dragId][entity];
+
+                            Texture updated = Texture(*valueRef);
+                            updated.setCubeMap(droppedRelativePath);
+                            cmd = new PropertyCmd<Texture>(project, sceneProject->id, entity, cpType, id, updated);
+                            CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                            if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)){
+                                finishProperty = true;
+                            }
+                        }
+
+                        ImGui::SetWindowFocus();
+                        hasTextureDrag.erase(dragId);
+                        originalTex.erase(dragId);
+                    }
                 }
             }
         }
@@ -2058,7 +2062,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         ImGui::PopID();
         ImGui::EndGroup();
 
-        dragDropResources(cpType, id, sceneProject, entities, cpType);
+        dragDropResourcesTexture(cpType, id, sceneProject, entities, cpType);
 
     }else if (type == RowPropertyType::TextureCube){
         Texture* value = nullptr;

@@ -112,17 +112,19 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
                 std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
                 if (receivedStrings.size() > 0) {
                     const std::string droppedRelativePath = std::filesystem::relative(receivedStrings[0], project->getProjectPath()).generic_string();
-                    std::string ext = std::filesystem::path(droppedRelativePath).extension().generic_string();
-                    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-                    bool isFont = (ext == ".ttf" || ext == ".otf");
+                    bool isFont = Util::isFontFile(droppedRelativePath);
+                    bool isImage = Util::isImageFile(droppedRelativePath);
 
-                    if (tempImage != nullptr) {
-                        delete tempImage;
-                        tempImage = nullptr;
-                    }
+                    if (!isFont && !isImage) {
+                        // Block unsupported file types
+                    } else {
+                        if (tempImage != nullptr) {
+                            delete tempImage;
+                            tempImage = nullptr;
+                        }
 
-                    if (TextComponent* text = sceneProject->scene->findComponent<TextComponent>(selEntity)) {
-                        if (isFont) {
+                        if (TextComponent* text = sceneProject->scene->findComponent<TextComponent>(selEntity)) {
+                            if (isFont) {
                             if (!selText) {
                                 selText = text;
                                 originalFont = text->font;
@@ -146,7 +148,7 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
                                 ImGui::SetWindowFocus();
                             }
                         }
-                    } else if (!isFont) {
+                    } else if (isImage) {
                         if (MeshComponent* mesh = sceneProject->scene->findComponent<MeshComponent>(selEntity)) {
                             if (!selMesh) {
                                 selMesh = mesh;
@@ -191,6 +193,7 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
                             }
                         }
                     }
+                    }
                 }
             }
         } else if (sceneProject->sceneType != SceneType::SCENE_3D) {
@@ -198,11 +201,9 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
                 std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
                 if (receivedStrings.size() > 0) {
                     const std::string droppedRelativePath = std::filesystem::relative(receivedStrings[0], project->getProjectPath()).generic_string();
-                    std::string ext = std::filesystem::path(droppedRelativePath).extension().generic_string();
-                    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-                    bool isFont = (ext == ".ttf" || ext == ".otf");
+                    bool isImage = Util::isImageFile(droppedRelativePath);
 
-                    if (!isFont) {
+                    if (isImage) {
                         if (!tempImage) {
                             tempImage = new Image(sceneProject->scene);
                             tempImage->setTexture(droppedRelativePath);

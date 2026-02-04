@@ -918,14 +918,14 @@ void Editor::ResourcesWindow::scanDirectory(const fs::path& path) {
 
         if (!fileEntry.isDirectory) {
             fileEntry.extension = entry.path().extension().string();
-            if (isImageFile(fileEntry.extension)){
+            if (Util::isImageFile(fileEntry.extension)){
                 fileEntry.type = FileType::IMAGE;
-            }else if (isSceneFile(fileEntry.extension)){
+            }else if (Util::isSceneFile(fileEntry.extension)){
                 fileEntry.type = FileType::SCENE;
                 fileEntry.icon = sceneIconH;
-            }else if (isMaterialFile(fileEntry.extension)){
+            }else if (Util::isMaterialFile(fileEntry.extension)){
                 fileEntry.type = FileType::MATERIAL;
-            }else if (isEntityFile(fileEntry.extension)){
+            }else if (Util::isEntityFile(fileEntry.extension)){
                 fileEntry.type = FileType::ENTITY;
                 fileEntry.icon = entityIconH;
             }
@@ -1247,46 +1247,6 @@ void Editor::ResourcesWindow::pasteFiles(const fs::path& targetDirectory) {
     scanDirectory(currentPath);
 }
 
-bool Editor::ResourcesWindow::isImageFile(const std::string& extension) const {
-    static const std::unordered_set<std::string> imageExtensions = {
-        ".png", ".jpg", ".jpeg", ".bmp", ".tga", ".gif", ".hdr", ".psd", ".pic", ".pnm"
-    };
-
-    std::string lowerExt = extension;
-    std::transform(lowerExt.begin(), lowerExt.end(), lowerExt.begin(), ::tolower);
-    return imageExtensions.find(lowerExt) != imageExtensions.end();
-}
-
-bool Editor::ResourcesWindow::isSceneFile(const std::string& extension) const{
-    static const std::unordered_set<std::string> imageExtensions = {
-        ".scene"
-    };
-
-    std::string lowerExt = extension;
-    std::transform(lowerExt.begin(), lowerExt.end(), lowerExt.begin(), ::tolower);
-    return imageExtensions.find(lowerExt) != imageExtensions.end();
-}
-
-bool Editor::ResourcesWindow::isMaterialFile(const std::string& extension) const{
-    static const std::unordered_set<std::string> imageExtensions = {
-        ".material"
-    };
-
-    std::string lowerExt = extension;
-    std::transform(lowerExt.begin(), lowerExt.end(), lowerExt.begin(), ::tolower);
-    return imageExtensions.find(lowerExt) != imageExtensions.end();
-}
-
-bool Editor::ResourcesWindow::isEntityFile(const std::string& extension) const{
-    static const std::unordered_set<std::string> entityExtensions = {
-        ".entity"
-    };
-
-    std::string lowerExt = extension;
-    std::transform(lowerExt.begin(), lowerExt.end(), lowerExt.begin(), ::tolower);
-    return entityExtensions.find(lowerExt) != entityExtensions.end();
-}
-
 void Editor::ResourcesWindow::queueThumbnailGeneration(const fs::path& filePath, FileType type) {
     fs::path thumbnailPath = project->getThumbnailPath(filePath);
 
@@ -1511,7 +1471,7 @@ void Editor::ResourcesWindow::cleanupThumbnails() {
             continue;
 
         std::string ext = p.path().extension().string();
-        if (isImageFile(ext) || isMaterialFile(ext)) {
+        if (Util::isImageFile(ext) || Util::isMaterialFile(ext)) {
             fs::path thumbnailPath = project->getThumbnailPath(p.path());
             validThumbPaths.insert(thumbnailPath.string());
         }

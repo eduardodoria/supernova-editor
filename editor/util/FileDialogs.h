@@ -5,6 +5,7 @@
 #include "Backend.h"
 #include "imgui.h"
 #include "nfd.hpp"
+#include "util/Util.h"
 
 namespace Supernova::Editor{
 
@@ -43,10 +44,10 @@ namespace Supernova::Editor{
 
                 std::vector<nfdfilteritem_t> filterItems;
                 if (filterFlags & FILE_DIALOG_IMAGE) {
-                    filterItems.push_back({ "Image files", "jpeg,jpg,png,bmp,psd,tga,gif,hdr,pic,pnm" });
+                    filterItems.push_back({ "Image files", Util::getImageExtensions().c_str() });
                 }
                 if (filterFlags & FILE_DIALOG_FONT) {
-                    filterItems.push_back({ "Font files", "ttf,otf" });
+                    filterItems.push_back({ "Font files", Util::getFontExtensions().c_str() });
                 }
 
                 if (!filterItems.empty()) {
