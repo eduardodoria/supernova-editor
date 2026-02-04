@@ -2288,6 +2288,15 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, const Editor::Nod
     ProjectUtils::moveEntityOrderByTransform(group->registry.get(), group->registryEntities, regEntities[0], registryParent, regTransformIndex, hasRegRecoveryData);
 
     for (auto& [otherSceneId, sceneInstances] : group->instances) {
+        SceneProject* otherScene = getScene(otherSceneId);
+        if (!otherScene) {
+            Out::error("Failed to find scene %u", otherSceneId);
+            continue;
+        }
+        if (!otherScene->scene) {
+            Out::error("Scene %u is not loaded", otherSceneId);
+            continue;
+        }
         for (auto& instance : sceneInstances) {
             std::string recoveryKey = std::to_string(otherSceneId) + "_" + std::to_string(instance.instanceId);
             YAML::Node nodeData;
@@ -2301,12 +2310,6 @@ bool Editor::Project::addEntityToSharedGroup(uint32_t sceneId, const Editor::Nod
                 mergeResults = recoveryData.at(recoveryKey).mergeResults;
             } else {
                 nodeData = Stream::encodeEntity(regEntities[0], group->registry.get());
-            }
-
-            SceneProject* otherScene = getScene(otherSceneId);
-            if (!otherScene) {
-                Out::error("Failed to find scene %u", otherSceneId);
-                continue;
             }
 
             std::vector<Entity> newOtherEntities;
@@ -2389,15 +2392,19 @@ Editor::NodeRecovery Editor::Project::removeEntityFromSharedGroup(uint32_t scene
 
     // Process each scene that has instances
     for (auto& [otherSceneId, sceneInstances] : group->instances) {
+        SceneProject* otherScene = getScene(otherSceneId);
+        if (!otherScene) {
+            Out::error("Failed to find scene %u", otherSceneId);
+            continue;
+        }
+        if (!otherScene->scene) {
+            Out::error("Scene %u is not loaded", otherSceneId);
+            continue;
+        }
         // Inverting to get correct transformIndex for addEntity
         for (auto it = sceneInstances.rbegin(); it != sceneInstances.rend(); ++it) {
             auto& instance = *it;
             Entity otherEntity = group->getLocalEntity(otherSceneId, instance.instanceId, registryEntity);
-            SceneProject* otherScene = getScene(otherSceneId);
-            if (!otherScene) {
-                Out::error("Failed to find scene %u", otherSceneId);
-                continue;
-            }
 
             YAML::Node nodeExtend = Stream::encodeEntity(otherEntity, otherScene->scene, this, otherScene);
 
@@ -2537,22 +2544,28 @@ Editor::SharedMoveRecovery Editor::Project::moveEntityFromSharedGroup(uint32_t s
 
     for (auto& [otherSceneId, sceneInstances] : group->instances) {
         SceneProject* otherScene = getScene(otherSceneId);
-        if (otherScene){
-            for (auto& instance : sceneInstances) {
-                if ((otherSceneId != sceneId) || (instance.instanceId != instanceId) || moveItself) {
-                    Entity otherEntity = group->getLocalEntity(otherSceneId, instance.instanceId, registryEntity);
-                    Entity otherTarget = group->getLocalEntity(otherSceneId, instance.instanceId, registryTarget);
+        if (!otherScene) {
+            Out::error("Failed to find scene %u", otherSceneId);
+            continue;
+        }
+        if (!otherScene->scene) {
+            Out::error("Scene %u is not loaded", otherSceneId);
+            continue;
+        }
+        for (auto& instance : sceneInstances) {
+            if ((otherSceneId != sceneId) || (instance.instanceId != instanceId) || moveItself) {
+                Entity otherEntity = group->getLocalEntity(otherSceneId, instance.instanceId, registryEntity);
+                Entity otherTarget = group->getLocalEntity(otherSceneId, instance.instanceId, registryTarget);
 
-                    if (otherEntity != NULL_ENTITY && otherTarget != NULL_ENTITY) {
-                        Entity otherOldParent;
-                        size_t otherOldIndex;
-                        bool otherHasTransform;
-                        ProjectUtils::moveEntityOrderByTarget(otherScene->scene, otherScene->entities, otherEntity, otherTarget, type, otherOldParent, otherOldIndex, otherHasTransform);
-                        std::string recoveryKey = std::to_string(otherSceneId) + "_" + std::to_string(instance.instanceId);
-                        recovery[recoveryKey] = {otherOldParent, otherOldIndex, otherHasTransform};
+                if (otherEntity != NULL_ENTITY && otherTarget != NULL_ENTITY) {
+                    Entity otherOldParent;
+                    size_t otherOldIndex;
+                    bool otherHasTransform;
+                    ProjectUtils::moveEntityOrderByTarget(otherScene->scene, otherScene->entities, otherEntity, otherTarget, type, otherOldParent, otherOldIndex, otherHasTransform);
+                    std::string recoveryKey = std::to_string(otherSceneId) + "_" + std::to_string(instance.instanceId);
+                    recovery[recoveryKey] = {otherOldParent, otherOldIndex, otherHasTransform};
 
-                        otherScene->isModified = true;
-                    }
+                    otherScene->isModified = true;
                 }
             }
         }
@@ -2587,18 +2600,24 @@ bool Editor::Project::undoMoveEntityInSharedGroup(uint32_t sceneId, Entity entit
 
     for (auto& [otherSceneId, sceneInstances] : group->instances) {
         SceneProject* otherScene = getScene(otherSceneId);
-        if (otherScene) {
-            // Inverting to get correct entity index
-            for (auto it = sceneInstances.rbegin(); it != sceneInstances.rend(); ++it) {
-                auto& instance = *it;
-                if ((otherSceneId != sceneId) || (instance.instanceId != instanceId) || moveItself) {
-                    std::string recoveryKey = std::to_string(otherSceneId) + "_" + std::to_string(instance.instanceId);
-                    if (recovery.find(recoveryKey) != recovery.end()) {
-                        Entity otherEntity = group->getLocalEntity(otherSceneId, instance.instanceId, registryEntity);
-                        Entity otherTarget = group->getLocalEntity(otherSceneId, instance.instanceId, registryTarget);
-                        if (otherEntity != NULL_ENTITY && otherTarget != NULL_ENTITY) {
-                            ProjectUtils::moveEntityOrderByIndex(otherScene->scene, otherScene->entities, otherEntity, recovery.at(recoveryKey).oldParent, recovery.at(recoveryKey).oldIndex, recovery.at(recoveryKey).hasTransform);
-                        }
+        if (!otherScene) {
+            Out::error("Failed to find scene %u", otherSceneId);
+            continue;
+        }
+        if (!otherScene->scene) {
+            Out::error("Scene %u is not loaded", otherSceneId);
+            continue;
+        }
+        // Inverting to get correct entity index
+        for (auto it = sceneInstances.rbegin(); it != sceneInstances.rend(); ++it) {
+            auto& instance = *it;
+            if ((otherSceneId != sceneId) || (instance.instanceId != instanceId) || moveItself) {
+                std::string recoveryKey = std::to_string(otherSceneId) + "_" + std::to_string(instance.instanceId);
+                if (recovery.find(recoveryKey) != recovery.end()) {
+                    Entity otherEntity = group->getLocalEntity(otherSceneId, instance.instanceId, registryEntity);
+                    Entity otherTarget = group->getLocalEntity(otherSceneId, instance.instanceId, registryTarget);
+                    if (otherEntity != NULL_ENTITY && otherTarget != NULL_ENTITY) {
+                        ProjectUtils::moveEntityOrderByIndex(otherScene->scene, otherScene->entities, otherEntity, recovery.at(recoveryKey).oldParent, recovery.at(recoveryKey).oldIndex, recovery.at(recoveryKey).hasTransform);
                     }
                 }
             }
@@ -2649,28 +2668,34 @@ bool Editor::Project::addComponentToSharedGroup(uint32_t sceneId, Entity entity,
 
     for (auto& [otherSceneId, sceneInstances] : group->instances) {
         SceneProject* otherScene = getScene(otherSceneId);
-        if (otherScene){
-            for (auto& instance : sceneInstances) {
-                if ((otherSceneId != sceneId) || (instance.instanceId != instanceId) || addToItself) {
-                    Entity otherEntity = group->getLocalEntity(otherSceneId, instance.instanceId, registryEntity);
+        if (!otherScene) {
+            Out::error("Failed to find scene %u", otherSceneId);
+            continue;
+        }
+        if (!otherScene->scene) {
+            Out::error("Scene %u is not loaded", otherSceneId);
+            continue;
+        }
+        for (auto& instance : sceneInstances) {
+            if ((otherSceneId != sceneId) || (instance.instanceId != instanceId) || addToItself) {
+                Entity otherEntity = group->getLocalEntity(otherSceneId, instance.instanceId, registryEntity);
 
-                    if (otherEntity != NULL_ENTITY) {
-                        if (!group->hasComponentOverride(otherSceneId, otherEntity, componentType)) {
-                            YAML::Node compNode;
-                            std::string recoveryKey = std::to_string(otherSceneId) + "_" + std::to_string(instance.instanceId);
-                            if (recovery.find(recoveryKey) != recovery.end()) {
-                                if (recovery.at(recoveryKey).entity == otherEntity){
-                                    compNode = recovery.at(recoveryKey).node;
-                                }else{
-                                    Out::warning("Component recovery entity (%u) does not match scene (%u) entity (%u)", recovery.at(recoveryKey).entity, otherSceneId, otherEntity);
-                                    return false;
-                                }
+                if (otherEntity != NULL_ENTITY) {
+                    if (!group->hasComponentOverride(otherSceneId, otherEntity, componentType)) {
+                        YAML::Node compNode;
+                        std::string recoveryKey = std::to_string(otherSceneId) + "_" + std::to_string(instance.instanceId);
+                        if (recovery.find(recoveryKey) != recovery.end()) {
+                            if (recovery.at(recoveryKey).entity == otherEntity){
+                                compNode = recovery.at(recoveryKey).node;
+                            }else{
+                                Out::warning("Component recovery entity (%u) does not match scene (%u) entity (%u)", recovery.at(recoveryKey).entity, otherSceneId, otherEntity);
+                                return false;
                             }
-
-                            ProjectUtils::addEntityComponent(otherScene->scene, otherEntity, componentType, otherScene->entities, compNode);
-
-                            otherScene->isModified = true;
                         }
+
+                        ProjectUtils::addEntityComponent(otherScene->scene, otherEntity, componentType, otherScene->entities, compNode);
+
+                        otherScene->isModified = true;
                     }
                 }
             }
@@ -2710,19 +2735,25 @@ Editor::ComponentRecovery Editor::Project::removeComponentToSharedGroup(uint32_t
 
     for (auto& [otherSceneId, sceneInstances] : group->instances) {
         SceneProject* otherScene = getScene(otherSceneId);
-        if (otherScene){
-            for (auto& instance : sceneInstances) {
-                if ((otherSceneId != sceneId) || (instance.instanceId != instanceId) || removeToItself) {
-                    Entity otherEntity = group->getLocalEntity(otherSceneId, instance.instanceId, registryEntity);
+        if (!otherScene) {
+            Out::error("Failed to find scene %u", otherSceneId);
+            continue;
+        }
+        if (!otherScene->scene) {
+            Out::error("Scene %u is not loaded", otherSceneId);
+            continue;
+        }
+        for (auto& instance : sceneInstances) {
+            if ((otherSceneId != sceneId) || (instance.instanceId != instanceId) || removeToItself) {
+                Entity otherEntity = group->getLocalEntity(otherSceneId, instance.instanceId, registryEntity);
 
-                    if (otherEntity != NULL_ENTITY) {
-                        if (!group->hasComponentOverride(otherSceneId, otherEntity, componentType)) {
-                            std::string recoveryKey = std::to_string(otherSceneId) + "_" + std::to_string(instance.instanceId);
-                            recovery[recoveryKey].entity = otherEntity;
-                            recovery[recoveryKey].node = ProjectUtils::removeEntityComponent(otherScene->scene, otherEntity, componentType, otherScene->entities, encodeComponent);
+                if (otherEntity != NULL_ENTITY) {
+                    if (!group->hasComponentOverride(otherSceneId, otherEntity, componentType)) {
+                        std::string recoveryKey = std::to_string(otherSceneId) + "_" + std::to_string(instance.instanceId);
+                        recovery[recoveryKey].entity = otherEntity;
+                        recovery[recoveryKey].node = ProjectUtils::removeEntityComponent(otherScene->scene, otherEntity, componentType, otherScene->entities, encodeComponent);
 
-                            otherScene->isModified = true;
-                        }
+                        otherScene->isModified = true;
                     }
                 }
             }
@@ -2942,22 +2973,28 @@ bool Editor::Project::sharedGroupPropertyChanged(uint32_t sceneId, Entity entity
 
         // Copy to corresponding entity in other scenes
         for (auto& [otherSceneId, sceneInstances] : group->instances) {
+            SceneProject* otherScene = getScene(otherSceneId);
+            if (!otherScene) {
+                Out::error("Failed to find scene %u", otherSceneId);
+                continue;
+            }
+            if (!otherScene->scene) {
+                Out::error("Scene %u is not loaded", otherSceneId);
+                continue;
+            }
             for (auto& instance : sceneInstances) {
                 if ((otherSceneId != sceneId) || (instance.instanceId != instanceId) || changeItself) {
                     Entity otherEntity = group->getLocalEntity(otherSceneId, instance.instanceId, registryEntity);
 
                     if (!group->hasComponentOverride(otherSceneId, otherEntity, componentType)) {
-                        SceneProject* otherScene = getScene(otherSceneId);
-                        if (otherScene) {
-                            if (otherScene->isVisible){
-                                otherScene->needUpdateRender = true;
-                            }
-                            if (properties.size() == 0){
-                                Catalog::copyComponent(getScene(sceneId)->scene, entity, otherScene->scene, otherEntity, componentType);
-                            }else{
-                                for (const auto& property : properties) {
-                                    Catalog::copyPropertyValue(getScene(sceneId)->scene, entity, otherScene->scene, otherEntity, componentType, property);
-                                }
+                        if (otherScene->isVisible){
+                            otherScene->needUpdateRender = true;
+                        }
+                        if (properties.size() == 0){
+                            Catalog::copyComponent(getScene(sceneId)->scene, entity, otherScene->scene, otherEntity, componentType);
+                        }else{
+                            for (const auto& property : properties) {
+                                Catalog::copyPropertyValue(getScene(sceneId)->scene, entity, otherScene->scene, otherEntity, componentType, property);
                             }
                         }
                     }
@@ -2992,18 +3029,21 @@ bool Editor::Project::sharedGroupNameChanged(uint32_t sceneId, Entity entity, st
     registry->setEntityName(registryEntity, name);
 
     for (auto& [otherSceneId, sceneInstances] : group->instances) {
+        SceneProject* otherScene = getScene(otherSceneId);
+        if (!otherScene) {
+            Out::error("Failed to find scene %u", otherSceneId);
+            continue;
+        }
+        if (!otherScene->scene) {
+            Out::error("Scene %u is not loaded", otherSceneId);
+            continue;
+        }
         for (auto& instance : sceneInstances) {
             if ((otherSceneId != sceneId) || (instance.instanceId != instanceId) || changeItself) {
                 Entity otherEntity = group->getLocalEntity(otherSceneId, instance.instanceId, registryEntity);
 
-                SceneProject* otherScene = getScene(otherSceneId);
-                if (otherScene) {
-
-                    otherScene->scene->setEntityName(otherEntity, name);
-                    otherScene->isModified = true;
-
-                }
-
+                otherScene->scene->setEntityName(otherEntity, name);
+                otherScene->isModified = true;
             }
         }
     }
