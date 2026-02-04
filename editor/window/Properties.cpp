@@ -306,6 +306,77 @@ void Editor::Properties::drawImageWithBorderAndRounding(Texture* texture, const 
 }
 
 
+void Editor::Properties::dragDropResourcesFont(ComponentType cpType, std::string id, SceneProject* sceneProject, std::vector<Entity> entities, ComponentType componentType){
+    // Block DnD while playing for non-script components
+    if (sceneProject && sceneProject->playState != ScenePlayState::STOPPED) {
+        return;
+    }
+
+    if (ImGui::BeginDragDropTarget()){
+
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
+            std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
+            if (receivedStrings.size() > 0){
+                const std::string droppedRelativePath = std::filesystem::relative(receivedStrings[0], project->getProjectPath()).generic_string();
+
+                std::string ext = std::filesystem::path(droppedRelativePath).extension().generic_string();
+                std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+                bool isFont = (ext == ".ttf" || ext == ".otf");
+
+                if (isFont) {
+                    if (!hasFontDrag.count(id)){
+                        hasFontDrag[id] = true;
+                        for (Entity& entity : entities){
+                            std::string* valueRef = Catalog::getPropertyRef<std::string>(sceneProject->scene, entity, cpType, id);
+                            originalFont[id][entity] = *valueRef;
+                            if (*valueRef != droppedRelativePath){
+                                *valueRef = droppedRelativePath;
+                                if (componentType == ComponentType::TextComponent){
+                                    sceneProject->scene->getComponent<TextComponent>(entity).needReloadAtlas = true;
+                                    sceneProject->scene->getComponent<TextComponent>(entity).needUpdateText = true;
+                                }
+                            }
+                        }
+                    }
+                    if (payload->IsDelivery()){
+                        for (Entity& entity : entities){
+                            std::string* valueRef = Catalog::getPropertyRef<std::string>(sceneProject->scene, entity, cpType, id);
+                            *valueRef = originalFont[id][entity];
+                            cmd = new PropertyCmd<std::string>(project, sceneProject->id, entity, cpType, id, droppedRelativePath);
+                            CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                            if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)){
+                                finishProperty = true;
+                            }
+                        }
+
+                        ImGui::SetWindowFocus();
+                        hasFontDrag.erase(id);
+                        originalFont.erase(id);
+                    }
+                }
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }else{
+        if (hasFontDrag.count(id) && hasFontDrag[id]){
+            for (Entity& entity : entities){
+                std::string* valueRef = Catalog::getPropertyRef<std::string>(sceneProject->scene, entity, cpType, id);
+                if (*valueRef != originalFont[id][entity]){
+                    *valueRef = originalFont[id][entity];
+                    if (componentType == ComponentType::TextComponent){
+                        sceneProject->scene->getComponent<TextComponent>(entity).needReloadAtlas = true;
+                        sceneProject->scene->getComponent<TextComponent>(entity).needUpdateText = true;
+                    }
+                }
+            }
+
+            hasFontDrag.erase(id);
+            originalFont.erase(id);
+        }
+    }
+}
+
+
 void Editor::Properties::dragDropResources(ComponentType cpType, std::string id, SceneProject* sceneProject, std::vector<Entity> entities, ComponentType componentType){
     // Block DnD while playing for non-script components
     if (sceneProject && sceneProject->playState != ScenePlayState::STOPPED) {
@@ -1804,6 +1875,9 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         if (!newValue.empty()){
             ImGui::SetItemTooltip("%s", newValue.c_str());
         }
+
+        dragDropResourcesFont(cpType, id, sceneProject, entities, cpType);
+
         ImGui::PopStyleColor();
 
         ImGui::SameLine();

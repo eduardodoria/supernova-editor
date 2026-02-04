@@ -72,6 +72,10 @@ namespace Supernova::Editor{
         std::map<std::string, bool> hasTextureDrag;
         std::map<std::string, std::map<Entity, Texture>> originalTex;
 
+        // for drag and drop fonts
+        std::map<std::string, bool> hasFontDrag;
+        std::map<std::string, std::map<Entity, std::string>> originalFont;
+
         std::map<std::string, bool> materialButtonGroups;
 
         std::map<std::string, bool> textureCubeSingleMode;
@@ -105,6 +109,7 @@ namespace Supernova::Editor{
         Texture* findThumbnail(const std::string& path);
         void drawImageWithBorderAndRounding(Texture* texture, const ImVec2& size, float rounding = 4.0f, ImU32 border_col = IM_COL32(0, 0, 0, 255), float border_thickness = 1.0f, bool flipY = false);
         void dragDropResources(ComponentType cpType, std::string id, SceneProject* sceneProject, std::vector<Entity> entities, ComponentType componentType);
+        void dragDropResourcesFont(ComponentType cpType, std::string id, SceneProject* sceneProject, std::vector<Entity> entities, ComponentType componentType);
         void dragDropResourcesTextureCubeSingleFile(ComponentType cpType, const std::string& id, const ImVec2& rectMin, const ImVec2& rectMax, SceneProject* sceneProject, const std::vector<Entity>& entities, ComponentType componentType);
         void dragDropResourcesTextureCubeFace(ComponentType cpType, const std::string& id, size_t faceIndex, const ImVec2& rectMin, const ImVec2& rectMax, SceneProject* sceneProject, const std::vector<Entity>& entities, ComponentType componentType);
 
