@@ -405,6 +405,10 @@ void Editor::Project::closeScene(uint32_t sceneId) {
 
         deleteSceneProject(&(*it));
 
+        for (auto& pair : sharedGroups) {
+            pair.second.instances.erase(sceneId);
+        }
+
         it->opened = false;
     }
 }
@@ -2571,6 +2575,8 @@ Editor::SharedMoveRecovery Editor::Project::moveEntityFromSharedGroup(uint32_t s
         }
     }
 
+    group->isModified = true;
+
     return recovery;
 }
 
@@ -2623,6 +2629,8 @@ bool Editor::Project::undoMoveEntityInSharedGroup(uint32_t sceneId, Entity entit
             }
         }
     }
+
+    group->isModified = true;
 
     return true;
 }
@@ -2860,10 +2868,12 @@ std::vector<Editor::MergeResult> Editor::Project::mergeEntityNodes(const YAML::N
 
         }else if (extendType == "SharedEntityChild"){
 
-            YAML::Node outputChild = outputNode["children"][i];
-            YAML::Node extendChild = extendNode["children"][i];
-            std::vector<Editor::MergeResult> newResults = mergeEntityNodes(extendChild, outputChild);
-            std::copy(newResults.begin(), newResults.end(), std::back_inserter(result));
+            if (i < outputNode["children"].size()) {
+                YAML::Node outputChild = outputNode["children"][i];
+                YAML::Node extendChild = extendNode["children"][i];
+                std::vector<Editor::MergeResult> newResults = mergeEntityNodes(extendChild, outputChild);
+                std::copy(newResults.begin(), newResults.end(), std::back_inserter(result));
+            }
 
         }else if (extendType == "SharedEntity"){ // For nested shared entities
 

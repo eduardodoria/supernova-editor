@@ -120,7 +120,7 @@ bool Editor::ProjectUtils::moveEntityOrderByTarget(EntityRegistry* registry, std
         hasTransform = true;
 
         if (registry->isParentOf(source, target)){
-            Out::error("Cannot move entity to a child");
+            Out::error("Cannot move an entity to its own child");
             return false;
         }
 
