@@ -1999,6 +1999,7 @@ bool Editor::Project::removeSharedGroup(const std::filesystem::path& filepath) {
         // Clear the shared group's registry
         if (it->second.registry) {
             it->second.registry->clear();
+            it->second.registryEntities.clear();
         }
 
         // Remove from the map
@@ -2042,6 +2043,7 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
             std::filesystem::path fullSharedPath = getProjectPath() / filepath;
             node = YAML::LoadFile(fullSharedPath.string());
             group.registry->clear();
+            group.registryEntities.clear();
             Stream::decodeEntity(node, group.registry.get(), &group.registryEntities);
         } catch (const YAML::Exception& e) {
             Out::error("Failed to load shared entity file: %s", e.what());

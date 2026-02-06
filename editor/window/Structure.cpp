@@ -425,7 +425,18 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         ImGui::SetItemTooltip("Child Scene\nId: %u", node.childSceneId);
     }else{
         if (node.isShared) {
-            ImGui::SetItemTooltip("Entity: %u (Shared)\nPath: %s", node.id, sharedFilepath.string().c_str());
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal)) {
+                SharedGroup* group = project->getSharedGroup(sharedFilepath);
+                uint32_t instanceId = group->getInstanceId(project->getSelectedSceneId(), node.id);
+                Entity registryEntity = group->getRegistryEntity(project->getSelectedSceneId(), node.id);
+
+                ImGui::BeginTooltip();
+                ImGui::Text("Entity: %u", node.id);
+                ImGui::Separator();
+                ImGui::Text("Path: %s", sharedFilepath.string().c_str());
+                ImGui::Text("Shared: %u", registryEntity);
+                ImGui::EndTooltip();
+            }
         } else {
             ImGui::SetItemTooltip("Entity: %u", node.id);
         }
