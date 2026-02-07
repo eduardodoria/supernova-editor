@@ -237,7 +237,11 @@ namespace Supernova::Editor{
         bool hasSelectedEntities(uint32_t sceneId) const;
 
         bool hasSelectedSceneUnsavedChanges() const;
+        bool hasSelectedSceneUnsavedSharedEntities() const;
+        bool hasSceneUnsavedChanges(uint32_t sceneId) const;
+        bool hasUnsavedSharedEntities(uint32_t sceneId) const;
         bool hasScenesUnsavedChanges() const;
+        bool hasUnsavedSharedEntities() const;
 
         void updateAllScriptsProperties(uint32_t sceneId);
         void updateScriptProperties(SceneProject* sceneProject, Entity entity, std::vector<ScriptEntry>& scripts);

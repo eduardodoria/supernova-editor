@@ -59,7 +59,7 @@ std::string Editor::SceneWindow::getWindowTitle(const SceneProject& sceneProject
     }else if (sceneProject.sceneType == SceneType::SCENE_UI){
         icon = ICON_FA_WINDOW_RESTORE + std::string("  ");
     }
-    return icon + sceneProject.name + (sceneProject.isModified ? " *" : "") + "###Scene" + std::to_string(sceneProject.id);
+    return icon + sceneProject.name + ((project->hasSceneUnsavedChanges(sceneProject.id)) ? " *" : "") + "###Scene" + std::to_string(sceneProject.id);
 }
 
 void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject) {

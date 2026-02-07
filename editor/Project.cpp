@@ -1745,7 +1745,38 @@ bool Editor::Project::hasSelectedEntities(uint32_t sceneId) const{
 }
 
 bool Editor::Project::hasSelectedSceneUnsavedChanges() const{
-    return getScene(selectedScene)->isModified;
+    return hasSceneUnsavedChanges(selectedScene);
+}
+
+bool Editor::Project::hasSelectedSceneUnsavedSharedEntities() const{
+    return hasUnsavedSharedEntities(selectedScene);
+}
+
+bool Editor::Project::hasSceneUnsavedChanges(uint32_t sceneId) const{
+    const SceneProject* sceneProject = getScene(sceneId);
+    if (!sceneProject){
+        return false;
+    }
+
+    if (sceneProject->isModified){
+        return true;
+    }
+
+    if (hasUnsavedSharedEntities(sceneId)){
+        return true;
+    }
+
+    return false;
+}
+
+bool Editor::Project::hasUnsavedSharedEntities(uint32_t sceneId) const{
+    for (const auto& [filepath, group] : sharedGroups) {
+        if (group.isModified && group.hasInstances(sceneId)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 bool Editor::Project::hasScenesUnsavedChanges() const{
@@ -1755,6 +1786,14 @@ bool Editor::Project::hasScenesUnsavedChanges() const{
         }
     }
 
+    if (hasUnsavedSharedEntities()){
+         return true;
+    }
+
+    return false;
+}
+
+bool Editor::Project::hasUnsavedSharedEntities() const{
     for (const auto& [filepath, group] : sharedGroups) {
         if (group.isModified) {
             return true;
@@ -1763,6 +1802,7 @@ bool Editor::Project::hasScenesUnsavedChanges() const{
 
     return false;
 }
+
 
 void Editor::Project::updateAllScriptsProperties(uint32_t sceneId){
     SceneProject* sceneProject = getScene(sceneId);
@@ -2081,7 +2121,7 @@ std::vector<Entity> Editor::Project::importSharedEntity(SceneProject* sceneProje
         }
     }
 
-    std::vector<Entity> regEntities = group.registry->getEntityList();
+    std::vector<Entity> regEntities = group.registryEntities;
 
     if (membersEntities.size() != regEntities.size()) {
         Out::error("Mismatch in shared entity count when importing from %s", filepath.string().c_str());
@@ -2596,7 +2636,7 @@ bool Editor::Project::undoMoveEntityInSharedGroup(uint32_t sceneId, Entity entit
     Entity registryTarget = group->getRegistryEntity(sceneId, target);
     if (registryEntity == NULL_ENTITY || registryTarget == NULL_ENTITY) {
         Out::error("Failed to find registry entities for shared entities %u or %u in scene %u", entity, target, sceneId);
-        return {};
+        return false;
     }
 
     std::string recoveryDefKey = std::to_string(NULL_PROJECT_SCENE);
