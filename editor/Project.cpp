@@ -1357,7 +1357,9 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
     // Check if this scene has entities in shared groups and save them first
     for (const auto& [filepath, group] : sharedGroups) {
         if (group.instances.find(sceneId) != group.instances.end()) {
-            saveSharedGroupToDisk(filepath);
+            if (group.isModified){
+                saveSharedGroupToDisk(filepath);
+            }
             break;
         }
     }
@@ -2818,7 +2820,7 @@ Editor::ComponentRecovery Editor::Project::removeComponentToSharedGroup(uint32_t
 void Editor::Project::saveSharedGroupToDisk(const std::filesystem::path& filepath) {
     SharedGroup* group = getSharedGroup(filepath);
     YAML::Node encodedNode = Stream::encodeEntity(EntityManager::firstUserEntity(), group->registry.get());
-    if (group->isModified && encodedNode && !encodedNode.IsNull()) {
+    if (encodedNode && !encodedNode.IsNull()) {
         std::filesystem::path fullSharedPath = getProjectPath() / filepath;
         std::ofstream fout(fullSharedPath.string());
         if (fout.is_open()) {  // Check if file opened successfully
