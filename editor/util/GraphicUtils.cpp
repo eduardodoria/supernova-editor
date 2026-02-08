@@ -2,6 +2,7 @@
 
 #include "Out.h"
 #include "stb_image_write.h"
+#include "util/STBText.h"
 
 #include <future>
 #include <thread>
@@ -45,6 +46,21 @@
 #endif
 
 using namespace Supernova;
+
+Vector2 Editor::GraphicUtils::getUILayoutCenter(Scene* scene, Entity entity, const UILayoutComponent& layout) {
+    Vector2 center = Vector2(0, 0);
+    Signature signature = scene->getSignature(entity);
+    if (signature.test(scene->getComponentId<TextComponent>())) {
+        TextComponent& text = scene->getComponent<TextComponent>(entity);
+        if (text.pivotBaseline) {
+            center.y = text.stbtext->getAscent();
+        }
+        if (text.pivotCentered) {
+            center.x = layout.width / 2.0f;
+        }
+    }
+    return center;
+}
 
 void Editor::GraphicUtils::saveFramebufferImage(Framebuffer* framebuffer, fs::path path, bool flipY, std::function<void()> onComplete) {
     uint8_t* pixels = nullptr;

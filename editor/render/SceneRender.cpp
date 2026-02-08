@@ -5,6 +5,7 @@
 #include "command/type/ObjectTransformCmd.h"
 #include "command/type/PropertyCmd.h"
 #include "command/type/MultiPropertyCmd.h"
+#include "util/GraphicUtils.h"
 
 using namespace Supernova;
 
@@ -54,7 +55,8 @@ AABB Editor::SceneRender::getAABB(Entity entity, bool local){
         if (signature.test(scene->getComponentId<UILayoutComponent>())){
             UILayoutComponent& layout = scene->getComponent<UILayoutComponent>(entity);
             if (layout.width > 0 && layout.height > 0){
-                AABB aabb = AABB(0, 0, 0, layout.width, layout.height, 0);
+                Vector2 center = GraphicUtils::getUILayoutCenter(scene, entity, layout);
+                AABB aabb = AABB(-center.x, -center.y, 0, layout.width-center.x, layout.height-center.y, 0);
                 if (local){
                     return aabb;
                 }else{
@@ -130,7 +132,8 @@ OBB Editor::SceneRender::getOBB(Entity entity, bool local){
             if (signature.test(scene->getComponentId<UILayoutComponent>())){
                 UILayoutComponent& layout = scene->getComponent<UILayoutComponent>(entity);
                 if (layout.width > 0 && layout.height > 0){
-                    AABB aabb = AABB(0, 0, 0, layout.width, layout.height, 0);
+                    Vector2 center = GraphicUtils::getUILayoutCenter(scene, entity, layout);
+                    AABB aabb = AABB(-center.x, -center.y, 0, layout.width-center.x, layout.height-center.y, 0);
                     if (local){
                         return aabb.getOBB();
                     }else{

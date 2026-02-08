@@ -1430,8 +1430,9 @@ Entity Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y){
             if (signature.test(scenedata->scene->getComponentId<UILayoutComponent>())){
                 UILayoutComponent& layout = scenedata->scene->getComponent<UILayoutComponent>(entity);
                 if (layout.width > 0 && layout.height > 0){
+                    Vector2 center = GraphicUtils::getUILayoutCenter(scenedata->scene, entity, layout);
                     Transform& transform = scenedata->scene->getComponent<Transform>(entity);
-                    aabb = transform.modelMatrix * AABB(0, 0, 0, layout.width, layout.height, 0);
+                    aabb = transform.modelMatrix * AABB(-center.x, -center.y, 0, layout.width-center.x, layout.height-center.y, 0);
                 }
             }
         }else if (signature.test(scenedata->scene->getComponentId<LightComponent>()) || 
@@ -1511,7 +1512,8 @@ bool Editor::Project::selectObjectsByRect(uint32_t sceneId, Vector2 start, Vecto
             if (signature.test(scenedata->scene->getComponentId<UILayoutComponent>())){
                 UILayoutComponent& layout = scenedata->scene->getComponent<UILayoutComponent>(entity);
                 if (layout.width > 0 && layout.height > 0){
-                    aabb = AABB(0, 0, 0, layout.width, layout.height, 0);
+                    Vector2 center = GraphicUtils::getUILayoutCenter(scenedata->scene, entity, layout);
+                    aabb = AABB(-center.x, -center.y, 0, layout.width-center.x, layout.height-center.y, 0);
                 }
             }
         }else if (signature.test(scenedata->scene->getComponentId<LightComponent>()) || 

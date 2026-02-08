@@ -2909,16 +2909,21 @@ void Editor::Properties::drawTextComponent(ComponentType cpType, SceneProject* s
     settingsInt.stepSize = 1.0f;
     settingsInt.secondColSize = 6 * ImGui::GetFontSize();
 
-    beginTable(cpType, getLabelSize("MaxTextSize"));
+    beginTable(cpType, getLabelSize("Multiline"));
     propertyRow(RowPropertyType::MultilineString, cpType, "text", "Text", sceneProject, entities);
     propertyRow(RowPropertyType::Font, cpType, "font", "Font", sceneProject, entities);
     propertyRow(RowPropertyType::UInt, cpType, "fontSize", "FontSize", sceneProject, entities, settingsInt);
     propertyRow(RowPropertyType::Bool, cpType, "multiline", "Multiline", sceneProject, entities);
-    propertyRow(RowPropertyType::UInt, cpType, "maxTextSize", "MaxTextSize", sceneProject, entities, settingsInt);
+    endTable();
+
+    ImGui::SeparatorText("Text settings");
+
+    beginTable(cpType, getLabelSize("MaxTextSize"), "text_settings");
     propertyRow(RowPropertyType::Bool, cpType, "fixedWidth", "FixedWidth", sceneProject, entities);
     propertyRow(RowPropertyType::Bool, cpType, "fixedHeight", "FixedHeight", sceneProject, entities);
     propertyRow(RowPropertyType::Bool, cpType, "pivotBaseline", "PivotBaseline", sceneProject, entities);
     propertyRow(RowPropertyType::Bool, cpType, "pivotCentered", "PivotCentered", sceneProject, entities);
+    propertyRow(RowPropertyType::UInt, cpType, "maxTextSize", "MaxTextSize", sceneProject, entities, settingsInt);
     endTable();
 }
 
