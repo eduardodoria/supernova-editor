@@ -129,10 +129,6 @@ bool Editor::ProjectUtils::moveEntityOrderByTarget(EntityRegistry* registry, std
         size_t sourceTransformIndex = transforms->getIndex(source);
         size_t targetTransformIndex = transforms->getIndex(target);
 
-        // Need to be before addEntityChild
-        size_t sizeOfSourceBranch = registry->findBranchLastIndex(source) - sourceTransformIndex + 1;
-        bool needAdjustBranch = (sourceTransformIndex < targetTransformIndex);
-
         Entity newParent = NULL_ENTITY;
         if (type == InsertionType::INTO){
             newParent = target;
@@ -143,15 +139,8 @@ bool Editor::ProjectUtils::moveEntityOrderByTarget(EntityRegistry* registry, std
         oldParent = transformSource->parent;
         oldIndex = sourceTransformIndex;
 
-        //if (type == InsertionType::AFTER){
-            // if position target has children, move them to the end of the list
-            //targetTransformIndex = registry->findBranchLastIndex(target);
-        //}
         if (type == InsertionType::AFTER || type == InsertionType::INTO){
             targetTransformIndex++;
-        }
-        if (needAdjustBranch){
-            targetTransformIndex = targetTransformIndex - sizeOfSourceBranch;
         }
 
         moveEntityOrderByTransform(registry, entities, source, newParent, targetTransformIndex);
@@ -196,6 +185,14 @@ bool Editor::ProjectUtils::moveEntityOrderByTarget(EntityRegistry* registry, std
 void Editor::ProjectUtils::moveEntityOrderByIndex(EntityRegistry* registry, std::vector<Entity>& entities, Entity source, Entity parent, size_t index, bool hasTransform){
     if (hasTransform){
 
+        auto transforms = registry->getComponentArray<Transform>();
+        size_t sourceTransformIndex = transforms->getIndex(source);
+
+        size_t sizeOfSourceBranch = registry->findBranchLastIndex(source) - sourceTransformIndex + 1;
+        if (sourceTransformIndex < index){
+            index += sizeOfSourceBranch;
+        }
+
         moveEntityOrderByTransform(registry, entities, source, parent, index);
 
     }else{
@@ -223,7 +220,7 @@ void Editor::ProjectUtils::moveEntityOrderByTransform(EntityRegistry* registry, 
     registry->addEntityChild(parent, source, true);
 
     if (enableMove){
-        registry->moveChildToIndex(source, transformIndex, false);
+        registry->moveChildToIndex(source, transformIndex);
     }
 
     ProjectUtils::sortEntitiesByTransformOrder(registry, entities);
