@@ -948,6 +948,7 @@ void Editor::Structure::show(){
     }
 
     showTreeNode(root);
+    float treeLastCursorY = ImGui::GetCursorScreenPos().y;
 
     // Handle right-click in empty space
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && !ImGui::IsAnyItemHovered() && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
@@ -965,7 +966,7 @@ void Editor::Structure::show(){
     ImGui::EndChild();
 
     // Handle drag and drop for entity files and entities to empty space
-    if (ImGui::BeginDragDropTarget()) {
+    if (ImGui::GetMousePos().y > treeLastCursorY && ImGui::BeginDragDropTarget()) {
 
         // Handle entity drag-drop to move to root level (last position)
         if (const ImGuiPayload* payload = ImGui::GetDragDropPayload()) {
