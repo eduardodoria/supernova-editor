@@ -703,6 +703,17 @@ void Editor::SceneWindow::show() {
                         CursorSelected cursorSelected = sceneProject.sceneRender->getCursorSelected();
                         if (cursorSelected == CursorSelected::HAND) {
                             ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
+                        } else {
+                            Gizmo2DSideSelected side = sceneProject.sceneRender->getToolsLayer()->getGizmo2DSideSelected();
+                            if (side == Gizmo2DSideSelected::NX || side == Gizmo2DSideSelected::PX) {
+                                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+                            } else if (side == Gizmo2DSideSelected::NY || side == Gizmo2DSideSelected::PY) {
+                                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+                            } else if (side == Gizmo2DSideSelected::NX_NY || side == Gizmo2DSideSelected::PX_PY) {
+                                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
+                            } else if (side == Gizmo2DSideSelected::NX_PY || side == Gizmo2DSideSelected::PX_NY) {
+                                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNESW);
+                            }
                         }
                     }
 

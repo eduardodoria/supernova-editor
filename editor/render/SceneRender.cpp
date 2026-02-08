@@ -590,9 +590,18 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                         if (isLayout){
                             multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entity, ComponentType::UILayoutComponent, "width", static_cast<unsigned int>(size.x));
                             multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entity, ComponentType::UILayoutComponent, "height", static_cast<unsigned int>(size.y));
-                            if (isText && toolslayer.getGizmo2DSideSelected() != Gizmo2DSideSelected::CENTER){
-                                multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entity, ComponentType::TextComponent, "fixedWidth", true);
-                                multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entity, ComponentType::TextComponent, "fixedHeight", true);
+                            if (isText){
+                                Gizmo2DSideSelected side = toolslayer.getGizmo2DSideSelected();
+                                if (side == Gizmo2DSideSelected::NX || side == Gizmo2DSideSelected::PX || 
+                                    side == Gizmo2DSideSelected::NX_NY || side == Gizmo2DSideSelected::NX_PY || 
+                                    side == Gizmo2DSideSelected::PX_NY || side == Gizmo2DSideSelected::PX_PY) {
+                                    multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entity, ComponentType::TextComponent, "fixedWidth", true);
+                                }
+                                if (side == Gizmo2DSideSelected::NY || side == Gizmo2DSideSelected::PY || 
+                                    side == Gizmo2DSideSelected::NX_NY || side == Gizmo2DSideSelected::NX_PY || 
+                                    side == Gizmo2DSideSelected::PX_NY || side == Gizmo2DSideSelected::PX_PY) {
+                                    multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entity, ComponentType::TextComponent, "fixedHeight", true);
+                                }
                             }
                         }else if (isSprite){
                             multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entity, ComponentType::SpriteComponent, "width", static_cast<unsigned int>(size.x));

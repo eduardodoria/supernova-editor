@@ -555,8 +555,8 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["fontSize"] = {PropertyType::UInt, UpdateFlags_Text | UpdateFlags_Text_Atlas, (void*)&def->fontSize, (compRef) ? (void*)&comp->fontSize : nullptr};
         ps["multiline"] = {PropertyType::Bool, UpdateFlags_Text, (void*)&def->multiline, (compRef) ? (void*)&comp->multiline : nullptr};
         ps["maxTextSize"] = {PropertyType::UInt, UpdateFlags_Text, (void*)&def->maxTextSize, (compRef) ? (void*)&comp->maxTextSize : nullptr};
-        ps["fixedWidth"] = {PropertyType::Bool, UpdateFlags_None, (void*)&def->fixedWidth, (compRef) ? (void*)&comp->fixedWidth : nullptr};
-        ps["fixedHeight"] = {PropertyType::Bool, UpdateFlags_None, (void*)&def->fixedHeight, (compRef) ? (void*)&comp->fixedHeight : nullptr};
+        ps["fixedWidth"] = {PropertyType::Bool, UpdateFlags_Text, (void*)&def->fixedWidth, (compRef) ? (void*)&comp->fixedWidth : nullptr};
+        ps["fixedHeight"] = {PropertyType::Bool, UpdateFlags_Text, (void*)&def->fixedHeight, (compRef) ? (void*)&comp->fixedHeight : nullptr};
         ps["pivotBaseline"] = {PropertyType::Bool, UpdateFlags_Text, (void*)&def->pivotBaseline, (compRef) ? (void*)&comp->pivotBaseline : nullptr};
         ps["pivotCentered"] = {PropertyType::Bool, UpdateFlags_Text, (void*)&def->pivotCentered, (compRef) ? (void*)&comp->pivotCentered : nullptr};
     }
