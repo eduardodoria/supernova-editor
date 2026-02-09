@@ -1339,6 +1339,11 @@ YAML::Node Editor::Stream::encodeComponents(const Entity entity, const EntityReg
         compNode[Catalog::getComponentName(ComponentType::UIComponent, true)] = encodeUIComponent(ui);
     }
 
+    if (signature.test(registry->getComponentId<ButtonComponent>())) {
+        ButtonComponent button = registry->getComponent<ButtonComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::ButtonComponent, true)] = encodeButtonComponent(button);
+    }
+
     if (signature.test(registry->getComponentId<UILayoutComponent>())) {
         UILayoutComponent layout = registry->getComponent<UILayoutComponent>(entity);
         compNode[Catalog::getComponentName(ComponentType::UILayoutComponent, true)] = encodeUILayoutComponent(layout);
@@ -1416,6 +1421,16 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
             registry->addComponent<UIComponent>(entity, ui);
         }else{
             registry->getComponent<UIComponent>(entity) = ui;
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::ButtonComponent, true);
+    if (compNode[compName]) {
+        ButtonComponent button = decodeButtonComponent(compNode[compName], registry->findComponent<ButtonComponent>(entity));
+        if (!signature.test(registry->getComponentId<ButtonComponent>())){
+            registry->addComponent<ButtonComponent>(entity, button);
+        }else{
+            registry->getComponent<ButtonComponent>(entity) = button;
         }
     }
 
@@ -1781,6 +1796,39 @@ UIComponent Editor::Stream::decodeUIComponent(const YAML::Node& node, const UICo
     //ui.needUpdateTexture = node["needUpdateTexture"].as<bool>();
 
     return ui;
+}
+
+YAML::Node Editor::Stream::encodeButtonComponent(const ButtonComponent& button) {
+    YAML::Node node;
+    node["label"] = button.label;
+    node["textureNormal"] = encodeTexture(button.textureNormal);
+    node["texturePressed"] = encodeTexture(button.texturePressed);
+    node["textureDisabled"] = encodeTexture(button.textureDisabled);
+    node["colorNormal"] = encodeVector4(button.colorNormal);
+    node["colorPressed"] = encodeVector4(button.colorPressed);
+    node["colorDisabled"] = encodeVector4(button.colorDisabled);
+    node["disabled"] = button.disabled;
+    return node;
+}
+
+ButtonComponent Editor::Stream::decodeButtonComponent(const YAML::Node& node, const ButtonComponent* oldButton) {
+    ButtonComponent button;
+
+    if (oldButton) {
+        button = *oldButton;
+        button.needUpdateButton = true;
+    }
+
+    if (node["label"]) button.label = node["label"].as<Entity>();
+    if (node["textureNormal"]) button.textureNormal = decodeTexture(node["textureNormal"]);
+    if (node["texturePressed"]) button.texturePressed = decodeTexture(node["texturePressed"]);
+    if (node["textureDisabled"]) button.textureDisabled = decodeTexture(node["textureDisabled"]);
+    if (node["colorNormal"]) button.colorNormal = decodeVector4(node["colorNormal"]);
+    if (node["colorPressed"]) button.colorPressed = decodeVector4(node["colorPressed"]);
+    if (node["colorDisabled"]) button.colorDisabled = decodeVector4(node["colorDisabled"]);
+    if (node["disabled"]) button.disabled = node["disabled"].as<bool>();
+
+    return button;
 }
 
 YAML::Node Editor::Stream::encodeUILayoutComponent(const UILayoutComponent& layout) {

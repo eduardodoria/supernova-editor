@@ -22,6 +22,7 @@ namespace Supernova::Editor{
         IMAGE,
         SPRITE,
         TEXT,
+        BUTTON,
         POINT_LIGHT,
         DIRECTIONAL_LIGHT,
         SPOT_LIGHT,
@@ -37,6 +38,7 @@ namespace Supernova::Editor{
         std::string entityName;
 
         Entity entity;
+        Entity childEntity;
         Entity parent;
         EntityCreationType type;
         std::vector<Entity> lastSelected;

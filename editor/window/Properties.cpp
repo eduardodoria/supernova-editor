@@ -2904,6 +2904,27 @@ void Editor::Properties::drawUIComponent(ComponentType cpType, SceneProject* sce
     endTable();
 }
 
+void Editor::Properties::drawButtonComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+    RowSettings settings;
+    settings.onValueChanged = [sceneProject, entities](){
+        for (const Entity& entity : entities){
+            if (ButtonComponent* button = sceneProject->scene->findComponent<ButtonComponent>(entity)){
+                button->needUpdateButton = true;
+            }
+        }
+    };
+
+    beginTable(cpType, getLabelSize("Texture Disabled"));
+    propertyRow(RowPropertyType::Bool, cpType, "disabled", "Disabled", sceneProject, entities, settings);
+    propertyRow(RowPropertyType::Texture, cpType, "textureNormal", "Texture Normal", sceneProject, entities, settings);
+    propertyRow(RowPropertyType::Texture, cpType, "texturePressed", "Texture Pressed", sceneProject, entities, settings);
+    propertyRow(RowPropertyType::Texture, cpType, "textureDisabled", "Texture Disabled", sceneProject, entities, settings);
+    propertyRow(RowPropertyType::Color4L, cpType, "colorNormal", "Color Normal", sceneProject, entities, settings);
+    propertyRow(RowPropertyType::Color4L, cpType, "colorPressed", "Color Pressed", sceneProject, entities, settings);
+    propertyRow(RowPropertyType::Color4L, cpType, "colorDisabled", "Color Disabled", sceneProject, entities, settings);
+    endTable();
+}
+
 void Editor::Properties::drawTextComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     RowSettings settingsInt;
     settingsInt.stepSize = 1.0f;
@@ -3829,6 +3850,8 @@ void Editor::Properties::show(){
                     drawMeshComponent(cpType, sceneProject, entities);
                 }else if (cpType == ComponentType::UIComponent){
                     drawUIComponent(cpType, sceneProject, entities);
+                }else if (cpType == ComponentType::ButtonComponent){
+                    drawButtonComponent(cpType, sceneProject, entities);
                 }else if (cpType == ComponentType::TextComponent){
                     drawTextComponent(cpType, sceneProject, entities);
                 }else if (cpType == ComponentType::UILayoutComponent){

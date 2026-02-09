@@ -101,6 +101,10 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addT
             CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Text", EntityCreationType::TEXT, parent, addToShared));
             openParent = parent;
         }
+        if (ImGui::MenuItem(ICON_FA_SQUARE"  Button")){
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Button", EntityCreationType::BUTTON, parent, addToShared));
+            openParent = parent;
+        }
         ImGui::EndMenu();
     }
 

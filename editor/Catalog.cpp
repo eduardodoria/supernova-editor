@@ -428,6 +428,20 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["patchMarginTop"] = {PropertyType::UInt, UpdateFlags_Image_Patches, (void*)&def->patchMarginTop, (compRef) ? (void*)&comp->patchMarginTop : nullptr};
         ps["patchMarginBottom"] = {PropertyType::UInt, UpdateFlags_Image_Patches, (void*)&def->patchMarginBottom, (compRef) ? (void*)&comp->patchMarginBottom : nullptr};
         ps["textureScaleFactor"] = {PropertyType::Float, UpdateFlags_Image_Patches, (void*)&def->textureScaleFactor, (compRef) ? (void*)&comp->textureScaleFactor : nullptr};
+    }else if (component == ComponentType::ButtonComponent){
+        ButtonComponent* comp = static_cast<ButtonComponent*>(compRef);
+        static ButtonComponent* def = new ButtonComponent;
+
+        ps["label"] = {PropertyType::UInt, UpdateFlags_None, (void*)&def->label, (compRef) ? (void*)&comp->label : nullptr};
+        ps["textureNormal"] = {PropertyType::Texture, UpdateFlags_None, (void*)&def->textureNormal, (compRef) ? (void*)&comp->textureNormal : nullptr};
+        ps["texturePressed"] = {PropertyType::Texture, UpdateFlags_None, (void*)&def->texturePressed, (compRef) ? (void*)&comp->texturePressed : nullptr};
+        ps["textureDisabled"] = {PropertyType::Texture, UpdateFlags_None, (void*)&def->textureDisabled, (compRef) ? (void*)&comp->textureDisabled : nullptr};
+
+        ps["colorNormal"] = {PropertyType::Vector4, UpdateFlags_None, (void*)&def->colorNormal, (compRef) ? (void*)&comp->colorNormal : nullptr};
+        ps["colorPressed"] = {PropertyType::Vector4, UpdateFlags_None, (void*)&def->colorPressed, (compRef) ? (void*)&comp->colorPressed : nullptr};
+        ps["colorDisabled"] = {PropertyType::Vector4, UpdateFlags_None, (void*)&def->colorDisabled, (compRef) ? (void*)&comp->colorDisabled : nullptr};
+
+        ps["disabled"] = {PropertyType::Bool, UpdateFlags_None, (void*)&def->disabled, (compRef) ? (void*)&comp->disabled : nullptr};
     }else if (component == ComponentType::SpriteComponent){
         SpriteComponent* comp = static_cast<SpriteComponent*>(compRef);
         static SpriteComponent* def = new SpriteComponent;
@@ -719,6 +733,10 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::findEntityPropertie
         if (UIComponent* compRef = registry->findComponent<UIComponent>(entity)){
             return getProperties(component, compRef);
         }
+    }else if (component == ComponentType::ButtonComponent){
+        if (ButtonComponent* compRef = registry->findComponent<ButtonComponent>(entity)){
+            return getProperties(component, compRef);
+        }
     }else if (component == ComponentType::UILayoutComponent){
         if (UILayoutComponent* compRef = registry->findComponent<UILayoutComponent>(entity)){
             return getProperties(component, compRef);
@@ -836,6 +854,12 @@ void Editor::Catalog::copyComponent(EntityRegistry* sourceRegistry, Entity sourc
         case ComponentType::UIComponent: {
             YAML::Node encoded = Stream::encodeUIComponent(sourceRegistry->getComponent<UIComponent>(sourceEntity));
             targetRegistry->getComponent<UIComponent>(targetEntity) = Stream::decodeUIComponent(encoded);
+            break;
+        }
+
+        case ComponentType::ButtonComponent: {
+            YAML::Node encoded = Stream::encodeButtonComponent(sourceRegistry->getComponent<ButtonComponent>(sourceEntity));
+            targetRegistry->getComponent<ButtonComponent>(targetEntity) = Stream::decodeButtonComponent(encoded);
             break;
         }
 

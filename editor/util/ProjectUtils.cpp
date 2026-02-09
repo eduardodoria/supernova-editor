@@ -317,8 +317,7 @@ void Editor::ProjectUtils::addEntityComponent(EntityRegistry* registry, Entity e
             if (!componentNode.IsDefined() || componentNode.IsNull()){
                 registry->addComponent<ButtonComponent>(entity, {});
             }else{
-                registry->addComponent<ButtonComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                registry->addComponent<ButtonComponent>(entity, Stream::decodeButtonComponent(componentNode));
             }
             break;
         case ComponentType::CameraComponent:
@@ -667,7 +666,7 @@ YAML::Node Editor::ProjectUtils::removeEntityComponent(EntityRegistry* registry,
             break;
         case ComponentType::ButtonComponent:
             if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                oldComponent = Stream::encodeButtonComponent(registry->getComponent<ButtonComponent>(entity));
             }
             registry->removeComponent<ButtonComponent>(entity);
             break;

@@ -616,6 +616,24 @@ std::string Editor::Factory::createUIComponent(int indentSpaces, Scene* scene, E
     return code.str();
 }
 
+std::string Editor::Factory::createButtonComponent(int indentSpaces, Scene* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName) {
+    if (!scene->findComponent<ButtonComponent>(entity)) return "";
+    ButtonComponent& button = scene->getComponent<ButtonComponent>(entity);
+    std::ostringstream code;
+    const std::string ind = indentation(indentSpaces);
+    code << ind << "ButtonComponent button;\n";
+    code << ind << "button.label = " << formatUInt(button.label) << ";\n";
+    code << formatTexture(indentSpaces, button.textureNormal, "button.textureNormal", projectPath);
+    code << formatTexture(indentSpaces, button.texturePressed, "button.texturePressed", projectPath);
+    code << formatTexture(indentSpaces, button.textureDisabled, "button.textureDisabled", projectPath);
+    code << ind << "button.colorNormal = " << formatVector4(button.colorNormal) << ";\n";
+    code << ind << "button.colorPressed = " << formatVector4(button.colorPressed) << ";\n";
+    code << ind << "button.colorDisabled = " << formatVector4(button.colorDisabled) << ";\n";
+    code << ind << "button.disabled = " << formatBool(button.disabled) << ";\n";
+    addComponentCode(code, ind, sceneName, entityName, entity, "ButtonComponent", "button");
+    return code.str();
+}
+
 std::string Editor::Factory::createUILayoutComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<UILayoutComponent>(entity)) return "";
     UILayoutComponent& layout = scene->getComponent<UILayoutComponent>(entity);
@@ -799,6 +817,7 @@ std::string Editor::Factory::createComponent(int indentSpaces, Scene* scene, Ent
         case ComponentType::Transform: return createTransform(indentSpaces, scene, entity, sceneName, entityName);
         case ComponentType::MeshComponent: return createMeshComponent(indentSpaces, scene, entity, projectPath, sceneName, entityName);
         case ComponentType::UIComponent: return createUIComponent(indentSpaces, scene, entity, projectPath, sceneName, entityName);
+        case ComponentType::ButtonComponent: return createButtonComponent(indentSpaces, scene, entity, projectPath, sceneName, entityName);
         case ComponentType::UILayoutComponent: return createUILayoutComponent(indentSpaces, scene, entity, sceneName, entityName);
         case ComponentType::TextComponent: return createTextComponent(indentSpaces, scene, entity, projectPath, sceneName, entityName);
         case ComponentType::ImageComponent: return createImageComponent(indentSpaces, scene, entity, sceneName, entityName);

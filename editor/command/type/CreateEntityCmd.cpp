@@ -12,6 +12,7 @@ Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std
     this->sceneId = sceneId;
     this->entityName = entityName;
     this->entity = NULL_ENTITY;
+    this->childEntity = NULL_ENTITY;
     this->parent = NULL_ENTITY;
     this->type = EntityCreationType::EMPTY;
     this->addToShared = addToShared;
@@ -24,6 +25,7 @@ Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std
     this->sceneId = sceneId;
     this->entityName = entityName;
     this->entity = NULL_ENTITY;
+    this->childEntity = NULL_ENTITY;
     this->parent = NULL_ENTITY;
     this->type = type;
     this->addToShared = addToShared;
@@ -36,6 +38,7 @@ Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std
     this->sceneId = sceneId;
     this->entityName = entityName;
     this->entity = NULL_ENTITY;
+    this->childEntity = NULL_ENTITY;
     this->parent = parent;
     this->type = type;
     this->addToShared = addToShared;
@@ -155,6 +158,47 @@ bool Editor::CreateEntityCmd::execute(){
         textComp.text = "Text";
         textComp.needUpdateText = true;
 
+    }else if (type == EntityCreationType::BUTTON){
+
+        scene->addComponent<Transform>(entity, {});
+        scene->addComponent<UILayoutComponent>(entity, {});
+        scene->addComponent<UIComponent>(entity, {});
+        scene->addComponent<ButtonComponent>(entity, {});
+        scene->addComponent<ImageComponent>(entity, {});
+
+        UILayoutComponent& layout = scene->getComponent<UILayoutComponent>(entity);
+        layout.width = 150;
+        layout.height = 50;
+
+        if (childEntity == NULL_ENTITY){
+            childEntity = scene->createUserEntity();
+        }else{
+            if (!scene->recreateEntity(childEntity)){
+                childEntity = scene->createUserEntity();
+            }
+        }
+
+        scene->setEntityName(childEntity, "Label");
+
+        scene->addComponent<Transform>(childEntity, {});
+        scene->addComponent<UILayoutComponent>(childEntity, {});
+        scene->addComponent<UIComponent>(childEntity, {});
+        scene->addComponent<TextComponent>(childEntity, {});
+
+        scene->addEntityChild(entity, childEntity, false);
+
+        TextComponent& textComp = scene->getComponent<TextComponent>(childEntity);
+        textComp.text = "Button";
+        textComp.needUpdateText = true;
+
+        UILayoutComponent& textLayout = scene->getComponent<UILayoutComponent>(childEntity);
+        textLayout.anchorPreset = AnchorPreset::CENTER;
+        textLayout.ignoreEvents = true;
+        textLayout.usingAnchors = true;
+
+        ButtonComponent& buttonComp = scene->getComponent<ButtonComponent>(entity);
+        buttonComp.label = childEntity;
+
     }else if (type == EntityCreationType::SPRITE){
 
         scene->addComponent<Transform>(entity, {});
@@ -240,6 +284,10 @@ bool Editor::CreateEntityCmd::execute(){
     Catalog::updateEntity(scene, entity, updateFlags);
 
     sceneProject->entities.push_back(entity);
+    if (childEntity != NULL_ENTITY){
+        Catalog::updateEntity(scene, childEntity, updateFlags);
+        sceneProject->entities.push_back(childEntity);
+    }
 
     lastSelected = project->getSelectedEntities(sceneId);
     project->setSelectedEntity(sceneId, entity);
@@ -248,6 +296,9 @@ bool Editor::CreateEntityCmd::execute(){
 
     if (addToShared){
         project->addEntityToSharedGroup(sceneId, entity, parent, false);
+        if (childEntity != NULL_ENTITY){
+            project->addEntityToSharedGroup(sceneId, childEntity, entity, false);
+        }
     }
 
     ImGui::SetWindowFocus(("###Scene" + std::to_string(sceneId)).c_str());
@@ -262,6 +313,9 @@ void Editor::CreateEntityCmd::undo(){
 
     if (sceneProject){
         if (addToShared){
+            if (childEntity != NULL_ENTITY){
+                project->removeEntityFromSharedGroup(sceneId, childEntity, false);
+            }
             project->removeEntityFromSharedGroup(sceneId, entity, false);
         }
 
@@ -269,6 +323,9 @@ void Editor::CreateEntityCmd::undo(){
             sceneProject->mainCamera = NULL_ENTITY;
         }
 
+        if (childEntity != NULL_ENTITY){
+            DeleteEntityCmd::destroyEntity(sceneProject->scene, childEntity, sceneProject->entities, project, sceneId);
+        }
         DeleteEntityCmd::destroyEntity(sceneProject->scene, entity, sceneProject->entities, project, sceneId);
 
         sceneProject->isModified = true;
