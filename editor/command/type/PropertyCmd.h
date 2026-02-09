@@ -7,9 +7,38 @@
 #include "component/Transform.h"
 #include "Catalog.h"
 #include <functional>
+#include <type_traits>
 
 
 namespace Supernova::Editor{
+
+
+    template<typename T, typename = void>
+    struct is_iterable_container : std::false_type {};
+
+    template<typename T>
+    struct is_iterable_container<T, std::void_t<decltype(std::declval<T>().begin()), decltype(std::declval<T>().end()), typename T::value_type>> : std::true_type {};
+
+    template<typename T, typename = void>
+    struct is_equality_comparable : std::false_type {};
+
+    template<typename T>
+    struct is_equality_comparable<T, std::void_t<decltype(std::declval<const T&>() == std::declval<const T&>())>> : std::true_type {};
+
+    template<typename T, typename = void>
+    struct safe_has_equality_operator : std::false_type {};
+
+    template<typename T>
+    struct safe_has_equality_operator<T, std::enable_if_t<!is_iterable_container<T>::value>>
+        : is_equality_comparable<T> {};
+
+    template<typename T>
+    struct safe_has_equality_operator<T, std::enable_if_t<is_iterable_container<T>::value>>
+        : is_equality_comparable<typename T::value_type> {};
+
+    template<typename T>
+    inline constexpr bool has_equality_operator_v = safe_has_equality_operator<T>::value;
+
 
     template<typename T>
     struct PropertyCmdValue{
@@ -55,6 +84,12 @@ namespace Supernova::Editor{
                 value.oldValue = T(*valueRef);
                 *valueRef = value.newValue;
 
+                if constexpr (has_equality_operator_v<T>) {
+                    if (value.oldValue == value.newValue){
+                        continue;
+                    }
+                }
+
                 Catalog::updateEntity(sceneProject->scene, entity, prop.updateFlags);
 
                 if (project->isEntityShared(sceneId, entity)){
@@ -81,6 +116,12 @@ namespace Supernova::Editor{
                 T* valueRef = static_cast<T*>(prop.ref);
 
                 *valueRef = value.oldValue;
+
+                if constexpr (has_equality_operator_v<T>) {
+                    if (value.oldValue == value.newValue){
+                        continue;
+                    }
+                }
 
                 Catalog::updateEntity(sceneProject->scene, entity, prop.updateFlags);
 
