@@ -38,7 +38,9 @@ Editor::DeleteEntityCmd::DeleteEntityCmd(Project* project, uint32_t sceneId, Ent
 }
 
 void Editor::DeleteEntityCmd::destroyEntity(EntityRegistry* registry, Entity entity, std::vector<Entity>& entities, Project* project, uint32_t sceneId){
-    registry->destroyEntity(entity);
+    if (registry->isEntityCreated(entity)){ // locked child are deleted by systems when their parent is deleted
+        registry->destroyEntity(entity);
+    }
 
     auto ite = std::find(entities.begin(), entities.end(), entity);
     if (ite != entities.end()) {
@@ -59,6 +61,20 @@ void Editor::DeleteEntityCmd::destroyEntity(EntityRegistry* registry, Entity ent
 
 bool Editor::DeleteEntityCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
+
+    auto it = entities.begin();
+    while (it != entities.end()) {
+        if (ProjectUtils::isEntityLocked(sceneProject->scene, it->entity)){
+             Out::warning("Cannot delete entity '%u'. It is a locked child of another component.", it->entity);
+             it = entities.erase(it);
+        } else {
+             ++it;
+        }
+    }
+
+    if (entities.empty()){
+        return false;
+    }
 
     lastSelected = project->getSelectedEntities(sceneId);
 

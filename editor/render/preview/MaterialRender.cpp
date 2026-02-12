@@ -5,15 +5,15 @@
 using namespace Supernova;
 
 Editor::MaterialRender::MaterialRender(){
-    scene = new Scene();
+    scene = new Scene(EntityPool::System);
     camera = new Camera(scene);
     light = new Light(scene);
     sphere = new Shape(scene);
 
-    sphere->createSphere(1.0);
-
     scene->setBackgroundColor(0.0, 0.0, 0.0, 0.0);
     scene->setCamera(camera);
+
+    sphere->createSphere(1.0);
 
     light->setDirection(-0.4, -0.5, -0.5);
     light->setIntensity(6.0);

@@ -170,34 +170,16 @@ bool Editor::CreateEntityCmd::execute(){
         layout.width = 150;
         layout.height = 50;
 
-        if (childEntity == NULL_ENTITY){
-            childEntity = scene->createUserEntity();
-        }else{
-            if (!scene->recreateEntity(childEntity)){
-                childEntity = scene->createUserEntity();
-            }
-        }
+        ButtonComponent& buttonComp = scene->getComponent<ButtonComponent>(entity);
+        scene->getSystem<UISystem>()->createButtonObjects(entity, buttonComp);
+
+        childEntity = buttonComp.label;
 
         scene->setEntityName(childEntity, "Label");
-
-        scene->addComponent<Transform>(childEntity, {});
-        scene->addComponent<UILayoutComponent>(childEntity, {});
-        scene->addComponent<UIComponent>(childEntity, {});
-        scene->addComponent<TextComponent>(childEntity, {});
-
-        scene->addEntityChild(entity, childEntity, false);
 
         TextComponent& textComp = scene->getComponent<TextComponent>(childEntity);
         textComp.text = "Button";
         textComp.needUpdateText = true;
-
-        UILayoutComponent& textLayout = scene->getComponent<UILayoutComponent>(childEntity);
-        textLayout.anchorPreset = AnchorPreset::CENTER;
-        textLayout.ignoreEvents = true;
-        textLayout.usingAnchors = true;
-
-        ButtonComponent& buttonComp = scene->getComponent<ButtonComponent>(entity);
-        buttonComp.label = childEntity;
 
     }else if (type == EntityCreationType::SPRITE){
 

@@ -11,7 +11,7 @@ Editor::ToolsLayer::ToolsLayer(bool use2DGizmos){
     gizmoSideSelected = GizmoSideSelected::NONE;
     gizmo2DSideSelected = Gizmo2DSideSelected::NONE;
 
-    scene = new Scene();
+    scene = new Scene(EntityPool::System);
     camera = new Camera(scene);
 
     tGizmo = new TranslateGizmo(scene, use2DGizmos);

@@ -17,7 +17,9 @@ Editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned 
     camera->slide(-50);
     camera->slideUp(-50);
 
+    scene->setDefaultEntityPool(EntityPool::System);
     lines = new Lines(scene);
+    scene->setDefaultEntityPool(EntityPool::User);
 
     createLines(width, height);
 

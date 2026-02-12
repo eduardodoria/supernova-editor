@@ -18,6 +18,11 @@ Editor::MoveEntityOrderCmd::MoveEntityOrderCmd(Project* project, uint32_t sceneI
 bool Editor::MoveEntityOrderCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
+    if (ProjectUtils::isEntityLocked(sceneProject->scene, source)){
+        Editor::Out::warning("Cannot move entity '%u'. It is a locked child of another component.", source);
+        return false;
+    }
+
     if (project->isEntityShared(sceneId, source)){
 
         fs::path sourceSharedPath = project->findGroupPathFor(sceneId, source);

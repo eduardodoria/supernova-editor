@@ -3,7 +3,7 @@
 using namespace Supernova;
 
 Editor::ViewportGizmo::ViewportGizmo(){
-    scene = new Scene();
+    scene = new Scene(EntityPool::System);
     camera = new Camera(scene);
     mainObject = new Object(scene);
     cube = new Shape(scene);

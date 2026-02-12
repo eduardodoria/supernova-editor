@@ -1,5 +1,6 @@
 #include "SceneWindow.h"
 
+#include "Input.h"
 #include "external/IconsFontAwesome6.h"
 #include "Backend.h"
 #include "util/Util.h"
@@ -298,6 +299,34 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
     // Check if the mouse is within the window bounds
     bool isMouseInWindow = ImGui::IsWindowHovered() && (mousePos.x >= windowPos.x && mousePos.x <= windowPos.x + windowSize.x &&
                             mousePos.y >= windowPos.y && mousePos.y <= windowPos.y + windowSize.y);
+
+    // When scene is playing, forward mouse events to Engine
+    if (sceneProject->playState == ScenePlayState::PLAYING && isMouseInWindow) {
+        float x = mousePos.x - windowPos.x;
+        float y = mousePos.y - windowPos.y;
+
+        int mods = 0;
+        if (io.KeyShift) mods |= S_MODIFIER_SHIFT;
+        if (io.KeyCtrl) mods |= S_MODIFIER_CONTROL;
+        if (io.KeyAlt) mods |= S_MODIFIER_ALT;
+        if (io.KeySuper) mods |= S_MODIFIER_SUPER;
+
+        Engine::systemMouseMove(x, y, mods);
+
+        if (mouseWheel != 0) {
+            Engine::systemMouseScroll(0, mouseWheel, mods);
+        }
+
+        for (int i = 0; i < 5; i++) {
+            if (ImGui::IsMouseClicked(i)) {
+                Engine::systemMouseDown(i, x, y, mods);
+            }
+            if (ImGui::IsMouseReleased(i)) {
+                Engine::systemMouseUp(i, x, y, mods);
+            }
+        }
+        return;
+    }
 
     size_t sceneId = sceneProject->id;
 
@@ -717,9 +746,10 @@ void Editor::SceneWindow::show() {
                         }
                     }
 
-                    sceneEventHandler(&sceneProject);
                     handleResourceFileDragDrop(&sceneProject);
                 }
+
+                sceneEventHandler(&sceneProject);
             }
             ImGui::EndChild();
         }else{

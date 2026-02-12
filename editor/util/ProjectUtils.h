@@ -32,6 +32,9 @@ private:
     }
 
 public:
+
+    static bool isEntityLocked(Scene* scene, Entity entity);
+
     static size_t getTransformIndex(EntityRegistry* registry, Entity entity);
     static void sortEntitiesByTransformOrder(EntityRegistry* registry, std::vector<Entity>& entities);
 

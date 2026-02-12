@@ -6,10 +6,9 @@
 using namespace Supernova;
 
 Editor::MeshPreviewRender::MeshPreviewRender(){
-    scene = new Scene();
+    scene = new Scene(EntityPool::System);
     camera = new Camera(scene);
     light = new Light(scene);
-    
     mesh = new Mesh(scene);
 
     scene->setBackgroundColor(0.0, 0.0, 0.0, 0.0);

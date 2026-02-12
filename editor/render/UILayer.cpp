@@ -5,7 +5,7 @@ using namespace Supernova;
 Editor::UILayer::UILayer(bool enableViewGizmo){
     Vector3 rectColor = Vector3(0.3, 0.1, 0.2);
 
-    scene = new Scene();
+    scene = new Scene(EntityPool::System);
     camera = new Camera(scene);
 
     selectionRect = new Object(scene);

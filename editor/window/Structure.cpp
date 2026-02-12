@@ -16,6 +16,7 @@
 #include "util/EntityPayload.h"
 #include "util/UIUtils.h"
 #include "util/Util.h"
+#include "util/ProjectUtils.h"
 #include "Out.h"
 #include "Stream.h"
 #include <algorithm>
@@ -402,6 +403,9 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     if (hasSearch && node.matchesSearch) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 0.5f, 1.0f)); // Yellow for search matches
         pushedHighlightColor = true;
+    } else if (!node.isScene && !node.isChildScene && ProjectUtils::isEntityLocked(project->getSelectedScene()->scene, node.id)) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]); // Use theme's disabled color
+        pushedHighlightColor = true;
     } else if (node.isChildScene) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 0.80f, 0.85f, 1.0f)); // Soft teal for child scenes
         pushedHighlightColor = true;
@@ -446,10 +450,13 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         }
     }
 
-    if (!node.isChildScene && ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
-        // Add entity drag drop payload for dragging to resources
-        if (!node.isScene) {
-            SceneProject* sceneProject = project->getSelectedScene();
+    if (!node.isChildScene) {
+        bool isLocked = !node.isScene && ProjectUtils::isEntityLocked(project->getSelectedScene()->scene, node.id);
+
+        if (!isLocked && ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+            // Add entity drag drop payload for dragging to resources
+            if (!node.isScene) {
+                SceneProject* sceneProject = project->getSelectedScene();
             YAML::Node entityData = Stream::encodeEntity(node.id, sceneProject->scene, project, sceneProject);
             std::string yamlString = YAML::Dump(entityData);
 
@@ -469,6 +476,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
 
         ImGui::Text("Moving %s", node.name.c_str());
         ImGui::EndDragDropSource();
+    }
     }
 
     bool insertBefore = false;
@@ -730,7 +738,8 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
             if (ImGui::MenuItem(ICON_FA_COPY"  Duplicate")){
                 // Action for SubItem 1
             }
-            if (ImGui::MenuItem(ICON_FA_TRASH"  Delete")){
+            bool isLocked = ProjectUtils::isEntityLocked(project->getSelectedScene()->scene, node.id);
+            if (ImGui::MenuItem(ICON_FA_TRASH"  Delete", nullptr, false, !isLocked)){
                 if (!node.isScene){
                     CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new DeleteEntityCmd(project, project->getSelectedSceneId(), node.id));
                 }

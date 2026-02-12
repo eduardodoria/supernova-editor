@@ -5,7 +5,7 @@
 using namespace Supernova;
 
 Editor::DirectionRender::DirectionRender(){
-    scene = new Scene();
+    scene = new Scene(EntityPool::System);
     camera = new Camera(scene);
     light = new Light(scene);
     

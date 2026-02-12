@@ -4,6 +4,9 @@
 #include "Catalog.h"
 #include "Stream.h"
 
+#include "component/ButtonComponent.h"
+#include "component/Transform.h"
+
 #include <algorithm>
 #include <cctype>
 
@@ -85,6 +88,33 @@ bool Editor::ProjectUtils::pushEntityHandleByPtrTypeName(lua_State* L, Scene* sc
     if (typeKey == "camera") return pushEntityHandleTyped<Camera>(L, scene, entity, "Camera");
 
     return pushEntityHandleTyped<EntityHandle>(L, scene, entity, "EntityHandle");
+}
+
+bool Editor::ProjectUtils::isEntityLocked(Scene* scene, Entity entity){
+    if (entity == NULL_ENTITY)
+        return false;
+
+    Signature signature = scene->getSignature(entity);
+    if (!signature.test(scene->getComponentId<Transform>())){
+        return false;
+    }
+
+    Transform& transform = scene->getComponent<Transform>(entity);
+    if (transform.parent == NULL_ENTITY){
+        return false;
+    }
+
+    Entity parent = transform.parent;
+    Signature parentSignature = scene->getSignature(parent);
+
+    if (parentSignature.test(scene->getComponentId<ButtonComponent>())){
+        ButtonComponent& button = scene->getComponent<ButtonComponent>(parent);
+        if (button.label == entity){
+            return true;
+        }
+    }
+
+    return false;
 }
 
 size_t Editor::ProjectUtils::getTransformIndex(EntityRegistry* registry, Entity entity){
