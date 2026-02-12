@@ -51,6 +51,9 @@ namespace Supernova::Editor {
         static std::string lightStateToString(LightState state);
         static LightState stringToLightState(const std::string& str);
 
+        static std::string uiEventStateToString(UIEventState state);
+        static UIEventState stringToUIEventState(const std::string& str);
+
         static std::string cameraTypeToString(CameraType type);
         static CameraType stringToCameraType(const std::string& str);
 

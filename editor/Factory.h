@@ -26,6 +26,7 @@ namespace Supernova::Editor{
         static std::string formatPivotPreset(PivotPreset preset);
         static std::string formatLightType(LightType type);
         static std::string formatLightState(LightState state);
+        static std::string formatUIEventState(UIEventState state);
         static std::string formatCameraType(CameraType type);
         static std::string formatScriptType(ScriptType type);
         static std::string formatQuaternion(const Quaternion& q);

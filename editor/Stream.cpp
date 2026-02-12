@@ -283,6 +283,22 @@ LightState Editor::Stream::stringToLightState(const std::string& str) {
     return LightState::AUTO; // Default
 }
 
+std::string Editor::Stream::uiEventStateToString(UIEventState state) {
+    switch (state) {
+        case UIEventState::NOT_SET: return "not_set";
+        case UIEventState::ENABLED: return "true";
+        case UIEventState::DISABLED: return "false";
+        default: return "not_set";
+    }
+}
+
+UIEventState Editor::Stream::stringToUIEventState(const std::string& str) {
+    if (str == "not_set") return UIEventState::NOT_SET;
+    if (str == "true") return UIEventState::ENABLED;
+    if (str == "false") return UIEventState::DISABLED;
+    return UIEventState::NOT_SET; // Default
+}
+
 std::string Editor::Stream::cameraTypeToString(CameraType type) {
     switch (type) {
         case CameraType::CAMERA_2D: return "camera_2d";
@@ -942,7 +958,7 @@ YAML::Node Editor::Stream::encodeScene(Scene* scene) {
     sceneNode["lightState"] = lightStateToString(scene->getLightState());
     sceneNode["globalIlluminationIntensity"] = scene->getGlobalIlluminationIntensity();
     sceneNode["globalIlluminationColor"] = encodeVector3(scene->getGlobalIlluminationColor());
-    sceneNode["enableUIEvents"] = scene->isEnableUIEvents();
+    sceneNode["enableUIEvents"] = uiEventStateToString(scene->getEnableUIEvents());
 
     return sceneNode;
 }
@@ -976,7 +992,7 @@ Scene* Editor::Stream::decodeScene(Scene* scene, const YAML::Node& node) {
     }
 
     if (node["enableUIEvents"]) {
-        scene->setEnableUIEvents(node["enableUIEvents"].as<bool>());
+        scene->setEnableUIEvents(stringToUIEventState(node["enableUIEvents"].as<std::string>()));
     }
 
     return scene;
