@@ -219,10 +219,10 @@ std::string Editor::Factory::formatUIEventState(UIEventState state) {
 
 std::string Editor::Factory::formatCameraType(CameraType type) {
     switch (type) {
-        case CameraType::CAMERA_2D: return "CameraType::CAMERA_2D";
+        case CameraType::CAMERA_UI: return "CameraType::CAMERA_UI";
         case CameraType::CAMERA_ORTHO: return "CameraType::CAMERA_ORTHO";
         case CameraType::CAMERA_PERSPECTIVE: return "CameraType::CAMERA_PERSPECTIVE";
-        default: return "CameraType::CAMERA_2D";
+        default: return "CameraType::CAMERA_UI";
     }
 }
 

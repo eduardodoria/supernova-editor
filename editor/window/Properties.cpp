@@ -3042,7 +3042,7 @@ void Editor::Properties::drawCameraComponent(ComponentType cpType, SceneProject*
         propertyRow(RowPropertyType::Float, cpType, "aspect", "Aspect", sceneProject, entities, defaultSettings);
     }
 
-    if (camera.type == CameraType::CAMERA_ORTHO || camera.type == CameraType::CAMERA_2D) {
+    if (camera.type == CameraType::CAMERA_ORTHO || camera.type == CameraType::CAMERA_UI) {
         propertyRow(RowPropertyType::Float, cpType, "left", "Left", sceneProject, entities, defaultSettings);
         propertyRow(RowPropertyType::Float, cpType, "right", "Right", sceneProject, entities, defaultSettings);
         propertyRow(RowPropertyType::Float, cpType, "bottom", "Bottom", sceneProject, entities, defaultSettings);

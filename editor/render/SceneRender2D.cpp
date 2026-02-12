@@ -9,7 +9,7 @@ Editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned 
     this->isUI = isUI;
 
     if (isUI){
-        camera->setType(CameraType::CAMERA_2D);
+        camera->setType(CameraType::CAMERA_UI);
     }else{
         camera->setType(CameraType::CAMERA_ORTHO);
     }

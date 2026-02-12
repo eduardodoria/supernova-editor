@@ -75,7 +75,7 @@ Entity Editor::Project::createDefaultCamera(SceneType type, Scene* scene) const 
 
     switch (type) {
         case SceneType::SCENE_UI:
-            camera.type = CameraType::CAMERA_2D;
+            camera.type = CameraType::CAMERA_UI;
             break;
         case SceneType::SCENE_2D:
             camera.type = CameraType::CAMERA_ORTHO;

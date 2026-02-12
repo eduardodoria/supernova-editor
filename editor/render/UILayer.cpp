@@ -31,7 +31,7 @@ Editor::UILayer::UILayer(bool enableViewGizmo){
     // to avoid try to load every frame (without vertices)
     updateRect(Vector2::ZERO, Vector2::ZERO);
     
-    camera->setType(CameraType::CAMERA_2D);
+    camera->setType(CameraType::CAMERA_UI);
 
     if (enableViewGizmo){
         viewGizmoImage = new Image(scene);

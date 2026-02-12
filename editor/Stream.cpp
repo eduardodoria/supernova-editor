@@ -301,18 +301,18 @@ UIEventState Editor::Stream::stringToUIEventState(const std::string& str) {
 
 std::string Editor::Stream::cameraTypeToString(CameraType type) {
     switch (type) {
-        case CameraType::CAMERA_2D: return "camera_2d";
+        case CameraType::CAMERA_UI: return "camera_ui";
         case CameraType::CAMERA_ORTHO: return "camera_ortho";
         case CameraType::CAMERA_PERSPECTIVE: return "camera_perspective";
-        default: return "camera_2d";
+        default: return "camera_perspective";
     }
 }
 
 CameraType Editor::Stream::stringToCameraType(const std::string& str) {
-    if (str == "camera_2d") return CameraType::CAMERA_2D;
+    if (str == "camera_ui") return CameraType::CAMERA_UI;
     if (str == "camera_ortho") return CameraType::CAMERA_ORTHO;
     if (str == "camera_perspective") return CameraType::CAMERA_PERSPECTIVE;
-    return CameraType::CAMERA_2D;
+    return CameraType::CAMERA_PERSPECTIVE;
 }
 
 std::string Editor::Stream::pivotPresetToString(PivotPreset preset) {

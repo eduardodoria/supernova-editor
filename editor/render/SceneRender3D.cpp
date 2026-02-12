@@ -21,7 +21,7 @@ Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, tr
 
     createLines();
 
-    //camera->setType(CameraType::CAMERA_2D);
+    //camera->setType(CameraType::CAMERA_UI);
     camera->setPosition(10, 4, 10);
     camera->setTarget(0, 0, 0);
 
@@ -207,7 +207,7 @@ void Editor::SceneRender3D::createCameraFrustum(Entity entity, const Transform& 
     co.lines->setRotation(rotation);
 
     // Don't draw frustum for 2D cameras
-    if (cameraComponent.type == CameraType::CAMERA_2D) {
+    if (cameraComponent.type == CameraType::CAMERA_UI) {
         co.lines->clearLines();
         return;
     }
