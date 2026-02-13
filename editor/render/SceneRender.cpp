@@ -537,36 +537,36 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                     bool isLayout = scene->getComponentArray<UILayoutComponent>()->hasEntity(entity);
                     bool isText = scene->getComponentArray<TextComponent>()->hasEntity(entity);
 
-                    Vector3 newPos = gizmoRMatrix.inverse() * ((rretrun.point + cursorStartOffset) - gizmoPosition);
+                    Vector3 newPos = gizmoRMatrix.inverse() * ((rretrun.point + cursorStartOffset) - gizmoStartPosition);
 
                     Vector3 newSize = gizmoRMatrix.inverse() * -(gizmoStartPosition - rretrun.point - cursorStartOffset);
 
                     if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::CENTER){
-                        newPos = gizmoPosition + (gizmoRMatrix * newPos);
+                        newPos = gizmoStartPosition + (gizmoRMatrix * newPos);
                         newSize = Vector3(0, 0, 0);
                     }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::NX){
-                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(newPos.x, 0, 0));
+                        newPos = gizmoStartPosition + (gizmoRMatrix * Vector3(newPos.x, 0, 0));
                         newSize = Vector3(-newSize.x, 0, 0);
                     }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::NY){
-                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(0, newPos.y, 0));
+                        newPos = gizmoStartPosition + (gizmoRMatrix * Vector3(0, newPos.y, 0));
                         newSize = Vector3(0, -newSize.y, 0);
                     }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::PX){
-                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(0, 0, 0));
+                        newPos = gizmoStartPosition + (gizmoRMatrix * Vector3(0, 0, 0));
                         newSize = Vector3(newSize.x, 0, 0);
                     }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::PY){
-                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(0, 0, 0));
+                        newPos = gizmoStartPosition + (gizmoRMatrix * Vector3(0, 0, 0));
                         newSize = Vector3(0, newSize.y, 0);
                     }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::NX_NY){
-                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(newPos.x, newPos.y, 0));
+                        newPos = gizmoStartPosition + (gizmoRMatrix * Vector3(newPos.x, newPos.y, 0));
                         newSize = Vector3(-newSize.x, -newSize.y, 0);
                     }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::NX_PY){
-                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(newPos.x, 0, 0));
+                        newPos = gizmoStartPosition + (gizmoRMatrix * Vector3(newPos.x, 0, 0));
                         newSize = Vector3(-newSize.x, newSize.y, 0);
                     }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::PX_NY){
-                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(0, newPos.y, 0));
+                        newPos = gizmoStartPosition + (gizmoRMatrix * Vector3(0, newPos.y, 0));
                         newSize = Vector3(newSize.x, -newSize.y, 0);
                     }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::PX_PY){
-                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(0, 0, 0));
+                        newPos = gizmoStartPosition + (gizmoRMatrix * Vector3(0, 0, 0));
                         newSize = Vector3(newSize.x, newSize.y, 0);
                     }
 
@@ -587,6 +587,19 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
 
                     if (size.x < 0) size.x = 0;
                     if (size.y < 0) size.y = 0;
+
+                    if (isText){
+                        TextComponent& text = scene->getComponent<TextComponent>(entity);
+                        if (text.pivotCentered){
+                            float widthDelta = size.x - objectSizeOffset[entity].x;
+                            Gizmo2DSideSelected side = toolslayer.getGizmo2DSideSelected();
+                            if (side == Gizmo2DSideSelected::NX || side == Gizmo2DSideSelected::NX_NY || side == Gizmo2DSideSelected::NX_PY) {
+                                pos.x += widthDelta * 0.5f;
+                            }else if (side == Gizmo2DSideSelected::PX || side == Gizmo2DSideSelected::PX_NY || side == Gizmo2DSideSelected::PX_PY) {
+                                pos.x += widthDelta * 0.5f;
+                            }
+                        }
+                    }
 
                     if (toolslayer.getGizmo2DSideSelected() != Gizmo2DSideSelected::NONE){
                         MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
