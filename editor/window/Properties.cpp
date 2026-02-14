@@ -47,6 +47,26 @@ static std::vector<Editor::EnumEntry> entriesPivotPreset = {
     { (int)PivotPreset::BOTTOM_RIGHT, "Bottom Right" }
 };
 
+static std::vector<Editor::EnumEntry> entriesAnchorPreset = {
+    { (int)AnchorPreset::NONE, "None" },
+    { (int)AnchorPreset::TOP_LEFT, "Top Left" },
+    { (int)AnchorPreset::TOP_RIGHT, "Top Right" },
+    { (int)AnchorPreset::BOTTOM_LEFT, "Bottom Left" },
+    { (int)AnchorPreset::BOTTOM_RIGHT, "Bottom Right" },
+    { (int)AnchorPreset::CENTER_LEFT, "Center Left" },
+    { (int)AnchorPreset::CENTER_TOP, "Center Top" },
+    { (int)AnchorPreset::CENTER_RIGHT, "Center Right" },
+    { (int)AnchorPreset::CENTER_BOTTOM, "Center Bottom" },
+    { (int)AnchorPreset::CENTER, "Center" },
+    { (int)AnchorPreset::LEFT_WIDE, "Left Wide" },
+    { (int)AnchorPreset::TOP_WIDE, "Top Wide" },
+    { (int)AnchorPreset::RIGHT_WIDE, "Right Wide" },
+    { (int)AnchorPreset::BOTTOM_WIDE, "Bottom Wide" },
+    { (int)AnchorPreset::VERTICAL_CENTER_WIDE, "Vertical Center Wide" },
+    { (int)AnchorPreset::HORIZONTAL_CENTER_WIDE, "Horizontal Center Wide" },
+    { (int)AnchorPreset::FULL_LAYOUT, "Full Layout" }
+};
+
 static std::vector<Editor::EnumEntry> entriesLightType = {
     { (int)LightType::DIRECTIONAL, "Directional" },
     { (int)LightType::POINT, "Point" },
@@ -2956,14 +2976,41 @@ void Editor::Properties::drawTextComponent(ComponentType cpType, SceneProject* s
 }
 
 void Editor::Properties::drawUILayoutComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
-    RowSettings settings;
-    settings.stepSize = 1.0f;
-    settings.secondColSize = 6 * ImGui::GetFontSize();
+    RowSettings settingsInt;
+    settingsInt.stepSize = 1.0f;
+    settingsInt.secondColSize = 6 * ImGui::GetFontSize();
+
+    RowSettings settingsAnchorPreset;
+    settingsAnchorPreset.enumEntries = &entriesAnchorPreset;
+
+    RowSettings settingsAnchorPoint;
+    settingsAnchorPoint.stepSize = 0.01f;
+    settingsAnchorPoint.secondColSize = 6 * ImGui::GetFontSize();
+
+    RowSettings settingsOffset;
+    settingsOffset.stepSize = 1.0f;
+    settingsOffset.secondColSize = 6 * ImGui::GetFontSize();
+
+    RowSettings settingsPositionOffset;
+    settingsPositionOffset.stepSize = 1.0f;
+    settingsPositionOffset.secondColSize = 6 * ImGui::GetFontSize();
 
     beginTable(cpType, getLabelSize("Ignore Scissor"));
-    propertyRow(RowPropertyType::UInt, cpType, "width", "Width", sceneProject, entities, settings);
-    propertyRow(RowPropertyType::UInt, cpType, "height", "Height", sceneProject, entities, settings);
+    propertyRow(RowPropertyType::UInt, cpType, "width", "Width", sceneProject, entities, settingsInt);
+    propertyRow(RowPropertyType::UInt, cpType, "height", "Height", sceneProject, entities, settingsInt);
+    propertyRow(RowPropertyType::Bool, cpType, "usingAnchors", "Use Anchors", sceneProject, entities);
+    propertyRow(RowPropertyType::Enum, cpType, "anchorPreset", "Preset", sceneProject, entities, settingsAnchorPreset);
+    propertyRow(RowPropertyType::Float_0_1, cpType, "anchorPointLeft", "Anchor Left", sceneProject, entities, settingsAnchorPoint);
+    propertyRow(RowPropertyType::Float_0_1, cpType, "anchorPointTop", "Anchor Top", sceneProject, entities, settingsAnchorPoint);
+    propertyRow(RowPropertyType::Float_0_1, cpType, "anchorPointRight", "Anchor Right", sceneProject, entities, settingsAnchorPoint);
+    propertyRow(RowPropertyType::Float_0_1, cpType, "anchorPointBottom", "Anchor Bottom", sceneProject, entities, settingsAnchorPoint);
+    propertyRow(RowPropertyType::Int, cpType, "anchorOffsetLeft", "Offset Left", sceneProject, entities, settingsOffset);
+    propertyRow(RowPropertyType::Int, cpType, "anchorOffsetTop", "Offset Top", sceneProject, entities, settingsOffset);
+    propertyRow(RowPropertyType::Int, cpType, "anchorOffsetRight", "Offset Right", sceneProject, entities, settingsOffset);
+    propertyRow(RowPropertyType::Int, cpType, "anchorOffsetBottom", "Offset Bottom", sceneProject, entities, settingsOffset);
+    propertyRow(RowPropertyType::Vector2, cpType, "positionOffset", "Position Offset", sceneProject, entities, settingsPositionOffset);
     propertyRow(RowPropertyType::Bool, cpType, "ignoreScissor", "Ignore Scissor", sceneProject, entities);
+    propertyRow(RowPropertyType::Bool, cpType, "ignoreEvents", "Ignore Events", sceneProject, entities);
     endTable();
 }
 

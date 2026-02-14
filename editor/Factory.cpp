@@ -190,6 +190,29 @@ std::string Editor::Factory::formatPivotPreset(PivotPreset preset) {
     }
 }
 
+std::string Editor::Factory::formatAnchorPreset(AnchorPreset preset) {
+    switch (preset) {
+        case AnchorPreset::NONE: return "AnchorPreset::NONE";
+        case AnchorPreset::TOP_LEFT: return "AnchorPreset::TOP_LEFT";
+        case AnchorPreset::TOP_RIGHT: return "AnchorPreset::TOP_RIGHT";
+        case AnchorPreset::BOTTOM_LEFT: return "AnchorPreset::BOTTOM_LEFT";
+        case AnchorPreset::BOTTOM_RIGHT: return "AnchorPreset::BOTTOM_RIGHT";
+        case AnchorPreset::CENTER_LEFT: return "AnchorPreset::CENTER_LEFT";
+        case AnchorPreset::CENTER_TOP: return "AnchorPreset::CENTER_TOP";
+        case AnchorPreset::CENTER_RIGHT: return "AnchorPreset::CENTER_RIGHT";
+        case AnchorPreset::CENTER_BOTTOM: return "AnchorPreset::CENTER_BOTTOM";
+        case AnchorPreset::CENTER: return "AnchorPreset::CENTER";
+        case AnchorPreset::LEFT_WIDE: return "AnchorPreset::LEFT_WIDE";
+        case AnchorPreset::TOP_WIDE: return "AnchorPreset::TOP_WIDE";
+        case AnchorPreset::RIGHT_WIDE: return "AnchorPreset::RIGHT_WIDE";
+        case AnchorPreset::BOTTOM_WIDE: return "AnchorPreset::BOTTOM_WIDE";
+        case AnchorPreset::VERTICAL_CENTER_WIDE: return "AnchorPreset::VERTICAL_CENTER_WIDE";
+        case AnchorPreset::HORIZONTAL_CENTER_WIDE: return "AnchorPreset::HORIZONTAL_CENTER_WIDE";
+        case AnchorPreset::FULL_LAYOUT: return "AnchorPreset::FULL_LAYOUT";
+        default: return "AnchorPreset::NONE";
+    }
+}
+
 std::string Editor::Factory::formatLightType(LightType type) {
     switch (type) {
         case LightType::DIRECTIONAL: return "LightType::DIRECTIONAL";
@@ -651,7 +674,19 @@ std::string Editor::Factory::createUILayoutComponent(int indentSpaces, Scene* sc
     code << ind << "UILayoutComponent layout;\n";
     code << ind << "layout.width = " << formatUInt(layout.width) << ";\n";
     code << ind << "layout.height = " << formatUInt(layout.height) << ";\n";
+    code << ind << "layout.anchorPointLeft = " << formatFloat(layout.anchorPointLeft) << ";\n";
+    code << ind << "layout.anchorPointTop = " << formatFloat(layout.anchorPointTop) << ";\n";
+    code << ind << "layout.anchorPointRight = " << formatFloat(layout.anchorPointRight) << ";\n";
+    code << ind << "layout.anchorPointBottom = " << formatFloat(layout.anchorPointBottom) << ";\n";
+    code << ind << "layout.anchorOffsetLeft = " << formatInt(layout.anchorOffsetLeft) << ";\n";
+    code << ind << "layout.anchorOffsetTop = " << formatInt(layout.anchorOffsetTop) << ";\n";
+    code << ind << "layout.anchorOffsetRight = " << formatInt(layout.anchorOffsetRight) << ";\n";
+    code << ind << "layout.anchorOffsetBottom = " << formatInt(layout.anchorOffsetBottom) << ";\n";
+    code << ind << "layout.positionOffset = " << formatVector2(layout.positionOffset) << ";\n";
+    code << ind << "layout.anchorPreset = " << formatAnchorPreset(layout.anchorPreset) << ";\n";
+    code << ind << "layout.usingAnchors = " << formatBool(layout.usingAnchors) << ";\n";
     code << ind << "layout.ignoreScissor = " << formatBool(layout.ignoreScissor) << ";\n";
+    code << ind << "layout.ignoreEvents = " << formatBool(layout.ignoreEvents) << ";\n";
     addComponentCode(code, ind, sceneName, entityName, entity, "UILayoutComponent", "layout");
     return code.str();
 }
