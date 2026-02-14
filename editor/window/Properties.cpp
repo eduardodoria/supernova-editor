@@ -2937,14 +2937,21 @@ void Editor::Properties::drawTextComponent(ComponentType cpType, SceneProject* s
     propertyRow(RowPropertyType::Bool, cpType, "multiline", "Multiline", sceneProject, entities);
     endTable();
 
-    ImGui::SeparatorText("Text settings");
+    ImGui::SeparatorText("Fixed size");
+    beginTable(cpType, getLabelSize("Height"), "text_settings_fixed");
+    propertyRow(RowPropertyType::Bool, cpType, "fixedWidth", "Width", sceneProject, entities);
+    propertyRow(RowPropertyType::Bool, cpType, "fixedHeight", "Height", sceneProject, entities);
+    endTable();
 
-    beginTable(cpType, getLabelSize("MaxTextSize"), "text_settings");
-    propertyRow(RowPropertyType::Bool, cpType, "fixedWidth", "FixedWidth", sceneProject, entities);
-    propertyRow(RowPropertyType::Bool, cpType, "fixedHeight", "FixedHeight", sceneProject, entities);
-    propertyRow(RowPropertyType::Bool, cpType, "pivotBaseline", "PivotBaseline", sceneProject, entities);
-    propertyRow(RowPropertyType::Bool, cpType, "pivotCentered", "PivotCentered", sceneProject, entities);
-    propertyRow(RowPropertyType::UInt, cpType, "maxTextSize", "MaxTextSize", sceneProject, entities, settingsInt);
+    ImGui::SeparatorText("Pivot");
+    beginTable(cpType, getLabelSize("Baseline"), "text_settings_pivot");
+    propertyRow(RowPropertyType::Bool, cpType, "pivotBaseline", "Baseline", sceneProject, entities);
+    propertyRow(RowPropertyType::Bool, cpType, "pivotCentered", "Center", sceneProject, entities);
+    endTable();
+
+    ImGui::SeparatorText("Advanced settings");
+    beginTable(cpType, getLabelSize("Max. text size"), "text_settings_size");
+    propertyRow(RowPropertyType::UInt, cpType, "maxTextSize", "Max. text size", sceneProject, entities, settingsInt);
     endTable();
 }
 
