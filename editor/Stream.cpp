@@ -1,6 +1,7 @@
 #include "Stream.h"
 
 #include "Base64.h"
+#include "Catalog.h"
 #include "Out.h"
 #include "util/ProjectUtils.h"
 
@@ -1410,123 +1411,159 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
 
     compName = Catalog::getComponentName(ComponentType::Transform, true);
     if (compNode[compName]) {
-        Transform transform = decodeTransform(compNode[compName], registry->findComponent<Transform>(entity));
+        Transform* existing = registry->findComponent<Transform>(entity);
+        Transform transform = decodeTransform(compNode[compName], existing);
         transform.parent = parent;
         if (!signature.test(registry->getComponentId<Transform>())){
             registry->addComponent<Transform>(entity, transform);
         }else{
+            int flags = Catalog::getChangedUpdateFlags(ComponentType::Transform, existing, &transform);
             registry->addEntityChild(transform.parent, entity, false);
             registry->getComponent<Transform>(entity) = transform;
+            Catalog::updateEntity(registry, entity, flags);
         }
     }
 
     compName = Catalog::getComponentName(ComponentType::MeshComponent, true);
     if (compNode[compName]) {
-        MeshComponent mesh = decodeMeshComponent(compNode[compName], registry->findComponent<MeshComponent>(entity));
+        MeshComponent* existing = registry->findComponent<MeshComponent>(entity);
+        MeshComponent mesh = decodeMeshComponent(compNode[compName], existing);
         if (!signature.test(registry->getComponentId<MeshComponent>())){
             registry->addComponent<MeshComponent>(entity, mesh);
         }else{
+            int flags = Catalog::getChangedUpdateFlags(ComponentType::MeshComponent, existing, &mesh);
             registry->getComponent<MeshComponent>(entity) = mesh;
+            Catalog::updateEntity(registry, entity, flags);
         }
     }
 
     compName = Catalog::getComponentName(ComponentType::UIComponent, true);
     if (compNode[compName]) {
-        UIComponent ui = decodeUIComponent(compNode[compName], registry->findComponent<UIComponent>(entity));
+        UIComponent* existing = registry->findComponent<UIComponent>(entity);
+        UIComponent ui = decodeUIComponent(compNode[compName], existing);
         if (!signature.test(registry->getComponentId<UIComponent>())){
             registry->addComponent<UIComponent>(entity, ui);
         }else{
+            int flags = Catalog::getChangedUpdateFlags(ComponentType::UIComponent, existing, &ui);
             registry->getComponent<UIComponent>(entity) = ui;
+            Catalog::updateEntity(registry, entity, flags);
         }
     }
 
     compName = Catalog::getComponentName(ComponentType::ButtonComponent, true);
     if (compNode[compName]) {
-        ButtonComponent button = decodeButtonComponent(compNode[compName], registry->findComponent<ButtonComponent>(entity));
+        ButtonComponent* existing = registry->findComponent<ButtonComponent>(entity);
+        ButtonComponent button = decodeButtonComponent(compNode[compName], existing);
         if (!signature.test(registry->getComponentId<ButtonComponent>())){
             registry->addComponent<ButtonComponent>(entity, button);
         }else{
+            int flags = Catalog::getChangedUpdateFlags(ComponentType::ButtonComponent, existing, &button);
             registry->getComponent<ButtonComponent>(entity) = button;
+            Catalog::updateEntity(registry, entity, flags);
         }
     }
 
     compName = Catalog::getComponentName(ComponentType::UILayoutComponent, true);
     if (compNode[compName]) {
-        UILayoutComponent layout = decodeUILayoutComponent(compNode[compName], registry->findComponent<UILayoutComponent>(entity));
+        UILayoutComponent* existing = registry->findComponent<UILayoutComponent>(entity);
+        UILayoutComponent layout = decodeUILayoutComponent(compNode[compName], existing);
         if (!signature.test(registry->getComponentId<UILayoutComponent>())){
             registry->addComponent<UILayoutComponent>(entity, layout);
         }else{
+            int flags = Catalog::getChangedUpdateFlags(ComponentType::UILayoutComponent, existing, &layout);
             registry->getComponent<UILayoutComponent>(entity) = layout;
+            Catalog::updateEntity(registry, entity, flags);
         }
     }
 
     compName = Catalog::getComponentName(ComponentType::TextComponent, true);
     if (compNode[compName]) {
-        TextComponent text = decodeTextComponent(compNode[compName], registry->findComponent<TextComponent>(entity));
+        TextComponent* existing = registry->findComponent<TextComponent>(entity);
+        TextComponent text = decodeTextComponent(compNode[compName], existing);
         if (!signature.test(registry->getComponentId<TextComponent>())){
             registry->addComponent<TextComponent>(entity, text);
         }else{
+            int flags = Catalog::getChangedUpdateFlags(ComponentType::TextComponent, existing, &text);
             registry->getComponent<TextComponent>(entity) = text;
+            Catalog::updateEntity(registry, entity, flags);
         }
     }
 
     compName = Catalog::getComponentName(ComponentType::ImageComponent, true);
     if (compNode[compName]) {
-        ImageComponent image = decodeImageComponent(compNode[compName], registry->findComponent<ImageComponent>(entity));
+        ImageComponent* existing = registry->findComponent<ImageComponent>(entity);
+        ImageComponent image = decodeImageComponent(compNode[compName], existing);
         if (!signature.test(registry->getComponentId<ImageComponent>())){
             registry->addComponent<ImageComponent>(entity, image);
         }else{
+            int flags = Catalog::getChangedUpdateFlags(ComponentType::ImageComponent, existing, &image);
             registry->getComponent<ImageComponent>(entity) = image;
+            Catalog::updateEntity(registry, entity, flags);
         }
     }
 
     compName = Catalog::getComponentName(ComponentType::SpriteComponent, true);
     if (compNode[compName]) {
-        SpriteComponent sprite = decodeSpriteComponent(compNode[compName], registry->findComponent<SpriteComponent>(entity));
+        SpriteComponent* existing = registry->findComponent<SpriteComponent>(entity);
+        SpriteComponent sprite = decodeSpriteComponent(compNode[compName], existing);
         if (!signature.test(registry->getComponentId<SpriteComponent>())){
             registry->addComponent<SpriteComponent>(entity, sprite);
         }else{
+            int flags = Catalog::getChangedUpdateFlags(ComponentType::SpriteComponent, existing, &sprite);
             registry->getComponent<SpriteComponent>(entity) = sprite;
+            Catalog::updateEntity(registry, entity, flags);
         }
     }
 
     compName = Catalog::getComponentName(ComponentType::LightComponent, true);
     if (compNode[compName]) {
-        LightComponent light = decodeLightComponent(compNode[compName], registry->findComponent<LightComponent>(entity));
+        LightComponent* existing = registry->findComponent<LightComponent>(entity);
+        LightComponent light = decodeLightComponent(compNode[compName], existing);
         if (!signature.test(registry->getComponentId<LightComponent>())){
             registry->addComponent<LightComponent>(entity, light);
         }else{
+            int flags = Catalog::getChangedUpdateFlags(ComponentType::LightComponent, existing, &light);
             registry->getComponent<LightComponent>(entity) = light;
+            Catalog::updateEntity(registry, entity, flags);
         }
     }
 
     compName = Catalog::getComponentName(ComponentType::CameraComponent, true);
     if (compNode[compName]) {
-        CameraComponent camera = decodeCameraComponent(compNode[compName], registry->findComponent<CameraComponent>(entity));
+        CameraComponent* existing = registry->findComponent<CameraComponent>(entity);
+        CameraComponent camera = decodeCameraComponent(compNode[compName], existing);
         if (!signature.test(registry->getComponentId<CameraComponent>())){
             registry->addComponent<CameraComponent>(entity, camera);
         }else{
+            int flags = Catalog::getChangedUpdateFlags(ComponentType::CameraComponent, existing, &camera);
             registry->getComponent<CameraComponent>(entity) = camera;
+            Catalog::updateEntity(registry, entity, flags);
         }
     }
 
     compName = Catalog::getComponentName(ComponentType::ScriptComponent, true);
     if (compNode[compName]) {
-        ScriptComponent script = decodeScriptComponent(compNode[compName], registry->findComponent<ScriptComponent>(entity));
+        ScriptComponent* existing = registry->findComponent<ScriptComponent>(entity);
+        ScriptComponent script = decodeScriptComponent(compNode[compName], existing);
         if (!signature.test(registry->getComponentId<ScriptComponent>())){
             registry->addComponent<ScriptComponent>(entity, script);
         }else{
+            int flags = Catalog::getChangedUpdateFlags(ComponentType::ScriptComponent, existing, &script);
             registry->getComponent<ScriptComponent>(entity) = script;
+            Catalog::updateEntity(registry, entity, flags);
         }
     }
 
     compName = Catalog::getComponentName(ComponentType::SkyComponent, true);
     if (compNode[compName]) {
-        SkyComponent sky = decodeSkyComponent(compNode[compName], registry->findComponent<SkyComponent>(entity));
+        SkyComponent* existing = registry->findComponent<SkyComponent>(entity);
+        SkyComponent sky = decodeSkyComponent(compNode[compName], existing);
         if (!signature.test(registry->getComponentId<SkyComponent>())){
             registry->addComponent<SkyComponent>(entity, sky);
         }else{
+            int flags = Catalog::getChangedUpdateFlags(ComponentType::SkyComponent, existing, &sky);
             registry->getComponent<SkyComponent>(entity) = sky;
+            Catalog::updateEntity(registry, entity, flags);
         }
     }
 }

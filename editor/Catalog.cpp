@@ -786,6 +786,74 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::findEntityPropertie
     return std::map<std::string, Editor::PropertyData>();
 }
 
+int Editor::Catalog::getChangedUpdateFlags(ComponentType compType, void* oldComp, void* newComp) {
+    if (!oldComp || !newComp) return 0;
+
+    int flags = 0;
+
+    auto oldProps = Catalog::getProperties(compType, oldComp);
+    auto newProps = Catalog::getProperties(compType, newComp);
+
+    for (auto& [name, newProp] : newProps) {
+        auto it = oldProps.find(name);
+        if (it == oldProps.end()) continue;
+
+        PropertyData& oldProp = it->second;
+        if (!oldProp.ref || !newProp.ref) continue;
+
+        bool changed = false;
+        switch (newProp.type) {
+            case PropertyType::Bool:
+                changed = *static_cast<bool*>(oldProp.ref) != *static_cast<bool*>(newProp.ref);
+                break;
+            case PropertyType::Float:
+                changed = *static_cast<float*>(oldProp.ref) != *static_cast<float*>(newProp.ref);
+                break;
+            case PropertyType::Int:
+                changed = *static_cast<int*>(oldProp.ref) != *static_cast<int*>(newProp.ref);
+                break;
+            case PropertyType::UInt:
+                changed = *static_cast<unsigned int*>(oldProp.ref) != *static_cast<unsigned int*>(newProp.ref);
+                break;
+            case PropertyType::String:
+                changed = *static_cast<std::string*>(oldProp.ref) != *static_cast<std::string*>(newProp.ref);
+                break;
+            case PropertyType::Vector2:
+                changed = *static_cast<Vector2*>(oldProp.ref) != *static_cast<Vector2*>(newProp.ref);
+                break;
+            case PropertyType::Vector3:
+                changed = *static_cast<Vector3*>(oldProp.ref) != *static_cast<Vector3*>(newProp.ref);
+                break;
+            case PropertyType::Vector4:
+                changed = *static_cast<Vector4*>(oldProp.ref) != *static_cast<Vector4*>(newProp.ref);
+                break;
+            case PropertyType::Quat:
+                changed = *static_cast<Quaternion*>(oldProp.ref) != *static_cast<Quaternion*>(newProp.ref);
+                break;
+            case PropertyType::Enum:
+                changed = *static_cast<int*>(oldProp.ref) != *static_cast<int*>(newProp.ref);
+                break;
+            case PropertyType::Texture:
+                changed = *static_cast<Texture*>(oldProp.ref) != *static_cast<Texture*>(newProp.ref);
+                break;
+            case PropertyType::Material:
+                changed = *static_cast<Material*>(oldProp.ref) != *static_cast<Material*>(newProp.ref);
+                break;
+            case PropertyType::EntityPointer:
+            case PropertyType::Custom:
+                // Conservative: assume changed for complex types
+                changed = true;
+                break;
+        }
+
+        if (changed) {
+            flags |= newProp.updateFlags;
+        }
+    }
+
+    return flags;
+}
+
 void Editor::Catalog::updateEntity(EntityRegistry* registry, Entity entity, int updateFlags){
     if (updateFlags & UpdateFlags_Transform){
         registry->getComponent<Transform>(entity).needUpdate = true;

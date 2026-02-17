@@ -121,6 +121,8 @@ namespace Supernova::Editor{
         static std::vector<ComponentType> findComponents(EntityRegistry* registry, Entity entity);
         static std::map<std::string, PropertyData> findEntityProperties(EntityRegistry* registry, Entity entity, ComponentType component);
 
+        static int getChangedUpdateFlags(ComponentType compType, void* oldComp, void* newComp);
+
         static void updateEntity(EntityRegistry* registry, Entity entity, int updateFlags);
 
         static void copyComponent(EntityRegistry* sourceRegistry, Entity sourceEntity,
