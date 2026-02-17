@@ -23,6 +23,7 @@
 #include "AppSettings.h"
 #include "Out.h"
 #include "subsystem/MeshSystem.h"
+#include "subsystem/UISystem.h"
 #include "command/CommandHandle.h"
 #include "command/type/DeleteEntityCmd.h"
 #include "command/type/CreateEntityCmd.h"
@@ -45,6 +46,9 @@ Editor::SceneRender* Editor::Project::createSceneRender(SceneType type, Scene* s
     if (!scene) {
         return nullptr;
     }
+
+    pauseEngineScene(scene, true);
+    scene->getSystem<UISystem>()->setCustomAnchorSize(windowWidth, windowHeight);
 
     switch (type) {
         case SceneType::SCENE_3D:
@@ -181,8 +185,6 @@ uint32_t Editor::Project::createNewSceneInternal(std::string sceneName, SceneTyp
     data.isModified = true;
     data.isVisible = true;
 
-    pauseEngineScene(data.scene, true);
-
     scenes.push_back(data);
 
     setSelectedSceneId(data.id);
@@ -291,7 +293,6 @@ void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene)
             targetScene->sceneRender = createSceneRender(targetScene->sceneType, targetScene->scene);
             targetScene->defaultCamera = createDefaultCamera(targetScene->sceneType, targetScene->scene);
             Stream::decodeSceneProjectEntities(this, targetScene, sceneNode);
-            pauseEngineScene(targetScene->scene, true);
 
             setSelectedSceneId(targetScene->id);
 
@@ -675,7 +676,7 @@ std::vector<Editor::ScriptSource> Editor::Project::collectCppScriptSourceFiles(c
     return scriptFiles;
 }
 
-void Editor::Project::pauseEngineScene(Scene* scene, bool pause){
+void Editor::Project::pauseEngineScene(Scene* scene, bool pause) const{
     scene->getSystem<PhysicsSystem>()->setPaused(pause);
     scene->getSystem<ActionSystem>()->setPaused(pause);
     scene->getSystem<AudioSystem>()->setPaused(pause);
@@ -1013,6 +1014,7 @@ void Editor::Project::finalizeStart(SceneProject* mainSceneProject, const std::v
         Entity camera = getSceneCamera(sceneProject);
         sceneProject->scene->setCamera(camera);
 
+        sceneProject->scene->getSystem<UISystem>()->clearCustomAnchorSize();
         pauseEngineScene(sceneProject->scene, false);
         initializeLuaScripts(sceneProject->scene);
 
@@ -1046,6 +1048,7 @@ void Editor::Project::finalizeStop(SceneProject* mainSceneProject, const std::ve
 
         cleanupLuaScripts(sceneProject->scene);
         pauseEngineScene(sceneProject->scene, true);
+        sceneProject->scene->getSystem<UISystem>()->setCustomAnchorSize(windowWidth, windowHeight);
 
         // Restore snapshot if present
         if (sceneProject->playStateSnapshot && !sceneProject->playStateSnapshot.IsNull()) {

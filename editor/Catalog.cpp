@@ -577,8 +577,8 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         static TextComponent* def = new TextComponent;
 
         ps["text"] = {PropertyType::String, UpdateFlags_Text, (void*)&def->text, (compRef) ? (void*)&comp->text : nullptr};
-        ps["font"] = {PropertyType::String, UpdateFlags_Text | UpdateFlags_Text_Atlas, (void*)&def->font, (compRef) ? (void*)&comp->font : nullptr};
-        ps["fontSize"] = {PropertyType::UInt, UpdateFlags_Text | UpdateFlags_Text_Atlas, (void*)&def->fontSize, (compRef) ? (void*)&comp->fontSize : nullptr};
+        ps["font"] = {PropertyType::String, UpdateFlags_Text_Atlas, (void*)&def->font, (compRef) ? (void*)&comp->font : nullptr};
+        ps["fontSize"] = {PropertyType::UInt, UpdateFlags_Text_Atlas, (void*)&def->fontSize, (compRef) ? (void*)&comp->fontSize : nullptr};
         ps["multiline"] = {PropertyType::Bool, UpdateFlags_Text, (void*)&def->multiline, (compRef) ? (void*)&comp->multiline : nullptr};
         ps["maxTextSize"] = {PropertyType::UInt, UpdateFlags_Text, (void*)&def->maxTextSize, (compRef) ? (void*)&comp->maxTextSize : nullptr};
         ps["fixedWidth"] = {PropertyType::Bool, UpdateFlags_Text, (void*)&def->fixedWidth, (compRef) ? (void*)&comp->fixedWidth : nullptr};

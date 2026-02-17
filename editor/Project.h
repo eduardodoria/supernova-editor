@@ -146,7 +146,7 @@ namespace Supernova::Editor{
 
         std::vector<Editor::ScriptSource> collectCppScriptSourceFiles(const std::vector<uint32_t>& sceneIds) const;
 
-        void pauseEngineScene(Scene* scene, bool pause);
+        void pauseEngineScene(Scene* scene, bool pause) const;
 
         void copyEngineApiToProject();
 
