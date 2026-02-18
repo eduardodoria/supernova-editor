@@ -1600,7 +1600,6 @@ Transform Editor::Stream::decodeTransform(const YAML::Node& node, const Transfor
     // Use old values as defaults if provided
     if (oldTransform) {
         transform = *oldTransform;
-        transform.needUpdate = true;
     }
 
     if (node["position"]) transform.position = decodeVector3(node["position"]);
@@ -1869,7 +1868,6 @@ ButtonComponent Editor::Stream::decodeButtonComponent(const YAML::Node& node, co
 
     if (oldButton) {
         button = *oldButton;
-        button.needUpdateButton = true;
     }
 
     if (node["label"]) button.label = node["label"].as<Entity>();
@@ -1961,7 +1959,6 @@ TextComponent Editor::Stream::decodeTextComponent(const YAML::Node& node, const 
 
     if (oldText) {
         text = *oldText;
-        text.needUpdateText = true;
     }
 
     if (node["font"]) text.font = node["font"].as<std::string>();
@@ -2133,7 +2130,6 @@ CameraComponent Editor::Stream::decodeCameraComponent(const YAML::Node& node, co
     // Use old values as defaults if provided
     if (oldCamera) {
         camera = *oldCamera;
-        camera.needUpdate = true;
     }
 
     if (node["type"]) camera.type = stringToCameraType(node["type"].as<std::string>());
