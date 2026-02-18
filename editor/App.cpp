@@ -8,6 +8,7 @@
 #include "external/IconsFontAwesome6.h"
 #include "command/CommandHandle.h"
 #include "command/type/DeleteEntityCmd.h"
+#include "command/type/RemoveChildSceneCmd.h"
 
 #include "Out.h"
 #include "AppSettings.h"
@@ -637,12 +638,26 @@ void Editor::App::show(){
         }
 
         if (ImGui::IsKeyPressed(ImGuiKey_Delete)){
-            Command* cmd = nullptr;
-            for (const Entity& entity : project.getSelectedEntities(sceneId)){
-                cmd = new DeleteEntityCmd(&project, sceneId, entity);
-                CommandHandle::get(sceneId)->addCommand(cmd);
+            const std::vector<Entity>& selectedEntities = project.getSelectedEntities(sceneId);
+
+            Command* lastCmd = nullptr;
+            if (!selectedEntities.empty()) {
+                for (const Entity& entity : selectedEntities){
+                    lastCmd = new DeleteEntityCmd(&project, sceneId, entity);
+                    CommandHandle::get(sceneId)->addCommand(lastCmd);
+                }
+            } else {
+                uint32_t selectedSceneForProperties = project.getSelectedSceneForProperties();
+                if (selectedSceneForProperties != NULL_PROJECT_SCENE &&
+                    selectedSceneForProperties != sceneId &&
+                    project.hasChildScene(sceneId, selectedSceneForProperties)) {
+                        lastCmd = new RemoveChildSceneCmd(&project, sceneId, selectedSceneForProperties);
+                        CommandHandle::get(sceneId)->addCommand(lastCmd);
+                }
             }
-            cmd->setNoMerge();
+            if (lastCmd) {
+                lastCmd->setNoMerge();
+            }
         }
     }
 
