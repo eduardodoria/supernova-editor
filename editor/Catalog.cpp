@@ -418,17 +418,17 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
 
         ps["width"] = {PropertyType::UInt, UpdateFlags_Layout_Sizes, nullptr, (compRef) ? (void*)&comp->width : nullptr};
         ps["height"] = {PropertyType::UInt, UpdateFlags_Layout_Sizes, nullptr, (compRef) ? (void*)&comp->height : nullptr};
-        ps["anchorPointLeft"] = {PropertyType::Float, UpdateFlags_Layout_Sizes, (void*)&def->anchorPointLeft, (compRef) ? (void*)&comp->anchorPointLeft : nullptr};
-        ps["anchorPointTop"] = {PropertyType::Float, UpdateFlags_Layout_Sizes, (void*)&def->anchorPointTop, (compRef) ? (void*)&comp->anchorPointTop : nullptr};
-        ps["anchorPointRight"] = {PropertyType::Float, UpdateFlags_Layout_Sizes, (void*)&def->anchorPointRight, (compRef) ? (void*)&comp->anchorPointRight : nullptr};
-        ps["anchorPointBottom"] = {PropertyType::Float, UpdateFlags_Layout_Sizes, (void*)&def->anchorPointBottom, (compRef) ? (void*)&comp->anchorPointBottom : nullptr};
-        ps["anchorOffsetLeft"] = {PropertyType::Int, UpdateFlags_Layout_Sizes, (void*)&def->anchorOffsetLeft, (compRef) ? (void*)&comp->anchorOffsetLeft : nullptr};
-        ps["anchorOffsetTop"] = {PropertyType::Int, UpdateFlags_Layout_Sizes, (void*)&def->anchorOffsetTop, (compRef) ? (void*)&comp->anchorOffsetTop : nullptr};
-        ps["anchorOffsetRight"] = {PropertyType::Int, UpdateFlags_Layout_Sizes, (void*)&def->anchorOffsetRight, (compRef) ? (void*)&comp->anchorOffsetRight : nullptr};
-        ps["anchorOffsetBottom"] = {PropertyType::Int, UpdateFlags_Layout_Sizes, (void*)&def->anchorOffsetBottom, (compRef) ? (void*)&comp->anchorOffsetBottom : nullptr};
-        ps["positionOffset"] = {PropertyType::Vector2, UpdateFlags_Layout_Sizes, (void*)&def->positionOffset, (compRef) ? (void*)&comp->positionOffset : nullptr};
-        ps["anchorPreset"] = {PropertyType::Enum, UpdateFlags_Layout_Sizes, (void*)&def->anchorPreset, (compRef) ? (void*)&comp->anchorPreset : nullptr};
-        ps["usingAnchors"] = {PropertyType::Bool, UpdateFlags_Layout_Sizes, (void*)&def->usingAnchors, (compRef) ? (void*)&comp->usingAnchors : nullptr};
+        ps["anchorPointLeft"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->anchorPointLeft, (compRef) ? (void*)&comp->anchorPointLeft : nullptr};
+        ps["anchorPointTop"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->anchorPointTop, (compRef) ? (void*)&comp->anchorPointTop : nullptr};
+        ps["anchorPointRight"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->anchorPointRight, (compRef) ? (void*)&comp->anchorPointRight : nullptr};
+        ps["anchorPointBottom"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->anchorPointBottom, (compRef) ? (void*)&comp->anchorPointBottom : nullptr};
+        ps["anchorOffsetLeft"] = {PropertyType::Int, UpdateFlags_None, (void*)&def->anchorOffsetLeft, (compRef) ? (void*)&comp->anchorOffsetLeft : nullptr};
+        ps["anchorOffsetTop"] = {PropertyType::Int, UpdateFlags_None, (void*)&def->anchorOffsetTop, (compRef) ? (void*)&comp->anchorOffsetTop : nullptr};
+        ps["anchorOffsetRight"] = {PropertyType::Int, UpdateFlags_None, (void*)&def->anchorOffsetRight, (compRef) ? (void*)&comp->anchorOffsetRight : nullptr};
+        ps["anchorOffsetBottom"] = {PropertyType::Int, UpdateFlags_None, (void*)&def->anchorOffsetBottom, (compRef) ? (void*)&comp->anchorOffsetBottom : nullptr};
+        ps["positionOffset"] = {PropertyType::Vector2, UpdateFlags_None, (void*)&def->positionOffset, (compRef) ? (void*)&comp->positionOffset : nullptr};
+        ps["anchorPreset"] = {PropertyType::Enum, UpdateFlags_None, (void*)&def->anchorPreset, (compRef) ? (void*)&comp->anchorPreset : nullptr};
+        ps["usingAnchors"] = {PropertyType::Bool, UpdateFlags_None, (void*)&def->usingAnchors, (compRef) ? (void*)&comp->usingAnchors : nullptr};
         ps["ignoreScissor"] = {PropertyType::Bool, UpdateFlags_None, (void*)&def->ignoreScissor, (compRef) ? (void*)&comp->ignoreScissor : nullptr};
         ps["ignoreEvents"] = {PropertyType::Bool, UpdateFlags_None, (void*)&def->ignoreEvents, (compRef) ? (void*)&comp->ignoreEvents : nullptr};
     }else if (component == ComponentType::ImageComponent){

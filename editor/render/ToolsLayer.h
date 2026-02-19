@@ -12,6 +12,7 @@
 #include "gizmo/RotateGizmo.h"
 #include "gizmo/ScaleGizmo.h"
 #include "gizmo/Object2DGizmo.h"
+#include "gizmo/AnchorGizmo.h"
 
 namespace Supernova::Editor{
 
@@ -24,10 +25,13 @@ namespace Supernova::Editor{
         RotateGizmo* rGizmo;
         ScaleGizmo* sGizmo;
         Object2DGizmo* oGizmo;
+        AnchorGizmo* aGizmo;
 
         GizmoSelected gizmoSelected;
         GizmoSideSelected gizmoSideSelected;
         Gizmo2DSideSelected gizmo2DSideSelected;
+
+        bool anchorGizmoEnabled;
 
         float gizmoScale;
     public:
@@ -35,7 +39,7 @@ namespace Supernova::Editor{
         virtual ~ToolsLayer();
 
         void updateCamera(CameraComponent& extCamera, Transform& extCameraTransform);
-        void updateGizmo(Camera* sceneCam, Vector3& position, Quaternion& rotation, float scale, OBB obb, Ray& mouseRay, bool mouseClicked);
+        void updateGizmo(Camera* sceneCam, Vector3& position, Quaternion& rotation, float scale, OBB obb, Ray& mouseRay, bool mouseClicked, Vector4& anchorData, Rect& anchorArea);
 
         void mouseDrag(Vector3 point);
         void mouseRelease();
@@ -44,6 +48,8 @@ namespace Supernova::Editor{
         void enableRotateGizmo();
         void enableScaleGizmo();
         void enableObject2DGizmo();
+
+        void setShowAnchorGizmo(bool enabled);
 
         void setGizmoVisible(bool visible);
 

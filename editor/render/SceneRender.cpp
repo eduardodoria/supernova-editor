@@ -252,9 +252,28 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities, std::vector<En
 
     multipleEntitiesSelected = selEntities.size() > 1;
 
+    bool showAnchorGizmo = false;
+    Vector4 anchorData = Vector4::ZERO; // x: left, y: top, z: right, w: bottom
+    Rect anchorArea = Rect(0.0f, 0.0f, 0.0f, 0.0f);
+
     for (Entity& entity: selEntities){
         if (Transform* transform = scene->findComponent<Transform>(entity)){
             numTEntities++;
+
+            if (selEntities.size() == 1){
+                Entity entity = selEntities[0];
+                if (UILayoutComponent* layout = scene->findComponent<UILayoutComponent>(entity)){
+                    if (layout->usingAnchors){
+                        showAnchorGizmo = true;
+                    }
+                    anchorData.x = layout->anchorPointLeft;
+                    anchorData.y = layout->anchorPointTop;
+                    anchorData.z = layout->anchorPointRight;
+                    anchorData.w = layout->anchorPointBottom;
+
+                    anchorArea = scene->getSystem<UISystem>()->getAnchorReferenceRect(*layout, *transform, true);
+                }
+            }
 
             gizmoPosition += transform->worldPosition;
 
@@ -276,6 +295,8 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities, std::vector<En
 
     }
 
+    toolslayer.setShowAnchorGizmo(showAnchorGizmo);
+
     totalSelBB.setHalfExtents(totalSelBB.getHalfExtents() + Vector3(selectionOffset));
 
     bool selectionVisibility = false;
@@ -293,7 +314,7 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities, std::vector<En
             }
         }
 
-        toolslayer.updateGizmo(camera, gizmoPosition, gizmoRotation, scale, totalSelBB, mouseRay, mouseClicked);
+        toolslayer.updateGizmo(camera, gizmoPosition, gizmoRotation, scale, totalSelBB, mouseRay, mouseClicked, anchorData, anchorArea);
 
         if (selBB.size() > 0) {
             updateSelLines(selBB);

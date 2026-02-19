@@ -213,6 +213,7 @@ add_executable(
     ${EDITOR_DIR}/render/gizmo/RotateGizmo.cpp
     ${EDITOR_DIR}/render/gizmo/ScaleGizmo.cpp
     ${EDITOR_DIR}/render/gizmo/Object2DGizmo.cpp
+    ${EDITOR_DIR}/render/gizmo/AnchorGizmo.cpp
     ${EDITOR_DIR}/render/gizmo/ViewportGizmo.cpp
     ${EDITOR_DIR}/render/preview/MaterialRender.cpp
     ${EDITOR_DIR}/render/preview/MeshPreviewRender.cpp

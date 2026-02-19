@@ -48,7 +48,7 @@ Editor::SceneRender* Editor::Project::createSceneRender(SceneType type, Scene* s
     }
 
     pauseEngineScene(scene, true);
-    scene->getSystem<UISystem>()->setCustomAnchorSize(windowWidth, windowHeight);
+    scene->getSystem<UISystem>()->setAnchorReferenceSize(windowWidth, windowHeight);
 
     switch (type) {
         case SceneType::SCENE_3D:
@@ -1014,7 +1014,7 @@ void Editor::Project::finalizeStart(SceneProject* mainSceneProject, const std::v
         Entity camera = getSceneCamera(sceneProject);
         sceneProject->scene->setCamera(camera);
 
-        sceneProject->scene->getSystem<UISystem>()->clearCustomAnchorSize();
+        sceneProject->scene->getSystem<UISystem>()->clearAnchorReferenceSize();
         pauseEngineScene(sceneProject->scene, false);
         initializeLuaScripts(sceneProject->scene);
 
@@ -1048,7 +1048,7 @@ void Editor::Project::finalizeStop(SceneProject* mainSceneProject, const std::ve
 
         cleanupLuaScripts(sceneProject->scene);
         pauseEngineScene(sceneProject->scene, true);
-        sceneProject->scene->getSystem<UISystem>()->setCustomAnchorSize(windowWidth, windowHeight);
+        sceneProject->scene->getSystem<UISystem>()->setAnchorReferenceSize(windowWidth, windowHeight);
 
         // Restore snapshot if present
         if (sceneProject->playStateSnapshot && !sceneProject->playStateSnapshot.IsNull()) {

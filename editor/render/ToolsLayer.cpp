@@ -18,6 +18,9 @@ Editor::ToolsLayer::ToolsLayer(bool use2DGizmos){
     rGizmo = new RotateGizmo(scene, use2DGizmos);
     sGizmo = new ScaleGizmo(scene, use2DGizmos);
     oGizmo = new Object2DGizmo(scene);
+    aGizmo = new AnchorGizmo(scene);
+
+    anchorGizmoEnabled = false;
 
     scene->setCamera(camera);
 
@@ -31,6 +34,7 @@ Editor::ToolsLayer::~ToolsLayer(){
     delete rGizmo;
     delete sGizmo;
     delete oGizmo;
+    delete aGizmo;
 
     delete scene;
 }
@@ -58,7 +62,7 @@ void Editor::ToolsLayer::updateCamera(CameraComponent& extCamera, Transform& ext
     }
 }
 
-void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quaternion& rotation, float scale, OBB obb, Ray& mouseRay, bool mouseClicked){
+void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quaternion& rotation, float scale, OBB obb, Ray& mouseRay, bool mouseClicked, Vector4& anchorData, Rect& anchorArea){
     gizmoScale = scale;
 
     if (gizmoSelected == GizmoSelected::TRANSLATE){
@@ -101,6 +105,13 @@ void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quater
         oGizmo->setCenter(rotation.getRotationMatrix().inverse() * (center - position) / scale);
         oGizmo->setSize(size.x / scale, size.y / scale);
 
+        if (anchorGizmoEnabled){
+            aGizmo->setScale(scale);
+
+            aGizmo->setArea(Rect(anchorArea.getX() / scale, anchorArea.getY() / scale, anchorArea.getWidth() / scale, anchorArea.getHeight() / scale));
+            aGizmo->setAnchors(anchorData.x, anchorData.y, anchorData.z, anchorData.w);
+        }
+
         if (!mouseClicked){
             gizmoSideSelected = GizmoSideSelected::NONE;
             gizmo2DSideSelected = oGizmo->checkHover(mouseRay, obb);
@@ -136,11 +147,16 @@ void Editor::ToolsLayer::enableObject2DGizmo(){
     gizmoSelected = GizmoSelected::OBJECT2D;
 }
 
+void Editor::ToolsLayer::setShowAnchorGizmo(bool enabled){
+    anchorGizmoEnabled = enabled;
+}
+
 void Editor::ToolsLayer::setGizmoVisible(bool visible){
     tGizmo->setVisible(false);
     rGizmo->setVisible(false);
     sGizmo->setVisible(false);
     oGizmo->setVisible(false);
+    aGizmo->setVisible(false);
 
     if (gizmoSelected == GizmoSelected::TRANSLATE){
         tGizmo->setVisible(visible);
@@ -153,6 +169,9 @@ void Editor::ToolsLayer::setGizmoVisible(bool visible){
     }
     if (gizmoSelected == GizmoSelected::OBJECT2D){
         oGizmo->setVisible(visible);
+        if (anchorGizmoEnabled){
+            aGizmo->setVisible(visible);
+        }
     }
 
     if (!visible){
