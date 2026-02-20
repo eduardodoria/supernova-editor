@@ -25,6 +25,7 @@ namespace Supernova::Editor{
         static std::string formatPrimitiveType(PrimitiveType type);
         static std::string formatPivotPreset(PivotPreset preset);
         static std::string formatAnchorPreset(AnchorPreset preset);
+        static std::string formatContainerType(ContainerType type);
         static std::string formatLightType(LightType type);
         static std::string formatLightState(LightState state);
         static std::string formatUIEventState(UIEventState state);
@@ -67,6 +68,7 @@ namespace Supernova::Editor{
         static std::string createUIComponent(int indentSpaces, Scene* scene, Entity entity, const fs::path& projectPath, std::string sceneName = "", std::string entityName = "");
         static std::string createButtonComponent(int indentSpaces, Scene* scene, Entity entity, const fs::path& projectPath, std::string sceneName = "", std::string entityName = "");
         static std::string createUILayoutComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
+        static std::string createUIContainerComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
         static std::string createTextComponent(int indentSpaces, Scene* scene, Entity entity, const fs::path& projectPath, std::string sceneName = "", std::string entityName = "");
         static std::string createImageComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
         static std::string createSpriteComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");

@@ -102,8 +102,12 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addT
             CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Text", EntityCreationType::TEXT, parent, addToShared));
             openParent = parent;
         }
-        if (ImGui::MenuItem(ICON_FA_SQUARE"  Button")){
+        if (ImGui::MenuItem(ICON_FA_SQUARE_CARET_RIGHT"  Button")){
             CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Button", EntityCreationType::BUTTON, parent, addToShared));
+            openParent = parent;
+        }
+        if (ImGui::MenuItem(ICON_FA_OBJECT_GROUP"  Container")){
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Container", EntityCreationType::CONTAINER, parent, addToShared));
             openParent = parent;
         }
         ImGui::EndMenu();
@@ -180,6 +184,18 @@ std::string Editor::Structure::getObjectIcon(Signature signature, Scene* scene){
         return ICON_FA_CUBE;
     }else if (signature.test(scene->getComponentId<SkyComponent>())){
         return ICON_FA_CLOUD;
+    }else if (signature.test(scene->getComponentId<UIContainerComponent>())){
+        return ICON_FA_OBJECT_GROUP;
+    }else if (signature.test(scene->getComponentId<ButtonComponent>())){
+        return ICON_FA_SQUARE_CARET_RIGHT;
+    }else if (signature.test(scene->getComponentId<TextComponent>())){
+        return ICON_FA_FONT;
+    }else if (signature.test(scene->getComponentId<TextEditComponent>())){
+        return ICON_FA_I_CURSOR;
+    }else if (signature.test(scene->getComponentId<ImageComponent>())){
+        return ICON_FA_IMAGE;
+    }else if (signature.test(scene->getComponentId<PanelComponent>())){
+        return ICON_FA_SQUARE;
     }else if (signature.test(scene->getComponentId<UIComponent>())){
         return ICON_FA_IMAGE;
     }else if (signature.test(scene->getComponentId<LightComponent>())){

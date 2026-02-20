@@ -213,6 +213,16 @@ std::string Editor::Factory::formatAnchorPreset(AnchorPreset preset) {
     }
 }
 
+std::string Editor::Factory::formatContainerType(ContainerType type) {
+    switch (type) {
+        case ContainerType::VERTICAL: return "ContainerType::VERTICAL";
+        case ContainerType::HORIZONTAL: return "ContainerType::HORIZONTAL";
+        case ContainerType::VERTICAL_WRAP: return "ContainerType::VERTICAL_WRAP";
+        case ContainerType::HORIZONTAL_WRAP: return "ContainerType::HORIZONTAL_WRAP";
+        default: return "ContainerType::VERTICAL";
+    }
+}
+
 std::string Editor::Factory::formatLightType(LightType type) {
     switch (type) {
         case LightType::DIRECTIONAL: return "LightType::DIRECTIONAL";
@@ -691,6 +701,17 @@ std::string Editor::Factory::createUILayoutComponent(int indentSpaces, Scene* sc
     return code.str();
 }
 
+std::string Editor::Factory::createUIContainerComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+    if (!scene->findComponent<UIContainerComponent>(entity)) return "";
+    UIContainerComponent& container = scene->getComponent<UIContainerComponent>(entity);
+    std::ostringstream code;
+    const std::string ind = indentation(indentSpaces);
+    code << ind << "UIContainerComponent container;\n";
+    code << ind << "container.type = " << formatContainerType(container.type) << ";\n";
+    addComponentCode(code, ind, sceneName, entityName, entity, "UIContainerComponent", "container");
+    return code.str();
+}
+
 std::string Editor::Factory::createTextComponent(int indentSpaces, Scene* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<TextComponent>(entity)) return "";
     TextComponent& text = scene->getComponent<TextComponent>(entity);
@@ -863,6 +884,7 @@ std::string Editor::Factory::createComponent(int indentSpaces, Scene* scene, Ent
         case ComponentType::UIComponent: return createUIComponent(indentSpaces, scene, entity, projectPath, sceneName, entityName);
         case ComponentType::ButtonComponent: return createButtonComponent(indentSpaces, scene, entity, projectPath, sceneName, entityName);
         case ComponentType::UILayoutComponent: return createUILayoutComponent(indentSpaces, scene, entity, sceneName, entityName);
+        case ComponentType::UIContainerComponent: return createUIContainerComponent(indentSpaces, scene, entity, sceneName, entityName);
         case ComponentType::TextComponent: return createTextComponent(indentSpaces, scene, entity, projectPath, sceneName, entityName);
         case ComponentType::ImageComponent: return createImageComponent(indentSpaces, scene, entity, sceneName, entityName);
         case ComponentType::SpriteComponent: return createSpriteComponent(indentSpaces, scene, entity, sceneName, entityName);

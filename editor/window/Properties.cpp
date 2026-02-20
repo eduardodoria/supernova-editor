@@ -3030,6 +3030,22 @@ void Editor::Properties::drawUILayoutComponent(ComponentType cpType, SceneProjec
     endTable();
 }
 
+void Editor::Properties::drawUIContainerComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+    static std::vector<Editor::EnumEntry> entriesContainerType = {
+        { (int)ContainerType::VERTICAL, "Vertical" },
+        { (int)ContainerType::HORIZONTAL, "Horizontal" },
+        { (int)ContainerType::VERTICAL_WRAP, "Vertical Wrap" },
+        { (int)ContainerType::HORIZONTAL_WRAP, "Horizontal Wrap" }
+    };
+
+    RowSettings settingsContainerType;
+    settingsContainerType.enumEntries = &entriesContainerType;
+
+    beginTable(cpType, getLabelSize("Type"));
+    propertyRow(RowPropertyType::Enum, cpType, "type", "Type", sceneProject, entities, settingsContainerType);
+    endTable();
+}
+
 void Editor::Properties::drawImageComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     ImGui::SeparatorText("Nine-patch rect");
 
@@ -3926,6 +3942,8 @@ void Editor::Properties::show(){
                     drawTextComponent(cpType, sceneProject, entities);
                 }else if (cpType == ComponentType::UILayoutComponent){
                     drawUILayoutComponent(cpType, sceneProject, entities);
+                }else if (cpType == ComponentType::UIContainerComponent){
+                    drawUIContainerComponent(cpType, sceneProject, entities);
                 }else if (cpType == ComponentType::ImageComponent){
                     drawImageComponent(cpType, sceneProject, entities);
                 }else if (cpType == ComponentType::SpriteComponent){

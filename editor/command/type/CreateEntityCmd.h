@@ -23,6 +23,7 @@ namespace Supernova::Editor{
         SPRITE,
         TEXT,
         BUTTON,
+        CONTAINER,
         POINT_LIGHT,
         DIRECTIONAL_LIGHT,
         SPOT_LIGHT,

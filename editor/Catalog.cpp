@@ -585,6 +585,11 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["fixedHeight"] = {PropertyType::Bool, UpdateFlags_Text, (void*)&def->fixedHeight, (compRef) ? (void*)&comp->fixedHeight : nullptr};
         ps["pivotBaseline"] = {PropertyType::Bool, UpdateFlags_Text, (void*)&def->pivotBaseline, (compRef) ? (void*)&comp->pivotBaseline : nullptr};
         ps["pivotCentered"] = {PropertyType::Bool, UpdateFlags_Text, (void*)&def->pivotCentered, (compRef) ? (void*)&comp->pivotCentered : nullptr};
+    }else if (component == ComponentType::UIContainerComponent){
+        UIContainerComponent* comp = static_cast<UIContainerComponent*>(compRef);
+        static UIContainerComponent* def = new UIContainerComponent;
+
+        ps["type"] = {PropertyType::Enum, UpdateFlags_Layout_Sizes, (void*)&def->type, (compRef) ? (void*)&comp->type : nullptr};
     }
 
     return ps;
@@ -751,6 +756,10 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::findEntityPropertie
         }
     }else if (component == ComponentType::UILayoutComponent){
         if (UILayoutComponent* compRef = registry->findComponent<UILayoutComponent>(entity)){
+            return getProperties(component, compRef);
+        }
+    }else if (component == ComponentType::UIContainerComponent){
+        if (UIContainerComponent* compRef = registry->findComponent<UIContainerComponent>(entity)){
             return getProperties(component, compRef);
         }
     }else if (component == ComponentType::ImageComponent){
@@ -946,6 +955,12 @@ void Editor::Catalog::copyComponent(EntityRegistry* sourceRegistry, Entity sourc
         case ComponentType::UILayoutComponent: {
             YAML::Node encoded = Stream::encodeUILayoutComponent(sourceRegistry->getComponent<UILayoutComponent>(sourceEntity));
             targetRegistry->getComponent<UILayoutComponent>(targetEntity) = Stream::decodeUILayoutComponent(encoded);
+            break;
+        }
+
+        case ComponentType::UIContainerComponent: {
+            YAML::Node encoded = Stream::encodeUIContainerComponent(sourceRegistry->getComponent<UIContainerComponent>(sourceEntity));
+            targetRegistry->getComponent<UIContainerComponent>(targetEntity) = Stream::decodeUIContainerComponent(encoded);
             break;
         }
 

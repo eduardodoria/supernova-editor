@@ -614,8 +614,7 @@ void Editor::ProjectUtils::addEntityComponent(EntityRegistry* registry, Entity e
             if (!componentNode.IsDefined() || componentNode.IsNull()){
                 registry->addComponent<UIContainerComponent>(entity, {});
             }else{
-                registry->addComponent<UIContainerComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                registry->addComponent<UIContainerComponent>(entity, Stream::decodeUIContainerComponent(componentNode));
             }
             break;
         default:
@@ -900,7 +899,7 @@ YAML::Node Editor::ProjectUtils::removeEntityComponent(EntityRegistry* registry,
             break;
         case ComponentType::UIContainerComponent:
             if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                oldComponent = Stream::encodeUIContainerComponent(registry->getComponent<UIContainerComponent>(entity));
             }
             registry->removeComponent<UIContainerComponent>(entity);
             break;

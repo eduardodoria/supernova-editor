@@ -252,6 +252,24 @@ TextureWrap Editor::Stream::stringToTextureWrap(const std::string& str) {
     return TextureWrap::REPEAT;
 }
 
+std::string Editor::Stream::containerTypeToString(ContainerType type) {
+    switch (type) {
+        case ContainerType::VERTICAL: return "vertical";
+        case ContainerType::HORIZONTAL: return "horizontal";
+        case ContainerType::VERTICAL_WRAP: return "vertical_wrap";
+        case ContainerType::HORIZONTAL_WRAP: return "horizontal_wrap";
+        default: return "vertical";
+    }
+}
+
+ContainerType Editor::Stream::stringToContainerType(const std::string& str) {
+    if (str == "vertical") return ContainerType::VERTICAL;
+    if (str == "horizontal") return ContainerType::HORIZONTAL;
+    if (str == "vertical_wrap") return ContainerType::VERTICAL_WRAP;
+    if (str == "horizontal_wrap") return ContainerType::HORIZONTAL_WRAP;
+    return ContainerType::VERTICAL;
+}
+
 std::string Editor::Stream::lightTypeToString(LightType type) {
     switch (type) {
         case LightType::DIRECTIONAL: return "directional";
@@ -1366,6 +1384,11 @@ YAML::Node Editor::Stream::encodeComponents(const Entity entity, const EntityReg
         compNode[Catalog::getComponentName(ComponentType::UILayoutComponent, true)] = encodeUILayoutComponent(layout);
     }
 
+    if (signature.test(registry->getComponentId<UIContainerComponent>())) {
+        UIContainerComponent container = registry->getComponent<UIContainerComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::UIContainerComponent, true)] = encodeUIContainerComponent(container);
+    }
+
     if (signature.test(registry->getComponentId<TextComponent>())) {
         TextComponent text = registry->getComponent<TextComponent>(entity);
         compNode[Catalog::getComponentName(ComponentType::TextComponent, true)] = encodeTextComponent(text);
@@ -1472,6 +1495,19 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
         }else{
             int flags = Catalog::getChangedUpdateFlags(ComponentType::UILayoutComponent, existing, &layout);
             registry->getComponent<UILayoutComponent>(entity) = layout;
+            Catalog::updateEntity(registry, entity, flags);
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::UIContainerComponent, true);
+    if (compNode[compName]) {
+        UIContainerComponent* existing = registry->findComponent<UIContainerComponent>(entity);
+        UIContainerComponent container = decodeUIContainerComponent(compNode[compName], existing);
+        if (!signature.test(registry->getComponentId<UIContainerComponent>())){
+            registry->addComponent<UIContainerComponent>(entity, container);
+        }else{
+            int flags = Catalog::getChangedUpdateFlags(ComponentType::UIContainerComponent, existing, &container);
+            registry->getComponent<UIContainerComponent>(entity) = container;
             Catalog::updateEntity(registry, entity, flags);
         }
     }
@@ -1936,6 +1972,24 @@ UILayoutComponent Editor::Stream::decodeUILayoutComponent(const YAML::Node& node
     //layout.needUpdateSizes = node["needUpdateSizes"].as<bool>();
 
     return layout;
+}
+
+YAML::Node Editor::Stream::encodeUIContainerComponent(const UIContainerComponent& container) {
+    YAML::Node node;
+    node["type"] = containerTypeToString(container.type);
+    return node;
+}
+
+UIContainerComponent Editor::Stream::decodeUIContainerComponent(const YAML::Node& node, const UIContainerComponent* oldContainer) {
+    UIContainerComponent container;
+
+    if (oldContainer) {
+        container = *oldContainer;
+    }
+
+    if (node["type"]) container.type = stringToContainerType(node["type"].as<std::string>());
+
+    return container;
 }
 
 YAML::Node Editor::Stream::encodeTextComponent(const TextComponent& text) {

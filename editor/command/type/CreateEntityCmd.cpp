@@ -181,6 +181,17 @@ bool Editor::CreateEntityCmd::execute(){
         textComp.text = "Button";
         textComp.needUpdateText = true;
 
+    }else if (type == EntityCreationType::CONTAINER){
+
+        scene->addComponent<Transform>(entity, {});
+        scene->addComponent<UILayoutComponent>(entity, {});
+        scene->addComponent<UIComponent>(entity, {});
+        scene->addComponent<UIContainerComponent>(entity, {});
+
+        UILayoutComponent& layout = scene->getComponent<UILayoutComponent>(entity);
+        layout.width = 100;
+        layout.height = 100;
+
     }else if (type == EntityCreationType::SPRITE){
 
         scene->addComponent<Transform>(entity, {});
