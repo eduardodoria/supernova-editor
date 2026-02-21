@@ -17,13 +17,14 @@ namespace Supernova::Editor{
         UpdateFlags_UI_Texture          = 1 << 6,
         UpdateFlags_Image_Patches       = 1 << 7,
         UpdateFlags_Layout_Sizes        = 1 << 8,
-        UpdateFlags_Sprite              = 1 << 9,
-        UpdateFlags_LightShadowMap      = 1 << 10,
-        UpdateFlags_LightShadowCamera   = 1 << 11,
-        UpdateFlags_Sky_Texture         = 1 << 12,
-        UpdateFlags_Sky                 = 1 << 13,
-        UpdateFlags_Text                = 1 << 14,
-        UpdateFlags_Text_Atlas          = 1 << 15
+        UpdateFlags_Layout_Anchors      = 1 << 9,
+        UpdateFlags_Sprite              = 1 << 10,
+        UpdateFlags_LightShadowMap      = 1 << 11,
+        UpdateFlags_LightShadowCamera   = 1 << 12,
+        UpdateFlags_Sky_Texture         = 1 << 13,
+        UpdateFlags_Sky                 = 1 << 14,
+        UpdateFlags_Text                = 1 << 15,
+        UpdateFlags_Text_Atlas          = 1 << 16
     };
 
     // the order of components here affects properties window

@@ -371,7 +371,7 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         Transform* comp = static_cast<Transform*>(compRef);
         static Transform* def = new Transform;
 
-        ps["position"] = {PropertyType::Vector3, UpdateFlags_Transform, (void*)&def->position, (compRef) ? (void*)&comp->position : nullptr};
+        ps["position"] = {PropertyType::Vector3, UpdateFlags_Transform | UpdateFlags_Layout_Anchors, (void*)&def->position, (compRef) ? (void*)&comp->position : nullptr};
         ps["rotation"] = {PropertyType::Quat, UpdateFlags_Transform, (void*)&def->rotation, (compRef) ? (void*)&comp->rotation : nullptr};
         ps["scale"] = {PropertyType::Vector3, UpdateFlags_Transform, (void*)&def->scale, (compRef) ? (void*)&comp->scale : nullptr};
         ps["visible"] = {PropertyType::Bool, UpdateFlags_None, (void*)&def->visible, (compRef) ? (void*)&comp->visible : nullptr};
@@ -416,8 +416,8 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         UILayoutComponent* comp = static_cast<UILayoutComponent*>(compRef);
         static UILayoutComponent* def = new UILayoutComponent;
 
-        ps["width"] = {PropertyType::UInt, UpdateFlags_Layout_Sizes, nullptr, (compRef) ? (void*)&comp->width : nullptr};
-        ps["height"] = {PropertyType::UInt, UpdateFlags_Layout_Sizes, nullptr, (compRef) ? (void*)&comp->height : nullptr};
+        ps["width"] = {PropertyType::UInt, UpdateFlags_Layout_Sizes | UpdateFlags_Layout_Anchors, nullptr, (compRef) ? (void*)&comp->width : nullptr};
+        ps["height"] = {PropertyType::UInt, UpdateFlags_Layout_Sizes | UpdateFlags_Layout_Anchors, nullptr, (compRef) ? (void*)&comp->height : nullptr};
         ps["anchorPointLeft"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->anchorPointLeft, (compRef) ? (void*)&comp->anchorPointLeft : nullptr};
         ps["anchorPointTop"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->anchorPointTop, (compRef) ? (void*)&comp->anchorPointTop : nullptr};
         ps["anchorPointRight"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->anchorPointRight, (compRef) ? (void*)&comp->anchorPointRight : nullptr};
@@ -903,6 +903,14 @@ void Editor::Catalog::updateEntity(EntityRegistry* registry, Entity entity, int 
     }
     if (updateFlags & UpdateFlags_Layout_Sizes){
         registry->getComponent<UILayoutComponent>(entity).needUpdateSizes = true;
+    }
+    if (updateFlags & UpdateFlags_Layout_Anchors){
+        // Only to move and resize objects when AnchorPreset is NONE
+        // May be requested even if not have UILayoutComponent
+        UILayoutComponent* layout = registry->findComponent<UILayoutComponent>(entity);
+        if (layout && layout->usingAnchors) {
+            layout->needUpdateAnchorOffsets = true;
+        }
     }
     if (updateFlags & UpdateFlags_Sky_Texture){
         registry->getComponent<SkyComponent>(entity).needUpdateTexture = true;

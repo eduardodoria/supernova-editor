@@ -11,6 +11,7 @@ namespace Supernova::Editor{
     class SceneRender2D: public SceneRender{
     private:
         Lines* lines;
+        std::map<Entity, Lines*> containerLines;
         bool isUI;
 
         void createLines(unsigned int width, unsigned int height);

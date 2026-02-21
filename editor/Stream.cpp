@@ -1939,6 +1939,7 @@ YAML::Node Editor::Stream::encodeUILayoutComponent(const UILayoutComponent& layo
     node["ignoreScissor"] = layout.ignoreScissor;
     node["ignoreEvents"] = layout.ignoreEvents;
     //node["needUpdateSizes"] = layout.needUpdateSizes;
+    //node["needUpdateAnchorOffsets"] = layout.needUpdateAnchorOffsets;
 
     return node;
 }
@@ -1970,6 +1971,7 @@ UILayoutComponent Editor::Stream::decodeUILayoutComponent(const YAML::Node& node
     if (node["ignoreScissor"]) layout.ignoreScissor = node["ignoreScissor"].as<bool>();
     if (node["ignoreEvents"]) layout.ignoreEvents = node["ignoreEvents"].as<bool>();
     //layout.needUpdateSizes = node["needUpdateSizes"].as<bool>();
+    //layout.needUpdateAnchorOffsets = node["needUpdateAnchorOffsets"].as<bool>();
 
     return layout;
 }
