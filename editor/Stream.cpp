@@ -1979,6 +1979,9 @@ UILayoutComponent Editor::Stream::decodeUILayoutComponent(const YAML::Node& node
 YAML::Node Editor::Stream::encodeUIContainerComponent(const UIContainerComponent& container) {
     YAML::Node node;
     node["type"] = containerTypeToString(container.type);
+    node["useAllWrapSpace"] = container.useAllWrapSpace;
+    node["wrapCellWidth"] = container.wrapCellWidth;
+    node["wrapCellHeight"] = container.wrapCellHeight;
     return node;
 }
 
@@ -1990,6 +1993,10 @@ UIContainerComponent Editor::Stream::decodeUIContainerComponent(const YAML::Node
     }
 
     if (node["type"]) container.type = stringToContainerType(node["type"].as<std::string>());
+    if (node["useAllWrapSpace"]) container.useAllWrapSpace = node["useAllWrapSpace"].as<bool>();
+    if (node["fillAvailableSpace"]) container.useAllWrapSpace = node["fillAvailableSpace"].as<bool>();
+    if (node["wrapCellWidth"]) container.wrapCellWidth = node["wrapCellWidth"].as<unsigned int>();
+    if (node["wrapCellHeight"]) container.wrapCellHeight = node["wrapCellHeight"].as<unsigned int>();
 
     return container;
 }

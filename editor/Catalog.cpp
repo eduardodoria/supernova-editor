@@ -590,6 +590,9 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         static UIContainerComponent* def = new UIContainerComponent;
 
         ps["type"] = {PropertyType::Enum, UpdateFlags_Layout_Sizes, (void*)&def->type, (compRef) ? (void*)&comp->type : nullptr};
+        ps["useAllWrapSpace"] = {PropertyType::Bool, UpdateFlags_Layout_Sizes, (void*)&def->useAllWrapSpace, (compRef) ? (void*)&comp->useAllWrapSpace : nullptr};
+        ps["wrapCellWidth"] = {PropertyType::UInt, UpdateFlags_Layout_Sizes, (void*)&def->wrapCellWidth, (compRef) ? (void*)&comp->wrapCellWidth : nullptr};
+        ps["wrapCellHeight"] = {PropertyType::UInt, UpdateFlags_Layout_Sizes, (void*)&def->wrapCellHeight, (compRef) ? (void*)&comp->wrapCellHeight : nullptr};
     }
 
     return ps;

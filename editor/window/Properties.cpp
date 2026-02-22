@@ -3041,9 +3041,30 @@ void Editor::Properties::drawUIContainerComponent(ComponentType cpType, ScenePro
     RowSettings settingsContainerType;
     settingsContainerType.enumEntries = &entriesContainerType;
 
+    RowSettings settingsCellSize;
+    settingsCellSize.stepSize = 1.0f;
+    settingsCellSize.secondColSize = 6 * ImGui::GetFontSize();
+
     beginTable(cpType, getLabelSize("Type"));
     propertyRow(RowPropertyType::Enum, cpType, "type", "Type", sceneProject, entities, settingsContainerType);
     endTable();
+
+    bool showWrapSettings = false;
+    for (const Entity& entity : entities){
+        const UIContainerComponent& container = sceneProject->scene->getComponent<UIContainerComponent>(entity);
+        if (container.type == ContainerType::VERTICAL_WRAP || container.type == ContainerType::HORIZONTAL_WRAP){
+            showWrapSettings = true;
+        }
+    }
+
+    if (showWrapSettings) {
+        ImGui::SeparatorText("Wrap settings");
+        beginTable(cpType, getLabelSize("Use All Space"), "wrap_settings");
+        propertyRow(RowPropertyType::Bool, cpType, "useAllWrapSpace", "Use All Space", sceneProject, entities);
+        propertyRow(RowPropertyType::UInt, cpType, "wrapCellWidth", "Cell Width", sceneProject, entities, settingsCellSize);
+        propertyRow(RowPropertyType::UInt, cpType, "wrapCellHeight", "Cell Height", sceneProject, entities, settingsCellSize);
+        endTable();
+    }
 }
 
 void Editor::Properties::drawImageComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){

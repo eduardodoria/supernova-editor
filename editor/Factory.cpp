@@ -708,6 +708,9 @@ std::string Editor::Factory::createUIContainerComponent(int indentSpaces, Scene*
     const std::string ind = indentation(indentSpaces);
     code << ind << "UIContainerComponent container;\n";
     code << ind << "container.type = " << formatContainerType(container.type) << ";\n";
+    code << ind << "container.useAllWrapSpace = " << formatBool(container.useAllWrapSpace) << ";\n";
+    code << ind << "container.wrapCellWidth = " << formatUInt(container.wrapCellWidth) << ";\n";
+    code << ind << "container.wrapCellHeight = " << formatUInt(container.wrapCellHeight) << ";\n";
     addComponentCode(code, ind, sceneName, entityName, entity, "UIContainerComponent", "container");
     return code.str();
 }
