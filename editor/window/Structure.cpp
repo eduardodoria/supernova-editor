@@ -94,6 +94,10 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addT
     }
 
     if (ImGui::BeginMenu(ICON_FA_WINDOW_RESTORE"  UI")){
+        if (ImGui::MenuItem(ICON_FA_OBJECT_GROUP"  Container")){
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Container", EntityCreationType::CONTAINER, parent, addToShared));
+            openParent = parent;
+        }
         if (ImGui::MenuItem(ICON_FA_IMAGE"  Image")){
             CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Image", EntityCreationType::IMAGE, parent, addToShared));
             openParent = parent;
@@ -104,10 +108,6 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addT
         }
         if (ImGui::MenuItem(ICON_FA_SQUARE_CARET_RIGHT"  Button")){
             CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Button", EntityCreationType::BUTTON, parent, addToShared));
-            openParent = parent;
-        }
-        if (ImGui::MenuItem(ICON_FA_OBJECT_GROUP"  Container")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Container", EntityCreationType::CONTAINER, parent, addToShared));
             openParent = parent;
         }
         ImGui::EndMenu();
