@@ -593,6 +593,20 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["useAllWrapSpace"] = {PropertyType::Bool, UpdateFlags_Layout_Sizes, (void*)&def->useAllWrapSpace, (compRef) ? (void*)&comp->useAllWrapSpace : nullptr};
         ps["wrapCellWidth"] = {PropertyType::UInt, UpdateFlags_Layout_Sizes, (void*)&def->wrapCellWidth, (compRef) ? (void*)&comp->wrapCellWidth : nullptr};
         ps["wrapCellHeight"] = {PropertyType::UInt, UpdateFlags_Layout_Sizes, (void*)&def->wrapCellHeight, (compRef) ? (void*)&comp->wrapCellHeight : nullptr};
+        ps["numBoxes"] = {PropertyType::UInt, UpdateFlags_None, (void*)&def->numBoxes, (compRef) ? (void*)&comp->numBoxes : nullptr};
+
+        for (int b = 0; b < ((compRef) ? MAX_CONTAINER_BOXES : 1); b++){
+            std::string idx = (compRef) ? std::to_string(b) : "";
+            float* defRect = def->boxes[0].rect.ptr();
+            float* boxRect = (compRef) ? comp->boxes[b].rect.ptr() : nullptr;
+
+            ps["boxes["+idx+"].layout"] = {PropertyType::UInt, UpdateFlags_None, (void*)&def->boxes[0].layout, (compRef) ? (void*)&comp->boxes[b].layout : nullptr};
+            ps["boxes["+idx+"].expand"] = {PropertyType::Bool, UpdateFlags_Layout_Sizes, (void*)&def->boxes[0].expand, (compRef) ? (void*)&comp->boxes[b].expand : nullptr};
+            ps["boxes["+idx+"].rect.x"] = {PropertyType::Float, UpdateFlags_None, (void*)&defRect[0], (compRef) ? (void*)&boxRect[0] : nullptr};
+            ps["boxes["+idx+"].rect.y"] = {PropertyType::Float, UpdateFlags_None, (void*)&defRect[1], (compRef) ? (void*)&boxRect[1] : nullptr};
+            ps["boxes["+idx+"].rect.width"] = {PropertyType::Float, UpdateFlags_None, (void*)&defRect[2], (compRef) ? (void*)&boxRect[2] : nullptr};
+            ps["boxes["+idx+"].rect.height"] = {PropertyType::Float, UpdateFlags_None, (void*)&defRect[3], (compRef) ? (void*)&boxRect[3] : nullptr};
+        }
     }
 
     return ps;

@@ -158,6 +158,29 @@ namespace {
             }
         }
     }
+
+    std::string formatPropertyLabelValue(const Editor::PropertyData& prop) {
+        if (!prop.ref) {
+            return "-";
+        }
+
+        char buffer[64];
+        switch (prop.type) {
+            case Editor::PropertyType::Bool:
+                return (*static_cast<bool*>(prop.ref)) ? "true" : "false";
+            case Editor::PropertyType::Float:
+                snprintf(buffer, sizeof(buffer), "%.3f", *static_cast<float*>(prop.ref));
+                return buffer;
+            case Editor::PropertyType::Int:
+                return std::to_string(*static_cast<int*>(prop.ref));
+            case Editor::PropertyType::UInt:
+                return std::to_string(*static_cast<unsigned int*>(prop.ref));
+            case Editor::PropertyType::String:
+                return *static_cast<std::string*>(prop.ref);
+            default:
+                return "-";
+        }
+    }
 }
 
 Editor::Properties::Properties(Project* project){
@@ -903,7 +926,30 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
     constexpr float compThreshold = 1e-4;
     constexpr float zeroThreshold = 1e-4;
 
-    if (type == RowPropertyType::Vector2){
+    if (type == RowPropertyType::Label){
+        std::string displayValue;
+        bool different = false;
+
+        for (Entity& entity : entities){
+            PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
+            std::string value = formatPropertyLabelValue(prop);
+            if (displayValue.empty()) {
+                displayValue = value;
+            } else if (displayValue != value) {
+                different = true;
+            }
+        }
+
+        propertyHeader(label, settings.secondColSize, false, settings.child);
+        if (different) {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+            ImGui::TextUnformatted("---");
+            ImGui::PopStyleColor();
+        } else {
+            ImGui::TextUnformatted(displayValue.c_str());
+        }
+
+    }else if (type == RowPropertyType::Vector2){
         Vector2* value = nullptr;
         bool difX = false;
         bool difY = false;
@@ -3045,8 +3091,51 @@ void Editor::Properties::drawUIContainerComponent(ComponentType cpType, ScenePro
     settingsCellSize.stepSize = 1.0f;
     settingsCellSize.secondColSize = 6 * ImGui::GetFontSize();
 
-    beginTable(cpType, getLabelSize("Type"));
+    RowSettings settingsRect;
+    settingsRect.secondColSize = 6 * ImGui::GetFontSize();
+
+    RowSettings settingsLayout;
+    settingsLayout.stepSize = 1.0f;
+    settingsLayout.secondColSize = 6 * ImGui::GetFontSize();
+
+    unsigned int numBoxes = sceneProject->scene->getComponent<UIContainerComponent>(entities[0]).numBoxes;
+    for (Entity& entity : entities){
+        numBoxes = std::min(numBoxes, sceneProject->scene->getComponent<UIContainerComponent>(entity).numBoxes);
+    }
+
+    beginTable(cpType, getLabelSize("Num Boxes"));
     propertyRow(RowPropertyType::Enum, cpType, "type", "Type", sceneProject, entities, settingsContainerType);
+    propertyRow(RowPropertyType::Label, cpType, "numBoxes", "Num Boxes", sceneProject, entities, settingsLayout);
+
+    ImGui::SameLine();
+    if (ImGui::Button(ICON_FA_GEAR)){
+        ImGui::OpenPopup("menusettings_container_boxes");
+    }
+    ImGui::SetNextWindowSizeConstraints(ImVec2(10 * ImGui::GetFontSize(), 0), ImVec2(FLT_MAX, FLT_MAX));
+    if (ImGui::BeginPopup("menusettings_container_boxes")){
+
+        if (numBoxes == 0){
+            ImGui::TextDisabled("No boxes available");
+        }
+
+        for (unsigned int b = 0; b < numBoxes; b++){
+            ImGui::SeparatorText(("Box " + std::to_string(b + 1)).c_str());
+
+            beginTable(cpType, getLabelSize("Rect Height"), "box_popup_" + std::to_string(b));
+
+            propertyRow(RowPropertyType::Label, cpType, "boxes["+std::to_string(b)+"].layout", "Layout Entity", sceneProject, entities, settingsLayout);
+            propertyRow(RowPropertyType::Bool, cpType, "boxes["+std::to_string(b)+"].expand", "Expand", sceneProject, entities);
+
+            propertyRow(RowPropertyType::Label, cpType, "boxes["+std::to_string(b)+"].rect.x", "Rect X", sceneProject, entities, settingsRect);
+            propertyRow(RowPropertyType::Label, cpType, "boxes["+std::to_string(b)+"].rect.y", "Rect Y", sceneProject, entities, settingsRect);
+            propertyRow(RowPropertyType::Label, cpType, "boxes["+std::to_string(b)+"].rect.width", "Rect Width", sceneProject, entities, settingsRect);
+            propertyRow(RowPropertyType::Label, cpType, "boxes["+std::to_string(b)+"].rect.height", "Rect Height", sceneProject, entities, settingsRect);
+
+            endTable();
+        }
+
+        ImGui::EndPopup();
+    }
     endTable();
 
     bool showWrapSettings = false;
@@ -3065,6 +3154,7 @@ void Editor::Properties::drawUIContainerComponent(ComponentType cpType, ScenePro
         propertyRow(RowPropertyType::UInt, cpType, "wrapCellHeight", "Cell Height", sceneProject, entities, settingsCellSize);
         endTable();
     }
+
 }
 
 void Editor::Properties::drawImageComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){

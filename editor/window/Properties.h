@@ -12,6 +12,7 @@
 namespace Supernova::Editor{
 
     enum class RowPropertyType{
+        Label,
         Bool,
         String,
         MultilineString,
