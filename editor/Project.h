@@ -104,6 +104,7 @@ namespace Supernova::Editor{
             uint32_t sourceSceneId = NULL_PROJECT_SCENE;
             SceneProject* runtime = nullptr; // Scene used by the Engine while playing
             bool ownedRuntime = false;       // true when runtime was cloned and must be deleted
+            bool initialized = false;        // true when scripts and library are initialized
         };
 
         struct PlaySession {
@@ -118,6 +119,7 @@ namespace Supernova::Editor{
         std::shared_ptr<PlaySession> activePlaySession;
 
         SceneProject* createRuntimeCloneFromSource(const SceneProject* source);
+        void initializeRuntimeScene(PlayRuntimeScene& entry);
         Entity getSceneCamera(const SceneProject* sceneProject) const;
         void cleanupPlaySession(const std::shared_ptr<PlaySession>& session);
 
@@ -154,8 +156,8 @@ namespace Supernova::Editor{
         void initializeLuaScripts(Scene* scene);
         void cleanupLuaScripts(Scene* scene);
 
-        void finalizeStart(SceneProject* mainSceneProject, const std::vector<PlayRuntimeScene>& runtimeScenes);
-        void finalizeStop(SceneProject* mainSceneProject, const std::vector<PlayRuntimeScene>& runtimeScenes);
+        void finalizeStart(SceneProject* mainSceneProject, std::vector<PlayRuntimeScene>& runtimeScenes);
+        void finalizeStop(SceneProject* mainSceneProject, std::vector<PlayRuntimeScene> runtimeScenes);
 
         void collectInvolvedScenes(uint32_t sceneId, std::vector<uint32_t>& involvedSceneIds);
 
