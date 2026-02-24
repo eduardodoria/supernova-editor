@@ -925,7 +925,7 @@ std::string Editor::Factory::createAllComponents(int indentSpaces, Scene* scene,
 std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::string name, std::vector<Entity> entities, Entity camera, const fs::path& projectPath, const fs::path& generatedPath) {
     std::ostringstream out;
 
-    std::string mainSceneVar = toIdentifier(name);
+    std::string funcId = toIdentifier(name);
     const std::string ind = indentation(indentSpaces);
 
     bool usesDefaultSky = false;
@@ -956,7 +956,7 @@ std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::st
     out << ind << "using namespace Supernova;\n\n";
     out << ind << "extern \"C\" void initSceneScripts(Supernova::Scene* scene);\n\n";
 
-    out << ind << "void create_" << mainSceneVar << "(Scene* scene){\n";
+    out << ind << "void create_" << funcId << "(Scene* scene){\n";
 
     const std::string ind2 = indentation(indentSpaces+4);
     const std::string ind3 = indentation(indentSpaces+8);

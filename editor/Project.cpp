@@ -35,6 +35,7 @@
 #include "util/ProjectUtils.h"
 
 #include "texture/Texture.h"
+#include "SceneManager.h"
 
 using namespace Supernova;
 
@@ -629,6 +630,17 @@ void Editor::Project::insertNewChild(YAML::Node& node, YAML::Node child, size_t 
         node["children"] = YAML::Node(YAML::NodeType::Sequence);
         node["children"].push_back(child);
     }
+}
+
+std::vector<Editor::ScriptSource> Editor::Project::collectAllCppScriptSourceFiles() const {
+    std::vector<uint32_t> allSceneIds;
+    allSceneIds.reserve(scenes.size());
+
+    for (const auto& sceneProject : scenes) {
+        allSceneIds.push_back(sceneProject.id);
+    }
+
+    return collectCppScriptSourceFiles(allSceneIds);
 }
 
 // Collect unique script source files from specified scenes/entities
@@ -1389,10 +1401,14 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
         if (!involvedScene) continue;
 
         bool isMain = (sceneId == id);
-        scenesToConfig.push_back({involvedScene->name, isMain});
+        scenesToConfig.push_back({id, involvedScene->name, isMain});
     }
+
+    std::vector<Editor::SceneStackInfo> stacksToConfig;
+    stacksToConfig.push_back({sceneProject->name, sceneId, involvedSceneIds});
+
     std::vector<Editor::ScriptSource> scriptFiles = collectCppScriptSourceFiles(involvedSceneIds);
-    generator.configure(scenesToConfig, libName, scriptFiles, getProjectPath(), getProjectInternalPath());
+    generator.configure(scenesToConfig, stacksToConfig, libName, scriptFiles, getProjectPath(), getProjectInternalPath());
 
     Out::info("Scene saved to: \"%s\"", path.string().c_str());
 }
@@ -3173,45 +3189,44 @@ void Editor::Project::start(uint32_t sceneId) {
             }).detach();
         };
 
-    std::vector<uint32_t> involvedSceneIds;
-    collectInvolvedScenes(sceneId, involvedSceneIds);
-
     auto session = std::make_shared<PlaySession>();
     session->mainSceneId = sceneId;
-    //session->involvedSceneIds = involvedSceneIds;
+
+    std::vector<uint32_t> involvedMainSceneIds;
+    collectInvolvedScenes(sceneId, involvedMainSceneIds);
 
     std::vector<Editor::SceneBuildInfo> scenesToGenerate;
-    for (uint32_t id : involvedSceneIds) {
-        SceneProject* involvedScene = getScene(id);
-        if (!involvedScene) continue;
+    std::vector<Editor::SceneStackInfo> stacksToGenerate;
+    for (SceneProject& involvedScene : scenes) {
+        //if (!involvedScene) continue;
         bool savedNow = false;
 
-        if (involvedScene->opened){
-            updateAllScriptsProperties(id);
+        if (involvedScene.opened){
+            updateAllScriptsProperties(involvedScene.id);
 
-            if (involvedScene->isModified && !involvedScene->filepath.empty()) {
-                saveSceneToPath(id, involvedScene->filepath);
+            if (involvedScene.isModified && !involvedScene.filepath.empty()) {
+                saveSceneToPath(involvedScene.id, involvedScene.filepath);
                 savedNow = true;
             }
         }
 
         PlayRuntimeScene entry;
-        entry.sourceSceneId = id;
+        entry.sourceSceneId = involvedScene.id;
 
-        if (id == sceneId) {
+        if (involvedScene.id == sceneId) {
             // Main scene plays in-place
-            entry.runtime = involvedScene;
+            entry.runtime = &involvedScene;
             entry.ownedRuntime = false;
             //entry.manageSourceState = true;
-        } else {
+        } else if (std::find(involvedMainSceneIds.begin(), involvedMainSceneIds.end(), involvedScene.id) != involvedMainSceneIds.end()) {
             // Child scene: clone for runtime to keep standalone tab independent
-            entry.runtime = createRuntimeCloneFromSource(involvedScene);
+            entry.runtime = createRuntimeCloneFromSource(&involvedScene);
             entry.ownedRuntime = true;
             //entry.manageSourceState = false;
         }
 
         if (!entry.runtime) {
-            Out::error("Failed to prepare runtime scene for id=%u", id);
+            Out::error("Failed to prepare runtime scene for id=%u", involvedScene.id);
             continue;
         }
 
@@ -3223,8 +3238,12 @@ void Editor::Project::start(uint32_t sceneId) {
 
         session->runtimeScenes.push_back(entry);
 
-        bool isMain = (sceneId == id);
-        scenesToGenerate.push_back({involvedScene->name, isMain});
+        bool isMain = (sceneId == involvedScene.id);
+        scenesToGenerate.push_back({involvedScene.id, involvedScene.name, isMain});
+
+        std::vector<uint32_t> involvedSceneIds;
+        collectInvolvedScenes(involvedScene.id, involvedSceneIds);
+        stacksToGenerate.push_back({involvedScene.name, involvedScene.id, involvedSceneIds});
     }
 
     {
@@ -3238,9 +3257,9 @@ void Editor::Project::start(uint32_t sceneId) {
 
     Backend::getApp().getCodeEditor()->saveAll();
 
-    std::vector<Editor::ScriptSource> scriptFiles = collectCppScriptSourceFiles(involvedSceneIds);
+    std::vector<Editor::ScriptSource> scriptFiles = collectAllCppScriptSourceFiles();
 
-    generator.configure(scenesToGenerate, libName, scriptFiles, getProjectPath(), getProjectInternalPath());
+    generator.configure(scenesToGenerate, stacksToGenerate, libName, scriptFiles, getProjectPath(), getProjectInternalPath());
 
     // Check if we have C++ scripts that need building
     bool hasCppScripts = !scriptFiles.empty();
