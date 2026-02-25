@@ -635,20 +635,28 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
         sourceContent += "    for (size_t i = 0; i < scriptsArray->size(); i++) {\n";
         sourceContent += "        Supernova::ScriptComponent& scriptComp = scriptsArray->getComponentFromIndex(i);\n";
         sourceContent += "        for (auto& scriptEntry : scriptComp.scripts) {\n";
-        sourceContent += "            if (scriptEntry.type == ScriptType::SCRIPT_LUA) \n";
-        sourceContent += "                continue; \n";
+        sourceContent += "            if (scriptEntry.type == ScriptType::SCRIPT_LUA) {\n";
+        sourceContent += "                if (scriptEntry.instance) {\n";
+        sourceContent += "                    int ref = static_cast<int>(reinterpret_cast<intptr_t>(scriptEntry.instance));\n";
+        sourceContent += "                    LuaBinding::removeScriptSubscriptions(ref);\n";
+        sourceContent += "                    LuaBinding::releaseLuaRef(ref);\n";
+        sourceContent += "                    scriptEntry.instance = nullptr;\n";
+        sourceContent += "                }\n";
+        sourceContent += "                continue;\n";
+        sourceContent += "            }\n";
         sourceContent += "\n";
+        sourceContent += "            if (scriptEntry.instance) {\n";
         for (const auto& s : scriptFiles) {
-            sourceContent += "            if (scriptEntry.instance) {\n";
             sourceContent += "                if (scriptEntry.className == \"" + s.className + "\") {\n";
+            sourceContent += "                    printf(\"[DEBUG] Cleaning up script instance of class '%s'\\n\", scriptEntry.className.c_str());\n";
+            sourceContent += "                    std::string addr = \"_\" + std::to_string(reinterpret_cast<std::uintptr_t>(scriptEntry.instance)) + \"_\";\n";
+            sourceContent += "                    Engine::removeSubscriptionsByTag(addr);\n";
             sourceContent += "                    delete static_cast<" + s.className + "*>(scriptEntry.instance);\n";
             sourceContent += "                }\n";
-            sourceContent += "                scriptEntry.instance = nullptr;\n";
-            sourceContent += "            }\n";
         }
+        sourceContent += "                scriptEntry.instance = nullptr;\n";
+        sourceContent += "            }\n";
         sourceContent += "        }\n";
-        sourceContent += "\n";
-        sourceContent += "        Engine::clearAllSubscriptions(true);\n";
         sourceContent += "    }\n";
     } else {
         sourceContent += "    (void)scene; // Suppress unused parameter warning\n";
@@ -748,12 +756,13 @@ void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& sce
         std::string sceneName = Factory::toIdentifier(sceneData.name);
         mainContent += "void create_" + sceneName + "(Scene* scene);\n";
     }
+    mainContent += "extern \"C\" void cleanup(Supernova::Scene* scene);\n";
     mainContent += "\n";
 
     std::map<uint32_t, std::string> sceneIdToName;
     for (const auto& sceneData : scenes) {
-        std::string sceneName = Factory::toIdentifier(sceneData.name);
-        mainContent += "static Scene* _" + sceneName + " = nullptr;\n";
+        std::string sceneName = "_" + Factory::toIdentifier(sceneData.name);
+        mainContent += "static Scene* " + sceneName + " = nullptr;\n";
         sceneIdToName[sceneData.id] = sceneName;
     }
     mainContent += "\n";
@@ -764,19 +773,31 @@ void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& sce
         mainContent += "// --- Scene stack: " + sceneData.name + " ---\n";
         mainContent += "void load_" + stackId + "() {\n";
         for (const auto sceneId : sceneData.involvedScenes) {
-            std::string sceneName = Factory::toIdentifier(sceneIdToName[sceneId]);
-            mainContent += "    delete _" + sceneName + ";\n";
-            mainContent += "    _" + sceneName + " = new Scene();\n";
-            mainContent += "    create_" + sceneName + "(_" + sceneName + ");\n";
+            std::string sceneName = "_" + Factory::toIdentifier(sceneIdToName[sceneId]);
+            mainContent += "    if (!" + sceneName + "){\n";
+            mainContent += "        " + sceneName + " = new Scene();\n";
+            mainContent += "        create" + sceneName + "(" + sceneName + ");\n";
+            mainContent += "    }\n";
         }
         mainContent += "\n";
         for (const auto sceneId : sceneData.involvedScenes) {
-            std::string sceneName = Factory::toIdentifier(sceneIdToName[sceneId]);
+            std::string sceneName = "_" + Factory::toIdentifier(sceneIdToName[sceneId]);
             if (sceneData.id == sceneId) {
-                mainContent += "    Engine::setScene(_" + sceneName + ");\n";
+                mainContent += "    Engine::setScene(" + sceneName + ");\n";
             } else {
-                mainContent += "    Engine::addSceneLayer(_" + sceneName + ");\n";
+                mainContent += "    Engine::addSceneLayer(" + sceneName + ");\n";
             }
+        }
+        mainContent += "\n";
+        for (const auto& sceneDataAux: scenes) {
+            if (sceneDataAux.id == sceneData.id) continue;
+            if (std::find(sceneData.involvedScenes.begin(), sceneData.involvedScenes.end(), sceneDataAux.id) != sceneData.involvedScenes.end()) continue;
+            std::string sceneName = "_" + Factory::toIdentifier(sceneDataAux.name);
+            mainContent += "    if (" + sceneName + ") {\n";
+            mainContent += "        cleanup(" + sceneName + ");\n";
+            mainContent += "        delete " + sceneName + ";\n";
+            mainContent += "        " + sceneName + " = nullptr;\n";
+            mainContent += "    }\n";
         }
         mainContent += "}\n\n";
     }

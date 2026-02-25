@@ -1008,11 +1008,6 @@ void Editor::Project::cleanupLuaScripts(Scene* scene) {
         return;
     }
 
-    lua_State* L = LuaBinding::getLuaState();
-    if (!L) {
-        return;
-    }
-
     auto scriptsArray = scene->getComponentArray<ScriptComponent>();
 
     for (size_t i = 0; i < scriptsArray->size(); i++) {
@@ -1024,9 +1019,9 @@ void Editor::Project::cleanupLuaScripts(Scene* scene) {
             }
 
             if (scriptEntry.instance) {
-                // Release the Lua registry reference
                 int ref = static_cast<int>(reinterpret_cast<intptr_t>(scriptEntry.instance));
-                luaL_unref(L, LUA_REGISTRYINDEX, ref);
+                LuaBinding::removeScriptSubscriptions(ref);
+                LuaBinding::releaseLuaRef(ref);
 
                 scriptEntry.instance = nullptr;
 
@@ -3334,6 +3329,31 @@ void Editor::Project::start(uint32_t sceneId) {
                     Engine::setScene(entry.runtime->scene);
                 } else {
                     Engine::addSceneLayer(entry.runtime->scene);
+                }
+            }
+
+            // Cleanup scripts for scenes no longer in the current stack
+            {
+                std::scoped_lock lock(playSessionMutex);
+                for (auto& entry : session->runtimeScenes) {
+                    if (!entry.initialized) continue;
+
+                    bool inCurrentStack = false;
+                    for (size_t idx : currentStackIndices) {
+                        if (&session->runtimeScenes[idx] == &entry) {
+                            inCurrentStack = true;
+                            break;
+                        }
+                    }
+
+                    if (!inCurrentStack) {
+                        if (conector.isLibraryConnected()) {
+                            conector.cleanup(entry.runtime->scene);
+                        } else {
+                            cleanupLuaScripts(entry.runtime->scene);
+                        }
+                        entry.initialized = false;
+                    }
                 }
             }
         });
