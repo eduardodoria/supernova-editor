@@ -419,7 +419,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     if (hasSearch && node.matchesSearch) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 0.5f, 1.0f)); // Yellow for search matches
         pushedHighlightColor = true;
-    } else if (!node.isScene && !node.isChildScene && ProjectUtils::isEntityLocked(project->getSelectedScene()->scene, node.id)) {
+    } else if (!node.isScene && !node.isChildScene && node.isLocked) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]); // Use theme's disabled color
         pushedHighlightColor = true;
     } else if (node.isChildScene) {
@@ -467,9 +467,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     }
 
     if (!node.isChildScene) {
-        bool isLocked = !node.isScene && ProjectUtils::isEntityLocked(project->getSelectedScene()->scene, node.id);
-
-        if (!isLocked && ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+        if (!node.isLocked && ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
             // Add entity drag drop payload for dragging to resources
             if (!node.isScene) {
                 SceneProject* sceneProject = project->getSelectedScene();
@@ -754,8 +752,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
             if (ImGui::MenuItem(ICON_FA_COPY"  Duplicate")){
                 // Action for SubItem 1
             }
-            bool isLocked = ProjectUtils::isEntityLocked(project->getSelectedScene()->scene, node.id);
-            if (ImGui::MenuItem(ICON_FA_TRASH"  Delete", nullptr, false, !isLocked)){
+            if (ImGui::MenuItem(ICON_FA_TRASH"  Delete", nullptr, false, !node.isLocked)){
                 if (!node.isScene){
                     CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new DeleteEntityCmd(project, project->getSelectedSceneId(), node.id));
                 }
@@ -946,6 +943,7 @@ void Editor::Structure::show(){
             child.id = entity;
             child.isMainCamera = (entity == mainCamera);
             child.hasTransform = true;
+            child.isLocked = ProjectUtils::isEntityLocked(sceneProject->scene, entity);
             child.order = order++;
             child.name = sceneProject->scene->getEntityName(entity);
             if (transform.parent == NULL_ENTITY){

@@ -383,6 +383,8 @@ void Editor::Project::openSceneInternal(fs::path filepath, uint32_t sceneToClose
         loadScene(filepath, true, false);
         if (sceneToClose != NULL_PROJECT_SCENE && sceneToClose != it->id) {
             closeScene(sceneToClose);
+        }else{
+            saveProject();
         }
         return;
     }
@@ -395,6 +397,8 @@ void Editor::Project::openSceneInternal(fs::path filepath, uint32_t sceneToClose
             loadScene(filepath, true, true);
             if (sceneToClose != NULL_PROJECT_SCENE) {
                 closeScene(sceneToClose);
+            }else{
+                saveProject();
             }
         },
         []() {
@@ -434,6 +438,8 @@ void Editor::Project::closeScene(uint32_t sceneId) {
 
         it->opened = false;
     }
+
+    saveProject();
 }
 
 void Editor::Project::removeScene(uint32_t sceneId) {

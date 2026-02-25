@@ -18,6 +18,7 @@ namespace Supernova::Editor{
         bool isShared = false;
         bool isParentShared = false;
         bool isMainCamera = false;
+        bool isLocked = false;
         bool separator = false;
         bool hasTransform = false;
         bool matchesSearch = false;         // Node matches search term
