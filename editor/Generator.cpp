@@ -733,7 +733,7 @@ void Editor::Generator::clearSceneSource(const std::string& sceneName, const fs:
     }
 }
 
-void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& scenes, const std::vector<Editor::SceneStackInfo> stacks, std::string libName, const std::vector<ScriptSource>& scriptFiles, const fs::path& projectPath, const fs::path& projectInternalPath){
+void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& scenes, std::string libName, const std::vector<ScriptSource>& scriptFiles, const fs::path& projectPath, const fs::path& projectInternalPath){
     const fs::path generatedPath = getGeneratedPath(projectInternalPath);
 
     // Build main.cpp content
@@ -759,20 +759,20 @@ void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& sce
     mainContent += "\n";
 
     // Per-stack: static scene pointers + load function
-    for (const auto& stack : stacks) {
-        std::string stackId = Factory::toIdentifier(stack.stackName);
-        mainContent += "// --- Scene stack: " + stack.stackName + " ---\n";
+    for (const auto& sceneData : scenes) {
+        std::string stackId = Factory::toIdentifier(sceneData.name);
+        mainContent += "// --- Scene stack: " + sceneData.name + " ---\n";
         mainContent += "void load_" + stackId + "() {\n";
-        for (const auto sceneId : stack.sceneIds) {
+        for (const auto sceneId : sceneData.involvedScenes) {
             std::string sceneName = Factory::toIdentifier(sceneIdToName[sceneId]);
             mainContent += "    delete _" + sceneName + ";\n";
             mainContent += "    _" + sceneName + " = new Scene();\n";
             mainContent += "    create_" + sceneName + "(_" + sceneName + ");\n";
         }
         mainContent += "\n";
-        for (const auto sceneId : stack.sceneIds) {
+        for (const auto sceneId : sceneData.involvedScenes) {
             std::string sceneName = Factory::toIdentifier(sceneIdToName[sceneId]);
-            if (stack.mainSceneId == sceneId) {
+            if (sceneData.id == sceneId) {
                 mainContent += "    Engine::setScene(_" + sceneName + ");\n";
             } else {
                 mainContent += "    Engine::addSceneLayer(_" + sceneName + ");\n";
@@ -789,9 +789,9 @@ void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& sce
     mainContent += "    Engine::setCanvasSize(1000, 480);\n\n";
 
     // Register all stacks with SceneManager
-    for (const auto& stack : stacks) {
-        std::string stackId = Factory::toIdentifier(stack.stackName);
-        mainContent += "    SceneManager::registerScene(\"" + stack.stackName + "\", load_" + stackId + ");\n";
+    for (const auto& sceneData : scenes) {
+        std::string stackId = Factory::toIdentifier(sceneData.name);
+        mainContent += "    SceneManager::registerScene(\"" + sceneData.name + "\", load_" + stackId + ");\n";
     }
     mainContent += "\n";
 
