@@ -153,9 +153,6 @@ namespace Supernova::Editor{
 
         void copyEngineApiToProject();
 
-        void initializeLuaScripts(Scene* scene);
-        void cleanupLuaScripts(Scene* scene);
-
         void finalizeStart(SceneProject* mainSceneProject, std::vector<PlayRuntimeScene>& runtimeScenes);
         void finalizeStop(SceneProject* mainSceneProject, std::vector<PlayRuntimeScene> runtimeScenes);
 

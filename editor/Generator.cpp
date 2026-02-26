@@ -629,26 +629,18 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
 
     // Cleanup function - delete all script instances
     sourceContent += "extern \"C\" void PROJECT_API cleanup(Supernova::Scene* scene) {\n";
+    sourceContent += "    LuaBinding::cleanupLuaScripts(scene);\n";
 
     if (!scriptFiles.empty()) {
         sourceContent += "    const auto& scriptsArray = scene->getComponentArray<ScriptComponent>();\n";
         sourceContent += "    for (size_t i = 0; i < scriptsArray->size(); i++) {\n";
         sourceContent += "        Supernova::ScriptComponent& scriptComp = scriptsArray->getComponentFromIndex(i);\n";
         sourceContent += "        for (auto& scriptEntry : scriptComp.scripts) {\n";
-        sourceContent += "            if (scriptEntry.type == ScriptType::SCRIPT_LUA) {\n";
-        sourceContent += "                if (scriptEntry.instance) {\n";
-        sourceContent += "                    int ref = static_cast<int>(reinterpret_cast<intptr_t>(scriptEntry.instance));\n";
-        sourceContent += "                    LuaBinding::removeScriptSubscriptions(ref);\n";
-        sourceContent += "                    LuaBinding::releaseLuaRef(ref);\n";
-        sourceContent += "                    scriptEntry.instance = nullptr;\n";
-        sourceContent += "                }\n";
-        sourceContent += "                continue;\n";
-        sourceContent += "            }\n";
+        sourceContent += "            if (scriptEntry.type == ScriptType::SCRIPT_LUA) continue;\n";
         sourceContent += "\n";
         sourceContent += "            if (scriptEntry.instance) {\n";
         for (const auto& s : scriptFiles) {
             sourceContent += "                if (scriptEntry.className == \"" + s.className + "\") {\n";
-            sourceContent += "                    printf(\"[DEBUG] Cleaning up script instance of class '%s'\\n\", scriptEntry.className.c_str());\n";
             sourceContent += "                    std::string addr = \"_\" + std::to_string(reinterpret_cast<std::uintptr_t>(scriptEntry.instance)) + \"_\";\n";
             sourceContent += "                    Engine::removeSubscriptionsByTag(addr);\n";
             sourceContent += "                    delete static_cast<" + s.className + "*>(scriptEntry.instance);\n";
@@ -658,8 +650,6 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
         sourceContent += "            }\n";
         sourceContent += "        }\n";
         sourceContent += "    }\n";
-    } else {
-        sourceContent += "    (void)scene; // Suppress unused parameter warning\n";
     }
 
     sourceContent += "}\n";
@@ -777,6 +767,7 @@ void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& sce
             mainContent += "    if (!" + sceneName + "){\n";
             mainContent += "        " + sceneName + " = new Scene();\n";
             mainContent += "        create" + sceneName + "(" + sceneName + ");\n";
+            mainContent += "        LuaBinding::initializeLuaScripts(" + sceneName + ");\n";
             mainContent += "    }\n";
         }
         mainContent += "\n";
@@ -921,10 +912,10 @@ std::string Editor::Generator::getPlatformEditorSource(const fs::path& projectPa
     content += "        glfwGetWindowContentScale(window, &xscale, &yscale);\n\n";
     content += "        mousePosX = pos_x * xscale;\n";
     content += "        mousePosY = pos_y * yscale;\n";
-    content += "        Supernova::Engine::systemMouseMove(float(pos_x), float(pos_y), 0);\n";
+    content += "        Supernova::Engine::systemMouseMove(float(mousePosX), float(mousePosY), 0);\n";
     content += "    });\n";
-    content += "    glfwSetScrollCallback(window, [](GLFWwindow*, double pos_x, double pos_y){\n";
-    content += "        Supernova::Engine::systemMouseScroll((float)pos_x, (float)pos_y, 0);\n";
+    content += "    glfwSetScrollCallback(window, [](GLFWwindow*, double xoffset, double yoffset){\n";
+    content += "        Supernova::Engine::systemMouseScroll((float)xoffset, (float)yoffset, 0);\n";
     content += "    });\n";
     content += "    glfwSetKeyCallback(window, [](GLFWwindow*, int key, int /*scancode*/, int action, int mods){\n";
     content += "        if (action==GLFW_PRESS){\n";

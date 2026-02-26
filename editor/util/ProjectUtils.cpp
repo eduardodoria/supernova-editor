@@ -49,47 +49,6 @@ void Editor::ProjectUtils::setDefaultSkyTexture(Texture& outTexture) {
     outTexture.setCubeDatas("editor:resources:default_sky", skyFront, skyBack, skyLeft, skyRight, skyTop, skyBottom);
 }
 
-std::string Editor::ProjectUtils::normalizePtrTypeName(std::string value) {
-    auto isSpace = [](unsigned char c) { return std::isspace(c) != 0; };
-
-    while (!value.empty() && isSpace(static_cast<unsigned char>(value.front()))) {
-        value.erase(value.begin());
-    }
-    while (!value.empty() && isSpace(static_cast<unsigned char>(value.back()))) {
-        value.pop_back();
-    }
-
-    // tolerate values like "Mesh*" or "Mesh *"
-    while (!value.empty() && (value.back() == '*' || value.back() == '&')) {
-        value.pop_back();
-    }
-    while (!value.empty() && isSpace(static_cast<unsigned char>(value.back()))) {
-        value.pop_back();
-    }
-
-    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) {
-        return static_cast<char>(std::tolower(c));
-    });
-
-    return value;
-}
-
-bool Editor::ProjectUtils::pushEntityHandleByPtrTypeName(lua_State* L, Scene* scene, Entity entity, const std::string& ptrTypeName) {
-    const std::string typeKey = normalizePtrTypeName(ptrTypeName);
-
-    if (typeKey == "mesh") return pushEntityHandleTyped<Mesh>(L, scene, entity, "Mesh");
-    if (typeKey == "object") return pushEntityHandleTyped<Object>(L, scene, entity, "Object");
-    if (typeKey == "shape") return pushEntityHandleTyped<Shape>(L, scene, entity, "Shape");
-    if (typeKey == "model") return pushEntityHandleTyped<Model>(L, scene, entity, "Model");
-    if (typeKey == "points") return pushEntityHandleTyped<Points>(L, scene, entity, "Points");
-    if (typeKey == "sprite") return pushEntityHandleTyped<Sprite>(L, scene, entity, "Sprite");
-    if (typeKey == "terrain") return pushEntityHandleTyped<Terrain>(L, scene, entity, "Terrain");
-    if (typeKey == "light") return pushEntityHandleTyped<Light>(L, scene, entity, "Light");
-    if (typeKey == "camera") return pushEntityHandleTyped<Camera>(L, scene, entity, "Camera");
-
-    return pushEntityHandleTyped<EntityHandle>(L, scene, entity, "EntityHandle");
-}
-
 bool Editor::ProjectUtils::isEntityLocked(Scene* scene, Entity entity){
     if (entity == NULL_ENTITY)
         return false;

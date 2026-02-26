@@ -46,12 +46,8 @@ public:
     static YAML::Node removeEntityComponent(EntityRegistry* registry, Entity entity, ComponentType componentType, std::vector<Entity>& entities, bool encodeComponent = false);
 
     // --- Lua script utilities ---
-
     static ScriptPropertyValue luaValueToScriptPropertyValue(lua_State* L, int idx, ScriptPropertyType type);
     static void loadLuaScriptProperties(ScriptEntry& entry, const std::string& luaPath);
-
-    static std::string normalizePtrTypeName(std::string value);
-    static bool pushEntityHandleByPtrTypeName(lua_State* L, Scene* scene, Entity entity, const std::string& ptrTypeName);
 
     // Fills a Texture with the editor built-in default skybox cubemap.
     static void setDefaultSkyTexture(Texture& outTexture);
