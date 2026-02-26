@@ -56,6 +56,7 @@ namespace Supernova::Editor {
         bool configureCMake(const fs::path& projectPath, const fs::path& buildPath, const std::string& configType);
         bool buildProject(const fs::path& projectPath, const fs::path& buildPath, const std::string& configType);
         bool runCommand(const std::string& command, const fs::path& workingDir);
+        void clearStaleCMakeCache(const fs::path& projectPath, const fs::path& buildPath);
         std::string getPlatformCMakeConfig();
         std::string getPlatformEditorHeader();
         std::string getPlatformEditorSource(const fs::path& projectPath);

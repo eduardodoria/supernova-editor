@@ -67,7 +67,58 @@ Editor::Generator::~Generator() {
     waitForBuildToComplete();
 }
 
+void Editor::Generator::clearStaleCMakeCache(const fs::path& projectPath, const fs::path& buildPath) {
+    fs::path cacheFile = buildPath / "CMakeCache.txt";
+    if (!fs::exists(cacheFile)) {
+        return;
+    }
+
+    std::ifstream cache(cacheFile);
+    if (!cache.is_open()) {
+        return;
+    }
+
+    std::string line;
+    std::string cachedHomeDir;
+    while (std::getline(cache, line)) {
+        // Look for CMAKE_HOME_DIRECTORY:INTERNAL=<path>
+        const std::string prefix = "CMAKE_HOME_DIRECTORY:INTERNAL=";
+        if (line.compare(0, prefix.size(), prefix) == 0) {
+            cachedHomeDir = line.substr(prefix.size());
+            break;
+        }
+    }
+    cache.close();
+
+    if (cachedHomeDir.empty()) {
+        return;
+    }
+
+    // Compare canonical paths to handle trailing slashes, symlinks, etc.
+    std::error_code ec;
+    fs::path cachedPath = fs::canonical(cachedHomeDir, ec);
+    if (ec) {
+        // Old path no longer exists — definitely stale
+        cachedPath = fs::path(cachedHomeDir);
+    }
+    fs::path currentPath = fs::canonical(projectPath, ec);
+    if (ec) {
+        currentPath = projectPath;
+    }
+
+    if (cachedPath != currentPath) {
+        Out::warning("Project path changed. Cleaning build directory...");
+        Out::warning("  Previous: %s", cachedHomeDir.c_str());
+        Out::warning("  Current: %s", projectPath.string().c_str());
+
+        fs::remove_all(buildPath, ec);
+        fs::create_directories(buildPath, ec);
+    }
+}
+
 bool Editor::Generator::configureCMake(const fs::path& projectPath, const fs::path& buildPath, const std::string& configType) {
+    clearStaleCMakeCache(projectPath, buildPath);
+
     const fs::path exePath = getExecutableDir();
 
     std::string cmakeCommand = "cmake ";
