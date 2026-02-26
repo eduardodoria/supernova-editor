@@ -44,6 +44,7 @@ namespace Supernova::Editor{
         EntityCreationType type;
         std::vector<Entity> lastSelected;
         bool addToShared;
+        bool wasModified;
         bool wasMainCamera;
 
         // Component type -> property name -> property setter function

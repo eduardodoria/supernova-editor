@@ -1094,8 +1094,15 @@ void Editor::App::processNextSaveDialog() {
                     std::filesystem::create_directories(fullPath.parent_path());
 
                     // Save the scene
-                    sceneProject->filepath = fullPath;
-                    project.saveSceneToPath(sceneId, fullPath);
+                    std::error_code ec;
+                    fs::path relPath = fs::relative(fullPath, project.getProjectPath(), ec);
+                    if (ec || relPath.empty()) {
+                        Out::error("Scene filepath must be relative to project path: %s", fullPath.string().c_str());
+                        Backend::getApp().registerAlert("Error", "Scene file must be inside the project folder.");
+                    } else {
+                        sceneProject->filepath = relPath;
+                        project.saveSceneToPath(sceneId, fullPath);
+                    }
                 }
 
                 // Remove this item from the queue

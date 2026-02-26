@@ -898,6 +898,9 @@ void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
         for (const auto& sceneNode : node["scenes"]) {
             if (sceneNode["filepath"]) {
                 fs::path scenePath = sceneNode["filepath"].as<std::string>();
+                if (scenePath.is_relative()) {
+                    scenePath = project->getProjectPath() / scenePath;
+                }
                 bool opened = sceneNode["opened"] ? sceneNode["opened"].as<bool>() : false;
                 if (opened) anyOpened = true;
                 if (fs::exists(scenePath)) {

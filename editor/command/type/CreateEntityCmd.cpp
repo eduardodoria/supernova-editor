@@ -16,6 +16,7 @@ Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std
     this->parent = NULL_ENTITY;
     this->type = EntityCreationType::EMPTY;
     this->addToShared = addToShared;
+    this->wasModified = project->getScene(sceneId)->isModified;
     this->wasMainCamera = false;
     this->updateFlags = 0;
 }
@@ -29,6 +30,7 @@ Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std
     this->parent = NULL_ENTITY;
     this->type = type;
     this->addToShared = addToShared;
+    this->wasModified = project->getScene(sceneId)->isModified;
     this->wasMainCamera = false;
     this->updateFlags = 0;
 }
@@ -42,6 +44,7 @@ Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std
     this->parent = parent;
     this->type = type;
     this->addToShared = addToShared;
+    this->wasModified = project->getScene(sceneId)->isModified;
     this->wasMainCamera = false;
     this->updateFlags = 0;
 }
@@ -321,7 +324,7 @@ void Editor::CreateEntityCmd::undo(){
         }
         DeleteEntityCmd::destroyEntity(sceneProject->scene, entity, sceneProject->entities, project, sceneId);
 
-        sceneProject->isModified = true;
+        sceneProject->isModified = wasModified;
     }
 }
 

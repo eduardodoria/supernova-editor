@@ -183,7 +183,6 @@ uint32_t Editor::Project::createNewSceneInternal(std::string sceneName, SceneTyp
     data.sceneType = type;
     data.sceneRender = createSceneRender(data.sceneType, data.scene);
     data.defaultCamera = createDefaultCamera(data.sceneType, data.scene);
-    data.isModified = true;
     data.isVisible = true;
 
     scenes.push_back(data);
@@ -206,6 +205,7 @@ uint32_t Editor::Project::createNewSceneInternal(std::string sceneName, SceneTyp
         skyCreator.execute();
 
         clearSelectedEntities(data.id);
+        getScene(data.id)->isModified = false; // New scene starts as unmodified
     }
 
     Backend::getApp().addNewSceneToDock(data.id);
@@ -230,7 +230,12 @@ Editor::SceneProject* Editor::Project::createRuntimeCloneFromSource(const SceneP
     runtime->needUpdateRender = false;
     runtime->filepath = source->filepath;
 
-    YAML::Node sceneNode = YAML::LoadFile(runtime->filepath.string());
+    fs::path fullPath = runtime->filepath;
+    if (fullPath.is_relative()) {
+        fullPath = getProjectPath() / fullPath;
+    }
+
+    YAML::Node sceneNode = YAML::LoadFile(fullPath.string());
     Stream::decodeSceneProject(runtime, sceneNode, true);
     //runtime->sceneRender = createSceneRender(runtime->sceneType, runtime->scene);
     runtime->defaultCamera = createDefaultCamera(runtime->sceneType, runtime->scene);
@@ -291,16 +296,33 @@ void Editor::Project::cleanupPlaySession(const std::shared_ptr<PlaySession>& ses
 
 void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene){
     try {
-        YAML::Node sceneNode = YAML::LoadFile(filepath.string());
+        fs::path fullPath = filepath;
+        if (fullPath.is_relative()) {
+            fullPath = getProjectPath() / fullPath;
+        }
+
+        YAML::Node sceneNode = YAML::LoadFile(fullPath.string());
         SceneProject* targetScene = nullptr;
 
         if (isNewScene) {
             scenes.emplace_back();
             targetScene = &scenes.back();
-            targetScene->filepath = filepath;
+            std::error_code ec;
+            fs::path relPath = fs::relative(fullPath, getProjectPath(), ec);
+            if (ec || relPath.empty()) {
+                Out::error("Scene filepath must be relative to project path: %s", fullPath.string().c_str());
+                return;
+            }
+            targetScene->filepath = relPath;
         } else {
             auto it = std::find_if(scenes.begin(), scenes.end(),
-                [&filepath](const SceneProject& scene) { return scene.filepath == filepath; });
+                [this, &fullPath](const SceneProject& scene) { 
+                    fs::path scenePath = scene.filepath;
+                    if (scenePath.is_relative()) {
+                        scenePath = getProjectPath() / scenePath;
+                    }
+                    return scenePath == fullPath; 
+                });
             targetScene = &(*it);
 
             if (targetScene->scene != nullptr || targetScene->sceneRender != nullptr) {
@@ -369,7 +391,13 @@ void Editor::Project::openScene(fs::path filepath, bool closePrevious){
 
 void Editor::Project::openSceneInternal(fs::path filepath, uint32_t sceneToClose){
     auto it = std::find_if(scenes.begin(), scenes.end(),
-        [&filepath](const SceneProject& scene) { return scene.filepath == filepath; });
+        [this, &filepath](const SceneProject& scene) { 
+            fs::path scenePath = scene.filepath;
+            if (scenePath.is_relative()) {
+                scenePath = getProjectPath() / scenePath;
+            }
+            return scenePath == filepath; 
+        });
 
     if (it != scenes.end()) {
         if (it->opened) {
@@ -408,6 +436,13 @@ void Editor::Project::openSceneInternal(fs::path filepath, uint32_t sceneToClose
 }
 
 void Editor::Project::closeScene(uint32_t sceneId) {
+    auto it = std::find_if(scenes.begin(), scenes.end(),
+        [sceneId](const SceneProject& scene) { return scene.id == sceneId; });
+
+    if (it == scenes.end() || !it->opened) {
+        return;
+    }
+
     // Count opened scenes
     int openedCount = 0;
     for (const auto& scene : scenes) {
@@ -421,61 +456,58 @@ void Editor::Project::closeScene(uint32_t sceneId) {
         return;
     }
 
-    auto it = std::find_if(scenes.begin(), scenes.end(),
-        [sceneId](const SceneProject& scene) { return scene.id == sceneId; });
-    
-    if (it != scenes.end()) {
-        if (selectedScene == sceneId) {
-            Out::error("Scene is selected, cannot close it");
-            return;
-        }
-
-        deleteSceneProject(&(*it));
-
-        for (auto& pair : sharedGroups) {
-            pair.second.instances.erase(sceneId);
-        }
-
-        it->opened = false;
+    if (selectedScene == sceneId) {
+        Out::error("Scene is selected, cannot close it");
+        return;
     }
+
+    deleteSceneProject(&(*it));
+
+    for (auto& pair : sharedGroups) {
+        pair.second.instances.erase(sceneId);
+    }
+
+    it->opened = false;
 
     saveProject();
 }
 
 void Editor::Project::removeScene(uint32_t sceneId) {
+    auto it = std::find_if(scenes.begin(), scenes.end(),
+        [sceneId](const SceneProject& scene) { return scene.id == sceneId; });
+
+    if (it == scenes.end()) {
+        return;
+    }
+
     if (scenes.size() <= 1) {
         Out::error("Cannot remove last scene");
         return;
     }
 
-    auto it = std::find_if(scenes.begin(), scenes.end(),
-        [sceneId](const SceneProject& scene) { return scene.id == sceneId; });
-
-    if (it != scenes.end()) {
-        // If selected, select another scene
-        if (selectedScene == sceneId) {
-             // Try to select the first one that is not this one
-            for (const auto& scene : scenes) {
-                if (scene.id != sceneId) {
-                    setSelectedSceneId(scene.id);
-                    break;
-                }
+    // If selected, select another scene
+    if (selectedScene == sceneId) {
+         // Try to select the first one that is not this one
+        for (const auto& scene : scenes) {
+            if (scene.id != sceneId) {
+                setSelectedSceneId(scene.id);
+                break;
             }
         }
-
-        // Cleanup resources
-        deleteSceneProject(&(*it));
-
-        // Remove C++ source file
-        generator.clearSceneSource(it->name, getProjectInternalPath());
-
-        // Cleanup SharedGroups
-        for (auto& pair : sharedGroups) {
-            pair.second.instances.erase(sceneId);
-        }
-
-        scenes.erase(it);
     }
+
+    // Cleanup resources
+    deleteSceneProject(&(*it));
+
+    // Remove C++ source file
+    generator.clearSceneSource(it->name, getProjectInternalPath());
+
+    // Cleanup SharedGroups
+    for (auto& pair : sharedGroups) {
+        pair.second.instances.erase(sceneId);
+    }
+
+    scenes.erase(it);
 }
 
 void Editor::Project::addChildScene(uint32_t sceneId, uint32_t childSceneId) {
@@ -971,7 +1003,7 @@ bool Editor::Project::saveProjectToPath(const std::filesystem::path& path) {
                 if (!sceneProject.filepath.empty()) {
                     std::filesystem::path relativePath = std::filesystem::relative(
                         sceneProject.filepath, oldPath);
-                    sceneProject.filepath = path / relativePath;
+                    sceneProject.filepath = relativePath;
                 }
             }
 
@@ -1108,7 +1140,11 @@ void Editor::Project::saveScene(uint32_t sceneId) {
 
     // If filepath is already set, just save to that path
     if (!sceneProject->filepath.empty()) {
-        saveSceneToPath(sceneId, sceneProject->filepath);
+        fs::path fullPath = sceneProject->filepath;
+        if (fullPath.is_relative()) {
+            fullPath = getProjectPath() / fullPath;
+        }
+        saveSceneToPath(sceneId, fullPath);
         return;
     }
 
@@ -1119,6 +1155,13 @@ void Editor::Project::saveScene(uint32_t sceneId) {
 void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::path& path) {
     SceneProject* sceneProject = getScene(sceneId);
     if (!sceneProject) {
+        return;
+    }
+
+    std::error_code ec;
+    fs::path relPath = fs::relative(path, getProjectPath(), ec);
+    if (ec || relPath.empty()) {
+        Out::error("Scene filepath must be relative to project path: %s", path.string().c_str());
         return;
     }
 
@@ -1137,7 +1180,7 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
     fout << YAML::Dump(root);
     fout.close();
 
-    sceneProject->filepath = path;
+    sceneProject->filepath = relPath;
     sceneProject->isModified = false;
     saveProject();
 
@@ -2950,7 +2993,7 @@ void Editor::Project::start(uint32_t sceneId) {
             updateAllScriptsProperties(sceneProject.id);
 
             if (sceneProject.isModified && !sceneProject.filepath.empty()) {
-                saveSceneToPath(sceneProject.id, sceneProject.filepath);
+                saveScene(sceneProject.id);
                 savedNow = true;
             }
         }
