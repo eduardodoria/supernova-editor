@@ -311,12 +311,8 @@ Entity Editor::Project::getSceneCamera(const SceneProject* sceneProject) const {
     }
 }
 
-void Editor::Project::initializeRuntimeScene(PlayRuntimeScene& entry) {
-    if (entry.initialized) return;
-
-    if (conector.isLibraryConnected()) {
-        conector.execute(entry.runtime->scene);
-    }
+void Editor::Project::prepareRuntimeScene(PlayRuntimeScene& entry) {
+    if (!entry.runtime || !entry.runtime->scene) return;
 
     Entity camera = getSceneCamera(entry.runtime);
     entry.runtime->scene->setCamera(camera);
@@ -822,17 +818,7 @@ void Editor::Project::finalizeStart(SceneProject* mainSceneProject, std::vector<
             continue;
         }
 
-        Entity camera = getSceneCamera(sceneProject);
-        sceneProject->scene->setCamera(camera);
-
-        sceneProject->scene->getSystem<UISystem>()->clearAnchorReferenceSize();
-        pauseEngineScene(sceneProject->scene, false);
-
-        entry.initialized = true;
-
-        if (sceneProject->sceneRender){
-            sceneProject->sceneRender->setPlayMode(true);
-        }
+        prepareRuntimeScene(entry);
 
         if (sceneProject != mainSceneProject) {
             Backend::getApp().enqueueMainThreadTask([sceneProject]() {
@@ -2962,6 +2948,100 @@ bool Editor::Project::isAnyScenePlaying() const{
     return false;
 }
 
+void Editor::Project::registerSceneManager() {
+    SceneManager::clearAll();
+    for (SceneProject& sceneProject : scenes) {
+        SceneManager::registerScene(sceneProject.name, [this, sceneId = sceneProject.id]() {
+            std::shared_ptr<PlaySession> session;
+            {
+                std::scoped_lock lock(playSessionMutex);
+                session = activePlaySession;
+            }
+            if (!session || session->cancelled.load(std::memory_order_acquire)) return;
+
+            std::vector<uint32_t> involvedSceneIds;
+            collectInvolvedScenes(sceneId, involvedSceneIds);
+
+            std::vector<size_t> currentStackIndices;
+
+            for (uint32_t invSceneId : involvedSceneIds) {
+                size_t entryIndex = (size_t)-1;
+                {
+                    std::scoped_lock lock(playSessionMutex);
+                    auto it = std::find_if(session->runtimeScenes.begin(), session->runtimeScenes.end(),
+                        [invSceneId](const PlayRuntimeScene& entry) {
+                            return entry.sourceSceneId == invSceneId;
+                        });
+
+                    if (it != session->runtimeScenes.end()) {
+                        entryIndex = std::distance(session->runtimeScenes.begin(), it);
+                    } else {
+                        SceneProject* sourceScene = getScene(invSceneId);
+                        if (sourceScene) {
+                            PlayRuntimeScene newEntry;
+                            newEntry.sourceSceneId = invSceneId;
+                            newEntry.runtime = createRuntimeCloneFromSource(sourceScene);
+                            newEntry.ownedRuntime = true;
+
+                            if (newEntry.runtime) {
+                                resolveEntityRefs(newEntry.runtime);
+                                session->runtimeScenes.push_back(newEntry);
+                                entryIndex = session->runtimeScenes.size() - 1;
+                            }
+                        }
+                    }
+                }
+
+                if (entryIndex != (size_t)-1) {
+                    currentStackIndices.push_back(entryIndex);
+                }
+            }
+
+            for (size_t entryIndex : currentStackIndices) {
+                PlayRuntimeScene& entry = session->runtimeScenes[entryIndex];
+                if (entry.initialized) return;
+
+                if (conector.isLibraryConnected()) {
+                    conector.execute(entry.runtime->scene);
+                }
+
+                prepareRuntimeScene(entry);
+
+                if (entry.sourceSceneId == sceneId) {
+                    Engine::setScene(entry.runtime->scene);
+                } else {
+                    Engine::addSceneLayer(entry.runtime->scene);
+                }
+            }
+
+            // Cleanup scripts for scenes no longer in the current stack
+            {
+                std::scoped_lock lock(playSessionMutex);
+                for (auto& entry : session->runtimeScenes) {
+                    if (!entry.initialized) continue;
+
+                    bool inCurrentStack = false;
+                    for (size_t idx : currentStackIndices) {
+                        if (&session->runtimeScenes[idx] == &entry) {
+                            inCurrentStack = true;
+                            break;
+                        }
+                    }
+
+                    if (!inCurrentStack) {
+                        if (conector.isLibraryConnected()) {
+                            conector.cleanup(entry.runtime->scene);
+                        } else {
+                            LuaBinding::cleanupLuaScripts(entry.runtime->scene);
+                        }
+                        entry.initialized = false;
+                    }
+                }
+            }
+        });
+    }
+}
+
 void Editor::Project::start(uint32_t sceneId) {
     SceneProject* sceneProject = getScene(sceneId);
     if (!sceneProject) {
@@ -3061,91 +3141,7 @@ void Editor::Project::start(uint32_t sceneId) {
         activePlaySession = session;
     }
 
-    SceneManager::clearAll();
-    for (SceneProject& sceneProject : scenes) {
-        SceneManager::registerScene(sceneProject.name, [this, sceneId = sceneProject.id]() {
-            std::shared_ptr<PlaySession> session;
-            {
-                std::scoped_lock lock(playSessionMutex);
-                session = activePlaySession;
-            }
-            if (!session || session->cancelled.load(std::memory_order_acquire)) return;
-
-            std::vector<uint32_t> involvedSceneIds;
-            collectInvolvedScenes(sceneId, involvedSceneIds);
-
-            std::vector<size_t> currentStackIndices;
-
-            for (uint32_t invSceneId : involvedSceneIds) {
-                size_t entryIndex = (size_t)-1;
-                {
-                    std::scoped_lock lock(playSessionMutex);
-                    auto it = std::find_if(session->runtimeScenes.begin(), session->runtimeScenes.end(),
-                        [invSceneId](const PlayRuntimeScene& entry) {
-                            return entry.sourceSceneId == invSceneId;
-                        });
-
-                    if (it != session->runtimeScenes.end()) {
-                        entryIndex = std::distance(session->runtimeScenes.begin(), it);
-                    } else {
-                        SceneProject* sourceScene = getScene(invSceneId);
-                        if (sourceScene) {
-                            PlayRuntimeScene newEntry;
-                            newEntry.sourceSceneId = invSceneId;
-                            newEntry.runtime = createRuntimeCloneFromSource(sourceScene);
-                            newEntry.ownedRuntime = true;
-
-                            if (newEntry.runtime) {
-                                resolveEntityRefs(newEntry.runtime);
-                                session->runtimeScenes.push_back(newEntry);
-                                entryIndex = session->runtimeScenes.size() - 1;
-                            }
-                        }
-                    }
-                }
-
-                if (entryIndex != (size_t)-1) {
-                    currentStackIndices.push_back(entryIndex);
-                }
-            }
-
-            for (size_t entryIndex : currentStackIndices) {
-                PlayRuntimeScene& entry = session->runtimeScenes[entryIndex];
-                initializeRuntimeScene(entry);
-
-                if (entry.sourceSceneId == sceneId) {
-                    Engine::setScene(entry.runtime->scene);
-                } else {
-                    Engine::addSceneLayer(entry.runtime->scene);
-                }
-            }
-
-            // Cleanup scripts for scenes no longer in the current stack
-            {
-                std::scoped_lock lock(playSessionMutex);
-                for (auto& entry : session->runtimeScenes) {
-                    if (!entry.initialized) continue;
-
-                    bool inCurrentStack = false;
-                    for (size_t idx : currentStackIndices) {
-                        if (&session->runtimeScenes[idx] == &entry) {
-                            inCurrentStack = true;
-                            break;
-                        }
-                    }
-
-                    if (!inCurrentStack) {
-                        if (conector.isLibraryConnected()) {
-                            conector.cleanup(entry.runtime->scene);
-                        } else {
-                            LuaBinding::cleanupLuaScripts(entry.runtime->scene);
-                        }
-                        entry.initialized = false;
-                    }
-                }
-            }
-        });
-    }
+    registerSceneManager();
 
     // Save current scene state before starting
     sceneProject->playStateSnapshot = Stream::encodeSceneProject(nullptr, sceneProject);

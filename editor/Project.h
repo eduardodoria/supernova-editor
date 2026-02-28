@@ -120,7 +120,7 @@ namespace Supernova::Editor{
         std::shared_ptr<PlaySession> activePlaySession;
 
         SceneProject* createRuntimeCloneFromSource(const SceneProject* source);
-        void initializeRuntimeScene(PlayRuntimeScene& entry);
+        void prepareRuntimeScene(PlayRuntimeScene& entry);
         Entity getSceneCamera(const SceneProject* sceneProject) const;
         void cleanupPlaySession(const std::shared_ptr<PlaySession>& session);
 
@@ -153,6 +153,8 @@ namespace Supernova::Editor{
         void pauseEngineScene(Scene* scene, bool pause) const;
 
         void copyEngineApiToProject();
+
+        void registerSceneManager();
 
         void finalizeStart(SceneProject* mainSceneProject, std::vector<PlayRuntimeScene>& runtimeScenes);
         void finalizeStop(SceneProject* mainSceneProject, std::vector<PlayRuntimeScene> runtimeScenes);
