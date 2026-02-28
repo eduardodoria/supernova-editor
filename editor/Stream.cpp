@@ -922,6 +922,45 @@ YAML::Node Editor::Stream::encodeSceneProject(const Project* project, const Scen
     root["sceneType"] = sceneTypeToString(sceneProject->sceneType);
     root["mainCamera"] = sceneProject->mainCamera;
 
+    if (!sceneProject->childScenes.empty()) {
+        YAML::Node childScenesNode;
+        for (const auto& childSceneId : sceneProject->childScenes) {
+            childScenesNode.push_back(childSceneId);
+        }
+        root["childScenes"] = childScenesNode;
+    }
+
+    if (!sceneProject->cppScripts.empty()) {
+        YAML::Node scriptsNode;
+        for (const auto& script : sceneProject->cppScripts) {
+            YAML::Node scriptNode;
+            scriptNode["path"] = script.path.generic_string();
+            if (!script.headerPath.empty()) {
+                scriptNode["headerPath"] = script.headerPath.generic_string();
+            }
+            if (!script.className.empty()) {
+                scriptNode["className"] = script.className;
+            }
+
+            if (!script.properties.empty()) {
+                YAML::Node propertiesNode;
+                for (const auto& prop : script.properties) {
+                    YAML::Node propNode;
+                    propNode["name"] = prop.name;
+                    propNode["isPtr"] = prop.isPtr;
+                    if (!prop.ptrTypeName.empty()) {
+                        propNode["ptrTypeName"] = prop.ptrTypeName;
+                    }
+                    propertiesNode.push_back(propNode);
+                }
+                scriptNode["properties"] = propertiesNode;
+            }
+
+            scriptsNode.push_back(scriptNode);
+        }
+        root["cppScripts"] = scriptsNode;
+    }
+
     YAML::Node entitiesNode;
     for (Entity entity : sceneProject->entities) {
         if (Transform* transform = sceneProject->scene->findComponent<Transform>(entity)) {
@@ -932,15 +971,8 @@ YAML::Node Editor::Stream::encodeSceneProject(const Project* project, const Scen
             entitiesNode.push_back(encodeEntity(entity, sceneProject->scene, project, sceneProject));
         }
     }
-    root["entities"] = entitiesNode;
 
-    if (!sceneProject->childScenes.empty()) {
-        YAML::Node childScenesNode;
-        for (const auto& childSceneId : sceneProject->childScenes) {
-            childScenesNode.push_back(childSceneId);
-        }
-        root["childScenes"] = childScenesNode;
-    }
+    root["entities"] = entitiesNode;
 
     return root;
 }
@@ -958,6 +990,46 @@ void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::
     if (node["childScenes"]) {
         for (const auto& childSceneNode : node["childScenes"]) {
             sceneProject->childScenes.push_back(childSceneNode.as<uint32_t>());
+        }
+    }
+
+    sceneProject->cppScripts.clear();
+    if (node["cppScripts"]) {
+        for (const auto& scriptNode : node["cppScripts"]) {
+            SceneScriptSource script;
+
+            if (scriptNode["path"]) {
+                script.path = fs::path(scriptNode["path"].as<std::string>());
+            }
+            if (scriptNode["headerPath"]) {
+                script.headerPath = fs::path(scriptNode["headerPath"].as<std::string>());
+            }
+            if (scriptNode["className"]) {
+                script.className = scriptNode["className"].as<std::string>();
+            }
+            if (scriptNode["properties"]) {
+                for (const auto& propNode : scriptNode["properties"]) {
+                    ScriptPropertyInfo prop;
+                    if (propNode["name"]) {
+                        prop.name = propNode["name"].as<std::string>();
+                    }
+                    if (propNode["isPtr"]) {
+                        prop.isPtr = propNode["isPtr"].as<bool>();
+                    }
+                    if (propNode["ptrTypeName"]) {
+                        prop.ptrTypeName = propNode["ptrTypeName"].as<std::string>();
+                    }
+                    script.properties.push_back(prop);
+                }
+            }
+
+            sceneProject->cppScripts.push_back(script);
+        }
+    } else if (node["cppScriptPaths"]) {
+        for (const auto& pathNode : node["cppScriptPaths"]) {
+            SceneScriptSource script;
+            script.path = fs::path(pathNode.as<std::string>());
+            sceneProject->cppScripts.push_back(script);
         }
     }
 }

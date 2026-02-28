@@ -404,7 +404,158 @@ std::string Editor::Generator::getPlatformCMakeConfig() {
     return content;
 }
 
-void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, std::string libName, const std::vector<ScriptSource>& scriptFiles, const std::vector<Editor::SceneBuildInfo>& scenes) {
+std::string Editor::Generator::buildInitSceneScriptsSource(const std::vector<SceneScriptSource>& scriptFiles) {
+    std::string sourceContent;
+
+    sourceContent += "\n";
+    sourceContent += "using namespace Supernova;\n";
+
+    sourceContent += "\n";
+    sourceContent += "#if defined(_MSC_VER)\n";
+    sourceContent += "    #define PROJECT_API __declspec(dllexport)\n";
+    sourceContent += "#else\n";
+    sourceContent += "    #define PROJECT_API\n";
+    sourceContent += "#endif\n\n";
+
+    sourceContent += "extern \"C\" void PROJECT_API initScripts(Supernova::Scene* scene) {\n";
+    sourceContent += "    LuaBinding::initializeLuaScripts(scene);\n";
+
+    if (!scriptFiles.empty()) {
+
+        sourceContent += "\n";
+
+        sourceContent += "    const auto& scriptsArray = scene->getComponentArray<ScriptComponent>();\n";
+        sourceContent += "\n";
+
+        sourceContent += "    for (size_t i = 0; i < scriptsArray->size(); i++) {\n";
+        sourceContent += "        Supernova::ScriptComponent& scriptComp = scriptsArray->getComponentFromIndex(i);\n";
+        sourceContent += "        Supernova::Entity entity = scriptsArray->getEntity(i);\n";
+        sourceContent += "        for (auto& scriptEntry : scriptComp.scripts) {\n";
+        sourceContent += "            if (scriptEntry.type == ScriptType::SCRIPT_LUA) \n";
+        sourceContent += "                continue; \n";
+        sourceContent += "\n";
+
+        for (const auto& s : scriptFiles) {
+            sourceContent += "            if (scriptEntry.className == \"" + s.className + "\") {\n";
+            sourceContent += "                " + s.className + "* script = new " + s.className + "(scene, entity);\n";
+            sourceContent += "                scriptEntry.instance = static_cast<void*>(script);\n";
+            sourceContent += "            }\n";
+        }
+        sourceContent += "        }\n";
+        sourceContent += "    }\n";
+
+        sourceContent += "    for (size_t i = 0; i < scriptsArray->size(); i++) {\n";
+        sourceContent += "        Supernova::ScriptComponent& scriptComp = scriptsArray->getComponentFromIndex(i);\n";
+        sourceContent += "        for (auto& scriptEntry : scriptComp.scripts) {\n";
+        sourceContent += "            if (scriptEntry.type == ScriptType::SCRIPT_LUA) \n";
+        sourceContent += "                continue; \n";
+        sourceContent += "\n";
+
+        for (const auto& s : scriptFiles) {
+            sourceContent += "            if (scriptEntry.className == \"" + s.className + "\") {\n";
+
+            sourceContent += "                " + s.className + "* typedScript = static_cast<" + s.className + "*>(scriptEntry.instance);\n";
+            sourceContent += "\n";
+            sourceContent += "                for (auto& prop : scriptEntry.properties) {\n";
+
+            for (const auto& prop : s.properties) {
+                sourceContent += "\n";
+                sourceContent += "                    if (prop.name == \"" + prop.name + "\") {\n";
+
+                if (prop.isPtr && !prop.ptrTypeName.empty()) {
+                    sourceContent += "                        Supernova::EntityRef entityRef = std::get<Supernova::EntityRef>(prop.value);\n";
+                    sourceContent += "                        void* instancePtr = nullptr;\n";
+                    sourceContent += "\n";
+                    sourceContent += "                        if (entityRef.entity != NULL_ENTITY && entityRef.scene) {\n";
+                    sourceContent += "                            Supernova::ScriptComponent* targetScriptComp = entityRef.scene->findComponent<Supernova::ScriptComponent>(entityRef.entity);\n";
+                    sourceContent += "                            if (targetScriptComp) {\n";
+                    sourceContent += "                                for (auto& targetScript : targetScriptComp->scripts) {\n";
+                    sourceContent += "                                    if (targetScript.type != ScriptType::SCRIPT_LUA) {\n";
+                    sourceContent += "                                        if (targetScript.className == \"" + prop.ptrTypeName + "\" && targetScript.instance) {\n";
+                    sourceContent += "                                            instancePtr = targetScript.instance;\n";
+                    sourceContent += "                                            #ifdef SUPERNOVA_EDITOR_PLUGIN\n";
+                    sourceContent += "                                            printf(\"[DEBUG]   Found matching C++ script instance: '%s'\\n\", targetScript.className.c_str());\n";
+                    sourceContent += "                                            #endif\n";
+                    sourceContent += "                                            break;\n";
+                    sourceContent += "                                        }\n";
+                    sourceContent += "                                    }\n";
+                    sourceContent += "                                }\n";
+                    sourceContent += "                            }\n";
+                    sourceContent += "\n";
+                    if (!prop.ptrTypeName.empty()) {
+                        sourceContent += "                            if (!instancePtr) {\n";
+                        sourceContent += "                                #ifdef SUPERNOVA_EDITOR_PLUGIN\n";
+                        sourceContent += "                                printf(\"[DEBUG]   No C++ script instance found, creating '" + prop.ptrTypeName + "' type\\n\");\n";
+                        sourceContent += "                                #endif\n";
+                        sourceContent += "                                instancePtr = new " + prop.ptrTypeName + "(entityRef.scene, entityRef.entity);\n";
+                        sourceContent += "                            }\n";
+                    }
+                    sourceContent += "                        }\n";
+                    sourceContent += "\n";
+                    sourceContent += "                        typedScript->" + prop.name + " = nullptr;\n";
+                    sourceContent += "                        if (instancePtr) {\n";
+                    sourceContent += "                            typedScript->" + prop.name + " = static_cast<" + prop.ptrTypeName + "*>(instancePtr);\n";
+                    sourceContent += "                        }\n";
+                    sourceContent += "\n";
+                }
+
+                sourceContent += "                        prop.memberPtr = &typedScript->" + prop.name + ";\n";
+                sourceContent += "                    }\n";
+            }
+
+            sourceContent += "\n";
+            sourceContent += "                    prop.syncToMember();\n";
+            sourceContent += "                }\n";
+
+            sourceContent += "            }\n";
+        }
+
+        sourceContent += "\n";
+        sourceContent += "        }\n";
+        sourceContent += "    }\n";
+
+    } else{
+        sourceContent += "    (void)scene; // Suppress unused parameter warning\n";
+    }
+
+    sourceContent += "}\n\n";
+
+    return sourceContent;
+}
+
+std::string Editor::Generator::buildCleanupSceneScriptsSource(const std::vector<SceneScriptSource>& scriptFiles) {
+    std::string sourceContent;
+
+    sourceContent += "extern \"C\" void PROJECT_API cleanupScripts(Supernova::Scene* scene) {\n";
+    sourceContent += "    LuaBinding::cleanupLuaScripts(scene);\n";
+
+    if (!scriptFiles.empty()) {
+        sourceContent += "    const auto& scriptsArray = scene->getComponentArray<ScriptComponent>();\n";
+        sourceContent += "    for (size_t i = 0; i < scriptsArray->size(); i++) {\n";
+        sourceContent += "        Supernova::ScriptComponent& scriptComp = scriptsArray->getComponentFromIndex(i);\n";
+        sourceContent += "        for (auto& scriptEntry : scriptComp.scripts) {\n";
+        sourceContent += "            if (scriptEntry.type == ScriptType::SCRIPT_LUA) continue;\n";
+        sourceContent += "\n";
+        sourceContent += "            if (scriptEntry.instance) {\n";
+        for (const auto& s : scriptFiles) {
+            sourceContent += "                if (scriptEntry.className == \"" + s.className + "\") {\n";
+            sourceContent += "                    std::string addr = \"_\" + std::to_string(reinterpret_cast<std::uintptr_t>(scriptEntry.instance)) + \"_\";\n";
+            sourceContent += "                    Engine::removeSubscriptionsByTag(addr);\n";
+            sourceContent += "                    delete static_cast<" + s.className + "*>(scriptEntry.instance);\n";
+            sourceContent += "                }\n";
+        }
+        sourceContent += "                scriptEntry.instance = nullptr;\n";
+        sourceContent += "            }\n";
+        sourceContent += "        }\n";
+        sourceContent += "    }\n";
+    }
+
+    sourceContent += "}\n";
+
+    return sourceContent;
+}
+
+void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, std::string libName, const std::vector<SceneScriptSource>& scriptFiles, const std::vector<Editor::SceneBuildInfo>& scenes) {
     const fs::path exePath = getExecutableDir();
 
     fs::path relativeInternalPath = fs::relative(projectInternalPath, projectPath);
@@ -463,7 +614,7 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
 
     cmakeContent += scriptSources + "\n";
     cmakeContent += factorySources + "\n";
-    cmakeContent += "set(PROJECT_SOURCE " + internalPathStr + "/init_scripts.cpp)\n\n";
+    cmakeContent += "set(PROJECT_SOURCE " + internalPathStr + "/scene_scripts.cpp)\n\n";
     cmakeContent += "# Project target\n";
     cmakeContent += "if(NOT CMAKE_SYSTEM_NAME STREQUAL \"Android\" AND NOT SUPERNOVA_EDITOR_PLUGIN)\n";
     cmakeContent += "    add_executable(" + libName + "\n";
@@ -557,156 +708,11 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
         }
     }
 
-    sourceContent += "\n";
-    sourceContent += "using namespace Supernova;\n";
-
-    sourceContent += "\n";
-    sourceContent += "#if defined(_MSC_VER)\n";
-    sourceContent += "    #define PROJECT_API __declspec(dllexport)\n";
-    sourceContent += "#else\n";
-    sourceContent += "    #define PROJECT_API\n";
-    sourceContent += "#endif\n\n";
-
-    sourceContent += "extern \"C\" void PROJECT_API initSceneScripts(Supernova::Scene* scene) {\n";
-
-    if (!scriptFiles.empty()) {
-
-        sourceContent += "\n";
-
-        sourceContent += "    const auto& scriptsArray = scene->getComponentArray<ScriptComponent>();\n";
-        sourceContent += "\n";
-
-        sourceContent += "    for (size_t i = 0; i < scriptsArray->size(); i++) {\n";
-        sourceContent += "        Supernova::ScriptComponent& scriptComp = scriptsArray->getComponentFromIndex(i);\n";
-        sourceContent += "        Supernova::Entity entity = scriptsArray->getEntity(i);\n";
-        sourceContent += "        for (auto& scriptEntry : scriptComp.scripts) {\n";
-        sourceContent += "            if (scriptEntry.type == ScriptType::SCRIPT_LUA) \n";
-        sourceContent += "                continue; \n";
-        sourceContent += "\n";
-
-        for (const auto& s : scriptFiles) {
-            sourceContent += "            if (scriptEntry.className == \"" + s.className + "\") {\n";
-            sourceContent += "                " + s.className + "* script = new " + s.className + "(scene, entity);\n";
-            sourceContent += "                scriptEntry.instance = static_cast<void*>(script);\n";
-            sourceContent += "            }\n";
-        }
-        sourceContent += "        }\n";
-        sourceContent += "    }\n";
-
-        sourceContent += "    for (size_t i = 0; i < scriptsArray->size(); i++) {\n";
-        sourceContent += "        Supernova::ScriptComponent& scriptComp = scriptsArray->getComponentFromIndex(i);\n";
-        sourceContent += "        for (auto& scriptEntry : scriptComp.scripts) {\n";
-        sourceContent += "            if (scriptEntry.type == ScriptType::SCRIPT_LUA) \n";
-        sourceContent += "                continue; \n";
-        sourceContent += "\n";
-
-        for (const auto& s : scriptFiles) {
-            sourceContent += "            if (scriptEntry.className == \"" + s.className + "\") {\n";
-
-            if (s.scene->findComponent<ScriptComponent>(s.entity)) {
-                ScriptComponent* sc = s.scene->findComponent<ScriptComponent>(s.entity);
-                for (const auto& entry : sc->scripts) {
-                    if (entry.path == s.path && entry.headerPath == s.headerPath && !entry.properties.empty()) {
-                        sourceContent += "                " + s.className + "* typedScript = static_cast<" + s.className + "*>(scriptEntry.instance);\n";
-                        sourceContent += "\n";
-                        sourceContent += "                for (auto& prop : scriptEntry.properties) {\n";
-
-                        // Generate individual property assignments
-                        for (const auto& prop : entry.properties) {
-                            sourceContent += "\n";
-                            sourceContent += "                    if (prop.name == \"" + prop.name + "\") {\n";
-
-                            // Handle EntityPointer types
-                            if (prop.type == ScriptPropertyType::EntityPointer) {
-                                sourceContent += "                        Supernova::EntityRef entityRef = std::get<Supernova::EntityRef>(prop.value);\n";
-                                sourceContent += "                        void* instancePtr = nullptr;\n";
-                                sourceContent += "\n";
-                                sourceContent += "                        if (entityRef.entity != NULL_ENTITY && entityRef.scene) {\n";
-                                sourceContent += "                            Supernova::ScriptComponent* targetScriptComp = entityRef.scene->findComponent<Supernova::ScriptComponent>(entityRef.entity);\n";
-                                sourceContent += "                            if (targetScriptComp) {\n";
-                                sourceContent += "                                for (auto& targetScript : targetScriptComp->scripts) {\n";
-                                sourceContent += "                                    if (targetScript.type != ScriptType::SCRIPT_LUA) {\n";
-                                sourceContent += "                                        if (targetScript.className == \"" + prop.ptrTypeName + "\" && targetScript.instance) {\n";
-                                sourceContent += "                                            instancePtr = targetScript.instance;\n";
-                                sourceContent += "                                            #ifdef SUPERNOVA_EDITOR_PLUGIN\n";
-                                sourceContent += "                                            printf(\"[DEBUG]   Found matching C++ script instance: '%s'\\n\", targetScript.className.c_str());\n";
-                                sourceContent += "                                            #endif\n";
-                                sourceContent += "                                            break;\n";
-                                sourceContent += "                                        }\n";
-                                sourceContent += "                                    }\n";
-                                sourceContent += "                                }\n";
-                                sourceContent += "                            }\n";
-                                sourceContent += "\n";
-                                if (!prop.ptrTypeName.empty()) {
-                                    sourceContent += "                            if (!instancePtr) {\n";
-                                    sourceContent += "                                #ifdef SUPERNOVA_EDITOR_PLUGIN\n";
-                                    sourceContent += "                                printf(\"[DEBUG]   No C++ script instance found, creating '" + prop.ptrTypeName + "' type\\n\");\n";
-                                    sourceContent += "                                #endif\n";
-                                    sourceContent += "                                instancePtr = new " + prop.ptrTypeName + "(entityRef.scene, entityRef.entity);\n";
-                                    sourceContent += "                            }\n";
-                                }
-                                sourceContent += "                        }\n";
-                                sourceContent += "\n";
-                                sourceContent += "                        typedScript->" + prop.name + " = nullptr;\n";
-                                sourceContent += "                        if (instancePtr) {\n";
-                                sourceContent += "                            typedScript->" + prop.name + " = static_cast<" + prop.ptrTypeName + "*>(instancePtr);\n";
-                                sourceContent += "                        }\n";
-                                sourceContent += "\n";
-                            }
-
-                            sourceContent += "                        prop.memberPtr = &typedScript->" + prop.name + ";\n";
-                            sourceContent += "                    }\n";
-                        }
-
-                        sourceContent += "\n";
-                        sourceContent += "                    prop.syncToMember();\n";
-                        sourceContent += "                }\n";
-                    }
-                }
-            }
-
-            sourceContent += "            }\n";
-        }
-
-        sourceContent += "\n";
-        sourceContent += "        }\n";
-        sourceContent += "    }\n";
-
-    } else{
-        sourceContent += "    (void)scene; // Suppress unused parameter warning\n";
-    }
-
-    sourceContent += "}\n\n";
-
-    // Cleanup function - delete all script instances
-    sourceContent += "extern \"C\" void PROJECT_API cleanup(Supernova::Scene* scene) {\n";
-    sourceContent += "    LuaBinding::cleanupLuaScripts(scene);\n";
-
-    if (!scriptFiles.empty()) {
-        sourceContent += "    const auto& scriptsArray = scene->getComponentArray<ScriptComponent>();\n";
-        sourceContent += "    for (size_t i = 0; i < scriptsArray->size(); i++) {\n";
-        sourceContent += "        Supernova::ScriptComponent& scriptComp = scriptsArray->getComponentFromIndex(i);\n";
-        sourceContent += "        for (auto& scriptEntry : scriptComp.scripts) {\n";
-        sourceContent += "            if (scriptEntry.type == ScriptType::SCRIPT_LUA) continue;\n";
-        sourceContent += "\n";
-        sourceContent += "            if (scriptEntry.instance) {\n";
-        for (const auto& s : scriptFiles) {
-            sourceContent += "                if (scriptEntry.className == \"" + s.className + "\") {\n";
-            sourceContent += "                    std::string addr = \"_\" + std::to_string(reinterpret_cast<std::uintptr_t>(scriptEntry.instance)) + \"_\";\n";
-            sourceContent += "                    Engine::removeSubscriptionsByTag(addr);\n";
-            sourceContent += "                    delete static_cast<" + s.className + "*>(scriptEntry.instance);\n";
-            sourceContent += "                }\n";
-        }
-        sourceContent += "                scriptEntry.instance = nullptr;\n";
-        sourceContent += "            }\n";
-        sourceContent += "        }\n";
-        sourceContent += "    }\n";
-    }
-
-    sourceContent += "}\n";
+    sourceContent += buildInitSceneScriptsSource(scriptFiles);
+    sourceContent += buildCleanupSceneScriptsSource(scriptFiles);
 
     const fs::path cmakeFile = projectPath / "CMakeLists.txt";
-    const fs::path sourceFile = projectInternalPath / "init_scripts.cpp";
+    const fs::path sourceFile = projectInternalPath / "scene_scripts.cpp";
 
     FileUtils::writeIfChanged(cmakeFile, cmakeContent);
     FileUtils::writeIfChanged(sourceFile, sourceContent);
@@ -782,7 +788,7 @@ void Editor::Generator::clearSceneSource(const std::string& sceneName, const fs:
     }
 }
 
-void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& scenes, std::string libName, const std::vector<ScriptSource>& scriptFiles, const fs::path& projectPath, const fs::path& projectInternalPath){
+void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& scenes, std::string libName, const std::vector<SceneScriptSource>& scriptFiles, const fs::path& projectPath, const fs::path& projectInternalPath){
     const fs::path generatedPath = getGeneratedPath(projectInternalPath);
 
     // Build main.cpp content
@@ -797,7 +803,7 @@ void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& sce
         std::string sceneName = Factory::toIdentifier(sceneData.name);
         mainContent += "void create_" + sceneName + "(Scene* scene);\n";
     }
-    mainContent += "extern \"C\" void cleanup(Supernova::Scene* scene);\n";
+    mainContent += "extern \"C\" void cleanupScripts(Supernova::Scene* scene);\n";
     mainContent += "\n";
 
     std::map<uint32_t, std::string> sceneIdToName;
@@ -818,7 +824,6 @@ void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& sce
             mainContent += "    if (!" + sceneName + "){\n";
             mainContent += "        " + sceneName + " = new Scene();\n";
             mainContent += "        create" + sceneName + "(" + sceneName + ");\n";
-            mainContent += "        LuaBinding::initializeLuaScripts(" + sceneName + ");\n";
             mainContent += "    }\n";
         }
         mainContent += "\n";
@@ -836,7 +841,7 @@ void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& sce
             if (std::find(sceneData.involvedScenes.begin(), sceneData.involvedScenes.end(), sceneDataAux.id) != sceneData.involvedScenes.end()) continue;
             std::string sceneName = "_" + Factory::toIdentifier(sceneDataAux.name);
             mainContent += "    if (" + sceneName + ") {\n";
-            mainContent += "        cleanup(" + sceneName + ");\n";
+            mainContent += "        cleanupScripts(" + sceneName + ");\n";
             mainContent += "        delete " + sceneName + ";\n";
             mainContent += "        " + sceneName + " = nullptr;\n";
             mainContent += "    }\n";

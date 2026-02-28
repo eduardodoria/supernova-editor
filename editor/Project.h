@@ -55,6 +55,7 @@ namespace Supernova::Editor{
         ScenePlayState playState = ScenePlayState::STOPPED;
         YAML::Node playStateSnapshot;
         std::vector<uint32_t> childScenes;
+        std::vector<SceneScriptSource> cppScripts;
     };
 
     struct MergeResult {
@@ -141,13 +142,13 @@ namespace Supernova::Editor{
         Entity createNewEntity(uint32_t sceneId, std::string entityName);
         bool createNewComponent(uint32_t sceneId, Entity entity, ComponentType component);
         void deleteSceneProject(SceneProject* sceneProject);
+        void updateSceneCppScripts(SceneProject* sceneProject);
         void resetConfigs();
 
         size_t countEntitiesInBranch(const YAML::Node& entityNode);
         void insertNewChild(YAML::Node& node, YAML::Node child, size_t index);
 
-        std::vector<Editor::ScriptSource> collectAllCppScriptSourceFiles() const;
-        std::vector<Editor::ScriptSource> collectCppScriptSourceFiles(const std::vector<uint32_t>& sceneIds) const;
+        std::vector<SceneScriptSource> collectAllSceneCppScripts() const;
 
         void pauseEngineScene(Scene* scene, bool pause) const;
 

@@ -21,13 +21,19 @@ namespace fs = std::filesystem;
 
 namespace Supernova::Editor {
 
-    struct ScriptSource {
+    struct ScriptPropertyInfo {
+        std::string name;
+        bool isPtr;
+        std::string ptrTypeName;
+    };
+
+    struct SceneScriptSource {
         fs::path path;
         fs::path headerPath;
         std::string className;
-        Scene* scene;
-        Entity entity;
+        std::vector<ScriptPropertyInfo> properties;
     };
+
 
     struct SceneBuildInfo {
         uint32_t id;
@@ -60,8 +66,10 @@ namespace Supernova::Editor {
         std::string getPlatformCMakeConfig();
         std::string getPlatformEditorHeader();
         std::string getPlatformEditorSource(const fs::path& projectPath);
+        std::string buildInitSceneScriptsSource(const std::vector<SceneScriptSource>& scriptFiles);
+        std::string buildCleanupSceneScriptsSource(const std::vector<SceneScriptSource>& scriptFiles);
 
-        void writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, std::string libName, const std::vector<ScriptSource>& scriptFiles, const std::vector<SceneBuildInfo>& scenes);
+        void writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, std::string libName, const std::vector<SceneScriptSource>& scriptFiles, const std::vector<SceneBuildInfo>& scenes);
         void terminateCurrentProcess();
 
     public:
@@ -69,7 +77,7 @@ namespace Supernova::Editor {
         ~Generator();
         void writeSceneSource(Scene* scene, const std::string& sceneName, const std::vector<Entity>& entities, const Entity camera, const fs::path& projectPath, const fs::path& projectInternalPath);
         void clearSceneSource(const std::string& sceneName, const fs::path& projectInternalPath);
-        void configure(const std::vector<SceneBuildInfo>& scenes, std::string libName, const std::vector<ScriptSource>& scriptFiles, const fs::path& projectPath, const fs::path& projectInternalPath);
+        void configure(const std::vector<SceneBuildInfo>& scenes, std::string libName, const std::vector<SceneScriptSource>& scriptFiles, const fs::path& projectPath, const fs::path& projectInternalPath);
         void build(const fs::path projectPath, const fs::path projectInternalPath, const fs::path buildPath);
         bool isBuildInProgress() const;
         void waitForBuildToComplete();

@@ -954,7 +954,7 @@ std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::st
     }
     out << ind << "\n";
     out << ind << "using namespace Supernova;\n\n";
-    out << ind << "extern \"C\" void initSceneScripts(Supernova::Scene* scene);\n\n";
+    out << ind << "extern \"C\" void initScripts(Supernova::Scene* scene);\n\n";
 
     out << ind << "void create_" << funcId << "(Scene* scene){\n";
 
@@ -1004,7 +1004,7 @@ std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::st
     out << ind2 << "scene->setLightState(" << formatLightState(scene->getLightState()) << ");\n";
     out << ind2 << "scene->setEnableUIEvents(" << formatUIEventState(scene->getEnableUIEvents()) << ");\n";
     out << "\n";
-    out << ind2 << "initSceneScripts(scene);\n";
+    out << ind2 << "initScripts(scene);\n";
     out << ind << "}\n";
 
     return out.str();

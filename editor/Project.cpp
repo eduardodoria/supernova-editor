@@ -245,6 +245,62 @@ Editor::SceneProject* Editor::Project::createRuntimeCloneFromSource(const SceneP
     return runtime;
 }
 
+void Editor::Project::updateSceneCppScripts(SceneProject* sceneProject) {
+    if (!sceneProject || !sceneProject->scene) {
+        return;
+    }
+
+    sceneProject->cppScripts.clear();
+
+    std::unordered_set<std::string> uniqueScripts;
+    auto scriptsArray = sceneProject->scene->getComponentArray<ScriptComponent>();
+
+    for (int i = 0; i < scriptsArray->size(); i++) {
+        const ScriptComponent& scriptComponent = scriptsArray->getComponentFromIndex(i);
+
+        for (const auto& scriptEntry : scriptComponent.scripts) {
+            if (!scriptEntry.enabled)
+                continue;
+            if (scriptEntry.type == ScriptType::SCRIPT_LUA)
+                continue;
+            if (scriptEntry.path.empty())
+                continue;
+
+            fs::path fullPath = scriptEntry.path;
+            if (fullPath.is_relative()) {
+                fullPath = getProjectPath() / fullPath;
+            }
+
+            if (!std::filesystem::exists(fullPath)) {
+                Out::error("Script file not found: %s", fullPath.string().c_str());
+                continue;
+            }
+
+            std::string key = fullPath.lexically_normal().generic_string();
+            if (!uniqueScripts.insert(key).second) {
+                continue;
+            }
+
+            std::vector<ScriptPropertyInfo> properties;
+            properties.reserve(scriptEntry.properties.size());
+            for (const auto& prop : scriptEntry.properties) {
+                ScriptPropertyInfo propInfo;
+                propInfo.name = prop.name;
+                propInfo.isPtr = (prop.type == ScriptPropertyType::EntityPointer) || !prop.ptrTypeName.empty();
+                propInfo.ptrTypeName = prop.ptrTypeName;
+                properties.push_back(std::move(propInfo));
+            }
+
+            SceneScriptSource sceneScript;
+            sceneScript.path = scriptEntry.path;
+            sceneScript.headerPath = scriptEntry.headerPath;
+            sceneScript.className = scriptEntry.className;
+            sceneScript.properties = std::move(properties);
+            sceneProject->cppScripts.push_back(std::move(sceneScript));
+        }
+    }
+}
+
 Entity Editor::Project::getSceneCamera(const SceneProject* sceneProject) const {
     if (sceneProject->mainCamera != NULL_ENTITY && sceneProject->scene->isEntityCreated(sceneProject->mainCamera)) {
         return sceneProject->mainCamera;
@@ -267,7 +323,6 @@ void Editor::Project::initializeRuntimeScene(PlayRuntimeScene& entry) {
 
     entry.runtime->scene->getSystem<UISystem>()->clearAnchorReferenceSize();
     pauseEngineScene(entry.runtime->scene, false);
-    LuaBinding::initializeLuaScripts(entry.runtime->scene);
 
     entry.initialized = true;
 
@@ -357,6 +412,10 @@ void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene)
             } else {
                 Out::warning("Scene has no ID, assigning ID %u", targetScene->id);
             }
+        }
+
+        if (opened) {
+            updateSceneCppScripts(targetScene);
         }
 
     } catch (const YAML::Exception& e) {
@@ -691,60 +750,22 @@ void Editor::Project::insertNewChild(YAML::Node& node, YAML::Node child, size_t 
     }
 }
 
-std::vector<Editor::ScriptSource> Editor::Project::collectAllCppScriptSourceFiles() const {
-    std::vector<uint32_t> allSceneIds;
-    allSceneIds.reserve(scenes.size());
+std::vector<Editor::SceneScriptSource> Editor::Project::collectAllSceneCppScripts() const {
+    std::unordered_set<std::string> uniquePaths;
+    std::vector<SceneScriptSource> mergedScripts;
 
     for (const auto& sceneProject : scenes) {
-        allSceneIds.push_back(sceneProject.id);
-    }
-
-    return collectCppScriptSourceFiles(allSceneIds);
-}
-
-// Collect unique script source files from specified scenes/entities
-std::vector<Editor::ScriptSource> Editor::Project::collectCppScriptSourceFiles(const std::vector<uint32_t>& sceneIds) const {
-    std::unordered_set<std::string> uniqueScripts;
-    std::vector<Editor::ScriptSource> scriptFiles;
-
-    for (uint32_t sceneId : sceneIds) {
-        const SceneProject* sceneProject = getScene(sceneId);
-        if (!sceneProject || !sceneProject->scene) {
-            continue;
-        }
-
-        auto scriptsArray = sceneProject->scene->getComponentArray<ScriptComponent>();
-
-        for (int i = 0; i < scriptsArray->size(); i++) {
-            const ScriptComponent& scriptComponent = scriptsArray->getComponentFromIndex(i);
-            Entity entity = scriptsArray->getEntity(i);
-            // Iterate through all scripts in the component
-            for (const auto& scriptEntry : scriptComponent.scripts) {
-                if (!scriptEntry.enabled)
-                    continue;
-                if (scriptEntry.type == ScriptType::SCRIPT_LUA)
-                    continue; // Skip Lua scripts
-
-                if (!scriptEntry.path.empty()) {
-                    fs::path path = scriptEntry.path;
-                    if (path.is_relative()) {
-                        path = getProjectPath() / path;
-                    }
-                    if (std::filesystem::exists(path)) {
-                        std::string key = path.lexically_normal().generic_string();
-                        if (uniqueScripts.insert(key).second) {
-                            scriptFiles.push_back(Editor::ScriptSource{scriptEntry.path, scriptEntry.headerPath, scriptEntry.className, sceneProject->scene, entity});
-                        }
-                    } else {
-                        Out::error("Script file not found: %s", path.string().c_str());
-                    }
-                }
+        for (const auto& script : sceneProject.cppScripts) {
+            std::string pathKey = script.path.lexically_normal().generic_string();
+            if (!uniquePaths.insert(pathKey).second) {
+                continue;
             }
-        }
 
+            mergedScripts.push_back(script);
+        }
     }
 
-    return scriptFiles;
+    return mergedScripts;
 }
 
 void Editor::Project::pauseEngineScene(Scene* scene, bool pause) const{
@@ -806,7 +827,6 @@ void Editor::Project::finalizeStart(SceneProject* mainSceneProject, std::vector<
 
         sceneProject->scene->getSystem<UISystem>()->clearAnchorReferenceSize();
         pauseEngineScene(sceneProject->scene, false);
-        LuaBinding::initializeLuaScripts(sceneProject->scene);
 
         entry.initialized = true;
 
@@ -1185,20 +1205,21 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
     saveProject();
 
     resolveEntityRefs(sceneProject);
+    updateSceneCppScripts(sceneProject);
 
     generator.writeSceneSource(sceneProject->scene, sceneProject->name, sceneProject->entities, getSceneCamera(sceneProject), getProjectPath(), getProjectInternalPath());
 
     std::vector<Editor::SceneBuildInfo> scenesToConfig;
-    for (SceneProject& sceneProject : scenes) {
-        bool isMain = (sceneId == sceneProject.id);
+    for (SceneProject& sceneConf : scenes) {
+        bool isMain = (sceneId == sceneConf.id);
         std::vector<uint32_t> involvedSceneIds;
-        collectInvolvedScenes(sceneProject.id, involvedSceneIds);
+        collectInvolvedScenes(sceneConf.id, involvedSceneIds);
 
-        scenesToConfig.push_back({sceneProject.id, sceneProject.name, involvedSceneIds, isMain});
+        scenesToConfig.push_back({sceneConf.id, sceneConf.name, involvedSceneIds, isMain});
     }
 
-    std::vector<Editor::ScriptSource> scriptFiles = collectAllCppScriptSourceFiles();
-    generator.configure(scenesToConfig, libName, scriptFiles, getProjectPath(), getProjectInternalPath());
+    std::vector<SceneScriptSource> mergedCppScripts = collectAllSceneCppScripts();
+    generator.configure(scenesToConfig, libName, mergedCppScripts, getProjectPath(), getProjectInternalPath());
 
     Out::info("Scene saved to: \"%s\"", path.string().c_str());
 }
@@ -3132,12 +3153,12 @@ void Editor::Project::start(uint32_t sceneId) {
 
     Backend::getApp().getCodeEditor()->saveAll();
 
-    std::vector<Editor::ScriptSource> scriptFiles = collectAllCppScriptSourceFiles();
+    std::vector<SceneScriptSource> mergedCppScripts = collectAllSceneCppScripts();
 
-    generator.configure(scenesToGenerate, libName, scriptFiles, getProjectPath(), getProjectInternalPath());
+    generator.configure(scenesToGenerate, libName, mergedCppScripts, getProjectPath(), getProjectInternalPath());
 
     // Check if we have C++ scripts that need building
-    bool hasCppScripts = !scriptFiles.empty();
+    bool hasCppScripts = !mergedCppScripts.empty();
 
     if (hasCppScripts) {
         fs::path buildPath = getProjectInternalPath() / "build";
