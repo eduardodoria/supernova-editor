@@ -808,10 +808,6 @@ void Editor::Project::copyEngineApiToProject() {
 
 void Editor::Project::finalizeStart(SceneProject* mainSceneProject, std::vector<PlayRuntimeScene>& runtimeScenes) {
 
-    Engine::pauseGameEvents(false);
-    Engine::onViewLoaded.call();
-    Engine::onViewChanged.call();
-
     for (auto& entry : runtimeScenes) {
         SceneProject* sceneProject = entry.runtime;
         if (!sceneProject || !sceneProject->scene) {
@@ -827,16 +823,16 @@ void Editor::Project::finalizeStart(SceneProject* mainSceneProject, std::vector<
         }
     }
 
+    Engine::pauseGameEvents(false);
+    Engine::onViewLoaded.call();
+    Engine::onViewChanged.call();
+
     if (mainSceneProject) {
         Out::success("Scene '%s' started", mainSceneProject->name.c_str());
     }
 }
 
 void Editor::Project::finalizeStop(SceneProject* mainSceneProject, std::vector<PlayRuntimeScene> runtimeScenes) {
-
-    Engine::onViewDestroyed.call();
-    Engine::onShutdown.call();
-    Engine::pauseGameEvents(true);
 
     for (const auto& entry : runtimeScenes) {
         SceneProject* sceneProject = entry.runtime;
@@ -885,8 +881,6 @@ void Editor::Project::finalizeStop(SceneProject* mainSceneProject, std::vector<P
             });
         }
     }
-
-    Engine::clearAllSubscriptions(true);
 
     Backend::getApp().enqueueMainThreadTask([]() {
         SceneManager::clearAll();
@@ -3327,6 +3321,13 @@ void Editor::Project::stop(uint32_t sceneId) {
 
     session->cancelled.store(true, std::memory_order_release);
     sceneProject->playState = ScenePlayState::CANCELLING;
+
+    //Should be called before conector disconnects to allow scripts to receive the event
+    Engine::onViewDestroyed.call();
+    Engine::onShutdown.call();
+    Engine::pauseGameEvents(true);
+
+    Engine::clearAllSubscriptions(true);
 
     // Clear crash handler when stopping
     Supernova::FunctionSubscribeGlobal::getCrashHandler() = nullptr;
