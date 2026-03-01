@@ -144,6 +144,10 @@ namespace Supernova::Editor{
         void drawCameraComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
         void drawSkyComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
         void drawScriptComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
+        void drawBody2DComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
+        void drawBody3DComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
+        void drawJoint2DComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
+        void drawJoint3DComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
 
     public:
         Properties(Project* project);

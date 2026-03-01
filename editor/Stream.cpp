@@ -1502,6 +1502,26 @@ YAML::Node Editor::Stream::encodeComponents(const Entity entity, const EntityReg
         compNode[Catalog::getComponentName(ComponentType::SkyComponent, true)] = encodeSkyComponent(sky);
     }
 
+    if (signature.test(registry->getComponentId<Body2DComponent>())) {
+        Body2DComponent body = registry->getComponent<Body2DComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::Body2DComponent, true)] = encodeBody2DComponent(body);
+    }
+
+    if (signature.test(registry->getComponentId<Body3DComponent>())) {
+        Body3DComponent body = registry->getComponent<Body3DComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::Body3DComponent, true)] = encodeBody3DComponent(body);
+    }
+
+    if (signature.test(registry->getComponentId<Joint2DComponent>())) {
+        Joint2DComponent joint = registry->getComponent<Joint2DComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::Joint2DComponent, true)] = encodeJoint2DComponent(joint);
+    }
+
+    if (signature.test(registry->getComponentId<Joint3DComponent>())) {
+        Joint3DComponent joint = registry->getComponent<Joint3DComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::Joint3DComponent, true)] = encodeJoint3DComponent(joint);
+    }
+
     return compNode;
 }
 
@@ -1678,6 +1698,50 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
             int flags = Catalog::getChangedUpdateFlags(ComponentType::SkyComponent, existing, &sky);
             registry->getComponent<SkyComponent>(entity) = sky;
             Catalog::updateEntity(registry, entity, flags);
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::Body2DComponent, true);
+    if (compNode[compName]) {
+        Body2DComponent* existing = registry->findComponent<Body2DComponent>(entity);
+        Body2DComponent body = decodeBody2DComponent(compNode[compName], existing);
+        if (!signature.test(registry->getComponentId<Body2DComponent>())){
+            registry->addComponent<Body2DComponent>(entity, body);
+        }else{
+            registry->getComponent<Body2DComponent>(entity) = body;
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::Body3DComponent, true);
+    if (compNode[compName]) {
+        Body3DComponent* existing = registry->findComponent<Body3DComponent>(entity);
+        Body3DComponent body = decodeBody3DComponent(compNode[compName], existing);
+        if (!signature.test(registry->getComponentId<Body3DComponent>())){
+            registry->addComponent<Body3DComponent>(entity, body);
+        }else{
+            registry->getComponent<Body3DComponent>(entity) = body;
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::Joint2DComponent, true);
+    if (compNode[compName]) {
+        Joint2DComponent* existing = registry->findComponent<Joint2DComponent>(entity);
+        Joint2DComponent joint = decodeJoint2DComponent(compNode[compName], existing);
+        if (!signature.test(registry->getComponentId<Joint2DComponent>())){
+            registry->addComponent<Joint2DComponent>(entity, joint);
+        }else{
+            registry->getComponent<Joint2DComponent>(entity) = joint;
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::Joint3DComponent, true);
+    if (compNode[compName]) {
+        Joint3DComponent* existing = registry->findComponent<Joint3DComponent>(entity);
+        Joint3DComponent joint = decodeJoint3DComponent(compNode[compName], existing);
+        if (!signature.test(registry->getComponentId<Joint3DComponent>())){
+            registry->addComponent<Joint3DComponent>(entity, joint);
+        }else{
+            registry->getComponent<Joint3DComponent>(entity) = joint;
         }
     }
 }
@@ -2414,4 +2478,265 @@ SkyComponent Editor::Stream::decodeSkyComponent(const YAML::Node& node, const Sk
     if (node["rotation"]) sky.rotation = node["rotation"].as<float>();
 
     return sky;
+}
+
+// ==============================
+// Body/Joint type string converters
+// ==============================
+
+std::string Editor::Stream::bodyTypeToString(BodyType type) {
+    switch (type) {
+        case BodyType::STATIC: return "static";
+        case BodyType::KINEMATIC: return "kinematic";
+        case BodyType::DYNAMIC: return "dynamic";
+        default: return "static";
+    }
+}
+
+BodyType Editor::Stream::stringToBodyType(const std::string& str) {
+    if (str == "kinematic") return BodyType::KINEMATIC;
+    if (str == "dynamic") return BodyType::DYNAMIC;
+    return BodyType::STATIC;
+}
+
+std::string Editor::Stream::shape2DTypeToString(Shape2DType type) {
+    switch (type) {
+        case Shape2DType::POLYGON: return "polygon";
+        case Shape2DType::CIRCLE: return "circle";
+        case Shape2DType::CAPSULE: return "capsule";
+        case Shape2DType::SEGMENT: return "segment";
+        case Shape2DType::CHAIN: return "chain";
+        default: return "polygon";
+    }
+}
+
+Shape2DType Editor::Stream::stringToShape2DType(const std::string& str) {
+    if (str == "circle") return Shape2DType::CIRCLE;
+    if (str == "capsule") return Shape2DType::CAPSULE;
+    if (str == "segment") return Shape2DType::SEGMENT;
+    if (str == "chain") return Shape2DType::CHAIN;
+    return Shape2DType::POLYGON;
+}
+
+std::string Editor::Stream::shape3DTypeToString(Shape3DType type) {
+    switch (type) {
+        case Shape3DType::SPHERE: return "sphere";
+        case Shape3DType::BOX: return "box";
+        case Shape3DType::CAPSULE: return "capsule";
+        case Shape3DType::TAPERED_CAPSULE: return "tapered_capsule";
+        case Shape3DType::CYLINDER: return "cylinder";
+        case Shape3DType::CONVEX_HULL: return "convex_hull";
+        case Shape3DType::MESH: return "mesh";
+        case Shape3DType::HEIGHTFIELD: return "heightfield";
+        default: return "sphere";
+    }
+}
+
+Shape3DType Editor::Stream::stringToShape3DType(const std::string& str) {
+    if (str == "box") return Shape3DType::BOX;
+    if (str == "capsule") return Shape3DType::CAPSULE;
+    if (str == "tapered_capsule") return Shape3DType::TAPERED_CAPSULE;
+    if (str == "cylinder") return Shape3DType::CYLINDER;
+    if (str == "convex_hull") return Shape3DType::CONVEX_HULL;
+    if (str == "mesh") return Shape3DType::MESH;
+    if (str == "heightfield") return Shape3DType::HEIGHTFIELD;
+    return Shape3DType::SPHERE;
+}
+
+std::string Editor::Stream::joint2DTypeToString(Joint2DType type) {
+    switch (type) {
+        case Joint2DType::DISTANCE: return "distance";
+        case Joint2DType::REVOLUTE: return "revolute";
+        case Joint2DType::PRISMATIC: return "prismatic";
+        case Joint2DType::MOUSE: return "mouse";
+        case Joint2DType::WHEEL: return "wheel";
+        case Joint2DType::WELD: return "weld";
+        case Joint2DType::MOTOR: return "motor";
+        default: return "distance";
+    }
+}
+
+Joint2DType Editor::Stream::stringToJoint2DType(const std::string& str) {
+    if (str == "revolute") return Joint2DType::REVOLUTE;
+    if (str == "prismatic") return Joint2DType::PRISMATIC;
+    if (str == "mouse") return Joint2DType::MOUSE;
+    if (str == "wheel") return Joint2DType::WHEEL;
+    if (str == "weld") return Joint2DType::WELD;
+    if (str == "motor") return Joint2DType::MOTOR;
+    return Joint2DType::DISTANCE;
+}
+
+std::string Editor::Stream::joint3DTypeToString(Joint3DType type) {
+    switch (type) {
+        case Joint3DType::FIXED: return "fixed";
+        case Joint3DType::DISTANCE: return "distance";
+        case Joint3DType::POINT: return "point";
+        case Joint3DType::HINGE: return "hinge";
+        case Joint3DType::CONE: return "cone";
+        case Joint3DType::PRISMATIC: return "prismatic";
+        case Joint3DType::SWINGTWIST: return "swingtwist";
+        case Joint3DType::SIXDOF: return "sixdof";
+        case Joint3DType::PATH: return "path";
+        case Joint3DType::GEAR: return "gear";
+        case Joint3DType::RACKANDPINON: return "rackandpinion";
+        case Joint3DType::PULLEY: return "pulley";
+        default: return "fixed";
+    }
+}
+
+Joint3DType Editor::Stream::stringToJoint3DType(const std::string& str) {
+    if (str == "distance") return Joint3DType::DISTANCE;
+    if (str == "point") return Joint3DType::POINT;
+    if (str == "hinge") return Joint3DType::HINGE;
+    if (str == "cone") return Joint3DType::CONE;
+    if (str == "prismatic") return Joint3DType::PRISMATIC;
+    if (str == "swingtwist") return Joint3DType::SWINGTWIST;
+    if (str == "sixdof") return Joint3DType::SIXDOF;
+    if (str == "path") return Joint3DType::PATH;
+    if (str == "gear") return Joint3DType::GEAR;
+    if (str == "rackandpinion") return Joint3DType::RACKANDPINON;
+    if (str == "pulley") return Joint3DType::PULLEY;
+    return Joint3DType::FIXED;
+}
+
+// ==============================
+// Body2DComponent encode/decode
+// ==============================
+
+YAML::Node Editor::Stream::encodeBody2DComponent(const Body2DComponent& body) {
+    YAML::Node node;
+
+    node["type"] = bodyTypeToString(body.type);
+    node["numShapes"] = static_cast<unsigned int>(body.numShapes);
+
+    YAML::Node shapesNode;
+    for (size_t i = 0; i < body.numShapes; i++) {
+        YAML::Node shapeNode;
+        shapeNode["type"] = shape2DTypeToString(body.shapes[i].type);
+        shapesNode.push_back(shapeNode);
+    }
+    node["shapes"] = shapesNode;
+
+    return node;
+}
+
+Body2DComponent Editor::Stream::decodeBody2DComponent(const YAML::Node& node, const Body2DComponent* oldBody) {
+    Body2DComponent body;
+
+    if (oldBody) {
+        body = *oldBody;
+    }
+
+    if (node["type"]) body.type = stringToBodyType(node["type"].as<std::string>());
+    if (node["numShapes"]) body.numShapes = node["numShapes"].as<unsigned int>();
+
+    if (node["shapes"]) {
+        size_t count = std::min(node["shapes"].size(), (size_t)MAX_SHAPES);
+        for (size_t i = 0; i < count; i++) {
+            if (node["shapes"][i]["type"]) {
+                body.shapes[i].type = stringToShape2DType(node["shapes"][i]["type"].as<std::string>());
+            }
+        }
+    }
+
+    return body;
+}
+
+// ==============================
+// Body3DComponent encode/decode
+// ==============================
+
+YAML::Node Editor::Stream::encodeBody3DComponent(const Body3DComponent& body) {
+    YAML::Node node;
+
+    node["type"] = bodyTypeToString(body.type);
+    node["numShapes"] = static_cast<unsigned int>(body.numShapes);
+
+    YAML::Node shapesNode;
+    for (size_t i = 0; i < body.numShapes; i++) {
+        YAML::Node shapeNode;
+        shapeNode["type"] = shape3DTypeToString(body.shapes[i].type);
+        shapeNode["position"] = encodeVector3(body.shapes[i].position);
+        shapeNode["rotation"] = encodeQuaternion(body.shapes[i].rotation);
+        shapesNode.push_back(shapeNode);
+    }
+    node["shapes"] = shapesNode;
+
+    return node;
+}
+
+Body3DComponent Editor::Stream::decodeBody3DComponent(const YAML::Node& node, const Body3DComponent* oldBody) {
+    Body3DComponent body;
+
+    if (oldBody) {
+        body = *oldBody;
+    }
+
+    if (node["type"]) body.type = stringToBodyType(node["type"].as<std::string>());
+    if (node["numShapes"]) body.numShapes = node["numShapes"].as<unsigned int>();
+
+    if (node["shapes"]) {
+        size_t count = std::min(node["shapes"].size(), (size_t)MAX_SHAPES);
+        for (size_t i = 0; i < count; i++) {
+            if (node["shapes"][i]["type"]) {
+                body.shapes[i].type = stringToShape3DType(node["shapes"][i]["type"].as<std::string>());
+            }
+            if (node["shapes"][i]["position"]) {
+                body.shapes[i].position = decodeVector3(node["shapes"][i]["position"]);
+            }
+            if (node["shapes"][i]["rotation"]) {
+                body.shapes[i].rotation = decodeQuaternion(node["shapes"][i]["rotation"]);
+            }
+        }
+    }
+
+    return body;
+}
+
+// ==============================
+// Joint2DComponent encode/decode
+// ==============================
+
+YAML::Node Editor::Stream::encodeJoint2DComponent(const Joint2DComponent& joint) {
+    YAML::Node node;
+
+    node["type"] = joint2DTypeToString(joint.type);
+
+    return node;
+}
+
+Joint2DComponent Editor::Stream::decodeJoint2DComponent(const YAML::Node& node, const Joint2DComponent* oldJoint) {
+    Joint2DComponent joint;
+
+    if (oldJoint) {
+        joint = *oldJoint;
+    }
+
+    if (node["type"]) joint.type = stringToJoint2DType(node["type"].as<std::string>());
+
+    return joint;
+}
+
+// ==============================
+// Joint3DComponent encode/decode
+// ==============================
+
+YAML::Node Editor::Stream::encodeJoint3DComponent(const Joint3DComponent& joint) {
+    YAML::Node node;
+
+    node["type"] = joint3DTypeToString(joint.type);
+
+    return node;
+}
+
+Joint3DComponent Editor::Stream::decodeJoint3DComponent(const YAML::Node& node, const Joint3DComponent* oldJoint) {
+    Joint3DComponent joint;
+
+    if (oldJoint) {
+        joint = *oldJoint;
+    }
+
+    if (node["type"]) joint.type = stringToJoint3DType(node["type"].as<std::string>());
+
+    return joint;
 }

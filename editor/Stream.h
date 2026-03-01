@@ -179,5 +179,32 @@ namespace Supernova::Editor {
 
         static YAML::Node encodeSkyComponent(const SkyComponent& sky);
         static SkyComponent decodeSkyComponent(const YAML::Node& node, const SkyComponent* oldSky = nullptr);
+
+        static std::string bodyTypeToString(BodyType type);
+        static BodyType stringToBodyType(const std::string& str);
+
+        static std::string shape2DTypeToString(Shape2DType type);
+        static Shape2DType stringToShape2DType(const std::string& str);
+
+        static std::string shape3DTypeToString(Shape3DType type);
+        static Shape3DType stringToShape3DType(const std::string& str);
+
+        static std::string joint2DTypeToString(Joint2DType type);
+        static Joint2DType stringToJoint2DType(const std::string& str);
+
+        static std::string joint3DTypeToString(Joint3DType type);
+        static Joint3DType stringToJoint3DType(const std::string& str);
+
+        static YAML::Node encodeBody2DComponent(const Body2DComponent& body);
+        static Body2DComponent decodeBody2DComponent(const YAML::Node& node, const Body2DComponent* oldBody = nullptr);
+
+        static YAML::Node encodeBody3DComponent(const Body3DComponent& body);
+        static Body3DComponent decodeBody3DComponent(const YAML::Node& node, const Body3DComponent* oldBody = nullptr);
+
+        static YAML::Node encodeJoint2DComponent(const Joint2DComponent& joint);
+        static Joint2DComponent decodeJoint2DComponent(const YAML::Node& node, const Joint2DComponent* oldJoint = nullptr);
+
+        static YAML::Node encodeJoint3DComponent(const Joint3DComponent& joint);
+        static Joint3DComponent decodeJoint3DComponent(const YAML::Node& node, const Joint3DComponent* oldJoint = nullptr);
     };
 }

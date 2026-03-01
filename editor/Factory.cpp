@@ -880,6 +880,90 @@ std::string Editor::Factory::createSkyComponent(int indentSpaces, Scene* scene, 
     return code.str();
 }
 
+std::string Editor::Factory::formatBodyType(BodyType type) {
+    switch (type) {
+        case BodyType::STATIC: return "BodyType::STATIC";
+        case BodyType::KINEMATIC: return "BodyType::KINEMATIC";
+        case BodyType::DYNAMIC: return "BodyType::DYNAMIC";
+        default: return "BodyType::STATIC";
+    }
+}
+
+std::string Editor::Factory::formatJoint2DType(Joint2DType type) {
+    switch (type) {
+        case Joint2DType::DISTANCE: return "Joint2DType::DISTANCE";
+        case Joint2DType::REVOLUTE: return "Joint2DType::REVOLUTE";
+        case Joint2DType::PRISMATIC: return "Joint2DType::PRISMATIC";
+        case Joint2DType::MOUSE: return "Joint2DType::MOUSE";
+        case Joint2DType::WHEEL: return "Joint2DType::WHEEL";
+        case Joint2DType::WELD: return "Joint2DType::WELD";
+        case Joint2DType::MOTOR: return "Joint2DType::MOTOR";
+        default: return "Joint2DType::DISTANCE";
+    }
+}
+
+std::string Editor::Factory::formatJoint3DType(Joint3DType type) {
+    switch (type) {
+        case Joint3DType::FIXED: return "Joint3DType::FIXED";
+        case Joint3DType::DISTANCE: return "Joint3DType::DISTANCE";
+        case Joint3DType::POINT: return "Joint3DType::POINT";
+        case Joint3DType::HINGE: return "Joint3DType::HINGE";
+        case Joint3DType::CONE: return "Joint3DType::CONE";
+        case Joint3DType::PRISMATIC: return "Joint3DType::PRISMATIC";
+        case Joint3DType::SWINGTWIST: return "Joint3DType::SWINGTWIST";
+        case Joint3DType::SIXDOF: return "Joint3DType::SIXDOF";
+        case Joint3DType::PATH: return "Joint3DType::PATH";
+        case Joint3DType::GEAR: return "Joint3DType::GEAR";
+        case Joint3DType::RACKANDPINON: return "Joint3DType::RACKANDPINON";
+        case Joint3DType::PULLEY: return "Joint3DType::PULLEY";
+        default: return "Joint3DType::FIXED";
+    }
+}
+
+std::string Editor::Factory::createBody2DComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+    if (!scene->findComponent<Body2DComponent>(entity)) return "";
+    Body2DComponent& body = scene->getComponent<Body2DComponent>(entity);
+    std::ostringstream code;
+    const std::string ind = indentation(indentSpaces);
+    code << ind << "Body2DComponent body2d;\n";
+    code << ind << "body2d.type = " << formatBodyType(body.type) << ";\n";
+    addComponentCode(code, ind, sceneName, entityName, entity, "Body2DComponent", "body2d");
+    return code.str();
+}
+
+std::string Editor::Factory::createBody3DComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+    if (!scene->findComponent<Body3DComponent>(entity)) return "";
+    Body3DComponent& body = scene->getComponent<Body3DComponent>(entity);
+    std::ostringstream code;
+    const std::string ind = indentation(indentSpaces);
+    code << ind << "Body3DComponent body3d;\n";
+    code << ind << "body3d.type = " << formatBodyType(body.type) << ";\n";
+    addComponentCode(code, ind, sceneName, entityName, entity, "Body3DComponent", "body3d");
+    return code.str();
+}
+
+std::string Editor::Factory::createJoint2DComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+    if (!scene->findComponent<Joint2DComponent>(entity)) return "";
+    Joint2DComponent& joint = scene->getComponent<Joint2DComponent>(entity);
+    std::ostringstream code;
+    const std::string ind = indentation(indentSpaces);
+    code << ind << "Joint2DComponent joint2d;\n";
+    code << ind << "joint2d.type = " << formatJoint2DType(joint.type) << ";\n";
+    addComponentCode(code, ind, sceneName, entityName, entity, "Joint2DComponent", "joint2d");
+    return code.str();
+}
+
+std::string Editor::Factory::createJoint3DComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+    if (!scene->findComponent<Joint3DComponent>(entity)) return "";
+    Joint3DComponent& joint = scene->getComponent<Joint3DComponent>(entity);
+    std::ostringstream code;
+    const std::string ind = indentation(indentSpaces);
+    code << ind << "Joint3DComponent joint3d;\n";
+    code << ind << "joint3d.type = " << formatJoint3DType(joint.type) << ";\n";
+    addComponentCode(code, ind, sceneName, entityName, entity, "Joint3DComponent", "joint3d");
+    return code.str();
+}
+
 std::string Editor::Factory::createComponent(int indentSpaces, Scene* scene, Entity entity, ComponentType componentType, const fs::path& projectPath, std::string sceneName, std::string entityName) {
     switch (componentType) {
         case ComponentType::Transform: return createTransform(indentSpaces, scene, entity, sceneName, entityName);
@@ -895,6 +979,10 @@ std::string Editor::Factory::createComponent(int indentSpaces, Scene* scene, Ent
         case ComponentType::CameraComponent: return createCameraComponent(indentSpaces, scene, entity, sceneName, entityName);
         case ComponentType::ScriptComponent: return createScriptComponent(indentSpaces, scene, entity, sceneName, entityName);
         case ComponentType::SkyComponent: return createSkyComponent(indentSpaces, scene, entity, projectPath, sceneName, entityName);
+        case ComponentType::Body2DComponent: return createBody2DComponent(indentSpaces, scene, entity, sceneName, entityName);
+        case ComponentType::Body3DComponent: return createBody3DComponent(indentSpaces, scene, entity, sceneName, entityName);
+        case ComponentType::Joint2DComponent: return createJoint2DComponent(indentSpaces, scene, entity, sceneName, entityName);
+        case ComponentType::Joint3DComponent: return createJoint3DComponent(indentSpaces, scene, entity, sceneName, entityName);
         default: return "";
     }
 }

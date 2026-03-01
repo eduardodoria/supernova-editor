@@ -27,6 +27,9 @@ namespace Supernova::Editor{
         static std::string formatAnchorPreset(AnchorPreset preset);
         static std::string formatContainerType(ContainerType type);
         static std::string formatLightType(LightType type);
+        static std::string formatBodyType(BodyType type);
+        static std::string formatJoint2DType(Joint2DType type);
+        static std::string formatJoint3DType(Joint3DType type);
         static std::string formatLightState(LightState state);
         static std::string formatUIEventState(UIEventState state);
         static std::string formatCameraType(CameraType type);
@@ -76,6 +79,10 @@ namespace Supernova::Editor{
         static std::string createCameraComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
         static std::string createScriptComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
         static std::string createSkyComponent(int indentSpaces, Scene* scene, Entity entity, const fs::path& projectPath, std::string sceneName = "", std::string entityName = "");
+        static std::string createBody2DComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
+        static std::string createBody3DComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
+        static std::string createJoint2DComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
+        static std::string createJoint3DComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
     };
 
 }

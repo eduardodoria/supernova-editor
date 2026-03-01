@@ -282,16 +282,14 @@ void Editor::ProjectUtils::addEntityComponent(EntityRegistry* registry, Entity e
             if (!componentNode.IsDefined() || componentNode.IsNull()){
                 registry->addComponent<Body2DComponent>(entity, {});
             }else{
-                registry->addComponent<Body2DComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                registry->addComponent<Body2DComponent>(entity, Stream::decodeBody2DComponent(componentNode));
             }
             break;
         case ComponentType::Body3DComponent:
             if (!componentNode.IsDefined() || componentNode.IsNull()){
                 registry->addComponent<Body3DComponent>(entity, {});
             }else{
-                registry->addComponent<Body3DComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                registry->addComponent<Body3DComponent>(entity, Stream::decodeBody3DComponent(componentNode));
             }
             break;
         case ComponentType::BoneComponent:
@@ -352,16 +350,14 @@ void Editor::ProjectUtils::addEntityComponent(EntityRegistry* registry, Entity e
             if (!componentNode.IsDefined() || componentNode.IsNull()){
                 registry->addComponent<Joint2DComponent>(entity, {});
             }else{
-                registry->addComponent<Joint2DComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                registry->addComponent<Joint2DComponent>(entity, Stream::decodeJoint2DComponent(componentNode));
             }
             break;
         case ComponentType::Joint3DComponent:
             if (!componentNode.IsDefined() || componentNode.IsNull()){
                 registry->addComponent<Joint3DComponent>(entity, {});
             }else{
-                registry->addComponent<Joint3DComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                registry->addComponent<Joint3DComponent>(entity, Stream::decodeJoint3DComponent(componentNode));
             }
             break;
         case ComponentType::KeyframeTracksComponent:
@@ -636,13 +632,13 @@ YAML::Node Editor::ProjectUtils::removeEntityComponent(EntityRegistry* registry,
             break;
         case ComponentType::Body2DComponent:
             if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                oldComponent = Stream::encodeBody2DComponent(registry->getComponent<Body2DComponent>(entity));
             }
             registry->removeComponent<Body2DComponent>(entity);
             break;
         case ComponentType::Body3DComponent:
             if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                oldComponent = Stream::encodeBody3DComponent(registry->getComponent<Body3DComponent>(entity));
             }
             registry->removeComponent<Body3DComponent>(entity);
             break;
@@ -690,13 +686,13 @@ YAML::Node Editor::ProjectUtils::removeEntityComponent(EntityRegistry* registry,
             break;
         case ComponentType::Joint2DComponent:
             if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                oldComponent = Stream::encodeJoint2DComponent(registry->getComponent<Joint2DComponent>(entity));
             }
             registry->removeComponent<Joint2DComponent>(entity);
             break;
         case ComponentType::Joint3DComponent:
             if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                oldComponent = Stream::encodeJoint3DComponent(registry->getComponent<Joint3DComponent>(entity));
             }
             registry->removeComponent<Joint3DComponent>(entity);
             break;

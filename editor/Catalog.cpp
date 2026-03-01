@@ -607,6 +607,28 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
             ps["boxes["+idx+"].rect.width"] = {PropertyType::Float, UpdateFlags_None, (void*)&defRect[2], (compRef) ? (void*)&boxRect[2] : nullptr};
             ps["boxes["+idx+"].rect.height"] = {PropertyType::Float, UpdateFlags_None, (void*)&defRect[3], (compRef) ? (void*)&boxRect[3] : nullptr};
         }
+    }else if (component == ComponentType::Body2DComponent){
+        Body2DComponent* comp = static_cast<Body2DComponent*>(compRef);
+        static Body2DComponent* def = new Body2DComponent;
+
+        ps["type"] = {PropertyType::Enum, UpdateFlags_None, (void*)&def->type, (compRef) ? (void*)&comp->type : nullptr};
+        ps["numShapes"] = {PropertyType::UInt, UpdateFlags_None, (void*)&def->numShapes, (compRef) ? (void*)&comp->numShapes : nullptr};
+    }else if (component == ComponentType::Body3DComponent){
+        Body3DComponent* comp = static_cast<Body3DComponent*>(compRef);
+        static Body3DComponent* def = new Body3DComponent;
+
+        ps["type"] = {PropertyType::Enum, UpdateFlags_None, (void*)&def->type, (compRef) ? (void*)&comp->type : nullptr};
+        ps["numShapes"] = {PropertyType::UInt, UpdateFlags_None, (void*)&def->numShapes, (compRef) ? (void*)&comp->numShapes : nullptr};
+    }else if (component == ComponentType::Joint2DComponent){
+        Joint2DComponent* comp = static_cast<Joint2DComponent*>(compRef);
+        static Joint2DComponent* def = new Joint2DComponent;
+
+        ps["type"] = {PropertyType::Enum, UpdateFlags_None, (void*)&def->type, (compRef) ? (void*)&comp->type : nullptr};
+    }else if (component == ComponentType::Joint3DComponent){
+        Joint3DComponent* comp = static_cast<Joint3DComponent*>(compRef);
+        static Joint3DComponent* def = new Joint3DComponent;
+
+        ps["type"] = {PropertyType::Enum, UpdateFlags_None, (void*)&def->type, (compRef) ? (void*)&comp->type : nullptr};
     }
 
     return ps;
@@ -805,6 +827,22 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::findEntityPropertie
         }
     }else if (component == ComponentType::SkyComponent){
         if (SkyComponent* compRef = registry->findComponent<SkyComponent>(entity)){
+            return getProperties(component, compRef);
+        }
+    }else if (component == ComponentType::Body2DComponent){
+        if (Body2DComponent* compRef = registry->findComponent<Body2DComponent>(entity)){
+            return getProperties(component, compRef);
+        }
+    }else if (component == ComponentType::Body3DComponent){
+        if (Body3DComponent* compRef = registry->findComponent<Body3DComponent>(entity)){
+            return getProperties(component, compRef);
+        }
+    }else if (component == ComponentType::Joint2DComponent){
+        if (Joint2DComponent* compRef = registry->findComponent<Joint2DComponent>(entity)){
+            return getProperties(component, compRef);
+        }
+    }else if (component == ComponentType::Joint3DComponent){
+        if (Joint3DComponent* compRef = registry->findComponent<Joint3DComponent>(entity)){
             return getProperties(component, compRef);
         }
     }

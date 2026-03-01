@@ -22,6 +22,7 @@
 #include "util/ProjectUtils.h"
 #include "Stream.h"
 #include "Out.h"
+#include "subsystem/PhysicsSystem.h"
 
 #include <map>
 #include <type_traits>
@@ -76,6 +77,37 @@ static std::vector<Editor::EnumEntry> entriesLightType = {
 static std::vector<Editor::EnumEntry> entriesCameraType = {
     { (int)CameraType::CAMERA_ORTHO, "Orthographic" },
     { (int)CameraType::CAMERA_PERSPECTIVE, "Perspective" }
+};
+
+static std::vector<Editor::EnumEntry> entriesBodyType = {
+    { (int)BodyType::STATIC, "Static" },
+    { (int)BodyType::KINEMATIC, "Kinematic" },
+    { (int)BodyType::DYNAMIC, "Dynamic" }
+};
+
+static std::vector<Editor::EnumEntry> entriesJoint2DType = {
+    { (int)Joint2DType::DISTANCE, "Distance" },
+    { (int)Joint2DType::REVOLUTE, "Revolute" },
+    { (int)Joint2DType::PRISMATIC, "Prismatic" },
+    { (int)Joint2DType::MOUSE, "Mouse" },
+    { (int)Joint2DType::WHEEL, "Wheel" },
+    { (int)Joint2DType::WELD, "Weld" },
+    { (int)Joint2DType::MOTOR, "Motor" }
+};
+
+static std::vector<Editor::EnumEntry> entriesJoint3DType = {
+    { (int)Joint3DType::FIXED, "Fixed" },
+    { (int)Joint3DType::DISTANCE, "Distance" },
+    { (int)Joint3DType::POINT, "Point" },
+    { (int)Joint3DType::HINGE, "Hinge" },
+    { (int)Joint3DType::CONE, "Cone" },
+    { (int)Joint3DType::PRISMATIC, "Prismatic" },
+    { (int)Joint3DType::SWINGTWIST, "Swing Twist" },
+    { (int)Joint3DType::SIXDOF, "Six DOF" },
+    { (int)Joint3DType::PATH, "Path" },
+    { (int)Joint3DType::GEAR, "Gear" },
+    { (int)Joint3DType::RACKANDPINON, "Rack and Pinion" },
+    { (int)Joint3DType::PULLEY, "Pulley" }
 };
 
 static std::vector<int> cascadeValues = { 1, 2, 3, 4, 5, 6 };
@@ -3795,6 +3827,267 @@ void Editor::Properties::drawSkyComponent(ComponentType cpType, SceneProject* sc
     endTable();
 }
 
+void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+    Body2DComponent& body = sceneProject->scene->getComponent<Body2DComponent>(entities[0]);
+
+    RowSettings settingsBodyType;
+    settingsBodyType.enumEntries = &entriesBodyType;
+
+    beginTable(cpType, getLabelSize("Body Type"));
+    propertyRow(RowPropertyType::Enum, cpType, "type", "Body Type", sceneProject, entities, settingsBodyType);
+    endTable();
+
+    // --- Create Shape popup ---
+    static int shape2DType = 0; // 0=Box, 1=CenteredBox, 2=RoundedBox, 3=Circle, 4=Capsule, 5=Segment
+    static float s2d_width = 1.0f, s2d_height = 1.0f;
+    static float s2d_centerX = 0.0f, s2d_centerY = 0.0f, s2d_angle = 0.0f;
+    static float s2d_radius = 0.5f;
+    static float s2d_c1x = 0.0f, s2d_c1y = -0.5f, s2d_c2x = 0.0f, s2d_c2y = 0.5f;
+    static float s2d_p1x = -1.0f, s2d_p1y = 0.0f, s2d_p2x = 1.0f, s2d_p2y = 0.0f;
+
+    ImGui::SeparatorText("Shapes");
+    ImGui::Text("Shapes: %zu / %d", body.numShapes, MAX_SHAPES);
+
+    if (body.numShapes < MAX_SHAPES){
+        if (ImGui::Button("Create Shape##body2d")){
+            ImGui::OpenPopup("menusettings_shape2d");
+        }
+    }
+
+    ImGui::SetNextWindowSizeConstraints(ImVec2(18 * ImGui::GetFontSize(), 0), ImVec2(FLT_MAX, FLT_MAX));
+    if (ImGui::BeginPopup("menusettings_shape2d")){
+        ImGui::Text("Create 2D Shape");
+        ImGui::Separator();
+
+        const char* shapeTypes[] = { "Box", "Centered Box", "Rounded Box", "Circle", "Capsule", "Segment" };
+
+        float secondColSize = 8 * ImGui::GetFontSize();
+        beginTable(cpType, getLabelSize("Shape Type"), "shape2d_popup");
+
+        propertyHeader("Shape Type", secondColSize);
+        ImGui::SetNextItemWidth(-1);
+        ImGui::Combo("##shape2d_type", &shape2DType, shapeTypes, IM_ARRAYSIZE(shapeTypes));
+
+        switch (shape2DType) {
+            case 0: // Box
+                propertyHeader("Width", secondColSize);
+                ImGui::DragFloat("##s2d_box_w", &s2d_width, 0.1f, 0.01f, 1000.0f, "%.2f");
+                propertyHeader("Height", secondColSize);
+                ImGui::DragFloat("##s2d_box_h", &s2d_height, 0.1f, 0.01f, 1000.0f, "%.2f");
+                break;
+            case 1: // Centered Box
+                propertyHeader("Width", secondColSize);
+                ImGui::DragFloat("##s2d_cbox_w", &s2d_width, 0.1f, 0.01f, 1000.0f, "%.2f");
+                propertyHeader("Height", secondColSize);
+                ImGui::DragFloat("##s2d_cbox_h", &s2d_height, 0.1f, 0.01f, 1000.0f, "%.2f");
+                propertyHeader("Center X", secondColSize);
+                ImGui::DragFloat("##s2d_cbox_cx", &s2d_centerX, 0.1f, -1000.0f, 1000.0f, "%.2f");
+                propertyHeader("Center Y", secondColSize);
+                ImGui::DragFloat("##s2d_cbox_cy", &s2d_centerY, 0.1f, -1000.0f, 1000.0f, "%.2f");
+                propertyHeader("Angle", secondColSize);
+                ImGui::DragFloat("##s2d_cbox_a", &s2d_angle, 0.1f, -360.0f, 360.0f, "%.1f");
+                break;
+            case 2: // Rounded Box
+                propertyHeader("Width", secondColSize);
+                ImGui::DragFloat("##s2d_rbox_w", &s2d_width, 0.1f, 0.01f, 1000.0f, "%.2f");
+                propertyHeader("Height", secondColSize);
+                ImGui::DragFloat("##s2d_rbox_h", &s2d_height, 0.1f, 0.01f, 1000.0f, "%.2f");
+                propertyHeader("Radius", secondColSize);
+                ImGui::DragFloat("##s2d_rbox_r", &s2d_radius, 0.01f, 0.0f, 100.0f, "%.2f");
+                break;
+            case 3: // Circle
+                propertyHeader("Center X", secondColSize);
+                ImGui::DragFloat("##s2d_circ_cx", &s2d_centerX, 0.1f, -1000.0f, 1000.0f, "%.2f");
+                propertyHeader("Center Y", secondColSize);
+                ImGui::DragFloat("##s2d_circ_cy", &s2d_centerY, 0.1f, -1000.0f, 1000.0f, "%.2f");
+                propertyHeader("Radius", secondColSize);
+                ImGui::DragFloat("##s2d_circ_r", &s2d_radius, 0.1f, 0.01f, 1000.0f, "%.2f");
+                break;
+            case 4: // Capsule
+                propertyHeader("Center1 X", secondColSize);
+                ImGui::DragFloat("##s2d_cap_c1x", &s2d_c1x, 0.1f, -1000.0f, 1000.0f, "%.2f");
+                propertyHeader("Center1 Y", secondColSize);
+                ImGui::DragFloat("##s2d_cap_c1y", &s2d_c1y, 0.1f, -1000.0f, 1000.0f, "%.2f");
+                propertyHeader("Center2 X", secondColSize);
+                ImGui::DragFloat("##s2d_cap_c2x", &s2d_c2x, 0.1f, -1000.0f, 1000.0f, "%.2f");
+                propertyHeader("Center2 Y", secondColSize);
+                ImGui::DragFloat("##s2d_cap_c2y", &s2d_c2y, 0.1f, -1000.0f, 1000.0f, "%.2f");
+                propertyHeader("Radius", secondColSize);
+                ImGui::DragFloat("##s2d_cap_r", &s2d_radius, 0.1f, 0.01f, 1000.0f, "%.2f");
+                break;
+            case 5: // Segment
+                propertyHeader("Point1 X", secondColSize);
+                ImGui::DragFloat("##s2d_seg_p1x", &s2d_p1x, 0.1f, -1000.0f, 1000.0f, "%.2f");
+                propertyHeader("Point1 Y", secondColSize);
+                ImGui::DragFloat("##s2d_seg_p1y", &s2d_p1y, 0.1f, -1000.0f, 1000.0f, "%.2f");
+                propertyHeader("Point2 X", secondColSize);
+                ImGui::DragFloat("##s2d_seg_p2x", &s2d_p2x, 0.1f, -1000.0f, 1000.0f, "%.2f");
+                propertyHeader("Point2 Y", secondColSize);
+                ImGui::DragFloat("##s2d_seg_p2y", &s2d_p2y, 0.1f, -1000.0f, 1000.0f, "%.2f");
+                break;
+        }
+
+        endTable();
+        ImGui::Separator();
+
+        if (ImGui::Button("Apply##shape2d", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+            std::shared_ptr<Supernova::PhysicsSystem> physSys = sceneProject->scene->getSystem<PhysicsSystem>();
+            for (Entity& entity : entities) {
+                switch (shape2DType) {
+                    case 0: physSys->createBoxShape2D(entity, s2d_width, s2d_height); break;
+                    case 1: physSys->createCenteredBoxShape2D(entity, s2d_width, s2d_height, Vector2(s2d_centerX, s2d_centerY), s2d_angle); break;
+                    case 2: physSys->createRoundedBoxShape2D(entity, s2d_width, s2d_height, s2d_radius); break;
+                    case 3: physSys->createCircleShape2D(entity, Vector2(s2d_centerX, s2d_centerY), s2d_radius); break;
+                    case 4: physSys->createCapsuleShape2D(entity, Vector2(s2d_c1x, s2d_c1y), Vector2(s2d_c2x, s2d_c2y), s2d_radius); break;
+                    case 5: physSys->createSegmentShape2D(entity, Vector2(s2d_p1x, s2d_p1y), Vector2(s2d_p2x, s2d_p2y)); break;
+                }
+            }
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+
+    // List existing shapes
+    for (size_t i = 0; i < body.numShapes; i++){
+        const char* typeNames[] = { "Polygon", "Circle", "Capsule", "Segment", "Chain" };
+        int typeIdx = static_cast<int>(body.shapes[i].type);
+        const char* typeName = (typeIdx >= 0 && typeIdx < 5) ? typeNames[typeIdx] : "Unknown";
+        ImGui::BulletText("Shape %zu: %s", i, typeName);
+    }
+}
+
+void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+    Body3DComponent& body = sceneProject->scene->getComponent<Body3DComponent>(entities[0]);
+
+    RowSettings settingsBodyType;
+    settingsBodyType.enumEntries = &entriesBodyType;
+
+    beginTable(cpType, getLabelSize("Body Type"));
+    propertyRow(RowPropertyType::Enum, cpType, "type", "Body Type", sceneProject, entities, settingsBodyType);
+    endTable();
+
+    // --- Create Shape popup ---
+    static int shape3DType = 0; // 0=Box, 1=Sphere, 2=Capsule, 3=TaperedCapsule, 4=Cylinder
+    static float s3d_width = 1.0f, s3d_height = 1.0f, s3d_depth = 1.0f;
+    static float s3d_radius = 0.5f, s3d_halfHeight = 0.5f;
+    static float s3d_topRadius = 0.5f, s3d_bottomRadius = 0.5f;
+    static float s3d_posX = 0.0f, s3d_posY = 0.0f, s3d_posZ = 0.0f;
+
+    ImGui::SeparatorText("Shapes");
+    ImGui::Text("Shapes: %zu / %d", body.numShapes, MAX_SHAPES);
+
+    if (body.numShapes < MAX_SHAPES){
+        if (ImGui::Button("Create Shape##body3d")){
+            ImGui::OpenPopup("menusettings_shape3d");
+        }
+    }
+
+    ImGui::SetNextWindowSizeConstraints(ImVec2(18 * ImGui::GetFontSize(), 0), ImVec2(FLT_MAX, FLT_MAX));
+    if (ImGui::BeginPopup("menusettings_shape3d")){
+        ImGui::Text("Create 3D Shape");
+        ImGui::Separator();
+
+        const char* shapeTypes[] = { "Box", "Sphere", "Capsule", "Tapered Capsule", "Cylinder" };
+
+        float secondColSize = 8 * ImGui::GetFontSize();
+        beginTable(cpType, getLabelSize("Shape Type"), "shape3d_popup");
+
+        propertyHeader("Shape Type", secondColSize);
+        ImGui::SetNextItemWidth(-1);
+        ImGui::Combo("##shape3d_type", &shape3DType, shapeTypes, IM_ARRAYSIZE(shapeTypes));
+
+        propertyHeader("Position X", secondColSize);
+        ImGui::DragFloat("##s3d_px", &s3d_posX, 0.1f, -1000.0f, 1000.0f, "%.2f");
+        propertyHeader("Position Y", secondColSize);
+        ImGui::DragFloat("##s3d_py", &s3d_posY, 0.1f, -1000.0f, 1000.0f, "%.2f");
+        propertyHeader("Position Z", secondColSize);
+        ImGui::DragFloat("##s3d_pz", &s3d_posZ, 0.1f, -1000.0f, 1000.0f, "%.2f");
+
+        switch (shape3DType) {
+            case 0: // Box
+                propertyHeader("Width", secondColSize);
+                ImGui::DragFloat("##s3d_box_w", &s3d_width, 0.1f, 0.01f, 1000.0f, "%.2f");
+                propertyHeader("Height", secondColSize);
+                ImGui::DragFloat("##s3d_box_h", &s3d_height, 0.1f, 0.01f, 1000.0f, "%.2f");
+                propertyHeader("Depth", secondColSize);
+                ImGui::DragFloat("##s3d_box_d", &s3d_depth, 0.1f, 0.01f, 1000.0f, "%.2f");
+                break;
+            case 1: // Sphere
+                propertyHeader("Radius", secondColSize);
+                ImGui::DragFloat("##s3d_sph_r", &s3d_radius, 0.1f, 0.01f, 1000.0f, "%.2f");
+                break;
+            case 2: // Capsule
+                propertyHeader("Half Height", secondColSize);
+                ImGui::DragFloat("##s3d_cap_hh", &s3d_halfHeight, 0.1f, 0.01f, 1000.0f, "%.2f");
+                propertyHeader("Radius", secondColSize);
+                ImGui::DragFloat("##s3d_cap_r", &s3d_radius, 0.1f, 0.01f, 1000.0f, "%.2f");
+                break;
+            case 3: // Tapered Capsule
+                propertyHeader("Half Height", secondColSize);
+                ImGui::DragFloat("##s3d_tcap_hh", &s3d_halfHeight, 0.1f, 0.01f, 1000.0f, "%.2f");
+                propertyHeader("Top Radius", secondColSize);
+                ImGui::DragFloat("##s3d_tcap_tr", &s3d_topRadius, 0.1f, 0.01f, 1000.0f, "%.2f");
+                propertyHeader("Bottom Radius", secondColSize);
+                ImGui::DragFloat("##s3d_tcap_br", &s3d_bottomRadius, 0.1f, 0.01f, 1000.0f, "%.2f");
+                break;
+            case 4: // Cylinder
+                propertyHeader("Half Height", secondColSize);
+                ImGui::DragFloat("##s3d_cyl_hh", &s3d_halfHeight, 0.1f, 0.01f, 1000.0f, "%.2f");
+                propertyHeader("Radius", secondColSize);
+                ImGui::DragFloat("##s3d_cyl_r", &s3d_radius, 0.1f, 0.01f, 1000.0f, "%.2f");
+                break;
+        }
+
+        endTable();
+        ImGui::Separator();
+
+        if (ImGui::Button("Apply##shape3d", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+            std::shared_ptr<Supernova::PhysicsSystem> physSys = sceneProject->scene->getSystem<PhysicsSystem>();
+            Vector3 pos(s3d_posX, s3d_posY, s3d_posZ);
+            Quaternion rot = Quaternion::IDENTITY;
+            for (Entity& entity : entities) {
+                switch (shape3DType) {
+                    case 0: physSys->createBoxShape3D(entity, pos, rot, s3d_width, s3d_height, s3d_depth); break;
+                    case 1: physSys->createSphereShape3D(entity, pos, rot, s3d_radius); break;
+                    case 2: physSys->createCapsuleShape3D(entity, pos, rot, s3d_halfHeight, s3d_radius); break;
+                    case 3: physSys->createTaperedCapsuleShape3D(entity, pos, rot, s3d_halfHeight, s3d_topRadius, s3d_bottomRadius); break;
+                    case 4: physSys->createCylinderShape3D(entity, pos, rot, s3d_halfHeight, s3d_radius); break;
+                }
+            }
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+
+    // List existing shapes
+    for (size_t i = 0; i < body.numShapes; i++){
+        const char* typeNames[] = { "Sphere", "Box", "Capsule", "Tapered Capsule", "Cylinder", "Convex Hull", "Mesh", "HeightField" };
+        int typeIdx = static_cast<int>(body.shapes[i].type);
+        const char* typeName = (typeIdx >= 0 && typeIdx < 8) ? typeNames[typeIdx] : "Unknown";
+        ImGui::BulletText("Shape %zu: %s", i, typeName);
+    }
+}
+
+void Editor::Properties::drawJoint2DComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+    RowSettings settingsJointType;
+    settingsJointType.enumEntries = &entriesJoint2DType;
+
+    beginTable(cpType, getLabelSize("Joint Type"));
+    propertyRow(RowPropertyType::Enum, cpType, "type", "Joint Type", sceneProject, entities, settingsJointType);
+    endTable();
+}
+
+void Editor::Properties::drawJoint3DComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+    RowSettings settingsJointType;
+    settingsJointType.enumEntries = &entriesJoint3DType;
+
+    beginTable(cpType, getLabelSize("Joint Type"));
+    propertyRow(RowPropertyType::Enum, cpType, "type", "Joint Type", sceneProject, entities, settingsJointType);
+    endTable();
+}
+
 void Editor::Properties::show(){
     ImGui::Begin("Properties");
 
@@ -4067,6 +4360,14 @@ void Editor::Properties::show(){
                     drawSkyComponent(cpType, sceneProject, entities);
                 }else if (cpType == ComponentType::ScriptComponent){
                     drawScriptComponent(cpType, sceneProject, entities);
+                }else if (cpType == ComponentType::Body2DComponent){
+                    drawBody2DComponent(cpType, sceneProject, entities);
+                }else if (cpType == ComponentType::Body3DComponent){
+                    drawBody3DComponent(cpType, sceneProject, entities);
+                }else if (cpType == ComponentType::Joint2DComponent){
+                    drawJoint2DComponent(cpType, sceneProject, entities);
+                }else if (cpType == ComponentType::Joint3DComponent){
+                    drawJoint3DComponent(cpType, sceneProject, entities);
                 }
 
                 if (compReadOnly) ImGui::EndDisabled();
