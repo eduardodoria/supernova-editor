@@ -736,8 +736,11 @@ YAML::Node Editor::Stream::encodeSubmesh(const Submesh& submesh) {
     return node;
 }
 
-Submesh Editor::Stream::decodeSubmesh(const YAML::Node& node) {
+Submesh Editor::Stream::decodeSubmesh(const YAML::Node& node, const Submesh* oldSubmesh) {
     Submesh submesh;
+    if (oldSubmesh) {
+        submesh = *oldSubmesh;
+    }
 
     submesh.material = decodeMaterial(node["material"]);
     submesh.textureRect = decodeRect(node["textureRect"]);
@@ -1835,7 +1838,7 @@ MeshComponent Editor::Stream::decodeMeshComponent(const YAML::Node& node, const 
     if (node["submeshes"]) {
         auto submeshesNode = node["submeshes"];
         for(unsigned int i = 0; i < submeshesNode.size() && i < MAX_SUBMESHES; i++) {
-            mesh.submeshes[i] = decodeSubmesh(submeshesNode[i]);
+            mesh.submeshes[i] = decodeSubmesh(submeshesNode[i], &mesh.submeshes[i]);
         }
         mesh.numSubmeshes = submeshesNode.size();
     }

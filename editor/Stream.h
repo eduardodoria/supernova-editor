@@ -102,7 +102,7 @@ namespace Supernova::Editor {
         static void decodeExternalBuffer(ExternalBuffer& buffer, const YAML::Node& node);
 
         static YAML::Node encodeSubmesh(const Submesh& submesh);
-        static Submesh decodeSubmesh(const YAML::Node& node);
+        static Submesh decodeSubmesh(const YAML::Node& node, const Submesh* oldSubmesh = nullptr);
 
         static YAML::Node encodeAABB(const AABB& aabb);
         static AABB decodeAABB(const YAML::Node& node);

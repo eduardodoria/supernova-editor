@@ -844,7 +844,6 @@ void Editor::Project::finalizeStop(SceneProject* mainSceneProject, std::vector<P
             continue;
         }
 
-        LuaBinding::cleanupLuaScripts(sceneProject->scene);
         pauseEngineScene(sceneProject->scene, true);
         sceneProject->scene->getSystem<UISystem>()->setAnchorReferenceSize(windowWidth, windowHeight);
 
@@ -3002,7 +3001,9 @@ void Editor::Project::registerSceneManager() {
                 if (entry.initialized) return;
 
                 if (conector.isLibraryConnected()) {
-                    conector.execute(entry.runtime->scene);
+                    conector.init(entry.runtime->scene);
+                }else{
+                    LuaBinding::initializeLuaScripts(entry.runtime->scene);
                 }
 
                 prepareRuntimeScene(entry);
@@ -3189,8 +3190,9 @@ void Editor::Project::start(uint32_t sceneId) {
 
             if (conector.connect(buildPath, libName)) {
                 for (const auto& entry : session->runtimeScenes) {
-                    if (!entry.runtime) continue;
-                    conector.execute(entry.runtime->scene);
+                    if (entry.runtime){
+                        conector.init(entry.runtime->scene);
+                    }
                 }
 
                 if (session->cancelled.load(std::memory_order_acquire)) {
@@ -3214,6 +3216,12 @@ void Editor::Project::start(uint32_t sceneId) {
         connectThread.detach();
     } else {
         // No C++ scripts, just initialize Lua scripts directly
+        for (const auto& entry : session->runtimeScenes) {
+            if (entry.runtime){
+                LuaBinding::initializeLuaScripts(entry.runtime->scene);
+            }
+        }
+
         SceneProject* mainSceneProject = getScene(sceneId);
 
         finalizeStart(mainSceneProject, session->runtimeScenes);
@@ -3373,6 +3381,12 @@ void Editor::Project::stop(uint32_t sceneId) {
         });
         finalizeStopThread.detach();
     } else {
+        for (const auto& entry : runtimeScenesCopy) {
+            if (entry.runtime) {
+                LuaBinding::cleanupLuaScripts(entry.runtime->scene);
+            }
+        }
+
         // No C++ library connected, just finalize directly
         if (session->startupSucceeded.load(std::memory_order_acquire)) {
             SceneProject* mainSceneProject = getScene(sceneId);

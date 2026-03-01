@@ -93,6 +93,39 @@ void Editor::Conector::disconnect(){
     }
 }
 
+void Editor::Conector::init(Scene* scene){
+    if (!libHandle) {
+        Out::error("Cannot execute: Not connected to library");
+        return;
+    }
+
+    using InitScriptsFunc = void (*)(Scene*);
+    #ifdef _WIN32
+        InitScriptsFunc initScriptsFn = reinterpret_cast<InitScriptsFunc>(GetProcAddress(static_cast<HMODULE>(libHandle), "initScripts"));
+        if (!initScriptsFn) {
+            Out::error("Failed to find function 'initScripts' in the library (Error code: %lu)", GetLastError());
+        }
+    #else
+        dlerror(); // clear any existing error
+        InitScriptsFunc initScriptsFn = reinterpret_cast<InitScriptsFunc>(dlsym(libHandle, "initScripts"));
+        const char* err = dlerror();
+        if (err) {
+            Out::error("Failed to find function 'initScripts' in the library (Error: %s)", err);
+            initScriptsFn = nullptr;
+        }
+    #endif
+
+    if (initScriptsFn) {
+        try {
+            initScriptsFn(scene);
+        } catch (const std::exception& e) {
+            Out::error("Exception in initScripts(): %s", e.what());
+        } catch (...) {
+            Out::error("Unknown exception in initScripts()");
+        }
+    }
+}
+
 void Editor::Conector::cleanup(Scene* scene){
     if (!libHandle) {
         Out::error("Cannot cleanup: Not connected to library");
@@ -125,39 +158,6 @@ void Editor::Conector::cleanup(Scene* scene){
         }
     } else {
         Out::warning("Cleanup function not found in library");
-    }
-}
-
-void Editor::Conector::execute(Scene* scene){
-    if (!libHandle) {
-        Out::error("Cannot execute: Not connected to library");
-        return;
-    }
-
-    using InitScriptsFunc = void (*)(Scene*);
-    #ifdef _WIN32
-        InitScriptsFunc initScriptsFn = reinterpret_cast<InitScriptsFunc>(GetProcAddress(static_cast<HMODULE>(libHandle), "initScripts"));
-        if (!initScriptsFn) {
-            Out::error("Failed to find function 'initScripts' in the library (Error code: %lu)", GetLastError());
-        }
-    #else
-        dlerror(); // clear any existing error
-        InitScriptsFunc initScriptsFn = reinterpret_cast<InitScriptsFunc>(dlsym(libHandle, "initScripts"));
-        const char* err = dlerror();
-        if (err) {
-            Out::error("Failed to find function 'initScripts' in the library (Error: %s)", err);
-            initScriptsFn = nullptr;
-        }
-    #endif
-
-    if (initScriptsFn) {
-        try {
-            initScriptsFn(scene);
-        } catch (const std::exception& e) {
-            Out::error("Exception in initScripts(): %s", e.what());
-        } catch (...) {
-            Out::error("Unknown exception in initScripts()");
-        }
     }
 }
 
