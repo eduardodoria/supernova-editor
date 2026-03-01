@@ -2944,7 +2944,7 @@ bool Editor::Project::isAnyScenePlaying() const{
 void Editor::Project::registerSceneManager() {
     SceneManager::clearAll();
     for (SceneProject& sceneProject : scenes) {
-        SceneManager::registerScene(sceneProject.name, [this, sceneId = sceneProject.id]() {
+        SceneManager::registerScene(sceneProject.id, sceneProject.name, [this, sceneId = sceneProject.id]() {
             std::shared_ptr<PlaySession> session;
             {
                 std::scoped_lock lock(playSessionMutex);

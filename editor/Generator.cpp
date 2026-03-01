@@ -859,7 +859,7 @@ void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& sce
     // Register all stacks with SceneManager
     for (const auto& sceneData : scenes) {
         std::string stackId = Factory::toIdentifier(sceneData.name);
-        mainContent += "    SceneManager::registerScene(\"" + sceneData.name + "\", load_" + stackId + ");\n";
+        mainContent += "    SceneManager::registerScene(" + std::to_string(sceneData.id) + ", \"" + sceneData.name + "\", load_" + stackId + ");\n";
     }
     mainContent += "\n";
 
