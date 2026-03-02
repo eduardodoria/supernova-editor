@@ -4357,13 +4357,31 @@ void Editor::Properties::drawJoint2DComponent(ComponentType cpType, SceneProject
     RowSettings settingsJointValue;
     settingsJointValue.onValueChanged = markJoint2DDirty;
 
-    beginTable(cpType, getLabelSize("Body B"));
+    beginTable(cpType, getLabelSize("Joint Type"));
     propertyRow(RowPropertyType::Enum, cpType, "type", "Joint Type", sceneProject, entities, settingsJointType);
     propertyRow(RowPropertyType::LocalEntity, cpType, "bodyA", "Body A", sceneProject, entities, settingsJointValue);
 
     if (joint.type != Joint2DType::MOUSE){
         propertyRow(RowPropertyType::LocalEntity, cpType, "bodyB", "Body B", sceneProject, entities, settingsJointValue);
     }
+
+    endTable();
+
+    bool hasTypeSettings = joint.type != Joint2DType::MOTOR;
+    if (!hasTypeSettings){
+        return;
+    }
+
+    const char* joint2DTableLabel = "Anchor";
+    if (joint.type == Joint2DType::DISTANCE){
+        joint2DTableLabel = "Anchor A";
+    }else if (joint.type == Joint2DType::MOUSE){
+        joint2DTableLabel = "Target";
+    }
+
+    ImGui::SeparatorText("Joint settings");
+    std::string joint2DTypeTableId = "joint2d_type_settings_" + std::to_string((int)joint.type);
+    beginTable(cpType, getLabelSize(joint2DTableLabel), joint2DTypeTableId);
 
     if (joint.type == Joint2DType::DISTANCE){
         propertyRow(RowPropertyType::Vector2, cpType, "anchorA", "Anchor A", sceneProject, entities, settingsJointValue);
@@ -4399,10 +4417,60 @@ void Editor::Properties::drawJoint3DComponent(ComponentType cpType, SceneProject
     RowSettings settingsJointValue;
     settingsJointValue.onValueChanged = markJoint3DDirty;
 
-    beginTable(cpType, getLabelSize("Normal Half Cone Angle"));
+    beginTable(cpType, getLabelSize("Joint Type"));
     propertyRow(RowPropertyType::Enum, cpType, "type", "Joint Type", sceneProject, entities, settingsJointType);
     propertyRow(RowPropertyType::LocalEntity, cpType, "bodyA", "Body A", sceneProject, entities, settingsJointValue);
     propertyRow(RowPropertyType::LocalEntity, cpType, "bodyB", "Body B", sceneProject, entities, settingsJointValue);
+
+    endTable();
+
+    bool hasTypeSettings = joint.type != Joint3DType::FIXED;
+    if (!hasTypeSettings){
+        return;
+    }
+
+    const char* joint3DTableLabel = "Anchor";
+    switch (joint.type){
+        case Joint3DType::DISTANCE:
+            joint3DTableLabel = "Anchor A";
+            break;
+        case Joint3DType::POINT:
+            joint3DTableLabel = "Anchor";
+            break;
+        case Joint3DType::HINGE:
+            joint3DTableLabel = "Normal";
+            break;
+        case Joint3DType::CONE:
+            joint3DTableLabel = "Twist Axis";
+            break;
+        case Joint3DType::PRISMATIC:
+            joint3DTableLabel = "Limits Min";
+            break;
+        case Joint3DType::SWINGTWIST:
+            joint3DTableLabel = "Normal HalfCone";
+            break;
+        case Joint3DType::SIXDOF:
+            joint3DTableLabel = "Anchor A";
+            break;
+        case Joint3DType::GEAR:
+            joint3DTableLabel = "Teeth Gear A";
+            break;
+        case Joint3DType::RACKANDPINON:
+            joint3DTableLabel = "Rack Length";
+            break;
+        case Joint3DType::PULLEY:
+            joint3DTableLabel = "Fixed Point A";
+            break;
+        case Joint3DType::PATH:
+            joint3DTableLabel = "Path Position";
+            break;
+        default:
+            break;
+    }
+
+    ImGui::SeparatorText("Joint settings");
+    std::string joint3DTypeTableId = "joint3d_type_settings_" + std::to_string((int)joint.type);
+    beginTable(cpType, getLabelSize(joint3DTableLabel), joint3DTypeTableId);
 
     if (joint.type == Joint3DType::DISTANCE){
         propertyRow(RowPropertyType::Vector3, cpType, "anchorA", "Anchor A", sceneProject, entities, settingsJointValue);
@@ -4424,8 +4492,8 @@ void Editor::Properties::drawJoint3DComponent(ComponentType cpType, SceneProject
         propertyRow(RowPropertyType::Vector3, cpType, "anchor", "Anchor", sceneProject, entities, settingsJointValue);
         propertyRow(RowPropertyType::Vector3, cpType, "twistAxis", "Twist Axis", sceneProject, entities, settingsJointValue);
         propertyRow(RowPropertyType::Vector3, cpType, "planeAxis", "Plane Axis", sceneProject, entities, settingsJointValue);
-        propertyRow(RowPropertyType::Float, cpType, "normalHalfConeAngle", "Normal Half Cone Angle", sceneProject, entities, settingsJointValue);
-        propertyRow(RowPropertyType::Float, cpType, "planeHalfConeAngle", "Plane Half Cone Angle", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Float, cpType, "normalHalfConeAngle", "Normal HalfCone", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Float, cpType, "planeHalfConeAngle", "Plane HalfCone", sceneProject, entities, settingsJointValue);
         propertyRow(RowPropertyType::Float, cpType, "twistMinAngle", "Twist Min Angle", sceneProject, entities, settingsJointValue);
         propertyRow(RowPropertyType::Float, cpType, "twistMaxAngle", "Twist Max Angle", sceneProject, entities, settingsJointValue);
     }else if (joint.type == Joint3DType::SIXDOF){
