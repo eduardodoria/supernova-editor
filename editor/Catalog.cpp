@@ -611,14 +611,64 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         Body2DComponent* comp = static_cast<Body2DComponent*>(compRef);
         static Body2DComponent* def = new Body2DComponent;
 
-        ps["type"] = {PropertyType::Enum, UpdateFlags_None, (void*)&def->type, (compRef) ? (void*)&comp->type : nullptr};
-        ps["numShapes"] = {PropertyType::UInt, UpdateFlags_None, (void*)&def->numShapes, (compRef) ? (void*)&comp->numShapes : nullptr};
+        ps["type"] = {PropertyType::Enum, UpdateFlags_Body2D, (void*)&def->type, (compRef) ? (void*)&comp->type : nullptr};
+        ps["numShapes"] = {PropertyType::UInt, UpdateFlags_Body2D, (void*)&def->numShapes, (compRef) ? (void*)&comp->numShapes : nullptr};
+
+        for (int s = 0; s < ((compRef) ? MAX_SHAPES : 1); s++){
+            std::string idx = (compRef) ? std::to_string(s) : "";
+
+            ps["shapes["+idx+"]"] = {PropertyType::Custom, UpdateFlags_Body2D, (void*)&def->shapes[0], (compRef) ? (void*)&comp->shapes[s] : nullptr};
+
+            ps["shapes["+idx+"].type"] = {PropertyType::Enum, UpdateFlags_Body2D, (void*)&def->shapes[0].type, (compRef) ? (void*)&comp->shapes[s].type : nullptr};
+            ps["shapes["+idx+"].pointA"] = {PropertyType::Vector2, UpdateFlags_Body2D, (void*)&def->shapes[0].pointA, (compRef) ? (void*)&comp->shapes[s].pointA : nullptr};
+            ps["shapes["+idx+"].pointB"] = {PropertyType::Vector2, UpdateFlags_Body2D, (void*)&def->shapes[0].pointB, (compRef) ? (void*)&comp->shapes[s].pointB : nullptr};
+            ps["shapes["+idx+"].radius"] = {PropertyType::Float, UpdateFlags_Body2D, (void*)&def->shapes[0].radius, (compRef) ? (void*)&comp->shapes[s].radius : nullptr};
+            ps["shapes["+idx+"].loop"] = {PropertyType::Bool, UpdateFlags_Body2D, (void*)&def->shapes[0].loop, (compRef) ? (void*)&comp->shapes[s].loop : nullptr};
+            ps["shapes["+idx+"].density"] = {PropertyType::Float, UpdateFlags_Body2D, (void*)&def->shapes[0].density, (compRef) ? (void*)&comp->shapes[s].density : nullptr};
+            ps["shapes["+idx+"].friction"] = {PropertyType::Float, UpdateFlags_Body2D, (void*)&def->shapes[0].friction, (compRef) ? (void*)&comp->shapes[s].friction : nullptr};
+            ps["shapes["+idx+"].restitution"] = {PropertyType::Float, UpdateFlags_Body2D, (void*)&def->shapes[0].restitution, (compRef) ? (void*)&comp->shapes[s].restitution : nullptr};
+            ps["shapes["+idx+"].enableHitEvents"] = {PropertyType::Bool, UpdateFlags_Body2D, (void*)&def->shapes[0].enableHitEvents, (compRef) ? (void*)&comp->shapes[s].enableHitEvents : nullptr};
+            ps["shapes["+idx+"].contactEvents"] = {PropertyType::Bool, UpdateFlags_Body2D, (void*)&def->shapes[0].contactEvents, (compRef) ? (void*)&comp->shapes[s].contactEvents : nullptr};
+            ps["shapes["+idx+"].preSolveEvents"] = {PropertyType::Bool, UpdateFlags_Body2D, (void*)&def->shapes[0].preSolveEvents, (compRef) ? (void*)&comp->shapes[s].preSolveEvents : nullptr};
+            ps["shapes["+idx+"].sensorEvents"] = {PropertyType::Bool, UpdateFlags_Body2D, (void*)&def->shapes[0].sensorEvents, (compRef) ? (void*)&comp->shapes[s].sensorEvents : nullptr};
+
+            for (int v = 0; v < ((compRef) ? MAX_SHAPE_POINTS_2D : 1); v++){
+                std::string vidx = (compRef) ? std::to_string(v) : "";
+                ps["shapes["+idx+"].vertices["+vidx+"]"] = {PropertyType::Vector2, UpdateFlags_Body2D, (void*)&def->shapes[0].vertices[0], (compRef) ? (void*)&comp->shapes[s].vertices[v] : nullptr};
+            }
+        }
     }else if (component == ComponentType::Body3DComponent){
         Body3DComponent* comp = static_cast<Body3DComponent*>(compRef);
         static Body3DComponent* def = new Body3DComponent;
 
-        ps["type"] = {PropertyType::Enum, UpdateFlags_None, (void*)&def->type, (compRef) ? (void*)&comp->type : nullptr};
-        ps["numShapes"] = {PropertyType::UInt, UpdateFlags_None, (void*)&def->numShapes, (compRef) ? (void*)&comp->numShapes : nullptr};
+        ps["type"] = {PropertyType::Enum, UpdateFlags_Body3D, (void*)&def->type, (compRef) ? (void*)&comp->type : nullptr};
+        ps["numShapes"] = {PropertyType::UInt, UpdateFlags_Body3D, (void*)&def->numShapes, (compRef) ? (void*)&comp->numShapes : nullptr};
+
+        ps["overrideMassProperties"] = {PropertyType::Bool, UpdateFlags_Body3D, (void*)&def->overrideMassProperties, (compRef) ? (void*)&comp->overrideMassProperties : nullptr};
+        ps["solidBoxSize"] = {PropertyType::Vector3, UpdateFlags_Body3D, (void*)&def->solidBoxSize, (compRef) ? (void*)&comp->solidBoxSize : nullptr};
+        ps["solidBoxDensity"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&def->solidBoxDensity, (compRef) ? (void*)&comp->solidBoxDensity : nullptr};
+        ps["lockBody"] = {PropertyType::Bool, UpdateFlags_Body3D, (void*)&def->lockBody, (compRef) ? (void*)&comp->lockBody : nullptr};
+
+        for (int s = 0; s < ((compRef) ? MAX_SHAPES : 1); s++){
+            std::string idx = (compRef) ? std::to_string(s) : "";
+
+            ps["shapes["+idx+"]"] = {PropertyType::Custom, UpdateFlags_Body3D, (void*)&def->shapes[0], (compRef) ? (void*)&comp->shapes[s] : nullptr};
+
+            ps["shapes["+idx+"].type"] = {PropertyType::Enum, UpdateFlags_Body3D, (void*)&def->shapes[0].type, (compRef) ? (void*)&comp->shapes[s].type : nullptr};
+            ps["shapes["+idx+"].position"] = {PropertyType::Vector3, UpdateFlags_Body3D, (void*)&def->shapes[0].position, (compRef) ? (void*)&comp->shapes[s].position : nullptr};
+            ps["shapes["+idx+"].rotation"] = {PropertyType::Quat, UpdateFlags_Body3D, (void*)&def->shapes[0].rotation, (compRef) ? (void*)&comp->shapes[s].rotation : nullptr};
+            ps["shapes["+idx+"].width"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&def->shapes[0].width, (compRef) ? (void*)&comp->shapes[s].width : nullptr};
+            ps["shapes["+idx+"].height"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&def->shapes[0].height, (compRef) ? (void*)&comp->shapes[s].height : nullptr};
+            ps["shapes["+idx+"].depth"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&def->shapes[0].depth, (compRef) ? (void*)&comp->shapes[s].depth : nullptr};
+            ps["shapes["+idx+"].radius"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&def->shapes[0].radius, (compRef) ? (void*)&comp->shapes[s].radius : nullptr};
+            ps["shapes["+idx+"].halfHeight"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&def->shapes[0].halfHeight, (compRef) ? (void*)&comp->shapes[s].halfHeight : nullptr};
+            ps["shapes["+idx+"].topRadius"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&def->shapes[0].topRadius, (compRef) ? (void*)&comp->shapes[s].topRadius : nullptr};
+            ps["shapes["+idx+"].bottomRadius"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&def->shapes[0].bottomRadius, (compRef) ? (void*)&comp->shapes[s].bottomRadius : nullptr};
+            ps["shapes["+idx+"].density"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&def->shapes[0].density, (compRef) ? (void*)&comp->shapes[s].density : nullptr};
+            ps["shapes["+idx+"].source"] = {PropertyType::Enum, UpdateFlags_Body3D, (void*)&def->shapes[0].source, (compRef) ? (void*)&comp->shapes[s].source : nullptr};
+            ps["shapes["+idx+"].sourceEntity"] = {PropertyType::UInt, UpdateFlags_Body3D, (void*)&def->shapes[0].sourceEntity, (compRef) ? (void*)&comp->shapes[s].sourceEntity : nullptr};
+            ps["shapes["+idx+"].samplesSize"] = {PropertyType::UInt, UpdateFlags_Body3D, (void*)&def->shapes[0].samplesSize, (compRef) ? (void*)&comp->shapes[s].samplesSize : nullptr};
+        }
     }else if (component == ComponentType::Joint2DComponent){
         Joint2DComponent* comp = static_cast<Joint2DComponent*>(compRef);
         static Joint2DComponent* def = new Joint2DComponent;
@@ -981,6 +1031,18 @@ void Editor::Catalog::updateEntity(EntityRegistry* registry, Entity entity, int 
     }
     if (updateFlags & UpdateFlags_Text_Atlas){
         registry->getComponent<TextComponent>(entity).needReloadAtlas = true;
+    }
+    if (updateFlags & UpdateFlags_Body2D){
+        if (Body2DComponent* body = registry->findComponent<Body2DComponent>(entity)){
+            body->needReloadBody = true;
+            body->needUpdateShapes = true;
+        }
+    }
+    if (updateFlags & UpdateFlags_Body3D){
+        if (Body3DComponent* body = registry->findComponent<Body3DComponent>(entity)){
+            body->needReloadBody = true;
+            body->needUpdateShapes = true;
+        }
     }
 }
 

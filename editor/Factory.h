@@ -28,6 +28,9 @@ namespace Supernova::Editor{
         static std::string formatContainerType(ContainerType type);
         static std::string formatLightType(LightType type);
         static std::string formatBodyType(BodyType type);
+        static std::string formatShape2DType(Shape2DType type);
+        static std::string formatShape3DType(Shape3DType type);
+        static std::string formatShape3DSource(Shape3DSource source);
         static std::string formatJoint2DType(Joint2DType type);
         static std::string formatJoint3DType(Joint3DType type);
         static std::string formatLightState(LightState state);

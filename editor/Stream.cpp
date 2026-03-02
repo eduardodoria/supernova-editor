@@ -2613,6 +2613,28 @@ YAML::Node Editor::Stream::encodeBody2DComponent(const Body2DComponent& body) {
     for (size_t i = 0; i < body.numShapes; i++) {
         YAML::Node shapeNode;
         shapeNode["type"] = shape2DTypeToString(body.shapes[i].type);
+        shapeNode["pointA"] = encodeVector2(body.shapes[i].pointA);
+        shapeNode["pointB"] = encodeVector2(body.shapes[i].pointB);
+        shapeNode["radius"] = body.shapes[i].radius;
+        shapeNode["loop"] = body.shapes[i].loop;
+
+        shapeNode["density"] = body.shapes[i].density;
+        shapeNode["friction"] = body.shapes[i].friction;
+        shapeNode["restitution"] = body.shapes[i].restitution;
+        shapeNode["enableHitEvents"] = body.shapes[i].enableHitEvents;
+        shapeNode["contactEvents"] = body.shapes[i].contactEvents;
+        shapeNode["preSolveEvents"] = body.shapes[i].preSolveEvents;
+        shapeNode["sensorEvents"] = body.shapes[i].sensorEvents;
+        shapeNode["categoryBits"] = body.shapes[i].categoryBits;
+        shapeNode["maskBits"] = body.shapes[i].maskBits;
+        shapeNode["groupIndex"] = body.shapes[i].groupIndex;
+
+        YAML::Node verticesNode;
+        for (size_t j = 0; j < body.shapes[i].verticesCount; j++) {
+            verticesNode.push_back(encodeVector2(body.shapes[i].vertices[j]));
+        }
+        shapeNode["vertices"] = verticesNode;
+
         shapesNode.push_back(shapeNode);
     }
     node["shapes"] = shapesNode;
@@ -2636,8 +2658,41 @@ Body2DComponent Editor::Stream::decodeBody2DComponent(const YAML::Node& node, co
             if (node["shapes"][i]["type"]) {
                 body.shapes[i].type = stringToShape2DType(node["shapes"][i]["type"].as<std::string>());
             }
+            if (node["shapes"][i]["pointA"]) {
+                body.shapes[i].pointA = decodeVector2(node["shapes"][i]["pointA"]);
+            }
+            if (node["shapes"][i]["pointB"]) {
+                body.shapes[i].pointB = decodeVector2(node["shapes"][i]["pointB"]);
+            }
+            if (node["shapes"][i]["radius"]) body.shapes[i].radius = node["shapes"][i]["radius"].as<float>();
+            if (node["shapes"][i]["loop"]) body.shapes[i].loop = node["shapes"][i]["loop"].as<bool>();
+
+            if (node["shapes"][i]["density"]) body.shapes[i].density = node["shapes"][i]["density"].as<float>();
+            if (node["shapes"][i]["friction"]) body.shapes[i].friction = node["shapes"][i]["friction"].as<float>();
+            if (node["shapes"][i]["restitution"]) body.shapes[i].restitution = node["shapes"][i]["restitution"].as<float>();
+            if (node["shapes"][i]["enableHitEvents"]) body.shapes[i].enableHitEvents = node["shapes"][i]["enableHitEvents"].as<bool>();
+            if (node["shapes"][i]["contactEvents"]) body.shapes[i].contactEvents = node["shapes"][i]["contactEvents"].as<bool>();
+            if (node["shapes"][i]["preSolveEvents"]) body.shapes[i].preSolveEvents = node["shapes"][i]["preSolveEvents"].as<bool>();
+            if (node["shapes"][i]["sensorEvents"]) body.shapes[i].sensorEvents = node["shapes"][i]["sensorEvents"].as<bool>();
+            if (node["shapes"][i]["categoryBits"]) body.shapes[i].categoryBits = node["shapes"][i]["categoryBits"].as<uint16_t>();
+            if (node["shapes"][i]["maskBits"]) body.shapes[i].maskBits = node["shapes"][i]["maskBits"].as<uint16_t>();
+            if (node["shapes"][i]["groupIndex"]) body.shapes[i].groupIndex = node["shapes"][i]["groupIndex"].as<int16_t>();
+
+            if (node["shapes"][i]["vertices"]) {
+                size_t vcount = std::min(node["shapes"][i]["vertices"].size(), (size_t)MAX_SHAPE_POINTS_2D);
+                body.shapes[i].verticesCount = (uint8_t)vcount;
+                for (size_t j = 0; j < vcount; j++) {
+                    body.shapes[i].vertices[j] = decodeVector2(node["shapes"][i]["vertices"][j]);
+                }
+            }
+
+            body.shapes[i].shape = b2_nullShapeId;
+            body.shapes[i].chain = b2_nullChainId;
         }
     }
+
+    body.needReloadBody = true;
+    body.needUpdateShapes = true;
 
     return body;
 }
@@ -2658,6 +2713,38 @@ YAML::Node Editor::Stream::encodeBody3DComponent(const Body3DComponent& body) {
         shapeNode["type"] = shape3DTypeToString(body.shapes[i].type);
         shapeNode["position"] = encodeVector3(body.shapes[i].position);
         shapeNode["rotation"] = encodeQuaternion(body.shapes[i].rotation);
+        shapeNode["width"] = body.shapes[i].width;
+        shapeNode["height"] = body.shapes[i].height;
+        shapeNode["depth"] = body.shapes[i].depth;
+        shapeNode["radius"] = body.shapes[i].radius;
+        shapeNode["halfHeight"] = body.shapes[i].halfHeight;
+        shapeNode["topRadius"] = body.shapes[i].topRadius;
+        shapeNode["bottomRadius"] = body.shapes[i].bottomRadius;
+        shapeNode["density"] = body.shapes[i].density;
+
+        switch (body.shapes[i].source) {
+            case Shape3DSource::RAW_VERTICES: shapeNode["source"] = "raw_vertices"; break;
+            case Shape3DSource::RAW_MESH: shapeNode["source"] = "raw_mesh"; break;
+            case Shape3DSource::ENTITY_MESH: shapeNode["source"] = "entity_mesh"; break;
+            case Shape3DSource::ENTITY_HEIGHTFIELD: shapeNode["source"] = "entity_heightfield"; break;
+            default: shapeNode["source"] = "none"; break;
+        }
+
+        shapeNode["sourceEntity"] = body.shapes[i].sourceEntity;
+        shapeNode["samplesSize"] = body.shapes[i].samplesSize;
+
+        YAML::Node verticesNode;
+        for (size_t j = 0; j < body.shapes[i].numVertices; j++) {
+            verticesNode.push_back(encodeVector3(body.shapes[i].vertices[j]));
+        }
+        shapeNode["vertices"] = verticesNode;
+
+        YAML::Node indicesNode;
+        for (size_t j = 0; j < body.shapes[i].numIndices; j++) {
+            indicesNode.push_back(body.shapes[i].indices[j]);
+        }
+        shapeNode["indices"] = indicesNode;
+
         shapesNode.push_back(shapeNode);
     }
     node["shapes"] = shapesNode;
@@ -2687,8 +2774,49 @@ Body3DComponent Editor::Stream::decodeBody3DComponent(const YAML::Node& node, co
             if (node["shapes"][i]["rotation"]) {
                 body.shapes[i].rotation = decodeQuaternion(node["shapes"][i]["rotation"]);
             }
+            if (node["shapes"][i]["width"]) body.shapes[i].width = node["shapes"][i]["width"].as<float>();
+            if (node["shapes"][i]["height"]) body.shapes[i].height = node["shapes"][i]["height"].as<float>();
+            if (node["shapes"][i]["depth"]) body.shapes[i].depth = node["shapes"][i]["depth"].as<float>();
+            if (node["shapes"][i]["radius"]) body.shapes[i].radius = node["shapes"][i]["radius"].as<float>();
+            if (node["shapes"][i]["halfHeight"]) body.shapes[i].halfHeight = node["shapes"][i]["halfHeight"].as<float>();
+            if (node["shapes"][i]["topRadius"]) body.shapes[i].topRadius = node["shapes"][i]["topRadius"].as<float>();
+            if (node["shapes"][i]["bottomRadius"]) body.shapes[i].bottomRadius = node["shapes"][i]["bottomRadius"].as<float>();
+            if (node["shapes"][i]["density"]) body.shapes[i].density = node["shapes"][i]["density"].as<float>();
+
+            if (node["shapes"][i]["source"]) {
+                std::string source = node["shapes"][i]["source"].as<std::string>();
+                if (source == "raw_vertices") body.shapes[i].source = Shape3DSource::RAW_VERTICES;
+                else if (source == "raw_mesh") body.shapes[i].source = Shape3DSource::RAW_MESH;
+                else if (source == "entity_mesh") body.shapes[i].source = Shape3DSource::ENTITY_MESH;
+                else if (source == "entity_heightfield") body.shapes[i].source = Shape3DSource::ENTITY_HEIGHTFIELD;
+                else body.shapes[i].source = Shape3DSource::NONE;
+            }
+
+            if (node["shapes"][i]["sourceEntity"]) body.shapes[i].sourceEntity = node["shapes"][i]["sourceEntity"].as<Entity>();
+            if (node["shapes"][i]["samplesSize"]) body.shapes[i].samplesSize = node["shapes"][i]["samplesSize"].as<unsigned int>();
+
+            if (node["shapes"][i]["vertices"]) {
+                size_t vcount = std::min(node["shapes"][i]["vertices"].size(), (size_t)MAX_SHAPE_VERTICES_3D);
+                body.shapes[i].numVertices = (uint16_t)vcount;
+                for (size_t j = 0; j < vcount; j++) {
+                    body.shapes[i].vertices[j] = decodeVector3(node["shapes"][i]["vertices"][j]);
+                }
+            }
+
+            if (node["shapes"][i]["indices"]) {
+                size_t icount = std::min(node["shapes"][i]["indices"].size(), (size_t)MAX_SHAPE_INDICES_3D);
+                body.shapes[i].numIndices = (uint16_t)icount;
+                for (size_t j = 0; j < icount; j++) {
+                    body.shapes[i].indices[j] = node["shapes"][i]["indices"][j].as<uint16_t>();
+                }
+            }
+
+            body.shapes[i].shape = NULL;
         }
     }
+
+    body.needReloadBody = true;
+    body.needUpdateShapes = true;
 
     return body;
 }

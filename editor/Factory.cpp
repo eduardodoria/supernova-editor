@@ -889,6 +889,42 @@ std::string Editor::Factory::formatBodyType(BodyType type) {
     }
 }
 
+std::string Editor::Factory::formatShape2DType(Shape2DType type) {
+    switch (type) {
+        case Shape2DType::POLYGON: return "Shape2DType::POLYGON";
+        case Shape2DType::CIRCLE: return "Shape2DType::CIRCLE";
+        case Shape2DType::CAPSULE: return "Shape2DType::CAPSULE";
+        case Shape2DType::SEGMENT: return "Shape2DType::SEGMENT";
+        case Shape2DType::CHAIN: return "Shape2DType::CHAIN";
+        default: return "Shape2DType::POLYGON";
+    }
+}
+
+std::string Editor::Factory::formatShape3DType(Shape3DType type) {
+    switch (type) {
+        case Shape3DType::SPHERE: return "Shape3DType::SPHERE";
+        case Shape3DType::BOX: return "Shape3DType::BOX";
+        case Shape3DType::CAPSULE: return "Shape3DType::CAPSULE";
+        case Shape3DType::TAPERED_CAPSULE: return "Shape3DType::TAPERED_CAPSULE";
+        case Shape3DType::CYLINDER: return "Shape3DType::CYLINDER";
+        case Shape3DType::CONVEX_HULL: return "Shape3DType::CONVEX_HULL";
+        case Shape3DType::MESH: return "Shape3DType::MESH";
+        case Shape3DType::HEIGHTFIELD: return "Shape3DType::HEIGHTFIELD";
+        default: return "Shape3DType::SPHERE";
+    }
+}
+
+std::string Editor::Factory::formatShape3DSource(Shape3DSource source) {
+    switch (source) {
+        case Shape3DSource::NONE: return "Shape3DSource::NONE";
+        case Shape3DSource::RAW_VERTICES: return "Shape3DSource::RAW_VERTICES";
+        case Shape3DSource::RAW_MESH: return "Shape3DSource::RAW_MESH";
+        case Shape3DSource::ENTITY_MESH: return "Shape3DSource::ENTITY_MESH";
+        case Shape3DSource::ENTITY_HEIGHTFIELD: return "Shape3DSource::ENTITY_HEIGHTFIELD";
+        default: return "Shape3DSource::NONE";
+    }
+}
+
 std::string Editor::Factory::formatJoint2DType(Joint2DType type) {
     switch (type) {
         case Joint2DType::DISTANCE: return "Joint2DType::DISTANCE";
@@ -927,6 +963,34 @@ std::string Editor::Factory::createBody2DComponent(int indentSpaces, Scene* scen
     const std::string ind = indentation(indentSpaces);
     code << ind << "Body2DComponent body2d;\n";
     code << ind << "body2d.type = " << formatBodyType(body.type) << ";\n";
+    code << ind << "body2d.needReloadBody = " << formatBool(body.needReloadBody) << ";\n";
+    code << ind << "body2d.needUpdateShapes = " << formatBool(body.needUpdateShapes) << ";\n";
+    code << ind << "body2d.newBody = " << formatBool(body.newBody) << ";\n";
+    code << ind << "body2d.numShapes = " << body.numShapes << ";\n";
+
+    for (size_t i = 0; i < body.numShapes; i++) {
+        const std::string idx = std::to_string(i);
+        code << ind << "body2d.shapes[" << idx << "].type = " << formatShape2DType(body.shapes[i].type) << ";\n";
+        code << ind << "body2d.shapes[" << idx << "].pointA = " << formatVector2(body.shapes[i].pointA) << ";\n";
+        code << ind << "body2d.shapes[" << idx << "].pointB = " << formatVector2(body.shapes[i].pointB) << ";\n";
+        code << ind << "body2d.shapes[" << idx << "].radius = " << formatFloat(body.shapes[i].radius) << ";\n";
+        code << ind << "body2d.shapes[" << idx << "].verticesCount = " << (int)body.shapes[i].verticesCount << ";\n";
+        for (size_t j = 0; j < body.shapes[i].verticesCount; j++) {
+            code << ind << "body2d.shapes[" << idx << "].vertices[" << j << "] = " << formatVector2(body.shapes[i].vertices[j]) << ";\n";
+        }
+        code << ind << "body2d.shapes[" << idx << "].loop = " << formatBool(body.shapes[i].loop) << ";\n";
+        code << ind << "body2d.shapes[" << idx << "].density = " << formatFloat(body.shapes[i].density) << ";\n";
+        code << ind << "body2d.shapes[" << idx << "].friction = " << formatFloat(body.shapes[i].friction) << ";\n";
+        code << ind << "body2d.shapes[" << idx << "].restitution = " << formatFloat(body.shapes[i].restitution) << ";\n";
+        code << ind << "body2d.shapes[" << idx << "].enableHitEvents = " << formatBool(body.shapes[i].enableHitEvents) << ";\n";
+        code << ind << "body2d.shapes[" << idx << "].contactEvents = " << formatBool(body.shapes[i].contactEvents) << ";\n";
+        code << ind << "body2d.shapes[" << idx << "].preSolveEvents = " << formatBool(body.shapes[i].preSolveEvents) << ";\n";
+        code << ind << "body2d.shapes[" << idx << "].sensorEvents = " << formatBool(body.shapes[i].sensorEvents) << ";\n";
+        code << ind << "body2d.shapes[" << idx << "].categoryBits = " << body.shapes[i].categoryBits << ";\n";
+        code << ind << "body2d.shapes[" << idx << "].maskBits = " << body.shapes[i].maskBits << ";\n";
+        code << ind << "body2d.shapes[" << idx << "].groupIndex = " << body.shapes[i].groupIndex << ";\n";
+    }
+
     addComponentCode(code, ind, sceneName, entityName, entity, "Body2DComponent", "body2d");
     return code.str();
 }
@@ -938,6 +1002,41 @@ std::string Editor::Factory::createBody3DComponent(int indentSpaces, Scene* scen
     const std::string ind = indentation(indentSpaces);
     code << ind << "Body3DComponent body3d;\n";
     code << ind << "body3d.type = " << formatBodyType(body.type) << ";\n";
+    code << ind << "body3d.needReloadBody = " << formatBool(body.needReloadBody) << ";\n";
+    code << ind << "body3d.needUpdateShapes = " << formatBool(body.needUpdateShapes) << ";\n";
+    code << ind << "body3d.newBody = " << formatBool(body.newBody) << ";\n";
+    code << ind << "body3d.overrideMassProperties = " << formatBool(body.overrideMassProperties) << ";\n";
+    code << ind << "body3d.solidBoxSize = " << formatVector3(body.solidBoxSize) << ";\n";
+    code << ind << "body3d.solidBoxDensity = " << formatFloat(body.solidBoxDensity) << ";\n";
+    code << ind << "body3d.lockBody = " << formatBool(body.lockBody) << ";\n";
+    code << ind << "body3d.numShapes = " << body.numShapes << ";\n";
+
+    for (size_t i = 0; i < body.numShapes; i++) {
+        const std::string idx = std::to_string(i);
+        code << ind << "body3d.shapes[" << idx << "].type = " << formatShape3DType(body.shapes[i].type) << ";\n";
+        code << ind << "body3d.shapes[" << idx << "].position = " << formatVector3(body.shapes[i].position) << ";\n";
+        code << ind << "body3d.shapes[" << idx << "].rotation = " << formatQuaternion(body.shapes[i].rotation) << ";\n";
+        code << ind << "body3d.shapes[" << idx << "].width = " << formatFloat(body.shapes[i].width) << ";\n";
+        code << ind << "body3d.shapes[" << idx << "].height = " << formatFloat(body.shapes[i].height) << ";\n";
+        code << ind << "body3d.shapes[" << idx << "].depth = " << formatFloat(body.shapes[i].depth) << ";\n";
+        code << ind << "body3d.shapes[" << idx << "].radius = " << formatFloat(body.shapes[i].radius) << ";\n";
+        code << ind << "body3d.shapes[" << idx << "].halfHeight = " << formatFloat(body.shapes[i].halfHeight) << ";\n";
+        code << ind << "body3d.shapes[" << idx << "].topRadius = " << formatFloat(body.shapes[i].topRadius) << ";\n";
+        code << ind << "body3d.shapes[" << idx << "].bottomRadius = " << formatFloat(body.shapes[i].bottomRadius) << ";\n";
+        code << ind << "body3d.shapes[" << idx << "].density = " << formatFloat(body.shapes[i].density) << ";\n";
+        code << ind << "body3d.shapes[" << idx << "].source = " << formatShape3DSource(body.shapes[i].source) << ";\n";
+        code << ind << "body3d.shapes[" << idx << "].sourceEntity = " << body.shapes[i].sourceEntity << ";\n";
+        code << ind << "body3d.shapes[" << idx << "].samplesSize = " << body.shapes[i].samplesSize << ";\n";
+        code << ind << "body3d.shapes[" << idx << "].numVertices = " << body.shapes[i].numVertices << ";\n";
+        for (size_t j = 0; j < body.shapes[i].numVertices; j++) {
+            code << ind << "body3d.shapes[" << idx << "].vertices[" << j << "] = " << formatVector3(body.shapes[i].vertices[j]) << ";\n";
+        }
+        code << ind << "body3d.shapes[" << idx << "].numIndices = " << body.shapes[i].numIndices << ";\n";
+        for (size_t j = 0; j < body.shapes[i].numIndices; j++) {
+            code << ind << "body3d.shapes[" << idx << "].indices[" << j << "] = " << body.shapes[i].indices[j] << ";\n";
+        }
+    }
+
     addComponentCode(code, ind, sceneName, entityName, entity, "Body3DComponent", "body3d");
     return code.str();
 }

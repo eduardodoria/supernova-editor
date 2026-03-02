@@ -24,7 +24,9 @@ namespace Supernova::Editor{
         UpdateFlags_Sky_Texture         = 1 << 13,
         UpdateFlags_Sky                 = 1 << 14,
         UpdateFlags_Text                = 1 << 15,
-        UpdateFlags_Text_Atlas          = 1 << 16
+        UpdateFlags_Text_Atlas          = 1 << 16,
+        UpdateFlags_Body2D              = 1 << 17,
+        UpdateFlags_Body3D              = 1 << 18
     };
 
     // the order of components here affects properties window
