@@ -1708,7 +1708,9 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
         if (!signature.test(registry->getComponentId<Body2DComponent>())){
             registry->addComponent<Body2DComponent>(entity, body);
         }else{
+            int flags = Catalog::getChangedUpdateFlags(ComponentType::Body2DComponent, existing, &body);
             registry->getComponent<Body2DComponent>(entity) = body;
+            Catalog::updateEntity(registry, entity, flags);
         }
     }
 
@@ -1719,7 +1721,9 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
         if (!signature.test(registry->getComponentId<Body3DComponent>())){
             registry->addComponent<Body3DComponent>(entity, body);
         }else{
+            int flags = Catalog::getChangedUpdateFlags(ComponentType::Body3DComponent, existing, &body);
             registry->getComponent<Body3DComponent>(entity) = body;
+            Catalog::updateEntity(registry, entity, flags);
         }
     }
 
@@ -1730,7 +1734,9 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
         if (!signature.test(registry->getComponentId<Joint2DComponent>())){
             registry->addComponent<Joint2DComponent>(entity, joint);
         }else{
+            int flags = Catalog::getChangedUpdateFlags(ComponentType::Joint2DComponent, existing, &joint);
             registry->getComponent<Joint2DComponent>(entity) = joint;
+            Catalog::updateEntity(registry, entity, flags);
         }
     }
 
@@ -1741,7 +1747,9 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
         if (!signature.test(registry->getComponentId<Joint3DComponent>())){
             registry->addComponent<Joint3DComponent>(entity, joint);
         }else{
+            int flags = Catalog::getChangedUpdateFlags(ComponentType::Joint3DComponent, existing, &joint);
             registry->getComponent<Joint3DComponent>(entity) = joint;
+            Catalog::updateEntity(registry, entity, flags);
         }
     }
 }
@@ -2691,8 +2699,10 @@ Body2DComponent Editor::Stream::decodeBody2DComponent(const YAML::Node& node, co
         }
     }
 
-    body.needReloadBody = true;
-    body.needUpdateShapes = true;
+    if (oldBody && b2Body_IsValid(oldBody->body)) {
+        body.needReloadBody = true;
+        body.needUpdateShapes = true;
+    }
 
     return body;
 }
@@ -2754,6 +2764,7 @@ YAML::Node Editor::Stream::encodeBody3DComponent(const Body3DComponent& body) {
 
 Body3DComponent Editor::Stream::decodeBody3DComponent(const YAML::Node& node, const Body3DComponent* oldBody) {
     Body3DComponent body;
+    constexpr float kMaxSingleShapeLocalOffset = 50.0f;
 
     if (oldBody) {
         body = *oldBody;
@@ -2770,6 +2781,11 @@ Body3DComponent Editor::Stream::decodeBody3DComponent(const YAML::Node& node, co
             }
             if (node["shapes"][i]["position"]) {
                 body.shapes[i].position = decodeVector3(node["shapes"][i]["position"]);
+
+                if (body.numShapes == 1 && body.shapes[i].position.length() > kMaxSingleShapeLocalOffset) {
+                    Log::warn("Body3D shape local position is too large (%.2f). Resetting to [0, 0, 0] to avoid unstable physics.", body.shapes[i].position.length());
+                    body.shapes[i].position = Vector3::ZERO;
+                }
             }
             if (node["shapes"][i]["rotation"]) {
                 body.shapes[i].rotation = decodeQuaternion(node["shapes"][i]["rotation"]);
@@ -2815,8 +2831,10 @@ Body3DComponent Editor::Stream::decodeBody3DComponent(const YAML::Node& node, co
         }
     }
 
-    body.needReloadBody = true;
-    body.needUpdateShapes = true;
+    if (oldBody && !oldBody->body.IsInvalid()) {
+        body.needReloadBody = true;
+        body.needUpdateShapes = true;
+    }
 
     return body;
 }
@@ -2829,6 +2847,13 @@ YAML::Node Editor::Stream::encodeJoint2DComponent(const Joint2DComponent& joint)
     YAML::Node node;
 
     node["type"] = joint2DTypeToString(joint.type);
+    node["bodyA"] = joint.bodyA;
+    node["bodyB"] = joint.bodyB;
+    node["anchorA"] = encodeVector2(joint.anchorA);
+    node["anchorB"] = encodeVector2(joint.anchorB);
+    node["axis"] = encodeVector2(joint.axis);
+    node["target"] = encodeVector2(joint.target);
+    node["rope"] = joint.rope;
 
     return node;
 }
@@ -2841,6 +2866,17 @@ Joint2DComponent Editor::Stream::decodeJoint2DComponent(const YAML::Node& node, 
     }
 
     if (node["type"]) joint.type = stringToJoint2DType(node["type"].as<std::string>());
+    if (node["bodyA"]) joint.bodyA = node["bodyA"].as<Entity>();
+    if (node["bodyB"]) joint.bodyB = node["bodyB"].as<Entity>();
+    if (node["anchorA"]) joint.anchorA = decodeVector2(node["anchorA"]);
+    if (node["anchorB"]) joint.anchorB = decodeVector2(node["anchorB"]);
+    if (node["axis"]) joint.axis = decodeVector2(node["axis"]);
+    if (node["target"]) joint.target = decodeVector2(node["target"]);
+    if (node["rope"]) joint.rope = node["rope"].as<bool>();
+
+    if (oldJoint && b2Joint_IsValid(oldJoint->joint)) {
+        joint.needUpdateJoint = true;
+    }
 
     return joint;
 }
@@ -2853,6 +2889,36 @@ YAML::Node Editor::Stream::encodeJoint3DComponent(const Joint3DComponent& joint)
     YAML::Node node;
 
     node["type"] = joint3DTypeToString(joint.type);
+    node["bodyA"] = joint.bodyA;
+    node["bodyB"] = joint.bodyB;
+    node["anchorA"] = encodeVector3(joint.anchorA);
+    node["anchorB"] = encodeVector3(joint.anchorB);
+    node["anchor"] = encodeVector3(joint.anchor);
+    node["axis"] = encodeVector3(joint.axis);
+    node["normal"] = encodeVector3(joint.normal);
+    node["twistAxis"] = encodeVector3(joint.twistAxis);
+    node["planeAxis"] = encodeVector3(joint.planeAxis);
+    node["axisX"] = encodeVector3(joint.axisX);
+    node["axisY"] = encodeVector3(joint.axisY);
+    node["limitsMin"] = joint.limitsMin;
+    node["limitsMax"] = joint.limitsMax;
+    node["normalHalfConeAngle"] = joint.normalHalfConeAngle;
+    node["planeHalfConeAngle"] = joint.planeHalfConeAngle;
+    node["twistMinAngle"] = joint.twistMinAngle;
+    node["twistMaxAngle"] = joint.twistMaxAngle;
+    node["fixedPointA"] = encodeVector3(joint.fixedPointA);
+    node["fixedPointB"] = encodeVector3(joint.fixedPointB);
+    node["hingeA"] = joint.hingeA;
+    node["hingeB"] = joint.hingeB;
+    node["hinge"] = joint.hinge;
+    node["slider"] = joint.slider;
+    node["numTeethGearA"] = joint.numTeethGearA;
+    node["numTeethGearB"] = joint.numTeethGearB;
+    node["numTeethRack"] = joint.numTeethRack;
+    node["numTeethGear"] = joint.numTeethGear;
+    node["rackLength"] = joint.rackLength;
+    node["pathPosition"] = encodeVector3(joint.pathPosition);
+    node["isLooping"] = joint.isLooping;
 
     return node;
 }
@@ -2865,6 +2931,40 @@ Joint3DComponent Editor::Stream::decodeJoint3DComponent(const YAML::Node& node, 
     }
 
     if (node["type"]) joint.type = stringToJoint3DType(node["type"].as<std::string>());
+    if (node["bodyA"]) joint.bodyA = node["bodyA"].as<Entity>();
+    if (node["bodyB"]) joint.bodyB = node["bodyB"].as<Entity>();
+    if (node["anchorA"]) joint.anchorA = decodeVector3(node["anchorA"]);
+    if (node["anchorB"]) joint.anchorB = decodeVector3(node["anchorB"]);
+    if (node["anchor"]) joint.anchor = decodeVector3(node["anchor"]);
+    if (node["axis"]) joint.axis = decodeVector3(node["axis"]);
+    if (node["normal"]) joint.normal = decodeVector3(node["normal"]);
+    if (node["twistAxis"]) joint.twistAxis = decodeVector3(node["twistAxis"]);
+    if (node["planeAxis"]) joint.planeAxis = decodeVector3(node["planeAxis"]);
+    if (node["axisX"]) joint.axisX = decodeVector3(node["axisX"]);
+    if (node["axisY"]) joint.axisY = decodeVector3(node["axisY"]);
+    if (node["limitsMin"]) joint.limitsMin = node["limitsMin"].as<float>();
+    if (node["limitsMax"]) joint.limitsMax = node["limitsMax"].as<float>();
+    if (node["normalHalfConeAngle"]) joint.normalHalfConeAngle = node["normalHalfConeAngle"].as<float>();
+    if (node["planeHalfConeAngle"]) joint.planeHalfConeAngle = node["planeHalfConeAngle"].as<float>();
+    if (node["twistMinAngle"]) joint.twistMinAngle = node["twistMinAngle"].as<float>();
+    if (node["twistMaxAngle"]) joint.twistMaxAngle = node["twistMaxAngle"].as<float>();
+    if (node["fixedPointA"]) joint.fixedPointA = decodeVector3(node["fixedPointA"]);
+    if (node["fixedPointB"]) joint.fixedPointB = decodeVector3(node["fixedPointB"]);
+    if (node["hingeA"]) joint.hingeA = node["hingeA"].as<Entity>();
+    if (node["hingeB"]) joint.hingeB = node["hingeB"].as<Entity>();
+    if (node["hinge"]) joint.hinge = node["hinge"].as<Entity>();
+    if (node["slider"]) joint.slider = node["slider"].as<Entity>();
+    if (node["numTeethGearA"]) joint.numTeethGearA = node["numTeethGearA"].as<int>();
+    if (node["numTeethGearB"]) joint.numTeethGearB = node["numTeethGearB"].as<int>();
+    if (node["numTeethRack"]) joint.numTeethRack = node["numTeethRack"].as<int>();
+    if (node["numTeethGear"]) joint.numTeethGear = node["numTeethGear"].as<int>();
+    if (node["rackLength"]) joint.rackLength = node["rackLength"].as<int>();
+    if (node["pathPosition"]) joint.pathPosition = decodeVector3(node["pathPosition"]);
+    if (node["isLooping"]) joint.isLooping = node["isLooping"].as<bool>();
+
+    if (oldJoint && oldJoint->joint) {
+        joint.needUpdateJoint = true;
+    }
 
     return joint;
 }

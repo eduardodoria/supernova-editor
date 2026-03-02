@@ -235,6 +235,14 @@ bool Editor::CreateEntityCmd::execute(){
         light.range = 10.0f;
         light.intensity = 30.0f;
 
+    }else if (type == EntityCreationType::JOINT2D){
+
+        scene->addComponent<Joint2DComponent>(entity, {});
+
+    }else if (type == EntityCreationType::JOINT3D){
+
+        scene->addComponent<Joint3DComponent>(entity, {});
+
     }else if (type == EntityCreationType::SKY){
 
         scene->addComponent<SkyComponent>(entity, {});

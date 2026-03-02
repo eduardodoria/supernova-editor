@@ -673,12 +673,49 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         Joint2DComponent* comp = static_cast<Joint2DComponent*>(compRef);
         static Joint2DComponent* def = new Joint2DComponent;
 
-        ps["type"] = {PropertyType::Enum, UpdateFlags_None, (void*)&def->type, (compRef) ? (void*)&comp->type : nullptr};
+        ps["type"] = {PropertyType::Enum, UpdateFlags_Joint2D, (void*)&def->type, (compRef) ? (void*)&comp->type : nullptr};
+        ps["bodyA"] = {PropertyType::UInt, UpdateFlags_Joint2D, (void*)&def->bodyA, (compRef) ? (void*)&comp->bodyA : nullptr};
+        ps["bodyB"] = {PropertyType::UInt, UpdateFlags_Joint2D, (void*)&def->bodyB, (compRef) ? (void*)&comp->bodyB : nullptr};
+        ps["anchorA"] = {PropertyType::Vector2, UpdateFlags_Joint2D, (void*)&def->anchorA, (compRef) ? (void*)&comp->anchorA : nullptr};
+        ps["anchorB"] = {PropertyType::Vector2, UpdateFlags_Joint2D, (void*)&def->anchorB, (compRef) ? (void*)&comp->anchorB : nullptr};
+        ps["axis"] = {PropertyType::Vector2, UpdateFlags_Joint2D, (void*)&def->axis, (compRef) ? (void*)&comp->axis : nullptr};
+        ps["target"] = {PropertyType::Vector2, UpdateFlags_Joint2D, (void*)&def->target, (compRef) ? (void*)&comp->target : nullptr};
+        ps["rope"] = {PropertyType::Bool, UpdateFlags_Joint2D, (void*)&def->rope, (compRef) ? (void*)&comp->rope : nullptr};
     }else if (component == ComponentType::Joint3DComponent){
         Joint3DComponent* comp = static_cast<Joint3DComponent*>(compRef);
         static Joint3DComponent* def = new Joint3DComponent;
 
-        ps["type"] = {PropertyType::Enum, UpdateFlags_None, (void*)&def->type, (compRef) ? (void*)&comp->type : nullptr};
+        ps["type"] = {PropertyType::Enum, UpdateFlags_Joint3D, (void*)&def->type, (compRef) ? (void*)&comp->type : nullptr};
+        ps["bodyA"] = {PropertyType::UInt, UpdateFlags_Joint3D, (void*)&def->bodyA, (compRef) ? (void*)&comp->bodyA : nullptr};
+        ps["bodyB"] = {PropertyType::UInt, UpdateFlags_Joint3D, (void*)&def->bodyB, (compRef) ? (void*)&comp->bodyB : nullptr};
+        ps["anchorA"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->anchorA, (compRef) ? (void*)&comp->anchorA : nullptr};
+        ps["anchorB"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->anchorB, (compRef) ? (void*)&comp->anchorB : nullptr};
+        ps["anchor"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->anchor, (compRef) ? (void*)&comp->anchor : nullptr};
+        ps["axis"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->axis, (compRef) ? (void*)&comp->axis : nullptr};
+        ps["normal"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->normal, (compRef) ? (void*)&comp->normal : nullptr};
+        ps["twistAxis"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->twistAxis, (compRef) ? (void*)&comp->twistAxis : nullptr};
+        ps["planeAxis"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->planeAxis, (compRef) ? (void*)&comp->planeAxis : nullptr};
+        ps["axisX"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->axisX, (compRef) ? (void*)&comp->axisX : nullptr};
+        ps["axisY"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->axisY, (compRef) ? (void*)&comp->axisY : nullptr};
+        ps["limitsMin"] = {PropertyType::Float, UpdateFlags_Joint3D, (void*)&def->limitsMin, (compRef) ? (void*)&comp->limitsMin : nullptr};
+        ps["limitsMax"] = {PropertyType::Float, UpdateFlags_Joint3D, (void*)&def->limitsMax, (compRef) ? (void*)&comp->limitsMax : nullptr};
+        ps["normalHalfConeAngle"] = {PropertyType::Float, UpdateFlags_Joint3D, (void*)&def->normalHalfConeAngle, (compRef) ? (void*)&comp->normalHalfConeAngle : nullptr};
+        ps["planeHalfConeAngle"] = {PropertyType::Float, UpdateFlags_Joint3D, (void*)&def->planeHalfConeAngle, (compRef) ? (void*)&comp->planeHalfConeAngle : nullptr};
+        ps["twistMinAngle"] = {PropertyType::Float, UpdateFlags_Joint3D, (void*)&def->twistMinAngle, (compRef) ? (void*)&comp->twistMinAngle : nullptr};
+        ps["twistMaxAngle"] = {PropertyType::Float, UpdateFlags_Joint3D, (void*)&def->twistMaxAngle, (compRef) ? (void*)&comp->twistMaxAngle : nullptr};
+        ps["fixedPointA"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->fixedPointA, (compRef) ? (void*)&comp->fixedPointA : nullptr};
+        ps["fixedPointB"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->fixedPointB, (compRef) ? (void*)&comp->fixedPointB : nullptr};
+        ps["hingeA"] = {PropertyType::UInt, UpdateFlags_Joint3D, (void*)&def->hingeA, (compRef) ? (void*)&comp->hingeA : nullptr};
+        ps["hingeB"] = {PropertyType::UInt, UpdateFlags_Joint3D, (void*)&def->hingeB, (compRef) ? (void*)&comp->hingeB : nullptr};
+        ps["hinge"] = {PropertyType::UInt, UpdateFlags_Joint3D, (void*)&def->hinge, (compRef) ? (void*)&comp->hinge : nullptr};
+        ps["slider"] = {PropertyType::UInt, UpdateFlags_Joint3D, (void*)&def->slider, (compRef) ? (void*)&comp->slider : nullptr};
+        ps["numTeethGearA"] = {PropertyType::Int, UpdateFlags_Joint3D, (void*)&def->numTeethGearA, (compRef) ? (void*)&comp->numTeethGearA : nullptr};
+        ps["numTeethGearB"] = {PropertyType::Int, UpdateFlags_Joint3D, (void*)&def->numTeethGearB, (compRef) ? (void*)&comp->numTeethGearB : nullptr};
+        ps["numTeethRack"] = {PropertyType::Int, UpdateFlags_Joint3D, (void*)&def->numTeethRack, (compRef) ? (void*)&comp->numTeethRack : nullptr};
+        ps["numTeethGear"] = {PropertyType::Int, UpdateFlags_Joint3D, (void*)&def->numTeethGear, (compRef) ? (void*)&comp->numTeethGear : nullptr};
+        ps["rackLength"] = {PropertyType::Int, UpdateFlags_Joint3D, (void*)&def->rackLength, (compRef) ? (void*)&comp->rackLength : nullptr};
+        ps["pathPosition"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->pathPosition, (compRef) ? (void*)&comp->pathPosition : nullptr};
+        ps["isLooping"] = {PropertyType::Bool, UpdateFlags_Joint3D, (void*)&def->isLooping, (compRef) ? (void*)&comp->isLooping : nullptr};
     }
 
     return ps;
@@ -1044,6 +1081,16 @@ void Editor::Catalog::updateEntity(EntityRegistry* registry, Entity entity, int 
             body->needUpdateShapes = true;
         }
     }
+    if (updateFlags & UpdateFlags_Joint2D){
+        if (Joint2DComponent* joint = registry->findComponent<Joint2DComponent>(entity)){
+            joint->needUpdateJoint = true;
+        }
+    }
+    if (updateFlags & UpdateFlags_Joint3D){
+        if (Joint3DComponent* joint = registry->findComponent<Joint3DComponent>(entity)){
+            joint->needUpdateJoint = true;
+        }
+    }
 }
 
 void Editor::Catalog::copyComponent(EntityRegistry* sourceRegistry, Entity sourceEntity,
@@ -1128,6 +1175,18 @@ void Editor::Catalog::copyComponent(EntityRegistry* sourceRegistry, Entity sourc
         case ComponentType::ScriptComponent: {
             YAML::Node encoded = Stream::encodeScriptComponent(sourceRegistry->getComponent<ScriptComponent>(sourceEntity));
             targetRegistry->getComponent<ScriptComponent>(targetEntity) = Stream::decodeScriptComponent(encoded);
+            break;
+        }
+
+        case ComponentType::Joint2DComponent: {
+            YAML::Node encoded = Stream::encodeJoint2DComponent(sourceRegistry->getComponent<Joint2DComponent>(sourceEntity));
+            targetRegistry->getComponent<Joint2DComponent>(targetEntity) = Stream::decodeJoint2DComponent(encoded);
+            break;
+        }
+
+        case ComponentType::Joint3DComponent: {
+            YAML::Node encoded = Stream::encodeJoint3DComponent(sourceRegistry->getComponent<Joint3DComponent>(sourceEntity));
+            targetRegistry->getComponent<Joint3DComponent>(targetEntity) = Stream::decodeJoint3DComponent(encoded);
             break;
         }
 

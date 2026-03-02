@@ -36,6 +36,10 @@ namespace Supernova::Editor{
         Enum,
         Custom,
         EntityPointer,
+        LocalEntityBody2D,
+        LocalEntityBody3D,
+        LocalEntityJoint3DHinge,
+        LocalEntityJoint3DPrismatic,
         Font
     };
 

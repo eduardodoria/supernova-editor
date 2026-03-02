@@ -2719,6 +2719,128 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
         ImGui::EndGroup();
 
+    }else if (type == RowPropertyType::LocalEntityBody2D ||
+              type == RowPropertyType::LocalEntityBody3D ||
+              type == RowPropertyType::LocalEntityJoint3DHinge ||
+              type == RowPropertyType::LocalEntityJoint3DPrismatic){
+        Entity* value = nullptr;
+        std::map<Entity, Entity> eValue;
+        bool different = false;
+        unsigned int* defVal = nullptr;
+
+        auto isValidEntity = [sceneProject, type](Entity candidate) -> bool {
+            if (type == RowPropertyType::LocalEntityBody2D){
+                return sceneProject->scene->findComponent<Body2DComponent>(candidate) != nullptr;
+            }
+            if (type == RowPropertyType::LocalEntityBody3D){
+                return sceneProject->scene->findComponent<Body3DComponent>(candidate) != nullptr;
+            }
+            if (type == RowPropertyType::LocalEntityJoint3DHinge){
+                Joint3DComponent* ref = sceneProject->scene->findComponent<Joint3DComponent>(candidate);
+                return ref && ref->type == Joint3DType::HINGE;
+            }
+            if (type == RowPropertyType::LocalEntityJoint3DPrismatic){
+                Joint3DComponent* ref = sceneProject->scene->findComponent<Joint3DComponent>(candidate);
+                return ref && ref->type == Joint3DType::PRISMATIC;
+            }
+            return true;
+        };
+
+        for (Entity& entity : entities){
+            PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
+            defVal = static_cast<unsigned int*>(prop.def);
+            eValue[entity] = *static_cast<unsigned int*>(prop.ref);
+            if (value && *value != eValue[entity]){
+                different = true;
+            }
+            value = &eValue[entity];
+        }
+
+        Entity newValue = value ? *value : NULL_ENTITY;
+        bool defChanged = (defVal && newValue != *defVal);
+
+        if (propertyHeader(label, settings.secondColSize, defChanged, settings.child)){
+            for (Entity& entity : entities){
+                cmd = new PropertyCmd<unsigned int>(project, sceneProject->id, entity, cpType, id, *defVal, settings.onValueChanged);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                finishProperty = true;
+            }
+        }
+
+        ImGui::BeginGroup();
+
+        std::string entityName = "None";
+        if (newValue != NULL_ENTITY && sceneProject->scene->isEntityCreated(newValue)) {
+            entityName = sceneProject->scene->getEntityName(newValue);
+            if (entityName.empty()) {
+                entityName = "Entity " + std::to_string(newValue);
+            }
+        }
+
+        bool invalidSelection = (newValue != NULL_ENTITY && sceneProject->scene->isEntityCreated(newValue) && !isValidEntity(newValue));
+
+        if (different || invalidSelection) {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+            if (different) {
+                entityName = "---";
+            }
+        }
+
+        std::string buttonLabel = ICON_FA_CIRCLE_DOT " " + entityName + "##local_entity_" + id;
+        float clearButtonFramePadding = 2;
+        float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_XMARK).x;
+        ImVec2 buttonSize = ImVec2(ImGui::GetContentRegionAvail().x - clearButtonWidth - ImGui::GetStyle().ItemSpacing.x - clearButtonFramePadding * 2, 0);
+
+        if (ImGui::Button(buttonLabel.c_str(), buttonSize)) {
+            if (newValue != NULL_ENTITY && sceneProject->scene->isEntityCreated(newValue)) {
+                project->clearSelectedEntities(sceneProject->id);
+                project->addSelectedEntity(sceneProject->id, newValue);
+            }
+        }
+
+        if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("entity", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
+                const EntityPayload* entityPayload = static_cast<const EntityPayload*>(payload->Data);
+                Entity droppedEntity = entityPayload->entity;
+                bool valid = isValidEntity(droppedEntity);
+
+                if (!valid && ImGui::IsItemHovered()){
+                    ImGui::SetTooltip("Incompatible entity for this field");
+                }
+
+                if (payload->IsDelivery() && valid) {
+                    for (Entity& entity : entities) {
+                        cmd = new PropertyCmd<unsigned int>(project, sceneProject->id, entity, cpType, id, droppedEntity, settings.onValueChanged);
+                        CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                    }
+                    finishProperty = true;
+                }
+            }
+            ImGui::EndDragDropTarget();
+        }
+
+        if (different || invalidSelection) {
+            ImGui::PopStyleColor();
+        }
+
+        ImGui::SameLine();
+        ImGui::BeginDisabled(newValue == NULL_ENTITY && !different);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
+        if (ImGui::Button((ICON_FA_XMARK "##clear_local_entity_" + id).c_str())) {
+            for (Entity& entity : entities) {
+                cmd = new PropertyCmd<unsigned int>(project, sceneProject->id, entity, cpType, id, NULL_ENTITY, settings.onValueChanged);
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
+            }
+            finishProperty = true;
+        }
+        ImGui::PopStyleVar();
+        ImGui::EndDisabled();
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Clear entity reference");
+        }
+
+        ImGui::EndGroup();
+
     }
 
     if (ImGui::IsItemDeactivatedAfterEdit() || finishProperty) {
@@ -4146,6 +4268,7 @@ void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject*
     for (size_t s = 0; s < numShapes; s++){
         Body3DComponent& bodyRef = sceneProject->scene->getComponent<Body3DComponent>(entities[0]);
         Shape3D& shape = bodyRef.shapes[s];
+        const bool suspiciousSingleShapeOffset = bodyRef.numShapes == 1 && shape.position.length() > 50.0f;
 
         ImGui::SeparatorText(("Shape " + std::to_string(s + 1)).c_str());
         ImGui::PushID((int)s);
@@ -4179,6 +4302,36 @@ void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject*
         beginTable(cpType, getLabelSize("Bottom Radius"), "body3d_shape");
         propertyRow(RowPropertyType::Enum, cpType, shapeKey + ".type", "Type", sceneProject, entities, settingsShapeType);
         propertyRow(RowPropertyType::Vector3, cpType, shapeKey + ".position", "Position", sceneProject, entities, settingsShapeValue);
+
+        if (suspiciousSingleShapeOffset){
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::TextUnformatted("Warning");
+            ImGui::TableSetColumnIndex(1);
+            ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 196, 64, 255));
+            ImGui::TextUnformatted("Large local collider offset can destabilize joints.");
+            ImGui::PopStyleColor();
+            ImGui::SameLine();
+
+            std::string resetButtonId = "Reset##shape3d_pos_reset_" + std::to_string(s);
+            if (ImGui::SmallButton(resetButtonId.c_str())){
+                MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+
+                for (Entity entity : entities){
+                    if (Body3DComponent* bodyComp = sceneProject->scene->findComponent<Body3DComponent>(entity)){
+                        if (s >= bodyComp->numShapes){
+                            continue;
+                        }
+
+                        multiCmd->addPropertyCmd<Vector3>(project, sceneProject->id, entity, cpType, shapeKey + ".position", Vector3::ZERO);
+                    }
+                }
+
+                multiCmd->setNoMerge();
+                CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+            }
+        }
+
         propertyRow(RowPropertyType::Quat, cpType, shapeKey + ".rotation", "Rotation", sceneProject, entities, settingsShapeValue);
 
         if (shape.type == Shape3DType::BOX){
@@ -4208,20 +4361,120 @@ void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject*
 }
 
 void Editor::Properties::drawJoint2DComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+    Joint2DComponent& joint = sceneProject->scene->getComponent<Joint2DComponent>(entities[0]);
+
+    auto markJoint2DDirty = [sceneProject, entities](){
+        for (Entity entity : entities){
+            if (Joint2DComponent* jointComp = sceneProject->scene->findComponent<Joint2DComponent>(entity)){
+                jointComp->needUpdateJoint = true;
+            }
+        }
+    };
+
     RowSettings settingsJointType;
     settingsJointType.enumEntries = &entriesJoint2DType;
+    settingsJointType.onValueChanged = markJoint2DDirty;
 
-    beginTable(cpType, getLabelSize("Joint Type"));
+    RowSettings settingsJointValue;
+    settingsJointValue.onValueChanged = markJoint2DDirty;
+
+    beginTable(cpType, getLabelSize("Body B"));
     propertyRow(RowPropertyType::Enum, cpType, "type", "Joint Type", sceneProject, entities, settingsJointType);
+    propertyRow(RowPropertyType::LocalEntityBody2D, cpType, "bodyA", "Body A", sceneProject, entities, settingsJointValue);
+
+    if (joint.type != Joint2DType::MOUSE){
+        propertyRow(RowPropertyType::LocalEntityBody2D, cpType, "bodyB", "Body B", sceneProject, entities, settingsJointValue);
+    }
+
+    if (joint.type == Joint2DType::DISTANCE){
+        propertyRow(RowPropertyType::Vector2, cpType, "anchorA", "Anchor A", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Vector2, cpType, "anchorB", "Anchor B", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Bool, cpType, "rope", "Rope", sceneProject, entities, settingsJointValue);
+    }else if (joint.type == Joint2DType::REVOLUTE || joint.type == Joint2DType::WELD){
+        propertyRow(RowPropertyType::Vector2, cpType, "anchorA", "Anchor", sceneProject, entities, settingsJointValue);
+    }else if (joint.type == Joint2DType::PRISMATIC || joint.type == Joint2DType::WHEEL){
+        propertyRow(RowPropertyType::Vector2, cpType, "anchorA", "Anchor", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Vector2, cpType, "axis", "Axis", sceneProject, entities, settingsJointValue);
+    }else if (joint.type == Joint2DType::MOUSE){
+        propertyRow(RowPropertyType::Vector2, cpType, "target", "Target", sceneProject, entities, settingsJointValue);
+    }
+
     endTable();
 }
 
 void Editor::Properties::drawJoint3DComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+    Joint3DComponent& joint = sceneProject->scene->getComponent<Joint3DComponent>(entities[0]);
+
+    auto markJoint3DDirty = [sceneProject, entities](){
+        for (Entity entity : entities){
+            if (Joint3DComponent* jointComp = sceneProject->scene->findComponent<Joint3DComponent>(entity)){
+                jointComp->needUpdateJoint = true;
+            }
+        }
+    };
+
     RowSettings settingsJointType;
     settingsJointType.enumEntries = &entriesJoint3DType;
+    settingsJointType.onValueChanged = markJoint3DDirty;
 
-    beginTable(cpType, getLabelSize("Joint Type"));
+    RowSettings settingsJointValue;
+    settingsJointValue.onValueChanged = markJoint3DDirty;
+
+    beginTable(cpType, getLabelSize("Normal Half Cone Angle"));
     propertyRow(RowPropertyType::Enum, cpType, "type", "Joint Type", sceneProject, entities, settingsJointType);
+    propertyRow(RowPropertyType::LocalEntityBody3D, cpType, "bodyA", "Body A", sceneProject, entities, settingsJointValue);
+    propertyRow(RowPropertyType::LocalEntityBody3D, cpType, "bodyB", "Body B", sceneProject, entities, settingsJointValue);
+
+    if (joint.type == Joint3DType::DISTANCE){
+        propertyRow(RowPropertyType::Vector3, cpType, "anchorA", "Anchor A", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Vector3, cpType, "anchorB", "Anchor B", sceneProject, entities, settingsJointValue);
+    }else if (joint.type == Joint3DType::POINT){
+        propertyRow(RowPropertyType::Vector3, cpType, "anchor", "Anchor", sceneProject, entities, settingsJointValue);
+    }else if (joint.type == Joint3DType::HINGE){
+        propertyRow(RowPropertyType::Vector3, cpType, "anchor", "Anchor", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Vector3, cpType, "axis", "Axis", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Vector3, cpType, "normal", "Normal", sceneProject, entities, settingsJointValue);
+    }else if (joint.type == Joint3DType::CONE){
+        propertyRow(RowPropertyType::Vector3, cpType, "anchor", "Anchor", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Vector3, cpType, "twistAxis", "Twist Axis", sceneProject, entities, settingsJointValue);
+    }else if (joint.type == Joint3DType::PRISMATIC){
+        propertyRow(RowPropertyType::Vector3, cpType, "axis", "Axis", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Float, cpType, "limitsMin", "Limits Min", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Float, cpType, "limitsMax", "Limits Max", sceneProject, entities, settingsJointValue);
+    }else if (joint.type == Joint3DType::SWINGTWIST){
+        propertyRow(RowPropertyType::Vector3, cpType, "anchor", "Anchor", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Vector3, cpType, "twistAxis", "Twist Axis", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Vector3, cpType, "planeAxis", "Plane Axis", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Float, cpType, "normalHalfConeAngle", "Normal Half Cone Angle", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Float, cpType, "planeHalfConeAngle", "Plane Half Cone Angle", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Float, cpType, "twistMinAngle", "Twist Min Angle", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Float, cpType, "twistMaxAngle", "Twist Max Angle", sceneProject, entities, settingsJointValue);
+    }else if (joint.type == Joint3DType::SIXDOF){
+        propertyRow(RowPropertyType::Vector3, cpType, "anchorA", "Anchor A", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Vector3, cpType, "anchorB", "Anchor B", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Vector3, cpType, "axisX", "Axis X", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Vector3, cpType, "axisY", "Axis Y", sceneProject, entities, settingsJointValue);
+    }else if (joint.type == Joint3DType::GEAR){
+        propertyRow(RowPropertyType::LocalEntityJoint3DHinge, cpType, "hingeA", "Hinge A", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::LocalEntityJoint3DHinge, cpType, "hingeB", "Hinge B", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Int, cpType, "numTeethGearA", "Teeth Gear A", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Int, cpType, "numTeethGearB", "Teeth Gear B", sceneProject, entities, settingsJointValue);
+    }else if (joint.type == Joint3DType::RACKANDPINON){
+        propertyRow(RowPropertyType::LocalEntityJoint3DHinge, cpType, "hinge", "Hinge", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::LocalEntityJoint3DPrismatic, cpType, "slider", "Slider", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Int, cpType, "numTeethRack", "Teeth Rack", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Int, cpType, "numTeethGear", "Teeth Gear", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Int, cpType, "rackLength", "Rack Length", sceneProject, entities, settingsJointValue);
+    }else if (joint.type == Joint3DType::PULLEY){
+        propertyRow(RowPropertyType::Vector3, cpType, "anchorA", "Anchor A", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Vector3, cpType, "anchorB", "Anchor B", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Vector3, cpType, "fixedPointA", "Fixed Point A", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Vector3, cpType, "fixedPointB", "Fixed Point B", sceneProject, entities, settingsJointValue);
+    }else if (joint.type == Joint3DType::PATH){
+        propertyRow(RowPropertyType::Vector3, cpType, "pathPosition", "Path Position", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Bool, cpType, "isLooping", "Looping", sceneProject, entities, settingsJointValue);
+    }
+
     endTable();
 }
 

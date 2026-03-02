@@ -57,6 +57,18 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addT
         openParent = parent;
     }
 
+    if (ImGui::BeginMenu(ICON_FA_LINK"  Joint")){
+        if (ImGui::MenuItem(ICON_FA_LINK"  Joint2D")){
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Joint2D", EntityCreationType::JOINT2D, parent, addToShared));
+            openParent = parent;
+        }
+        if (ImGui::MenuItem(ICON_FA_LINK"  Joint3D")){
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Joint3D", EntityCreationType::JOINT3D, parent, addToShared));
+            openParent = parent;
+        }
+        ImGui::EndMenu();
+    }
+
     if (ImGui::BeginMenu(ICON_FA_CUBE"  Basic shape")){
         if (ImGui::MenuItem(ICON_FA_CUBE"  Box")){
             CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Box", EntityCreationType::BOX, parent, addToShared));
@@ -202,6 +214,8 @@ std::string Editor::Structure::getObjectIcon(Signature signature, Scene* scene){
         return ICON_FA_LIGHTBULB;
     }else if (signature.test(scene->getComponentId<CameraComponent>())){
         return ICON_FA_VIDEO;
+    }else if (signature.test(scene->getComponentId<Joint2DComponent>()) || signature.test(scene->getComponentId<Joint3DComponent>())){
+        return ICON_FA_LINK;
     }else if (signature.test(scene->getComponentId<Transform>())){
         return ICON_FA_SITEMAP;
     }
