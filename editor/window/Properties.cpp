@@ -4432,7 +4432,7 @@ void Editor::Properties::drawJoint3DComponent(ComponentType cpType, SceneProject
     const char* joint3DTableLabel = "Anchor";
     switch (joint.type){
         case Joint3DType::DISTANCE:
-            joint3DTableLabel = "Anchor A";
+            joint3DTableLabel = "Auto Anchors";
             break;
         case Joint3DType::POINT:
             joint3DTableLabel = "Anchor";
@@ -4473,8 +4473,11 @@ void Editor::Properties::drawJoint3DComponent(ComponentType cpType, SceneProject
     beginTable(cpType, getLabelSize(joint3DTableLabel), joint3DTypeTableId);
 
     if (joint.type == Joint3DType::DISTANCE){
-        propertyRow(RowPropertyType::Vector3, cpType, "anchorA", "Anchor A", sceneProject, entities, settingsJointValue);
-        propertyRow(RowPropertyType::Vector3, cpType, "anchorB", "Anchor B", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Bool, cpType, "autoAnchors", "Auto Anchors", sceneProject, entities, settingsJointValue);
+        if (!joint.autoAnchors){
+            propertyRow(RowPropertyType::Vector3, cpType, "anchorA", "Anchor A", sceneProject, entities, settingsJointValue);
+            propertyRow(RowPropertyType::Vector3, cpType, "anchorB", "Anchor B", sceneProject, entities, settingsJointValue);
+        }
     }else if (joint.type == Joint3DType::POINT){
         propertyRow(RowPropertyType::Vector3, cpType, "anchor", "Anchor", sceneProject, entities, settingsJointValue);
     }else if (joint.type == Joint3DType::HINGE){

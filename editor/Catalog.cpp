@@ -716,6 +716,7 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["rackLength"] = {PropertyType::Int, UpdateFlags_Joint3D, (void*)&def->rackLength, (compRef) ? (void*)&comp->rackLength : nullptr};
         ps["pathPosition"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->pathPosition, (compRef) ? (void*)&comp->pathPosition : nullptr};
         ps["isLooping"] = {PropertyType::Bool, UpdateFlags_Joint3D, (void*)&def->isLooping, (compRef) ? (void*)&comp->isLooping : nullptr};
+        ps["autoAnchors"] = {PropertyType::Bool, UpdateFlags_Joint3D, (void*)&def->autoAnchors, (compRef) ? (void*)&comp->autoAnchors : nullptr};
     }
 
     return ps;

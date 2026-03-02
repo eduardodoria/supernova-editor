@@ -2919,6 +2919,7 @@ YAML::Node Editor::Stream::encodeJoint3DComponent(const Joint3DComponent& joint)
     node["rackLength"] = joint.rackLength;
     node["pathPosition"] = encodeVector3(joint.pathPosition);
     node["isLooping"] = joint.isLooping;
+    node["autoAnchors"] = joint.autoAnchors;
 
     return node;
 }
@@ -2961,6 +2962,7 @@ Joint3DComponent Editor::Stream::decodeJoint3DComponent(const YAML::Node& node, 
     if (node["rackLength"]) joint.rackLength = node["rackLength"].as<int>();
     if (node["pathPosition"]) joint.pathPosition = decodeVector3(node["pathPosition"]);
     if (node["isLooping"]) joint.isLooping = node["isLooping"].as<bool>();
+    if (node["autoAnchors"]) joint.autoAnchors = node["autoAnchors"].as<bool>();
 
     if (oldJoint && oldJoint->joint) {
         joint.needUpdateJoint = true;
