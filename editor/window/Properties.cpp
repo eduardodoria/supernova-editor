@@ -2719,32 +2719,11 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
         ImGui::EndGroup();
 
-    }else if (type == RowPropertyType::LocalEntityBody2D ||
-              type == RowPropertyType::LocalEntityBody3D ||
-              type == RowPropertyType::LocalEntityJoint3DHinge ||
-              type == RowPropertyType::LocalEntityJoint3DPrismatic){
+    }else if (type == RowPropertyType::LocalEntity){
         Entity* value = nullptr;
         std::map<Entity, Entity> eValue;
         bool different = false;
         unsigned int* defVal = nullptr;
-
-        auto isValidEntity = [sceneProject, type](Entity candidate) -> bool {
-            if (type == RowPropertyType::LocalEntityBody2D){
-                return sceneProject->scene->findComponent<Body2DComponent>(candidate) != nullptr;
-            }
-            if (type == RowPropertyType::LocalEntityBody3D){
-                return sceneProject->scene->findComponent<Body3DComponent>(candidate) != nullptr;
-            }
-            if (type == RowPropertyType::LocalEntityJoint3DHinge){
-                Joint3DComponent* ref = sceneProject->scene->findComponent<Joint3DComponent>(candidate);
-                return ref && ref->type == Joint3DType::HINGE;
-            }
-            if (type == RowPropertyType::LocalEntityJoint3DPrismatic){
-                Joint3DComponent* ref = sceneProject->scene->findComponent<Joint3DComponent>(candidate);
-                return ref && ref->type == Joint3DType::PRISMATIC;
-            }
-            return true;
-        };
 
         for (Entity& entity : entities){
             PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
@@ -2777,7 +2756,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             }
         }
 
-        bool invalidSelection = (newValue != NULL_ENTITY && sceneProject->scene->isEntityCreated(newValue) && !isValidEntity(newValue));
+        bool invalidSelection = false;
 
         if (different || invalidSelection) {
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
@@ -2802,10 +2781,10 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("entity", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
                 const EntityPayload* entityPayload = static_cast<const EntityPayload*>(payload->Data);
                 Entity droppedEntity = entityPayload->entity;
-                bool valid = isValidEntity(droppedEntity);
+                bool valid = sceneProject->scene->isEntityCreated(droppedEntity);
 
                 if (!valid && ImGui::IsItemHovered()){
-                    ImGui::SetTooltip("Incompatible entity for this field");
+                    ImGui::SetTooltip("Invalid entity");
                 }
 
                 if (payload->IsDelivery() && valid) {
@@ -4380,10 +4359,10 @@ void Editor::Properties::drawJoint2DComponent(ComponentType cpType, SceneProject
 
     beginTable(cpType, getLabelSize("Body B"));
     propertyRow(RowPropertyType::Enum, cpType, "type", "Joint Type", sceneProject, entities, settingsJointType);
-    propertyRow(RowPropertyType::LocalEntityBody2D, cpType, "bodyA", "Body A", sceneProject, entities, settingsJointValue);
+    propertyRow(RowPropertyType::LocalEntity, cpType, "bodyA", "Body A", sceneProject, entities, settingsJointValue);
 
     if (joint.type != Joint2DType::MOUSE){
-        propertyRow(RowPropertyType::LocalEntityBody2D, cpType, "bodyB", "Body B", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::LocalEntity, cpType, "bodyB", "Body B", sceneProject, entities, settingsJointValue);
     }
 
     if (joint.type == Joint2DType::DISTANCE){
@@ -4422,8 +4401,8 @@ void Editor::Properties::drawJoint3DComponent(ComponentType cpType, SceneProject
 
     beginTable(cpType, getLabelSize("Normal Half Cone Angle"));
     propertyRow(RowPropertyType::Enum, cpType, "type", "Joint Type", sceneProject, entities, settingsJointType);
-    propertyRow(RowPropertyType::LocalEntityBody3D, cpType, "bodyA", "Body A", sceneProject, entities, settingsJointValue);
-    propertyRow(RowPropertyType::LocalEntityBody3D, cpType, "bodyB", "Body B", sceneProject, entities, settingsJointValue);
+    propertyRow(RowPropertyType::LocalEntity, cpType, "bodyA", "Body A", sceneProject, entities, settingsJointValue);
+    propertyRow(RowPropertyType::LocalEntity, cpType, "bodyB", "Body B", sceneProject, entities, settingsJointValue);
 
     if (joint.type == Joint3DType::DISTANCE){
         propertyRow(RowPropertyType::Vector3, cpType, "anchorA", "Anchor A", sceneProject, entities, settingsJointValue);
@@ -4455,13 +4434,13 @@ void Editor::Properties::drawJoint3DComponent(ComponentType cpType, SceneProject
         propertyRow(RowPropertyType::Vector3, cpType, "axisX", "Axis X", sceneProject, entities, settingsJointValue);
         propertyRow(RowPropertyType::Vector3, cpType, "axisY", "Axis Y", sceneProject, entities, settingsJointValue);
     }else if (joint.type == Joint3DType::GEAR){
-        propertyRow(RowPropertyType::LocalEntityJoint3DHinge, cpType, "hingeA", "Hinge A", sceneProject, entities, settingsJointValue);
-        propertyRow(RowPropertyType::LocalEntityJoint3DHinge, cpType, "hingeB", "Hinge B", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::LocalEntity, cpType, "hingeA", "Hinge A", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::LocalEntity, cpType, "hingeB", "Hinge B", sceneProject, entities, settingsJointValue);
         propertyRow(RowPropertyType::Int, cpType, "numTeethGearA", "Teeth Gear A", sceneProject, entities, settingsJointValue);
         propertyRow(RowPropertyType::Int, cpType, "numTeethGearB", "Teeth Gear B", sceneProject, entities, settingsJointValue);
     }else if (joint.type == Joint3DType::RACKANDPINON){
-        propertyRow(RowPropertyType::LocalEntityJoint3DHinge, cpType, "hinge", "Hinge", sceneProject, entities, settingsJointValue);
-        propertyRow(RowPropertyType::LocalEntityJoint3DPrismatic, cpType, "slider", "Slider", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::LocalEntity, cpType, "hinge", "Hinge", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::LocalEntity, cpType, "slider", "Slider", sceneProject, entities, settingsJointValue);
         propertyRow(RowPropertyType::Int, cpType, "numTeethRack", "Teeth Rack", sceneProject, entities, settingsJointValue);
         propertyRow(RowPropertyType::Int, cpType, "numTeethGear", "Teeth Gear", sceneProject, entities, settingsJointValue);
         propertyRow(RowPropertyType::Int, cpType, "rackLength", "Rack Length", sceneProject, entities, settingsJointValue);
