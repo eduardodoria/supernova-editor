@@ -18,6 +18,7 @@
 #include "command/type/ComponentToLocalCmd.h"
 #include "command/type/ScenePropertyCmd.h"
 #include "render/SceneRender2D.h"
+#include "App.h"
 #include "util/SHA1.h"
 #include "util/ProjectUtils.h"
 #include "Stream.h"
@@ -4133,6 +4134,7 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
         propertyRow(RowPropertyType::Enum, cpType, shapeKey + ".type", "Type", sceneProject, entities, settingsShapeType);
 
         if (shape.type == Shape2DType::POLYGON){
+            ImGui::PushStyleColor(ImGuiCol_Text, App::ThemeColors::SubtleText);
             propertyHeader("Preset");
 
             static int polygonPresetType = 0;
@@ -4192,6 +4194,7 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
                 multiCmd->setNoMerge();
                 CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
             }
+            ImGui::PopStyleColor(1);
 
             const int polygonVerticesCount = std::max(0, std::min((int)shape.verticesCount, (int)MAX_SHAPE_POINTS_2D));
             propertyHeader("Vertices");
@@ -4289,19 +4292,102 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
             propertyRow(RowPropertyType::Vector2, cpType, shapeKey + ".pointB", "Point B", sceneProject, entities, settingsShapeValue);
         }else if (shape.type == Shape2DType::CHAIN){
             propertyRow(RowPropertyType::Bool, cpType, shapeKey + ".loop", "Loop", sceneProject, entities, settingsShapeValue);
-            propertyRow(RowPropertyType::Vector2, cpType, shapeKey + ".vertices[0]", "Vertex 1", sceneProject, entities, settingsShapeValue);
-            propertyRow(RowPropertyType::Vector2, cpType, shapeKey + ".vertices[1]", "Vertex 2", sceneProject, entities, settingsShapeValue);
-            propertyRow(RowPropertyType::Vector2, cpType, shapeKey + ".vertices[2]", "Vertex 3", sceneProject, entities, settingsShapeValue);
-            propertyRow(RowPropertyType::Vector2, cpType, shapeKey + ".vertices[3]", "Vertex 4", sceneProject, entities, settingsShapeValue);
+
+            const int chainVerticesCount = std::max(0, std::min((int)shape.verticesCount, (int)MAX_SHAPE_POINTS_2D));
+            propertyHeader("Vertices");
+            ImGui::Text("%d / %d", chainVerticesCount, MAX_SHAPE_POINTS_2D);
+            if (chainVerticesCount < MAX_SHAPE_POINTS_2D){
+                ImGui::SameLine();
+                if (ImGui::Button("Add Vertex")){
+                    MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+                    for (Entity entity : entities){
+                        if (Body2DComponent* bodyComp = sceneProject->scene->findComponent<Body2DComponent>(entity)){
+                            if (s >= bodyComp->numShapes) continue;
+                            Shape2D shapeValue = bodyComp->shapes[s];
+                            if (shapeValue.verticesCount >= MAX_SHAPE_POINTS_2D) continue;
+
+                            const uint8_t oldCount = shapeValue.verticesCount;
+                            if (oldCount >= 2){
+                                shapeValue.vertices[oldCount] = shapeValue.vertices[oldCount - 1] + (shapeValue.vertices[oldCount - 1] - shapeValue.vertices[oldCount - 2]);
+                            }else if (oldCount == 1){
+                                shapeValue.vertices[oldCount] = shapeValue.vertices[0] + Vector2(10.0f, 0.0f);
+                            }else{
+                                shapeValue.vertices[oldCount] = Vector2::ZERO;
+                            }
+                            shapeValue.verticesCount = oldCount + 1;
+                            multiCmd->addPropertyCmd<Shape2D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
+                        }
+                    }
+                    multiCmd->setNoMerge();
+                    CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+                }
+            }
+
+            bool removedVertex = false;
+            float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
+            float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_XMARK).x;
+            ImVec2 inputVerSize = ImVec2(ImGui::GetContentRegionAvail().x - clearButtonWidth - ImGui::GetStyle().ItemSpacing.x - clearButtonFramePadding * 2, 0);
+            if (inputVerSize.x < 100.0f){
+                inputVerSize.x = 100.0f;
+            }
+
+            for (int v = 0; v < chainVerticesCount; v++){
+                RowSettings settingsVertex = settingsShapeValue;
+                settingsVertex.secondColSize = inputVerSize.x;
+                propertyRow(RowPropertyType::Vector2, cpType, shapeKey + ".vertices[" + std::to_string(v) + "]", "Vertex " + std::to_string(v + 1), sceneProject, entities, settingsVertex);
+
+                ImGui::SameLine();
+
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
+                std::string removeVertexId = std::string(ICON_FA_XMARK) + "##remove_chain_vertex_" + std::to_string(s) + "_" + std::to_string(v);
+                if (ImGui::Button(removeVertexId.c_str())){
+                    MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+                    for (Entity entity : entities){
+                        if (Body2DComponent* bodyComp = sceneProject->scene->findComponent<Body2DComponent>(entity)){
+                            if (s >= bodyComp->numShapes) continue;
+
+                            Shape2D shapeValue = bodyComp->shapes[s];
+                            if (v >= shapeValue.verticesCount) continue;
+
+                            for (size_t i = (size_t)v + 1; i < shapeValue.verticesCount; i++){
+                                shapeValue.vertices[i - 1] = shapeValue.vertices[i];
+                            }
+                            shapeValue.verticesCount -= 1;
+
+                            multiCmd->addPropertyCmd<Shape2D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
+                        }
+                    }
+
+                    multiCmd->setNoMerge();
+                    CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+
+                    removedVertex = true;
+                    ImGui::PopStyleVar();
+                    break;
+                }
+                ImGui::PopStyleVar();
+                if (ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Remove vertex");
+                }
+            }
+
+            if (removedVertex){
+                endTable();
+                return;
+            }
         }
 
-        propertyRow(RowPropertyType::Float, cpType, shapeKey + ".density", "Density", sceneProject, entities, settingsShapeValue);
+        if (shape.type != Shape2DType::SEGMENT && shape.type != Shape2DType::CHAIN){
+            propertyRow(RowPropertyType::Float, cpType, shapeKey + ".density", "Density", sceneProject, entities, settingsShapeValue);
+        }
         propertyRow(RowPropertyType::Float, cpType, shapeKey + ".friction", "Friction", sceneProject, entities, settingsShapeValue);
         propertyRow(RowPropertyType::Float, cpType, shapeKey + ".restitution", "Restitution", sceneProject, entities, settingsShapeValue);
-        propertyRow(RowPropertyType::Bool, cpType, shapeKey + ".enableHitEvents", "Enable Hit Events", sceneProject, entities, settingsShapeValue);
-        propertyRow(RowPropertyType::Bool, cpType, shapeKey + ".contactEvents", "Contact Events", sceneProject, entities, settingsShapeValue);
-        propertyRow(RowPropertyType::Bool, cpType, shapeKey + ".preSolveEvents", "PreSolve Events", sceneProject, entities, settingsShapeValue);
-        propertyRow(RowPropertyType::Bool, cpType, shapeKey + ".sensorEvents", "Sensor Events", sceneProject, entities, settingsShapeValue);
+        if (shape.type != Shape2DType::CHAIN){
+            propertyRow(RowPropertyType::Bool, cpType, shapeKey + ".enableHitEvents", "Enable Hit Events", sceneProject, entities, settingsShapeValue);
+            propertyRow(RowPropertyType::Bool, cpType, shapeKey + ".contactEvents", "Contact Events", sceneProject, entities, settingsShapeValue);
+            propertyRow(RowPropertyType::Bool, cpType, shapeKey + ".preSolveEvents", "PreSolve Events", sceneProject, entities, settingsShapeValue);
+            propertyRow(RowPropertyType::Bool, cpType, shapeKey + ".sensorEvents", "Sensor Events", sceneProject, entities, settingsShapeValue);
+        }
         endTable();
     }
 }
