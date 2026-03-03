@@ -680,6 +680,7 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["anchorB"] = {PropertyType::Vector2, UpdateFlags_Joint2D, (void*)&def->anchorB, (compRef) ? (void*)&comp->anchorB : nullptr};
         ps["axis"] = {PropertyType::Vector2, UpdateFlags_Joint2D, (void*)&def->axis, (compRef) ? (void*)&comp->axis : nullptr};
         ps["target"] = {PropertyType::Vector2, UpdateFlags_Joint2D, (void*)&def->target, (compRef) ? (void*)&comp->target : nullptr};
+        ps["autoAnchors"] = {PropertyType::Bool, UpdateFlags_Joint2D, (void*)&def->autoAnchors, (compRef) ? (void*)&comp->autoAnchors : nullptr};
         ps["rope"] = {PropertyType::Bool, UpdateFlags_Joint2D, (void*)&def->rope, (compRef) ? (void*)&comp->rope : nullptr};
     }else if (component == ComponentType::Joint3DComponent){
         Joint3DComponent* comp = static_cast<Joint3DComponent*>(compRef);

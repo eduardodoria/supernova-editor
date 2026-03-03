@@ -1054,6 +1054,7 @@ std::string Editor::Factory::createJoint2DComponent(int indentSpaces, Scene* sce
     code << ind << "joint2d.anchorB = " << formatVector2(joint.anchorB) << ";\n";
     code << ind << "joint2d.axis = " << formatVector2(joint.axis) << ";\n";
     code << ind << "joint2d.target = " << formatVector2(joint.target) << ";\n";
+    code << ind << "joint2d.autoAnchors = " << formatBool(joint.autoAnchors) << ";\n";
     code << ind << "joint2d.rope = " << formatBool(joint.rope) << ";\n";
     code << ind << "joint2d.needUpdateJoint = " << formatBool(joint.needUpdateJoint) << ";\n";
     addComponentCode(code, ind, sceneName, entityName, entity, "Joint2DComponent", "joint2d");

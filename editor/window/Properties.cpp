@@ -4604,10 +4604,7 @@ void Editor::Properties::drawJoint2DComponent(ComponentType cpType, SceneProject
     beginTable(cpType, getLabelSize("Joint Type"));
     propertyRow(RowPropertyType::Enum, cpType, "type", "Joint Type", sceneProject, entities, settingsJointType);
     propertyRow(RowPropertyType::LocalEntity, cpType, "bodyA", "Body A", sceneProject, entities, settingsJointValue);
-
-    if (joint.type != Joint2DType::MOUSE){
-        propertyRow(RowPropertyType::LocalEntity, cpType, "bodyB", "Body B", sceneProject, entities, settingsJointValue);
-    }
+    propertyRow(RowPropertyType::LocalEntity, cpType, "bodyB", "Body B", sceneProject, entities, settingsJointValue);
 
     endTable();
 
@@ -4628,8 +4625,11 @@ void Editor::Properties::drawJoint2DComponent(ComponentType cpType, SceneProject
     beginTable(cpType, getLabelSize(joint2DTableLabel), joint2DTypeTableId);
 
     if (joint.type == Joint2DType::DISTANCE){
-        propertyRow(RowPropertyType::Vector2, cpType, "anchorA", "Anchor A", sceneProject, entities, settingsJointValue);
-        propertyRow(RowPropertyType::Vector2, cpType, "anchorB", "Anchor B", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Bool, cpType, "autoAnchors", "Auto Anchors", sceneProject, entities, settingsJointValue);
+        if (!joint.autoAnchors){
+            propertyRow(RowPropertyType::Vector2, cpType, "anchorA", "Anchor A", sceneProject, entities, settingsJointValue);
+            propertyRow(RowPropertyType::Vector2, cpType, "anchorB", "Anchor B", sceneProject, entities, settingsJointValue);
+        }
         propertyRow(RowPropertyType::Bool, cpType, "rope", "Rope", sceneProject, entities, settingsJointValue);
     }else if (joint.type == Joint2DType::REVOLUTE || joint.type == Joint2DType::WELD){
         propertyRow(RowPropertyType::Vector2, cpType, "anchorA", "Anchor", sceneProject, entities, settingsJointValue);

@@ -2853,6 +2853,7 @@ YAML::Node Editor::Stream::encodeJoint2DComponent(const Joint2DComponent& joint)
     node["anchorB"] = encodeVector2(joint.anchorB);
     node["axis"] = encodeVector2(joint.axis);
     node["target"] = encodeVector2(joint.target);
+    node["autoAnchors"] = joint.autoAnchors;
     node["rope"] = joint.rope;
 
     return node;
@@ -2872,6 +2873,7 @@ Joint2DComponent Editor::Stream::decodeJoint2DComponent(const YAML::Node& node, 
     if (node["anchorB"]) joint.anchorB = decodeVector2(node["anchorB"]);
     if (node["axis"]) joint.axis = decodeVector2(node["axis"]);
     if (node["target"]) joint.target = decodeVector2(node["target"]);
+    if (node["autoAnchors"]) joint.autoAnchors = node["autoAnchors"].as<bool>();
     if (node["rope"]) joint.rope = node["rope"].as<bool>();
 
     if (oldJoint && b2Joint_IsValid(oldJoint->joint)) {
