@@ -4462,7 +4462,7 @@ void Editor::Properties::drawJoint3DComponent(ComponentType cpType, SceneProject
             joint3DTableLabel = "Fixed Point A";
             break;
         case Joint3DType::PATH:
-            joint3DTableLabel = "Path Position";
+            joint3DTableLabel = "Position";
             break;
         default:
             break;
@@ -4521,12 +4521,12 @@ void Editor::Properties::drawJoint3DComponent(ComponentType cpType, SceneProject
         propertyRow(RowPropertyType::Vector3, cpType, "fixedPointA", "Fixed Point A", sceneProject, entities, settingsJointValue);
         propertyRow(RowPropertyType::Vector3, cpType, "fixedPointB", "Fixed Point B", sceneProject, entities, settingsJointValue);
     }else if (joint.type == Joint3DType::PATH){
-        propertyRow(RowPropertyType::Vector3, cpType, "pathPosition", "Path Position", sceneProject, entities, settingsJointValue);
+        propertyRow(RowPropertyType::Vector3, cpType, "pathPosition", "Position", sceneProject, entities, settingsJointValue);
         propertyRow(RowPropertyType::Bool, cpType, "isLooping", "Looping", sceneProject, entities, settingsJointValue);
 
         ImGui::TableNextRow();
         ImGui::TableSetColumnIndex(0);
-        ImGui::TextUnformatted("Path Points");
+        ImGui::TextUnformatted("Points");
         ImGui::TableSetColumnIndex(1);
 
         if (ImGui::Button("Add Point")){
