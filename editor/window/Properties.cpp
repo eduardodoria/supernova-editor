@@ -93,16 +93,6 @@ static std::vector<Editor::EnumEntry> entriesShape2DType = {
     { (int)Shape2DType::CHAIN, "Chain" }
 };
 
-static std::vector<Editor::EnumEntry> entriesShape2DCreateType = {
-    { 0, "Box" },
-    { 1, "Centered Box" },
-    { 2, "Rounded Box" },
-    { 3, "Circle" },
-    { 4, "Capsule" },
-    { 5, "Segment" },
-    { 6, "Chain" }
-};
-
 static std::vector<Editor::EnumEntry> entriesShape3DType = {
     { (int)Shape3DType::SPHERE, "Sphere" },
     { (int)Shape3DType::BOX, "Box" },
@@ -3977,6 +3967,29 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
         }
     };
 
+    auto getUILayoutSizeForShape = [sceneProject](Entity entity){
+        float width = 100.0f;
+        float height = 100.0f;
+
+        if (SpriteComponent* spriteComp = sceneProject->scene->findComponent<SpriteComponent>(entity)){
+            if (spriteComp->width > 0){
+                width = (float)spriteComp->width;
+            }
+            if (spriteComp->height > 0){
+                height = (float)spriteComp->height;
+            }
+        }else if (UILayoutComponent* layoutComp = sceneProject->scene->findComponent<UILayoutComponent>(entity)){
+            if (layoutComp->width > 0){
+                width = (float)layoutComp->width;
+            }
+            if (layoutComp->height > 0){
+                height = (float)layoutComp->height;
+            }
+        }
+
+        return Vector2(width, height);
+    };
+
     RowSettings settingsBodyType;
     settingsBodyType.enumEntries = &entriesBodyType;
     settingsBodyType.onValueChanged = markBody2DDirty;
@@ -3988,13 +4001,21 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
     ImGui::SeparatorText("Shapes");
     ImGui::Text("Shapes: %zu / %d", body.numShapes, MAX_SHAPES);
 
-    static int createShape2DType = 0;
+    static int createShape2DType = (int)Shape2DType::POLYGON;
+    const char* createShape2DLabel = "Polygon";
+    for (const EnumEntry& entry : entriesShape2DType){
+        if (entry.value == createShape2DType){
+            createShape2DLabel = entry.name;
+            break;
+        }
+    }
+
     ImGui::SetNextItemWidth(12 * ImGui::GetFontSize());
-    if (ImGui::BeginCombo("##shape2d_create_type", entriesShape2DCreateType[createShape2DType].name)){
-        for (int i = 0; i < (int)entriesShape2DCreateType.size(); i++){
-            bool selected = (createShape2DType == i);
-            if (ImGui::Selectable(entriesShape2DCreateType[i].name, selected)){
-                createShape2DType = i;
+    if (ImGui::BeginCombo("##shape2d_create_type", createShape2DLabel)){
+        for (const EnumEntry& entry : entriesShape2DType){
+            bool selected = (createShape2DType == entry.value);
+            if (ImGui::Selectable(entry.name, selected)){
+                createShape2DType = entry.value;
             }
             if (selected){
                 ImGui::SetItemDefaultFocus();
@@ -4013,41 +4034,38 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
                 }
 
                 Shape2D shape;
-                switch (createShape2DType){
-                    case 0:
-                        shape.type = Shape2DType::POLYGON;
-                        shape.pointA = Vector2(-0.5f, -0.5f);
-                        shape.pointB = Vector2(0.5f, 0.5f);
+                shape.type = (Shape2DType)createShape2DType;
+
+                switch (shape.type){
+                    case Shape2DType::POLYGON:
+                    {
+                        Vector2 layoutSize = getUILayoutSizeForShape(entity);
+                        const float halfW = layoutSize.x * 0.5f;
+                        const float halfH = layoutSize.y * 0.5f;
+
+                        shape.verticesCount = 4;
+                        shape.pointA = Vector2(-halfW, -halfH);
+                        shape.pointB = Vector2(halfW, halfH);
+                        shape.vertices[0] = Vector2(-halfW, -halfH);
+                        shape.vertices[1] = Vector2(halfW, -halfH);
+                        shape.vertices[2] = Vector2(halfW, halfH);
+                        shape.vertices[3] = Vector2(-halfW, halfH);
                         break;
-                    case 1:
-                        shape.type = Shape2DType::POLYGON;
-                        shape.pointA = Vector2(-0.5f, -0.5f);
-                        shape.pointB = Vector2(0.5f, 0.5f);
-                        break;
-                    case 2:
-                        shape.type = Shape2DType::POLYGON;
-                        shape.pointA = Vector2(-0.5f, -0.5f);
-                        shape.pointB = Vector2(0.5f, 0.5f);
-                        shape.radius = 0.1f;
-                        break;
-                    case 3:
-                        shape.type = Shape2DType::CIRCLE;
+                    }
+                    case Shape2DType::CIRCLE:
                         shape.pointA = Vector2::ZERO;
                         shape.radius = 0.5f;
                         break;
-                    case 4:
-                        shape.type = Shape2DType::CAPSULE;
+                    case Shape2DType::CAPSULE:
                         shape.pointA = Vector2(0.0f, -0.5f);
                         shape.pointB = Vector2(0.0f, 0.5f);
                         shape.radius = 0.5f;
                         break;
-                    case 5:
-                        shape.type = Shape2DType::SEGMENT;
+                    case Shape2DType::SEGMENT:
                         shape.pointA = Vector2(-1.0f, 0.0f);
                         shape.pointB = Vector2(1.0f, 0.0f);
                         break;
-                    case 6:
-                        shape.type = Shape2DType::CHAIN;
+                    case Shape2DType::CHAIN:
                         shape.verticesCount = 4;
                         shape.vertices[0] = Vector2(-0.5f, -0.5f);
                         shape.vertices[1] = Vector2(0.5f, -0.5f);
@@ -4115,8 +4133,170 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
         propertyRow(RowPropertyType::Enum, cpType, shapeKey + ".type", "Type", sceneProject, entities, settingsShapeType);
 
         if (shape.type == Shape2DType::POLYGON){
-            propertyRow(RowPropertyType::Vector2, cpType, shapeKey + ".pointA", "Point A", sceneProject, entities, settingsShapeValue);
-            propertyRow(RowPropertyType::Vector2, cpType, shapeKey + ".pointB", "Point B", sceneProject, entities, settingsShapeValue);
+            propertyHeader("Preset");
+
+            if (ImGui::SmallButton("Box")){
+                MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+                for (Entity entity : entities){
+                    if (Body2DComponent* bodyComp = sceneProject->scene->findComponent<Body2DComponent>(entity)){
+                        if (s >= bodyComp->numShapes) continue;
+
+                        Vector2 layoutSize = getUILayoutSizeForShape(entity);
+
+                        Shape2D shapeValue = bodyComp->shapes[s];
+                        shapeValue.type = Shape2DType::POLYGON;
+                        shapeValue.radius = 0.0f;
+                        shapeValue.pointA = Vector2(0.0f, 0.0f);
+                        shapeValue.pointB = Vector2(layoutSize.x, layoutSize.y);
+                        shapeValue.verticesCount = 4;
+                        shapeValue.vertices[0] = Vector2(0.0f, 0.0f);
+                        shapeValue.vertices[1] = Vector2(layoutSize.x, 0.0f);
+                        shapeValue.vertices[2] = Vector2(layoutSize.x, layoutSize.y);
+                        shapeValue.vertices[3] = Vector2(0.0f, layoutSize.y);
+                        multiCmd->addPropertyCmd<Shape2D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
+                    }
+                }
+                multiCmd->setNoMerge();
+                CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+            }
+            ImGui::SameLine();
+            if (ImGui::SmallButton("Centered Box")){
+                MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+                for (Entity entity : entities){
+                    if (Body2DComponent* bodyComp = sceneProject->scene->findComponent<Body2DComponent>(entity)){
+                        if (s >= bodyComp->numShapes) continue;
+
+                        Vector2 layoutSize = getUILayoutSizeForShape(entity);
+                        const float halfW = layoutSize.x * 0.5f;
+                        const float halfH = layoutSize.y * 0.5f;
+
+                        Shape2D shapeValue = bodyComp->shapes[s];
+                        shapeValue.type = Shape2DType::POLYGON;
+                        shapeValue.radius = 0.0f;
+                        shapeValue.pointA = Vector2(-halfW, -halfH);
+                        shapeValue.pointB = Vector2(halfW, halfH);
+                        shapeValue.verticesCount = 4;
+                        shapeValue.vertices[0] = Vector2(-halfW, -halfH);
+                        shapeValue.vertices[1] = Vector2(halfW, -halfH);
+                        shapeValue.vertices[2] = Vector2(halfW, halfH);
+                        shapeValue.vertices[3] = Vector2(-halfW, halfH);
+                        multiCmd->addPropertyCmd<Shape2D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
+                    }
+                }
+                multiCmd->setNoMerge();
+                CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+            }
+            ImGui::SameLine();
+            if (ImGui::SmallButton("Rounded Box")){
+                MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+                for (Entity entity : entities){
+                    if (Body2DComponent* bodyComp = sceneProject->scene->findComponent<Body2DComponent>(entity)){
+                        if (s >= bodyComp->numShapes) continue;
+
+                        Vector2 layoutSize = getUILayoutSizeForShape(entity);
+                        const float halfW = layoutSize.x * 0.5f;
+                        const float halfH = layoutSize.y * 0.5f;
+
+                        Shape2D shapeValue = bodyComp->shapes[s];
+                        shapeValue.type = Shape2DType::POLYGON;
+                        shapeValue.radius = std::max(1.0f, std::min(layoutSize.x, layoutSize.y) * 0.04f);
+                        shapeValue.pointA = Vector2(-halfW, -halfH);
+                        shapeValue.pointB = Vector2(halfW, halfH);
+                        shapeValue.verticesCount = 4;
+                        shapeValue.vertices[0] = Vector2(-halfW, -halfH);
+                        shapeValue.vertices[1] = Vector2(halfW, -halfH);
+                        shapeValue.vertices[2] = Vector2(halfW, halfH);
+                        shapeValue.vertices[3] = Vector2(-halfW, halfH);
+                        multiCmd->addPropertyCmd<Shape2D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
+                    }
+                }
+                multiCmd->setNoMerge();
+                CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+            }
+
+            const int polygonVerticesCount = std::max(0, std::min((int)shape.verticesCount, (int)MAX_SHAPE_POINTS_2D));
+            propertyHeader("Vertices");
+            ImGui::Text("%d / %d", polygonVerticesCount, MAX_SHAPE_POINTS_2D);
+            if (polygonVerticesCount < MAX_SHAPE_POINTS_2D){
+                ImGui::SameLine();
+                if (ImGui::Button("Add Vertex")){
+                    MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+                    for (Entity entity : entities){
+                        if (Body2DComponent* bodyComp = sceneProject->scene->findComponent<Body2DComponent>(entity)){
+                            if (s >= bodyComp->numShapes) continue;
+                            Shape2D shapeValue = bodyComp->shapes[s];
+                            if (shapeValue.verticesCount >= MAX_SHAPE_POINTS_2D) continue;
+
+                            const uint8_t oldCount = shapeValue.verticesCount;
+                            if (oldCount >= 2){
+                                shapeValue.vertices[oldCount] = shapeValue.vertices[oldCount - 1] + (shapeValue.vertices[oldCount - 1] - shapeValue.vertices[oldCount - 2]);
+                            }else if (oldCount == 1){
+                                shapeValue.vertices[oldCount] = shapeValue.vertices[0] + Vector2(10.0f, 0.0f);
+                            }else{
+                                shapeValue.vertices[oldCount] = Vector2::ZERO;
+                            }
+                            shapeValue.verticesCount = oldCount + 1;
+                            multiCmd->addPropertyCmd<Shape2D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
+                        }
+                    }
+                    multiCmd->setNoMerge();
+                    CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+                }
+            }
+            bool removedVertex = false;
+            float clearButtonFramePadding = 2;
+            float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_XMARK).x;
+            ImVec2 inputSize = ImVec2(ImGui::GetContentRegionAvail().x - clearButtonWidth - ImGui::GetStyle().ItemSpacing.x - clearButtonFramePadding * 2, 0);
+            if (inputSize.x < 100.0f){
+                inputSize.x = 100.0f;
+            }
+
+            const int drawVertexCount = std::max(0, std::min((int)shape.verticesCount, (int)MAX_SHAPE_POINTS_2D));
+            for (int v = 0; v < drawVertexCount; v++){
+                RowSettings settingsVertex = settingsShapeValue;
+                settingsVertex.secondColSize = inputSize.x;
+                propertyRow(RowPropertyType::Vector2, cpType, shapeKey + ".vertices[" + std::to_string(v) + "]", "Vertex " + std::to_string(v + 1), sceneProject, entities, settingsVertex);
+
+                ImGui::SameLine();
+
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
+                std::string removeVertexId = std::string(ICON_FA_XMARK) + "##remove_polygon_vertex_" + std::to_string(s) + "_" + std::to_string(v);
+                if (ImGui::Button(removeVertexId.c_str())){
+                    MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+                    for (Entity entity : entities){
+                        if (Body2DComponent* bodyComp = sceneProject->scene->findComponent<Body2DComponent>(entity)){
+                            if (s >= bodyComp->numShapes) continue;
+
+                            Shape2D shapeValue = bodyComp->shapes[s];
+                            if (v >= shapeValue.verticesCount) continue;
+
+                            for (size_t i = (size_t)v + 1; i < shapeValue.verticesCount; i++){
+                                shapeValue.vertices[i - 1] = shapeValue.vertices[i];
+                            }
+                            shapeValue.verticesCount -= 1;
+
+                            multiCmd->addPropertyCmd<Shape2D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
+                        }
+                    }
+
+                    multiCmd->setNoMerge();
+                    CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+
+                    removedVertex = true;
+                    ImGui::PopStyleVar();
+                    break;
+                }
+                ImGui::PopStyleVar();
+                if (ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Remove vertex");
+                }
+            }
+
+            if (removedVertex){
+                endTable();
+                return;
+            }
+
             propertyRow(RowPropertyType::Float, cpType, shapeKey + ".radius", "Radius", sceneProject, entities, settingsShapeValue);
         }else if (shape.type == Shape2DType::CIRCLE){
             propertyRow(RowPropertyType::Vector2, cpType, shapeKey + ".pointA", "Center", sceneProject, entities, settingsShapeValue);
