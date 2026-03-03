@@ -2625,7 +2625,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
         // Button to show entity (with icon)
         std::string buttonLabel = ICON_FA_CIRCLE_DOT " " + entityName + "##entity_" + id;
-        float clearButtonFramePadding = 2;
+        float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
         float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_XMARK).x;
         ImVec2 buttonSize = ImVec2(ImGui::GetContentRegionAvail().x - clearButtonWidth - ImGui::GetStyle().ItemSpacing.x - clearButtonFramePadding * 2, 0);
 
@@ -2756,7 +2756,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         }
 
         std::string buttonLabel = ICON_FA_CIRCLE_DOT " " + entityName + "##local_entity_" + id;
-        float clearButtonFramePadding = 2;
+        float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
         float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_XMARK).x;
         ImVec2 inputSize = ImVec2(ImGui::GetContentRegionAvail().x - clearButtonWidth - ImGui::GetStyle().ItemSpacing.x - clearButtonFramePadding * 2, 0);
 
@@ -4135,32 +4135,18 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
         if (shape.type == Shape2DType::POLYGON){
             propertyHeader("Preset");
 
-            if (ImGui::SmallButton("Box")){
-                MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
-                for (Entity entity : entities){
-                    if (Body2DComponent* bodyComp = sceneProject->scene->findComponent<Body2DComponent>(entity)){
-                        if (s >= bodyComp->numShapes) continue;
+            static int polygonPresetType = 0;
+            const char* polygonPresetItems[] = { "Box", "Centered Box", "Rounded Box" };
 
-                        Vector2 layoutSize = getUILayoutSizeForShape(entity);
+            float applyButtonFramePadding = ImGui::GetStyle().FramePadding.x;
+            float applyButtonWidth = ImGui::CalcTextSize("Apply").x;
+            ImVec2 inputComboSize = ImVec2(ImGui::GetContentRegionAvail().x - applyButtonWidth - ImGui::GetStyle().ItemSpacing.x - applyButtonFramePadding * 2, 0);
 
-                        Shape2D shapeValue = bodyComp->shapes[s];
-                        shapeValue.type = Shape2DType::POLYGON;
-                        shapeValue.radius = 0.0f;
-                        shapeValue.pointA = Vector2(0.0f, 0.0f);
-                        shapeValue.pointB = Vector2(layoutSize.x, layoutSize.y);
-                        shapeValue.verticesCount = 4;
-                        shapeValue.vertices[0] = Vector2(0.0f, 0.0f);
-                        shapeValue.vertices[1] = Vector2(layoutSize.x, 0.0f);
-                        shapeValue.vertices[2] = Vector2(layoutSize.x, layoutSize.y);
-                        shapeValue.vertices[3] = Vector2(0.0f, layoutSize.y);
-                        multiCmd->addPropertyCmd<Shape2D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
-                    }
-                }
-                multiCmd->setNoMerge();
-                CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
-            }
+            ImGui::SetNextItemWidth(inputComboSize.x);
+            ImGui::Combo(("##polygon_preset_" + std::to_string(s)).c_str(), &polygonPresetType, polygonPresetItems, IM_ARRAYSIZE(polygonPresetItems));
             ImGui::SameLine();
-            if (ImGui::SmallButton("Centered Box")){
+
+            if (ImGui::Button("Apply")){
                 MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
                 for (Entity entity : entities){
                     if (Body2DComponent* bodyComp = sceneProject->scene->findComponent<Body2DComponent>(entity)){
@@ -4172,41 +4158,34 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
 
                         Shape2D shapeValue = bodyComp->shapes[s];
                         shapeValue.type = Shape2DType::POLYGON;
-                        shapeValue.radius = 0.0f;
-                        shapeValue.pointA = Vector2(-halfW, -halfH);
-                        shapeValue.pointB = Vector2(halfW, halfH);
                         shapeValue.verticesCount = 4;
-                        shapeValue.vertices[0] = Vector2(-halfW, -halfH);
-                        shapeValue.vertices[1] = Vector2(halfW, -halfH);
-                        shapeValue.vertices[2] = Vector2(halfW, halfH);
-                        shapeValue.vertices[3] = Vector2(-halfW, halfH);
-                        multiCmd->addPropertyCmd<Shape2D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
-                    }
-                }
-                multiCmd->setNoMerge();
-                CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
-            }
-            ImGui::SameLine();
-            if (ImGui::SmallButton("Rounded Box")){
-                MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
-                for (Entity entity : entities){
-                    if (Body2DComponent* bodyComp = sceneProject->scene->findComponent<Body2DComponent>(entity)){
-                        if (s >= bodyComp->numShapes) continue;
 
-                        Vector2 layoutSize = getUILayoutSizeForShape(entity);
-                        const float halfW = layoutSize.x * 0.5f;
-                        const float halfH = layoutSize.y * 0.5f;
+                        if (polygonPresetType == 0){
+                            shapeValue.radius = 0.0f;
+                            shapeValue.pointA = Vector2(0.0f, 0.0f);
+                            shapeValue.pointB = Vector2(layoutSize.x, layoutSize.y);
+                            shapeValue.vertices[0] = Vector2(0.0f, 0.0f);
+                            shapeValue.vertices[1] = Vector2(layoutSize.x, 0.0f);
+                            shapeValue.vertices[2] = Vector2(layoutSize.x, layoutSize.y);
+                            shapeValue.vertices[3] = Vector2(0.0f, layoutSize.y);
+                        }else if (polygonPresetType == 1){
+                            shapeValue.radius = 0.0f;
+                            shapeValue.pointA = Vector2(-halfW, -halfH);
+                            shapeValue.pointB = Vector2(halfW, halfH);
+                            shapeValue.vertices[0] = Vector2(-halfW, -halfH);
+                            shapeValue.vertices[1] = Vector2(halfW, -halfH);
+                            shapeValue.vertices[2] = Vector2(halfW, halfH);
+                            shapeValue.vertices[3] = Vector2(-halfW, halfH);
+                        }else{
+                            shapeValue.radius = std::max(1.0f, std::min(layoutSize.x, layoutSize.y) * 0.04f);
+                            shapeValue.pointA = Vector2(-halfW, -halfH);
+                            shapeValue.pointB = Vector2(halfW, halfH);
+                            shapeValue.vertices[0] = Vector2(-halfW, -halfH);
+                            shapeValue.vertices[1] = Vector2(halfW, -halfH);
+                            shapeValue.vertices[2] = Vector2(halfW, halfH);
+                            shapeValue.vertices[3] = Vector2(-halfW, halfH);
+                        }
 
-                        Shape2D shapeValue = bodyComp->shapes[s];
-                        shapeValue.type = Shape2DType::POLYGON;
-                        shapeValue.radius = std::max(1.0f, std::min(layoutSize.x, layoutSize.y) * 0.04f);
-                        shapeValue.pointA = Vector2(-halfW, -halfH);
-                        shapeValue.pointB = Vector2(halfW, halfH);
-                        shapeValue.verticesCount = 4;
-                        shapeValue.vertices[0] = Vector2(-halfW, -halfH);
-                        shapeValue.vertices[1] = Vector2(halfW, -halfH);
-                        shapeValue.vertices[2] = Vector2(halfW, halfH);
-                        shapeValue.vertices[3] = Vector2(-halfW, halfH);
                         multiCmd->addPropertyCmd<Shape2D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
                     }
                 }
@@ -4244,17 +4223,17 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
                 }
             }
             bool removedVertex = false;
-            float clearButtonFramePadding = 2;
+            float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
             float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_XMARK).x;
-            ImVec2 inputSize = ImVec2(ImGui::GetContentRegionAvail().x - clearButtonWidth - ImGui::GetStyle().ItemSpacing.x - clearButtonFramePadding * 2, 0);
-            if (inputSize.x < 100.0f){
-                inputSize.x = 100.0f;
+            ImVec2 inputVerSize = ImVec2(ImGui::GetContentRegionAvail().x - clearButtonWidth - ImGui::GetStyle().ItemSpacing.x - clearButtonFramePadding * 2, 0);
+            if (inputVerSize.x < 100.0f){
+                inputVerSize.x = 100.0f;
             }
 
             const int drawVertexCount = std::max(0, std::min((int)shape.verticesCount, (int)MAX_SHAPE_POINTS_2D));
             for (int v = 0; v < drawVertexCount; v++){
                 RowSettings settingsVertex = settingsShapeValue;
-                settingsVertex.secondColSize = inputSize.x;
+                settingsVertex.secondColSize = inputVerSize.x;
                 propertyRow(RowPropertyType::Vector2, cpType, shapeKey + ".vertices[" + std::to_string(v) + "]", "Vertex " + std::to_string(v + 1), sceneProject, entities, settingsVertex);
 
                 ImGui::SameLine();
@@ -4729,7 +4708,7 @@ void Editor::Properties::drawJoint3DComponent(ComponentType cpType, SceneProject
         }
 
         bool removedPoint = false;
-        float clearButtonFramePadding = 2;
+        float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
         float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_XMARK).x;
         ImVec2 inputSize = ImVec2(ImGui::GetContentRegionAvail().x - clearButtonWidth - ImGui::GetStyle().ItemSpacing.x - clearButtonFramePadding * 2, 0);
         if (inputSize.x < 100.0f){
