@@ -2768,9 +2768,9 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         std::string buttonLabel = ICON_FA_CIRCLE_DOT " " + entityName + "##local_entity_" + id;
         float clearButtonFramePadding = 2;
         float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_XMARK).x;
-        ImVec2 buttonSize = ImVec2(ImGui::GetContentRegionAvail().x - clearButtonWidth - ImGui::GetStyle().ItemSpacing.x - clearButtonFramePadding * 2, 0);
+        ImVec2 inputSize = ImVec2(ImGui::GetContentRegionAvail().x - clearButtonWidth - ImGui::GetStyle().ItemSpacing.x - clearButtonFramePadding * 2, 0);
 
-        if (ImGui::Button(buttonLabel.c_str(), buttonSize)) {
+        if (ImGui::Button(buttonLabel.c_str(), inputSize)) {
             if (newValue != NULL_ENTITY && sceneProject->scene->isEntityCreated(newValue)) {
                 project->clearSelectedEntities(sceneProject->id);
                 project->addSelectedEntity(sceneProject->id, newValue);
@@ -4523,6 +4523,80 @@ void Editor::Properties::drawJoint3DComponent(ComponentType cpType, SceneProject
     }else if (joint.type == Joint3DType::PATH){
         propertyRow(RowPropertyType::Vector3, cpType, "pathPosition", "Path Position", sceneProject, entities, settingsJointValue);
         propertyRow(RowPropertyType::Bool, cpType, "isLooping", "Looping", sceneProject, entities, settingsJointValue);
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("Path Points");
+        ImGui::TableSetColumnIndex(1);
+
+        if (ImGui::Button("Add Point")){
+            MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+            for (Entity entity : entities){
+                if (Joint3DComponent* jointComp = sceneProject->scene->findComponent<Joint3DComponent>(entity)){
+                    std::vector<Vector3> newPoints = jointComp->pathPoints;
+                    Vector3 newPoint = Vector3::ZERO;
+                    if (!newPoints.empty()){
+                        Vector3 lastPoint = newPoints.back();
+                        newPoint = Vector3(lastPoint.x, lastPoint.y, lastPoint.z + 1.0f);
+                    }
+                    newPoints.push_back(newPoint);
+                    multiCmd->addPropertyCmd<std::vector<Vector3>>(project, sceneProject->id, entity, cpType, "pathPoints", newPoints, settingsJointValue.onValueChanged);
+                }
+            }
+
+            multiCmd->setNoMerge();
+            CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+        }
+
+        bool removedPoint = false;
+        float clearButtonFramePadding = 2;
+        float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_XMARK).x;
+        ImVec2 inputSize = ImVec2(ImGui::GetContentRegionAvail().x - clearButtonWidth - ImGui::GetStyle().ItemSpacing.x - clearButtonFramePadding * 2, 0);
+        if (inputSize.x < 100.0f){
+            inputSize.x = 100.0f;
+        }
+
+        for (size_t pointIndex = 0; pointIndex < joint.pathPoints.size(); pointIndex++){
+            std::string pointId = "pathPoints[" + std::to_string(pointIndex) + "]";
+            std::string pointLabel = "Point " + std::to_string(pointIndex);
+
+            RowSettings settingsPathPoint = settingsJointValue;
+            settingsPathPoint.secondColSize = inputSize.x;
+            propertyRow(RowPropertyType::Vector3, cpType, pointId, pointLabel, sceneProject, entities, settingsPathPoint);
+
+            ImGui::SameLine();
+
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
+            std::string removePointId = std::string(ICON_FA_XMARK) + "##remove_path_point_" + std::to_string(pointIndex);
+            if (ImGui::Button(removePointId.c_str())){
+                MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+                for (Entity entity : entities){
+                    if (Joint3DComponent* jointComp = sceneProject->scene->findComponent<Joint3DComponent>(entity)){
+                        if (pointIndex < jointComp->pathPoints.size()){
+                            std::vector<Vector3> newPoints = jointComp->pathPoints;
+                            newPoints.erase(newPoints.begin() + (long int)pointIndex);
+                            multiCmd->addPropertyCmd<std::vector<Vector3>>(project, sceneProject->id, entity, cpType, "pathPoints", newPoints, settingsJointValue.onValueChanged);
+                        }
+                    }
+                }
+
+                multiCmd->setNoMerge();
+                CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+
+                removedPoint = true;
+                ImGui::PopStyleVar();
+                break;
+            }
+            ImGui::PopStyleVar();
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Remove point");
+            }
+        }
+
+        if (removedPoint){
+            endTable();
+            return;
+        }
     }
 
     endTable();

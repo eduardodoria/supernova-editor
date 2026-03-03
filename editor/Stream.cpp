@@ -2917,6 +2917,11 @@ YAML::Node Editor::Stream::encodeJoint3DComponent(const Joint3DComponent& joint)
     node["numTeethRack"] = joint.numTeethRack;
     node["numTeethGear"] = joint.numTeethGear;
     node["rackLength"] = joint.rackLength;
+    YAML::Node pathPointsNode;
+    for (const Vector3& point : joint.pathPoints){
+        pathPointsNode.push_back(encodeVector3(point));
+    }
+    node["pathPoints"] = pathPointsNode;
     node["pathPosition"] = encodeVector3(joint.pathPosition);
     node["isLooping"] = joint.isLooping;
     node["autoAnchors"] = joint.autoAnchors;
@@ -2960,6 +2965,12 @@ Joint3DComponent Editor::Stream::decodeJoint3DComponent(const YAML::Node& node, 
     if (node["numTeethRack"]) joint.numTeethRack = node["numTeethRack"].as<int>();
     if (node["numTeethGear"]) joint.numTeethGear = node["numTeethGear"].as<int>();
     if (node["rackLength"]) joint.rackLength = node["rackLength"].as<int>();
+    if (node["pathPoints"]){
+        joint.pathPoints.clear();
+        for (const YAML::Node& pointNode : node["pathPoints"]){
+            joint.pathPoints.push_back(decodeVector3(pointNode));
+        }
+    }
     if (node["pathPosition"]) joint.pathPosition = decodeVector3(node["pathPosition"]);
     if (node["isLooping"]) joint.isLooping = node["isLooping"].as<bool>();
     if (node["autoAnchors"]) joint.autoAnchors = node["autoAnchors"].as<bool>();

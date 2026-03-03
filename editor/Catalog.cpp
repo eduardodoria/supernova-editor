@@ -714,6 +714,11 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
         ps["numTeethRack"] = {PropertyType::Int, UpdateFlags_Joint3D, (void*)&def->numTeethRack, (compRef) ? (void*)&comp->numTeethRack : nullptr};
         ps["numTeethGear"] = {PropertyType::Int, UpdateFlags_Joint3D, (void*)&def->numTeethGear, (compRef) ? (void*)&comp->numTeethGear : nullptr};
         ps["rackLength"] = {PropertyType::Int, UpdateFlags_Joint3D, (void*)&def->rackLength, (compRef) ? (void*)&comp->rackLength : nullptr};
+        ps["pathPoints"] = {PropertyType::Custom, UpdateFlags_Joint3D, (void*)&def->pathPoints, (compRef) ? (void*)&comp->pathPoints : nullptr};
+        for (size_t p = 0; p < ((compRef) ? comp->pathPoints.size() : 1); p++){
+            std::string idx = (compRef) ? std::to_string(p) : "";
+            ps["pathPoints["+idx+"]"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->pathPosition, (compRef) ? (void*)&comp->pathPoints[p] : nullptr};
+        }
         ps["pathPosition"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->pathPosition, (compRef) ? (void*)&comp->pathPosition : nullptr};
         ps["isLooping"] = {PropertyType::Bool, UpdateFlags_Joint3D, (void*)&def->isLooping, (compRef) ? (void*)&comp->isLooping : nullptr};
         ps["autoAnchors"] = {PropertyType::Bool, UpdateFlags_Joint3D, (void*)&def->autoAnchors, (compRef) ? (void*)&comp->autoAnchors : nullptr};

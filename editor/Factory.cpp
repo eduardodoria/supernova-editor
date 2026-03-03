@@ -1095,8 +1095,13 @@ std::string Editor::Factory::createJoint3DComponent(int indentSpaces, Scene* sce
     code << ind << "joint3d.numTeethRack = " << formatInt(joint.numTeethRack) << ";\n";
     code << ind << "joint3d.numTeethGear = " << formatInt(joint.numTeethGear) << ";\n";
     code << ind << "joint3d.rackLength = " << formatInt(joint.rackLength) << ";\n";
+    code << ind << "joint3d.pathPoints.clear();\n";
+    for (size_t i = 0; i < joint.pathPoints.size(); i++) {
+        code << ind << "joint3d.pathPoints.push_back(" << formatVector3(joint.pathPoints[i]) << ");\n";
+    }
     code << ind << "joint3d.pathPosition = " << formatVector3(joint.pathPosition) << ";\n";
     code << ind << "joint3d.isLooping = " << formatBool(joint.isLooping) << ";\n";
+    code << ind << "joint3d.autoAnchors = " << formatBool(joint.autoAnchors) << ";\n";
     code << ind << "joint3d.needUpdateJoint = " << formatBool(joint.needUpdateJoint) << ";\n";
     addComponentCode(code, ind, sceneName, entityName, entity, "Joint3DComponent", "joint3d");
     return code.str();
