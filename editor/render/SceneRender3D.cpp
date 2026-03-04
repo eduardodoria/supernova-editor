@@ -179,6 +179,58 @@ void Editor::SceneRender3D::createOrUpdateBodyLines(Entity entity, const Transfo
         addTransformedLine(shapeMatrix, p010, p011);
     };
 
+    auto addBoxRings = [&](const Matrix4& shapeMatrix, const Vector3& minPt, const Vector3& maxPt) {
+        const int ringCount = 3;
+        for (int r = 1; r <= ringCount; r++) {
+            float t = (float)r / (float)(ringCount + 1);
+            float y = minPt.y + (maxPt.y - minPt.y) * t;
+
+            Vector3 p0(minPt.x, y, minPt.z);
+            Vector3 p1(maxPt.x, y, minPt.z);
+            Vector3 p2(maxPt.x, y, maxPt.z);
+            Vector3 p3(minPt.x, y, maxPt.z);
+
+            addTransformedLine(shapeMatrix, p0, p1);
+            addTransformedLine(shapeMatrix, p1, p2);
+            addTransformedLine(shapeMatrix, p2, p3);
+            addTransformedLine(shapeMatrix, p3, p0);
+        }
+    };
+
+    auto addBoxVerticals = [&](const Matrix4& shapeMatrix, const Vector3& minPt, const Vector3& maxPt) {
+        const int verticalCount = 3;
+
+        for (int v = 1; v <= verticalCount; v++) {
+            float t = (float)v / (float)(verticalCount + 1);
+
+            float x = minPt.x + (maxPt.x - minPt.x) * t;
+            float z = minPt.z + (maxPt.z - minPt.z) * t;
+
+            addTransformedLine(shapeMatrix, Vector3(x, minPt.y, minPt.z), Vector3(x, maxPt.y, minPt.z));
+            addTransformedLine(shapeMatrix, Vector3(x, minPt.y, maxPt.z), Vector3(x, maxPt.y, maxPt.z));
+
+            addTransformedLine(shapeMatrix, Vector3(minPt.x, minPt.y, z), Vector3(minPt.x, maxPt.y, z));
+            addTransformedLine(shapeMatrix, Vector3(maxPt.x, minPt.y, z), Vector3(maxPt.x, maxPt.y, z));
+        }
+    };
+
+    auto addBoxCaps = [&](const Matrix4& shapeMatrix, const Vector3& minPt, const Vector3& maxPt) {
+        const int capLineCount = 3;
+
+        for (int c = 1; c <= capLineCount; c++) {
+            float t = (float)c / (float)(capLineCount + 1);
+
+            float x = minPt.x + (maxPt.x - minPt.x) * t;
+            float z = minPt.z + (maxPt.z - minPt.z) * t;
+
+            addTransformedLine(shapeMatrix, Vector3(x, minPt.y, minPt.z), Vector3(x, minPt.y, maxPt.z));
+            addTransformedLine(shapeMatrix, Vector3(x, maxPt.y, minPt.z), Vector3(x, maxPt.y, maxPt.z));
+
+            addTransformedLine(shapeMatrix, Vector3(minPt.x, minPt.y, z), Vector3(maxPt.x, minPt.y, z));
+            addTransformedLine(shapeMatrix, Vector3(minPt.x, maxPt.y, z), Vector3(maxPt.x, maxPt.y, z));
+        }
+    };
+
     auto addCircle = [&](const Matrix4& shapeMatrix, const Vector3& center, const Vector3& axisA, const Vector3& axisB, float radius, int segments) {
         if (radius <= 0.0f) {
             return;
@@ -291,6 +343,9 @@ void Editor::SceneRender3D::createOrUpdateBodyLines(Entity entity, const Transfo
         if (shapeData.type == Shape3DType::BOX) {
             Vector3 halfSize(shapeData.width * 0.5f, shapeData.height * 0.5f, shapeData.depth * 0.5f);
             addBox(shapeMatrix, -halfSize, halfSize);
+            addBoxRings(shapeMatrix, -halfSize, halfSize);
+            addBoxVerticals(shapeMatrix, -halfSize, halfSize);
+            addBoxCaps(shapeMatrix, -halfSize, halfSize);
         } else if (shapeData.type == Shape3DType::SPHERE) {
             addSpherePattern(shapeMatrix, shapeData.radius);
         } else if (shapeData.type == Shape3DType::CAPSULE) {
