@@ -18,6 +18,7 @@ Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, tr
 
     lightObjects.clear();
     cameraObjects.clear();
+    bodyObjects.clear();
 
     createLines();
 
@@ -53,6 +54,11 @@ Editor::SceneRender3D::~SceneRender3D(){
         delete pair.second.lines;
     }
     cameraObjects.clear();
+
+    for (auto& pair : bodyObjects) {
+        delete pair.second.lines;
+    }
+    bodyObjects.clear();
 }
 
 void Editor::SceneRender3D::createLines(){
@@ -114,6 +120,255 @@ bool Editor::SceneRender3D::instanciateCameraObject(Entity entity){
     }
 
     return false;
+}
+
+bool Editor::SceneRender3D::instanciateBodyObject(Entity entity){
+    if (bodyObjects.find(entity) == bodyObjects.end()) {
+        ScopedDefaultEntityPool sys(*scene, EntityPool::System);
+        bodyObjects[entity].lines = new Lines(scene);
+
+        return true;
+    }
+
+    return false;
+}
+
+void Editor::SceneRender3D::createOrUpdateBodyLines(Entity entity, const Transform& transform, const Body3DComponent& body) {
+    BodyObjects& bo = bodyObjects[entity];
+
+    bo.lines->clearLines();
+    bo.lines->setVisible(transform.visible);
+
+    if (!transform.visible || body.numShapes == 0) {
+        return;
+    }
+
+    const Vector4 bodyColor(0.2f, 0.95f, 0.95f, 1.0f);
+    const Matrix4 modelMatrix = transform.modelMatrix;
+
+    auto addTransformedLine = [&](const Matrix4& shapeMatrix, const Vector3& from, const Vector3& to) {
+        Vector3 worldFrom = modelMatrix * (shapeMatrix * from);
+        Vector3 worldTo = modelMatrix * (shapeMatrix * to);
+        bo.lines->addLine(worldFrom, worldTo, bodyColor);
+    };
+
+    auto addBox = [&](const Matrix4& shapeMatrix, const Vector3& minPt, const Vector3& maxPt) {
+        Vector3 p000(minPt.x, minPt.y, minPt.z);
+        Vector3 p100(maxPt.x, minPt.y, minPt.z);
+        Vector3 p110(maxPt.x, maxPt.y, minPt.z);
+        Vector3 p010(minPt.x, maxPt.y, minPt.z);
+
+        Vector3 p001(minPt.x, minPt.y, maxPt.z);
+        Vector3 p101(maxPt.x, minPt.y, maxPt.z);
+        Vector3 p111(maxPt.x, maxPt.y, maxPt.z);
+        Vector3 p011(minPt.x, maxPt.y, maxPt.z);
+
+        addTransformedLine(shapeMatrix, p000, p100);
+        addTransformedLine(shapeMatrix, p100, p110);
+        addTransformedLine(shapeMatrix, p110, p010);
+        addTransformedLine(shapeMatrix, p010, p000);
+
+        addTransformedLine(shapeMatrix, p001, p101);
+        addTransformedLine(shapeMatrix, p101, p111);
+        addTransformedLine(shapeMatrix, p111, p011);
+        addTransformedLine(shapeMatrix, p011, p001);
+
+        addTransformedLine(shapeMatrix, p000, p001);
+        addTransformedLine(shapeMatrix, p100, p101);
+        addTransformedLine(shapeMatrix, p110, p111);
+        addTransformedLine(shapeMatrix, p010, p011);
+    };
+
+    auto addCircle = [&](const Matrix4& shapeMatrix, const Vector3& center, const Vector3& axisA, const Vector3& axisB, float radius, int segments) {
+        if (radius <= 0.0f) {
+            return;
+        }
+
+        for (int i = 0; i < segments; i++) {
+            float a0 = (2.0f * M_PI * i) / segments;
+            float a1 = (2.0f * M_PI * (i + 1)) / segments;
+
+            Vector3 p0 = center + axisA * (std::cos(a0) * radius) + axisB * (std::sin(a0) * radius);
+            Vector3 p1 = center + axisA * (std::cos(a1) * radius) + axisB * (std::sin(a1) * radius);
+
+            addTransformedLine(shapeMatrix, p0, p1);
+        }
+    };
+
+    auto addHemisphere = [&](const Matrix4& shapeMatrix, const Vector3& center, float radius, bool topHemisphere) {
+        if (radius <= 0.0f) {
+            return;
+        }
+
+        const int elevationSegments = 6;
+        const int azimuthSegments = 12;
+        const float ySign = topHemisphere ? 1.0f : -1.0f;
+
+        for (int a = 0; a < azimuthSegments; a++) {
+            float az = (2.0f * M_PI * a) / azimuthSegments;
+            Vector3 dirXZ(std::cos(az), 0.0f, std::sin(az));
+
+            for (int e = 0; e < elevationSegments; e++) {
+                float phi0 = (0.5f * M_PI * e) / elevationSegments;
+                float phi1 = (0.5f * M_PI * (e + 1)) / elevationSegments;
+
+                Vector3 p0 = center + dirXZ * (std::cos(phi0) * radius) + Vector3(0.0f, ySign * std::sin(phi0) * radius, 0.0f);
+                Vector3 p1 = center + dirXZ * (std::cos(phi1) * radius) + Vector3(0.0f, ySign * std::sin(phi1) * radius, 0.0f);
+
+                addTransformedLine(shapeMatrix, p0, p1);
+            }
+        }
+
+        const int ringCount = 3;
+        for (int r = 1; r <= ringCount; r++) {
+            float phi = (0.5f * M_PI * r) / (ringCount + 1);
+            float ringRadius = std::cos(phi) * radius;
+            float y = ySign * std::sin(phi) * radius;
+
+            addCircle(shapeMatrix, center + Vector3(0.0f, y, 0.0f), Vector3(1, 0, 0), Vector3(0, 0, 1), ringRadius, 18);
+        }
+    };
+
+    auto addCapsuleMiddle = [&](const Matrix4& shapeMatrix, float halfHeight, float topRadius, float bottomRadius) {
+        const int azimuthSegments = 12;
+        for (int a = 0; a < azimuthSegments; a++) {
+            float az = (2.0f * M_PI * a) / azimuthSegments;
+            Vector3 dirXZ(std::cos(az), 0.0f, std::sin(az));
+
+            Vector3 topPoint = Vector3(0.0f, halfHeight, 0.0f) + dirXZ * topRadius;
+            Vector3 bottomPoint = Vector3(0.0f, -halfHeight, 0.0f) + dirXZ * bottomRadius;
+            addTransformedLine(shapeMatrix, topPoint, bottomPoint);
+        }
+    };
+
+    auto addCylinderRings = [&](const Matrix4& shapeMatrix, float halfHeight, float radius) {
+        const int ringCount = 3;
+        for (int r = 1; r <= ringCount; r++) {
+            float t = (float)r / (float)(ringCount + 1);
+            float y = halfHeight - (2.0f * halfHeight * t);
+            addCircle(shapeMatrix, Vector3(0.0f, y, 0.0f), Vector3(1, 0, 0), Vector3(0, 0, 1), radius, 18);
+        }
+    };
+
+    auto addSpherePattern = [&](const Matrix4& shapeMatrix, float radius) {
+        if (radius <= 0.0f) {
+            return;
+        }
+
+        const int azimuthSegments = 12;
+        const int elevationSegments = 12;
+
+        for (int a = 0; a < azimuthSegments; a++) {
+            float az = (2.0f * M_PI * a) / azimuthSegments;
+            Vector3 dirXZ(std::cos(az), 0.0f, std::sin(az));
+
+            for (int e = 0; e < elevationSegments; e++) {
+                float phi0 = -0.5f * M_PI + (M_PI * e) / elevationSegments;
+                float phi1 = -0.5f * M_PI + (M_PI * (e + 1)) / elevationSegments;
+
+                Vector3 p0 = dirXZ * (std::cos(phi0) * radius) + Vector3(0.0f, std::sin(phi0) * radius, 0.0f);
+                Vector3 p1 = dirXZ * (std::cos(phi1) * radius) + Vector3(0.0f, std::sin(phi1) * radius, 0.0f);
+
+                addTransformedLine(shapeMatrix, p0, p1);
+            }
+        }
+
+        const int latitudeRings = 5;
+        for (int r = 1; r <= latitudeRings; r++) {
+            float phi = -0.5f * M_PI + (M_PI * r) / (latitudeRings + 1);
+            float ringRadius = std::cos(phi) * radius;
+            float y = std::sin(phi) * radius;
+
+            addCircle(shapeMatrix, Vector3(0.0f, y, 0.0f), Vector3(1, 0, 0), Vector3(0, 0, 1), ringRadius, 20);
+        }
+    };
+
+    for (size_t i = 0; i < body.numShapes; i++) {
+        const Shape3D& shapeData = body.shapes[i];
+
+        Matrix4 shapeMatrix = Matrix4::translateMatrix(shapeData.position) * shapeData.rotation.getRotationMatrix();
+
+        if (shapeData.type == Shape3DType::BOX) {
+            Vector3 halfSize(shapeData.width * 0.5f, shapeData.height * 0.5f, shapeData.depth * 0.5f);
+            addBox(shapeMatrix, -halfSize, halfSize);
+        } else if (shapeData.type == Shape3DType::SPHERE) {
+            addSpherePattern(shapeMatrix, shapeData.radius);
+        } else if (shapeData.type == Shape3DType::CAPSULE) {
+            const float halfHeight = shapeData.halfHeight;
+            const float radius = shapeData.radius;
+            Vector3 top(0, halfHeight, 0);
+            Vector3 bottom(0, -halfHeight, 0);
+
+            addCircle(shapeMatrix, top, Vector3(1, 0, 0), Vector3(0, 0, 1), radius, 20);
+            addCircle(shapeMatrix, bottom, Vector3(1, 0, 0), Vector3(0, 0, 1), radius, 20);
+            addCapsuleMiddle(shapeMatrix, halfHeight, radius, radius);
+
+            addHemisphere(shapeMatrix, top, radius, true);
+            addHemisphere(shapeMatrix, bottom, radius, false);
+        } else if (shapeData.type == Shape3DType::TAPERED_CAPSULE) {
+            const float halfHeight = shapeData.halfHeight;
+            const float topRadius = shapeData.topRadius;
+            const float bottomRadius = shapeData.bottomRadius;
+
+            addCircle(shapeMatrix, Vector3(0, halfHeight, 0), Vector3(1, 0, 0), Vector3(0, 0, 1), topRadius, 20);
+            addCircle(shapeMatrix, Vector3(0, -halfHeight, 0), Vector3(1, 0, 0), Vector3(0, 0, 1), bottomRadius, 20);
+            addCapsuleMiddle(shapeMatrix, halfHeight, topRadius, bottomRadius);
+
+            addHemisphere(shapeMatrix, Vector3(0, halfHeight, 0), topRadius, true);
+            addHemisphere(shapeMatrix, Vector3(0, -halfHeight, 0), bottomRadius, false);
+        } else if (shapeData.type == Shape3DType::CYLINDER) {
+            const float halfHeight = shapeData.halfHeight;
+            const float radius = shapeData.radius;
+
+            addCircle(shapeMatrix, Vector3(0, halfHeight, 0), Vector3(1, 0, 0), Vector3(0, 0, 1), radius, 20);
+            addCircle(shapeMatrix, Vector3(0, -halfHeight, 0), Vector3(1, 0, 0), Vector3(0, 0, 1), radius, 20);
+            addCapsuleMiddle(shapeMatrix, halfHeight, radius, radius);
+            addCylinderRings(shapeMatrix, halfHeight, radius);
+        } else if (shapeData.type == Shape3DType::CONVEX_HULL) {
+            if (shapeData.numVertices >= 2) {
+                Vector3 minPt = shapeData.vertices[0];
+                Vector3 maxPt = shapeData.vertices[0];
+
+                for (size_t v = 1; v < shapeData.numVertices; v++) {
+                    minPt.x = std::min(minPt.x, shapeData.vertices[v].x);
+                    minPt.y = std::min(minPt.y, shapeData.vertices[v].y);
+                    minPt.z = std::min(minPt.z, shapeData.vertices[v].z);
+                    maxPt.x = std::max(maxPt.x, shapeData.vertices[v].x);
+                    maxPt.y = std::max(maxPt.y, shapeData.vertices[v].y);
+                    maxPt.z = std::max(maxPt.z, shapeData.vertices[v].z);
+                }
+
+                addBox(shapeMatrix, minPt, maxPt);
+            }
+        } else if (shapeData.type == Shape3DType::MESH) {
+            if (shapeData.numVertices >= 3 && shapeData.numIndices >= 3) {
+                int triangles = int(shapeData.numIndices / 3);
+                for (int tri = 0; tri < triangles; tri++) {
+                    uint16_t i0 = shapeData.indices[tri * 3 + 0];
+                    uint16_t i1 = shapeData.indices[tri * 3 + 1];
+                    uint16_t i2 = shapeData.indices[tri * 3 + 2];
+
+                    if (i0 < shapeData.numVertices && i1 < shapeData.numVertices && i2 < shapeData.numVertices) {
+                        const Vector3& p0 = shapeData.vertices[i0];
+                        const Vector3& p1 = shapeData.vertices[i1];
+                        const Vector3& p2 = shapeData.vertices[i2];
+
+                        addTransformedLine(shapeMatrix, p0, p1);
+                        addTransformedLine(shapeMatrix, p1, p2);
+                        addTransformedLine(shapeMatrix, p2, p0);
+                    }
+                }
+            }
+        } else if (shapeData.type == Shape3DType::HEIGHTFIELD) {
+            Entity terrainEntity = shapeData.sourceEntity == NULL_ENTITY ? entity : shapeData.sourceEntity;
+            TerrainComponent* terrain = scene->findComponent<TerrainComponent>(terrainEntity);
+            if (terrain) {
+                Vector3 minPt(-terrain->terrainSize * 0.5f, 0.0f, -terrain->terrainSize * 0.5f);
+                Vector3 maxPt(terrain->terrainSize * 0.5f, terrain->maxHeight, terrain->terrainSize * 0.5f);
+                addBox(shapeMatrix, minPt, maxPt);
+            }
+        }
+    }
 }
 
 void Editor::SceneRender3D::createOrUpdateLightIcon(Entity entity, const Transform& transform, LightType lightType, bool newLight) {
@@ -579,6 +834,9 @@ void Editor::SceneRender3D::hideAllGizmos(){
         pair.second.icon->setVisible(false);
         pair.second.lines->setVisible(false);
     }
+    for (auto& pair : bodyObjects) {
+        pair.second.lines->setVisible(false);
+    }
 }
 
 void Editor::SceneRender3D::activate(){
@@ -652,6 +910,7 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
 
     std::set<Entity> currentIconLights;
     std::set<Entity> currentIconCameras;
+    std::set<Entity> currentBodyObjects;
 
     for (Entity& entity: entities){
         Signature signature = scene->getSignature(entity);
@@ -687,6 +946,15 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
                 createCameraFrustum(entity, transform, cameraComp, true, mainCamera == entity);
             }
         }
+
+        if (signature.test(scene->getComponentId<Body3DComponent>()) && signature.test(scene->getComponentId<Transform>())) {
+            Transform& transform = scene->getComponent<Transform>(entity);
+            Body3DComponent& body = scene->getComponent<Body3DComponent>(entity);
+
+            currentBodyObjects.insert(entity);
+            instanciateBodyObject(entity);
+            createOrUpdateBodyLines(entity, transform, body);
+        }
     }
 
     // Remove sun icons for entities that are no longer directional lights
@@ -710,6 +978,16 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
             itCam = cameraObjects.erase(itCam);
         } else {
             ++itCam;
+        }
+    }
+
+    auto itBody = bodyObjects.begin();
+    while (itBody != bodyObjects.end()) {
+        if (currentBodyObjects.find(itBody->first) == currentBodyObjects.end()) {
+            delete itBody->second.lines;
+            itBody = bodyObjects.erase(itBody);
+        } else {
+            ++itBody;
         }
     }
 }

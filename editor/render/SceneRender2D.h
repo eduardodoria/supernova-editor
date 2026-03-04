@@ -12,9 +12,12 @@ namespace Supernova::Editor{
     private:
         Lines* lines;
         std::map<Entity, Lines*> containerLines;
+        std::map<Entity, Lines*> bodyLines;
         bool isUI;
 
         void createLines(unsigned int width, unsigned int height);
+        bool instanciateBodyLines(Entity entity);
+        void createOrUpdateBodyLines(Entity entity, const Transform& transform, const Body2DComponent& body);
 
     protected:
         void hideAllGizmos() override;

@@ -40,6 +40,144 @@ Editor::SceneRender2D::~SceneRender2D(){
         delete pair.second;
     }
     containerLines.clear();
+
+    for (auto& pair : bodyLines) {
+        delete pair.second;
+    }
+    bodyLines.clear();
+}
+
+bool Editor::SceneRender2D::instanciateBodyLines(Entity entity){
+    if (bodyLines.find(entity) == bodyLines.end()){
+        ScopedDefaultEntityPool sys(*scene, EntityPool::System);
+        bodyLines[entity] = new Lines(scene);
+
+        return true;
+    }
+
+    return false;
+}
+
+void Editor::SceneRender2D::createOrUpdateBodyLines(Entity entity, const Transform& transform, const Body2DComponent& body){
+    Lines* bodyLinesObj = bodyLines[entity];
+
+    bodyLinesObj->clearLines();
+    bodyLinesObj->setVisible(transform.visible);
+
+    if (!transform.visible || body.numShapes == 0){
+        return;
+    }
+
+    const Vector4 bodyColor(0.2f, 0.95f, 0.95f, 1.0f);
+    const Matrix4 modelMatrix = transform.modelMatrix;
+
+    auto toWorld = [&](const Vector2& point){
+        return modelMatrix * Vector3(point.x, point.y, 0.0f);
+    };
+
+    auto addCircle = [&](const Vector2& center, float radius, int segments){
+        if (radius <= 0.0f){
+            return;
+        }
+
+        for (int i = 0; i < segments; i++){
+            float a0 = (2.0f * M_PI * i) / segments;
+            float a1 = (2.0f * M_PI * (i + 1)) / segments;
+
+            Vector2 p0 = center + Vector2(std::cos(a0), std::sin(a0)) * radius;
+            Vector2 p1 = center + Vector2(std::cos(a1), std::sin(a1)) * radius;
+
+            bodyLinesObj->addLine(toWorld(p0), toWorld(p1), bodyColor);
+        }
+    };
+
+    auto addArc = [&](const Vector2& center, float radius, float startAngle, float endAngle, int segments){
+        if (radius <= 0.0f){
+            return;
+        }
+
+        for (int i = 0; i < segments; i++){
+            float t0 = (float)i / (float)segments;
+            float t1 = (float)(i + 1) / (float)segments;
+            float a0 = startAngle + (endAngle - startAngle) * t0;
+            float a1 = startAngle + (endAngle - startAngle) * t1;
+
+            Vector2 p0 = center + Vector2(std::cos(a0), std::sin(a0)) * radius;
+            Vector2 p1 = center + Vector2(std::cos(a1), std::sin(a1)) * radius;
+
+            bodyLinesObj->addLine(toWorld(p0), toWorld(p1), bodyColor);
+        }
+    };
+
+    for (size_t i = 0; i < body.numShapes; i++){
+        const Shape2D& shape = body.shapes[i];
+
+        if (shape.type == Shape2DType::POLYGON){
+            if (shape.verticesCount >= 3){
+                for (size_t j = 0; j < shape.verticesCount; j++){
+                    const Vector2& p0 = shape.vertices[j];
+                    const Vector2& p1 = shape.vertices[(j + 1) % shape.verticesCount];
+                    bodyLinesObj->addLine(toWorld(p0), toWorld(p1), bodyColor);
+                }
+            }else{
+                Vector2 minPt(std::min(shape.pointA.x, shape.pointB.x), std::min(shape.pointA.y, shape.pointB.y));
+                Vector2 maxPt(std::max(shape.pointA.x, shape.pointB.x), std::max(shape.pointA.y, shape.pointB.y));
+
+                Vector2 p0(minPt.x, minPt.y);
+                Vector2 p1(maxPt.x, minPt.y);
+                Vector2 p2(maxPt.x, maxPt.y);
+                Vector2 p3(minPt.x, maxPt.y);
+
+                bodyLinesObj->addLine(toWorld(p0), toWorld(p1), bodyColor);
+                bodyLinesObj->addLine(toWorld(p1), toWorld(p2), bodyColor);
+                bodyLinesObj->addLine(toWorld(p2), toWorld(p3), bodyColor);
+                bodyLinesObj->addLine(toWorld(p3), toWorld(p0), bodyColor);
+            }
+        }else if (shape.type == Shape2DType::CIRCLE){
+            addCircle(shape.pointA, shape.radius, 24);
+        }else if (shape.type == Shape2DType::CAPSULE){
+            Vector2 pointA = shape.pointA;
+            Vector2 pointB = shape.pointB;
+            float radius = shape.radius;
+
+            if (radius <= 0.0f){
+                continue;
+            }
+
+            Vector2 axis = pointB - pointA;
+            if (axis.length() <= 0.0f){
+                addCircle(pointA, radius, 24);
+                continue;
+            }
+
+            axis.normalize();
+            Vector2 perp(-axis.y, axis.x);
+
+            Vector2 sideA1 = pointA + perp * radius;
+            Vector2 sideB1 = pointB + perp * radius;
+            Vector2 sideA2 = pointA - perp * radius;
+            Vector2 sideB2 = pointB - perp * radius;
+
+            bodyLinesObj->addLine(toWorld(sideA1), toWorld(sideB1), bodyColor);
+            bodyLinesObj->addLine(toWorld(sideA2), toWorld(sideB2), bodyColor);
+
+            float baseAngle = std::atan2(axis.y, axis.x);
+            addArc(pointA, radius, baseAngle + 0.5f * M_PI, baseAngle + 1.5f * M_PI, 12);
+            addArc(pointB, radius, baseAngle - 0.5f * M_PI, baseAngle + 0.5f * M_PI, 12);
+        }else if (shape.type == Shape2DType::SEGMENT){
+            bodyLinesObj->addLine(toWorld(shape.pointA), toWorld(shape.pointB), bodyColor);
+        }else if (shape.type == Shape2DType::CHAIN){
+            if (shape.verticesCount >= 2){
+                for (size_t j = 0; j < shape.verticesCount - 1; j++){
+                    bodyLinesObj->addLine(toWorld(shape.vertices[j]), toWorld(shape.vertices[j + 1]), bodyColor);
+                }
+
+                if (shape.loop){
+                    bodyLinesObj->addLine(toWorld(shape.vertices[shape.verticesCount - 1]), toWorld(shape.vertices[0]), bodyColor);
+                }
+            }
+        }
+    }
 }
 
 void Editor::SceneRender2D::createLines(unsigned int width, unsigned int height){
@@ -57,6 +195,9 @@ void Editor::SceneRender2D::hideAllGizmos(){
 
     lines->setVisible(false);
     for (auto& pair : containerLines) {
+        pair.second->setVisible(false);
+    }
+    for (auto& pair : bodyLines) {
         pair.second->setVisible(false);
     }
 }
@@ -122,6 +263,7 @@ void Editor::SceneRender2D::update(std::vector<Entity> selEntities, std::vector<
     lines->setVisible(true);
 
     std::set<Entity> currentContainers;
+    std::set<Entity> currentBodies;
     for (Entity& entity: entities){
         Signature signature = scene->getSignature(entity);
         if (signature.test(scene->getComponentId<UIContainerComponent>()) && 
@@ -181,6 +323,15 @@ void Editor::SceneRender2D::update(std::vector<Entity> selEntities, std::vector<
                 containerLinesObj->setVisible(false);
             }
         }
+
+        if (signature.test(scene->getComponentId<Body2DComponent>()) && signature.test(scene->getComponentId<Transform>())){
+            Body2DComponent& body = scene->getComponent<Body2DComponent>(entity);
+            Transform& transform = scene->getComponent<Transform>(entity);
+
+            currentBodies.insert(entity);
+            instanciateBodyLines(entity);
+            createOrUpdateBodyLines(entity, transform, body);
+        }
     }
 
     auto it = containerLines.begin();
@@ -190,6 +341,16 @@ void Editor::SceneRender2D::update(std::vector<Entity> selEntities, std::vector<
             it = containerLines.erase(it);
         } else {
             ++it;
+        }
+    }
+
+    auto itBody = bodyLines.begin();
+    while (itBody != bodyLines.end()) {
+        if (currentBodies.find(itBody->first) == currentBodies.end()) {
+            delete itBody->second;
+            itBody = bodyLines.erase(itBody);
+        } else {
+            ++itBody;
         }
     }
 }
