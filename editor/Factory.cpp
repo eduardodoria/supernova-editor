@@ -1011,8 +1011,33 @@ std::string Editor::Factory::createBody3DComponent(int indentSpaces, Scene* scen
     code << ind << "body3d.lockBody = " << formatBool(body.lockBody) << ";\n";
     code << ind << "body3d.numShapes = " << body.numShapes << ";\n";
 
+    auto sanitizeSourceForType = [](Shape3DType type, Shape3DSource source) {
+        if (type == Shape3DType::CONVEX_HULL){
+            if (source == Shape3DSource::RAW_VERTICES || source == Shape3DSource::ENTITY_MESH){
+                return source;
+            }
+            return Shape3DSource::ENTITY_MESH;
+        }
+        if (type == Shape3DType::MESH){
+            if (source == Shape3DSource::RAW_MESH || source == Shape3DSource::ENTITY_MESH){
+                return source;
+            }
+            return Shape3DSource::ENTITY_MESH;
+        }
+        if (type == Shape3DType::HEIGHTFIELD){
+            return Shape3DSource::ENTITY_HEIGHTFIELD;
+        }
+        return source;
+    };
+
     for (size_t i = 0; i < body.numShapes; i++) {
         const std::string idx = std::to_string(i);
+        const Shape3DSource source = sanitizeSourceForType(body.shapes[i].type, body.shapes[i].source);
+        const Entity sourceEntity =
+            (source != Shape3DSource::NONE && body.shapes[i].sourceEntity == NULL_ENTITY)
+                ? entity
+                : body.shapes[i].sourceEntity;
+
         code << ind << "body3d.shapes[" << idx << "].type = " << formatShape3DType(body.shapes[i].type) << ";\n";
         code << ind << "body3d.shapes[" << idx << "].position = " << formatVector3(body.shapes[i].position) << ";\n";
         code << ind << "body3d.shapes[" << idx << "].rotation = " << formatQuaternion(body.shapes[i].rotation) << ";\n";
@@ -1024,8 +1049,8 @@ std::string Editor::Factory::createBody3DComponent(int indentSpaces, Scene* scen
         code << ind << "body3d.shapes[" << idx << "].topRadius = " << formatFloat(body.shapes[i].topRadius) << ";\n";
         code << ind << "body3d.shapes[" << idx << "].bottomRadius = " << formatFloat(body.shapes[i].bottomRadius) << ";\n";
         code << ind << "body3d.shapes[" << idx << "].density = " << formatFloat(body.shapes[i].density) << ";\n";
-        code << ind << "body3d.shapes[" << idx << "].source = " << formatShape3DSource(body.shapes[i].source) << ";\n";
-        code << ind << "body3d.shapes[" << idx << "].sourceEntity = " << body.shapes[i].sourceEntity << ";\n";
+        code << ind << "body3d.shapes[" << idx << "].source = " << formatShape3DSource(source) << ";\n";
+        code << ind << "body3d.shapes[" << idx << "].sourceEntity = " << sourceEntity << ";\n";
         code << ind << "body3d.shapes[" << idx << "].samplesSize = " << body.shapes[i].samplesSize << ";\n";
         code << ind << "body3d.shapes[" << idx << "].numVertices = " << body.shapes[i].numVertices << ";\n";
         for (size_t j = 0; j < body.shapes[i].numVertices; j++) {

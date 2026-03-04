@@ -2808,7 +2808,18 @@ Body3DComponent Editor::Stream::decodeBody3DComponent(const YAML::Node& node, co
                 else body.shapes[i].source = Shape3DSource::NONE;
             }
 
+            if (body.shapes[i].source == Shape3DSource::NONE) {
+                if (body.shapes[i].type == Shape3DType::CONVEX_HULL) {
+                    body.shapes[i].source = Shape3DSource::ENTITY_MESH;
+                } else if (body.shapes[i].type == Shape3DType::MESH) {
+                    body.shapes[i].source = Shape3DSource::ENTITY_MESH;
+                } else if (body.shapes[i].type == Shape3DType::HEIGHTFIELD) {
+                    body.shapes[i].source = Shape3DSource::ENTITY_HEIGHTFIELD;
+                }
+            }
+
             if (node["shapes"][i]["sourceEntity"]) body.shapes[i].sourceEntity = node["shapes"][i]["sourceEntity"].as<Entity>();
+
             if (node["shapes"][i]["samplesSize"]) body.shapes[i].samplesSize = node["shapes"][i]["samplesSize"].as<unsigned int>();
 
             if (node["shapes"][i]["vertices"]) {

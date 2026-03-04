@@ -668,6 +668,11 @@ std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(Compo
             ps["shapes["+idx+"].source"] = {PropertyType::Enum, UpdateFlags_Body3D, (void*)&def->shapes[0].source, (compRef) ? (void*)&comp->shapes[s].source : nullptr};
             ps["shapes["+idx+"].sourceEntity"] = {PropertyType::UInt, UpdateFlags_Body3D, (void*)&def->shapes[0].sourceEntity, (compRef) ? (void*)&comp->shapes[s].sourceEntity : nullptr};
             ps["shapes["+idx+"].samplesSize"] = {PropertyType::UInt, UpdateFlags_Body3D, (void*)&def->shapes[0].samplesSize, (compRef) ? (void*)&comp->shapes[s].samplesSize : nullptr};
+
+            for (int v = 0; v < ((compRef) ? MAX_SHAPE_VERTICES_3D : 1); v++){
+                std::string vidx = (compRef) ? std::to_string(v) : "";
+                ps["shapes["+idx+"].vertices["+vidx+"]"] = {PropertyType::Vector3, UpdateFlags_Body3D, (void*)&def->shapes[0].vertices[0], (compRef) ? (void*)&comp->shapes[s].vertices[v] : nullptr};
+            }
         }
     }else if (component == ComponentType::Joint2DComponent){
         Joint2DComponent* comp = static_cast<Joint2DComponent*>(compRef);
