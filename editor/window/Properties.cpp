@@ -95,8 +95,8 @@ static std::vector<Editor::EnumEntry> entriesShape2DType = {
 };
 
 static std::vector<Editor::EnumEntry> entriesShape3DType = {
-    { (int)Shape3DType::SPHERE, "Sphere" },
     { (int)Shape3DType::BOX, "Box" },
+    { (int)Shape3DType::SPHERE, "Sphere" },
     { (int)Shape3DType::CAPSULE, "Capsule" },
     { (int)Shape3DType::TAPERED_CAPSULE, "Tapered Capsule" },
     { (int)Shape3DType::CYLINDER, "Cylinder" },
@@ -3982,9 +3982,9 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
         }
     };
 
-    auto getUILayoutSizeForShape = [sceneProject](Entity entity){
-        float width = 100.0f;
-        float height = 100.0f;
+    auto getSizeForShape = [sceneProject](Entity entity, float defaultSize = 100.0f) -> Vector2 {
+        float width = defaultSize;
+        float height = defaultSize;
 
         if (SpriteComponent* spriteComp = sceneProject->scene->findComponent<SpriteComponent>(entity)){
             if (spriteComp->width > 0){
@@ -4054,17 +4054,31 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
                 switch (shape.type){
                 case Shape2DType::POLYGON:
                 {
-                    Vector2 layoutSize = getUILayoutSizeForShape(entity);
-                    const float halfW = layoutSize.x * 0.5f;
-                    const float halfH = layoutSize.y * 0.5f;
+                    Vector2 layoutSize = getSizeForShape(entity, 0.0f);
 
                     shape.verticesCount = 4;
-                    shape.pointA = Vector2(-halfW, -halfH);
-                    shape.pointB = Vector2(halfW, halfH);
-                    shape.vertices[0] = Vector2(-halfW, -halfH);
-                    shape.vertices[1] = Vector2(halfW, -halfH);
-                    shape.vertices[2] = Vector2(halfW, halfH);
-                    shape.vertices[3] = Vector2(-halfW, halfH);
+
+                    if (layoutSize != Vector2::ZERO){
+                        shape.pointA = Vector2(0.0f, 0.0f);
+                        shape.pointB = Vector2(layoutSize.x, layoutSize.y);
+                        shape.vertices[0] = Vector2(0.0f, 0.0f);
+                        shape.vertices[1] = Vector2(layoutSize.x, 0.0f);
+                        shape.vertices[2] = Vector2(layoutSize.x, layoutSize.y);
+                        shape.vertices[3] = Vector2(0.0f, layoutSize.y);
+                    }else{
+                        layoutSize = Vector2(100.0f, 100.0f);
+
+                        const float halfW = layoutSize.x * 0.5f;
+                        const float halfH = layoutSize.y * 0.5f;
+
+                        shape.pointA = Vector2(-halfW, -halfH);
+                        shape.pointB = Vector2(halfW, halfH);
+                        shape.vertices[0] = Vector2(-halfW, -halfH);
+                        shape.vertices[1] = Vector2(halfW, -halfH);
+                        shape.vertices[2] = Vector2(halfW, halfH);
+                        shape.vertices[3] = Vector2(-halfW, halfH);
+                    }
+
                     break;
                 }
                 case Shape2DType::CIRCLE:
@@ -4349,7 +4363,7 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
         }
         if (shape.type == Shape2DType::POLYGON){
             ImGui::PushStyleColor(ImGuiCol_Text, App::ThemeColors::SubtleText);
-            propertyHeader("Preset");
+            propertyHeader("Reset shape");
             ImGui::PopStyleColor();
             if (ImGui::SmallButton(("Box##shape_preset_box_" + std::to_string(s)).c_str())){
                 MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
@@ -4358,7 +4372,7 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
                         if (s >= bodyComp->numShapes) continue;
 
                         Shape2D shapeValue = bodyComp->shapes[s];
-                        Vector2 layoutSize = getUILayoutSizeForShape(entity);
+                        Vector2 layoutSize = getSizeForShape(entity);
 
                         shapeValue.verticesCount = 4;
                         shapeValue.radius = 0.0f;
@@ -4382,7 +4396,7 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
                         if (s >= bodyComp->numShapes) continue;
 
                         Shape2D shapeValue = bodyComp->shapes[s];
-                        Vector2 layoutSize = getUILayoutSizeForShape(entity);
+                        Vector2 layoutSize = getSizeForShape(entity);
                         const float halfW = layoutSize.x * 0.5f;
                         const float halfH = layoutSize.y * 0.5f;
 
@@ -4408,7 +4422,7 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
                         if (s >= bodyComp->numShapes) continue;
 
                         Shape2D shapeValue = bodyComp->shapes[s];
-                        Vector2 layoutSize = getUILayoutSizeForShape(entity);
+                        Vector2 layoutSize = getSizeForShape(entity);
                         const float halfW = layoutSize.x * 0.5f;
                         const float halfH = layoutSize.y * 0.5f;
 
@@ -5343,6 +5357,7 @@ void Editor::Properties::show(){
                 [](){}
             );
         }
+
         ImGui::EndDisabled();
 
         // Show the component add dialog

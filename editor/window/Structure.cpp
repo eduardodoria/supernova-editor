@@ -9,6 +9,7 @@
 #include "command/type/EntityNameCmd.h"
 #include "command/type/SceneNameCmd.h"
 #include "command/type/DeleteEntityCmd.h"
+#include "command/type/AddComponentCmd.h"
 #include "command/type/ImportSharedEntityCmd.h"
 #include "command/type/MakeEntityLocalCmd.h"
 #include "command/type/MakeEntitySharedCmd.h"
@@ -769,6 +770,27 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
             if (ImGui::MenuItem(ICON_FA_TRASH"  Delete", nullptr, false, !node.isLocked)){
                 if (!node.isScene){
                     CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new DeleteEntityCmd(project, project->getSelectedSceneId(), node.id));
+                }
+            }
+            if (!node.isScene && node.hasTransform) {
+                SceneProject* selectedScene = project->getSelectedScene();
+                bool allowPhysicsBody = selectedScene &&
+                    (selectedScene->sceneType == SceneType::SCENE_2D || selectedScene->sceneType == SceneType::SCENE_3D);
+
+                if (allowPhysicsBody) {
+                    ComponentType bodyType = selectedScene->sceneType == SceneType::SCENE_3D ? ComponentType::Body3DComponent : ComponentType::Body2DComponent;
+                    Signature signature = selectedScene->scene->getSignature(node.id);
+                    bool hasBody = false;
+
+                    if (bodyType == ComponentType::Body3DComponent) {
+                        hasBody = signature.test(selectedScene->scene->getComponentId<Body3DComponent>());
+                    } else {
+                        hasBody = signature.test(selectedScene->scene->getComponentId<Body2DComponent>());
+                    }
+
+                    if (ImGui::MenuItem(ICON_FA_DUMBBELL "  Add Physics Body", nullptr, false, !node.isLocked && !hasBody)) {
+                        CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new AddComponentCmd(project, project->getSelectedSceneId(), node.id, bodyType));
+                    }
                 }
             }
             if (node.isParentShared){
