@@ -1110,14 +1110,14 @@ void Editor::SceneRender3D::updateSelLines(std::vector<OBB> obbs){
     }
 }
 
-void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<Entity> entities, Entity mainCamera){
-    SceneRender::update(selEntities, entities, mainCamera);
+void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<Entity> entities, Entity mainCamera, const SceneDisplaySettings& settings){
+    SceneRender::update(selEntities, entities, mainCamera, settings);
 
     if (isPlaying){
         return;
     }
 
-    lines->setVisible(true);
+    lines->setVisible(!displaySettings.hideGrid);
 
     int linesStepChange = (int)(camera->getFarClip() / 2);
     int cameraLineStepX = (int)(camera->getWorldPosition().x / linesStepChange) * linesStepChange;
@@ -1158,6 +1158,10 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
                 createOrUpdateLightIcon(entity, transform, LightType::SPOT, newLight);
                 createSpotLightCones(entity, transform, light, isSelected);
             }
+
+            if (displaySettings.hideLightIcons && lightObjects.find(entity) != lightObjects.end()) {
+                lightObjects[entity].icon->setVisible(false);
+            }
         }
 
         if (signature.test(scene->getComponentId<CameraComponent>()) && signature.test(scene->getComponentId<Transform>())) {
@@ -1169,6 +1173,11 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
                 bool newCamera = instanciateCameraObject(entity);
                 createOrUpdateCameraIcon(entity, transform, newCamera);
                 createCameraFrustum(entity, transform, cameraComp, true, mainCamera == entity);
+
+                if (displaySettings.hideCameraView) {
+                    cameraObjects[entity].icon->setVisible(false);
+                    cameraObjects[entity].lines->setVisible(false);
+                }
             }
         }
 
@@ -1179,6 +1188,9 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
             currentBodyObjects.insert(entity);
             instanciateBodyObject(entity);
             createOrUpdateBodyLines(entity, transform, body);
+            if (displaySettings.hideAllBodies && bodyObjects.find(entity) != bodyObjects.end()) {
+                bodyObjects[entity].lines->setVisible(false);
+            }
         }
 
         if (signature.test(scene->getComponentId<Joint3DComponent>())) {
@@ -1191,7 +1203,7 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
             bool isBodyASelected = joint.bodyA != NULL_ENTITY && selectedEntities.find(joint.bodyA) != selectedEntities.end();
             bool isBodyBSelected = joint.bodyB != NULL_ENTITY && selectedEntities.find(joint.bodyB) != selectedEntities.end();
             bool highlighted = isSelectedJoint || isBodyASelected || isBodyBSelected;
-            bool isVisible = showAllJoints || highlighted;
+            bool isVisible = displaySettings.showAllJoints || highlighted;
 
             createOrUpdateJointLines(entity, joint, isVisible, highlighted);
         }

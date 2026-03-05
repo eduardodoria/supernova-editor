@@ -52,6 +52,7 @@ namespace Supernova::Editor{
         bool isModified = false;
         bool isVisible = false;
         bool opened = true;
+        SceneDisplaySettings displaySettings;
         ScenePlayState playState = ScenePlayState::STOPPED;
         YAML::Node playStateSnapshot;
         std::vector<uint32_t> childScenes;

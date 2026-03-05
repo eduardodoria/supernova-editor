@@ -9,6 +9,16 @@
 
 namespace Supernova::Editor{
 
+    struct SceneDisplaySettings {
+        bool showAllJoints       = false;
+        bool hideAllBodies       = false;
+        bool hideCameraView      = false;
+        bool hideLightIcons      = false;
+        bool hideContainerGuides = false;
+        bool hideGrid            = false;
+        bool hideSelectionOutline = false;
+    };
+
     class Project;
 
     class SceneRender{
@@ -51,7 +61,8 @@ namespace Supernova::Editor{
 
         bool multipleEntitiesSelected;
         bool isPlaying;
-        bool showAllJoints;
+
+        SceneDisplaySettings displaySettings;
 
         float zoom;       // current zoom level (units per pixel) for 2D
 
@@ -69,7 +80,7 @@ namespace Supernova::Editor{
 
         void updateRenderSystem();
 
-        virtual void update(std::vector<Entity> selEntities, std::vector<Entity> entities, Entity mainCamera);
+        virtual void update(std::vector<Entity> selEntities, std::vector<Entity> entities, Entity mainCamera, const SceneDisplaySettings& settings = SceneDisplaySettings{});
         virtual void mouseHoverEvent(float x, float y);
         virtual void mouseClickEvent(float x, float y, std::vector<Entity> selEntities);
         virtual void mouseReleaseEvent(float x, float y);
@@ -91,8 +102,6 @@ namespace Supernova::Editor{
         CursorSelected getCursorSelected() const;
 
         bool isMultipleEntitesSelected() const;
-        bool isShowAllJoints() const;
-        void setShowAllJoints(bool showAllJoints);
     };
 
 }

@@ -765,7 +765,7 @@ void Editor::App::engineRender(){
                 sceneRender->updateRenderSystem();
 
                 //TODO: avoid calling every frame
-                sceneRender->update(project.getSelectedEntities(sceneProject.id), project.getEntities(sceneProject.id), sceneProject.mainCamera);
+                sceneRender->update(project.getSelectedEntities(sceneProject.id), project.getEntities(sceneProject.id), sceneProject.mainCamera, sceneProject.displaySettings);
 
                 Engine::systemDraw();
 

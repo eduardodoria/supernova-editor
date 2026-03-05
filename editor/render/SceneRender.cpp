@@ -24,7 +24,7 @@ Editor::SceneRender::SceneRender(Scene* scene, bool use2DGizmos, bool enableView
     this->camera = new Camera(scene);
 
     this->multipleEntitiesSelected = false;
-    this->showAllJoints = false;
+    // displaySettings initialised with struct defaults
 
     this->zoom = 1.0f;
 
@@ -230,7 +230,8 @@ void Editor::SceneRender::updateRenderSystem(){
     scene->getSystem<RenderSystem>()->update(0);
 }
 
-void Editor::SceneRender::update(std::vector<Entity> selEntities, std::vector<Entity> entities, Entity mainCamera){
+void Editor::SceneRender::update(std::vector<Entity> selEntities, std::vector<Entity> entities, Entity mainCamera, const SceneDisplaySettings& settings){
+    displaySettings = settings;
     if (isPlaying){
         return;
     }
@@ -328,7 +329,7 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities, std::vector<En
     if (!multipleEntitiesSelected && (toolslayer.getGizmoSelected() == GizmoSelected::OBJECT2D || selBB.size() == 0)) {
         showSelLines = false;
     }
-    selLines->setVisible(showSelLines);
+    selLines->setVisible(showSelLines && !displaySettings.hideSelectionOutline);
 
     if (toolslayer.getGizmoSelected() == GizmoSelected::OBJECT2D && !sameRotation){
         toolslayer.setGizmoVisible(false);
@@ -705,12 +706,4 @@ Editor::CursorSelected Editor::SceneRender::getCursorSelected() const{
 
 bool Editor::SceneRender::isMultipleEntitesSelected() const{
     return multipleEntitiesSelected;
-}
-
-bool Editor::SceneRender::isShowAllJoints() const{
-    return showAllJoints;
-}
-
-void Editor::SceneRender::setShowAllJoints(bool showAllJoints){
-    this->showAllJoints = showAllJoints;
 }

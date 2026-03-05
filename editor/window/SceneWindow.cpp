@@ -350,7 +350,7 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
                     if (!alreadySelected || io.KeyShift) {
                         bool changed = project->selectObjectByRay(sceneId, x, y, io.KeyShift);
                         if (changed) {
-                            sceneProject->sceneRender->update(project->getSelectedEntities(sceneId), project->getEntities(sceneId), sceneProject->mainCamera);
+                            sceneProject->sceneRender->update(project->getSelectedEntities(sceneId), project->getEntities(sceneId), sceneProject->mainCamera, sceneProject->displaySettings);
                             sceneProject->sceneRender->mouseHoverEvent(x, y);
                         }
                     }
@@ -712,14 +712,33 @@ void Editor::SceneWindow::show() {
                 ImGui::SameLine(0, 10);
                 ImGui::Dummy(ImVec2(1, 20));
 
-                bool showAllJoints = sceneProject.sceneRender->isShowAllJoints();
-                ImGui::BeginDisabled(sceneProject.playState != ScenePlayState::STOPPED);
+                std::string sceneSettingsPopupId = "SceneSettingsPopup" + std::to_string(sceneProject.id);
                 ImGui::SameLine();
-                if (ImGui::Button(showAllJoints ? ICON_FA_LINK_SLASH : ICON_FA_LINK)) {
-                    sceneProject.sceneRender->setShowAllJoints(!showAllJoints);
+                if (ImGui::Button(ICON_FA_GEAR)) {
+                    ImGui::OpenPopup(sceneSettingsPopupId.c_str());
                 }
-                ImGui::SetItemTooltip(showAllJoints ? "Hide all joints" : "Show all joints");
-                ImGui::EndDisabled();
+                ImGui::SetItemTooltip("Scene display settings");
+
+                if (ImGui::BeginPopup(sceneSettingsPopupId.c_str())) {
+                    ImGui::BeginDisabled(sceneProject.playState != ScenePlayState::STOPPED);
+                    ImGui::Checkbox("Show all joints",  &sceneProject.displaySettings.showAllJoints);
+                    ImGui::Checkbox("Hide all bodies",  &sceneProject.displaySettings.hideAllBodies);
+                    ImGui::EndDisabled();
+
+                    ImGui::BeginDisabled(sceneProject.sceneType != SceneType::SCENE_3D);
+                    ImGui::Checkbox("Hide camera view", &sceneProject.displaySettings.hideCameraView);
+                    ImGui::Checkbox("Hide light icons", &sceneProject.displaySettings.hideLightIcons);
+                    ImGui::EndDisabled();
+
+                    ImGui::BeginDisabled(sceneProject.sceneType == SceneType::SCENE_3D);
+                    ImGui::Checkbox("Hide container guides", &sceneProject.displaySettings.hideContainerGuides);
+                    ImGui::EndDisabled();
+
+                    ImGui::Checkbox("Hide grid",               &sceneProject.displaySettings.hideGrid);
+                    ImGui::Checkbox("Hide selection outline",  &sceneProject.displaySettings.hideSelectionOutline);
+
+                    ImGui::EndPopup();
+                }
 
                 ImGui::SameLine(0, 10);
                 ImGui::Dummy(ImVec2(1, 20));

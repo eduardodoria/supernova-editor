@@ -463,14 +463,14 @@ void Editor::SceneRender2D::updateSelLines(std::vector<OBB> obbs){
     }
 }
 
-void Editor::SceneRender2D::update(std::vector<Entity> selEntities, std::vector<Entity> entities, Entity mainCamera){
-    SceneRender::update(selEntities, entities, mainCamera);
+void Editor::SceneRender2D::update(std::vector<Entity> selEntities, std::vector<Entity> entities, Entity mainCamera, const SceneDisplaySettings& settings){
+    SceneRender::update(selEntities, entities, mainCamera, settings);
 
     if (isPlaying){
         return;
     }
 
-    lines->setVisible(true);
+    lines->setVisible(!displaySettings.hideGrid);
 
     std::set<Entity> selectedEntities(selEntities.begin(), selEntities.end());
 
@@ -497,7 +497,7 @@ void Editor::SceneRender2D::update(std::vector<Entity> selEntities, std::vector<
             UILayoutComponent& layout = scene->getComponent<UILayoutComponent>(entity);
             UIContainerComponent& container = scene->getComponent<UIContainerComponent>(entity);
 
-            if (transform.visible){
+            if (transform.visible && !displaySettings.hideContainerGuides){
                 containerLinesObj->setVisible(true);
 
                 Vector4 borderColor(0.55f, 0.35f, 0.85f, 1.0f); // Purple color for container
@@ -544,6 +544,9 @@ void Editor::SceneRender2D::update(std::vector<Entity> selEntities, std::vector<
             currentBodies.insert(entity);
             instanciateBodyLines(entity);
             createOrUpdateBodyLines(entity, transform, body);
+            if (displaySettings.hideAllBodies && bodyLines.find(entity) != bodyLines.end()) {
+                bodyLines[entity]->setVisible(false);
+            }
         }
 
         if (signature.test(scene->getComponentId<Joint2DComponent>())){
@@ -556,7 +559,7 @@ void Editor::SceneRender2D::update(std::vector<Entity> selEntities, std::vector<
             bool isBodyASelected = joint.bodyA != NULL_ENTITY && selectedEntities.find(joint.bodyA) != selectedEntities.end();
             bool isBodyBSelected = joint.bodyB != NULL_ENTITY && selectedEntities.find(joint.bodyB) != selectedEntities.end();
             bool highlighted = isSelectedJoint || isBodyASelected || isBodyBSelected;
-            bool isVisible = showAllJoints || highlighted;
+            bool isVisible = displaySettings.showAllJoints || highlighted;
 
             createOrUpdateJointLines(entity, joint, isVisible, highlighted);
         }

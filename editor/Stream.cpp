@@ -861,6 +861,13 @@ YAML::Node Editor::Stream::encodeProject(Project* project) {
         if (!sceneProject.filepath.empty()) {
             sceneNode["filepath"] = sceneProject.filepath.string();
             sceneNode["opened"] = sceneProject.opened;
+            sceneNode["showAllJoints"]        = sceneProject.displaySettings.showAllJoints;
+            sceneNode["hideAllBodies"]        = sceneProject.displaySettings.hideAllBodies;
+            sceneNode["hideCameraView"]       = sceneProject.displaySettings.hideCameraView;
+            sceneNode["hideLightIcons"]       = sceneProject.displaySettings.hideLightIcons;
+            sceneNode["hideContainerGuides"]  = sceneProject.displaySettings.hideContainerGuides;
+            sceneNode["hideGrid"]             = sceneProject.displaySettings.hideGrid;
+            sceneNode["hideSelectionOutline"] = sceneProject.displaySettings.hideSelectionOutline;
             scenesNode.push_back(sceneNode);
         }
     }
@@ -908,6 +915,18 @@ void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
                 if (opened) anyOpened = true;
                 if (fs::exists(scenePath)) {
                     project->loadScene(scenePath, opened);
+                    // Restore display settings into the just-loaded scene
+                    auto& scenes = project->getScenes();
+                    if (!scenes.empty()) {
+                        SceneDisplaySettings& ds = scenes.back().displaySettings;
+                        if (sceneNode["showAllJoints"])        ds.showAllJoints        = sceneNode["showAllJoints"].as<bool>();
+                        if (sceneNode["hideAllBodies"])        ds.hideAllBodies        = sceneNode["hideAllBodies"].as<bool>();
+                        if (sceneNode["hideCameraView"])       ds.hideCameraView       = sceneNode["hideCameraView"].as<bool>();
+                        if (sceneNode["hideLightIcons"])       ds.hideLightIcons       = sceneNode["hideLightIcons"].as<bool>();
+                        if (sceneNode["hideContainerGuides"])  ds.hideContainerGuides  = sceneNode["hideContainerGuides"].as<bool>();
+                        if (sceneNode["hideGrid"])             ds.hideGrid             = sceneNode["hideGrid"].as<bool>();
+                        if (sceneNode["hideSelectionOutline"]) ds.hideSelectionOutline = sceneNode["hideSelectionOutline"].as<bool>();
+                    }
                 }
             }
         }

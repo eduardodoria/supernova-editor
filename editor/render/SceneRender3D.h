@@ -76,7 +76,7 @@ namespace Supernova::Editor{
         void activate() override;
         void updateSelLines(std::vector<OBB> obbs) override;
 
-        void update(std::vector<Entity> selEntities, std::vector<Entity> entities, Entity mainCamera) override;
+        void update(std::vector<Entity> selEntities, std::vector<Entity> entities, Entity mainCamera, const SceneDisplaySettings& settings = SceneDisplaySettings{}) override;
         void mouseHoverEvent(float x, float y) override;
         void mouseClickEvent(float x, float y, std::vector<Entity> selEntities) override;
         void mouseReleaseEvent(float x, float y) override;
