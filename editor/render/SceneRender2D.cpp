@@ -109,15 +109,60 @@ void Editor::SceneRender2D::createOrUpdateBodyLines(Entity entity, const Transfo
         }
     };
 
+    auto addRoundedRect = [&](const Vector2& a, const Vector2& b, float radius){
+        Vector2 minPt(std::min(a.x, b.x), std::min(a.y, b.y));
+        Vector2 maxPt(std::max(a.x, b.x), std::max(a.y, b.y));
+
+        const float width = maxPt.x - minPt.x;
+        const float height = maxPt.y - minPt.y;
+        if (width <= 0.0f || height <= 0.0f){
+            return;
+        }
+
+        const float clampedRadius = std::max(0.0f, std::min(radius, std::min(width, height) * 0.5f));
+        if (clampedRadius <= 0.0f){
+            Vector2 p0(minPt.x, minPt.y);
+            Vector2 p1(maxPt.x, minPt.y);
+            Vector2 p2(maxPt.x, maxPt.y);
+            Vector2 p3(minPt.x, maxPt.y);
+
+            bodyLinesObj->addLine(toWorld(p0), toWorld(p1), bodyColor);
+            bodyLinesObj->addLine(toWorld(p1), toWorld(p2), bodyColor);
+            bodyLinesObj->addLine(toWorld(p2), toWorld(p3), bodyColor);
+            bodyLinesObj->addLine(toWorld(p3), toWorld(p0), bodyColor);
+            return;
+        }
+
+        const float x0 = minPt.x;
+        const float y0 = minPt.y;
+        const float x1 = maxPt.x;
+        const float y1 = maxPt.y;
+        const float r = clampedRadius;
+
+        bodyLinesObj->addLine(toWorld(Vector2(x0 + r, y0)), toWorld(Vector2(x1 - r, y0)), bodyColor);
+        bodyLinesObj->addLine(toWorld(Vector2(x1, y0 + r)), toWorld(Vector2(x1, y1 - r)), bodyColor);
+        bodyLinesObj->addLine(toWorld(Vector2(x1 - r, y1)), toWorld(Vector2(x0 + r, y1)), bodyColor);
+        bodyLinesObj->addLine(toWorld(Vector2(x0, y1 - r)), toWorld(Vector2(x0, y0 + r)), bodyColor);
+
+        addArc(Vector2(x0 + r, y0 + r), r, M_PI, 1.5f * M_PI, 8);
+        addArc(Vector2(x1 - r, y0 + r), r, 1.5f * M_PI, 2.0f * M_PI, 8);
+        addArc(Vector2(x1 - r, y1 - r), r, 0.0f, 0.5f * M_PI, 8);
+        addArc(Vector2(x0 + r, y1 - r), r, 0.5f * M_PI, M_PI, 8);
+    };
+
     for (size_t i = 0; i < body.numShapes; i++){
         const Shape2D& shape = body.shapes[i];
 
         if (shape.type == Shape2DType::POLYGON){
             if (shape.verticesCount >= 3){
-                for (size_t j = 0; j < shape.verticesCount; j++){
-                    const Vector2& p0 = shape.vertices[j];
-                    const Vector2& p1 = shape.vertices[(j + 1) % shape.verticesCount];
-                    bodyLinesObj->addLine(toWorld(p0), toWorld(p1), bodyColor);
+                if (shape.radius > 0.0f){
+                    addRoundedRect(shape.pointA, shape.pointB, shape.radius);
+                }else{
+                    for (size_t j = 0; j < shape.verticesCount; j++){
+                        const Vector2& p0 = shape.vertices[j];
+                        const Vector2& p1 = shape.vertices[(j + 1) % shape.verticesCount];
+                        bodyLinesObj->addLine(toWorld(p0), toWorld(p1), bodyColor);
+                    }
                 }
             }else{
                 Vector2 minPt(std::min(shape.pointA.x, shape.pointB.x), std::min(shape.pointA.y, shape.pointB.y));

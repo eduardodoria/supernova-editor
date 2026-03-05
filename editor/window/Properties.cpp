@@ -4024,32 +4024,9 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
             break;
         }
     }
-    if (createShape2DType == 100) createShape2DLabel = "Box";
-    if (createShape2DType == 101) createShape2DLabel = "Centered Box";
-    if (createShape2DType == 102) createShape2DLabel = "Rounded Box";
 
     ImGui::SetNextItemWidth(12 * ImGui::GetFontSize());
     if (ImGui::BeginCombo("##shape2d_create_type", createShape2DLabel)){
-        ImGui::PushStyleColor(ImGuiCol_Text, App::ThemeColors::SubtleText);
-        if (ImGui::Selectable("Box", createShape2DType == 100)){
-            createShape2DType = 100;
-        }
-        if (createShape2DType == 100){
-            ImGui::SetItemDefaultFocus();
-        }
-        if (ImGui::Selectable("Centered Box", createShape2DType == 101)){
-            createShape2DType = 101;
-        }
-        if (createShape2DType == 101){
-            ImGui::SetItemDefaultFocus();
-        }
-        if (ImGui::Selectable("Rounded Box", createShape2DType == 102)){
-            createShape2DType = 102;
-        }
-        if (createShape2DType == 102){
-            ImGui::SetItemDefaultFocus();
-        }
-        ImGui::PopStyleColor();
         for (const EnumEntry& entry : entriesShape2DType){
             bool selected = (createShape2DType == entry.value);
             if (ImGui::Selectable(entry.name, selected)){
@@ -4072,81 +4049,44 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
                 }
 
                 Shape2D shape;
-                if (createShape2DType >= 100){
-                    shape.type = Shape2DType::POLYGON;
-                }else{
-                    shape.type = (Shape2DType)createShape2DType;
-                }
+                shape.type = (Shape2DType)createShape2DType;
 
-                if (createShape2DType >= 100){
+                switch (shape.type){
+                case Shape2DType::POLYGON:
+                {
                     Vector2 layoutSize = getUILayoutSizeForShape(entity);
                     const float halfW = layoutSize.x * 0.5f;
                     const float halfH = layoutSize.y * 0.5f;
 
                     shape.verticesCount = 4;
-                    if (createShape2DType == 100){ // Box
-                        shape.radius = 0.0f;
-                        shape.pointA = Vector2(0.0f, 0.0f);
-                        shape.pointB = Vector2(layoutSize.x, layoutSize.y);
-                        shape.vertices[0] = Vector2(0.0f, 0.0f);
-                        shape.vertices[1] = Vector2(layoutSize.x, 0.0f);
-                        shape.vertices[2] = Vector2(layoutSize.x, layoutSize.y);
-                        shape.vertices[3] = Vector2(0.0f, layoutSize.y);
-                    } else if (createShape2DType == 101){ // Centered Box
-                        shape.radius = 0.0f;
-                        shape.pointA = Vector2(-halfW, -halfH);
-                        shape.pointB = Vector2(halfW, halfH);
-                        shape.vertices[0] = Vector2(-halfW, -halfH);
-                        shape.vertices[1] = Vector2(halfW, -halfH);
-                        shape.vertices[2] = Vector2(halfW, halfH);
-                        shape.vertices[3] = Vector2(-halfW, halfH);
-                    } else if (createShape2DType == 102){ // Rounded Box
-                        shape.radius = std::max(1.0f, std::min(layoutSize.x, layoutSize.y) * 0.04f);
-                        shape.pointA = Vector2(-halfW, -halfH);
-                        shape.pointB = Vector2(halfW, halfH);
-                        shape.vertices[0] = Vector2(-halfW, -halfH);
-                        shape.vertices[1] = Vector2(halfW, -halfH);
-                        shape.vertices[2] = Vector2(halfW, halfH);
-                        shape.vertices[3] = Vector2(-halfW, halfH);
-                    }
-                }else{
-                    switch (shape.type){
-                    case Shape2DType::POLYGON:
-                    {
-                        Vector2 layoutSize = getUILayoutSizeForShape(entity);
-                        const float halfW = layoutSize.x * 0.5f;
-                        const float halfH = layoutSize.y * 0.5f;
-
-                        shape.verticesCount = 4;
-                        shape.pointA = Vector2(-halfW, -halfH);
-                        shape.pointB = Vector2(halfW, halfH);
-                        shape.vertices[0] = Vector2(-halfW, -halfH);
-                        shape.vertices[1] = Vector2(halfW, -halfH);
-                        shape.vertices[2] = Vector2(halfW, halfH);
-                        shape.vertices[3] = Vector2(-halfW, halfH);
-                        break;
-                    }
-                    case Shape2DType::CIRCLE:
-                        shape.pointA = Vector2::ZERO;
-                        shape.radius = 0.5f;
-                        break;
-                    case Shape2DType::CAPSULE:
-                        shape.pointA = Vector2(0.0f, -0.5f);
-                        shape.pointB = Vector2(0.0f, 0.5f);
-                        shape.radius = 0.5f;
-                        break;
-                    case Shape2DType::SEGMENT:
-                        shape.pointA = Vector2(-1.0f, 0.0f);
-                        shape.pointB = Vector2(1.0f, 0.0f);
-                        break;
-                    case Shape2DType::CHAIN:
-                        shape.verticesCount = 4;
-                        shape.vertices[0] = Vector2(-0.5f, -0.5f);
-                        shape.vertices[1] = Vector2(0.5f, -0.5f);
-                        shape.vertices[2] = Vector2(0.5f, 0.5f);
-                        shape.vertices[3] = Vector2(-0.5f, 0.5f);
-                        break;
-                    }
+                    shape.pointA = Vector2(-halfW, -halfH);
+                    shape.pointB = Vector2(halfW, halfH);
+                    shape.vertices[0] = Vector2(-halfW, -halfH);
+                    shape.vertices[1] = Vector2(halfW, -halfH);
+                    shape.vertices[2] = Vector2(halfW, halfH);
+                    shape.vertices[3] = Vector2(-halfW, halfH);
+                    break;
+                }
+                case Shape2DType::CIRCLE:
+                    shape.pointA = Vector2::ZERO;
+                    shape.radius = 0.5f;
+                    break;
+                case Shape2DType::CAPSULE:
+                    shape.pointA = Vector2(0.0f, -0.5f);
+                    shape.pointB = Vector2(0.0f, 0.5f);
+                    shape.radius = 0.5f;
+                    break;
+                case Shape2DType::SEGMENT:
+                    shape.pointA = Vector2(-1.0f, 0.0f);
+                    shape.pointB = Vector2(1.0f, 0.0f);
+                    break;
+                case Shape2DType::CHAIN:
+                    shape.verticesCount = 4;
+                    shape.vertices[0] = Vector2(-0.5f, -0.5f);
+                    shape.vertices[1] = Vector2(0.5f, -0.5f);
+                    shape.vertices[2] = Vector2(0.5f, 0.5f);
+                    shape.vertices[3] = Vector2(-0.5f, 0.5f);
+                    break;
                 }
 
                 size_t shapeIdx = bodyComp->numShapes;
@@ -4406,6 +4346,87 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
             propertyRow(RowPropertyType::Bool, cpType, shapeKey + ".contactEvents", "Contact Events", sceneProject, entities);
             propertyRow(RowPropertyType::Bool, cpType, shapeKey + ".preSolveEvents", "PreSolve Events", sceneProject, entities);
             propertyRow(RowPropertyType::Bool, cpType, shapeKey + ".sensorEvents", "Sensor Events", sceneProject, entities);
+        }
+        if (shape.type == Shape2DType::POLYGON){
+            ImGui::PushStyleColor(ImGuiCol_Text, App::ThemeColors::SubtleText);
+            propertyHeader("Preset");
+            ImGui::PopStyleColor();
+            if (ImGui::SmallButton(("Box##shape_preset_box_" + std::to_string(s)).c_str())){
+                MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+                for (Entity entity : entities){
+                    if (Body2DComponent* bodyComp = sceneProject->scene->findComponent<Body2DComponent>(entity)){
+                        if (s >= bodyComp->numShapes) continue;
+
+                        Shape2D shapeValue = bodyComp->shapes[s];
+                        Vector2 layoutSize = getUILayoutSizeForShape(entity);
+
+                        shapeValue.verticesCount = 4;
+                        shapeValue.radius = 0.0f;
+                        shapeValue.pointA = Vector2(0.0f, 0.0f);
+                        shapeValue.pointB = Vector2(layoutSize.x, layoutSize.y);
+                        shapeValue.vertices[0] = Vector2(0.0f, 0.0f);
+                        shapeValue.vertices[1] = Vector2(layoutSize.x, 0.0f);
+                        shapeValue.vertices[2] = Vector2(layoutSize.x, layoutSize.y);
+                        shapeValue.vertices[3] = Vector2(0.0f, layoutSize.y);
+
+                        multiCmd->addPropertyCmd<Shape2D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
+                    }
+                }
+                multiCmd->setNoMerge();
+                CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+            }
+            if (ImGui::SmallButton(("Centered Box##shape_preset_centered_box_" + std::to_string(s)).c_str())){
+                MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+                for (Entity entity : entities){
+                    if (Body2DComponent* bodyComp = sceneProject->scene->findComponent<Body2DComponent>(entity)){
+                        if (s >= bodyComp->numShapes) continue;
+
+                        Shape2D shapeValue = bodyComp->shapes[s];
+                        Vector2 layoutSize = getUILayoutSizeForShape(entity);
+                        const float halfW = layoutSize.x * 0.5f;
+                        const float halfH = layoutSize.y * 0.5f;
+
+                        shapeValue.verticesCount = 4;
+                        shapeValue.radius = 0.0f;
+                        shapeValue.pointA = Vector2(-halfW, -halfH);
+                        shapeValue.pointB = Vector2(halfW, halfH);
+                        shapeValue.vertices[0] = Vector2(-halfW, -halfH);
+                        shapeValue.vertices[1] = Vector2(halfW, -halfH);
+                        shapeValue.vertices[2] = Vector2(halfW, halfH);
+                        shapeValue.vertices[3] = Vector2(-halfW, halfH);
+
+                        multiCmd->addPropertyCmd<Shape2D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
+                    }
+                }
+                multiCmd->setNoMerge();
+                CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+            }
+            if (ImGui::SmallButton(("Rounded Box##shape_preset_rounded_box_" + std::to_string(s)).c_str())){
+                MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+                for (Entity entity : entities){
+                    if (Body2DComponent* bodyComp = sceneProject->scene->findComponent<Body2DComponent>(entity)){
+                        if (s >= bodyComp->numShapes) continue;
+
+                        Shape2D shapeValue = bodyComp->shapes[s];
+                        Vector2 layoutSize = getUILayoutSizeForShape(entity);
+                        const float halfW = layoutSize.x * 0.5f;
+                        const float halfH = layoutSize.y * 0.5f;
+
+                        shapeValue.verticesCount = 4;
+                        shapeValue.radius = std::max(1.0f, std::min(layoutSize.x, layoutSize.y) * 0.04f);
+                        shapeValue.pointA = Vector2(-halfW, -halfH);
+                        shapeValue.pointB = Vector2(halfW, halfH);
+                        shapeValue.vertices[0] = Vector2(-halfW, -halfH);
+                        shapeValue.vertices[1] = Vector2(halfW, -halfH);
+                        shapeValue.vertices[2] = Vector2(halfW, halfH);
+                        shapeValue.vertices[3] = Vector2(-halfW, halfH);
+
+                        multiCmd->addPropertyCmd<Shape2D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
+                    }
+                }
+                multiCmd->setNoMerge();
+                CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+            }
         }
         endTable();
     }
