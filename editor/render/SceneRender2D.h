@@ -13,11 +13,14 @@ namespace Supernova::Editor{
         Lines* lines;
         std::map<Entity, Lines*> containerLines;
         std::map<Entity, Lines*> bodyLines;
+        std::map<Entity, Lines*> jointLines;
         bool isUI;
 
         void createLines(unsigned int width, unsigned int height);
         bool instanciateBodyLines(Entity entity);
+        bool instanciateJointLines(Entity entity);
         void createOrUpdateBodyLines(Entity entity, const Transform& transform, const Body2DComponent& body);
+        void createOrUpdateJointLines(Entity entity, const Joint2DComponent& joint, bool visible, bool highlighted);
 
     protected:
         void hideAllGizmos() override;

@@ -46,6 +46,7 @@ namespace Supernova::Editor{
         std::map<Entity, LightObjects> lightObjects;
         std::map<Entity, CameraObjects> cameraObjects;
         std::map<Entity, BodyObjects> bodyObjects;
+        std::map<Entity, Lines*> jointLines;
 
         ViewportGizmo viewgizmo;
 
@@ -55,9 +56,11 @@ namespace Supernova::Editor{
         bool instanciateLightObject(Entity entity);
         bool instanciateCameraObject(Entity entity);
         bool instanciateBodyObject(Entity entity);
+        bool instanciateJointObject(Entity entity);
         void createOrUpdateLightIcon(Entity entity, const Transform& transform, LightType lightType, bool newLight);
         void createOrUpdateCameraIcon(Entity entity, const Transform& transform, bool newCamera);
         void createOrUpdateBodyLines(Entity entity, const Transform& transform, const Body3DComponent& body);
+        void createOrUpdateJointLines(Entity entity, const Joint3DComponent& joint, bool visible, bool highlighted);
         void createCameraFrustum(Entity entity, const Transform& transform, const CameraComponent& cameraComponent, bool fixedSizeFrustum, bool isMainCamera);
         void createDirectionalLightArrow(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected);
         void createPointLightSphere(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected);

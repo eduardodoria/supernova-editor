@@ -1,6 +1,7 @@
 #include "SceneRender2D.h"
 
 #include "Project.h"
+#include "LineDrawUtils.h"
 
 
 using namespace Supernova;
@@ -45,12 +46,28 @@ Editor::SceneRender2D::~SceneRender2D(){
         delete pair.second;
     }
     bodyLines.clear();
+
+    for (auto& pair : jointLines) {
+        delete pair.second;
+    }
+    jointLines.clear();
 }
 
 bool Editor::SceneRender2D::instanciateBodyLines(Entity entity){
     if (bodyLines.find(entity) == bodyLines.end()){
         ScopedDefaultEntityPool sys(*scene, EntityPool::System);
         bodyLines[entity] = new Lines(scene);
+
+        return true;
+    }
+
+    return false;
+}
+
+bool Editor::SceneRender2D::instanciateJointLines(Entity entity){
+    if (jointLines.find(entity) == jointLines.end()){
+        ScopedDefaultEntityPool sys(*scene, EntityPool::System);
+        jointLines[entity] = new Lines(scene);
 
         return true;
     }
@@ -225,6 +242,151 @@ void Editor::SceneRender2D::createOrUpdateBodyLines(Entity entity, const Transfo
     }
 }
 
+void Editor::SceneRender2D::createOrUpdateJointLines(Entity entity, const Joint2DComponent& joint, bool visible, bool highlighted){
+    Lines* jointLinesObj = jointLines[entity];
+
+    jointLinesObj->clearLines();
+    jointLinesObj->setVisible(visible);
+
+    if (!visible){
+        return;
+    }
+
+    auto getBodyWorldPoint = [&](Entity bodyEntity, const Vector2& localPoint){
+        if (bodyEntity != NULL_ENTITY){
+            Transform* transform = scene->findComponent<Transform>(bodyEntity);
+            if (transform){
+                return transform->modelMatrix * Vector3(localPoint.x, localPoint.y, 0.0f);
+            }
+        }
+
+        return Vector3(localPoint.x, localPoint.y, 0.0f);
+    };
+
+    float alpha = highlighted ? 1.0f : 0.35f;
+
+    const Vector4 jointColor(0.95f, 0.75f, 0.2f, alpha);
+    const Vector4 helperColor(0.85f, 0.85f, 0.85f, 0.8f * alpha);
+    const Vector4 axisColor(0.2f, 0.9f, 1.0f, alpha);
+    const Vector4 limitColor(1.0f, 0.35f, 0.35f, alpha);
+
+    Vector3 anchorA = getBodyWorldPoint(joint.bodyA, joint.anchorA);
+    Vector3 anchorB = getBodyWorldPoint(joint.bodyB, joint.anchorB);
+
+    jointLinesObj->addLine(anchorA, anchorB, jointColor);
+
+    float markSize = 8.0f * zoom;
+
+    jointLinesObj->addLine(anchorA + Vector3(-markSize, 0.0f, 0.0f), anchorA + Vector3(markSize, 0.0f, 0.0f), helperColor);
+    jointLinesObj->addLine(anchorA + Vector3(0.0f, -markSize, 0.0f), anchorA + Vector3(0.0f, markSize, 0.0f), helperColor);
+
+    jointLinesObj->addLine(anchorB + Vector3(-markSize, 0.0f, 0.0f), anchorB + Vector3(markSize, 0.0f, 0.0f), helperColor);
+    jointLinesObj->addLine(anchorB + Vector3(0.0f, -markSize, 0.0f), anchorB + Vector3(0.0f, markSize, 0.0f), helperColor);
+
+    switch (joint.type){
+        case Joint2DType::DISTANCE:{
+            // Connection line + anchor crosses already drawn above
+            break;
+        }
+        case Joint2DType::REVOLUTE:{
+            LineDrawUtils::addCircle2D(jointLinesObj, anchorA, 10.0f * zoom, helperColor, 18);
+            if ((anchorB - anchorA).length() > 0.001f){
+                LineDrawUtils::addCircle2D(jointLinesObj, anchorB, 8.0f * zoom, helperColor, 16);
+            }
+            break;
+        }
+        case Joint2DType::WHEEL:{
+            LineDrawUtils::addCircle2D(jointLinesObj, anchorA, 10.0f * zoom, helperColor, 18);
+            if ((anchorB - anchorA).length() > 0.001f){
+                LineDrawUtils::addCircle2D(jointLinesObj, anchorB, 8.0f * zoom, helperColor, 16);
+            }
+            break;
+        }
+        case Joint2DType::WELD:{
+            // Diamond shape to indicate rigid lock
+            float d = 10.0f * zoom;
+            jointLinesObj->addLine(anchorA + Vector3(0, d, 0), anchorA + Vector3(d, 0, 0), limitColor);
+            jointLinesObj->addLine(anchorA + Vector3(d, 0, 0), anchorA + Vector3(0, -d, 0), limitColor);
+            jointLinesObj->addLine(anchorA + Vector3(0, -d, 0), anchorA + Vector3(-d, 0, 0), limitColor);
+            jointLinesObj->addLine(anchorA + Vector3(-d, 0, 0), anchorA + Vector3(0, d, 0), limitColor);
+            if ((anchorB - anchorA).length() > 0.001f){
+                float d2 = 8.0f * zoom;
+                jointLinesObj->addLine(anchorB + Vector3(0, d2, 0), anchorB + Vector3(d2, 0, 0), limitColor);
+                jointLinesObj->addLine(anchorB + Vector3(d2, 0, 0), anchorB + Vector3(0, -d2, 0), limitColor);
+                jointLinesObj->addLine(anchorB + Vector3(0, -d2, 0), anchorB + Vector3(-d2, 0, 0), limitColor);
+                jointLinesObj->addLine(anchorB + Vector3(-d2, 0, 0), anchorB + Vector3(0, d2, 0), limitColor);
+            }
+            break;
+        }
+        case Joint2DType::MOTOR:{
+            // Arrow arc to indicate driven rotation
+            float radius = 10.0f * zoom;
+            float startAngle = 0.0f;
+            float endAngle = 1.5f * M_PI;
+            LineDrawUtils::addArc2D(jointLinesObj, anchorA, radius, startAngle, endAngle, axisColor, 14);
+            // Arrowhead at end of arc
+            float tipX = anchorA.x + std::cos(endAngle) * radius;
+            float tipY = anchorA.y + std::sin(endAngle) * radius;
+            Vector3 tip(tipX, tipY, anchorA.z);
+            float arrowSize = 4.0f * zoom;
+            Vector3 dir(std::cos(endAngle + M_PI * 0.5f), std::sin(endAngle + M_PI * 0.5f), 0.0f);
+            Vector3 perp(-dir.y, dir.x, 0.0f);
+            jointLinesObj->addLine(tip, tip - dir * arrowSize + perp * arrowSize * 0.5f, axisColor);
+            jointLinesObj->addLine(tip, tip - dir * arrowSize - perp * arrowSize * 0.5f, axisColor);
+            break;
+        }
+        case Joint2DType::PRISMATIC:{
+            Vector2 axis2 = joint.axis;
+            if (axis2.length() <= 0.0001f){
+                axis2 = Vector2(1.0f, 0.0f);
+            }else{
+                axis2.normalize();
+            }
+
+            Vector3 axis3(axis2.x, axis2.y, 0.0f);
+            Vector3 railPerp(-axis3.y, axis3.x, 0.0f);
+
+            float halfRail = 40.0f * zoom;
+            float railOffset = 5.0f * zoom;
+
+            Vector3 railStart = anchorA - axis3 * halfRail;
+            Vector3 railEnd = anchorA + axis3 * halfRail;
+
+            jointLinesObj->addLine(railStart + railPerp * railOffset, railEnd + railPerp * railOffset, axisColor);
+            jointLinesObj->addLine(railStart - railPerp * railOffset, railEnd - railPerp * railOffset, axisColor);
+
+            float endCap = 6.0f * zoom;
+            jointLinesObj->addLine(railStart - railPerp * endCap, railStart + railPerp * endCap, limitColor);
+            jointLinesObj->addLine(railEnd - railPerp * endCap, railEnd + railPerp * endCap, limitColor);
+
+            float t = (anchorB - anchorA).x * axis3.x + (anchorB - anchorA).y * axis3.y;
+            t = std::max(-halfRail, std::min(halfRail, t));
+            Vector3 sliderCenter = anchorA + axis3 * t;
+            LineDrawUtils::addCircle2D(jointLinesObj, sliderCenter, 7.0f * zoom, jointColor, 14);
+            break;
+        }
+        case Joint2DType::MOUSE:{
+            Vector3 target(joint.target.x, joint.target.y, 0.0f);
+            jointLinesObj->addLine(anchorA, target, Vector4(1.0f, 0.4f, 0.4f, alpha));
+            LineDrawUtils::addCircle2D(jointLinesObj, target, 8.0f * zoom, Vector4(1.0f, 0.4f, 0.4f, alpha), 16);
+            jointLinesObj->addLine(target + Vector3(-markSize, 0.0f, 0.0f), target + Vector3(markSize, 0.0f, 0.0f), limitColor);
+            jointLinesObj->addLine(target + Vector3(0.0f, -markSize, 0.0f), target + Vector3(0.0f, markSize, 0.0f), limitColor);
+            break;
+        }
+    }
+
+    // Only draw generic axis for types that don't already visualize it
+    if (joint.axis.length() > 0.0001f && joint.type != Joint2DType::PRISMATIC){
+        Vector2 axis = joint.axis;
+        axis.normalize();
+
+        Vector3 center = (anchorA + anchorB) * 0.5f;
+        Vector3 axisEnd = center + Vector3(axis.x, axis.y, 0.0f) * (20.0f * zoom);
+        jointLinesObj->addLine(center, axisEnd, axisColor);
+    }
+
+}
+
 void Editor::SceneRender2D::createLines(unsigned int width, unsigned int height){
     lines->clearLines();
 
@@ -243,6 +405,9 @@ void Editor::SceneRender2D::hideAllGizmos(){
         pair.second->setVisible(false);
     }
     for (auto& pair : bodyLines) {
+        pair.second->setVisible(false);
+    }
+    for (auto& pair : jointLines) {
         pair.second->setVisible(false);
     }
 }
@@ -307,8 +472,11 @@ void Editor::SceneRender2D::update(std::vector<Entity> selEntities, std::vector<
 
     lines->setVisible(true);
 
+    std::set<Entity> selectedEntities(selEntities.begin(), selEntities.end());
+
     std::set<Entity> currentContainers;
     std::set<Entity> currentBodies;
+    std::set<Entity> currentJoints;
     for (Entity& entity: entities){
         Signature signature = scene->getSignature(entity);
         if (signature.test(scene->getComponentId<UIContainerComponent>()) && 
@@ -377,6 +545,21 @@ void Editor::SceneRender2D::update(std::vector<Entity> selEntities, std::vector<
             instanciateBodyLines(entity);
             createOrUpdateBodyLines(entity, transform, body);
         }
+
+        if (signature.test(scene->getComponentId<Joint2DComponent>())){
+            Joint2DComponent& joint = scene->getComponent<Joint2DComponent>(entity);
+
+            currentJoints.insert(entity);
+            instanciateJointLines(entity);
+
+            bool isSelectedJoint = selectedEntities.find(entity) != selectedEntities.end();
+            bool isBodyASelected = joint.bodyA != NULL_ENTITY && selectedEntities.find(joint.bodyA) != selectedEntities.end();
+            bool isBodyBSelected = joint.bodyB != NULL_ENTITY && selectedEntities.find(joint.bodyB) != selectedEntities.end();
+            bool highlighted = isSelectedJoint || isBodyASelected || isBodyBSelected;
+            bool isVisible = showAllJoints || highlighted;
+
+            createOrUpdateJointLines(entity, joint, isVisible, highlighted);
+        }
     }
 
     auto it = containerLines.begin();
@@ -396,6 +579,16 @@ void Editor::SceneRender2D::update(std::vector<Entity> selEntities, std::vector<
             itBody = bodyLines.erase(itBody);
         } else {
             ++itBody;
+        }
+    }
+
+    auto itJoint = jointLines.begin();
+    while (itJoint != jointLines.end()) {
+        if (currentJoints.find(itJoint->first) == currentJoints.end()) {
+            delete itJoint->second;
+            itJoint = jointLines.erase(itJoint);
+        } else {
+            ++itJoint;
         }
     }
 }

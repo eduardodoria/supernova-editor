@@ -51,6 +51,7 @@ namespace Supernova::Editor{
 
         bool multipleEntitiesSelected;
         bool isPlaying;
+        bool showAllJoints;
 
         float zoom;       // current zoom level (units per pixel) for 2D
 
@@ -90,6 +91,8 @@ namespace Supernova::Editor{
         CursorSelected getCursorSelected() const;
 
         bool isMultipleEntitesSelected() const;
+        bool isShowAllJoints() const;
+        void setShowAllJoints(bool showAllJoints);
     };
 
 }

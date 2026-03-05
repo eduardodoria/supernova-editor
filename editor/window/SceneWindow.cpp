@@ -711,6 +711,18 @@ void Editor::SceneWindow::show() {
 
                 ImGui::SameLine(0, 10);
                 ImGui::Dummy(ImVec2(1, 20));
+
+                bool showAllJoints = sceneProject.sceneRender->isShowAllJoints();
+                ImGui::BeginDisabled(sceneProject.playState != ScenePlayState::STOPPED);
+                ImGui::SameLine();
+                if (ImGui::Button(showAllJoints ? ICON_FA_LINK_SLASH : ICON_FA_LINK)) {
+                    sceneProject.sceneRender->setShowAllJoints(!showAllJoints);
+                }
+                ImGui::SetItemTooltip(showAllJoints ? "Hide all joints" : "Show all joints");
+                ImGui::EndDisabled();
+
+                ImGui::SameLine(0, 10);
+                ImGui::Dummy(ImVec2(1, 20));
             }
 
             ImGui::BeginChild(("Canvas" + std::to_string(sceneProject.id)).c_str());

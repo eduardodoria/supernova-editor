@@ -6,6 +6,7 @@
 #include "resources/icons/camera-icon_png.h"
 
 #include "Project.h"
+#include "LineDrawUtils.h"
 
 using namespace Supernova;
 
@@ -19,6 +20,7 @@ Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, tr
     lightObjects.clear();
     cameraObjects.clear();
     bodyObjects.clear();
+    jointLines.clear();
 
     createLines();
 
@@ -59,6 +61,11 @@ Editor::SceneRender3D::~SceneRender3D(){
         delete pair.second.lines;
     }
     bodyObjects.clear();
+
+    for (auto& pair : jointLines) {
+        delete pair.second;
+    }
+    jointLines.clear();
 }
 
 void Editor::SceneRender3D::createLines(){
@@ -126,6 +133,17 @@ bool Editor::SceneRender3D::instanciateBodyObject(Entity entity){
     if (bodyObjects.find(entity) == bodyObjects.end()) {
         ScopedDefaultEntityPool sys(*scene, EntityPool::System);
         bodyObjects[entity].lines = new Lines(scene);
+
+        return true;
+    }
+
+    return false;
+}
+
+bool Editor::SceneRender3D::instanciateJointObject(Entity entity){
+    if (jointLines.find(entity) == jointLines.end()) {
+        ScopedDefaultEntityPool sys(*scene, EntityPool::System);
+        jointLines[entity] = new Lines(scene);
 
         return true;
     }
@@ -423,6 +441,152 @@ void Editor::SceneRender3D::createOrUpdateBodyLines(Entity entity, const Transfo
                 addBox(shapeMatrix, minPt, maxPt);
             }
         }
+    }
+}
+
+void Editor::SceneRender3D::createOrUpdateJointLines(Entity entity, const Joint3DComponent& joint, bool visible, bool highlighted){
+    Lines* jointLinesObj = jointLines[entity];
+
+    jointLinesObj->clearLines();
+    jointLinesObj->setVisible(visible);
+
+    if (!visible){
+        return;
+    }
+
+    auto getBodyWorldPoint = [&](Entity bodyEntity, const Vector3& localPoint){
+        if (bodyEntity != NULL_ENTITY){
+            Transform* transform = scene->findComponent<Transform>(bodyEntity);
+            if (transform){
+                return transform->modelMatrix * localPoint;
+            }
+        }
+
+        return localPoint;
+    };
+
+    float alpha = highlighted ? 1.0f : 0.35f;
+
+    const Vector4 jointColor(0.95f, 0.75f, 0.2f, alpha);
+    const Vector4 helperColor(0.85f, 0.85f, 0.85f, 0.8f * alpha);
+    const Vector4 axisColor(0.2f, 0.9f, 1.0f, alpha);
+    const Vector4 limitColor(1.0f, 0.35f, 0.35f, alpha);
+
+    Vector3 anchorA = getBodyWorldPoint(joint.bodyA, joint.anchorA);
+    Vector3 anchorB = getBodyWorldPoint(joint.bodyB, joint.anchorB);
+
+    jointLinesObj->addLine(anchorA, anchorB, jointColor);
+
+    float markSize = 0.12f;
+
+    jointLinesObj->addLine(anchorA + Vector3(-markSize, 0.0f, 0.0f), anchorA + Vector3(markSize, 0.0f, 0.0f), helperColor);
+    jointLinesObj->addLine(anchorA + Vector3(0.0f, -markSize, 0.0f), anchorA + Vector3(0.0f, markSize, 0.0f), helperColor);
+    jointLinesObj->addLine(anchorA + Vector3(0.0f, 0.0f, -markSize), anchorA + Vector3(0.0f, 0.0f, markSize), helperColor);
+
+    jointLinesObj->addLine(anchorB + Vector3(-markSize, 0.0f, 0.0f), anchorB + Vector3(markSize, 0.0f, 0.0f), helperColor);
+    jointLinesObj->addLine(anchorB + Vector3(0.0f, -markSize, 0.0f), anchorB + Vector3(0.0f, markSize, 0.0f), helperColor);
+    jointLinesObj->addLine(anchorB + Vector3(0.0f, 0.0f, -markSize), anchorB + Vector3(0.0f, 0.0f, markSize), helperColor);
+
+    Vector3 dirAB = anchorB - anchorA;
+    float lenAB = dirAB.length();
+    Vector3 dirABNorm = lenAB > 0.0001f ? dirAB / lenAB : Vector3(1.0f, 0.0f, 0.0f);
+
+    switch (joint.type){
+        case Joint3DType::DISTANCE:{
+            // Connection line + anchor crosses already drawn above
+            break;
+        }
+        case Joint3DType::HINGE:{
+            Vector3 axis = joint.axis.length() > 0.0001f ? joint.axis.normalized() : dirABNorm;
+            Vector3 center = (anchorA + anchorB) * 0.5f;
+            LineDrawUtils::addRing3D(jointLinesObj, center, axis, 0.25f, axisColor, 28);
+            LineDrawUtils::addRing3D(jointLinesObj, center, axis, 0.33f, helperColor, 28);
+            jointLinesObj->addLine(center - axis * 0.35f, center + axis * 0.35f, axisColor);
+            break;
+        }
+        case Joint3DType::PRISMATIC:{
+            Vector3 axis = joint.axis.length() > 0.0001f ? joint.axis.normalized() : dirABNorm;
+            auto [railAxis, side, up] = LineDrawUtils::makeBasis(axis);
+            float halfRail = 0.8f;
+
+            Vector3 railStart = anchorA - railAxis * halfRail;
+            Vector3 railEnd = anchorA + railAxis * halfRail;
+
+            float railOffset = 0.06f;
+            jointLinesObj->addLine(railStart + side * railOffset, railEnd + side * railOffset, axisColor);
+            jointLinesObj->addLine(railStart - side * railOffset, railEnd - side * railOffset, axisColor);
+
+            jointLinesObj->addLine(railStart - side * 0.12f, railStart + side * 0.12f, limitColor);
+            jointLinesObj->addLine(railEnd - side * 0.12f, railEnd + side * 0.12f, limitColor);
+
+            float sliderPos = (anchorB - anchorA).dotProduct(railAxis);
+            sliderPos = std::max(-halfRail, std::min(halfRail, sliderPos));
+            Vector3 sliderCenter = anchorA + railAxis * sliderPos;
+
+            LineDrawUtils::addRing3D(jointLinesObj, sliderCenter, railAxis, 0.09f, jointColor, 18);
+            jointLinesObj->addLine(sliderCenter - up * 0.1f, sliderCenter + up * 0.1f, helperColor);
+            break;
+        }
+        case Joint3DType::CONE:{
+            Vector3 axis = joint.axis.length() > 0.0001f ? joint.axis.normalized() : dirABNorm;
+            auto [coneAxis, right, forward] = LineDrawUtils::makeBasis(axis);
+            (void)right;
+            float coneLen = 0.9f;
+            float angle = std::max(1.0f, joint.normalHalfConeAngle) * (M_PI / 180.0f);
+            float radius = coneLen * std::tan(angle);
+            Vector3 end = anchorA + coneAxis * coneLen;
+            LineDrawUtils::addRing3D(jointLinesObj, end, coneAxis, radius, axisColor, 22);
+            jointLinesObj->addLine(anchorA, end + forward * radius, helperColor);
+            jointLinesObj->addLine(anchorA, end - forward * radius, helperColor);
+            break;
+        }
+        case Joint3DType::SWINGTWIST:{
+            Vector3 axis = joint.twistAxis.length() > 0.0001f ? joint.twistAxis.normalized() : (joint.axis.length() > 0.0001f ? joint.axis.normalized() : dirABNorm);
+            Vector3 center = (anchorA + anchorB) * 0.5f;
+            LineDrawUtils::addRing3D(jointLinesObj, center, axis, 0.28f, axisColor, 24);
+
+            float twistMin = joint.twistMinAngle * (M_PI / 180.0f);
+            float twistMax = joint.twistMaxAngle * (M_PI / 180.0f);
+            auto [axisN, right, forward] = LineDrawUtils::makeBasis(axis);
+            (void)axisN;
+            LineDrawUtils::addArc3D(jointLinesObj, center, axis, right, twistMin, twistMax, 0.36f, limitColor, 16);
+            jointLinesObj->addLine(center, center + right * 0.36f, helperColor);
+            jointLinesObj->addLine(center, center + (right * std::cos(twistMax) + forward * std::sin(twistMax)) * 0.36f, helperColor);
+            break;
+        }
+        case Joint3DType::PATH:{
+            if (joint.pathPoints.size() >= 2){
+                for (size_t i = 0; i < joint.pathPoints.size() - 1; i++){
+                    jointLinesObj->addLine(joint.pathPoints[i], joint.pathPoints[i + 1], axisColor);
+                }
+                if (joint.isLooping){
+                    jointLinesObj->addLine(joint.pathPoints.back(), joint.pathPoints.front(), axisColor);
+                }
+                LineDrawUtils::addRing3D(jointLinesObj, joint.pathPosition, Vector3(0.0f, 1.0f, 0.0f), 0.08f, jointColor, 16);
+            }
+            break;
+        }
+        case Joint3DType::GEAR:
+        case Joint3DType::RACKANDPINON:
+        case Joint3DType::PULLEY:
+        case Joint3DType::SIXDOF:
+        case Joint3DType::FIXED:
+        case Joint3DType::POINT:
+        default:{
+            break;
+        }
+    }
+
+    // Only draw generic axis for types that don't already visualize it
+    if (joint.axis.length() > 0.0001f
+        && joint.type != Joint3DType::HINGE
+        && joint.type != Joint3DType::PRISMATIC
+        && joint.type != Joint3DType::CONE){
+        Vector3 axis = joint.axis;
+        axis.normalize();
+
+        Vector3 center = (anchorA + anchorB) * 0.5f;
+        jointLinesObj->addLine(center, center + axis, axisColor);
     }
 }
 
@@ -892,6 +1056,9 @@ void Editor::SceneRender3D::hideAllGizmos(){
     for (auto& pair : bodyObjects) {
         pair.second.lines->setVisible(false);
     }
+    for (auto& pair : jointLines) {
+        pair.second->setVisible(false);
+    }
 }
 
 void Editor::SceneRender3D::activate(){
@@ -963,9 +1130,12 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
 
     viewgizmo.applyRotation(camera);
 
+    std::set<Entity> selectedEntities(selEntities.begin(), selEntities.end());
+
     std::set<Entity> currentIconLights;
     std::set<Entity> currentIconCameras;
     std::set<Entity> currentBodyObjects;
+    std::set<Entity> currentJointObjects;
 
     for (Entity& entity: entities){
         Signature signature = scene->getSignature(entity);
@@ -1010,6 +1180,21 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
             instanciateBodyObject(entity);
             createOrUpdateBodyLines(entity, transform, body);
         }
+
+        if (signature.test(scene->getComponentId<Joint3DComponent>())) {
+            Joint3DComponent& joint = scene->getComponent<Joint3DComponent>(entity);
+
+            currentJointObjects.insert(entity);
+            instanciateJointObject(entity);
+
+            bool isSelectedJoint = selectedEntities.find(entity) != selectedEntities.end();
+            bool isBodyASelected = joint.bodyA != NULL_ENTITY && selectedEntities.find(joint.bodyA) != selectedEntities.end();
+            bool isBodyBSelected = joint.bodyB != NULL_ENTITY && selectedEntities.find(joint.bodyB) != selectedEntities.end();
+            bool highlighted = isSelectedJoint || isBodyASelected || isBodyBSelected;
+            bool isVisible = showAllJoints || highlighted;
+
+            createOrUpdateJointLines(entity, joint, isVisible, highlighted);
+        }
     }
 
     // Remove sun icons for entities that are no longer directional lights
@@ -1043,6 +1228,16 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
             itBody = bodyObjects.erase(itBody);
         } else {
             ++itBody;
+        }
+    }
+
+    auto itJoint = jointLines.begin();
+    while (itJoint != jointLines.end()) {
+        if (currentJointObjects.find(itJoint->first) == currentJointObjects.end()) {
+            delete itJoint->second;
+            itJoint = jointLines.erase(itJoint);
+        } else {
+            ++itJoint;
         }
     }
 }

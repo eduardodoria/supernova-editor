@@ -24,6 +24,7 @@ Editor::SceneRender::SceneRender(Scene* scene, bool use2DGizmos, bool enableView
     this->camera = new Camera(scene);
 
     this->multipleEntitiesSelected = false;
+    this->showAllJoints = false;
 
     this->zoom = 1.0f;
 
@@ -704,4 +705,12 @@ Editor::CursorSelected Editor::SceneRender::getCursorSelected() const{
 
 bool Editor::SceneRender::isMultipleEntitesSelected() const{
     return multipleEntitiesSelected;
+}
+
+bool Editor::SceneRender::isShowAllJoints() const{
+    return showAllJoints;
+}
+
+void Editor::SceneRender::setShowAllJoints(bool showAllJoints){
+    this->showAllJoints = showAllJoints;
 }
