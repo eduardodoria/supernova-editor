@@ -4699,21 +4699,10 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
 void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     Body3DComponent& body = sceneProject->scene->getComponent<Body3DComponent>(entities[0]);
 
-    auto markBody3DDirty = [sceneProject, entities](){
-        for (Entity entity : entities){
-            if (Body3DComponent* bodyComp = sceneProject->scene->findComponent<Body3DComponent>(entity)){
-                bodyComp->needReloadBody = true;
-                bodyComp->needUpdateShapes = true;
-            }
-        }
-    };
-
     RowSettings settingsBodyType;
     settingsBodyType.enumEntries = &entriesBodyType;
-    settingsBodyType.onValueChanged = markBody3DDirty;
 
     RowSettings settingsBodyValue;
-    settingsBodyValue.onValueChanged = markBody3DDirty;
 
     beginTable(cpType, getLabelSize("Override Mass"));
     propertyRow(RowPropertyType::Enum, cpType, "type", "Body Type", sceneProject, entities, settingsBodyType);
@@ -4784,22 +4773,17 @@ void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject*
 
     RowSettings settingsShapeType;
     settingsShapeType.enumEntries = &entriesShape3DType;
-    settingsShapeType.onValueChanged = markBody3DDirty;
 
     RowSettings settingsShapeSourceConvexHull;
     settingsShapeSourceConvexHull.enumEntries = &entriesShape3DSourceConvexHull;
-    settingsShapeSourceConvexHull.onValueChanged = markBody3DDirty;
 
     RowSettings settingsShapeSourceMesh;
     settingsShapeSourceMesh.enumEntries = &entriesShape3DSourceMesh;
-    settingsShapeSourceMesh.onValueChanged = markBody3DDirty;
 
     RowSettings settingsShapeSourceHeightfield;
     settingsShapeSourceHeightfield.enumEntries = &entriesShape3DSourceHeightfield;
-    settingsShapeSourceHeightfield.onValueChanged = markBody3DDirty;
 
     RowSettings settingsShapeValue;
-    settingsShapeValue.onValueChanged = markBody3DDirty;
 
     for (size_t s = 0; s < numShapes; s++){
         Body3DComponent& bodyRef = sceneProject->scene->getComponent<Body3DComponent>(entities[0]);

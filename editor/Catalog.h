@@ -141,13 +141,11 @@ namespace Supernova::Editor{
 
         template<typename T>
         static T* getPropertyRef(EntityRegistry* registry, Entity entity, ComponentType component, std::string propertyName){
-            for (auto& [name, property] : Catalog::findEntityProperties(registry, entity, component)){
-                if (name == propertyName){
-                    return static_cast<T*>(property.ref);
-                }
+            PropertyData property = Catalog::getProperty(registry, entity, component, propertyName);
+            if (property.ref){
+                return static_cast<T*>(property.ref);
             }
 
-            printf("ERROR: Cannot find property %s\n", propertyName.c_str());
             return nullptr;
         }
 

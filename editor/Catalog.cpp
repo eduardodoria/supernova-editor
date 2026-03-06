@@ -4,6 +4,1183 @@
 #include "yaml-cpp/yaml.h"
 #include "Stream.h"
 
+#include <cctype>
+
+namespace {
+
+    using namespace Supernova;
+    using namespace Supernova::Editor;
+
+    using FastDefGetter = void* (*)();
+    using FastRefGetter = void* (*)(void*);
+
+    struct FastPropertyDescriptor {
+        const char* name;
+        PropertyType type;
+        int updateFlags;
+        FastDefGetter getDef;
+        FastRefGetter getRef;
+    };
+
+    using FastResolverFn = PropertyData (*)(void*, const std::string&);
+    using FastEnumerateFn = void (*)(void*, std::map<std::string, PropertyData>&);
+    using FastFindComponentFn = void* (*)(EntityRegistry*, Entity);
+
+    struct FastComponentResolver {
+        ComponentType component;
+        FastFindComponentFn findComponent;
+        FastResolverFn resolve;
+        FastEnumerateFn enumerate;
+    };
+
+    void* nullPropertyPtr() {
+        return nullptr;
+    }
+
+    template<typename Component>
+    Component& getDefaultComponent() {
+        static Component component{};
+        return component;
+    }
+
+    template<typename Component, typename Member, Member Component::*MemberPtr>
+    void* getMemberDef() {
+        return &(getDefaultComponent<Component>().*MemberPtr);
+    }
+
+    template<typename Component, typename Member, Member Component::*MemberPtr>
+    void* getMemberRef(void* comp) {
+        return &(static_cast<Component*>(comp)->*MemberPtr);
+    }
+
+    template<typename Component, typename Member, Member Component::*MemberPtr>
+    constexpr FastPropertyDescriptor makeFastProperty(const char* name, PropertyType type, int updateFlags) {
+        return {name, type, updateFlags, &getMemberDef<Component, Member, MemberPtr>, &getMemberRef<Component, Member, MemberPtr>};
+    }
+
+    template<typename Component, typename Member, Member Component::*MemberPtr>
+    constexpr FastPropertyDescriptor makeFastPropertyNoDefault(const char* name, PropertyType type, int updateFlags) {
+        return {name, type, updateFlags, &nullPropertyPtr, &getMemberRef<Component, Member, MemberPtr>};
+    }
+
+    constexpr FastPropertyDescriptor makeCustomProperty(const char* name, PropertyType type, int updateFlags, FastDefGetter getDef, FastRefGetter getRef) {
+        return {name, type, updateFlags, getDef, getRef};
+    }
+
+    template<typename Component, size_t N>
+    PropertyData resolveDirectProperties(Component* comp, const std::string& propertyName, const FastPropertyDescriptor (&descriptors)[N]) {
+        if (!comp) {
+            return PropertyData();
+        }
+
+        for (const FastPropertyDescriptor& descriptor : descriptors) {
+            if (propertyName == descriptor.name) {
+                return {
+                    descriptor.type,
+                    descriptor.updateFlags,
+                    descriptor.getDef ? descriptor.getDef() : nullptr,
+                    descriptor.getRef ? descriptor.getRef(comp) : nullptr
+                };
+            }
+        }
+
+        return PropertyData();
+    }
+
+    template<size_t N>
+    void enumerateFromDescriptors(void* comp, std::map<std::string, PropertyData>& ps,
+                                  const FastPropertyDescriptor (&descriptors)[N]) {
+        for (const auto& desc : descriptors) {
+            ps[desc.name] = {
+                desc.type,
+                desc.updateFlags,
+                desc.getDef ? desc.getDef() : nullptr,
+                (comp && desc.getRef) ? desc.getRef(comp) : nullptr
+            };
+        }
+    }
+
+    template<typename Component>
+    void* findComponentPtr(EntityRegistry* registry, Entity entity) {
+        return registry->findComponent<Component>(entity);
+    }
+
+    bool parseIndex(const std::string& text, size_t& pos, size_t& value) {
+        if (pos >= text.size() || !std::isdigit(static_cast<unsigned char>(text[pos]))) {
+            return false;
+        }
+
+        size_t parsedValue = 0;
+        while (pos < text.size() && std::isdigit(static_cast<unsigned char>(text[pos]))) {
+            parsedValue = parsedValue * 10 + static_cast<size_t>(text[pos] - '0');
+            pos++;
+        }
+
+        value = parsedValue;
+        return true;
+    }
+
+    void* getLightShadowNearRef(void* comp) {
+        return &static_cast<LightComponent*>(comp)->shadowCameraNearFar.x;
+    }
+
+    void* getLightShadowFarRef(void* comp) {
+        return &static_cast<LightComponent*>(comp)->shadowCameraNearFar.y;
+    }
+
+    static const FastPropertyDescriptor kTransformProperties[] = {
+        makeFastProperty<Transform, Vector3, &Transform::position>("position", PropertyType::Vector3, UpdateFlags_Transform | UpdateFlags_Layout_Anchors),
+        makeFastProperty<Transform, Quaternion, &Transform::rotation>("rotation", PropertyType::Quat, UpdateFlags_Transform),
+        makeFastProperty<Transform, Vector3, &Transform::scale>("scale", PropertyType::Vector3, UpdateFlags_Transform),
+        makeFastProperty<Transform, bool, &Transform::visible>("visible", PropertyType::Bool, UpdateFlags_None),
+        makeFastProperty<Transform, bool, &Transform::billboard>("billboard", PropertyType::Bool, UpdateFlags_Transform),
+        makeFastProperty<Transform, bool, &Transform::fakeBillboard>("fakeBillboard", PropertyType::Bool, UpdateFlags_Transform),
+        makeFastProperty<Transform, bool, &Transform::cylindricalBillboard>("cylindricalBillboard", PropertyType::Bool, UpdateFlags_Transform),
+        makeFastProperty<Transform, Quaternion, &Transform::billboardRotation>("billboardRotation", PropertyType::Quat, UpdateFlags_Transform),
+    };
+
+    static const FastPropertyDescriptor kUIProperties[] = {
+        makeFastProperty<UIComponent, Vector4, &UIComponent::color>("color", PropertyType::Vector4, UpdateFlags_None),
+        makeFastProperty<UIComponent, Texture, &UIComponent::texture>("texture", PropertyType::Texture, UpdateFlags_UI_Texture),
+    };
+
+    static const FastPropertyDescriptor kUILayoutProperties[] = {
+        makeFastPropertyNoDefault<UILayoutComponent, unsigned int, &UILayoutComponent::width>("width", PropertyType::UInt, UpdateFlags_Layout_Sizes | UpdateFlags_Layout_Anchors),
+        makeFastPropertyNoDefault<UILayoutComponent, unsigned int, &UILayoutComponent::height>("height", PropertyType::UInt, UpdateFlags_Layout_Sizes | UpdateFlags_Layout_Anchors),
+        makeFastProperty<UILayoutComponent, float, &UILayoutComponent::anchorPointLeft>("anchorPointLeft", PropertyType::Float, UpdateFlags_None),
+        makeFastProperty<UILayoutComponent, float, &UILayoutComponent::anchorPointTop>("anchorPointTop", PropertyType::Float, UpdateFlags_None),
+        makeFastProperty<UILayoutComponent, float, &UILayoutComponent::anchorPointRight>("anchorPointRight", PropertyType::Float, UpdateFlags_None),
+        makeFastProperty<UILayoutComponent, float, &UILayoutComponent::anchorPointBottom>("anchorPointBottom", PropertyType::Float, UpdateFlags_None),
+        makeFastProperty<UILayoutComponent, int, &UILayoutComponent::anchorOffsetLeft>("anchorOffsetLeft", PropertyType::Int, UpdateFlags_None),
+        makeFastProperty<UILayoutComponent, int, &UILayoutComponent::anchorOffsetTop>("anchorOffsetTop", PropertyType::Int, UpdateFlags_None),
+        makeFastProperty<UILayoutComponent, int, &UILayoutComponent::anchorOffsetRight>("anchorOffsetRight", PropertyType::Int, UpdateFlags_None),
+        makeFastProperty<UILayoutComponent, int, &UILayoutComponent::anchorOffsetBottom>("anchorOffsetBottom", PropertyType::Int, UpdateFlags_None),
+        makeFastProperty<UILayoutComponent, Vector2, &UILayoutComponent::positionOffset>("positionOffset", PropertyType::Vector2, UpdateFlags_None),
+        makeFastProperty<UILayoutComponent, AnchorPreset, &UILayoutComponent::anchorPreset>("anchorPreset", PropertyType::Enum, UpdateFlags_None),
+        makeFastProperty<UILayoutComponent, bool, &UILayoutComponent::usingAnchors>("usingAnchors", PropertyType::Bool, UpdateFlags_None),
+        makeFastProperty<UILayoutComponent, bool, &UILayoutComponent::ignoreScissor>("ignoreScissor", PropertyType::Bool, UpdateFlags_None),
+        makeFastProperty<UILayoutComponent, bool, &UILayoutComponent::ignoreEvents>("ignoreEvents", PropertyType::Bool, UpdateFlags_None),
+    };
+
+    static const FastPropertyDescriptor kImageProperties[] = {
+        makeFastProperty<ImageComponent, unsigned int, &ImageComponent::patchMarginLeft>("patchMarginLeft", PropertyType::UInt, UpdateFlags_Image_Patches),
+        makeFastProperty<ImageComponent, unsigned int, &ImageComponent::patchMarginRight>("patchMarginRight", PropertyType::UInt, UpdateFlags_Image_Patches),
+        makeFastProperty<ImageComponent, unsigned int, &ImageComponent::patchMarginTop>("patchMarginTop", PropertyType::UInt, UpdateFlags_Image_Patches),
+        makeFastProperty<ImageComponent, unsigned int, &ImageComponent::patchMarginBottom>("patchMarginBottom", PropertyType::UInt, UpdateFlags_Image_Patches),
+        makeFastProperty<ImageComponent, float, &ImageComponent::textureScaleFactor>("textureScaleFactor", PropertyType::Float, UpdateFlags_Image_Patches),
+    };
+
+    static const FastPropertyDescriptor kButtonProperties[] = {
+        makeFastProperty<ButtonComponent, unsigned int, &ButtonComponent::label>("label", PropertyType::UInt, UpdateFlags_None),
+        makeFastProperty<ButtonComponent, Texture, &ButtonComponent::textureNormal>("textureNormal", PropertyType::Texture, UpdateFlags_None),
+        makeFastProperty<ButtonComponent, Texture, &ButtonComponent::texturePressed>("texturePressed", PropertyType::Texture, UpdateFlags_None),
+        makeFastProperty<ButtonComponent, Texture, &ButtonComponent::textureDisabled>("textureDisabled", PropertyType::Texture, UpdateFlags_None),
+        makeFastProperty<ButtonComponent, Vector4, &ButtonComponent::colorNormal>("colorNormal", PropertyType::Vector4, UpdateFlags_None),
+        makeFastProperty<ButtonComponent, Vector4, &ButtonComponent::colorPressed>("colorPressed", PropertyType::Vector4, UpdateFlags_None),
+        makeFastProperty<ButtonComponent, Vector4, &ButtonComponent::colorDisabled>("colorDisabled", PropertyType::Vector4, UpdateFlags_None),
+        makeFastProperty<ButtonComponent, bool, &ButtonComponent::disabled>("disabled", PropertyType::Bool, UpdateFlags_None),
+    };
+
+    static const FastPropertyDescriptor kSpriteProperties[] = {
+        makeFastPropertyNoDefault<SpriteComponent, unsigned int, &SpriteComponent::width>("width", PropertyType::UInt, UpdateFlags_Sprite),
+        makeFastPropertyNoDefault<SpriteComponent, unsigned int, &SpriteComponent::height>("height", PropertyType::UInt, UpdateFlags_Sprite),
+        makeFastProperty<SpriteComponent, PivotPreset, &SpriteComponent::pivotPreset>("pivotPreset", PropertyType::Enum, UpdateFlags_Sprite),
+        makeFastProperty<SpriteComponent, float, &SpriteComponent::textureScaleFactor>("textureScaleFactor", PropertyType::Float, UpdateFlags_Sprite),
+    };
+
+    static const FastPropertyDescriptor kLightProperties[] = {
+        makeFastPropertyNoDefault<LightComponent, LightType, &LightComponent::type>("type", PropertyType::Enum, UpdateFlags_LightShadowMap | UpdateFlags_LightShadowCamera | UpdateFlags_Scene_Mesh_Reload),
+        makeFastProperty<LightComponent, Vector3, &LightComponent::direction>("direction", PropertyType::Vector3, UpdateFlags_Transform),
+        makeFastProperty<LightComponent, bool, &LightComponent::shadows>("shadows", PropertyType::Bool, UpdateFlags_LightShadowCamera | UpdateFlags_Scene_Mesh_Reload),
+        makeFastProperty<LightComponent, float, &LightComponent::intensity>("intensity", PropertyType::Float, UpdateFlags_None),
+        makeFastProperty<LightComponent, float, &LightComponent::range>("range", PropertyType::Float, UpdateFlags_LightShadowCamera),
+        makeFastProperty<LightComponent, Vector3, &LightComponent::color>("color", PropertyType::Vector3, UpdateFlags_None),
+        makeFastProperty<LightComponent, float, &LightComponent::innerConeCos>("innerConeCos", PropertyType::Float, UpdateFlags_LightShadowCamera),
+        makeFastProperty<LightComponent, float, &LightComponent::outerConeCos>("outerConeCos", PropertyType::Float, UpdateFlags_LightShadowCamera),
+        makeFastProperty<LightComponent, float, &LightComponent::shadowBias>("shadowBias", PropertyType::Float, UpdateFlags_None),
+        makeFastProperty<LightComponent, unsigned int, &LightComponent::mapResolution>("mapResolution", PropertyType::UInt, UpdateFlags_LightShadowMap | UpdateFlags_Scene_Mesh_Reload),
+        makeFastProperty<LightComponent, bool, &LightComponent::automaticShadowCamera>("automaticShadowCamera", PropertyType::Bool, UpdateFlags_LightShadowCamera),
+        makeCustomProperty("shadowCameraNear", PropertyType::Float, UpdateFlags_LightShadowCamera, &nullPropertyPtr, &getLightShadowNearRef),
+        makeCustomProperty("shadowCameraFar", PropertyType::Float, UpdateFlags_LightShadowCamera, &nullPropertyPtr, &getLightShadowFarRef),
+        makeFastProperty<LightComponent, unsigned int, &LightComponent::numShadowCascades>("numShadowCascades", PropertyType::UInt, UpdateFlags_LightShadowCamera | UpdateFlags_Scene_Mesh_Reload),
+    };
+
+    static const FastPropertyDescriptor kCameraProperties[] = {
+        makeFastProperty<CameraComponent, CameraType, &CameraComponent::type>("type", PropertyType::Enum, UpdateFlags_Camera),
+        makeFastProperty<CameraComponent, Vector3, &CameraComponent::target>("target", PropertyType::Vector3, UpdateFlags_Camera),
+        makeFastProperty<CameraComponent, Vector3, &CameraComponent::up>("up", PropertyType::Vector3, UpdateFlags_Camera),
+        makeFastProperty<CameraComponent, float, &CameraComponent::leftClip>("left", PropertyType::Float, UpdateFlags_Camera),
+        makeFastProperty<CameraComponent, float, &CameraComponent::rightClip>("right", PropertyType::Float, UpdateFlags_Camera),
+        makeFastProperty<CameraComponent, float, &CameraComponent::bottomClip>("bottom", PropertyType::Float, UpdateFlags_Camera),
+        makeFastProperty<CameraComponent, float, &CameraComponent::topClip>("top", PropertyType::Float, UpdateFlags_Camera),
+        makeFastProperty<CameraComponent, float, &CameraComponent::yfov>("yfov", PropertyType::Float, UpdateFlags_Camera),
+        makeFastProperty<CameraComponent, float, &CameraComponent::aspect>("aspect", PropertyType::Float, UpdateFlags_Camera),
+        makeFastProperty<CameraComponent, float, &CameraComponent::nearClip>("near", PropertyType::Float, UpdateFlags_Camera),
+        makeFastProperty<CameraComponent, float, &CameraComponent::farClip>("far", PropertyType::Float, UpdateFlags_Camera),
+        makeFastProperty<CameraComponent, bool, &CameraComponent::renderToTexture>("renderToTexture", PropertyType::Bool, UpdateFlags_None),
+        makeFastProperty<CameraComponent, bool, &CameraComponent::transparentSort>("transparentSort", PropertyType::Bool, UpdateFlags_None),
+        makeFastProperty<CameraComponent, bool, &CameraComponent::useTarget>("useTarget", PropertyType::Bool, UpdateFlags_Camera),
+        makeFastProperty<CameraComponent, bool, &CameraComponent::autoResize>("autoResize", PropertyType::Bool, UpdateFlags_Camera),
+    };
+
+    static const FastPropertyDescriptor kSkyProperties[] = {
+        makeFastProperty<SkyComponent, Texture, &SkyComponent::texture>("texture", PropertyType::Texture, UpdateFlags_Sky_Texture),
+        makeFastProperty<SkyComponent, Vector4, &SkyComponent::color>("color", PropertyType::Vector4, UpdateFlags_None),
+        makeFastProperty<SkyComponent, float, &SkyComponent::rotation>("rotation", PropertyType::Float, UpdateFlags_Sky),
+    };
+
+    static const FastPropertyDescriptor kTextProperties[] = {
+        makeFastProperty<TextComponent, std::string, &TextComponent::text>("text", PropertyType::String, UpdateFlags_Text),
+        makeFastProperty<TextComponent, std::string, &TextComponent::font>("font", PropertyType::String, UpdateFlags_Text_Atlas),
+        makeFastProperty<TextComponent, unsigned int, &TextComponent::fontSize>("fontSize", PropertyType::UInt, UpdateFlags_Text_Atlas),
+        makeFastProperty<TextComponent, bool, &TextComponent::multiline>("multiline", PropertyType::Bool, UpdateFlags_Text),
+        makeFastProperty<TextComponent, unsigned int, &TextComponent::maxTextSize>("maxTextSize", PropertyType::UInt, UpdateFlags_Text),
+        makeFastProperty<TextComponent, bool, &TextComponent::fixedWidth>("fixedWidth", PropertyType::Bool, UpdateFlags_Text),
+        makeFastProperty<TextComponent, bool, &TextComponent::fixedHeight>("fixedHeight", PropertyType::Bool, UpdateFlags_Text),
+        makeFastProperty<TextComponent, bool, &TextComponent::pivotBaseline>("pivotBaseline", PropertyType::Bool, UpdateFlags_Text),
+        makeFastProperty<TextComponent, bool, &TextComponent::pivotCentered>("pivotCentered", PropertyType::Bool, UpdateFlags_Text),
+    };
+
+    static const FastPropertyDescriptor kJoint2DProperties[] = {
+        makeFastProperty<Joint2DComponent, Joint2DType, &Joint2DComponent::type>("type", PropertyType::Enum, UpdateFlags_Joint2D),
+        makeFastProperty<Joint2DComponent, Entity, &Joint2DComponent::bodyA>("bodyA", PropertyType::UInt, UpdateFlags_Joint2D),
+        makeFastProperty<Joint2DComponent, Entity, &Joint2DComponent::bodyB>("bodyB", PropertyType::UInt, UpdateFlags_Joint2D),
+        makeFastProperty<Joint2DComponent, Vector2, &Joint2DComponent::anchorA>("anchorA", PropertyType::Vector2, UpdateFlags_Joint2D),
+        makeFastProperty<Joint2DComponent, Vector2, &Joint2DComponent::anchorB>("anchorB", PropertyType::Vector2, UpdateFlags_Joint2D),
+        makeFastProperty<Joint2DComponent, Vector2, &Joint2DComponent::axis>("axis", PropertyType::Vector2, UpdateFlags_Joint2D),
+        makeFastProperty<Joint2DComponent, Vector2, &Joint2DComponent::target>("target", PropertyType::Vector2, UpdateFlags_Joint2D),
+        makeFastProperty<Joint2DComponent, bool, &Joint2DComponent::autoAnchors>("autoAnchors", PropertyType::Bool, UpdateFlags_Joint2D),
+        makeFastProperty<Joint2DComponent, bool, &Joint2DComponent::rope>("rope", PropertyType::Bool, UpdateFlags_Joint2D),
+    };
+
+    static const FastPropertyDescriptor kJoint3DProperties[] = {
+        makeFastProperty<Joint3DComponent, Joint3DType, &Joint3DComponent::type>("type", PropertyType::Enum, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, Entity, &Joint3DComponent::bodyA>("bodyA", PropertyType::UInt, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, Entity, &Joint3DComponent::bodyB>("bodyB", PropertyType::UInt, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, Vector3, &Joint3DComponent::anchorA>("anchorA", PropertyType::Vector3, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, Vector3, &Joint3DComponent::anchorB>("anchorB", PropertyType::Vector3, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, Vector3, &Joint3DComponent::anchor>("anchor", PropertyType::Vector3, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, Vector3, &Joint3DComponent::axis>("axis", PropertyType::Vector3, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, Vector3, &Joint3DComponent::normal>("normal", PropertyType::Vector3, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, Vector3, &Joint3DComponent::twistAxis>("twistAxis", PropertyType::Vector3, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, Vector3, &Joint3DComponent::planeAxis>("planeAxis", PropertyType::Vector3, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, Vector3, &Joint3DComponent::axisX>("axisX", PropertyType::Vector3, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, Vector3, &Joint3DComponent::axisY>("axisY", PropertyType::Vector3, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, float, &Joint3DComponent::limitsMin>("limitsMin", PropertyType::Float, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, float, &Joint3DComponent::limitsMax>("limitsMax", PropertyType::Float, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, float, &Joint3DComponent::normalHalfConeAngle>("normalHalfConeAngle", PropertyType::Float, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, float, &Joint3DComponent::planeHalfConeAngle>("planeHalfConeAngle", PropertyType::Float, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, float, &Joint3DComponent::twistMinAngle>("twistMinAngle", PropertyType::Float, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, float, &Joint3DComponent::twistMaxAngle>("twistMaxAngle", PropertyType::Float, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, Vector3, &Joint3DComponent::fixedPointA>("fixedPointA", PropertyType::Vector3, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, Vector3, &Joint3DComponent::fixedPointB>("fixedPointB", PropertyType::Vector3, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, Entity, &Joint3DComponent::hingeA>("hingeA", PropertyType::UInt, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, Entity, &Joint3DComponent::hingeB>("hingeB", PropertyType::UInt, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, Entity, &Joint3DComponent::hinge>("hinge", PropertyType::UInt, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, Entity, &Joint3DComponent::slider>("slider", PropertyType::UInt, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, int, &Joint3DComponent::numTeethGearA>("numTeethGearA", PropertyType::Int, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, int, &Joint3DComponent::numTeethGearB>("numTeethGearB", PropertyType::Int, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, int, &Joint3DComponent::numTeethRack>("numTeethRack", PropertyType::Int, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, int, &Joint3DComponent::numTeethGear>("numTeethGear", PropertyType::Int, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, int, &Joint3DComponent::rackLength>("rackLength", PropertyType::Int, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, Vector3, &Joint3DComponent::pathPosition>("pathPosition", PropertyType::Vector3, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, bool, &Joint3DComponent::isLooping>("isLooping", PropertyType::Bool, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, bool, &Joint3DComponent::autoAnchors>("autoAnchors", PropertyType::Bool, UpdateFlags_Joint3D),
+    };
+
+    static const FastPropertyDescriptor kMeshTopProperties[] = {
+        makeFastProperty<MeshComponent, bool, &MeshComponent::castShadows>("castShadows", PropertyType::Bool, UpdateFlags_Mesh_Reload),
+        makeFastProperty<MeshComponent, bool, &MeshComponent::receiveShadows>("receiveShadows", PropertyType::Bool, UpdateFlags_Mesh_Reload),
+        makeFastProperty<MeshComponent, unsigned int, &MeshComponent::numSubmeshes>("numSubmeshes", PropertyType::UInt, UpdateFlags_None),
+    };
+
+    static const FastPropertyDescriptor kUIContainerTopProperties[] = {
+        makeFastProperty<UIContainerComponent, ContainerType, &UIContainerComponent::type>("type", PropertyType::Enum, UpdateFlags_Layout_Sizes),
+        makeFastProperty<UIContainerComponent, bool, &UIContainerComponent::useAllWrapSpace>("useAllWrapSpace", PropertyType::Bool, UpdateFlags_Layout_Sizes),
+        makeFastProperty<UIContainerComponent, unsigned int, &UIContainerComponent::wrapCellWidth>("wrapCellWidth", PropertyType::UInt, UpdateFlags_Layout_Sizes),
+        makeFastProperty<UIContainerComponent, unsigned int, &UIContainerComponent::wrapCellHeight>("wrapCellHeight", PropertyType::UInt, UpdateFlags_Layout_Sizes),
+        makeFastProperty<UIContainerComponent, unsigned int, &UIContainerComponent::numBoxes>("numBoxes", PropertyType::UInt, UpdateFlags_None),
+    };
+
+    PropertyData getMeshPropertyFast(MeshComponent* comp, const std::string& propertyName) {
+        MeshComponent& def = getDefaultComponent<MeshComponent>();
+
+        if (!comp) {
+            return PropertyData();
+        }
+
+        // Flat properties
+        PropertyData result = resolveDirectProperties(comp, propertyName, kMeshTopProperties);
+        if (result.ref) return result;
+
+        // Submeshes: submeshes[N].field
+        if (propertyName.compare(0, 10, "submeshes[") != 0) {
+            return PropertyData();
+        }
+
+        size_t pos = 10;
+        size_t submeshIndex = 0;
+        if (!parseIndex(propertyName, pos, submeshIndex) || pos >= propertyName.size() || propertyName[pos] != ']') {
+            return PropertyData();
+        }
+        if (submeshIndex >= MAX_SUBMESHES) {
+            return PropertyData();
+        }
+
+        Submesh& sub = comp->submeshes[submeshIndex];
+        Submesh& defSub = def.submeshes[0];
+
+        pos++;
+        if (pos == propertyName.size()) {
+            return {PropertyType::Custom, UpdateFlags_Mesh_Texture, (void*)&defSub, (void*)&sub};
+        }
+        if (propertyName[pos] != '.') {
+            return PropertyData();
+        }
+
+        const size_t fieldPos = pos + 1;
+
+        // submeshes[N].material
+        if (propertyName.compare(fieldPos, 8, "material") == 0) {
+            if (fieldPos + 8 == propertyName.size()) {
+                return {PropertyType::Material, UpdateFlags_Mesh_Texture, (void*)&defSub.material, (void*)&sub.material};
+            }
+            if (propertyName[fieldPos + 8] != '.') {
+                return PropertyData();
+            }
+            const size_t matFieldPos = fieldPos + 9;
+            if (propertyName.compare(matFieldPos, 4, "name") == 0 && matFieldPos + 4 == propertyName.size()) {
+                return {PropertyType::String, UpdateFlags_None, (void*)&defSub.material.name, (void*)&sub.material.name};
+            }
+            if (propertyName.compare(matFieldPos, 15, "baseColorFactor") == 0 && matFieldPos + 15 == propertyName.size()) {
+                return {PropertyType::Vector4, UpdateFlags_None, (void*)&defSub.material.baseColorFactor, (void*)&sub.material.baseColorFactor};
+            }
+            if (propertyName.compare(matFieldPos, 14, "metallicFactor") == 0 && matFieldPos + 14 == propertyName.size()) {
+                return {PropertyType::Float, UpdateFlags_None, (void*)&defSub.material.metallicFactor, (void*)&sub.material.metallicFactor};
+            }
+            if (propertyName.compare(matFieldPos, 15, "roughnessFactor") == 0 && matFieldPos + 15 == propertyName.size()) {
+                return {PropertyType::Float, UpdateFlags_None, (void*)&defSub.material.roughnessFactor, (void*)&sub.material.roughnessFactor};
+            }
+            if (propertyName.compare(matFieldPos, 14, "emissiveFactor") == 0 && matFieldPos + 14 == propertyName.size()) {
+                return {PropertyType::Vector3, UpdateFlags_None, (void*)&defSub.material.emissiveFactor, (void*)&sub.material.emissiveFactor};
+            }
+            if (propertyName.compare(matFieldPos, 16, "baseColorTexture") == 0 && matFieldPos + 16 == propertyName.size()) {
+                return {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&defSub.material.baseColorTexture, (void*)&sub.material.baseColorTexture};
+            }
+            if (propertyName.compare(matFieldPos, 15, "emissiveTexture") == 0 && matFieldPos + 15 == propertyName.size()) {
+                return {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&defSub.material.emissiveTexture, (void*)&sub.material.emissiveTexture};
+            }
+            if (propertyName.compare(matFieldPos, 24, "metallicRoughnessTexture") == 0 && matFieldPos + 24 == propertyName.size()) {
+                return {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&defSub.material.metallicRoughnessTexture, (void*)&sub.material.metallicRoughnessTexture};
+            }
+            if (propertyName.compare(matFieldPos, 16, "occlusionTexture") == 0 && matFieldPos + 16 == propertyName.size()) {
+                return {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&defSub.material.occlusionTexture, (void*)&sub.material.occlusionTexture};
+            }
+            if (propertyName.compare(matFieldPos, 13, "normalTexture") == 0 && matFieldPos + 13 == propertyName.size()) {
+                return {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&defSub.material.normalTexture, (void*)&sub.material.normalTexture};
+            }
+            return PropertyData();
+        }
+
+        // submeshes[N].primitiveType, faceCulling, textureShadow, textureRect
+        if (propertyName.compare(fieldPos, 13, "primitiveType") == 0 && fieldPos + 13 == propertyName.size()) {
+            return {PropertyType::Enum, UpdateFlags_Mesh_Reload, (void*)&defSub.primitiveType, (void*)&sub.primitiveType};
+        }
+        if (propertyName.compare(fieldPos, 11, "faceCulling") == 0 && fieldPos + 11 == propertyName.size()) {
+            return {PropertyType::Bool, UpdateFlags_Mesh_Reload, (void*)&defSub.faceCulling, (void*)&sub.faceCulling};
+        }
+        if (propertyName.compare(fieldPos, 13, "textureShadow") == 0 && fieldPos + 13 == propertyName.size()) {
+            return {PropertyType::Bool, UpdateFlags_Mesh_Reload, (void*)&defSub.textureShadow, (void*)&sub.textureShadow};
+        }
+        if (propertyName.compare(fieldPos, 11, "textureRect") == 0 && fieldPos + 11 == propertyName.size()) {
+            return {PropertyType::Vector4, UpdateFlags_None, (void*)&defSub.textureRect, (void*)&sub.textureRect};
+        }
+
+        return PropertyData();
+    }
+
+    PropertyData getUIContainerPropertyFast(UIContainerComponent* comp, const std::string& propertyName) {
+        UIContainerComponent& def = getDefaultComponent<UIContainerComponent>();
+
+        if (!comp) {
+            return PropertyData();
+        }
+
+        // Flat properties
+        PropertyData result = resolveDirectProperties(comp, propertyName, kUIContainerTopProperties);
+        if (result.ref) return result;
+
+        // boxes[N].field
+        if (propertyName.compare(0, 6, "boxes[") != 0) {
+            return PropertyData();
+        }
+
+        size_t pos = 6;
+        size_t boxIndex = 0;
+        if (!parseIndex(propertyName, pos, boxIndex) || pos >= propertyName.size() || propertyName[pos] != ']') {
+            return PropertyData();
+        }
+        if (boxIndex >= MAX_CONTAINER_BOXES) {
+            return PropertyData();
+        }
+
+        ContainerBox& box = comp->boxes[boxIndex];
+        ContainerBox& defBox = def.boxes[0];
+
+        pos++;
+        if (pos == propertyName.size()) {
+            return {PropertyType::Custom, UpdateFlags_None, (void*)&defBox, (void*)&box};
+        }
+        if (propertyName[pos] != '.') {
+            return PropertyData();
+        }
+
+        const size_t fieldPos = pos + 1;
+
+        if (propertyName.compare(fieldPos, 6, "layout") == 0 && fieldPos + 6 == propertyName.size()) {
+            return {PropertyType::UInt, UpdateFlags_None, (void*)&defBox.layout, (void*)&box.layout};
+        }
+        if (propertyName.compare(fieldPos, 6, "expand") == 0 && fieldPos + 6 == propertyName.size()) {
+            return {PropertyType::Bool, UpdateFlags_Layout_Sizes, (void*)&defBox.expand, (void*)&box.expand};
+        }
+        if (propertyName.compare(fieldPos, 6, "rect.x") == 0 && fieldPos + 6 == propertyName.size()) {
+            return {PropertyType::Float, UpdateFlags_None, (void*)&defBox.rect.ptr()[0], (void*)&box.rect.ptr()[0]};
+        }
+        if (propertyName.compare(fieldPos, 6, "rect.y") == 0 && fieldPos + 6 == propertyName.size()) {
+            return {PropertyType::Float, UpdateFlags_None, (void*)&defBox.rect.ptr()[1], (void*)&box.rect.ptr()[1]};
+        }
+        if (propertyName.compare(fieldPos, 10, "rect.width") == 0 && fieldPos + 10 == propertyName.size()) {
+            return {PropertyType::Float, UpdateFlags_None, (void*)&defBox.rect.ptr()[2], (void*)&box.rect.ptr()[2]};
+        }
+        if (propertyName.compare(fieldPos, 11, "rect.height") == 0 && fieldPos + 11 == propertyName.size()) {
+            return {PropertyType::Float, UpdateFlags_None, (void*)&defBox.rect.ptr()[3], (void*)&box.rect.ptr()[3]};
+        }
+
+        return PropertyData();
+    }
+
+    PropertyData getScriptPropertyFast(ScriptComponent* comp, const std::string& propertyName) {
+        if (!comp) {
+            return PropertyData();
+        }
+
+        if (propertyName == "scripts") {
+            return {PropertyType::Custom, UpdateFlags_None, nullptr, (void*)&comp->scripts};
+        }
+
+        // Parse "scripts[N].fieldName"
+        if (propertyName.compare(0, 8, "scripts[") != 0) {
+            return PropertyData();
+        }
+
+        size_t pos = 8;
+        size_t index = 0;
+        if (!parseIndex(propertyName, pos, index) || pos >= propertyName.size() || propertyName[pos] != ']') {
+            return PropertyData();
+        }
+        pos++;
+        if (pos >= propertyName.size() || propertyName[pos] != '.') {
+            return PropertyData();
+        }
+        pos++;
+
+        if (index >= comp->scripts.size()) {
+            return PropertyData();
+        }
+        auto& scriptEntry = comp->scripts[index];
+
+        std::string fieldName = propertyName.substr(pos);
+
+        if (fieldName == "enabled") {
+            return {PropertyType::Bool, UpdateFlags_None, nullptr, (void*)&scriptEntry.enabled};
+        }
+
+        for (auto& prop : scriptEntry.properties) {
+            if (prop.name == fieldName) {
+                PropertyData result;
+                result.type = Catalog::scriptPropertyTypeToPropertyType(prop.type);
+                result.updateFlags = UpdateFlags_None;
+
+                switch (prop.type) {
+                    case ScriptPropertyType::Bool:
+                        result.ref = const_cast<bool*>(&std::get<bool>(prop.value));
+                        result.def = const_cast<bool*>(&std::get<bool>(prop.defaultValue));
+                        break;
+                    case ScriptPropertyType::Int:
+                        result.ref = const_cast<int*>(&std::get<int>(prop.value));
+                        result.def = const_cast<int*>(&std::get<int>(prop.defaultValue));
+                        break;
+                    case ScriptPropertyType::Float:
+                        result.ref = const_cast<float*>(&std::get<float>(prop.value));
+                        result.def = const_cast<float*>(&std::get<float>(prop.defaultValue));
+                        break;
+                    case ScriptPropertyType::String:
+                        result.ref = const_cast<std::string*>(&std::get<std::string>(prop.value));
+                        result.def = const_cast<std::string*>(&std::get<std::string>(prop.defaultValue));
+                        break;
+                    case ScriptPropertyType::Vector2:
+                        result.ref = const_cast<Vector2*>(&std::get<Vector2>(prop.value));
+                        result.def = const_cast<Vector2*>(&std::get<Vector2>(prop.defaultValue));
+                        break;
+                    case ScriptPropertyType::Vector3:
+                    case ScriptPropertyType::Color3:
+                        result.ref = const_cast<Vector3*>(&std::get<Vector3>(prop.value));
+                        result.def = const_cast<Vector3*>(&std::get<Vector3>(prop.defaultValue));
+                        break;
+                    case ScriptPropertyType::Vector4:
+                    case ScriptPropertyType::Color4:
+                        result.ref = const_cast<Vector4*>(&std::get<Vector4>(prop.value));
+                        result.def = const_cast<Vector4*>(&std::get<Vector4>(prop.defaultValue));
+                        break;
+                    case ScriptPropertyType::EntityPointer:
+                        result.ref = const_cast<EntityRef*>(&std::get<EntityRef>(prop.value));
+                        result.def = const_cast<EntityRef*>(&std::get<EntityRef>(prop.defaultValue));
+                        break;
+                    default:
+                        result.ref = nullptr;
+                        result.def = nullptr;
+                        break;
+                }
+                return result;
+            }
+        }
+
+        return PropertyData();
+    }
+
+    PropertyData getBody2DPropertyFast(Body2DComponent* comp, const std::string& propertyName) {
+        Body2DComponent& defaultBody2D = getDefaultComponent<Body2DComponent>();
+
+        if (!comp) {
+            return PropertyData();
+        }
+
+        if (propertyName == "type") {
+            return {PropertyType::Enum, UpdateFlags_Body2D, (void*)&defaultBody2D.type, (void*)&comp->type};
+        }
+        if (propertyName == "numShapes") {
+            return {PropertyType::UInt, UpdateFlags_Body2D, (void*)&defaultBody2D.numShapes, (void*)&comp->numShapes};
+        }
+
+        constexpr const char* shapePrefix = "shapes[";
+        if (propertyName.compare(0, 7, shapePrefix) != 0) {
+            return PropertyData();
+        }
+
+        size_t pos = 7;
+        size_t shapeIndex = 0;
+        if (!parseIndex(propertyName, pos, shapeIndex) || pos >= propertyName.size() || propertyName[pos] != ']') {
+            return PropertyData();
+        }
+
+        if (shapeIndex >= MAX_SHAPES) {
+            return PropertyData();
+        }
+
+        Shape2D& shape = comp->shapes[shapeIndex];
+        Shape2D& defaultShape = defaultBody2D.shapes[0];
+
+        pos++;
+        if (pos == propertyName.size()) {
+            return {PropertyType::Custom, UpdateFlags_Body2D, (void*)&defaultShape, (void*)&shape};
+        }
+
+        if (propertyName[pos] != '.') {
+            return PropertyData();
+        }
+
+        const size_t fieldPos = pos + 1;
+        if (propertyName.compare(fieldPos, 4, "type") == 0 && fieldPos + 4 == propertyName.size()) {
+            return {PropertyType::Enum, UpdateFlags_Body2D, (void*)&defaultShape.type, (void*)&shape.type};
+        }
+        if (propertyName.compare(fieldPos, 6, "pointA") == 0 && fieldPos + 6 == propertyName.size()) {
+            return {PropertyType::Vector2, UpdateFlags_Body2D, (void*)&defaultShape.pointA, (void*)&shape.pointA};
+        }
+        if (propertyName.compare(fieldPos, 6, "pointB") == 0 && fieldPos + 6 == propertyName.size()) {
+            return {PropertyType::Vector2, UpdateFlags_Body2D, (void*)&defaultShape.pointB, (void*)&shape.pointB};
+        }
+        if (propertyName.compare(fieldPos, 6, "radius") == 0 && fieldPos + 6 == propertyName.size()) {
+            return {PropertyType::Float, UpdateFlags_Body2D, (void*)&defaultShape.radius, (void*)&shape.radius};
+        }
+        if (propertyName.compare(fieldPos, 4, "loop") == 0 && fieldPos + 4 == propertyName.size()) {
+            return {PropertyType::Bool, UpdateFlags_Body2D, (void*)&defaultShape.loop, (void*)&shape.loop};
+        }
+        if (propertyName.compare(fieldPos, 7, "density") == 0 && fieldPos + 7 == propertyName.size()) {
+            return {PropertyType::Float, UpdateFlags_Body2D, (void*)&defaultShape.density, (void*)&shape.density};
+        }
+        if (propertyName.compare(fieldPos, 8, "friction") == 0 && fieldPos + 8 == propertyName.size()) {
+            return {PropertyType::Float, UpdateFlags_Body2D, (void*)&defaultShape.friction, (void*)&shape.friction};
+        }
+        if (propertyName.compare(fieldPos, 11, "restitution") == 0 && fieldPos + 11 == propertyName.size()) {
+            return {PropertyType::Float, UpdateFlags_Body2D, (void*)&defaultShape.restitution, (void*)&shape.restitution};
+        }
+        if (propertyName.compare(fieldPos, 15, "enableHitEvents") == 0 && fieldPos + 15 == propertyName.size()) {
+            return {PropertyType::Bool, UpdateFlags_Body2D, (void*)&defaultShape.enableHitEvents, (void*)&shape.enableHitEvents};
+        }
+        if (propertyName.compare(fieldPos, 13, "contactEvents") == 0 && fieldPos + 13 == propertyName.size()) {
+            return {PropertyType::Bool, UpdateFlags_Body2D, (void*)&defaultShape.contactEvents, (void*)&shape.contactEvents};
+        }
+        if (propertyName.compare(fieldPos, 14, "preSolveEvents") == 0 && fieldPos + 14 == propertyName.size()) {
+            return {PropertyType::Bool, UpdateFlags_Body2D, (void*)&defaultShape.preSolveEvents, (void*)&shape.preSolveEvents};
+        }
+        if (propertyName.compare(fieldPos, 12, "sensorEvents") == 0 && fieldPos + 12 == propertyName.size()) {
+            return {PropertyType::Bool, UpdateFlags_Body2D, (void*)&defaultShape.sensorEvents, (void*)&shape.sensorEvents};
+        }
+
+        constexpr const char* verticesPrefix = "vertices[";
+        if (propertyName.compare(fieldPos, 9, verticesPrefix) == 0) {
+            size_t vertexPos = fieldPos + 9;
+            size_t vertexIndex = 0;
+            if (!parseIndex(propertyName, vertexPos, vertexIndex) || vertexPos >= propertyName.size() || propertyName[vertexPos] != ']') {
+                return PropertyData();
+            }
+
+            if (vertexPos + 1 != propertyName.size() || vertexIndex >= MAX_SHAPE_POINTS_2D) {
+                return PropertyData();
+            }
+
+            return {PropertyType::Vector2, UpdateFlags_Body2D, (void*)&defaultShape.vertices[0], (void*)&shape.vertices[vertexIndex]};
+        }
+
+        return PropertyData();
+    }
+
+    Supernova::Editor::PropertyData getBody3DPropertyFast(Supernova::Body3DComponent* comp, const std::string& propertyName) {
+        Body3DComponent& defaultBody3D = getDefaultComponent<Body3DComponent>();
+
+        if (!comp) {
+            return PropertyData();
+        }
+
+        if (propertyName == "type") {
+            return {PropertyType::Enum, UpdateFlags_Body3D, (void*)&defaultBody3D.type, (void*)&comp->type};
+        }
+        if (propertyName == "numShapes") {
+            return {PropertyType::UInt, UpdateFlags_Body3D, (void*)&defaultBody3D.numShapes, (void*)&comp->numShapes};
+        }
+        if (propertyName == "overrideMassProperties") {
+            return {PropertyType::Bool, UpdateFlags_Body3D, (void*)&defaultBody3D.overrideMassProperties, (void*)&comp->overrideMassProperties};
+        }
+        if (propertyName == "solidBoxSize") {
+            return {PropertyType::Vector3, UpdateFlags_Body3D, (void*)&defaultBody3D.solidBoxSize, (void*)&comp->solidBoxSize};
+        }
+        if (propertyName == "solidBoxDensity") {
+            return {PropertyType::Float, UpdateFlags_Body3D, (void*)&defaultBody3D.solidBoxDensity, (void*)&comp->solidBoxDensity};
+        }
+        if (propertyName == "lockBody") {
+            return {PropertyType::Bool, UpdateFlags_Body3D, (void*)&defaultBody3D.lockBody, (void*)&comp->lockBody};
+        }
+
+        constexpr const char* shapePrefix = "shapes[";
+        if (propertyName.compare(0, 7, shapePrefix) != 0) {
+            return PropertyData();
+        }
+
+        size_t pos = 7;
+        size_t shapeIndex = 0;
+        if (!parseIndex(propertyName, pos, shapeIndex) || pos >= propertyName.size() || propertyName[pos] != ']') {
+            return PropertyData();
+        }
+
+        if (shapeIndex >= MAX_SHAPES) {
+            return PropertyData();
+        }
+
+        Shape3D& shape = comp->shapes[shapeIndex];
+        Shape3D& defaultShape = defaultBody3D.shapes[0];
+
+        pos++;
+        if (pos == propertyName.size()) {
+            return {PropertyType::Custom, UpdateFlags_Body3D, (void*)&defaultShape, (void*)&shape};
+        }
+
+        if (propertyName[pos] != '.') {
+            return PropertyData();
+        }
+
+        const size_t fieldPos = pos + 1;
+
+        if (propertyName.compare(fieldPos, 4, "type") == 0 && fieldPos + 4 == propertyName.size()) {
+            return {PropertyType::Enum, UpdateFlags_Body3D, (void*)&defaultShape.type, (void*)&shape.type};
+        }
+        if (propertyName.compare(fieldPos, 8, "position") == 0 && fieldPos + 8 == propertyName.size()) {
+            return {PropertyType::Vector3, UpdateFlags_Body3D, (void*)&defaultShape.position, (void*)&shape.position};
+        }
+        if (propertyName.compare(fieldPos, 8, "rotation") == 0 && fieldPos + 8 == propertyName.size()) {
+            return {PropertyType::Quat, UpdateFlags_Body3D, (void*)&defaultShape.rotation, (void*)&shape.rotation};
+        }
+        if (propertyName.compare(fieldPos, 5, "width") == 0 && fieldPos + 5 == propertyName.size()) {
+            return {PropertyType::Float, UpdateFlags_Body3D, (void*)&defaultShape.width, (void*)&shape.width};
+        }
+        if (propertyName.compare(fieldPos, 6, "height") == 0 && fieldPos + 6 == propertyName.size()) {
+            return {PropertyType::Float, UpdateFlags_Body3D, (void*)&defaultShape.height, (void*)&shape.height};
+        }
+        if (propertyName.compare(fieldPos, 5, "depth") == 0 && fieldPos + 5 == propertyName.size()) {
+            return {PropertyType::Float, UpdateFlags_Body3D, (void*)&defaultShape.depth, (void*)&shape.depth};
+        }
+        if (propertyName.compare(fieldPos, 6, "radius") == 0 && fieldPos + 6 == propertyName.size()) {
+            return {PropertyType::Float, UpdateFlags_Body3D, (void*)&defaultShape.radius, (void*)&shape.radius};
+        }
+        if (propertyName.compare(fieldPos, 10, "halfHeight") == 0 && fieldPos + 10 == propertyName.size()) {
+            return {PropertyType::Float, UpdateFlags_Body3D, (void*)&defaultShape.halfHeight, (void*)&shape.halfHeight};
+        }
+        if (propertyName.compare(fieldPos, 9, "topRadius") == 0 && fieldPos + 9 == propertyName.size()) {
+            return {PropertyType::Float, UpdateFlags_Body3D, (void*)&defaultShape.topRadius, (void*)&shape.topRadius};
+        }
+        if (propertyName.compare(fieldPos, 12, "bottomRadius") == 0 && fieldPos + 12 == propertyName.size()) {
+            return {PropertyType::Float, UpdateFlags_Body3D, (void*)&defaultShape.bottomRadius, (void*)&shape.bottomRadius};
+        }
+        if (propertyName.compare(fieldPos, 7, "density") == 0 && fieldPos + 7 == propertyName.size()) {
+            return {PropertyType::Float, UpdateFlags_Body3D, (void*)&defaultShape.density, (void*)&shape.density};
+        }
+        if (propertyName.compare(fieldPos, 6, "source") == 0 && fieldPos + 6 == propertyName.size()) {
+            return {PropertyType::Enum, UpdateFlags_Body3D, (void*)&defaultShape.source, (void*)&shape.source};
+        }
+        if (propertyName.compare(fieldPos, 12, "sourceEntity") == 0 && fieldPos + 12 == propertyName.size()) {
+            return {PropertyType::UInt, UpdateFlags_Body3D, (void*)&defaultShape.sourceEntity, (void*)&shape.sourceEntity};
+        }
+        if (propertyName.compare(fieldPos, 11, "samplesSize") == 0 && fieldPos + 11 == propertyName.size()) {
+            return {PropertyType::UInt, UpdateFlags_Body3D, (void*)&defaultShape.samplesSize, (void*)&shape.samplesSize};
+        }
+        if (propertyName.compare(fieldPos, 11, "numVertices") == 0 && fieldPos + 11 == propertyName.size()) {
+            return {PropertyType::UInt, UpdateFlags_Body3D, (void*)&defaultShape.numVertices, (void*)&shape.numVertices};
+        }
+        if (propertyName.compare(fieldPos, 10, "numIndices") == 0 && fieldPos + 10 == propertyName.size()) {
+            return {PropertyType::UInt, UpdateFlags_Body3D, (void*)&defaultShape.numIndices, (void*)&shape.numIndices};
+        }
+
+        constexpr const char* verticesPrefix = "vertices[";
+        if (propertyName.compare(fieldPos, 9, verticesPrefix) == 0) {
+            size_t vertexPos = fieldPos + 9;
+            size_t vertexIndex = 0;
+            if (!parseIndex(propertyName, vertexPos, vertexIndex) || vertexPos >= propertyName.size() || propertyName[vertexPos] != ']') {
+                return PropertyData();
+            }
+
+            if (vertexPos + 1 != propertyName.size() || vertexIndex >= MAX_SHAPE_VERTICES_3D) {
+                return PropertyData();
+            }
+
+            return {PropertyType::Vector3, UpdateFlags_Body3D, (void*)&defaultShape.vertices[0], (void*)&shape.vertices[vertexIndex]};
+        }
+
+        return PropertyData();
+    }
+
+    // ── Resolve wrappers (single-property lookup) ──
+
+    PropertyData resolveTransformPropertyFast(void* comp, const std::string& propertyName) {
+        return resolveDirectProperties(static_cast<Transform*>(comp), propertyName, kTransformProperties);
+    }
+
+    PropertyData resolveUIPropertyFast(void* comp, const std::string& propertyName) {
+        return resolveDirectProperties(static_cast<UIComponent*>(comp), propertyName, kUIProperties);
+    }
+
+    PropertyData resolveUILayoutPropertyFast(void* comp, const std::string& propertyName) {
+        return resolveDirectProperties(static_cast<UILayoutComponent*>(comp), propertyName, kUILayoutProperties);
+    }
+
+    PropertyData resolveImagePropertyFast(void* comp, const std::string& propertyName) {
+        return resolveDirectProperties(static_cast<ImageComponent*>(comp), propertyName, kImageProperties);
+    }
+
+    PropertyData resolveButtonPropertyFast(void* comp, const std::string& propertyName) {
+        return resolveDirectProperties(static_cast<ButtonComponent*>(comp), propertyName, kButtonProperties);
+    }
+
+    PropertyData resolveSpritePropertyFast(void* comp, const std::string& propertyName) {
+        return resolveDirectProperties(static_cast<SpriteComponent*>(comp), propertyName, kSpriteProperties);
+    }
+
+    PropertyData resolveLightPropertyFast(void* comp, const std::string& propertyName) {
+        return resolveDirectProperties(static_cast<LightComponent*>(comp), propertyName, kLightProperties);
+    }
+
+    PropertyData resolveCameraPropertyFast(void* comp, const std::string& propertyName) {
+        return resolveDirectProperties(static_cast<CameraComponent*>(comp), propertyName, kCameraProperties);
+    }
+
+    PropertyData resolveSkyPropertyFast(void* comp, const std::string& propertyName) {
+        return resolveDirectProperties(static_cast<SkyComponent*>(comp), propertyName, kSkyProperties);
+    }
+
+    PropertyData resolveTextPropertyFast(void* comp, const std::string& propertyName) {
+        return resolveDirectProperties(static_cast<TextComponent*>(comp), propertyName, kTextProperties);
+    }
+
+    PropertyData resolveJoint2DPropertyFast(void* comp, const std::string& propertyName) {
+        return resolveDirectProperties(static_cast<Joint2DComponent*>(comp), propertyName, kJoint2DProperties);
+    }
+
+    PropertyData resolveJoint3DPropertyFast(void* comp, const std::string& propertyName) {
+        Joint3DComponent* joint = static_cast<Joint3DComponent*>(comp);
+        if (!joint) return PropertyData();
+
+        // Flat properties from descriptor array
+        PropertyData result = resolveDirectProperties(joint, propertyName, kJoint3DProperties);
+        if (result.ref) return result;
+
+        Joint3DComponent& def = getDefaultComponent<Joint3DComponent>();
+
+        if (propertyName == "pathPoints") {
+            return {PropertyType::Custom, UpdateFlags_Joint3D, (void*)&def.pathPoints, (void*)&joint->pathPoints};
+        }
+
+        // pathPoints[N]
+        if (propertyName.compare(0, 11, "pathPoints[") == 0) {
+            size_t pos = 11;
+            size_t index = 0;
+            if (!parseIndex(propertyName, pos, index) || pos >= propertyName.size() || propertyName[pos] != ']') {
+                return PropertyData();
+            }
+            if (pos + 1 != propertyName.size() || index >= joint->pathPoints.size()) {
+                return PropertyData();
+            }
+            return {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def.pathPosition, (void*)&joint->pathPoints[index]};
+        }
+
+        return PropertyData();
+    }
+
+    PropertyData resolveBody2DPropertyFast(void* comp, const std::string& propertyName) {
+        return getBody2DPropertyFast(static_cast<Body2DComponent*>(comp), propertyName);
+    }
+
+    PropertyData resolveBody3DPropertyFast(void* comp, const std::string& propertyName) {
+        return getBody3DPropertyFast(static_cast<Body3DComponent*>(comp), propertyName);
+    }
+
+    PropertyData resolveMeshPropertyFast(void* comp, const std::string& propertyName) {
+        return getMeshPropertyFast(static_cast<MeshComponent*>(comp), propertyName);
+    }
+
+    PropertyData resolveUIContainerPropertyFast(void* comp, const std::string& propertyName) {
+        return getUIContainerPropertyFast(static_cast<UIContainerComponent*>(comp), propertyName);
+    }
+
+    PropertyData resolveScriptPropertyFast(void* comp, const std::string& propertyName) {
+        return getScriptPropertyFast(static_cast<ScriptComponent*>(comp), propertyName);
+    }
+
+    // ── Enumerate functions (build full property map) ──
+
+    void enumerateTransformProperties(void* comp, std::map<std::string, PropertyData>& ps) {
+        enumerateFromDescriptors(comp, ps, kTransformProperties);
+    }
+
+    void enumerateUIProperties(void* comp, std::map<std::string, PropertyData>& ps) {
+        enumerateFromDescriptors(comp, ps, kUIProperties);
+    }
+
+    void enumerateUILayoutProperties(void* comp, std::map<std::string, PropertyData>& ps) {
+        enumerateFromDescriptors(comp, ps, kUILayoutProperties);
+    }
+
+    void enumerateImageProperties(void* comp, std::map<std::string, PropertyData>& ps) {
+        enumerateFromDescriptors(comp, ps, kImageProperties);
+    }
+
+    void enumerateButtonProperties(void* comp, std::map<std::string, PropertyData>& ps) {
+        enumerateFromDescriptors(comp, ps, kButtonProperties);
+    }
+
+    void enumerateSpriteProperties(void* comp, std::map<std::string, PropertyData>& ps) {
+        enumerateFromDescriptors(comp, ps, kSpriteProperties);
+    }
+
+    void enumerateLightProperties(void* comp, std::map<std::string, PropertyData>& ps) {
+        enumerateFromDescriptors(comp, ps, kLightProperties);
+    }
+
+    void enumerateCameraProperties(void* comp, std::map<std::string, PropertyData>& ps) {
+        enumerateFromDescriptors(comp, ps, kCameraProperties);
+    }
+
+    void enumerateSkyProperties(void* comp, std::map<std::string, PropertyData>& ps) {
+        enumerateFromDescriptors(comp, ps, kSkyProperties);
+    }
+
+    void enumerateTextProperties(void* comp, std::map<std::string, PropertyData>& ps) {
+        enumerateFromDescriptors(comp, ps, kTextProperties);
+    }
+
+    void enumerateJoint2DProperties(void* comp, std::map<std::string, PropertyData>& ps) {
+        enumerateFromDescriptors(comp, ps, kJoint2DProperties);
+    }
+
+    void enumerateJoint3DProperties(void* compRef, std::map<std::string, PropertyData>& ps) {
+        Joint3DComponent* comp = static_cast<Joint3DComponent*>(compRef);
+        Joint3DComponent& def = getDefaultComponent<Joint3DComponent>();
+
+        enumerateFromDescriptors(compRef, ps, kJoint3DProperties);
+
+        ps["pathPoints"] = {PropertyType::Custom, UpdateFlags_Joint3D, (void*)&def.pathPoints, compRef ? (void*)&comp->pathPoints : nullptr};
+
+        for (size_t p = 0; p < (compRef ? comp->pathPoints.size() : 1); p++) {
+            std::string idx = compRef ? std::to_string(p) : "";
+            ps["pathPoints[" + idx + "]"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def.pathPosition, compRef ? (void*)&comp->pathPoints[p] : nullptr};
+        }
+    }
+
+    void enumerateBody2DProperties(void* compRef, std::map<std::string, PropertyData>& ps) {
+        Body2DComponent* comp = static_cast<Body2DComponent*>(compRef);
+        Body2DComponent& def = getDefaultComponent<Body2DComponent>();
+
+        ps["type"] = {PropertyType::Enum, UpdateFlags_Body2D, (void*)&def.type, compRef ? (void*)&comp->type : nullptr};
+        ps["numShapes"] = {PropertyType::UInt, UpdateFlags_Body2D, (void*)&def.numShapes, compRef ? (void*)&comp->numShapes : nullptr};
+
+        for (int s = 0; s < (compRef ? MAX_SHAPES : 1); s++) {
+            std::string idx = compRef ? std::to_string(s) : "";
+
+            Shape2D& shape = compRef ? comp->shapes[s] : def.shapes[0];
+            Shape2D& defShape = def.shapes[0];
+
+            ps["shapes[" + idx + "]"] = {PropertyType::Custom, UpdateFlags_Body2D, (void*)&defShape, compRef ? (void*)&shape : nullptr};
+            ps["shapes[" + idx + "].type"] = {PropertyType::Enum, UpdateFlags_Body2D, (void*)&defShape.type, compRef ? (void*)&shape.type : nullptr};
+            ps["shapes[" + idx + "].pointA"] = {PropertyType::Vector2, UpdateFlags_Body2D, (void*)&defShape.pointA, compRef ? (void*)&shape.pointA : nullptr};
+            ps["shapes[" + idx + "].pointB"] = {PropertyType::Vector2, UpdateFlags_Body2D, (void*)&defShape.pointB, compRef ? (void*)&shape.pointB : nullptr};
+            ps["shapes[" + idx + "].radius"] = {PropertyType::Float, UpdateFlags_Body2D, (void*)&defShape.radius, compRef ? (void*)&shape.radius : nullptr};
+            ps["shapes[" + idx + "].loop"] = {PropertyType::Bool, UpdateFlags_Body2D, (void*)&defShape.loop, compRef ? (void*)&shape.loop : nullptr};
+            ps["shapes[" + idx + "].density"] = {PropertyType::Float, UpdateFlags_Body2D, (void*)&defShape.density, compRef ? (void*)&shape.density : nullptr};
+            ps["shapes[" + idx + "].friction"] = {PropertyType::Float, UpdateFlags_Body2D, (void*)&defShape.friction, compRef ? (void*)&shape.friction : nullptr};
+            ps["shapes[" + idx + "].restitution"] = {PropertyType::Float, UpdateFlags_Body2D, (void*)&defShape.restitution, compRef ? (void*)&shape.restitution : nullptr};
+            ps["shapes[" + idx + "].enableHitEvents"] = {PropertyType::Bool, UpdateFlags_Body2D, (void*)&defShape.enableHitEvents, compRef ? (void*)&shape.enableHitEvents : nullptr};
+            ps["shapes[" + idx + "].contactEvents"] = {PropertyType::Bool, UpdateFlags_Body2D, (void*)&defShape.contactEvents, compRef ? (void*)&shape.contactEvents : nullptr};
+            ps["shapes[" + idx + "].preSolveEvents"] = {PropertyType::Bool, UpdateFlags_Body2D, (void*)&defShape.preSolveEvents, compRef ? (void*)&shape.preSolveEvents : nullptr};
+            ps["shapes[" + idx + "].sensorEvents"] = {PropertyType::Bool, UpdateFlags_Body2D, (void*)&defShape.sensorEvents, compRef ? (void*)&shape.sensorEvents : nullptr};
+
+            for (int v = 0; v < (compRef ? MAX_SHAPE_POINTS_2D : 1); v++) {
+                std::string vidx = compRef ? std::to_string(v) : "";
+                ps["shapes[" + idx + "].vertices[" + vidx + "]"] = {PropertyType::Vector2, UpdateFlags_Body2D, (void*)&defShape.vertices[0], compRef ? (void*)&shape.vertices[v] : nullptr};
+            }
+        }
+    }
+
+    void enumerateBody3DProperties(void* compRef, std::map<std::string, PropertyData>& ps) {
+        Body3DComponent* comp = static_cast<Body3DComponent*>(compRef);
+        Body3DComponent& def = getDefaultComponent<Body3DComponent>();
+
+        ps["type"] = {PropertyType::Enum, UpdateFlags_Body3D, (void*)&def.type, compRef ? (void*)&comp->type : nullptr};
+        ps["numShapes"] = {PropertyType::UInt, UpdateFlags_Body3D, (void*)&def.numShapes, compRef ? (void*)&comp->numShapes : nullptr};
+        ps["overrideMassProperties"] = {PropertyType::Bool, UpdateFlags_Body3D, (void*)&def.overrideMassProperties, compRef ? (void*)&comp->overrideMassProperties : nullptr};
+        ps["solidBoxSize"] = {PropertyType::Vector3, UpdateFlags_Body3D, (void*)&def.solidBoxSize, compRef ? (void*)&comp->solidBoxSize : nullptr};
+        ps["solidBoxDensity"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&def.solidBoxDensity, compRef ? (void*)&comp->solidBoxDensity : nullptr};
+        ps["lockBody"] = {PropertyType::Bool, UpdateFlags_Body3D, (void*)&def.lockBody, compRef ? (void*)&comp->lockBody : nullptr};
+
+        for (int s = 0; s < (compRef ? MAX_SHAPES : 1); s++) {
+            std::string idx = compRef ? std::to_string(s) : "";
+
+            Shape3D& shape = compRef ? comp->shapes[s] : def.shapes[0];
+            Shape3D& defShape = def.shapes[0];
+
+            ps["shapes[" + idx + "]"] = {PropertyType::Custom, UpdateFlags_Body3D, (void*)&defShape, compRef ? (void*)&shape : nullptr};
+            ps["shapes[" + idx + "].type"] = {PropertyType::Enum, UpdateFlags_Body3D, (void*)&defShape.type, compRef ? (void*)&shape.type : nullptr};
+            ps["shapes[" + idx + "].position"] = {PropertyType::Vector3, UpdateFlags_Body3D, (void*)&defShape.position, compRef ? (void*)&shape.position : nullptr};
+            ps["shapes[" + idx + "].rotation"] = {PropertyType::Quat, UpdateFlags_Body3D, (void*)&defShape.rotation, compRef ? (void*)&shape.rotation : nullptr};
+            ps["shapes[" + idx + "].width"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&defShape.width, compRef ? (void*)&shape.width : nullptr};
+            ps["shapes[" + idx + "].height"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&defShape.height, compRef ? (void*)&shape.height : nullptr};
+            ps["shapes[" + idx + "].depth"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&defShape.depth, compRef ? (void*)&shape.depth : nullptr};
+            ps["shapes[" + idx + "].radius"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&defShape.radius, compRef ? (void*)&shape.radius : nullptr};
+            ps["shapes[" + idx + "].halfHeight"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&defShape.halfHeight, compRef ? (void*)&shape.halfHeight : nullptr};
+            ps["shapes[" + idx + "].topRadius"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&defShape.topRadius, compRef ? (void*)&shape.topRadius : nullptr};
+            ps["shapes[" + idx + "].bottomRadius"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&defShape.bottomRadius, compRef ? (void*)&shape.bottomRadius : nullptr};
+            ps["shapes[" + idx + "].density"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&defShape.density, compRef ? (void*)&shape.density : nullptr};
+            ps["shapes[" + idx + "].source"] = {PropertyType::Enum, UpdateFlags_Body3D, (void*)&defShape.source, compRef ? (void*)&shape.source : nullptr};
+            ps["shapes[" + idx + "].sourceEntity"] = {PropertyType::UInt, UpdateFlags_Body3D, (void*)&defShape.sourceEntity, compRef ? (void*)&shape.sourceEntity : nullptr};
+            ps["shapes[" + idx + "].samplesSize"] = {PropertyType::UInt, UpdateFlags_Body3D, (void*)&defShape.samplesSize, compRef ? (void*)&shape.samplesSize : nullptr};
+            ps["shapes[" + idx + "].numVertices"] = {PropertyType::UInt, UpdateFlags_Body3D, (void*)&defShape.numVertices, compRef ? (void*)&shape.numVertices : nullptr};
+            ps["shapes[" + idx + "].numIndices"] = {PropertyType::UInt, UpdateFlags_Body3D, (void*)&defShape.numIndices, compRef ? (void*)&shape.numIndices : nullptr};
+
+            for (int v = 0; v < (compRef ? MAX_SHAPE_VERTICES_3D : 1); v++) {
+                std::string vidx = compRef ? std::to_string(v) : "";
+                ps["shapes[" + idx + "].vertices[" + vidx + "]"] = {PropertyType::Vector3, UpdateFlags_Body3D, (void*)&defShape.vertices[0], compRef ? (void*)&shape.vertices[v] : nullptr};
+            }
+        }
+    }
+
+    void enumerateMeshProperties(void* compRef, std::map<std::string, PropertyData>& ps) {
+        MeshComponent* comp = static_cast<MeshComponent*>(compRef);
+        MeshComponent& def = getDefaultComponent<MeshComponent>();
+
+        enumerateFromDescriptors(compRef, ps, kMeshTopProperties);
+
+        for (int s = 0; s < (compRef ? MAX_SUBMESHES : 1); s++) {
+            std::string idx = compRef ? std::to_string(s) : "";
+
+            Submesh& sub = compRef ? comp->submeshes[s] : def.submeshes[0];
+            Submesh& defSub = def.submeshes[0];
+
+            ps["submeshes[" + idx + "].material"] = {PropertyType::Material, UpdateFlags_Mesh_Texture, (void*)&defSub.material, compRef ? (void*)&sub.material : nullptr};
+            ps["submeshes[" + idx + "].material.name"] = {PropertyType::String, UpdateFlags_None, (void*)&defSub.material.name, compRef ? (void*)&sub.material.name : nullptr};
+            ps["submeshes[" + idx + "].material.baseColorFactor"] = {PropertyType::Vector4, UpdateFlags_None, (void*)&defSub.material.baseColorFactor, compRef ? (void*)&sub.material.baseColorFactor : nullptr};
+            ps["submeshes[" + idx + "].material.metallicFactor"] = {PropertyType::Float, UpdateFlags_None, (void*)&defSub.material.metallicFactor, compRef ? (void*)&sub.material.metallicFactor : nullptr};
+            ps["submeshes[" + idx + "].material.roughnessFactor"] = {PropertyType::Float, UpdateFlags_None, (void*)&defSub.material.roughnessFactor, compRef ? (void*)&sub.material.roughnessFactor : nullptr};
+            ps["submeshes[" + idx + "].material.emissiveFactor"] = {PropertyType::Vector3, UpdateFlags_None, (void*)&defSub.material.emissiveFactor, compRef ? (void*)&sub.material.emissiveFactor : nullptr};
+            ps["submeshes[" + idx + "].material.baseColorTexture"] = {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&defSub.material.baseColorTexture, compRef ? (void*)&sub.material.baseColorTexture : nullptr};
+            ps["submeshes[" + idx + "].material.emissiveTexture"] = {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&defSub.material.emissiveTexture, compRef ? (void*)&sub.material.emissiveTexture : nullptr};
+            ps["submeshes[" + idx + "].material.metallicRoughnessTexture"] = {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&defSub.material.metallicRoughnessTexture, compRef ? (void*)&sub.material.metallicRoughnessTexture : nullptr};
+            ps["submeshes[" + idx + "].material.occlusionTexture"] = {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&defSub.material.occlusionTexture, compRef ? (void*)&sub.material.occlusionTexture : nullptr};
+            ps["submeshes[" + idx + "].material.normalTexture"] = {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&defSub.material.normalTexture, compRef ? (void*)&sub.material.normalTexture : nullptr};
+
+            ps["submeshes[" + idx + "].primitiveType"] = {PropertyType::Enum, UpdateFlags_Mesh_Reload, (void*)&defSub.primitiveType, compRef ? (void*)&sub.primitiveType : nullptr};
+            ps["submeshes[" + idx + "].faceCulling"] = {PropertyType::Bool, UpdateFlags_Mesh_Reload, (void*)&defSub.faceCulling, compRef ? (void*)&sub.faceCulling : nullptr};
+            ps["submeshes[" + idx + "].textureShadow"] = {PropertyType::Bool, UpdateFlags_Mesh_Reload, (void*)&defSub.textureShadow, compRef ? (void*)&sub.textureShadow : nullptr};
+            ps["submeshes[" + idx + "].textureRect"] = {PropertyType::Vector4, UpdateFlags_None, (void*)&defSub.textureRect, compRef ? (void*)&sub.textureRect : nullptr};
+        }
+    }
+
+    void enumerateUIContainerProperties(void* compRef, std::map<std::string, PropertyData>& ps) {
+        UIContainerComponent* comp = static_cast<UIContainerComponent*>(compRef);
+        UIContainerComponent& def = getDefaultComponent<UIContainerComponent>();
+
+        enumerateFromDescriptors(compRef, ps, kUIContainerTopProperties);
+
+        for (int b = 0; b < (compRef ? MAX_CONTAINER_BOXES : 1); b++) {
+            std::string idx = compRef ? std::to_string(b) : "";
+
+            ContainerBox& box = compRef ? comp->boxes[b] : def.boxes[0];
+            ContainerBox& defBox = def.boxes[0];
+            float* defRect = defBox.rect.ptr();
+            float* boxRect = compRef ? box.rect.ptr() : nullptr;
+
+            ps["boxes[" + idx + "].layout"] = {PropertyType::UInt, UpdateFlags_None, (void*)&defBox.layout, compRef ? (void*)&box.layout : nullptr};
+            ps["boxes[" + idx + "].expand"] = {PropertyType::Bool, UpdateFlags_Layout_Sizes, (void*)&defBox.expand, compRef ? (void*)&box.expand : nullptr};
+            ps["boxes[" + idx + "].rect.x"] = {PropertyType::Float, UpdateFlags_None, (void*)&defRect[0], compRef ? (void*)&boxRect[0] : nullptr};
+            ps["boxes[" + idx + "].rect.y"] = {PropertyType::Float, UpdateFlags_None, (void*)&defRect[1], compRef ? (void*)&boxRect[1] : nullptr};
+            ps["boxes[" + idx + "].rect.width"] = {PropertyType::Float, UpdateFlags_None, (void*)&defRect[2], compRef ? (void*)&boxRect[2] : nullptr};
+            ps["boxes[" + idx + "].rect.height"] = {PropertyType::Float, UpdateFlags_None, (void*)&defRect[3], compRef ? (void*)&boxRect[3] : nullptr};
+        }
+    }
+
+    void enumerateScriptProperties(void* compRef, std::map<std::string, PropertyData>& ps) {
+        ScriptComponent* comp = static_cast<ScriptComponent*>(compRef);
+
+        ps["scripts"] = {PropertyType::Custom, UpdateFlags_None, nullptr, compRef ? (void*)&comp->scripts : nullptr};
+
+        if (compRef && comp) {
+            for (size_t i = 0; i < comp->scripts.size(); i++) {
+                auto& script = comp->scripts[i];
+
+                std::string enabledKey = "scripts[" + std::to_string(i) + "].enabled";
+                ps[enabledKey] = {PropertyType::Bool, UpdateFlags_None, nullptr, (void*)&script.enabled};
+
+                for (auto& prop : script.properties) {
+                    std::string key = "scripts[" + std::to_string(i) + "]." + prop.name;
+                    PropertyData propData;
+                    propData.type = Catalog::scriptPropertyTypeToPropertyType(prop.type);
+                    propData.updateFlags = UpdateFlags_None;
+
+                    switch (prop.type) {
+                        case ScriptPropertyType::Bool:
+                            propData.ref = &std::get<bool>(prop.value);
+                            propData.def = &std::get<bool>(prop.defaultValue);
+                            break;
+                        case ScriptPropertyType::Int:
+                            propData.ref = &std::get<int>(prop.value);
+                            propData.def = &std::get<int>(prop.defaultValue);
+                            break;
+                        case ScriptPropertyType::Float:
+                            propData.ref = &std::get<float>(prop.value);
+                            propData.def = &std::get<float>(prop.defaultValue);
+                            break;
+                        case ScriptPropertyType::String:
+                            propData.ref = &std::get<std::string>(prop.value);
+                            propData.def = &std::get<std::string>(prop.defaultValue);
+                            break;
+                        case ScriptPropertyType::Vector2:
+                            propData.ref = &std::get<Vector2>(prop.value);
+                            propData.def = &std::get<Vector2>(prop.defaultValue);
+                            break;
+                        case ScriptPropertyType::Vector3:
+                        case ScriptPropertyType::Color3:
+                            propData.ref = &std::get<Vector3>(prop.value);
+                            propData.def = &std::get<Vector3>(prop.defaultValue);
+                            break;
+                        case ScriptPropertyType::Vector4:
+                        case ScriptPropertyType::Color4:
+                            propData.ref = &std::get<Vector4>(prop.value);
+                            propData.def = &std::get<Vector4>(prop.defaultValue);
+                            break;
+                        case ScriptPropertyType::EntityPointer:
+                            propData.ref = &std::get<EntityRef>(prop.value);
+                            propData.def = &std::get<EntityRef>(prop.defaultValue);
+                            break;
+                        default:
+                            propData.ref = nullptr;
+                            propData.def = nullptr;
+                            break;
+                    }
+
+                    ps[key] = propData;
+                }
+            }
+        }
+    }
+
+    // ── Resolver dispatch table ──
+
+    static const FastComponentResolver kFastComponentResolvers[] = {
+        {ComponentType::Transform, &findComponentPtr<Transform>, &resolveTransformPropertyFast, &enumerateTransformProperties},
+        {ComponentType::MeshComponent, &findComponentPtr<MeshComponent>, &resolveMeshPropertyFast, &enumerateMeshProperties},
+        {ComponentType::UIComponent, &findComponentPtr<UIComponent>, &resolveUIPropertyFast, &enumerateUIProperties},
+        {ComponentType::UILayoutComponent, &findComponentPtr<UILayoutComponent>, &resolveUILayoutPropertyFast, &enumerateUILayoutProperties},
+        {ComponentType::UIContainerComponent, &findComponentPtr<UIContainerComponent>, &resolveUIContainerPropertyFast, &enumerateUIContainerProperties},
+        {ComponentType::ImageComponent, &findComponentPtr<ImageComponent>, &resolveImagePropertyFast, &enumerateImageProperties},
+        {ComponentType::ButtonComponent, &findComponentPtr<ButtonComponent>, &resolveButtonPropertyFast, &enumerateButtonProperties},
+        {ComponentType::SpriteComponent, &findComponentPtr<SpriteComponent>, &resolveSpritePropertyFast, &enumerateSpriteProperties},
+        {ComponentType::LightComponent, &findComponentPtr<LightComponent>, &resolveLightPropertyFast, &enumerateLightProperties},
+        {ComponentType::CameraComponent, &findComponentPtr<CameraComponent>, &resolveCameraPropertyFast, &enumerateCameraProperties},
+        {ComponentType::SkyComponent, &findComponentPtr<SkyComponent>, &resolveSkyPropertyFast, &enumerateSkyProperties},
+        {ComponentType::TextComponent, &findComponentPtr<TextComponent>, &resolveTextPropertyFast, &enumerateTextProperties},
+        {ComponentType::ScriptComponent, &findComponentPtr<ScriptComponent>, &resolveScriptPropertyFast, &enumerateScriptProperties},
+        {ComponentType::Joint2DComponent, &findComponentPtr<Joint2DComponent>, &resolveJoint2DPropertyFast, &enumerateJoint2DProperties},
+        {ComponentType::Joint3DComponent, &findComponentPtr<Joint3DComponent>, &resolveJoint3DPropertyFast, &enumerateJoint3DProperties},
+        {ComponentType::Body2DComponent, &findComponentPtr<Body2DComponent>, &resolveBody2DPropertyFast, &enumerateBody2DProperties},
+        {ComponentType::Body3DComponent, &findComponentPtr<Body3DComponent>, &resolveBody3DPropertyFast, &enumerateBody3DProperties},
+    };
+
+    PropertyData tryGetFastProperty(EntityRegistry* registry, Entity entity, ComponentType component, const std::string& propertyName) {
+        for (const FastComponentResolver& resolver : kFastComponentResolvers) {
+            if (resolver.component != component) {
+                continue;
+            }
+
+            void* comp = resolver.findComponent(registry, entity);
+            if (!comp) {
+                return PropertyData();
+            }
+
+            return resolver.resolve(comp, propertyName);
+        }
+
+        return PropertyData();
+    }
+
+    bool tryEnumerateProperties(ComponentType component, void* compRef, std::map<std::string, PropertyData>& ps) {
+        for (const FastComponentResolver& resolver : kFastComponentResolvers) {
+            if (resolver.component == component) {
+                resolver.enumerate(compRef, ps);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool tryEnumerateEntityProperties(EntityRegistry* registry, Entity entity, ComponentType component, std::map<std::string, PropertyData>& ps) {
+        for (const FastComponentResolver& resolver : kFastComponentResolvers) {
+            if (resolver.component == component) {
+                void* comp = resolver.findComponent(registry, entity);
+                if (!comp) return false;
+                resolver.enumerate(comp, ps);
+                return true;
+            }
+        }
+        return false;
+    }
+
+}
+
 using namespace Supernova;
 
 Editor::Catalog::Catalog(){
@@ -367,369 +1544,7 @@ Editor::PropertyType Editor::Catalog::scriptPropertyTypeToPropertyType(ScriptPro
 
 std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(ComponentType component, void* compRef){
     std::map<std::string, Editor::PropertyData> ps;
-    if(component == ComponentType::Transform){
-        Transform* comp = static_cast<Transform*>(compRef);
-        static Transform* def = new Transform;
-
-        ps["position"] = {PropertyType::Vector3, UpdateFlags_Transform | UpdateFlags_Layout_Anchors, (void*)&def->position, (compRef) ? (void*)&comp->position : nullptr};
-        ps["rotation"] = {PropertyType::Quat, UpdateFlags_Transform, (void*)&def->rotation, (compRef) ? (void*)&comp->rotation : nullptr};
-        ps["scale"] = {PropertyType::Vector3, UpdateFlags_Transform, (void*)&def->scale, (compRef) ? (void*)&comp->scale : nullptr};
-        ps["visible"] = {PropertyType::Bool, UpdateFlags_None, (void*)&def->visible, (compRef) ? (void*)&comp->visible : nullptr};
-        ps["billboard"] = {PropertyType::Bool, UpdateFlags_Transform, (void*)&def->billboard, (compRef) ? (void*)&comp->billboard : nullptr};
-        ps["fakeBillboard"] = {PropertyType::Bool, UpdateFlags_Transform, (void*)&def->fakeBillboard, (compRef) ? (void*)&comp->fakeBillboard : nullptr};
-        ps["cylindricalBillboard"] = {PropertyType::Bool, UpdateFlags_Transform, (void*)&def->cylindricalBillboard, (compRef) ? (void*)&comp->cylindricalBillboard : nullptr};
-        ps["billboardRotation"] = {PropertyType::Quat, UpdateFlags_Transform, (void*)&def->billboardRotation, (compRef) ? (void*)&comp->billboardRotation : nullptr};
-
-    }else if (component == ComponentType::MeshComponent){
-        MeshComponent* comp = static_cast<MeshComponent*>(compRef);
-        static MeshComponent* def = new MeshComponent;
-
-        ps["castShadows"] = {PropertyType::Bool, UpdateFlags_Mesh_Reload, (void*)&def->castShadows, (compRef) ? (void*)&comp->castShadows : nullptr};
-        ps["receiveShadows"] = {PropertyType::Bool, UpdateFlags_Mesh_Reload, (void*)&def->receiveShadows, (compRef) ? (void*)&comp->receiveShadows : nullptr};
-        ps["numSubmeshes"] = {PropertyType::UInt, UpdateFlags_None, (void*)&def->numSubmeshes, (compRef) ? (void*)&comp->numSubmeshes : nullptr};
-        for (int s = 0; s < ((compRef) ? MAX_SUBMESHES : 1); s++){
-            std::string idx = (compRef) ? std::to_string(s) : "";
-            ps["submeshes["+idx+"].material"] = {PropertyType::Material, UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material, (compRef) ? (void*)&comp->submeshes[s].material : nullptr};
-            ps["submeshes["+idx+"].material.name"] = {PropertyType::String, UpdateFlags_None, (void*)&def->submeshes[0].material.name, (compRef) ? (void*)&comp->submeshes[s].material.name : nullptr};
-            ps["submeshes["+idx+"].material.baseColorFactor"] = {PropertyType::Vector4, UpdateFlags_None, (void*)&def->submeshes[0].material.baseColorFactor, (compRef) ? (void*)&comp->submeshes[s].material.baseColorFactor : nullptr};
-            ps["submeshes["+idx+"].material.metallicFactor"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->submeshes[0].material.metallicFactor, (compRef) ? (void*)&comp->submeshes[s].material.metallicFactor : nullptr};
-            ps["submeshes["+idx+"].material.roughnessFactor"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->submeshes[0].material.roughnessFactor, (compRef) ? (void*)&comp->submeshes[s].material.roughnessFactor : nullptr};
-            ps["submeshes["+idx+"].material.emissiveFactor"] = {PropertyType::Vector3, UpdateFlags_None, (void*)&def->submeshes[0].material.emissiveFactor, (compRef) ? (void*)&comp->submeshes[s].material.emissiveFactor : nullptr};
-            ps["submeshes["+idx+"].material.baseColorTexture"] = {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.baseColorTexture, (compRef) ? (void*)&comp->submeshes[s].material.baseColorTexture : nullptr};
-            ps["submeshes["+idx+"].material.emissiveTexture"] = {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.emissiveTexture, (compRef) ? (void*)&comp->submeshes[s].material.emissiveTexture : nullptr};
-            ps["submeshes["+idx+"].material.metallicRoughnessTexture"] = {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.metallicRoughnessTexture, (compRef) ? (void*)&comp->submeshes[s].material.metallicRoughnessTexture : nullptr};
-            ps["submeshes["+idx+"].material.occlusionTexture"] = {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.occlusionTexture, (compRef) ? (void*)&comp->submeshes[s].material.occlusionTexture : nullptr};
-            ps["submeshes["+idx+"].material.normalTexture"] = {PropertyType::Texture, UpdateFlags_Mesh_Texture, (void*)&def->submeshes[0].material.normalTexture, (compRef) ? (void*)&comp->submeshes[s].material.normalTexture : nullptr};
-
-            ps["submeshes["+idx+"].primitiveType"] = {PropertyType::Enum, UpdateFlags_Mesh_Reload, (void*)&def->submeshes[0].primitiveType, (compRef) ? (void*)&comp->submeshes[s].primitiveType : nullptr};
-            ps["submeshes["+idx+"].faceCulling"] = {PropertyType::Bool, UpdateFlags_Mesh_Reload, (void*)&def->submeshes[0].faceCulling, (compRef) ? (void*)&comp->submeshes[s].faceCulling : nullptr};
-            ps["submeshes["+idx+"].textureShadow"] = {PropertyType::Bool, UpdateFlags_Mesh_Reload, (void*)&def->submeshes[0].textureShadow, (compRef) ? (void*)&comp->submeshes[s].textureShadow : nullptr};
-            ps["submeshes["+idx+"].textureRect"] = {PropertyType::Vector4, UpdateFlags_None, (void*)&def->submeshes[0].textureRect, (compRef) ? (void*)&comp->submeshes[s].textureRect : nullptr};
-        }
-    }else if (component == ComponentType::UIComponent){
-        UIComponent* comp = static_cast<UIComponent*>(compRef);
-        static UIComponent* def = new UIComponent;
-
-        ps["color"] = {PropertyType::Vector4, UpdateFlags_None, (void*)&def->color, (compRef) ? (void*)&comp->color : nullptr};
-        ps["texture"] = {PropertyType::Texture, UpdateFlags_UI_Texture, (void*)&def->texture, (compRef) ? (void*)&comp->texture : nullptr};
-    }else if (component == ComponentType::UILayoutComponent){
-        UILayoutComponent* comp = static_cast<UILayoutComponent*>(compRef);
-        static UILayoutComponent* def = new UILayoutComponent;
-
-        ps["width"] = {PropertyType::UInt, UpdateFlags_Layout_Sizes | UpdateFlags_Layout_Anchors, nullptr, (compRef) ? (void*)&comp->width : nullptr};
-        ps["height"] = {PropertyType::UInt, UpdateFlags_Layout_Sizes | UpdateFlags_Layout_Anchors, nullptr, (compRef) ? (void*)&comp->height : nullptr};
-        ps["anchorPointLeft"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->anchorPointLeft, (compRef) ? (void*)&comp->anchorPointLeft : nullptr};
-        ps["anchorPointTop"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->anchorPointTop, (compRef) ? (void*)&comp->anchorPointTop : nullptr};
-        ps["anchorPointRight"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->anchorPointRight, (compRef) ? (void*)&comp->anchorPointRight : nullptr};
-        ps["anchorPointBottom"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->anchorPointBottom, (compRef) ? (void*)&comp->anchorPointBottom : nullptr};
-        ps["anchorOffsetLeft"] = {PropertyType::Int, UpdateFlags_None, (void*)&def->anchorOffsetLeft, (compRef) ? (void*)&comp->anchorOffsetLeft : nullptr};
-        ps["anchorOffsetTop"] = {PropertyType::Int, UpdateFlags_None, (void*)&def->anchorOffsetTop, (compRef) ? (void*)&comp->anchorOffsetTop : nullptr};
-        ps["anchorOffsetRight"] = {PropertyType::Int, UpdateFlags_None, (void*)&def->anchorOffsetRight, (compRef) ? (void*)&comp->anchorOffsetRight : nullptr};
-        ps["anchorOffsetBottom"] = {PropertyType::Int, UpdateFlags_None, (void*)&def->anchorOffsetBottom, (compRef) ? (void*)&comp->anchorOffsetBottom : nullptr};
-        ps["positionOffset"] = {PropertyType::Vector2, UpdateFlags_None, (void*)&def->positionOffset, (compRef) ? (void*)&comp->positionOffset : nullptr};
-        ps["anchorPreset"] = {PropertyType::Enum, UpdateFlags_None, (void*)&def->anchorPreset, (compRef) ? (void*)&comp->anchorPreset : nullptr};
-        ps["usingAnchors"] = {PropertyType::Bool, UpdateFlags_None, (void*)&def->usingAnchors, (compRef) ? (void*)&comp->usingAnchors : nullptr};
-        ps["ignoreScissor"] = {PropertyType::Bool, UpdateFlags_None, (void*)&def->ignoreScissor, (compRef) ? (void*)&comp->ignoreScissor : nullptr};
-        ps["ignoreEvents"] = {PropertyType::Bool, UpdateFlags_None, (void*)&def->ignoreEvents, (compRef) ? (void*)&comp->ignoreEvents : nullptr};
-    }else if (component == ComponentType::ImageComponent){
-        ImageComponent* comp = static_cast<ImageComponent*>(compRef);
-        static ImageComponent* def = new ImageComponent;
-
-        ps["patchMarginLeft"] = {PropertyType::UInt, UpdateFlags_Image_Patches, (void*)&def->patchMarginLeft, (compRef) ? (void*)&comp->patchMarginLeft : nullptr};
-        ps["patchMarginRight"] = {PropertyType::UInt, UpdateFlags_Image_Patches, (void*)&def->patchMarginRight, (compRef) ? (void*)&comp->patchMarginRight : nullptr};
-        ps["patchMarginTop"] = {PropertyType::UInt, UpdateFlags_Image_Patches, (void*)&def->patchMarginTop, (compRef) ? (void*)&comp->patchMarginTop : nullptr};
-        ps["patchMarginBottom"] = {PropertyType::UInt, UpdateFlags_Image_Patches, (void*)&def->patchMarginBottom, (compRef) ? (void*)&comp->patchMarginBottom : nullptr};
-        ps["textureScaleFactor"] = {PropertyType::Float, UpdateFlags_Image_Patches, (void*)&def->textureScaleFactor, (compRef) ? (void*)&comp->textureScaleFactor : nullptr};
-    }else if (component == ComponentType::ButtonComponent){
-        ButtonComponent* comp = static_cast<ButtonComponent*>(compRef);
-        static ButtonComponent* def = new ButtonComponent;
-
-        ps["label"] = {PropertyType::UInt, UpdateFlags_None, (void*)&def->label, (compRef) ? (void*)&comp->label : nullptr};
-        ps["textureNormal"] = {PropertyType::Texture, UpdateFlags_None, (void*)&def->textureNormal, (compRef) ? (void*)&comp->textureNormal : nullptr};
-        ps["texturePressed"] = {PropertyType::Texture, UpdateFlags_None, (void*)&def->texturePressed, (compRef) ? (void*)&comp->texturePressed : nullptr};
-        ps["textureDisabled"] = {PropertyType::Texture, UpdateFlags_None, (void*)&def->textureDisabled, (compRef) ? (void*)&comp->textureDisabled : nullptr};
-
-        ps["colorNormal"] = {PropertyType::Vector4, UpdateFlags_None, (void*)&def->colorNormal, (compRef) ? (void*)&comp->colorNormal : nullptr};
-        ps["colorPressed"] = {PropertyType::Vector4, UpdateFlags_None, (void*)&def->colorPressed, (compRef) ? (void*)&comp->colorPressed : nullptr};
-        ps["colorDisabled"] = {PropertyType::Vector4, UpdateFlags_None, (void*)&def->colorDisabled, (compRef) ? (void*)&comp->colorDisabled : nullptr};
-
-        ps["disabled"] = {PropertyType::Bool, UpdateFlags_None, (void*)&def->disabled, (compRef) ? (void*)&comp->disabled : nullptr};
-    }else if (component == ComponentType::SpriteComponent){
-        SpriteComponent* comp = static_cast<SpriteComponent*>(compRef);
-        static SpriteComponent* def = new SpriteComponent;
-
-        ps["width"] = {PropertyType::UInt, UpdateFlags_Sprite, nullptr, (compRef) ? (void*)&comp->width : nullptr};
-        ps["height"] = {PropertyType::UInt, UpdateFlags_Sprite, nullptr, (compRef) ? (void*)&comp->height : nullptr};
-        ps["pivotPreset"] = {PropertyType::Enum, UpdateFlags_Sprite, (void*)&def->pivotPreset, (compRef) ? (void*)&comp->pivotPreset : nullptr};
-        ps["textureScaleFactor"] = {PropertyType::Float, UpdateFlags_Sprite, (void*)&def->textureScaleFactor, (compRef) ? (void*)&comp->textureScaleFactor : nullptr};
-    }else if (component == ComponentType::LightComponent){
-        LightComponent* comp = static_cast<LightComponent*>(compRef);
-        static LightComponent* def = new LightComponent;
-
-        ps["type"] = {PropertyType::Enum, UpdateFlags_LightShadowMap | UpdateFlags_LightShadowCamera | UpdateFlags_Scene_Mesh_Reload, nullptr, (compRef) ? (void*)&comp->type : nullptr};
-        ps["direction"] = {PropertyType::Vector3, UpdateFlags_Transform, (void*)&def->direction, (compRef) ? (void*)&comp->direction : nullptr};
-        ps["shadows"] = {PropertyType::Bool, UpdateFlags_LightShadowCamera | UpdateFlags_Scene_Mesh_Reload, (void*)&def->shadows, (compRef) ? (void*)&comp->shadows : nullptr};
-        ps["intensity"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->intensity, (compRef) ? (void*)&comp->intensity : nullptr};
-        ps["range"] = {PropertyType::Float, UpdateFlags_LightShadowCamera, (void*)&def->range, (compRef) ? (void*)&comp->range : nullptr};
-        ps["color"] = {PropertyType::Vector3, UpdateFlags_None, (void*)&def->color, (compRef) ? (void*)&comp->color : nullptr};
-        ps["innerConeCos"] = {PropertyType::Float, UpdateFlags_LightShadowCamera, (void*)&def->innerConeCos, (compRef) ? (void*)&comp->innerConeCos : nullptr};
-        ps["outerConeCos"] = {PropertyType::Float, UpdateFlags_LightShadowCamera, (void*)&def->outerConeCos, (compRef) ? (void*)&comp->outerConeCos : nullptr};
-        ps["shadowBias"] = {PropertyType::Float, UpdateFlags_None, (void*)&def->shadowBias, (compRef) ? (void*)&comp->shadowBias : nullptr};
-        ps["mapResolution"] = {PropertyType::UInt, UpdateFlags_LightShadowMap | UpdateFlags_Scene_Mesh_Reload, (void*)&def->mapResolution, (compRef) ? (void*)&comp->mapResolution : nullptr};
-        ps["automaticShadowCamera"] = {PropertyType::Bool, UpdateFlags_LightShadowCamera, (void*)&def->automaticShadowCamera, (compRef) ? (void*)&comp->automaticShadowCamera : nullptr};
-        ps["shadowCameraNear"] = {PropertyType::Float, UpdateFlags_LightShadowCamera, nullptr, (compRef) ? (void*)&comp->shadowCameraNearFar.x : nullptr};
-        ps["shadowCameraFar"] = {PropertyType::Float, UpdateFlags_LightShadowCamera, nullptr, (compRef) ? (void*)&comp->shadowCameraNearFar.y : nullptr};
-        ps["numShadowCascades"] = {PropertyType::UInt, UpdateFlags_LightShadowCamera | UpdateFlags_Scene_Mesh_Reload, (void*)&def->numShadowCascades, (compRef) ? (void*)&comp->numShadowCascades : nullptr};
-    }else if(component == ComponentType::CameraComponent){
-        CameraComponent* comp = static_cast<CameraComponent*>(compRef);
-        static CameraComponent* def = new CameraComponent;
-
-        ps["type"] = {PropertyType::Enum, UpdateFlags_Camera, &def->type, &comp->type};
-        ps["target"] = {PropertyType::Vector3, UpdateFlags_Camera, &def->target, &comp->target};
-        ps["up"] = {PropertyType::Vector3, UpdateFlags_Camera, &def->up, &comp->up};
-        ps["left"] = {PropertyType::Float, UpdateFlags_Camera, &def->leftClip, &comp->leftClip};
-        ps["right"] = {PropertyType::Float, UpdateFlags_Camera, &def->rightClip, &comp->rightClip};
-        ps["bottom"] = {PropertyType::Float, UpdateFlags_Camera, &def->bottomClip, &comp->bottomClip};
-        ps["top"] = {PropertyType::Float, UpdateFlags_Camera, &def->topClip, &comp->topClip};
-        ps["yfov"] = {PropertyType::Float, UpdateFlags_Camera, &def->yfov, &comp->yfov};
-        ps["aspect"] = {PropertyType::Float, UpdateFlags_Camera, &def->aspect, &comp->aspect};
-        ps["near"] = {PropertyType::Float, UpdateFlags_Camera, &def->nearClip, &comp->nearClip};
-        ps["far"] = {PropertyType::Float, UpdateFlags_Camera, &def->farClip, &comp->farClip};
-        ps["renderToTexture"] = {PropertyType::Bool, UpdateFlags_None, &def->renderToTexture, &comp->renderToTexture};
-        ps["transparentSort"] = {PropertyType::Bool, UpdateFlags_None, &def->transparentSort, &comp->transparentSort};
-        ps["useTarget"] = {PropertyType::Bool, UpdateFlags_Camera, &def->useTarget, &comp->useTarget};
-        ps["autoResize"] = {PropertyType::Bool, UpdateFlags_Camera, &def->autoResize, &comp->autoResize};
-    }else if (component == ComponentType::ScriptComponent){
-        ScriptComponent* comp = static_cast<ScriptComponent*>(compRef);
-        static ScriptComponent* def = new ScriptComponent;
-
-        ps["scripts"] = {PropertyType::Custom, UpdateFlags_None, nullptr, (compRef) ? (void*)&comp->scripts : nullptr};
-
-        if (compRef && comp) {
-            for (size_t i = 0; i < comp->scripts.size(); i++) {
-                auto& script = comp->scripts[i];
-
-                // Enabled flag exposed individually (no layout row will be added, only used by checkbox)
-                std::string enabledKey = "scripts[" + std::to_string(i) + "].enabled";
-                ps[enabledKey] = {PropertyType::Bool, UpdateFlags_None, nullptr, (void*)&script.enabled};
-
-                for (auto& prop : script.properties) {
-                    std::string key = "scripts[" + std::to_string(i) + "]." + prop.name;
-                    PropertyData propData;
-                    propData.type = scriptPropertyTypeToPropertyType(prop.type);
-                    propData.updateFlags = UpdateFlags_None;
-
-                    // Get pointer to the actual value in the variant
-                    switch (prop.type) {
-                        case Supernova::ScriptPropertyType::Bool:
-                            propData.ref = &std::get<bool>(prop.value);
-                            propData.def = &std::get<bool>(prop.defaultValue);
-                            break;
-                        case Supernova::ScriptPropertyType::Int:
-                            propData.ref = &std::get<int>(prop.value);
-                            propData.def = &std::get<int>(prop.defaultValue);
-                            break;
-                        case Supernova::ScriptPropertyType::Float:
-                            propData.ref = &std::get<float>(prop.value);
-                            propData.def = &std::get<float>(prop.defaultValue);
-                            break;
-                        case Supernova::ScriptPropertyType::String:
-                            propData.ref = &std::get<std::string>(prop.value);
-                            propData.def = &std::get<std::string>(prop.defaultValue);
-                            break;
-                        case Supernova::ScriptPropertyType::Vector2:
-                            propData.ref = &std::get<Vector2>(prop.value);
-                            propData.def = &std::get<Vector2>(prop.defaultValue);
-                            break;
-                        case Supernova::ScriptPropertyType::Vector3:
-                        case Supernova::ScriptPropertyType::Color3:
-                            propData.ref = &std::get<Vector3>(prop.value);
-                            propData.def = &std::get<Vector3>(prop.defaultValue);
-                            break;
-                        case Supernova::ScriptPropertyType::Vector4:
-                        case Supernova::ScriptPropertyType::Color4:
-                            propData.ref = &std::get<Vector4>(prop.value);
-                            propData.def = &std::get<Vector4>(prop.defaultValue);
-                            break;
-                        case Supernova::ScriptPropertyType::EntityPointer:
-                            propData.ref = &std::get<EntityRef>(prop.value);
-                            propData.def = &std::get<EntityRef>(prop.defaultValue);
-                            break;
-                        default:
-                            propData.ref = nullptr;
-                            propData.def = nullptr;
-                            break;
-                    }
-
-                    ps[key] = propData;
-                }
-            }
-        }
-    }else if (component == ComponentType::SkyComponent){
-        SkyComponent* comp = static_cast<SkyComponent*>(compRef);
-        static SkyComponent* def = new SkyComponent;
-
-        ps["texture"] = {PropertyType::Texture, UpdateFlags_Sky_Texture, (void*)&def->texture, (compRef) ? (void*)&comp->texture : nullptr};
-        ps["color"] = {PropertyType::Vector4, UpdateFlags_None, (void*)&def->color, (compRef) ? (void*)&comp->color : nullptr};
-        ps["rotation"] = {PropertyType::Float, UpdateFlags_Sky, (void*)&def->rotation, (compRef) ? (void*)&comp->rotation : nullptr};
-    }else if (component == ComponentType::TextComponent){
-        TextComponent* comp = static_cast<TextComponent*>(compRef);
-        static TextComponent* def = new TextComponent;
-
-        ps["text"] = {PropertyType::String, UpdateFlags_Text, (void*)&def->text, (compRef) ? (void*)&comp->text : nullptr};
-        ps["font"] = {PropertyType::String, UpdateFlags_Text_Atlas, (void*)&def->font, (compRef) ? (void*)&comp->font : nullptr};
-        ps["fontSize"] = {PropertyType::UInt, UpdateFlags_Text_Atlas, (void*)&def->fontSize, (compRef) ? (void*)&comp->fontSize : nullptr};
-        ps["multiline"] = {PropertyType::Bool, UpdateFlags_Text, (void*)&def->multiline, (compRef) ? (void*)&comp->multiline : nullptr};
-        ps["maxTextSize"] = {PropertyType::UInt, UpdateFlags_Text, (void*)&def->maxTextSize, (compRef) ? (void*)&comp->maxTextSize : nullptr};
-        ps["fixedWidth"] = {PropertyType::Bool, UpdateFlags_Text, (void*)&def->fixedWidth, (compRef) ? (void*)&comp->fixedWidth : nullptr};
-        ps["fixedHeight"] = {PropertyType::Bool, UpdateFlags_Text, (void*)&def->fixedHeight, (compRef) ? (void*)&comp->fixedHeight : nullptr};
-        ps["pivotBaseline"] = {PropertyType::Bool, UpdateFlags_Text, (void*)&def->pivotBaseline, (compRef) ? (void*)&comp->pivotBaseline : nullptr};
-        ps["pivotCentered"] = {PropertyType::Bool, UpdateFlags_Text, (void*)&def->pivotCentered, (compRef) ? (void*)&comp->pivotCentered : nullptr};
-    }else if (component == ComponentType::UIContainerComponent){
-        UIContainerComponent* comp = static_cast<UIContainerComponent*>(compRef);
-        static UIContainerComponent* def = new UIContainerComponent;
-
-        ps["type"] = {PropertyType::Enum, UpdateFlags_Layout_Sizes, (void*)&def->type, (compRef) ? (void*)&comp->type : nullptr};
-        ps["useAllWrapSpace"] = {PropertyType::Bool, UpdateFlags_Layout_Sizes, (void*)&def->useAllWrapSpace, (compRef) ? (void*)&comp->useAllWrapSpace : nullptr};
-        ps["wrapCellWidth"] = {PropertyType::UInt, UpdateFlags_Layout_Sizes, (void*)&def->wrapCellWidth, (compRef) ? (void*)&comp->wrapCellWidth : nullptr};
-        ps["wrapCellHeight"] = {PropertyType::UInt, UpdateFlags_Layout_Sizes, (void*)&def->wrapCellHeight, (compRef) ? (void*)&comp->wrapCellHeight : nullptr};
-        ps["numBoxes"] = {PropertyType::UInt, UpdateFlags_None, (void*)&def->numBoxes, (compRef) ? (void*)&comp->numBoxes : nullptr};
-
-        for (int b = 0; b < ((compRef) ? MAX_CONTAINER_BOXES : 1); b++){
-            std::string idx = (compRef) ? std::to_string(b) : "";
-            float* defRect = def->boxes[0].rect.ptr();
-            float* boxRect = (compRef) ? comp->boxes[b].rect.ptr() : nullptr;
-
-            ps["boxes["+idx+"].layout"] = {PropertyType::UInt, UpdateFlags_None, (void*)&def->boxes[0].layout, (compRef) ? (void*)&comp->boxes[b].layout : nullptr};
-            ps["boxes["+idx+"].expand"] = {PropertyType::Bool, UpdateFlags_Layout_Sizes, (void*)&def->boxes[0].expand, (compRef) ? (void*)&comp->boxes[b].expand : nullptr};
-            ps["boxes["+idx+"].rect.x"] = {PropertyType::Float, UpdateFlags_None, (void*)&defRect[0], (compRef) ? (void*)&boxRect[0] : nullptr};
-            ps["boxes["+idx+"].rect.y"] = {PropertyType::Float, UpdateFlags_None, (void*)&defRect[1], (compRef) ? (void*)&boxRect[1] : nullptr};
-            ps["boxes["+idx+"].rect.width"] = {PropertyType::Float, UpdateFlags_None, (void*)&defRect[2], (compRef) ? (void*)&boxRect[2] : nullptr};
-            ps["boxes["+idx+"].rect.height"] = {PropertyType::Float, UpdateFlags_None, (void*)&defRect[3], (compRef) ? (void*)&boxRect[3] : nullptr};
-        }
-    }else if (component == ComponentType::Body2DComponent){
-        Body2DComponent* comp = static_cast<Body2DComponent*>(compRef);
-        static Body2DComponent* def = new Body2DComponent;
-
-        ps["type"] = {PropertyType::Enum, UpdateFlags_Body2D, (void*)&def->type, (compRef) ? (void*)&comp->type : nullptr};
-        ps["numShapes"] = {PropertyType::UInt, UpdateFlags_Body2D, (void*)&def->numShapes, (compRef) ? (void*)&comp->numShapes : nullptr};
-
-        for (int s = 0; s < ((compRef) ? MAX_SHAPES : 1); s++){
-            std::string idx = (compRef) ? std::to_string(s) : "";
-
-            ps["shapes["+idx+"]"] = {PropertyType::Custom, UpdateFlags_Body2D, (void*)&def->shapes[0], (compRef) ? (void*)&comp->shapes[s] : nullptr};
-
-            ps["shapes["+idx+"].type"] = {PropertyType::Enum, UpdateFlags_Body2D, (void*)&def->shapes[0].type, (compRef) ? (void*)&comp->shapes[s].type : nullptr};
-            ps["shapes["+idx+"].pointA"] = {PropertyType::Vector2, UpdateFlags_Body2D, (void*)&def->shapes[0].pointA, (compRef) ? (void*)&comp->shapes[s].pointA : nullptr};
-            ps["shapes["+idx+"].pointB"] = {PropertyType::Vector2, UpdateFlags_Body2D, (void*)&def->shapes[0].pointB, (compRef) ? (void*)&comp->shapes[s].pointB : nullptr};
-            ps["shapes["+idx+"].radius"] = {PropertyType::Float, UpdateFlags_Body2D, (void*)&def->shapes[0].radius, (compRef) ? (void*)&comp->shapes[s].radius : nullptr};
-            ps["shapes["+idx+"].loop"] = {PropertyType::Bool, UpdateFlags_Body2D, (void*)&def->shapes[0].loop, (compRef) ? (void*)&comp->shapes[s].loop : nullptr};
-            ps["shapes["+idx+"].density"] = {PropertyType::Float, UpdateFlags_Body2D, (void*)&def->shapes[0].density, (compRef) ? (void*)&comp->shapes[s].density : nullptr};
-            ps["shapes["+idx+"].friction"] = {PropertyType::Float, UpdateFlags_Body2D, (void*)&def->shapes[0].friction, (compRef) ? (void*)&comp->shapes[s].friction : nullptr};
-            ps["shapes["+idx+"].restitution"] = {PropertyType::Float, UpdateFlags_Body2D, (void*)&def->shapes[0].restitution, (compRef) ? (void*)&comp->shapes[s].restitution : nullptr};
-            ps["shapes["+idx+"].enableHitEvents"] = {PropertyType::Bool, UpdateFlags_Body2D, (void*)&def->shapes[0].enableHitEvents, (compRef) ? (void*)&comp->shapes[s].enableHitEvents : nullptr};
-            ps["shapes["+idx+"].contactEvents"] = {PropertyType::Bool, UpdateFlags_Body2D, (void*)&def->shapes[0].contactEvents, (compRef) ? (void*)&comp->shapes[s].contactEvents : nullptr};
-            ps["shapes["+idx+"].preSolveEvents"] = {PropertyType::Bool, UpdateFlags_Body2D, (void*)&def->shapes[0].preSolveEvents, (compRef) ? (void*)&comp->shapes[s].preSolveEvents : nullptr};
-            ps["shapes["+idx+"].sensorEvents"] = {PropertyType::Bool, UpdateFlags_Body2D, (void*)&def->shapes[0].sensorEvents, (compRef) ? (void*)&comp->shapes[s].sensorEvents : nullptr};
-
-            for (int v = 0; v < ((compRef) ? MAX_SHAPE_POINTS_2D : 1); v++){
-                std::string vidx = (compRef) ? std::to_string(v) : "";
-                ps["shapes["+idx+"].vertices["+vidx+"]"] = {PropertyType::Vector2, UpdateFlags_Body2D, (void*)&def->shapes[0].vertices[0], (compRef) ? (void*)&comp->shapes[s].vertices[v] : nullptr};
-            }
-        }
-    }else if (component == ComponentType::Body3DComponent){
-        Body3DComponent* comp = static_cast<Body3DComponent*>(compRef);
-        static Body3DComponent* def = new Body3DComponent;
-
-        ps["type"] = {PropertyType::Enum, UpdateFlags_Body3D, (void*)&def->type, (compRef) ? (void*)&comp->type : nullptr};
-        ps["numShapes"] = {PropertyType::UInt, UpdateFlags_Body3D, (void*)&def->numShapes, (compRef) ? (void*)&comp->numShapes : nullptr};
-
-        ps["overrideMassProperties"] = {PropertyType::Bool, UpdateFlags_Body3D, (void*)&def->overrideMassProperties, (compRef) ? (void*)&comp->overrideMassProperties : nullptr};
-        ps["solidBoxSize"] = {PropertyType::Vector3, UpdateFlags_Body3D, (void*)&def->solidBoxSize, (compRef) ? (void*)&comp->solidBoxSize : nullptr};
-        ps["solidBoxDensity"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&def->solidBoxDensity, (compRef) ? (void*)&comp->solidBoxDensity : nullptr};
-        ps["lockBody"] = {PropertyType::Bool, UpdateFlags_Body3D, (void*)&def->lockBody, (compRef) ? (void*)&comp->lockBody : nullptr};
-
-        for (int s = 0; s < ((compRef) ? MAX_SHAPES : 1); s++){
-            std::string idx = (compRef) ? std::to_string(s) : "";
-
-            ps["shapes["+idx+"]"] = {PropertyType::Custom, UpdateFlags_Body3D, (void*)&def->shapes[0], (compRef) ? (void*)&comp->shapes[s] : nullptr};
-
-            ps["shapes["+idx+"].type"] = {PropertyType::Enum, UpdateFlags_Body3D, (void*)&def->shapes[0].type, (compRef) ? (void*)&comp->shapes[s].type : nullptr};
-            ps["shapes["+idx+"].position"] = {PropertyType::Vector3, UpdateFlags_Body3D, (void*)&def->shapes[0].position, (compRef) ? (void*)&comp->shapes[s].position : nullptr};
-            ps["shapes["+idx+"].rotation"] = {PropertyType::Quat, UpdateFlags_Body3D, (void*)&def->shapes[0].rotation, (compRef) ? (void*)&comp->shapes[s].rotation : nullptr};
-            ps["shapes["+idx+"].width"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&def->shapes[0].width, (compRef) ? (void*)&comp->shapes[s].width : nullptr};
-            ps["shapes["+idx+"].height"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&def->shapes[0].height, (compRef) ? (void*)&comp->shapes[s].height : nullptr};
-            ps["shapes["+idx+"].depth"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&def->shapes[0].depth, (compRef) ? (void*)&comp->shapes[s].depth : nullptr};
-            ps["shapes["+idx+"].radius"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&def->shapes[0].radius, (compRef) ? (void*)&comp->shapes[s].radius : nullptr};
-            ps["shapes["+idx+"].halfHeight"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&def->shapes[0].halfHeight, (compRef) ? (void*)&comp->shapes[s].halfHeight : nullptr};
-            ps["shapes["+idx+"].topRadius"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&def->shapes[0].topRadius, (compRef) ? (void*)&comp->shapes[s].topRadius : nullptr};
-            ps["shapes["+idx+"].bottomRadius"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&def->shapes[0].bottomRadius, (compRef) ? (void*)&comp->shapes[s].bottomRadius : nullptr};
-            ps["shapes["+idx+"].density"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&def->shapes[0].density, (compRef) ? (void*)&comp->shapes[s].density : nullptr};
-            ps["shapes["+idx+"].source"] = {PropertyType::Enum, UpdateFlags_Body3D, (void*)&def->shapes[0].source, (compRef) ? (void*)&comp->shapes[s].source : nullptr};
-            ps["shapes["+idx+"].sourceEntity"] = {PropertyType::UInt, UpdateFlags_Body3D, (void*)&def->shapes[0].sourceEntity, (compRef) ? (void*)&comp->shapes[s].sourceEntity : nullptr};
-            ps["shapes["+idx+"].samplesSize"] = {PropertyType::UInt, UpdateFlags_Body3D, (void*)&def->shapes[0].samplesSize, (compRef) ? (void*)&comp->shapes[s].samplesSize : nullptr};
-
-            for (int v = 0; v < ((compRef) ? MAX_SHAPE_VERTICES_3D : 1); v++){
-                std::string vidx = (compRef) ? std::to_string(v) : "";
-                ps["shapes["+idx+"].vertices["+vidx+"]"] = {PropertyType::Vector3, UpdateFlags_Body3D, (void*)&def->shapes[0].vertices[0], (compRef) ? (void*)&comp->shapes[s].vertices[v] : nullptr};
-            }
-        }
-    }else if (component == ComponentType::Joint2DComponent){
-        Joint2DComponent* comp = static_cast<Joint2DComponent*>(compRef);
-        static Joint2DComponent* def = new Joint2DComponent;
-
-        ps["type"] = {PropertyType::Enum, UpdateFlags_Joint2D, (void*)&def->type, (compRef) ? (void*)&comp->type : nullptr};
-        ps["bodyA"] = {PropertyType::UInt, UpdateFlags_Joint2D, (void*)&def->bodyA, (compRef) ? (void*)&comp->bodyA : nullptr};
-        ps["bodyB"] = {PropertyType::UInt, UpdateFlags_Joint2D, (void*)&def->bodyB, (compRef) ? (void*)&comp->bodyB : nullptr};
-        ps["anchorA"] = {PropertyType::Vector2, UpdateFlags_Joint2D, (void*)&def->anchorA, (compRef) ? (void*)&comp->anchorA : nullptr};
-        ps["anchorB"] = {PropertyType::Vector2, UpdateFlags_Joint2D, (void*)&def->anchorB, (compRef) ? (void*)&comp->anchorB : nullptr};
-        ps["axis"] = {PropertyType::Vector2, UpdateFlags_Joint2D, (void*)&def->axis, (compRef) ? (void*)&comp->axis : nullptr};
-        ps["target"] = {PropertyType::Vector2, UpdateFlags_Joint2D, (void*)&def->target, (compRef) ? (void*)&comp->target : nullptr};
-        ps["autoAnchors"] = {PropertyType::Bool, UpdateFlags_Joint2D, (void*)&def->autoAnchors, (compRef) ? (void*)&comp->autoAnchors : nullptr};
-        ps["rope"] = {PropertyType::Bool, UpdateFlags_Joint2D, (void*)&def->rope, (compRef) ? (void*)&comp->rope : nullptr};
-    }else if (component == ComponentType::Joint3DComponent){
-        Joint3DComponent* comp = static_cast<Joint3DComponent*>(compRef);
-        static Joint3DComponent* def = new Joint3DComponent;
-
-        ps["type"] = {PropertyType::Enum, UpdateFlags_Joint3D, (void*)&def->type, (compRef) ? (void*)&comp->type : nullptr};
-        ps["bodyA"] = {PropertyType::UInt, UpdateFlags_Joint3D, (void*)&def->bodyA, (compRef) ? (void*)&comp->bodyA : nullptr};
-        ps["bodyB"] = {PropertyType::UInt, UpdateFlags_Joint3D, (void*)&def->bodyB, (compRef) ? (void*)&comp->bodyB : nullptr};
-        ps["anchorA"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->anchorA, (compRef) ? (void*)&comp->anchorA : nullptr};
-        ps["anchorB"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->anchorB, (compRef) ? (void*)&comp->anchorB : nullptr};
-        ps["anchor"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->anchor, (compRef) ? (void*)&comp->anchor : nullptr};
-        ps["axis"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->axis, (compRef) ? (void*)&comp->axis : nullptr};
-        ps["normal"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->normal, (compRef) ? (void*)&comp->normal : nullptr};
-        ps["twistAxis"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->twistAxis, (compRef) ? (void*)&comp->twistAxis : nullptr};
-        ps["planeAxis"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->planeAxis, (compRef) ? (void*)&comp->planeAxis : nullptr};
-        ps["axisX"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->axisX, (compRef) ? (void*)&comp->axisX : nullptr};
-        ps["axisY"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->axisY, (compRef) ? (void*)&comp->axisY : nullptr};
-        ps["limitsMin"] = {PropertyType::Float, UpdateFlags_Joint3D, (void*)&def->limitsMin, (compRef) ? (void*)&comp->limitsMin : nullptr};
-        ps["limitsMax"] = {PropertyType::Float, UpdateFlags_Joint3D, (void*)&def->limitsMax, (compRef) ? (void*)&comp->limitsMax : nullptr};
-        ps["normalHalfConeAngle"] = {PropertyType::Float, UpdateFlags_Joint3D, (void*)&def->normalHalfConeAngle, (compRef) ? (void*)&comp->normalHalfConeAngle : nullptr};
-        ps["planeHalfConeAngle"] = {PropertyType::Float, UpdateFlags_Joint3D, (void*)&def->planeHalfConeAngle, (compRef) ? (void*)&comp->planeHalfConeAngle : nullptr};
-        ps["twistMinAngle"] = {PropertyType::Float, UpdateFlags_Joint3D, (void*)&def->twistMinAngle, (compRef) ? (void*)&comp->twistMinAngle : nullptr};
-        ps["twistMaxAngle"] = {PropertyType::Float, UpdateFlags_Joint3D, (void*)&def->twistMaxAngle, (compRef) ? (void*)&comp->twistMaxAngle : nullptr};
-        ps["fixedPointA"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->fixedPointA, (compRef) ? (void*)&comp->fixedPointA : nullptr};
-        ps["fixedPointB"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->fixedPointB, (compRef) ? (void*)&comp->fixedPointB : nullptr};
-        ps["hingeA"] = {PropertyType::UInt, UpdateFlags_Joint3D, (void*)&def->hingeA, (compRef) ? (void*)&comp->hingeA : nullptr};
-        ps["hingeB"] = {PropertyType::UInt, UpdateFlags_Joint3D, (void*)&def->hingeB, (compRef) ? (void*)&comp->hingeB : nullptr};
-        ps["hinge"] = {PropertyType::UInt, UpdateFlags_Joint3D, (void*)&def->hinge, (compRef) ? (void*)&comp->hinge : nullptr};
-        ps["slider"] = {PropertyType::UInt, UpdateFlags_Joint3D, (void*)&def->slider, (compRef) ? (void*)&comp->slider : nullptr};
-        ps["numTeethGearA"] = {PropertyType::Int, UpdateFlags_Joint3D, (void*)&def->numTeethGearA, (compRef) ? (void*)&comp->numTeethGearA : nullptr};
-        ps["numTeethGearB"] = {PropertyType::Int, UpdateFlags_Joint3D, (void*)&def->numTeethGearB, (compRef) ? (void*)&comp->numTeethGearB : nullptr};
-        ps["numTeethRack"] = {PropertyType::Int, UpdateFlags_Joint3D, (void*)&def->numTeethRack, (compRef) ? (void*)&comp->numTeethRack : nullptr};
-        ps["numTeethGear"] = {PropertyType::Int, UpdateFlags_Joint3D, (void*)&def->numTeethGear, (compRef) ? (void*)&comp->numTeethGear : nullptr};
-        ps["rackLength"] = {PropertyType::Int, UpdateFlags_Joint3D, (void*)&def->rackLength, (compRef) ? (void*)&comp->rackLength : nullptr};
-        ps["pathPoints"] = {PropertyType::Custom, UpdateFlags_Joint3D, (void*)&def->pathPoints, (compRef) ? (void*)&comp->pathPoints : nullptr};
-        for (size_t p = 0; p < ((compRef) ? comp->pathPoints.size() : 1); p++){
-            std::string idx = (compRef) ? std::to_string(p) : "";
-            ps["pathPoints["+idx+"]"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->pathPosition, (compRef) ? (void*)&comp->pathPoints[p] : nullptr};
-        }
-        ps["pathPosition"] = {PropertyType::Vector3, UpdateFlags_Joint3D, (void*)&def->pathPosition, (compRef) ? (void*)&comp->pathPosition : nullptr};
-        ps["isLooping"] = {PropertyType::Bool, UpdateFlags_Joint3D, (void*)&def->isLooping, (compRef) ? (void*)&comp->isLooping : nullptr};
-        ps["autoAnchors"] = {PropertyType::Bool, UpdateFlags_Joint3D, (void*)&def->autoAnchors, (compRef) ? (void*)&comp->autoAnchors : nullptr};
-    }
-
+    tryEnumerateProperties(component, compRef, ps);
     return ps;
 }
 
@@ -876,77 +1691,9 @@ std::vector<Editor::ComponentType> Editor::Catalog::findComponents(EntityRegistr
 }
 
 std::map<std::string, Editor::PropertyData> Editor::Catalog::findEntityProperties(EntityRegistry* registry, Entity entity, ComponentType component){
-    if(component == ComponentType::Transform){
-        if (Transform* compRef = registry->findComponent<Transform>(entity)){
-            return getProperties(component, compRef);
-        }
-    }else if (component == ComponentType::MeshComponent){
-        if (MeshComponent* compRef = registry->findComponent<MeshComponent>(entity)){
-            return getProperties(component, compRef);
-        }
-    }else if (component == ComponentType::UIComponent){
-        if (UIComponent* compRef = registry->findComponent<UIComponent>(entity)){
-            return getProperties(component, compRef);
-        }
-    }else if (component == ComponentType::ButtonComponent){
-        if (ButtonComponent* compRef = registry->findComponent<ButtonComponent>(entity)){
-            return getProperties(component, compRef);
-        }
-    }else if (component == ComponentType::UILayoutComponent){
-        if (UILayoutComponent* compRef = registry->findComponent<UILayoutComponent>(entity)){
-            return getProperties(component, compRef);
-        }
-    }else if (component == ComponentType::UIContainerComponent){
-        if (UIContainerComponent* compRef = registry->findComponent<UIContainerComponent>(entity)){
-            return getProperties(component, compRef);
-        }
-    }else if (component == ComponentType::ImageComponent){
-        if (ImageComponent* compRef = registry->findComponent<ImageComponent>(entity)){
-            return getProperties(component, compRef);
-        }
-    }else if (component == ComponentType::TextComponent){
-        if (TextComponent* compRef = registry->findComponent<TextComponent>(entity)){
-            return getProperties(component, compRef);
-        }
-    }else if (component == ComponentType::SpriteComponent){
-        if (SpriteComponent* compRef = registry->findComponent<SpriteComponent>(entity)){
-            return getProperties(component, compRef);
-        }
-    }else if (component == ComponentType::LightComponent){
-        if (LightComponent* compRef = registry->findComponent<LightComponent>(entity)){
-            return getProperties(component, compRef);
-        }
-    }else if (component == ComponentType::CameraComponent){
-        if (CameraComponent* compRef = registry->findComponent<CameraComponent>(entity)){
-            return getProperties(component, compRef);
-        }
-    }else if (component == ComponentType::ScriptComponent){
-        if (ScriptComponent* compRef = registry->findComponent<ScriptComponent>(entity)){
-            return getProperties(component, compRef);
-        }
-    }else if (component == ComponentType::SkyComponent){
-        if (SkyComponent* compRef = registry->findComponent<SkyComponent>(entity)){
-            return getProperties(component, compRef);
-        }
-    }else if (component == ComponentType::Body2DComponent){
-        if (Body2DComponent* compRef = registry->findComponent<Body2DComponent>(entity)){
-            return getProperties(component, compRef);
-        }
-    }else if (component == ComponentType::Body3DComponent){
-        if (Body3DComponent* compRef = registry->findComponent<Body3DComponent>(entity)){
-            return getProperties(component, compRef);
-        }
-    }else if (component == ComponentType::Joint2DComponent){
-        if (Joint2DComponent* compRef = registry->findComponent<Joint2DComponent>(entity)){
-            return getProperties(component, compRef);
-        }
-    }else if (component == ComponentType::Joint3DComponent){
-        if (Joint3DComponent* compRef = registry->findComponent<Joint3DComponent>(entity)){
-            return getProperties(component, compRef);
-        }
-    }
-
-    return std::map<std::string, Editor::PropertyData>();
+    std::map<std::string, PropertyData> ps;
+    tryEnumerateEntityProperties(registry, entity, component, ps);
+    return ps;
 }
 
 int Editor::Catalog::getChangedUpdateFlags(ComponentType compType, void* oldComp, void* newComp) {
@@ -1322,10 +2069,9 @@ void Editor::Catalog::copyPropertyValue(EntityRegistry* sourceRegistry, Entity s
 }
 
 Editor::PropertyData Editor::Catalog::getProperty(EntityRegistry* registry, Entity entity, ComponentType component, std::string propertyName){
-    for (auto& [name, property] : Catalog::findEntityProperties(registry, entity, component)){
-        if (name == propertyName){
-            return property;
-        }
+    PropertyData fastProperty = tryGetFastProperty(registry, entity, component, propertyName);
+    if (fastProperty.ref || fastProperty.def){
+        return fastProperty;
     }
 
     printf("ERROR: Cannot find property %s\n", propertyName.c_str());
