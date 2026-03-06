@@ -15,6 +15,9 @@
 #include "yaml-cpp/yaml.h"
 
 #include <filesystem>
+#include <chrono>
+#include <map>
+#include <tuple>
 
 namespace Supernova::Editor{
 
@@ -130,8 +133,17 @@ namespace Supernova::Editor{
         uint32_t selectedScene;
         uint32_t selectedSceneForProperties;
 
+        using MaterialLinkKey = std::tuple<uint32_t, Entity, unsigned int>;
+        struct MaterialLinkEntry {
+            std::string filePath;
+            std::filesystem::file_time_type lastWriteTime;
+        };
+
         std::filesystem::path projectPath;
         bool resourcesFocused;
+        std::map<MaterialLinkKey, MaterialLinkEntry> materialFileLinks;
+        std::chrono::steady_clock::time_point lastMaterialRefreshTime;
+        static constexpr double materialRefreshIntervalSec = 0.2;
 
         std::map<std::filesystem::path, SharedGroup> sharedGroups;
 
@@ -182,6 +194,12 @@ namespace Supernova::Editor{
         bool openProject();
 
         bool loadProject(const std::filesystem::path path);
+
+        void refreshLinkedMaterials(bool force = false);
+
+        void linkMaterialFile(uint32_t sceneId, Entity entity, unsigned int submeshIndex, const std::string& filePath);
+        void unlinkMaterialFile(uint32_t sceneId, Entity entity, unsigned int submeshIndex);
+        void unlinkAllMaterialFiles(uint32_t sceneId, Entity entity);
 
         void checkUnsavedAndExecute(uint32_t sceneId, std::function<void()> action);
 

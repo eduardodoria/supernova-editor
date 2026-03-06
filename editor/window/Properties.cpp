@@ -19,14 +19,18 @@
 #include "command/type/ScenePropertyCmd.h"
 #include "render/SceneRender2D.h"
 #include "App.h"
+#include "Backend.h"
 #include "util/SHA1.h"
 #include "util/ProjectUtils.h"
 #include "Stream.h"
 #include "Out.h"
 #include "subsystem/PhysicsSystem.h"
+#include "yaml-cpp/yaml.h"
 
 #include <map>
 #include <type_traits>
+#include <cstring>
+#include <fstream>
 
 using namespace Supernova;
 
@@ -164,6 +168,73 @@ namespace {
         ColorRGBA,
         Combo
     };
+
+    struct DirtyMaterialEntry {
+        unsigned int sceneId;
+        Entity entity;
+        int submeshIndex;
+        std::string relativePath;
+        float timer;
+    };
+
+    static std::vector<DirtyMaterialEntry> dirtyMaterials;
+    static constexpr float materialWriteDelaySec = 0.3f;
+
+    void markMaterialDirty(unsigned int sceneId, Entity entity, int submeshIndex, const std::string& relativePath) {
+        for (auto& entry : dirtyMaterials) {
+            if (entry.sceneId == sceneId && entry.entity == entity && entry.submeshIndex == submeshIndex) {
+                entry.timer = 0.0f;
+                entry.relativePath = relativePath;
+                return;
+            }
+        }
+
+        dirtyMaterials.push_back({sceneId, entity, submeshIndex, relativePath, 0.0f});
+    }
+
+    void flushDirtyMaterials(Editor::Project* project, float deltaTime) {
+        if (dirtyMaterials.empty()) {
+            return;
+        }
+
+        auto it = dirtyMaterials.begin();
+        while (it != dirtyMaterials.end()) {
+            it->timer += deltaTime;
+            if (it->timer < materialWriteDelaySec) {
+                ++it;
+                continue;
+            }
+
+            Editor::SceneProject* sp = project->getScene(it->sceneId);
+            if (sp) {
+                MeshComponent* mesh = sp->scene->findComponent<MeshComponent>(it->entity);
+                if (mesh && it->submeshIndex < mesh->numSubmeshes) {
+                    Material& material = mesh->submeshes[it->submeshIndex].material;
+                    std::filesystem::path absolutePath = project->getProjectPath() / it->relativePath;
+
+                    try {
+                        std::ofstream out(absolutePath, std::ios::binary | std::ios::trunc);
+                        if (out.is_open()) {
+                            std::string payload = YAML::Dump(Editor::Stream::encodeMaterial(material));
+                            out.write(payload.c_str(), payload.size());
+                            out.close();
+
+                            project->linkMaterialFile(it->sceneId, it->entity, it->submeshIndex, it->relativePath);
+                            project->refreshLinkedMaterials(true);
+
+                            if (Editor::ResourcesWindow* resourcesWindow = Editor::Backend::getApp().getResourcesWindow()) {
+                                resourcesWindow->notifyResourceFileChanged(absolutePath);
+                            }
+                        }
+                    } catch (const std::exception& e) {
+                        Editor::Out::error("Error saving linked material file '%s': %s", absolutePath.string().c_str(), e.what());
+                    }
+                }
+            }
+
+            it = dirtyMaterials.erase(it);
+        }
+    }
 
     template<typename T>
     void drawScenePropertyRow(Editor::SceneProject* sceneProject, const std::string& propertyName, const char* label, ScenePropertyInputType inputType, float minValue = 0.0f, float maxValue = 1.0f) {
@@ -2541,8 +2612,14 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
         std::string matName = newValue.name;
-        if (std::filesystem::exists(matName)) {
-            matName = std::filesystem::path(matName).filename().string();
+        if (!matName.empty()) {
+            std::filesystem::path matPath = std::filesystem::path(matName);
+            if (!matPath.is_absolute()) {
+                matPath = project->getProjectPath() / matPath;
+            }
+            if (std::filesystem::exists(matPath)) {
+                matName = std::filesystem::path(newValue.name).filename().string();
+            }
         }
         if (matName.empty()) {
             matName = "< Not defined >";
@@ -2575,7 +2652,29 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
             std::string materialStr = YAML::Dump(Stream::encodeMaterial(newValue));
 
-            ImGui::SetDragDropPayload("material", materialStr.c_str(), materialStr.size());
+            std::vector<char> materialPayload;
+            MaterialPayload header{0x4D54524C, NULL_PROJECT_SCENE, NULL_ENTITY, 0};
+
+            if (cpType == ComponentType::MeshComponent && !entities.empty()) {
+                header.sceneId = sceneProject->id;
+                header.entity = entities[0];
+
+                auto p = id.find('[');
+                auto e = id.find(']');
+                if (p != std::string::npos && e != std::string::npos) {
+                    try {
+                        header.submeshIndex = std::stoul(id.substr(p + 1, e - p - 1));
+                    } catch (const std::exception&) {
+                        header.submeshIndex = 0;
+                    }
+                }
+            }
+
+            materialPayload.resize(sizeof(MaterialPayload) + materialStr.size());
+            std::memcpy(materialPayload.data(), &header, sizeof(MaterialPayload));
+            std::memcpy(materialPayload.data() + sizeof(MaterialPayload), materialStr.data(), materialStr.size());
+
+            ImGui::SetDragDropPayload("material", materialPayload.data(), materialPayload.size());
             ImGui::Text("Moving material");
             float imageDragSize = 32;
             float availWidth = ImGui::GetCurrentWindow()->Size.x;
@@ -2583,6 +2682,139 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             ImGui::SetCursorPosX(xPos);
             ImGui::Image(texRender.getRender()->getGLHandler(), ImVec2(imageDragSize, imageDragSize), ImVec2(0, 1), ImVec2(1, 0));
             ImGui::EndDragDropSource();
+        }
+
+        // Material file drop preview state (must be outside drag-drop blocks for restore access)
+        static std::string cachedMatDropPath;
+        static Material cachedMatDropMaterial;
+        static std::map<Entity, Material> matDropOriginals;
+        static bool matDropPreviewing = false;
+        static std::string matDropPropertyId;
+
+        auto restoreMatDropPreview = [&]() {
+            if (matDropPreviewing) {
+                for (auto& [ent, origMat] : matDropOriginals) {
+                    PropertyData prop = Catalog::getProperty(sceneProject->scene, ent, cpType, matDropPropertyId);
+                    if (prop.ref) {
+                        Material* matRef = static_cast<Material*>(prop.ref);
+                        *matRef = origMat;
+                        MeshComponent* mesh = sceneProject->scene->findComponent<MeshComponent>(ent);
+                        if (mesh) {
+                            auto p = matDropPropertyId.find('[');
+                            auto e = matDropPropertyId.find(']');
+                            if (p != std::string::npos && e != std::string::npos) {
+                                unsigned int sIdx = std::stoul(matDropPropertyId.substr(p + 1, e - p - 1));
+                                if (sIdx < mesh->numSubmeshes) {
+                                    mesh->submeshes[sIdx].needUpdateTexture = true;
+                                }
+                            }
+                        }
+                    }
+                }
+                matDropPreviewing = false;
+                matDropOriginals.clear();
+                cachedMatDropPath.clear();
+            }
+        };
+
+        if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
+                std::vector<std::string> receivedStrings = Util::getStringsFromPayload(payload);
+
+                if (!receivedStrings.empty()) {
+                    std::error_code ec;
+                    std::filesystem::path relativePath = std::filesystem::relative(receivedStrings[0], project->getProjectPath(), ec);
+
+                    if (ec) {
+                        if (payload->IsDelivery()) {
+                            restoreMatDropPreview();
+                            ImGui::OpenPopup("File Import Error##material");
+                        }
+                    } else {
+                        std::string droppedRelativePath = relativePath.lexically_normal().generic_string();
+
+                        if (Util::isMaterialFile(droppedRelativePath)) {
+                            try {
+                                if (cachedMatDropPath != droppedRelativePath) {
+                                    cachedMatDropPath = droppedRelativePath;
+                                    YAML::Node materialNode = YAML::LoadFile((project->getProjectPath() / relativePath).string());
+                                    cachedMatDropMaterial = Stream::decodeMaterial(materialNode);
+                                    cachedMatDropMaterial.name = droppedRelativePath;
+                                }
+
+                                if (!payload->IsDelivery()) {
+                                    // Preview: save originals and apply
+                                    if (!matDropPreviewing) {
+                                        matDropOriginals.clear();
+                                        matDropPropertyId = id;
+                                        for (Entity& entity : entities) {
+                                            PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
+                                            matDropOriginals[entity] = *static_cast<Material*>(prop.ref);
+                                        }
+                                        matDropPreviewing = true;
+                                    }
+                                    for (Entity& entity : entities) {
+                                        PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
+                                        Material* matRef = static_cast<Material*>(prop.ref);
+                                        if (*matRef != cachedMatDropMaterial) {
+                                            *matRef = cachedMatDropMaterial;
+                                            MeshComponent* mesh = sceneProject->scene->findComponent<MeshComponent>(entity);
+                                            if (mesh) {
+                                                auto pos = id.find('[');
+                                                auto end = id.find(']');
+                                                if (pos != std::string::npos && end != std::string::npos) {
+                                                    unsigned int sIdx = std::stoul(id.substr(pos + 1, end - pos - 1));
+                                                    if (sIdx < mesh->numSubmeshes) {
+                                                        mesh->submeshes[sIdx].needUpdateTexture = true;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    // Delivery: restore originals, then issue commands
+                                    restoreMatDropPreview();
+
+                                    for (Entity& entity : entities) {
+                                        cmd = new PropertyCmd<Material>(project, sceneProject->id, entity, cpType, id, cachedMatDropMaterial, settings.onValueChanged);
+                                        CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                                        finishProperty = true;
+
+                                        // Register material file link
+                                        auto pos = id.find('[');
+                                        auto end = id.find(']');
+                                        if (pos != std::string::npos && end != std::string::npos) {
+                                            unsigned int sIdx = std::stoul(id.substr(pos + 1, end - pos - 1));
+                                            project->linkMaterialFile(sceneProject->id, entity, sIdx, cachedMatDropMaterial.name);
+                                        }
+                                    }
+
+                                    cachedMatDropPath.clear();
+                                }
+                            } catch (const std::exception& e) {
+                                Out::error("Error loading material file '%s': %s", droppedRelativePath.c_str(), e.what());
+                            }
+                        }
+                    }
+                }
+            }
+            ImGui::EndDragDropTarget();
+        } else {
+            // Drag ended without delivery — restore preview
+            restoreMatDropPreview();
+        }
+
+        if (ImGui::BeginPopupModal("File Import Error##material", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("Selected file must be within the project directory.");
+            ImGui::Separator();
+
+            float buttonWidth = 120;
+            float windowWidth = ImGui::GetWindowSize().x;
+            ImGui::SetCursorPosX((windowWidth - buttonWidth) * 0.5f);
+            if (ImGui::Button("OK", ImVec2(120, 0))) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
         }
 
         result = materialButtonGroups[id];
@@ -3110,6 +3342,24 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, SceneProject* s
 
             RowSettings settingsMaterial;
             settingsMaterial.child = true;
+            settingsMaterial.onValueChanged = [this, sceneProject, entities, s]() {
+                for (const Entity& entity : entities) {
+                    MeshComponent* mesh = sceneProject->scene->findComponent<MeshComponent>(entity);
+                    if (!mesh || s >= mesh->numSubmeshes) {
+                        continue;
+                    }
+
+                    Material& material = mesh->submeshes[s].material;
+                    if (material.name.empty()) {
+                        continue;
+                    }
+
+                    std::string relativePath = std::filesystem::path(material.name).lexically_normal().generic_string();
+                    markMaterialDirty(sceneProject->id, entity, s, relativePath);
+                }
+            };
+
+            settingsFactor.onValueChanged = settingsMaterial.onValueChanged;
 
             endTable();
             beginTable(cpType, getLabelSize("Met. Roug. Texture"), "material_table");
@@ -5177,6 +5427,9 @@ void Editor::Properties::drawJoint3DComponent(ComponentType cpType, SceneProject
 }
 
 void Editor::Properties::show(){
+    // Flush any debounced material file writes
+    flushDirtyMaterials(project, ImGui::GetIO().DeltaTime);
+
     ImGui::Begin("Properties");
 
     uint32_t propertiesSceneId = project->getSelectedSceneForProperties();

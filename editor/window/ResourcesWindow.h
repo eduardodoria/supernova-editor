@@ -4,6 +4,7 @@
 #include "Project.h"
 #include "command/CommandHistory.h"
 #include "window/CodeEditor.h"
+#include "util/EntityPayload.h"
 
 #include <iostream>
 #include <filesystem>
@@ -146,11 +147,11 @@ namespace Supernova::Editor {
         void copySelectedFiles(bool cut);
         void pasteFiles(const fs::path& targetDirectory);
 
-        void queueThumbnailGeneration(const fs::path& filePath, FileType type);
+        void queueThumbnailGeneration(const fs::path& filePath, FileType type, bool forceRegenerate = false);
         void thumbnailWorker();
         bool loadThumbnail(FileEntry& entry);
 
-        void saveMaterialFile(const fs::path& directory, const char* materialContent, size_t contentLen);
+        void saveMaterialFile(const fs::path& directory, const char* materialContent, size_t contentLen, const MaterialPayload* sourceMaterial = nullptr);
         void saveEntityFile(const fs::path& directory, const char* entityContent, size_t contentLen);
 
     public:
@@ -166,6 +167,8 @@ namespace Supernova::Editor {
 
         // need to be after draw
         void processMaterialThumbnails();
+
+        void notifyResourceFileChanged(const fs::path& filePath);
 
         void cleanupThumbnails();
 

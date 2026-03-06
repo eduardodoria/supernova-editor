@@ -43,6 +43,160 @@ Editor::Project::Project(){
     resetConfigs();
 }
 
+void Editor::Project::linkMaterialFile(uint32_t sceneId, Entity entity, unsigned int submeshIndex, const std::string& filePath) {
+    MaterialLinkKey key{sceneId, entity, submeshIndex};
+    MaterialLinkEntry entry;
+    entry.filePath = fs::path(filePath).lexically_normal().generic_string();
+
+    fs::path absolutePath = projectPath / entry.filePath;
+    std::error_code ec;
+    entry.lastWriteTime = fs::last_write_time(absolutePath, ec);
+
+    materialFileLinks[key] = entry;
+}
+
+void Editor::Project::unlinkMaterialFile(uint32_t sceneId, Entity entity, unsigned int submeshIndex) {
+    materialFileLinks.erase(MaterialLinkKey{sceneId, entity, submeshIndex});
+}
+
+void Editor::Project::unlinkAllMaterialFiles(uint32_t sceneId, Entity entity) {
+    for (auto it = materialFileLinks.begin(); it != materialFileLinks.end();) {
+        if (std::get<0>(it->first) == sceneId && std::get<1>(it->first) == entity) {
+            it = materialFileLinks.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
+void Editor::Project::refreshLinkedMaterials(bool force) {
+    if (materialFileLinks.empty()) {
+        return;
+    }
+
+    // Throttle: only check every materialRefreshIntervalSec seconds
+    auto now = std::chrono::steady_clock::now();
+    double elapsed = std::chrono::duration<double>(now - lastMaterialRefreshTime).count();
+    if (!force && elapsed < materialRefreshIntervalSec) {
+        return;
+    }
+    lastMaterialRefreshTime = now;
+
+    if (projectPath.empty() || !fs::exists(projectPath)) {
+        materialFileLinks.clear();
+        return;
+    }
+
+    // Collect changed files and stale entries
+    struct ChangedFile {
+        std::string filePath;
+        Material updatedMaterial;
+    };
+    std::unordered_map<std::string, ChangedFile> changedFiles;
+    std::vector<MaterialLinkKey> staleKeys;
+
+    for (auto& [key, linkEntry] : materialFileLinks) {
+        uint32_t keySceneId = std::get<0>(key);
+        Entity keyEntity = std::get<1>(key);
+        unsigned int keySubmeshIndex = std::get<2>(key);
+
+        // Find the scene
+        SceneProject* sceneProject = nullptr;
+        for (auto& sp : scenes) {
+            if (sp.id == keySceneId) {
+                sceneProject = &sp;
+                break;
+            }
+        }
+        if (!sceneProject || !sceneProject->scene) {
+            staleKeys.push_back(key);
+            continue;
+        }
+
+        MeshComponent* mesh = sceneProject->scene->findComponent<MeshComponent>(keyEntity);
+        if (!mesh || keySubmeshIndex >= mesh->numSubmeshes) {
+            staleKeys.push_back(key);
+            continue;
+        }
+
+        // If the material name no longer matches the linked file (e.g. after undo), remove the link
+        std::string currentName = fs::path(mesh->submeshes[keySubmeshIndex].material.name).lexically_normal().generic_string();
+        if (currentName != linkEntry.filePath) {
+            staleKeys.push_back(key);
+            continue;
+        }
+
+        fs::path absolutePath = projectPath / linkEntry.filePath;
+        if (!fs::exists(absolutePath)) {
+            staleKeys.push_back(key);
+            continue;
+        }
+
+        std::error_code ec;
+        auto writeTime = fs::last_write_time(absolutePath, ec);
+        if (ec) {
+            continue;
+        }
+
+        if (writeTime != linkEntry.lastWriteTime) {
+            linkEntry.lastWriteTime = writeTime;
+
+            // Only load the file once per unique path
+            if (changedFiles.find(linkEntry.filePath) == changedFiles.end()) {
+                try {
+                    YAML::Node materialNode = YAML::LoadFile(absolutePath.string());
+                    Material updatedMaterial = Stream::decodeMaterial(materialNode);
+                    updatedMaterial.name = linkEntry.filePath;
+                    changedFiles[linkEntry.filePath] = {linkEntry.filePath, updatedMaterial};
+                } catch (const std::exception& e) {
+                    Out::error("Error reloading linked material file '%s': %s", absolutePath.string().c_str(), e.what());
+                }
+            }
+        }
+    }
+
+    // Remove stale entries
+    for (const auto& key : staleKeys) {
+        materialFileLinks.erase(key);
+    }
+
+    // Apply changes
+    for (auto& [key, linkEntry] : materialFileLinks) {
+        uint32_t keySceneId = std::get<0>(key);
+        Entity keyEntity = std::get<1>(key);
+        unsigned int keySubmeshIndex = std::get<2>(key);
+
+        auto changedIt = changedFiles.find(linkEntry.filePath);
+        if (changedIt == changedFiles.end()) {
+            continue;
+        }
+
+        SceneProject* sceneProject = nullptr;
+        for (auto& sp : scenes) {
+            if (sp.id == keySceneId) {
+                sceneProject = &sp;
+                break;
+            }
+        }
+        if (!sceneProject || !sceneProject->scene) {
+            continue;
+        }
+
+        MeshComponent* mesh = sceneProject->scene->findComponent<MeshComponent>(keyEntity);
+        if (!mesh || keySubmeshIndex >= mesh->numSubmeshes) {
+            continue;
+        }
+
+        const Material& updatedMaterial = changedIt->second.updatedMaterial;
+        if (mesh->submeshes[keySubmeshIndex].material != updatedMaterial) {
+            mesh->submeshes[keySubmeshIndex].material = updatedMaterial;
+            mesh->submeshes[keySubmeshIndex].needUpdateTexture = true;
+            sceneProject->needUpdateRender = true;
+            sceneProject->isModified = true;
+        }
+    }
+}
+
 Editor::SceneRender* Editor::Project::createSceneRender(SceneType type, Scene* scene) const {
     if (!scene) {
         return nullptr;
@@ -389,6 +543,45 @@ void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene)
             targetScene->defaultCamera = createDefaultCamera(targetScene->sceneType, targetScene->scene);
             Stream::decodeSceneProjectEntities(this, targetScene, sceneNode);
 
+            for (Entity entity : targetScene->entities) {
+                MeshComponent* mesh = targetScene->scene->findComponent<MeshComponent>(entity);
+                if (!mesh) {
+                    continue;
+                }
+
+                for (unsigned int submeshIndex = 0; submeshIndex < mesh->numSubmeshes; submeshIndex++) {
+                    Material& material = mesh->submeshes[submeshIndex].material;
+                    if (material.name.empty()) {
+                        continue;
+                    }
+
+                    std::string normalizedPath = fs::path(material.name).lexically_normal().generic_string();
+                    linkMaterialFile(targetScene->id, entity, submeshIndex, normalizedPath);
+
+                    fs::path materialPath = projectPath / normalizedPath;
+                    if (!fs::exists(materialPath) || fs::is_directory(materialPath)) {
+                        continue;
+                    }
+
+                    try {
+                        YAML::Node materialNode = YAML::LoadFile(materialPath.string());
+                        Material fileMaterial = Stream::decodeMaterial(materialNode);
+                        fileMaterial.name = normalizedPath;
+
+                        std::error_code ec;
+                        materialFileLinks[MaterialLinkKey{targetScene->id, entity, submeshIndex}].lastWriteTime = fs::last_write_time(materialPath, ec);
+
+                        if (material != fileMaterial) {
+                            material = fileMaterial;
+                            mesh->submeshes[submeshIndex].needUpdateTexture = true;
+                            targetScene->needUpdateRender = true;
+                        }
+                    } catch (const std::exception& e) {
+                        Out::error("Error loading linked material file '%s': %s", materialPath.string().c_str(), e.what());
+                    }
+                }
+            }
+
             setSelectedSceneId(targetScene->id);
 
             Backend::getApp().addNewSceneToDock(targetScene->id);
@@ -701,6 +894,8 @@ void Editor::Project::resetConfigs() {
     nextSceneId = 0;
     projectPath.clear();
     sharedGroups.clear();
+    materialFileLinks.clear();
+    lastMaterialRefreshTime = std::chrono::steady_clock::time_point{};
 
     Backend::updateWindowTitle(name);
 

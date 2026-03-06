@@ -732,6 +732,7 @@ void Editor::App::engineViewLoaded(){
 
 void Editor::App::engineRender(){
     processMainThreadTasks();
+    project.refreshLinkedMaterials();
 
     for (auto& sceneProject : project.getScenes()) {
         if (!sceneProject.opened) continue;
@@ -1057,6 +1058,10 @@ const Editor::Project* Editor::App::getProject() const{
 
 Editor::CodeEditor* Editor::App::getCodeEditor() const{
     return codeEditor;
+}
+
+Editor::ResourcesWindow* Editor::App::getResourcesWindow() const{
+    return resourcesWindow;
 }
 
 void Editor::App::processNextSaveDialog() {

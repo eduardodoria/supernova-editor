@@ -88,6 +88,38 @@ void Editor::ResourcesWindow::handleExternalDragLeave() {
     isExternalDragHovering = false;
 }
 
+void Editor::ResourcesWindow::notifyResourceFileChanged(const fs::path& filePath) {
+    if (!fs::exists(filePath) || fs::is_directory(filePath)) {
+        return;
+    }
+
+    std::string extension = filePath.extension().string();
+    FileType type = FileType::NONE;
+
+    if (Util::isImageFile(extension)) {
+        type = FileType::IMAGE;
+    } else if (Util::isMaterialFile(extension)) {
+        type = FileType::MATERIAL;
+    }
+
+    if (type == FileType::NONE) {
+        return;
+    }
+
+    fs::path thumbnailPath = project->getThumbnailPath(filePath);
+    thumbnailTextures.erase(thumbnailPath.string());
+
+    for (auto& file : files) {
+        if ((currentPath / file.name) == filePath) {
+            file.hasThumbnail = false;
+            file.thumbnailPath.clear();
+            break;
+        }
+    }
+
+    queueThumbnailGeneration(filePath, type, true);
+}
+
 void Editor::ResourcesWindow::processMaterialThumbnails() {
     // Check if we have a pending material render that needs post-processing
     if (hasPendingMaterialRender && !Engine::isSceneRunning(materialRender.getScene())) {
@@ -1247,11 +1279,11 @@ void Editor::ResourcesWindow::pasteFiles(const fs::path& targetDirectory) {
     scanDirectory(currentPath);
 }
 
-void Editor::ResourcesWindow::queueThumbnailGeneration(const fs::path& filePath, FileType type) {
+void Editor::ResourcesWindow::queueThumbnailGeneration(const fs::path& filePath, FileType type, bool forceRegenerate) {
     fs::path thumbnailPath = project->getThumbnailPath(filePath);
 
     ThumbnailRequest thumbFile = {filePath, type};
-    if (fs::exists(thumbnailPath)) {
+    if (!forceRegenerate && fs::exists(thumbnailPath)) {
         auto imageTime = fs::last_write_time(filePath);
         auto thumbTime = fs::last_write_time(thumbnailPath);
         if (thumbTime >= imageTime) {
@@ -1375,34 +1407,35 @@ void Editor::ResourcesWindow::thumbnailWorker() {
 
 // Load a thumbnail texture for a file entry
 bool Editor::ResourcesWindow::loadThumbnail(FileEntry& entry) {
-    if (entry.hasThumbnail) {
-        return true;
-    }
-
     fs::path filePath = currentPath / entry.name;
     fs::path thumbnailPath = project->getThumbnailPath(filePath);
 
-    if (fs::exists(thumbnailPath)) {
-        // Check if we already have this thumbnail loaded
-        if (thumbnailTextures.find(thumbnailPath.string()) == thumbnailTextures.end()) {
-            // Sync load the thumbnail texture
-            Texture thumbTexture(thumbnailPath.string(), TextureData(thumbnailPath.string().c_str()));
-            if (thumbTexture.load()){
-                thumbnailTextures[thumbnailPath.string()] = thumbTexture;
-            }else{
-                // only false if there is file but texture is not loaded
-                return false;
-            }
-        }
-
-        entry.hasThumbnail = true;
-        entry.thumbnailPath = thumbnailPath.string();
+    if (!fs::exists(thumbnailPath)) {
+        entry.hasThumbnail = false;
+        entry.thumbnailPath.clear();
+        return true;
     }
+
+    const std::string thumbnailKey = thumbnailPath.string();
+
+    // Only load if not already in cache (explicit invalidation via
+    // notifyResourceFileChanged erases from thumbnailTextures)
+    if (thumbnailTextures.find(thumbnailKey) == thumbnailTextures.end()) {
+        Texture thumbTexture(thumbnailPath.string(), TextureData(thumbnailPath.string().c_str()));
+        if (thumbTexture.load()) {
+            thumbnailTextures[thumbnailKey] = thumbTexture;
+        } else {
+            return false;
+        }
+    }
+
+    entry.hasThumbnail = true;
+    entry.thumbnailPath = thumbnailKey;
 
     return true;
 }
 
-void Editor::ResourcesWindow::saveMaterialFile(const fs::path& directory, const char* materialContent, size_t contentLen) {
+void Editor::ResourcesWindow::saveMaterialFile(const fs::path& directory, const char* materialContent, size_t contentLen, const MaterialPayload* sourceMaterial) {
     std::string baseName = "Material";
     std::string fileName = baseName + ".material";
     fs::path targetFile = directory / fileName;
@@ -1414,9 +1447,47 @@ void Editor::ResourcesWindow::saveMaterialFile(const fs::path& directory, const 
     }
     std::ofstream out(targetFile, std::ios::binary);
     if (out.is_open()) {
-        out.write(materialContent, contentLen);
+        std::string payload(materialContent, contentLen);
+        Material decodedMaterial;
+        bool hasDecodedMaterial = false;
+
+        try {
+            YAML::Node materialNode = YAML::Load(payload);
+            Material material = Stream::decodeMaterial(materialNode);
+
+            std::error_code ec;
+            fs::path relativePath = fs::relative(targetFile, project->getProjectPath(), ec);
+            if (!ec) {
+                material.name = relativePath.lexically_normal().generic_string();
+            }
+
+            decodedMaterial = material;
+            hasDecodedMaterial = true;
+            payload = YAML::Dump(Stream::encodeMaterial(material));
+        } catch (const std::exception&) {
+        }
+
+        out.write(payload.c_str(), payload.size());
         out.close();
         scanDirectory(currentPath);
+
+        if (sourceMaterial && hasDecodedMaterial) {
+            SceneProject* sceneProject = project->getScene(sourceMaterial->sceneId);
+            if (sceneProject && sceneProject->scene) {
+                MeshComponent* mesh = sceneProject->scene->findComponent<MeshComponent>(sourceMaterial->entity);
+                if (mesh && sourceMaterial->submeshIndex < mesh->numSubmeshes) {
+                    mesh->submeshes[sourceMaterial->submeshIndex].material = decodedMaterial;
+                    mesh->submeshes[sourceMaterial->submeshIndex].needUpdateTexture = true;
+
+                    sceneProject->needUpdateRender = true;
+                    sceneProject->isModified = true;
+
+                    if (!decodedMaterial.name.empty()) {
+                        project->linkMaterialFile(sourceMaterial->sceneId, sourceMaterial->entity, sourceMaterial->submeshIndex, decodedMaterial.name);
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1668,11 +1739,26 @@ void Editor::ResourcesWindow::show() {
             scanDirectory(currentPath);
         }
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("material")) {
-            // Assume the payload is a null-terminated string (YAML)
-            const char* materialContent = (const char*)payload->Data;
+            const char* materialContent = static_cast<const char*>(payload->Data);
             size_t contentLen = payload->DataSize;
 
-            saveMaterialFile(currentPath, materialContent, contentLen);
+            MaterialPayload materialSource{0, NULL_PROJECT_SCENE, NULL_ENTITY, 0};
+            const MaterialPayload* sourcePtr = nullptr;
+
+            if (contentLen > sizeof(MaterialPayload)) {
+                const MaterialPayload* candidate = reinterpret_cast<const MaterialPayload*>(materialContent);
+                const char* yamlData = materialContent + sizeof(MaterialPayload);
+
+                // New payload format: [MaterialPayload header][YAML string]
+                if (candidate->magic == 0x4D54524C) {
+                    materialSource = *candidate;
+                    sourcePtr = &materialSource;
+                    materialContent = yamlData;
+                    contentLen -= sizeof(MaterialPayload);
+                }
+            }
+
+            saveMaterialFile(currentPath, materialContent, contentLen, sourcePtr);
         }
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("entity")) {
             const char* entityContent = (const char*)payload->Data;

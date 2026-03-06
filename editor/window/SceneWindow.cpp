@@ -9,8 +9,11 @@
 #include "command/type/CreateEntityCmd.h"
 #include "render/SceneRender2D.h"
 #include "render/SceneRender3D.h"
+#include "Stream.h"
+#include "Out.h"
 
 #include "math/Vector2.h"
+#include "yaml-cpp/yaml.h"
 
 using namespace Supernova;
 
@@ -69,6 +72,10 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
     static MeshComponent* selMesh = nullptr;
     static UIComponent* selUI = nullptr;
     static TextComponent* selText = nullptr;
+    static std::vector<Material> originalMeshMaterials;
+    static unsigned int originalMeshNumSubmeshes = 0;
+    static Material cachedDragMaterial;
+    static std::string cachedDragPath;
     static Texture originalTex;
     static std::string originalFont;
     static Entity lastSelEntity = NULL_ENTITY;
@@ -81,6 +88,7 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
                 const std::string droppedRelativePath = std::filesystem::relative(receivedStrings[0], project->getProjectPath()).generic_string();
                 bool isFont = Util::isFontFile(droppedRelativePath);
                 bool isImage = Util::isImageFile(droppedRelativePath);
+                bool isMaterial = Util::isMaterialFile(droppedRelativePath);
 
                 draggingResourceFile = true;
                 ImVec2 windowPos = ImGui::GetWindowPos();
@@ -92,11 +100,14 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
 
                 if (selEntity == NULL_ENTITY || lastSelEntity != selEntity) {
                     if (selMesh) {
-                        if (selMesh->submeshes[0].material.baseColorTexture != originalTex) {
-                            selMesh->submeshes[0].material.baseColorTexture = originalTex;
-                            selMesh->submeshes[0].needUpdateTexture = true;
+                        for (unsigned int s = 0; s < originalMeshNumSubmeshes && s < selMesh->numSubmeshes; s++) {
+                            if (selMesh->submeshes[s].material != originalMeshMaterials[s]) {
+                                selMesh->submeshes[s].material = originalMeshMaterials[s];
+                                selMesh->submeshes[s].needUpdateTexture = true;
+                            }
                         }
                         selMesh = nullptr;
+                        originalMeshMaterials.clear();
                     }
                     if (selUI) {
                         if (selUI->texture != originalTex) {
@@ -113,6 +124,7 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
                         }
                         selText = nullptr;
                     }
+                    cachedDragPath.clear();
                 }
 
                 if (selEntity != NULL_ENTITY) {
@@ -121,6 +133,9 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
                         accept = true;
                     }
                     if (isImage && (sceneProject->scene->findComponent<MeshComponent>(selEntity) || sceneProject->scene->findComponent<UIComponent>(selEntity))) {
+                        accept = true;
+                    }
+                    if (isMaterial && sceneProject->scene->findComponent<MeshComponent>(selEntity)) {
                         accept = true;
                     }
 
@@ -162,6 +177,11 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
                                 if (MeshComponent* mesh = sceneProject->scene->findComponent<MeshComponent>(selEntity)) {
                                     if (!selMesh) {
                                         selMesh = mesh;
+                                        originalMeshMaterials.clear();
+                                        originalMeshNumSubmeshes = mesh->numSubmeshes;
+                                        for (unsigned int s = 0; s < mesh->numSubmeshes; s++) {
+                                            originalMeshMaterials.push_back(mesh->submeshes[s].material);
+                                        }
                                         originalTex = mesh->submeshes[0].material.baseColorTexture;
                                     }
                                     Texture newTex(droppedRelativePath);
@@ -171,12 +191,16 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
                                     }
                                     if (payload->IsDelivery()) {
                                         std::string propName = "submeshes[0].material.baseColorTexture";
-                                        selMesh->submeshes[0].material.baseColorTexture = originalTex;
+                                        for (unsigned int s = 0; s < originalMeshNumSubmeshes && s < selMesh->numSubmeshes; s++) {
+                                            selMesh->submeshes[s].material = originalMeshMaterials[s];
+                                            selMesh->submeshes[s].needUpdateTexture = true;
+                                        }
 
                                         PropertyCmd<Texture>* cmd = new PropertyCmd<Texture>(project, sceneProject->id, selEntity, ComponentType::MeshComponent, propName, newTex);
                                         CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(cmd);
 
                                         selMesh = nullptr;
+                                        originalMeshMaterials.clear();
 
                                         ImGui::SetWindowFocus();
                                     }
@@ -200,6 +224,65 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
                                         selUI = nullptr;
 
                                         ImGui::SetWindowFocus();
+                                    }
+                                }
+                            } else if (isMaterial) {
+                                if (MeshComponent* mesh = sceneProject->scene->findComponent<MeshComponent>(selEntity)) {
+                                    try {
+                                        // Cache the decoded material — only reload when the path changes
+                                        if (cachedDragPath != droppedRelativePath) {
+                                            fs::path materialPath = project->getProjectPath() / droppedRelativePath;
+                                            YAML::Node materialNode = YAML::LoadFile(materialPath.string());
+                                            cachedDragMaterial = Stream::decodeMaterial(materialNode);
+                                            cachedDragMaterial.name = fs::path(droppedRelativePath).lexically_normal().generic_string();
+                                            cachedDragPath = droppedRelativePath;
+                                        }
+
+                                        if (!selMesh) {
+                                            selMesh = mesh;
+                                            originalMeshMaterials.clear();
+                                            originalMeshNumSubmeshes = mesh->numSubmeshes;
+                                            for (unsigned int s = 0; s < mesh->numSubmeshes; s++) {
+                                                originalMeshMaterials.push_back(mesh->submeshes[s].material);
+                                            }
+                                        }
+
+                                        // Preview: apply to all submeshes
+                                        for (unsigned int s = 0; s < mesh->numSubmeshes; s++) {
+                                            if (mesh->submeshes[s].material != cachedDragMaterial) {
+                                                mesh->submeshes[s].material = cachedDragMaterial;
+                                                mesh->submeshes[s].needUpdateTexture = true;
+                                            }
+                                        }
+
+                                        if (payload->IsDelivery()) {
+                                            // Restore originals before issuing commands
+                                            for (unsigned int s = 0; s < originalMeshNumSubmeshes && s < selMesh->numSubmeshes; s++) {
+                                                selMesh->submeshes[s].material = originalMeshMaterials[s];
+                                                selMesh->submeshes[s].needUpdateTexture = true;
+                                            }
+
+                                            // Create a multi-command for all submeshes
+                                            MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+                                            for (unsigned int s = 0; s < mesh->numSubmeshes; s++) {
+                                                std::string propName = "submeshes[" + std::to_string(s) + "].material";
+                                                multiCmd->addPropertyCmd<Material>(project, sceneProject->id, selEntity, ComponentType::MeshComponent, propName, cachedDragMaterial);
+                                            }
+                                            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(multiCmd);
+
+                                            // Register material file links for all submeshes
+                                            for (unsigned int s = 0; s < mesh->numSubmeshes; s++) {
+                                                project->linkMaterialFile(sceneProject->id, selEntity, s, cachedDragMaterial.name);
+                                            }
+
+                                            selMesh = nullptr;
+                                            originalMeshMaterials.clear();
+                                            cachedDragPath.clear();
+
+                                            ImGui::SetWindowFocus();
+                                        }
+                                    } catch (const std::exception& e) {
+                                        Out::error("Error loading material file '%s': %s", droppedRelativePath.c_str(), e.what());
                                     }
                                 }
                             }
@@ -256,11 +339,14 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
         if (draggingResourceFile) {
             // If user released mouse (ended drag) and we have a temp texture applied, revert it
             if (selMesh) {
-                if (selMesh->submeshes[0].material.baseColorTexture != originalTex) {
-                    selMesh->submeshes[0].material.baseColorTexture = originalTex;
-                    selMesh->submeshes[0].needUpdateTexture = true;
+                for (unsigned int s = 0; s < originalMeshNumSubmeshes && s < selMesh->numSubmeshes; s++) {
+                    if (selMesh->submeshes[s].material != originalMeshMaterials[s]) {
+                        selMesh->submeshes[s].material = originalMeshMaterials[s];
+                        selMesh->submeshes[s].needUpdateTexture = true;
+                    }
                 }
                 selMesh = nullptr;
+                originalMeshMaterials.clear();
             }
             if (selUI) {
                 if (selUI->texture != originalTex) {
@@ -279,6 +365,7 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
             }
             draggingResourceFile = false; // Reset flag
             lastSelEntity = NULL_ENTITY;
+            cachedDragPath.clear();
         }
         if (tempImage != nullptr) {
             delete tempImage;
