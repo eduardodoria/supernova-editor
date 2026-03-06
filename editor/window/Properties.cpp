@@ -4223,15 +4223,6 @@ void Editor::Properties::drawSkyComponent(ComponentType cpType, SceneProject* sc
 void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     Body2DComponent& body = sceneProject->scene->getComponent<Body2DComponent>(entities[0]);
 
-    auto markBody2DDirty = [sceneProject, entities](){
-        for (Entity entity : entities){
-            if (Body2DComponent* bodyComp = sceneProject->scene->findComponent<Body2DComponent>(entity)){
-                bodyComp->needReloadBody = true;
-                bodyComp->needUpdateShapes = true;
-            }
-        }
-    };
-
     auto getSizeForShape = [sceneProject](Entity entity, float defaultSize = 100.0f) -> Vector2 {
         float width = defaultSize;
         float height = defaultSize;
@@ -4257,7 +4248,6 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
 
     RowSettings settingsBodyType;
     settingsBodyType.enumEntries = &entriesBodyType;
-    settingsBodyType.onValueChanged = markBody2DDirty;
 
     beginTable(cpType, getLabelSize("Update Shapes"));
     propertyRow(RowPropertyType::Enum, cpType, "type", "Body Type", sceneProject, entities, settingsBodyType);
@@ -4370,10 +4360,8 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
 
     RowSettings settingsShapeType;
     settingsShapeType.enumEntries = &entriesShape2DType;
-    settingsShapeType.onValueChanged = markBody2DDirty;
 
     RowSettings settingsShapeValue;
-    settingsShapeValue.onValueChanged = markBody2DDirty;
 
     for (size_t s = 0; s < numShapes; s++){
         Body2DComponent& bodyRef = sceneProject->scene->getComponent<Body2DComponent>(entities[0]);
@@ -4771,9 +4759,6 @@ void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject*
         numShapes = std::min(numShapes, sceneProject->scene->getComponent<Body3DComponent>(entity).numShapes);
     }
 
-    RowSettings settingsShapeType;
-    settingsShapeType.enumEntries = &entriesShape3DType;
-
     RowSettings settingsShapeSourceConvexHull;
     settingsShapeSourceConvexHull.enumEntries = &entriesShape3DSourceConvexHull;
 
@@ -4784,6 +4769,24 @@ void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject*
     settingsShapeSourceHeightfield.enumEntries = &entriesShape3DSourceHeightfield;
 
     RowSettings settingsShapeValue;
+
+    auto normalizeShape3DSource = [](Shape3DType type, Shape3DSource source) {
+        if (type == Shape3DType::CONVEX_HULL){
+            if (source != Shape3DSource::RAW_VERTICES && source != Shape3DSource::ENTITY_MESH){
+                return Shape3DSource::RAW_VERTICES;
+            }
+        }else if (type == Shape3DType::MESH){
+            if (source != Shape3DSource::RAW_MESH && source != Shape3DSource::ENTITY_MESH){
+                return Shape3DSource::RAW_MESH;
+            }
+        }else if (type == Shape3DType::HEIGHTFIELD){
+            if (source != Shape3DSource::ENTITY_HEIGHTFIELD){
+                return Shape3DSource::ENTITY_HEIGHTFIELD;
+            }
+        }
+
+        return source;
+    };
 
     for (size_t s = 0; s < numShapes; s++){
         Body3DComponent& bodyRef = sceneProject->scene->getComponent<Body3DComponent>(entities[0]);
@@ -4820,43 +4823,99 @@ void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject*
         std::string shapeKey = "shapes[" + std::to_string(s) + "]";
 
         beginTable(cpType, getLabelSize("Bottom Radius"), "body3d_shape");
-        propertyRow(RowPropertyType::Enum, cpType, shapeKey + ".type", "Type", sceneProject, entities, settingsShapeType);
 
-        Shape3DType shapeTypeUI = sceneProject->scene->getComponent<Body3DComponent>(entities[0]).shapes[s].type;
-        Shape3DSource shapeSourceUI = sceneProject->scene->getComponent<Body3DComponent>(entities[0]).shapes[s].source;
-        Shape3DSource normalizedSourceUI = shapeSourceUI;
-
-        if (shapeTypeUI == Shape3DType::CONVEX_HULL){
-            if (shapeSourceUI != Shape3DSource::RAW_VERTICES && shapeSourceUI != Shape3DSource::ENTITY_MESH){
-                normalizedSourceUI = Shape3DSource::RAW_VERTICES;
-            }
-        }else if (shapeTypeUI == Shape3DType::MESH){
-            if (shapeSourceUI != Shape3DSource::RAW_MESH && shapeSourceUI != Shape3DSource::ENTITY_MESH){
-                normalizedSourceUI = Shape3DSource::RAW_MESH;
-            }
-        }else if (shapeTypeUI == Shape3DType::HEIGHTFIELD){
-            if (shapeSourceUI != Shape3DSource::ENTITY_HEIGHTFIELD){
-                normalizedSourceUI = Shape3DSource::ENTITY_HEIGHTFIELD;
+        PropertyData shapeTypeProp = Catalog::getProperty(sceneProject->scene, entities[0], cpType, shapeKey + ".type");
+        int* shapeTypeDef = static_cast<int*>(shapeTypeProp.def);
+        int shapeTypeValue = *static_cast<int*>(shapeTypeProp.ref);
+        bool shapeTypeMixed = false;
+        for (size_t entityIndex = 1; entityIndex < entities.size(); entityIndex++){
+            PropertyData otherShapeTypeProp = Catalog::getProperty(sceneProject->scene, entities[entityIndex], cpType, shapeKey + ".type");
+            if (*static_cast<int*>(otherShapeTypeProp.ref) != shapeTypeValue){
+                shapeTypeMixed = true;
+                break;
             }
         }
 
-        if (normalizedSourceUI != shapeSourceUI){
-            MultiPropertyCmd* sourceCmd = new MultiPropertyCmd();
+        int shapeTypeItemCurrent = 0;
+        for (size_t i = 0; i < entriesShape3DType.size(); ++i) {
+            if (entriesShape3DType[i].value == shapeTypeValue) {
+                shapeTypeItemCurrent = static_cast<int>(i);
+                break;
+            }
+        }
+
+        int shapeTypeItemDefault = shapeTypeItemCurrent;
+        bool shapeTypeDefChanged = false;
+        if (shapeTypeDef){
+            for (size_t i = 0; i < entriesShape3DType.size(); ++i) {
+                if (entriesShape3DType[i].value == *shapeTypeDef) {
+                    shapeTypeItemDefault = static_cast<int>(i);
+                    break;
+                }
+            }
+            shapeTypeDefChanged = (shapeTypeItemCurrent != shapeTypeItemDefault);
+        }
+
+        if (propertyHeader("Type", -1, shapeTypeDefChanged, false)){
+            MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+            Shape3DType resetType = static_cast<Shape3DType>(entriesShape3DType[shapeTypeItemDefault].value);
+
             for (Entity entity : entities){
                 if (Body3DComponent* bodyComp = sceneProject->scene->findComponent<Body3DComponent>(entity)){
-                    if (s >= bodyComp->numShapes){
-                        continue;
-                    }
+                    if (s >= bodyComp->numShapes) continue;
 
-                    sourceCmd->addPropertyCmd<Shape3DSource>(project, sceneProject->id, entity, cpType, shapeKey + ".source", normalizedSourceUI);
-                    if (bodyComp->shapes[s].sourceEntity == NULL_ENTITY && normalizedSourceUI != Shape3DSource::NONE){
-                        sourceCmd->addPropertyCmd<Entity>(project, sceneProject->id, entity, cpType, shapeKey + ".sourceEntity", entity);
+                    multiCmd->addPropertyCmd<int>(project, sceneProject->id, entity, cpType, shapeKey + ".type", (int)resetType);
+
+                    Shape3DSource normalizedSource = normalizeShape3DSource(resetType, bodyComp->shapes[s].source);
+                    if (normalizedSource != bodyComp->shapes[s].source){
+                        multiCmd->addPropertyCmd<int>(project, sceneProject->id, entity, cpType, shapeKey + ".source", (int)normalizedSource);
+                    }
+                    if (bodyComp->shapes[s].sourceEntity == NULL_ENTITY && normalizedSource != Shape3DSource::NONE){
+                        multiCmd->addPropertyCmd<Entity>(project, sceneProject->id, entity, cpType, shapeKey + ".sourceEntity", entity);
                     }
                 }
             }
-            sourceCmd->setNoMerge();
-            CommandHandle::get(sceneProject->id)->addCommand(sourceCmd);
+
+            multiCmd->setNoMerge();
+            CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
         }
+
+        std::vector<const char*> shapeTypeNames;
+        for (const auto& entry : entriesShape3DType) {
+            shapeTypeNames.push_back(entry.name);
+        }
+
+        if (shapeTypeMixed)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        if (ImGui::Combo(("##combo_" + shapeKey + ".type").c_str(), &shapeTypeItemCurrent, shapeTypeNames.data(), static_cast<int>(shapeTypeNames.size()))) {
+            Shape3DType newShapeType = static_cast<Shape3DType>(entriesShape3DType[shapeTypeItemCurrent].value);
+            MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+
+            for (Entity entity : entities){
+                if (Body3DComponent* bodyComp = sceneProject->scene->findComponent<Body3DComponent>(entity)){
+                    if (s >= bodyComp->numShapes) continue;
+
+                    multiCmd->addPropertyCmd<int>(project, sceneProject->id, entity, cpType, shapeKey + ".type", (int)newShapeType);
+
+                    Shape3DSource normalizedSource = normalizeShape3DSource(newShapeType, bodyComp->shapes[s].source);
+                    if (normalizedSource != bodyComp->shapes[s].source){
+                        multiCmd->addPropertyCmd<int>(project, sceneProject->id, entity, cpType, shapeKey + ".source", (int)normalizedSource);
+                    }
+                    if (bodyComp->shapes[s].sourceEntity == NULL_ENTITY && normalizedSource != Shape3DSource::NONE){
+                        multiCmd->addPropertyCmd<Entity>(project, sceneProject->id, entity, cpType, shapeKey + ".sourceEntity", entity);
+                    }
+                }
+            }
+
+            multiCmd->setNoMerge();
+            CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+        }
+        if (shapeTypeMixed)
+            ImGui::PopStyleColor();
+
+        Shape3DType shapeTypeUI = sceneProject->scene->getComponent<Body3DComponent>(entities[0]).shapes[s].type;
+        Shape3DSource shapeSourceUI = sceneProject->scene->getComponent<Body3DComponent>(entities[0]).shapes[s].source;
+        Shape3DSource normalizedSourceUI = normalizeShape3DSource(shapeTypeUI, shapeSourceUI);
 
         propertyRow(RowPropertyType::Vector3, cpType, shapeKey + ".position", "Position", sceneProject, entities, settingsShapeValue);
 
@@ -5080,6 +5139,7 @@ void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject*
                         CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
                     }
                 }
+
                 for (int t = 0; t < triangleCount; t++){
                     int baseIdx = t * 3;
                     std::string triLabel = "Triangle " + std::to_string(t + 1);
