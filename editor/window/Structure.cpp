@@ -23,6 +23,8 @@
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
+#include <unordered_map>
+#include <unordered_set>
 
 using namespace Supernova;
 
@@ -224,21 +226,6 @@ std::string Editor::Structure::getObjectIcon(Signature signature, Scene* scene){
     return ICON_FA_CIRCLE_DOT;
 }
 
-Editor::TreeNode* Editor::Structure::findNode(Editor::TreeNode* root, Entity entity){
-     for (int i = 0; i < root->children.size(); i++){
-        Editor::TreeNode* node = &root->children[i];
-        if (!node->isScene && node->id == entity){
-            return node;
-        }
-
-        if (Editor::TreeNode* child = findNode(node, entity)){
-            return child;
-        }
-     }
-
-     return nullptr;
-}
-
 void Editor::Structure::handleEntityFilesDrop(const std::vector<std::string>& filePaths, Entity parent) {
     for (const std::string& filePath : filePaths) {
         std::filesystem::path path(filePath);
@@ -387,6 +374,8 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         return;
     }
 
+    pushNodeImGuiId(node);
+
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
 
     if (node.children.empty()) {
@@ -414,19 +403,6 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         openParent = NULL_ENTITY;
     }
 
-    // Check if entity is shared and get shared group info
-    node.isShared = false;
-    std::filesystem::path sharedFilepath;
-
-    if (!node.isScene && !node.isChildScene) {
-        sharedFilepath = project->findGroupPathFor(project->getSelectedSceneId(), node.id);
-        node.isShared = !sharedFilepath.empty();
-
-        if (node.parent != NULL_ENTITY) {
-            node.isParentShared = project->isEntityShared(project->getSelectedSceneId(), node.parent);
-        }
-    }
-
     // Push colors for visual feedback
     bool pushedHighlightColor = false;
 
@@ -445,10 +421,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         pushedHighlightColor = true;
     }
 
-    std::string label = node.icon + "  " + node.name;
-    label += "###" + getNodeImGuiId(node);
-
-    bool nodeOpen = ImGui::TreeNodeEx(label.c_str(), flags);
+    bool nodeOpen = ImGui::TreeNodeEx("##node", flags, "%s  %s", node.icon.c_str(), node.name.c_str());
     bool nodeHovered = ImGui::IsItemHovered();
     bool nodeActive = ImGui::IsItemActive();
     bool nodeRightClicked = ImGui::IsItemClicked(ImGuiMouseButton_Right);
@@ -465,14 +438,14 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     }else{
         if (node.isShared) {
             if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal)) {
-                SharedGroup* group = project->getSharedGroup(sharedFilepath);
+                SharedGroup* group = project->getSharedGroup(node.sharedFilepath);
                 uint32_t instanceId = group->getInstanceId(project->getSelectedSceneId(), node.id);
                 Entity registryEntity = group->getRegistryEntity(project->getSelectedSceneId(), node.id);
 
                 ImGui::BeginTooltip();
                 ImGui::Text("Entity: %u", node.id);
                 ImGui::Separator();
-                ImGui::Text("Path: %s", sharedFilepath.string().c_str());
+                ImGui::Text("Path: %s", node.sharedFilepath.string().c_str());
                 ImGui::Text("Shared: %u", registryEntity);
                 ImGui::EndTooltip();
             }
@@ -715,15 +688,13 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         }
     }
 
-    std::string popupId = "##ContextMenu" + getNodeImGuiId(node);
-
     if (nodeRightClicked) {
         strncpy(nameBuffer, node.name.c_str(), sizeof(nameBuffer) - 1);
         nameBuffer[sizeof(nameBuffer) - 1] = '\0';
-        ImGui::OpenPopup(popupId.c_str());
+        ImGui::OpenPopup("ContextMenu");
     }
 
-    if (ImGui::BeginPopup(popupId.c_str())) {
+    if (ImGui::BeginPopup("ContextMenu")) {
         // Child scene context menu
         if (node.isChildScene) {
             ImGui::Text("Name:");
@@ -865,32 +836,54 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         }
         ImGui::TreePop();
     }
+
+    popNodeImGuiId(node);
 }
 
-std::string Editor::Structure::getNodeImGuiId(TreeNode& node){
-    std::string id;
+void Editor::Structure::pushNodeImGuiId(const TreeNode& node){
     if (node.isScene){
-        id += "ItemScene";
-        id += std::to_string(node.id);
+        ImGui::PushID("SceneNode");
+        ImGui::PushID((int)node.id);
     }else if (node.isChildScene){
-        id += "ItemChildScene";
-        id += std::to_string(node.ownerSceneId);
-        id += "_";
-        id += std::to_string(node.childSceneId);
+        ImGui::PushID("ChildSceneNode");
+        ImGui::PushID((int)node.ownerSceneId);
+        ImGui::PushID((int)node.childSceneId);
     }else{
-        id += "ItemScene";
-        id += std::to_string(project->getSelectedSceneId());
-        id += "Entity";
-        id += std::to_string(node.id);
+        ImGui::PushID("EntityNode");
+        ImGui::PushID((int)project->getSelectedSceneId());
+        ImGui::PushID((int)node.id);
     }
+}
 
-    return id;
+void Editor::Structure::popNodeImGuiId(const TreeNode& node){
+    if (node.isScene){
+        ImGui::PopID();
+        ImGui::PopID();
+    }else if (node.isChildScene){
+        ImGui::PopID();
+        ImGui::PopID();
+        ImGui::PopID();
+    }else{
+        ImGui::PopID();
+        ImGui::PopID();
+        ImGui::PopID();
+    }
 }
 
 void Editor::Structure::show(){
     SceneProject* sceneProject = project->getSelectedScene();
     Entity mainCamera = sceneProject->mainCamera;
     size_t order = 0;
+    std::unordered_set<Entity> sceneEntitiesSet(sceneProject->entities.begin(), sceneProject->entities.end());
+    std::unordered_map<Entity, TreeNode*> hierarchyNodeMap;
+    std::unordered_map<Entity, std::filesystem::path> sharedEntityPaths;
+
+    for (Entity entity : sceneProject->entities) {
+        std::filesystem::path sharedPath = project->findGroupPathFor(sceneProject->id, entity);
+        if (!sharedPath.empty()) {
+            sharedEntityPaths.emplace(entity, std::move(sharedPath));
+        }
+    }
 
     TreeNode root;
 
@@ -946,6 +939,11 @@ void Editor::Structure::show(){
             child.isMainCamera = (entity == mainCamera);
             child.order = order++;
             child.name = sceneProject->scene->getEntityName(entity);
+            auto sharedIt = sharedEntityPaths.find(entity);
+            if (sharedIt != sharedEntityPaths.end()) {
+                child.isShared = true;
+                child.sharedFilepath = sharedIt->second;
+            }
 
             root.children.push_back(child);
         }
@@ -963,7 +961,7 @@ void Editor::Structure::show(){
         Entity entity = transforms->getEntity(i);
         Signature signature = sceneProject->scene->getSignature(entity);
 
-        if (std::count(sceneProject->entities.begin(), sceneProject->entities.end(), entity) > 0){
+        if (sceneEntitiesSet.find(entity) != sceneEntitiesSet.end()){
             if (applySeparator){
                 root.children.back().separator = true;
                 applySeparator = false;
@@ -982,13 +980,22 @@ void Editor::Structure::show(){
             child.isLocked = ProjectUtils::isEntityLocked(sceneProject->scene, entity);
             child.order = order++;
             child.name = sceneProject->scene->getEntityName(entity);
+            auto sharedIt = sharedEntityPaths.find(entity);
+            if (sharedIt != sharedEntityPaths.end()) {
+                child.isShared = true;
+                child.sharedFilepath = sharedIt->second;
+            }
             if (transform.parent == NULL_ENTITY){
                 root.children.push_back(child);
+                hierarchyNodeMap[entity] = &root.children.back();
             }else{
-                TreeNode* parent = findNode(&root, transform.parent);
+                auto parentIt = hierarchyNodeMap.find(transform.parent);
+                TreeNode* parent = parentIt != hierarchyNodeMap.end() ? parentIt->second : nullptr;
                 if (parent){
                     child.parent = parent->id;
+                    child.isParentShared = sharedEntityPaths.find(transform.parent) != sharedEntityPaths.end();
                     parent->children.push_back(child);
+                    hierarchyNodeMap[entity] = &parent->children.back();
                 }else{
                     printf("ERROR: Could not find parent of entity %u\n", entity);
                 }
@@ -1053,7 +1060,7 @@ void Editor::Structure::show(){
                                     Entity entity = transforms->getEntity(i);
 
                                     if (transform.parent == NULL_ENTITY &&
-                                        std::count(sceneProject->entities.begin(), sceneProject->entities.end(), entity) > 0) {
+                                        sceneEntitiesSet.find(entity) != sceneEntitiesSet.end()) {
                                         lastRootEntity = entity;
                                         break;
                                     }
