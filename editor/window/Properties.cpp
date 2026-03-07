@@ -2605,10 +2605,35 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             materialButtonGroups[id] = !materialButtonGroups[id];
         }
 
+        unsigned int materialSubmeshIndex = 0;
+        bool hasMaterialSubmeshIndex = false;
+        auto submeshPos = id.find('[');
+        auto submeshEnd = id.find(']');
+        if (submeshPos != std::string::npos && submeshEnd != std::string::npos) {
+            try {
+                materialSubmeshIndex = std::stoul(id.substr(submeshPos + 1, submeshEnd - submeshPos - 1));
+                hasMaterialSubmeshIndex = true;
+            } catch (const std::exception&) {
+                materialSubmeshIndex = 0;
+            }
+        }
+
+        bool hasLinkedMaterial = false;
+        if (sceneProject && hasMaterialSubmeshIndex) {
+            for (Entity& entity : entities) {
+                if (project->isMaterialFileLinked(sceneProject->id, entity, materialSubmeshIndex)) {
+                    hasLinkedMaterial = true;
+                    break;
+                }
+            }
+        }
+
         ImGui::PushStyleColor(ImGuiCol_ChildBg, textureLabel);
 
         ImVec2 arrowButtonSize = ImGui::CalcItemSize(ImVec2(0, 0), ImGui::GetFrameHeight(), ImGui::GetFrameHeight());
-        ImGui::BeginChild("textureframe", ImVec2( - arrowButtonSize.x - ImGui::GetStyle().ItemSpacing.x, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2), 
+        ImVec2 unlinkButtonSize = arrowButtonSize;
+        float frameWidth = -arrowButtonSize.x - unlinkButtonSize.x - ImGui::GetStyle().ItemSpacing.x * 2;
+        ImGui::BeginChild("textureframe", ImVec2(frameWidth, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2), 
             false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
         std::string matName = newValue.name;
@@ -2645,6 +2670,35 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
         if (ImGui::ArrowButton("##toggle_mesh", materialButtonGroups[id] ? ImGuiDir_Up : ImGuiDir_Down)){
             materialButtonGroups[id] = !materialButtonGroups[id];
+        }
+
+        ImGui::SameLine();
+
+        ImGui::BeginDisabled(!hasLinkedMaterial);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, ImGui::GetStyle().FramePadding.y));
+
+        float currentScale = ImGui::GetFont()->Scale;
+        ImGui::SetWindowFontScale(currentScale * 0.75f);
+
+        if (ImGui::Button(ICON_FA_LINK_SLASH "##unlink_material", unlinkButtonSize)){
+            if (sceneProject && hasMaterialSubmeshIndex) {
+                for (Entity& entity : entities) {
+                    project->unlinkMaterialFile(sceneProject->id, entity, materialSubmeshIndex);
+
+                    Material clearedMaterial = eValue[entity];
+                    clearedMaterial.name = "";
+                    cmd = new PropertyCmd<Material>(project, sceneProject->id, entity, cpType, id, clearedMaterial, settings.onValueChanged);
+                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                }
+                finishProperty = true;
+            }
+        }
+
+        ImGui::SetWindowFontScale(currentScale);
+        ImGui::PopStyleVar();
+        ImGui::EndDisabled();
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+            ImGui::SetTooltip(hasLinkedMaterial ? "Unlink material file" : "Material is not linked to a file");
         }
 
         ImGui::EndGroup();
@@ -3329,12 +3383,15 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, SceneProject* s
     for (int s = 0; s < numSubmeshes; s++){
         ImGui::SeparatorText(("Submesh "+std::to_string(s+1)).c_str());
 
-        float submeshesTableSize = getLabelSize("Texture Shadow");
+        beginTable(cpType, getLabelSize("Material"), "submeshes_material");
 
-        beginTable(cpType, submeshesTableSize, "submeshes");
-
+        bool materialOpened = false;
         if (propertyRow(RowPropertyType::Material, cpType, "submeshes["+std::to_string(s)+"].material", "Material", sceneProject, entities)){
+            materialOpened = true;
+        }
+        endTable();
 
+        if (materialOpened){
             RowSettings settingsFactor;
             settingsFactor.stepSize = 0.01f;
             settingsFactor.secondColSize = 4 * ImGui::GetFontSize();
@@ -3361,8 +3418,7 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, SceneProject* s
 
             settingsFactor.onValueChanged = settingsMaterial.onValueChanged;
 
-            endTable();
-            beginTable(cpType, getLabelSize("Met. Roug. Texture"), "material_table");
+            beginTable(cpType, getLabelSize("Met. Roug. Texture"), "submeshes_material_options");
             propertyRow(RowPropertyType::Color4L, cpType, "submeshes["+std::to_string(s)+"].material.baseColorFactor", "Base Color", sceneProject, entities, settingsMaterial);
             propertyRow(RowPropertyType::Texture, cpType, "submeshes["+std::to_string(s)+"].material.baseColorTexture", "Base Texture", sceneProject, entities,settingsMaterial);
             propertyRow(RowPropertyType::Float_0_1, cpType, "submeshes["+std::to_string(s)+"].material.metallicFactor", "Metallic Factor", sceneProject, entities, settingsFactor);
@@ -3373,9 +3429,9 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, SceneProject* s
             propertyRow(RowPropertyType::Texture, cpType, "submeshes["+std::to_string(s)+"].material.occlusionTexture", "Occlusion Texture", sceneProject, entities, settingsMaterial);
             propertyRow(RowPropertyType::Texture, cpType, "submeshes["+std::to_string(s)+"].material.normalTexture", "Normal Texture", sceneProject, entities, settingsMaterial);
             endTable();
-            beginTable(cpType, submeshesTableSize, "submeshes");
         }
 
+        beginTable(cpType, getLabelSize("Texture Shadow"), "submeshes_settings");
         RowSettings settingsPrimitive;
         settingsPrimitive.enumEntries = &entriesPrimitiveType;
 

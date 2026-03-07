@@ -55,6 +55,10 @@ void Editor::Project::linkMaterialFile(uint32_t sceneId, Entity entity, unsigned
     materialFileLinks[key] = entry;
 }
 
+bool Editor::Project::isMaterialFileLinked(uint32_t sceneId, Entity entity, unsigned int submeshIndex) const {
+    return materialFileLinks.find(MaterialLinkKey{sceneId, entity, submeshIndex}) != materialFileLinks.end();
+}
+
 void Editor::Project::unlinkMaterialFile(uint32_t sceneId, Entity entity, unsigned int submeshIndex) {
     materialFileLinks.erase(MaterialLinkKey{sceneId, entity, submeshIndex});
 }

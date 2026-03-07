@@ -198,6 +198,7 @@ namespace Supernova::Editor{
         void refreshLinkedMaterials(bool force = false);
 
         void linkMaterialFile(uint32_t sceneId, Entity entity, unsigned int submeshIndex, const std::string& filePath);
+        bool isMaterialFileLinked(uint32_t sceneId, Entity entity, unsigned int submeshIndex) const;
         void unlinkMaterialFile(uint32_t sceneId, Entity entity, unsigned int submeshIndex);
         void unlinkAllMaterialFiles(uint32_t sceneId, Entity entity);
 
