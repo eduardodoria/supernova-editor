@@ -43,6 +43,127 @@ Editor::Project::Project(){
     resetConfigs();
 }
 
+fs::path Editor::Project::normalizeToProjectRelative(const fs::path& path) const {
+    if (path.empty()) {
+        return {};
+    }
+
+    fs::path normalizedPath = path.lexically_normal();
+    std::error_code ec;
+
+    if (normalizedPath.is_absolute()) {
+        fs::path relativePath = fs::relative(normalizedPath, projectPath, ec);
+        if (!ec) {
+            return relativePath.lexically_normal();
+        }
+    }
+
+    return normalizedPath;
+}
+
+bool Editor::Project::remapRelativePath(const fs::path& oldRelative, const fs::path& newRelative,
+                                        const fs::path& currentPath, fs::path& updatedPath) {
+    if (oldRelative.empty() || newRelative.empty() || currentPath.empty()) {
+        return false;
+    }
+
+    const std::string oldRelativeStr = oldRelative.generic_string();
+    const std::string currentPathStr = currentPath.lexically_normal().generic_string();
+    const std::string oldPrefix = oldRelativeStr + "/";
+
+    bool isExactMatch = (currentPathStr == oldRelativeStr);
+    bool isChildMatch = (!oldRelativeStr.empty() && currentPathStr.rfind(oldPrefix, 0) == 0);
+
+    if (!isExactMatch && !isChildMatch) {
+        return false;
+    }
+
+    std::string updated = newRelative.generic_string();
+    if (isChildMatch) {
+        updated += currentPathStr.substr(oldRelativeStr.size());
+    }
+
+    updatedPath = fs::path(updated).lexically_normal();
+    return true;
+}
+
+bool Editor::Project::remapRelativeString(const fs::path& oldRelative, const fs::path& newRelative,
+                                          const std::string& currentPath, std::string& updatedPath) {
+    fs::path updated;
+    if (!remapRelativePath(oldRelative, newRelative, fs::path(currentPath), updated)) {
+        return false;
+    }
+
+    updatedPath = updated.generic_string();
+    return true;
+}
+
+bool Editor::Project::remapSharedEntityRefsInScene(SceneProject& sceneProject, const fs::path& oldRelative,
+                                                   const fs::path& newRelative) {
+    if (!sceneProject.scene) {
+        return false;
+    }
+
+    auto scriptsArray = sceneProject.scene->getComponentArray<ScriptComponent>();
+    bool changed = false;
+
+    for (size_t i = 0; i < scriptsArray->size(); ++i) {
+        Entity entity = scriptsArray->getEntity(i);
+        ScriptComponent& scriptComponent = scriptsArray->getComponentFromIndex(i);
+
+        for (auto& scriptEntry : scriptComponent.scripts) {
+            for (auto& prop : scriptEntry.properties) {
+                if (prop.type != ScriptPropertyType::EntityPointer) continue;
+                if (!std::holds_alternative<EntityRef>(prop.value)) continue;
+
+                EntityRef& ref = std::get<EntityRef>(prop.value);
+                if (ref.locator.kind != EntityRefKind::SharedEntity || ref.locator.sharedPath.empty()) continue;
+
+                std::string updatedPath;
+                if (remapRelativeString(oldRelative, newRelative, ref.locator.sharedPath, updatedPath)) {
+                    ref.locator.sharedPath = updatedPath;
+                    resolveEntityRef(ref, &sceneProject, entity);
+                    changed = true;
+                }
+            }
+        }
+    }
+
+    return changed;
+}
+
+bool Editor::Project::remapSharedEntityRefsInRegistry(EntityRegistry* registry, const fs::path& oldRelative,
+                                                      const fs::path& newRelative) {
+    if (!registry) {
+        return false;
+    }
+
+    auto scriptsArray = registry->getComponentArray<ScriptComponent>();
+    bool changed = false;
+
+    for (size_t i = 0; i < scriptsArray->size(); ++i) {
+        ScriptComponent& scriptComponent = scriptsArray->getComponentFromIndex(i);
+
+        for (auto& scriptEntry : scriptComponent.scripts) {
+            for (auto& prop : scriptEntry.properties) {
+                if (prop.type != ScriptPropertyType::EntityPointer) continue;
+                if (!std::holds_alternative<EntityRef>(prop.value)) continue;
+
+                EntityRef& ref = std::get<EntityRef>(prop.value);
+                if (ref.locator.kind != EntityRefKind::SharedEntity || ref.locator.sharedPath.empty()) continue;
+
+                std::string updatedPath;
+                if (remapRelativeString(oldRelative, newRelative, ref.locator.sharedPath, updatedPath)) {
+                    ref.locator.sharedPath = updatedPath;
+                    changed = true;
+                }
+            }
+        }
+    }
+
+    return changed;
+}
+
 void Editor::Project::linkMaterialFile(uint32_t sceneId, Entity entity, unsigned int submeshIndex, const std::string& filePath) {
     MaterialLinkKey key{sceneId, entity, submeshIndex};
     MaterialLinkEntry entry;
@@ -86,24 +207,6 @@ void Editor::Project::remapMaterialFilePath(const std::filesystem::path& oldPath
         return;
     }
 
-    auto normalizeToProjectRelative = [this](const fs::path& path) -> fs::path {
-        if (path.empty()) {
-            return {};
-        }
-
-        fs::path normalizedPath = path.lexically_normal();
-        std::error_code ec;
-
-        if (normalizedPath.is_absolute()) {
-            fs::path relativePath = fs::relative(normalizedPath, projectPath, ec);
-            if (!ec) {
-                return relativePath.lexically_normal();
-            }
-        }
-
-        return normalizedPath;
-    };
-
     fs::path oldRelative = normalizeToProjectRelative(oldPath);
     fs::path newRelative = normalizeToProjectRelative(newPath);
 
@@ -111,29 +214,18 @@ void Editor::Project::remapMaterialFilePath(const std::filesystem::path& oldPath
         return;
     }
 
-    const std::string oldRelativeStr = oldRelative.generic_string();
-    const std::string newRelativeStr = newRelative.generic_string();
-    const std::string oldPrefix = oldRelativeStr + "/";
-
     std::vector<std::pair<MaterialLinkKey, MaterialLinkEntry>> remappedEntries;
 
     for (auto it = materialFileLinks.begin(); it != materialFileLinks.end();) {
-        const std::string& currentPath = it->second.filePath;
-        bool isExactMatch = (currentPath == oldRelativeStr);
-        bool isChildMatch = (!oldRelativeStr.empty() && currentPath.rfind(oldPrefix, 0) == 0);
-
-        if (!isExactMatch && !isChildMatch) {
+        std::string updatedFilePath;
+        if (!remapRelativeString(oldRelative, newRelative, it->second.filePath, updatedFilePath)) {
             ++it;
             continue;
         }
 
-        std::string updatedPath = newRelativeStr;
-        if (isChildMatch) {
-            updatedPath += currentPath.substr(oldRelativeStr.size());
-        }
-
         MaterialLinkEntry updatedEntry = it->second;
-        updatedEntry.filePath = fs::path(updatedPath).lexically_normal().generic_string();
+        const std::string oldFilePath = updatedEntry.filePath;
+        updatedEntry.filePath = updatedFilePath;
 
         std::error_code ec;
         updatedEntry.lastWriteTime = fs::last_write_time(projectPath / updatedEntry.filePath, ec);
@@ -148,8 +240,9 @@ void Editor::Project::remapMaterialFilePath(const std::filesystem::path& oldPath
             MeshComponent* mesh = sceneProject->scene->findComponent<MeshComponent>(entity);
             if (mesh && submeshIndex < mesh->numSubmeshes) {
                 Material& material = mesh->submeshes[submeshIndex].material;
-                if (material.name == currentPath || material.name.rfind(oldPrefix, 0) == 0) {
-                    material.name = updatedEntry.filePath;
+                std::string updatedMaterialName;
+                if (remapRelativeString(oldRelative, newRelative, material.name, updatedMaterialName)) {
+                    material.name = updatedMaterialName;
                     mesh->submeshes[submeshIndex].needUpdateTexture = true;
                     sceneProject->needUpdateRender = true;
                     sceneProject->isModified = true;
@@ -168,6 +261,109 @@ void Editor::Project::remapMaterialFilePath(const std::filesystem::path& oldPath
 
     for (auto& [key, entry] : remappedEntries) {
         materialFileLinks[key] = entry;
+    }
+}
+
+void Editor::Project::remapSceneFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath) {
+    if (projectPath.empty()) {
+        return;
+    }
+
+    fs::path oldRelative = normalizeToProjectRelative(oldPath);
+    fs::path newRelative = normalizeToProjectRelative(newPath);
+
+    if (oldRelative.empty() || newRelative.empty()) {
+        return;
+    }
+
+    bool changed = false;
+
+    for (auto& sceneProject : scenes) {
+        if (sceneProject.filepath.empty()) {
+            continue;
+        }
+
+        fs::path updatedPath;
+        if (remapRelativePath(oldRelative, newRelative, sceneProject.filepath, updatedPath)) {
+            sceneProject.filepath = updatedPath;
+            changed = true;
+        }
+    }
+
+    if (changed) {
+        saveProject();
+    }
+}
+
+void Editor::Project::remapSharedEntityFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath) {
+    if (projectPath.empty()) {
+        return;
+    }
+
+    fs::path oldRelative = normalizeToProjectRelative(oldPath);
+    fs::path newRelative = normalizeToProjectRelative(newPath);
+
+    if (oldRelative.empty() || newRelative.empty()) {
+        return;
+    }
+
+    std::vector<std::pair<fs::path, SharedGroup>> remappedGroups;
+    std::unordered_set<uint32_t> affectedSceneIds;
+
+    for (auto it = sharedGroups.begin(); it != sharedGroups.end();) {
+        fs::path updatedPath;
+        if (!remapRelativePath(oldRelative, newRelative, it->first, updatedPath)) {
+            ++it;
+            continue;
+        }
+
+        SharedGroup updatedGroup = std::move(it->second);
+        for (const auto& [sceneId, instances] : updatedGroup.instances) {
+            if (!instances.empty()) {
+                affectedSceneIds.insert(sceneId);
+            }
+        }
+
+        remappedGroups.emplace_back(updatedPath, std::move(updatedGroup));
+        it = sharedGroups.erase(it);
+    }
+
+    for (auto& [filepath, group] : remappedGroups) {
+        sharedGroups.emplace(std::move(filepath), std::move(group));
+    }
+
+    bool changed = !remappedGroups.empty();
+
+    for (auto& sceneProject : scenes) {
+        if (!sceneProject.scene) {
+            continue;
+        }
+
+        bool sceneChanged = remapSharedEntityRefsInScene(sceneProject, oldRelative, newRelative);
+
+        if (sceneChanged) {
+            sceneProject.isModified = true;
+            changed = true;
+        }
+    }
+
+    for (auto& [filepath, group] : sharedGroups) {
+        bool groupChanged = remapSharedEntityRefsInRegistry(group.registry.get(), oldRelative, newRelative);
+
+        if (groupChanged) {
+            group.isModified = true;
+            changed = true;
+        }
+    }
+
+    for (uint32_t sceneId : affectedSceneIds) {
+        if (SceneProject* sceneProject = getScene(sceneId)) {
+            sceneProject->isModified = true;
+        }
+    }
+
+    if (changed) {
+        resolveAllEntityRefs();
     }
 }
 

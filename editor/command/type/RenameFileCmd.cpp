@@ -18,8 +18,17 @@ bool Editor::RenameFileCmd::execute(){
         if (fs::exists(sourceFs)) {
             bool isDir = fs::is_directory(sourceFs);
             fs::rename(sourceFs, destFs);
-            if (project && (isDir || Util::isMaterialFile(sourceFs.extension().string()))) {
-                project->remapMaterialFilePath(sourceFs, destFs);
+            if (project) {
+                std::string extension = sourceFs.extension().string();
+                if (isDir || Util::isMaterialFile(extension)) {
+                    project->remapMaterialFilePath(sourceFs, destFs);
+                }
+                if (isDir || Util::isSceneFile(extension)) {
+                    project->remapSceneFilePath(sourceFs, destFs);
+                }
+                if (isDir || Util::isEntityFile(extension)) {
+                    project->remapSharedEntityFilePath(sourceFs, destFs);
+                }
             }
         }
     } catch (const fs::filesystem_error& e) {
@@ -37,8 +46,17 @@ void Editor::RenameFileCmd::undo(){
         if (fs::exists(sourceFs)) {
             bool isDir = fs::is_directory(sourceFs);
             fs::rename(sourceFs, destFs);
-            if (project && (isDir || Util::isMaterialFile(sourceFs.extension().string()))) {
-                project->remapMaterialFilePath(sourceFs, destFs);
+            if (project) {
+                std::string extension = sourceFs.extension().string();
+                if (isDir || Util::isMaterialFile(extension)) {
+                    project->remapMaterialFilePath(sourceFs, destFs);
+                }
+                if (isDir || Util::isSceneFile(extension)) {
+                    project->remapSceneFilePath(sourceFs, destFs);
+                }
+                if (isDir || Util::isEntityFile(extension)) {
+                    project->remapSharedEntityFilePath(sourceFs, destFs);
+                }
             }
         }
     } catch (const fs::filesystem_error& e) {

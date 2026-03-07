@@ -169,6 +169,16 @@ namespace Supernova::Editor{
 
         void registerSceneManager();
 
+        fs::path normalizeToProjectRelative(const fs::path& path) const;
+        static bool remapRelativePath(const fs::path& oldRelative, const fs::path& newRelative,
+                          const fs::path& currentPath, fs::path& updatedPath);
+        static bool remapRelativeString(const fs::path& oldRelative, const fs::path& newRelative,
+                        const std::string& currentPath, std::string& updatedPath);
+        bool remapSharedEntityRefsInScene(SceneProject& sceneProject, const fs::path& oldRelative,
+                          const fs::path& newRelative);
+        bool remapSharedEntityRefsInRegistry(EntityRegistry* registry, const fs::path& oldRelative,
+                             const fs::path& newRelative);
+
         void finalizeStart(SceneProject* mainSceneProject, std::vector<PlayRuntimeScene>& runtimeScenes);
         void finalizeStop(SceneProject* mainSceneProject, std::vector<PlayRuntimeScene> runtimeScenes);
 
@@ -197,12 +207,23 @@ namespace Supernova::Editor{
 
         void refreshLinkedMaterials(bool force = false);
 
+        //=== Linked Material part ===
+
         void linkMaterialFile(uint32_t sceneId, Entity entity, unsigned int submeshIndex, const std::string& filePath);
         bool isMaterialFileLinked(uint32_t sceneId, Entity entity, unsigned int submeshIndex) const;
         std::string getMaterialFilePath(uint32_t sceneId, Entity entity, unsigned int submeshIndex) const;
         void unlinkMaterialFile(uint32_t sceneId, Entity entity, unsigned int submeshIndex);
         void unlinkAllMaterialFiles(uint32_t sceneId, Entity entity);
+
+        //=== end Linked Material part ===
+
+        //=== File path remapping ===
+
         void remapMaterialFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
+        void remapSceneFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
+        void remapSharedEntityFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
+
+        //=== end File path remapping ===
 
         void checkUnsavedAndExecute(uint32_t sceneId, std::function<void()> action);
 

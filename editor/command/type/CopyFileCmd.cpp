@@ -43,6 +43,8 @@ bool Editor::CopyFileCmd::execute(){
                         fs::rename(sourceFs, destFs);
                         if (project) {
                             project->remapMaterialFilePath(sourceFs, destFs);
+                            project->remapSceneFilePath(sourceFs, destFs);
+                            project->remapSharedEntityFilePath(sourceFs, destFs);
                         }
                     }
                 } else {
@@ -50,8 +52,17 @@ bool Editor::CopyFileCmd::execute(){
                         fs::copy(sourceFs, destFs, fs::copy_options::overwrite_existing);
                     }else{
                         fs::rename(sourceFs, destFs);
-                        if (project && Util::isMaterialFile(sourceFs.extension().string())) {
-                            project->remapMaterialFilePath(sourceFs, destFs);
+                        if (project) {
+                            std::string extension = sourceFs.extension().string();
+                            if (Util::isMaterialFile(extension)) {
+                                project->remapMaterialFilePath(sourceFs, destFs);
+                            }
+                            if (Util::isSceneFile(extension)) {
+                                project->remapSceneFilePath(sourceFs, destFs);
+                            }
+                            if (Util::isEntityFile(extension)) {
+                                project->remapSharedEntityFilePath(sourceFs, destFs);
+                            }
                         }
                     }
                 }
@@ -78,6 +89,8 @@ void Editor::CopyFileCmd::undo(){
                         fs::rename(sourceFs, destFs);
                         if (project) {
                             project->remapMaterialFilePath(sourceFs, destFs);
+                            project->remapSceneFilePath(sourceFs, destFs);
+                            project->remapSharedEntityFilePath(sourceFs, destFs);
                         }
                     }
                 } else {
@@ -85,8 +98,17 @@ void Editor::CopyFileCmd::undo(){
                         fs::remove(sourceFs);
                     }else{
                         fs::rename(sourceFs, destFs);
-                        if (project && Util::isMaterialFile(sourceFs.extension().string())) {
-                            project->remapMaterialFilePath(sourceFs, destFs);
+                        if (project) {
+                            std::string extension = sourceFs.extension().string();
+                            if (Util::isMaterialFile(extension)) {
+                                project->remapMaterialFilePath(sourceFs, destFs);
+                            }
+                            if (Util::isSceneFile(extension)) {
+                                project->remapSceneFilePath(sourceFs, destFs);
+                            }
+                            if (Util::isEntityFile(extension)) {
+                                project->remapSharedEntityFilePath(sourceFs, destFs);
+                            }
                         }
                     }
                 }
