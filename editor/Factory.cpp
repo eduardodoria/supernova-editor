@@ -595,6 +595,20 @@ std::string Editor::Factory::createMeshComponent(int indentSpaces, Scene* scene,
         code << ind << "mesh.submeshes[" << idx << "].faceCulling = " << formatBool(mesh.submeshes[s].faceCulling) << ";\n";
         code << ind << "mesh.submeshes[" << idx << "].textureShadow = " << formatBool(mesh.submeshes[s].textureShadow) << ";\n";
         code << ind << "mesh.submeshes[" << idx << "].textureRect = " << formatRect(mesh.submeshes[s].textureRect) << ";\n";
+
+        for (auto const& [type, attr] : mesh.submeshes[s].attributes) {
+            code << ind << "{\n";
+            code << ind << "    Attribute attr;\n";
+            code << ind << "    attr.setBufferName(" << formatString(attr.getBufferName()) << ");\n";
+            code << ind << "    attr.setDataType(" << formatAttributeDataType(attr.getDataType()) << ");\n";
+            code << ind << "    attr.setElements(" << attr.getElements() << ");\n";
+            code << ind << "    attr.setOffset(" << attr.getOffset() << ");\n";
+            code << ind << "    attr.setCount(" << attr.getCount() << ");\n";
+            code << ind << "    attr.setNormalized(" << formatBool(attr.getNormalized()) << ");\n";
+            code << ind << "    attr.setPerInstance(" << formatBool(attr.getPerInstance()) << ");\n";
+            code << ind << "    mesh.submeshes[" << idx << "].attributes[" << formatAttributeType(type) << "] = attr;\n";
+            code << ind << "}\n";
+        }
     }
 
     if (mesh.buffer.getSize() > 0){
@@ -612,6 +626,10 @@ std::string Editor::Factory::createMeshComponent(int indentSpaces, Scene* scene,
             if (val.getPerInstance())
                 perInstanceCode = ", true";
             code << ind << "mesh.buffer.addAttribute(" << formatAttributeType(type) << ", " << val.getElements() << perInstanceCode << ");\n";
+            code << ind << "mesh.buffer.getAttribute(" << formatAttributeType(type) << ")->setDataType(" << formatAttributeDataType(val.getDataType()) << ");\n";
+            code << ind << "mesh.buffer.getAttribute(" << formatAttributeType(type) << ")->setOffset(" << val.getOffset() << ");\n";
+            code << ind << "mesh.buffer.getAttribute(" << formatAttributeType(type) << ")->setCount(" << val.getCount() << ");\n";
+            code << ind << "mesh.buffer.getAttribute(" << formatAttributeType(type) << ")->setNormalized(" << formatBool(val.getNormalized()) << ");\n";
         }
 
         code << ind << "{\n";
@@ -624,6 +642,7 @@ std::string Editor::Factory::createMeshComponent(int indentSpaces, Scene* scene,
         code << "};\n";
         code << ind << "    mesh.buffer.importData(data, sizeof(data));\n";
         code << ind << "}\n";
+        code << ind << "mesh.buffer.setStride(" << formatUInt(mesh.buffer.getStride()) << ");\n";
         code << ind << "mesh.buffer.setCount(" << formatUInt(mesh.buffer.getCount()) << ");\n";
     }
 
@@ -639,6 +658,14 @@ std::string Editor::Factory::createMeshComponent(int indentSpaces, Scene* scene,
         code << "};\n";
         code << ind << "    mesh.indices.importData(data, sizeof(data));\n";
         code << ind << "}\n";
+        if (mesh.indices.getAttribute(AttributeType::INDEX)){
+            Attribute* indexAttr = mesh.indices.getAttribute(AttributeType::INDEX);
+            code << ind << "mesh.indices.getAttribute(AttributeType::INDEX)->setDataType(" << formatAttributeDataType(indexAttr->getDataType()) << ");\n";
+            code << ind << "mesh.indices.getAttribute(AttributeType::INDEX)->setOffset(" << indexAttr->getOffset() << ");\n";
+            code << ind << "mesh.indices.getAttribute(AttributeType::INDEX)->setCount(" << indexAttr->getCount() << ");\n";
+            code << ind << "mesh.indices.getAttribute(AttributeType::INDEX)->setNormalized(" << formatBool(indexAttr->getNormalized()) << ");\n";
+        }
+        code << ind << "mesh.indices.setStride(" << formatUInt(mesh.indices.getStride()) << ");\n";
         code << ind << "mesh.indices.setCount(" << formatUInt(mesh.indices.getCount()) << ");\n";
     }
 
