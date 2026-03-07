@@ -6,6 +6,7 @@
 #include "util/Util.h"
 #include "command/CommandHandle.h"
 #include "command/type/MultiPropertyCmd.h"
+#include "command/type/LinkMaterialCmd.h"
 #include "command/type/CreateEntityCmd.h"
 #include "render/SceneRender2D.h"
 #include "render/SceneRender3D.h"
@@ -262,18 +263,14 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
                                                 selMesh->submeshes[s].needUpdateTexture = true;
                                             }
 
-                                            // Create a multi-command for all submeshes
+                                            // Create a multi-command for all submeshes (link + property)
                                             MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
                                             for (unsigned int s = 0; s < mesh->numSubmeshes; s++) {
                                                 std::string propName = "submeshes[" + std::to_string(s) + "].material";
-                                                multiCmd->addPropertyCmd<Material>(project, sceneProject->id, selEntity, ComponentType::MeshComponent, propName, cachedDragMaterial);
+                                                multiCmd->addCommand(std::make_unique<LinkMaterialCmd>(
+                                                    project, sceneProject->id, selEntity, ComponentType::MeshComponent, propName, s, cachedDragMaterial));
                                             }
                                             CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(multiCmd);
-
-                                            // Register material file links for all submeshes
-                                            for (unsigned int s = 0; s < mesh->numSubmeshes; s++) {
-                                                project->linkMaterialFile(sceneProject->id, selEntity, s, cachedDragMaterial.name);
-                                            }
 
                                             selMesh = nullptr;
                                             originalMeshMaterials.clear();

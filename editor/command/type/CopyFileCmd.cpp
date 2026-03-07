@@ -1,8 +1,11 @@
 #include "CopyFileCmd.h"
 
+#include "util/Util.h"
+
 using namespace Supernova;
 
-Editor::CopyFileCmd::CopyFileCmd(std::vector<std::string> sourceFiles, std::string currentDirectory, std::string targetDirectory, bool copy){
+Editor::CopyFileCmd::CopyFileCmd(Project* project, std::vector<std::string> sourceFiles, std::string currentDirectory, std::string targetDirectory, bool copy){
+    this->project = project;
     for (const auto& sourceFile : sourceFiles) {
         FileCopyData fdata;
         fdata.filename = fs::path(sourceFile).filename();
@@ -14,7 +17,8 @@ Editor::CopyFileCmd::CopyFileCmd(std::vector<std::string> sourceFiles, std::stri
     this->copy = copy;
 }
 
-Editor::CopyFileCmd::CopyFileCmd(std::vector<std::string> sourcePaths, std::string targetDirectory, bool copy){
+Editor::CopyFileCmd::CopyFileCmd(Project* project, std::vector<std::string> sourcePaths, std::string targetDirectory, bool copy){
+    this->project = project;
     for (const auto& sourcePath : sourcePaths) {
         FileCopyData fdata;
         fdata.filename = fs::path(sourcePath).filename();
@@ -37,12 +41,18 @@ bool Editor::CopyFileCmd::execute(){
                         fs::copy(sourceFs, destFs, fs::copy_options::recursive);
                     }else{
                         fs::rename(sourceFs, destFs);
+                        if (project) {
+                            project->remapMaterialFilePath(sourceFs, destFs);
+                        }
                     }
                 } else {
                     if (copy){
                         fs::copy(sourceFs, destFs, fs::copy_options::overwrite_existing);
                     }else{
                         fs::rename(sourceFs, destFs);
+                        if (project && Util::isMaterialFile(sourceFs.extension().string())) {
+                            project->remapMaterialFilePath(sourceFs, destFs);
+                        }
                     }
                 }
             }
@@ -66,12 +76,18 @@ void Editor::CopyFileCmd::undo(){
                         fs::remove_all(sourceFs);
                     }else{
                         fs::rename(sourceFs, destFs);
+                        if (project) {
+                            project->remapMaterialFilePath(sourceFs, destFs);
+                        }
                     }
                 } else {
                     if (copy) {
                         fs::remove(sourceFs);
                     }else{
                         fs::rename(sourceFs, destFs);
+                        if (project && Util::isMaterialFile(sourceFs.extension().string())) {
+                            project->remapMaterialFilePath(sourceFs, destFs);
+                        }
                     }
                 }
             }

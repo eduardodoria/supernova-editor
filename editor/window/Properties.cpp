@@ -9,6 +9,8 @@
 #include "command/CommandHandle.h"
 #include "command/type/PropertyCmd.h"
 #include "command/type/MultiPropertyCmd.h"
+#include "command/type/UnlinkMaterialCmd.h"
+#include "command/type/LinkMaterialCmd.h"
 #include "command/type/EntityNameCmd.h"
 #include "command/type/SceneNameCmd.h"
 #include "command/type/MeshChangeCmd.h"
@@ -2682,14 +2684,8 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
         if (ImGui::Button(ICON_FA_LINK_SLASH "##unlink_material", unlinkButtonSize)){
             if (sceneProject && hasMaterialSubmeshIndex) {
-                for (Entity& entity : entities) {
-                    project->unlinkMaterialFile(sceneProject->id, entity, materialSubmeshIndex);
-
-                    Material clearedMaterial = eValue[entity];
-                    clearedMaterial.name = "";
-                    cmd = new PropertyCmd<Material>(project, sceneProject->id, entity, cpType, id, clearedMaterial, settings.onValueChanged);
-                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
-                }
+                auto* unlinkCmd = new UnlinkMaterialCmd(project, sceneProject->id, cpType, id, materialSubmeshIndex, entities, settings.onValueChanged);
+                CommandHandle::get(sceneProject->id)->addCommandNoMerge(unlinkCmd);
                 finishProperty = true;
             }
         }
@@ -2830,17 +2826,16 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
                                     restoreMatDropPreview();
 
                                     for (Entity& entity : entities) {
-                                        cmd = new PropertyCmd<Material>(project, sceneProject->id, entity, cpType, id, cachedMatDropMaterial, settings.onValueChanged);
-                                        CommandHandle::get(sceneProject->id)->addCommand(cmd);
-                                        finishProperty = true;
-
-                                        // Register material file link
                                         auto pos = id.find('[');
                                         auto end = id.find(']');
                                         if (pos != std::string::npos && end != std::string::npos) {
                                             unsigned int sIdx = std::stoul(id.substr(pos + 1, end - pos - 1));
-                                            project->linkMaterialFile(sceneProject->id, entity, sIdx, cachedMatDropMaterial.name);
+                                            cmd = new LinkMaterialCmd(project, sceneProject->id, entity, cpType, id, sIdx, cachedMatDropMaterial, settings.onValueChanged);
+                                        } else {
+                                            cmd = new PropertyCmd<Material>(project, sceneProject->id, entity, cpType, id, cachedMatDropMaterial, settings.onValueChanged);
                                         }
+                                        CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                                        finishProperty = true;
                                     }
 
                                     cachedMatDropPath.clear();

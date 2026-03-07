@@ -1,8 +1,11 @@
 #include "RenameFileCmd.h"
 
+#include "util/Util.h"
+
 using namespace Supernova;
 
-Editor::RenameFileCmd::RenameFileCmd(std::string oldName, std::string newName, std::string directory){
+Editor::RenameFileCmd::RenameFileCmd(Project* project, std::string oldName, std::string newName, std::string directory){
+    this->project = project;
     this->oldFilename = fs::path(oldName).filename();
     this->newFilename = fs::path(newName).filename();
     this->directory = fs::path(directory);
@@ -13,7 +16,11 @@ bool Editor::RenameFileCmd::execute(){
     fs::path destFs = directory / newFilename;
     try {
         if (fs::exists(sourceFs)) {
+            bool isDir = fs::is_directory(sourceFs);
             fs::rename(sourceFs, destFs);
+            if (project && (isDir || Util::isMaterialFile(sourceFs.extension().string()))) {
+                project->remapMaterialFilePath(sourceFs, destFs);
+            }
         }
     } catch (const fs::filesystem_error& e) {
         printf("Error: Renaming %s: %s\n", sourceFs.string().c_str(), e.what());
@@ -28,7 +35,11 @@ void Editor::RenameFileCmd::undo(){
     fs::path destFs = directory / oldFilename;
     try {
         if (fs::exists(sourceFs)) {
+            bool isDir = fs::is_directory(sourceFs);
             fs::rename(sourceFs, destFs);
+            if (project && (isDir || Util::isMaterialFile(sourceFs.extension().string()))) {
+                project->remapMaterialFilePath(sourceFs, destFs);
+            }
         }
     } catch (const fs::filesystem_error& e) {
         printf("Error: Undo renaming %s: %s\n", sourceFs.string().c_str(), e.what());

@@ -7,6 +7,7 @@
 #include "resources/icons/scene-icon_png.h"
 
 #include "command/type/CopyFileCmd.h"
+#include "command/type/CreateMaterialFileCmd.h"
 #include "command/type/RenameFileCmd.h"
 #include "command/type/CreateDirCmd.h"
 #include "command/type/DeleteFileCmd.h"
@@ -726,7 +727,7 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories){
         if (ImGui::MenuItem(ICON_FA_FILE_IMPORT " Import Files")){
             std::vector<std::string> filePaths = Editor::FileDialogs::openFileDialogMultiple();
             if (!filePaths.empty()){
-                cmdHistory.addCommand(new CopyFileCmd(filePaths, currentPath.string(), true));
+                cmdHistory.addCommand(new CopyFileCmd(project, filePaths, currentPath.string(), true));
                 scanDirectory(currentPath);
             }
         }
@@ -1033,7 +1034,7 @@ void Editor::ResourcesWindow::highlightDragAndDrop(){
 
 void Editor::ResourcesWindow::handleInternalDragAndDrop(const fs::path& targetDirectory) {
     std::vector<std::string> filesVector(selectedFiles.begin(), selectedFiles.end());
-    cmdHistory.addCommand(new CopyFileCmd(filesVector, currentPath.string(), targetDirectory.string(), false));
+    cmdHistory.addCommand(new CopyFileCmd(project, filesVector, currentPath.string(), targetDirectory.string(), false));
 
     selectedFiles.clear();
     scanDirectory(currentPath);
@@ -1188,7 +1189,7 @@ void Editor::ResourcesWindow::handleRename(){
                     if (fs::exists(newPath)) {
                         ImGui::OpenPopup("File Already Exists");
                     } else {
-                        cmdHistory.addCommand(new RenameFileCmd(fileBeingRenamed, newName, currentPath.string()));
+                        cmdHistory.addCommand(new RenameFileCmd(project, fileBeingRenamed, newName, currentPath.string()));
                         codeEditor->handleFileRename(oldPath, newPath);
                         scanDirectory(currentPath);
                         isRenaming = false;
@@ -1269,7 +1270,7 @@ void Editor::ResourcesWindow::copySelectedFiles(bool cut) {
 }
 
 void Editor::ResourcesWindow::pasteFiles(const fs::path& targetDirectory) {
-    cmdHistory.addCommand(new CopyFileCmd(clipboardFiles, targetDirectory.string(), !clipboardCut));
+    cmdHistory.addCommand(new CopyFileCmd(project, clipboardFiles, targetDirectory.string(), !clipboardCut));
 
     // Clear clipboard if it was a cut operation
     if (clipboardCut) {
@@ -1436,59 +1437,8 @@ bool Editor::ResourcesWindow::loadThumbnail(FileEntry& entry) {
 }
 
 void Editor::ResourcesWindow::saveMaterialFile(const fs::path& directory, const char* materialContent, size_t contentLen, const MaterialPayload* sourceMaterial) {
-    std::string baseName = "Material";
-    std::string fileName = baseName + ".material";
-    fs::path targetFile = directory / fileName;
-    int counter = 1;
-    while (fs::exists(targetFile)) {
-        fileName = baseName + "_" + std::to_string(counter) + ".material";
-        targetFile = directory / fileName;
-        counter++;
-    }
-    std::ofstream out(targetFile, std::ios::binary);
-    if (out.is_open()) {
-        std::string payload(materialContent, contentLen);
-        Material decodedMaterial;
-        bool hasDecodedMaterial = false;
-
-        try {
-            YAML::Node materialNode = YAML::Load(payload);
-            Material material = Stream::decodeMaterial(materialNode);
-
-            std::error_code ec;
-            fs::path relativePath = fs::relative(targetFile, project->getProjectPath(), ec);
-            if (!ec) {
-                material.name = relativePath.lexically_normal().generic_string();
-            }
-
-            decodedMaterial = material;
-            hasDecodedMaterial = true;
-            payload = YAML::Dump(Stream::encodeMaterial(material));
-        } catch (const std::exception&) {
-        }
-
-        out.write(payload.c_str(), payload.size());
-        out.close();
-        scanDirectory(currentPath);
-
-        if (sourceMaterial && hasDecodedMaterial) {
-            SceneProject* sceneProject = project->getScene(sourceMaterial->sceneId);
-            if (sceneProject && sceneProject->scene) {
-                MeshComponent* mesh = sceneProject->scene->findComponent<MeshComponent>(sourceMaterial->entity);
-                if (mesh && sourceMaterial->submeshIndex < mesh->numSubmeshes) {
-                    mesh->submeshes[sourceMaterial->submeshIndex].material = decodedMaterial;
-                    mesh->submeshes[sourceMaterial->submeshIndex].needUpdateTexture = true;
-
-                    sceneProject->needUpdateRender = true;
-                    sceneProject->isModified = true;
-
-                    if (!decodedMaterial.name.empty()) {
-                        project->linkMaterialFile(sourceMaterial->sceneId, sourceMaterial->entity, sourceMaterial->submeshIndex, decodedMaterial.name);
-                    }
-                }
-            }
-        }
-    }
+    cmdHistory.addCommandNoMerge(new CreateMaterialFileCmd(project, directory, materialContent, contentLen, sourceMaterial));
+    scanDirectory(currentPath);
 }
 
 void Editor::ResourcesWindow::saveEntityFile(const fs::path& directory, const char* entityContent, size_t contentLen) {
@@ -1735,7 +1685,7 @@ void Editor::ResourcesWindow::show() {
         isDragDropTarget = true;
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("external_files")) {
             std::vector<std::string> droppedPaths = *(std::vector<std::string>*)payload->Data;
-            cmdHistory.addCommand(new CopyFileCmd(droppedPaths, currentPath.string(), true));
+            cmdHistory.addCommand(new CopyFileCmd(project, droppedPaths, currentPath.string(), true));
             scanDirectory(currentPath);
         }
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("material")) {

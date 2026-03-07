@@ -59,6 +59,14 @@ bool Editor::Project::isMaterialFileLinked(uint32_t sceneId, Entity entity, unsi
     return materialFileLinks.find(MaterialLinkKey{sceneId, entity, submeshIndex}) != materialFileLinks.end();
 }
 
+std::string Editor::Project::getMaterialFilePath(uint32_t sceneId, Entity entity, unsigned int submeshIndex) const {
+    auto it = materialFileLinks.find(MaterialLinkKey{sceneId, entity, submeshIndex});
+    if (it != materialFileLinks.end()) {
+        return it->second.filePath;
+    }
+    return {};
+}
+
 void Editor::Project::unlinkMaterialFile(uint32_t sceneId, Entity entity, unsigned int submeshIndex) {
     materialFileLinks.erase(MaterialLinkKey{sceneId, entity, submeshIndex});
 }
@@ -70,6 +78,96 @@ void Editor::Project::unlinkAllMaterialFiles(uint32_t sceneId, Entity entity) {
         } else {
             ++it;
         }
+    }
+}
+
+void Editor::Project::remapMaterialFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath) {
+    if (projectPath.empty()) {
+        return;
+    }
+
+    auto normalizeToProjectRelative = [this](const fs::path& path) -> fs::path {
+        if (path.empty()) {
+            return {};
+        }
+
+        fs::path normalizedPath = path.lexically_normal();
+        std::error_code ec;
+
+        if (normalizedPath.is_absolute()) {
+            fs::path relativePath = fs::relative(normalizedPath, projectPath, ec);
+            if (!ec) {
+                return relativePath.lexically_normal();
+            }
+        }
+
+        return normalizedPath;
+    };
+
+    fs::path oldRelative = normalizeToProjectRelative(oldPath);
+    fs::path newRelative = normalizeToProjectRelative(newPath);
+
+    if (oldRelative.empty() || newRelative.empty()) {
+        return;
+    }
+
+    const std::string oldRelativeStr = oldRelative.generic_string();
+    const std::string newRelativeStr = newRelative.generic_string();
+    const std::string oldPrefix = oldRelativeStr + "/";
+
+    std::vector<std::pair<MaterialLinkKey, MaterialLinkEntry>> remappedEntries;
+
+    for (auto it = materialFileLinks.begin(); it != materialFileLinks.end();) {
+        const std::string& currentPath = it->second.filePath;
+        bool isExactMatch = (currentPath == oldRelativeStr);
+        bool isChildMatch = (!oldRelativeStr.empty() && currentPath.rfind(oldPrefix, 0) == 0);
+
+        if (!isExactMatch && !isChildMatch) {
+            ++it;
+            continue;
+        }
+
+        std::string updatedPath = newRelativeStr;
+        if (isChildMatch) {
+            updatedPath += currentPath.substr(oldRelativeStr.size());
+        }
+
+        MaterialLinkEntry updatedEntry = it->second;
+        updatedEntry.filePath = fs::path(updatedPath).lexically_normal().generic_string();
+
+        std::error_code ec;
+        updatedEntry.lastWriteTime = fs::last_write_time(projectPath / updatedEntry.filePath, ec);
+
+        const MaterialLinkKey key = it->first;
+        const uint32_t sceneId = std::get<0>(key);
+        const Entity entity = std::get<1>(key);
+        const unsigned int submeshIndex = std::get<2>(key);
+
+        SceneProject* sceneProject = getScene(sceneId);
+        if (sceneProject && sceneProject->scene) {
+            MeshComponent* mesh = sceneProject->scene->findComponent<MeshComponent>(entity);
+            if (mesh && submeshIndex < mesh->numSubmeshes) {
+                Material& material = mesh->submeshes[submeshIndex].material;
+                if (material.name == currentPath || material.name.rfind(oldPrefix, 0) == 0) {
+                    material.name = updatedEntry.filePath;
+                    mesh->submeshes[submeshIndex].needUpdateTexture = true;
+                    sceneProject->needUpdateRender = true;
+                    sceneProject->isModified = true;
+
+                    if (isEntityShared(sceneId, entity)) {
+                        std::string propertyName = "submeshes[" + std::to_string(submeshIndex) + "].material";
+                        sharedGroupPropertyChanged(sceneId, entity, ComponentType::MeshComponent, {propertyName});
+                    }
+                }
+            }
+        }
+
+        remappedEntries.emplace_back(key, updatedEntry);
+        it = materialFileLinks.erase(it);
+    }
+
+    for (auto& [key, entry] : remappedEntries) {
+        materialFileLinks[key] = entry;
     }
 }
 

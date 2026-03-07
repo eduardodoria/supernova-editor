@@ -243,6 +243,9 @@ add_executable(
     ${EDITOR_DIR}/command/type/CreateDirCmd.cpp
     ${EDITOR_DIR}/command/type/DeleteFileCmd.cpp
     ${EDITOR_DIR}/command/type/SetMainCameraCmd.cpp
+    ${EDITOR_DIR}/command/type/CreateMaterialFileCmd.cpp
+    ${EDITOR_DIR}/command/type/UnlinkMaterialCmd.cpp
+    ${EDITOR_DIR}/command/type/LinkMaterialCmd.cpp
 
     ${IMGUI_SOURCES}
     ${BACKEND_SOURCES}

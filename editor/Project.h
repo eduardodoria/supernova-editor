@@ -199,8 +199,10 @@ namespace Supernova::Editor{
 
         void linkMaterialFile(uint32_t sceneId, Entity entity, unsigned int submeshIndex, const std::string& filePath);
         bool isMaterialFileLinked(uint32_t sceneId, Entity entity, unsigned int submeshIndex) const;
+        std::string getMaterialFilePath(uint32_t sceneId, Entity entity, unsigned int submeshIndex) const;
         void unlinkMaterialFile(uint32_t sceneId, Entity entity, unsigned int submeshIndex);
         void unlinkAllMaterialFiles(uint32_t sceneId, Entity entity);
+        void remapMaterialFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
 
         void checkUnsavedAndExecute(uint32_t sceneId, std::function<void()> action);
 
