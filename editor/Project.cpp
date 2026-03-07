@@ -98,13 +98,36 @@ bool Editor::Project::remapRelativeString(const fs::path& oldRelative, const fs:
     return true;
 }
 
-bool Editor::Project::remapSharedEntityRefsInScene(SceneProject& sceneProject, const fs::path& oldRelative,
-                                                   const fs::path& newRelative) {
-    if (!sceneProject.scene) {
+bool Editor::Project::remapScriptEntryPaths(ScriptEntry& scriptEntry, const fs::path& oldRelative,
+                                            const fs::path& newRelative) {
+    bool changed = false;
+
+    if (!scriptEntry.path.empty()) {
+        std::string updatedPath;
+        if (remapRelativeString(oldRelative, newRelative, scriptEntry.path, updatedPath)) {
+            scriptEntry.path = updatedPath;
+            changed = true;
+        }
+    }
+
+    if (!scriptEntry.headerPath.empty()) {
+        std::string updatedHeaderPath;
+        if (remapRelativeString(oldRelative, newRelative, scriptEntry.headerPath, updatedHeaderPath)) {
+            scriptEntry.headerPath = updatedHeaderPath;
+            changed = true;
+        }
+    }
+
+    return changed;
+}
+
+bool Editor::Project::remapSharedEntityRefsInRegistry(EntityRegistry* registry, const fs::path& oldRelative,
+                                                      const fs::path& newRelative, SceneProject* sceneProject) {
+    if (!registry) {
         return false;
     }
 
-    auto scriptsArray = sceneProject.scene->getComponentArray<ScriptComponent>();
+    auto scriptsArray = registry->getComponentArray<ScriptComponent>();
     bool changed = false;
 
     for (size_t i = 0; i < scriptsArray->size(); ++i) {
@@ -122,7 +145,9 @@ bool Editor::Project::remapSharedEntityRefsInScene(SceneProject& sceneProject, c
                 std::string updatedPath;
                 if (remapRelativeString(oldRelative, newRelative, ref.locator.sharedPath, updatedPath)) {
                     ref.locator.sharedPath = updatedPath;
-                    resolveEntityRef(ref, &sceneProject, entity);
+                    if (sceneProject) {
+                        resolveEntityRef(ref, sceneProject, entity);
+                    }
                     changed = true;
                 }
             }
@@ -132,8 +157,8 @@ bool Editor::Project::remapSharedEntityRefsInScene(SceneProject& sceneProject, c
     return changed;
 }
 
-bool Editor::Project::remapSharedEntityRefsInRegistry(EntityRegistry* registry, const fs::path& oldRelative,
-                                                      const fs::path& newRelative) {
+bool Editor::Project::remapScriptPathsInRegistry(EntityRegistry* registry, const fs::path& oldRelative,
+                                                 const fs::path& newRelative) {
     if (!registry) {
         return false;
     }
@@ -143,21 +168,8 @@ bool Editor::Project::remapSharedEntityRefsInRegistry(EntityRegistry* registry, 
 
     for (size_t i = 0; i < scriptsArray->size(); ++i) {
         ScriptComponent& scriptComponent = scriptsArray->getComponentFromIndex(i);
-
         for (auto& scriptEntry : scriptComponent.scripts) {
-            for (auto& prop : scriptEntry.properties) {
-                if (prop.type != ScriptPropertyType::EntityPointer) continue;
-                if (!std::holds_alternative<EntityRef>(prop.value)) continue;
-
-                EntityRef& ref = std::get<EntityRef>(prop.value);
-                if (ref.locator.kind != EntityRefKind::SharedEntity || ref.locator.sharedPath.empty()) continue;
-
-                std::string updatedPath;
-                if (remapRelativeString(oldRelative, newRelative, ref.locator.sharedPath, updatedPath)) {
-                    ref.locator.sharedPath = updatedPath;
-                    changed = true;
-                }
-            }
+            changed |= remapScriptEntryPaths(scriptEntry, oldRelative, newRelative);
         }
     }
 
@@ -339,7 +351,7 @@ void Editor::Project::remapSharedEntityFilePath(const std::filesystem::path& old
             continue;
         }
 
-        bool sceneChanged = remapSharedEntityRefsInScene(sceneProject, oldRelative, newRelative);
+        bool sceneChanged = remapSharedEntityRefsInRegistry(sceneProject.scene, oldRelative, newRelative, &sceneProject);
 
         if (sceneChanged) {
             sceneProject.isModified = true;
@@ -364,6 +376,53 @@ void Editor::Project::remapSharedEntityFilePath(const std::filesystem::path& old
 
     if (changed) {
         resolveAllEntityRefs();
+    }
+}
+
+void Editor::Project::remapScriptFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath) {
+    if (projectPath.empty()) {
+        return;
+    }
+
+    fs::path oldRelative = normalizeToProjectRelative(oldPath);
+    fs::path newRelative = normalizeToProjectRelative(newPath);
+
+    if (oldRelative.empty() || newRelative.empty()) {
+        return;
+    }
+
+    std::unordered_set<uint32_t> affectedSceneIds;
+
+    for (auto& sceneProject : scenes) {
+        if (!sceneProject.scene) {
+            continue;
+        }
+
+        if (remapScriptPathsInRegistry(sceneProject.scene, oldRelative, newRelative)) {
+            sceneProject.isModified = true;
+            updateSceneCppScripts(&sceneProject);
+        }
+    }
+
+    for (auto& [filepath, group] : sharedGroups) {
+        if (remapScriptPathsInRegistry(group.registry.get(), oldRelative, newRelative)) {
+            group.isModified = true;
+
+            for (const auto& [sceneId, instances] : group.instances) {
+                if (!instances.empty()) {
+                    affectedSceneIds.insert(sceneId);
+                }
+            }
+        }
+    }
+
+    for (uint32_t sceneId : affectedSceneIds) {
+        if (SceneProject* sceneProject = getScene(sceneId)) {
+            sceneProject->isModified = true;
+            if (sceneProject->scene) {
+                updateSceneCppScripts(sceneProject);
+            }
+        }
     }
 }
 

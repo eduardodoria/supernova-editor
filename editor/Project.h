@@ -174,10 +174,12 @@ namespace Supernova::Editor{
                           const fs::path& currentPath, fs::path& updatedPath);
         static bool remapRelativeString(const fs::path& oldRelative, const fs::path& newRelative,
                         const std::string& currentPath, std::string& updatedPath);
-        bool remapSharedEntityRefsInScene(SceneProject& sceneProject, const fs::path& oldRelative,
+        static bool remapScriptEntryPaths(ScriptEntry& scriptEntry, const fs::path& oldRelative,
                           const fs::path& newRelative);
         bool remapSharedEntityRefsInRegistry(EntityRegistry* registry, const fs::path& oldRelative,
-                             const fs::path& newRelative);
+                             const fs::path& newRelative, SceneProject* sceneProject = nullptr);
+        bool remapScriptPathsInRegistry(EntityRegistry* registry, const fs::path& oldRelative,
+                        const fs::path& newRelative);
 
         void finalizeStart(SceneProject* mainSceneProject, std::vector<PlayRuntimeScene>& runtimeScenes);
         void finalizeStop(SceneProject* mainSceneProject, std::vector<PlayRuntimeScene> runtimeScenes);
@@ -222,6 +224,7 @@ namespace Supernova::Editor{
         void remapMaterialFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
         void remapSceneFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
         void remapSharedEntityFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
+        void remapScriptFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
 
         //=== end File path remapping ===
 

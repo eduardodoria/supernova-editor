@@ -45,6 +45,7 @@ bool Editor::CopyFileCmd::execute(){
                             project->remapMaterialFilePath(sourceFs, destFs);
                             project->remapSceneFilePath(sourceFs, destFs);
                             project->remapSharedEntityFilePath(sourceFs, destFs);
+                            project->remapScriptFilePath(sourceFs, destFs);
                         }
                     }
                 } else {
@@ -62,6 +63,9 @@ bool Editor::CopyFileCmd::execute(){
                             }
                             if (Util::isEntityFile(extension)) {
                                 project->remapSharedEntityFilePath(sourceFs, destFs);
+                            }
+                            if (Util::isScriptFile(extension)) {
+                                project->remapScriptFilePath(sourceFs, destFs);
                             }
                         }
                     }
@@ -91,6 +95,7 @@ void Editor::CopyFileCmd::undo(){
                             project->remapMaterialFilePath(sourceFs, destFs);
                             project->remapSceneFilePath(sourceFs, destFs);
                             project->remapSharedEntityFilePath(sourceFs, destFs);
+                            project->remapScriptFilePath(sourceFs, destFs);
                         }
                     }
                 } else {
@@ -108,6 +113,9 @@ void Editor::CopyFileCmd::undo(){
                             }
                             if (Util::isEntityFile(extension)) {
                                 project->remapSharedEntityFilePath(sourceFs, destFs);
+                            }
+                            if (Util::isScriptFile(extension)) {
+                                project->remapScriptFilePath(sourceFs, destFs);
                             }
                         }
                     }

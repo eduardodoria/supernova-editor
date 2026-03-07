@@ -99,6 +99,19 @@ namespace Supernova::Editor{
             return entityExtensions.find(ext) != entityExtensions.end();
         }
 
+        inline static bool isScriptFile(const std::string& path) {
+             static const std::unordered_set<std::string> scriptExtensions = {
+                ".lua", ".cpp", ".cc", ".cxx", ".h", ".hh", ".hpp", ".hxx"
+            };
+
+            std::string ext = std::filesystem::path(path).extension().string();
+            if (ext.empty() && !path.empty() && path[0] == '.') {
+                ext = path;
+            }
+            std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+            return scriptExtensions.find(ext) != scriptExtensions.end();
+        }
+
         inline static std::vector<std::string> getStringsFromPayload(const ImGuiPayload* payload){
             const char* data = static_cast<const char*>(payload->Data);
             size_t dataSize = payload->DataSize;
