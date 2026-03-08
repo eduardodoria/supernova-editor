@@ -3,6 +3,7 @@
 #include <cstring>
 #include <algorithm>
 #include <cmath>
+#include <climits>
 
 namespace Supernova {
 namespace Editor {
@@ -130,6 +131,25 @@ void SpriteSlicerToolDialog::show() {
         return;
     }
 
+    auto beginInputTable = [](const char* id, float firstColumnWidth = 130.0f) {
+        if (ImGui::BeginTable(id, 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp)) {
+            ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, firstColumnWidth);
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+            return true;
+        }
+
+        return false;
+    };
+
+    auto beginInputRow = [](const char* label, float inputWidth = 0.0f) {
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(label);
+        ImGui::TableNextColumn();
+        ImGui::SetNextItemWidth(inputWidth > 0.0f ? inputWidth : 8.0f * ImGui::GetFontSize());
+    };
+
     ImGui::Separator();
 
     if (m_sheetWidth > 0 && m_sheetHeight > 0) {
@@ -140,78 +160,92 @@ void SpriteSlicerToolDialog::show() {
 
     ImGui::Spacing();
 
-    // Slice mode
-    ImGui::Text("Slice Mode:");
-    if (ImGui::RadioButton("Grid (Columns x Rows)", m_sliceMode == SliceMode::GRID)) {
-        m_sliceMode = SliceMode::GRID;
-        m_previewDirty = true;
-    }
-    ImGui::SameLine();
-    if (ImGui::RadioButton("Cell Size (W x H)", m_sliceMode == SliceMode::CELL_SIZE)) {
-        m_sliceMode = SliceMode::CELL_SIZE;
-        m_previewDirty = true;
+    if (beginInputTable("SpriteSlicerSliceModeTable")) {
+        beginInputRow("Slice Mode", 14.0f * ImGui::GetFontSize());
+        if (ImGui::RadioButton("Grid (Columns x Rows)##SliceModeGrid", m_sliceMode == SliceMode::GRID)) {
+            m_sliceMode = SliceMode::GRID;
+            m_previewDirty = true;
+        }
+        //ImGui::SameLine();
+        if (ImGui::RadioButton("Cell Size (W x H)##SliceModeCell", m_sliceMode == SliceMode::CELL_SIZE)) {
+            m_sliceMode = SliceMode::CELL_SIZE;
+            m_previewDirty = true;
+        }
+
+        ImGui::EndTable();
     }
 
     ImGui::Spacing();
     ImGui::Separator();
     ImGui::Spacing();
 
-    float inputWidth = 100;
-
     if (m_sliceMode == SliceMode::GRID) {
-        ImGui::Text("Grid:");
-        ImGui::SetNextItemWidth(inputWidth);
-        if (ImGui::InputInt("Columns", &m_columns)) {
-            m_columns = std::clamp(m_columns, 1, 64);
-            m_previewDirty = true;
-        }
-        ImGui::SetNextItemWidth(inputWidth);
-        if (ImGui::InputInt("Rows", &m_rows)) {
-            m_rows = std::clamp(m_rows, 1, 64);
-            m_previewDirty = true;
+        ImGui::SeparatorText("Grid");
+        if (beginInputTable("SpriteSlicerGridTable")) {
+            beginInputRow("Columns", 6.0f * ImGui::GetFontSize());
+            if (ImGui::DragInt("##Columns", &m_columns, 0.1f, 1, 64)) {
+                m_previewDirty = true;
+            }
+
+            beginInputRow("Rows", 6.0f * ImGui::GetFontSize());
+            if (ImGui::DragInt("##Rows", &m_rows, 0.1f, 1, 64)) {
+                m_previewDirty = true;
+            }
+
+            ImGui::EndTable();
         }
     } else {
-        ImGui::Text("Cell Size:");
-        ImGui::SetNextItemWidth(inputWidth);
-        if (ImGui::InputInt("Cell Width", &m_cellWidth)) {
-            m_cellWidth = std::clamp(m_cellWidth, 1, m_sheetWidth > 0 ? m_sheetWidth : 4096);
-            m_previewDirty = true;
-        }
-        ImGui::SetNextItemWidth(inputWidth);
-        if (ImGui::InputInt("Cell Height", &m_cellHeight)) {
-            m_cellHeight = std::clamp(m_cellHeight, 1, m_sheetHeight > 0 ? m_sheetHeight : 4096);
-            m_previewDirty = true;
+        ImGui::SeparatorText("Cell Size");
+        if (beginInputTable("SpriteSlicerCellSizeTable")) {
+            beginInputRow("Cell Width", 6.0f * ImGui::GetFontSize());
+            if (ImGui::DragInt("##CellWidth", &m_cellWidth, 1.0f, 1, m_sheetWidth > 0 ? m_sheetWidth : 4096)) {
+                m_previewDirty = true;
+            }
+
+            beginInputRow("Cell Height", 6.0f * ImGui::GetFontSize());
+            if (ImGui::DragInt("##CellHeight", &m_cellHeight, 1.0f, 1, m_sheetHeight > 0 ? m_sheetHeight : 4096)) {
+                m_previewDirty = true;
+            }
+
+            ImGui::EndTable();
         }
     }
 
     ImGui::Spacing();
-    ImGui::Text("Offset & Padding:");
-    ImGui::SetNextItemWidth(inputWidth);
-    if (ImGui::InputInt("Offset X", &m_offsetX)) {
-        m_offsetX = std::max(0, m_offsetX);
-        m_previewDirty = true;
-    }
-    ImGui::SetNextItemWidth(inputWidth);
-    if (ImGui::InputInt("Offset Y", &m_offsetY)) {
-        m_offsetY = std::max(0, m_offsetY);
-        m_previewDirty = true;
-    }
-    ImGui::SetNextItemWidth(inputWidth);
-    if (ImGui::InputInt("Padding X", &m_paddingX)) {
-        m_paddingX = std::max(0, m_paddingX);
-        m_previewDirty = true;
-    }
-    ImGui::SetNextItemWidth(inputWidth);
-    if (ImGui::InputInt("Padding Y", &m_paddingY)) {
-        m_paddingY = std::max(0, m_paddingY);
-        m_previewDirty = true;
+    ImGui::SeparatorText("Offset & Padding");
+    if (beginInputTable("SpriteSlicerOffsetPaddingTable")) {
+        beginInputRow("Offset X", 6.0f * ImGui::GetFontSize());
+        if (ImGui::DragInt("##OffsetX", &m_offsetX, 1.0f, 0, INT_MAX)) {
+            m_previewDirty = true;
+        }
+
+        beginInputRow("Offset Y", 6.0f * ImGui::GetFontSize());
+        if (ImGui::DragInt("##OffsetY", &m_offsetY, 1.0f, 0, INT_MAX)) {
+            m_previewDirty = true;
+        }
+
+        beginInputRow("Padding X", 6.0f * ImGui::GetFontSize());
+        if (ImGui::DragInt("##PaddingX", &m_paddingX, 1.0f, 0, INT_MAX)) {
+            m_previewDirty = true;
+        }
+
+        beginInputRow("Padding Y", 6.0f * ImGui::GetFontSize());
+        if (ImGui::DragInt("##PaddingY", &m_paddingY, 1.0f, 0, INT_MAX)) {
+            m_previewDirty = true;
+        }
+
+        ImGui::EndTable();
     }
 
     ImGui::Spacing();
-    ImGui::Text("Frame Naming:");
-    ImGui::SetNextItemWidth(200);
-    if (ImGui::InputText("Prefix", m_prefixBuffer, sizeof(m_prefixBuffer))) {
-        m_previewDirty = true;
+    ImGui::SeparatorText("Frame Naming");
+    if (beginInputTable("SpriteSlicerFrameNamingTable")) {
+        beginInputRow("Prefix", 10.0f * ImGui::GetFontSize());
+        if (ImGui::InputText("##Prefix", m_prefixBuffer, sizeof(m_prefixBuffer))) {
+            m_previewDirty = true;
+        }
+
+        ImGui::EndTable();
     }
 
     ImGui::Spacing();
