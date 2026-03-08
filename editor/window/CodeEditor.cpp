@@ -253,6 +253,28 @@ void Editor::CodeEditor::saveAll() {
     }
 }
 
+void Editor::CodeEditor::undoLastFocused() {
+    if (lastFocused && lastFocused->editor) {
+        lastFocused->editor->Undo();
+        lastFocused->isModified = lastFocused->editor->GetUndoIndex() != lastFocused->savedUndoIndex;
+    }
+}
+
+void Editor::CodeEditor::redoLastFocused() {
+    if (lastFocused && lastFocused->editor) {
+        lastFocused->editor->Redo();
+        lastFocused->isModified = lastFocused->editor->GetUndoIndex() != lastFocused->savedUndoIndex;
+    }
+}
+
+bool Editor::CodeEditor::canUndoLastFocused() const {
+    return lastFocused && lastFocused->editor && lastFocused->editor->CanUndo();
+}
+
+bool Editor::CodeEditor::canRedoLastFocused() const {
+    return lastFocused && lastFocused->editor && lastFocused->editor->CanRedo();
+}
+
 bool Editor::CodeEditor::hasUnsavedChanges() const {
     for (const auto& [filepath, instance] : editors) {
         if (instance.isModified) {

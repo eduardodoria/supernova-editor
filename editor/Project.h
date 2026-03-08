@@ -100,6 +100,7 @@ namespace Supernova::Editor{
 
         unsigned int windowWidth;
         unsigned int windowHeight;
+        CommandHistory projectHistory;
 
         uint32_t nextSceneId;
 
@@ -198,6 +199,7 @@ namespace Supernova::Editor{
         void setWindowSize(unsigned int width, unsigned int height);
         unsigned int getWindowWidth() const;
         unsigned int getWindowHeight() const;
+        CommandHistory* getProjectCommandHistory();
 
         bool createTempProject(std::string projectName, bool deleteIfExists = false);
         bool saveProjectToPath(const std::filesystem::path& path);

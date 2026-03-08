@@ -56,6 +56,10 @@ namespace Supernova::Editor {
         bool save(EditorInstance& instance);
         void saveLastFocused();
         void saveAll();
+        void undoLastFocused();
+        void redoLastFocused();
+        bool canUndoLastFocused() const;
+        bool canRedoLastFocused() const;
 
         bool hasUnsavedChanges() const;
         bool hasLastFocusedUnsavedChanges() const;

@@ -2,7 +2,6 @@
 #define RESOURCESWINDOW_H
 
 #include "Project.h"
-#include "command/CommandHistory.h"
 #include "window/CodeEditor.h"
 #include "util/EntityPayload.h"
 
@@ -66,8 +65,6 @@ namespace Supernova::Editor {
 
         float layoutAutoThreshold = 600.0f;
         float leftPanelWidth = 200.0f;  // Width of the left panel in SPLIT layout
-
-        CommandHistory cmdHistory;
 
         bool firstOpen;
         bool requestSort;
@@ -171,6 +168,8 @@ namespace Supernova::Editor {
         void notifyResourceFileChanged(const fs::path& filePath);
 
         void cleanupThumbnails();
+
+        void refreshCurrentDirectory();
 
         void show();
     };

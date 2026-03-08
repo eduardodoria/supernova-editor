@@ -86,6 +86,7 @@ namespace Supernova::Editor{
         enum class LastFocusedWindow {
             None,
             Scene,
+            Resources,
             Code
         } lastFocusedWindow;
 

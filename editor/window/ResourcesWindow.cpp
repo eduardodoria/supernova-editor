@@ -727,7 +727,7 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories){
         if (ImGui::MenuItem(ICON_FA_FILE_IMPORT " Import Files")){
             std::vector<std::string> filePaths = Editor::FileDialogs::openFileDialogMultiple();
             if (!filePaths.empty()){
-                cmdHistory.addCommand(new CopyFileCmd(project, filePaths, currentPath.string(), true));
+                project->getProjectCommandHistory()->addCommand(new CopyFileCmd(project, filePaths, currentPath.string(), true));
                 scanDirectory(currentPath);
             }
         }
@@ -808,7 +808,7 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories){
                 codeEditor->closeFile(filePath.string());
             }
 
-            cmdHistory.addCommand(new DeleteFileCmd(pathsToDelete, project->getProjectPath()));
+            project->getProjectCommandHistory()->addCommand(new DeleteFileCmd(pathsToDelete, project->getProjectPath()));
             selectedFiles.clear();
             scanDirectory(currentPath);
             showDeleteConfirmation = false;
@@ -1034,7 +1034,7 @@ void Editor::ResourcesWindow::highlightDragAndDrop(){
 
 void Editor::ResourcesWindow::handleInternalDragAndDrop(const fs::path& targetDirectory) {
     std::vector<std::string> filesVector(selectedFiles.begin(), selectedFiles.end());
-    cmdHistory.addCommand(new CopyFileCmd(project, filesVector, currentPath.string(), targetDirectory.string(), false));
+    project->getProjectCommandHistory()->addCommand(new CopyFileCmd(project, filesVector, currentPath.string(), targetDirectory.string(), false));
 
     selectedFiles.clear();
     scanDirectory(currentPath);
@@ -1085,7 +1085,7 @@ void Editor::ResourcesWindow::handleNewDirectory(){
                     if (fs::exists(newDirPath)) {
                         ImGui::OpenPopup("Directory Already Exists");
                     } else {
-                        cmdHistory.addCommand(new CreateDirCmd(dirName, currentPath.string()));
+                        project->getProjectCommandHistory()->addCommand(new CreateDirCmd(dirName, currentPath.string()));
                         scanDirectory(currentPath);
                         isCreatingNewDirectory = false;
                         ImGui::CloseCurrentPopup();
@@ -1189,7 +1189,7 @@ void Editor::ResourcesWindow::handleRename(){
                     if (fs::exists(newPath)) {
                         ImGui::OpenPopup("File Already Exists");
                     } else {
-                        cmdHistory.addCommand(new RenameFileCmd(project, fileBeingRenamed, newName, currentPath.string()));
+                        project->getProjectCommandHistory()->addCommand(new RenameFileCmd(project, fileBeingRenamed, newName, currentPath.string()));
                         codeEditor->handleFileRename(oldPath, newPath);
                         scanDirectory(currentPath);
                         isRenaming = false;
@@ -1270,7 +1270,7 @@ void Editor::ResourcesWindow::copySelectedFiles(bool cut) {
 }
 
 void Editor::ResourcesWindow::pasteFiles(const fs::path& targetDirectory) {
-    cmdHistory.addCommand(new CopyFileCmd(project, clipboardFiles, targetDirectory.string(), !clipboardCut));
+    project->getProjectCommandHistory()->addCommand(new CopyFileCmd(project, clipboardFiles, targetDirectory.string(), !clipboardCut));
 
     // Clear clipboard if it was a cut operation
     if (clipboardCut) {
@@ -1437,7 +1437,7 @@ bool Editor::ResourcesWindow::loadThumbnail(FileEntry& entry) {
 }
 
 void Editor::ResourcesWindow::saveMaterialFile(const fs::path& directory, const char* materialContent, size_t contentLen, const MaterialPayload* sourceMaterial) {
-    cmdHistory.addCommandNoMerge(new CreateMaterialFileCmd(project, directory, materialContent, contentLen, sourceMaterial));
+    project->getProjectCommandHistory()->addCommandNoMerge(new CreateMaterialFileCmd(project, directory, materialContent, contentLen, sourceMaterial));
     scanDirectory(currentPath);
 }
 
@@ -1524,6 +1524,10 @@ void Editor::ResourcesWindow::cleanupThumbnails() {
             fs::remove(p, ec);
         }
     }
+}
+
+void Editor::ResourcesWindow::refreshCurrentDirectory() {
+    scanDirectory(currentPath);
 }
 
 void Editor::ResourcesWindow::show() {
@@ -1685,7 +1689,7 @@ void Editor::ResourcesWindow::show() {
         isDragDropTarget = true;
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("external_files")) {
             std::vector<std::string> droppedPaths = *(std::vector<std::string>*)payload->Data;
-            cmdHistory.addCommand(new CopyFileCmd(project, droppedPaths, currentPath.string(), true));
+            project->getProjectCommandHistory()->addCommand(new CopyFileCmd(project, droppedPaths, currentPath.string(), true));
             scanDirectory(currentPath);
         }
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("material")) {
@@ -1746,9 +1750,6 @@ void Editor::ResourcesWindow::show() {
                 }
                 if (!files.empty()) lastSelectedFile = files.back().name;
             }
-            else if (!shiftPressed && ImGui::IsKeyPressed(ImGuiKey_Z)) { cmdHistory.undo(); scanDirectory(currentPath); }
-            else if (shiftPressed && ImGui::IsKeyPressed(ImGuiKey_Z)) { cmdHistory.redo(); scanDirectory(currentPath); }
-            else if (ImGui::IsKeyPressed(ImGuiKey_Y)) { cmdHistory.redo(); scanDirectory(currentPath); }
         }
     }
 

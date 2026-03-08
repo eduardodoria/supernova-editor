@@ -656,6 +656,10 @@ unsigned int Editor::Project::getWindowHeight() const{
     return windowHeight;
 }
 
+Editor::CommandHistory* Editor::Project::getProjectCommandHistory(){
+    return &projectHistory;
+}
+
 uint32_t Editor::Project::createNewScene(std::string sceneName, SceneType type){
     if (isAnyScenePlaying()){
         Out::warning("Cannot create a new scene while a scene is playing.");
@@ -1253,6 +1257,7 @@ void Editor::Project::resetConfigs() {
     sharedGroups.clear();
     materialFileLinks.clear();
     lastMaterialRefreshTime = std::chrono::steady_clock::time_point{};
+    projectHistory.clear();
 
     Backend::updateWindowTitle(name);
 

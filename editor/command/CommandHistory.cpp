@@ -58,3 +58,19 @@ void Editor::CommandHistory::redo(){
         #endif
     }
 }
+
+bool Editor::CommandHistory::canUndo() const{
+    return index > 0;
+}
+
+bool Editor::CommandHistory::canRedo() const{
+    return index < list.size();
+}
+
+void Editor::CommandHistory::clear(){
+    for (int i = 0; i < list.size(); i++){
+        delete list[i];
+    }
+    list.clear();
+    index = 0;
+}

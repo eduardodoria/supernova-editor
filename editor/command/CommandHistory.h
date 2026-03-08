@@ -11,7 +11,7 @@ namespace Supernova::Editor{
 
     private:
         std::vector<Command*> list;
-        size_t index; // real index is (index-1)
+        size_t index = 0; // real index is (index-1)
 
     public:
         virtual ~CommandHistory();
@@ -21,6 +21,11 @@ namespace Supernova::Editor{
 
         void undo();
         void redo();
+
+        bool canUndo() const;
+        bool canRedo() const;
+
+        void clear();
     };
 
 }

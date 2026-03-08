@@ -208,12 +208,43 @@ void Editor::App::showMenu(){
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Edit")) {
+            bool canUndo = false;
+            bool canRedo = false;
+            if (lastFocusedWindow == LastFocusedWindow::Resources) {
+                canUndo = project.getProjectCommandHistory()->canUndo();
+                canRedo = project.getProjectCommandHistory()->canRedo();
+            } else if (lastFocusedWindow == LastFocusedWindow::Code) {
+                canUndo = codeEditor->canUndoLastFocused();
+                canRedo = codeEditor->canRedoLastFocused();
+            } else {
+                canUndo = CommandHandle::get(project.getSelectedSceneId())->canUndo();
+                canRedo = CommandHandle::get(project.getSelectedSceneId())->canRedo();
+            }
+
+            ImGui::BeginDisabled(!canUndo);
             if (ImGui::MenuItem("Undo")) {
-                CommandHandle::get(project.getSelectedSceneId())->undo();
+                if (lastFocusedWindow == LastFocusedWindow::Resources) {
+                    project.getProjectCommandHistory()->undo();
+                    resourcesWindow->refreshCurrentDirectory();
+                } else if (lastFocusedWindow == LastFocusedWindow::Code) {
+                    codeEditor->undoLastFocused();
+                } else {
+                    CommandHandle::get(project.getSelectedSceneId())->undo();
+                }
             }
+            ImGui::EndDisabled();
+            ImGui::BeginDisabled(!canRedo);
             if (ImGui::MenuItem("Redo")) {
-                CommandHandle::get(project.getSelectedSceneId())->redo();
+                if (lastFocusedWindow == LastFocusedWindow::Resources) {
+                    project.getProjectCommandHistory()->redo();
+                    resourcesWindow->refreshCurrentDirectory();
+                } else if (lastFocusedWindow == LastFocusedWindow::Code) {
+                    codeEditor->redoLastFocused();
+                } else {
+                    CommandHandle::get(project.getSelectedSceneId())->redo();
+                }
             }
+            ImGui::EndDisabled();
             if (ImGui::MenuItem("Reset layout")) {
                 buildDockspace();
             }
@@ -592,6 +623,8 @@ void Editor::App::setup() {
 void Editor::App::show(){
     if (sceneWindow->isFocused()) {
         lastFocusedWindow = LastFocusedWindow::Scene;
+    } else if (resourcesWindow->isFocused()) {
+        lastFocusedWindow = LastFocusedWindow::Resources;
     } else if (codeEditor->isFocused()) {
         lastFocusedWindow = LastFocusedWindow::Code;
     }
@@ -633,7 +666,6 @@ void Editor::App::show(){
         if (isUndo) {
             CommandHandle::get(sceneId)->undo();
         }
-        ImGui::SameLine();
         if (isRedo) {
             CommandHandle::get(sceneId)->redo();
         }
@@ -659,6 +691,17 @@ void Editor::App::show(){
             if (lastCmd) {
                 lastCmd->setNoMerge();
             }
+        }
+    }
+
+    if (resourcesWindow->isFocused()) {
+        if (isUndo) {
+            project.getProjectCommandHistory()->undo();
+            resourcesWindow->refreshCurrentDirectory();
+        }
+        if (isRedo) {
+            project.getProjectCommandHistory()->redo();
+            resourcesWindow->refreshCurrentDirectory();
         }
     }
 
