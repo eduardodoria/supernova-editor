@@ -152,6 +152,8 @@ namespace Supernova::Editor {
         void saveEntityFile(const fs::path& directory, const char* entityContent, size_t contentLen);
 
     public:
+        static constexpr const char* WINDOW_NAME = "Resources";
+
         ResourcesWindow(Project* project, CodeEditor* codeEditor);
         ~ResourcesWindow();
 

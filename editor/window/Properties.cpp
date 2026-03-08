@@ -537,7 +537,7 @@ void Editor::Properties::dragDropResourcesFont(ComponentType cpType, std::string
                             }
                         }
 
-                        ImGui::SetWindowFocus();
+                        ImGui::SetWindowFocus(Properties::WINDOW_NAME);
                         hasFontDrag.erase(id);
                         originalFont.erase(id);
                     }
@@ -611,7 +611,7 @@ void Editor::Properties::dragDropResourcesTexture(ComponentType cpType, std::str
                             }
                         }
 
-                        ImGui::SetWindowFocus();
+                        ImGui::SetWindowFocus(Properties::WINDOW_NAME);
                         hasTextureDrag.erase(id);
                         originalTex.erase(id);
                     }
@@ -700,7 +700,7 @@ void Editor::Properties::dragDropResourcesTextureCubeFace(ComponentType cpType, 
                             }
                         }
 
-                        ImGui::SetWindowFocus();
+                        ImGui::SetWindowFocus(Properties::WINDOW_NAME);
                         hasTextureDrag.erase(dragId);
                         originalTex.erase(dragId);
                     }
@@ -791,7 +791,7 @@ void Editor::Properties::dragDropResourcesTextureCubeSingleFile(ComponentType cp
                             }
                         }
 
-                        ImGui::SetWindowFocus();
+                        ImGui::SetWindowFocus(Properties::WINDOW_NAME);
                         hasTextureDrag.erase(dragId);
                         originalTex.erase(dragId);
                     }
@@ -2150,6 +2150,8 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
                             CommandHandle::get(sceneProject->id)->addCommand(cmd);
                             finishProperty = true;
                         }
+
+                        ImGui::SetWindowFocus(Properties::WINDOW_NAME);
                     }
                 }
             }
@@ -2839,6 +2841,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
                                     }
 
                                     cachedMatDropPath.clear();
+                                    ImGui::SetWindowFocus(Properties::WINDOW_NAME);
                                 }
                             } catch (const std::exception& e) {
                                 Out::error("Error loading material file '%s': %s", droppedRelativePath.c_str(), e.what());
@@ -5525,7 +5528,7 @@ void Editor::Properties::show(){
     // Flush any debounced material file writes
     flushDirtyMaterials(project, ImGui::GetIO().DeltaTime);
 
-    ImGui::Begin("Properties");
+    ImGui::Begin(Properties::WINDOW_NAME);
 
     uint32_t propertiesSceneId = project->getSelectedSceneForProperties();
     SceneProject* sceneProject = project->getScene(propertiesSceneId);

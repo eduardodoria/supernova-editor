@@ -1599,7 +1599,7 @@ void Editor::ResourcesWindow::show() {
     windowPos = ImGui::GetWindowPos();
     scrollOffset = ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
 
-    ImGui::Begin("Resources");
+    ImGui::Begin(ResourcesWindow::WINDOW_NAME);
     windowPos = ImGui::GetWindowPos();
     scrollOffset = ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
 

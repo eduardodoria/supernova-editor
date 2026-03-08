@@ -64,6 +64,8 @@ namespace Supernova::Editor{
         void markMatchingNodes(TreeNode& node, const std::string& searchLower);
 
     public:
+        static constexpr const char* WINDOW_NAME = "Structure";
+
         Structure(Project* project, SceneWindow* sceneWindow);
 
         void show();

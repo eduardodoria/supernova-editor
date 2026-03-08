@@ -55,6 +55,11 @@ bool Editor::SceneWindow::isFocused() const {
     return windowFocused;
 }
 
+void Editor::SceneWindow::focusSceneWindow(const SceneProject& sceneProject) const {
+    const std::string windowTitle = getWindowTitle(sceneProject);
+    ImGui::SetWindowFocus(windowTitle.c_str());
+}
+
 std::string Editor::SceneWindow::getWindowTitle(const SceneProject& sceneProject) const {
     std::string icon;
     if (sceneProject.sceneType == SceneType::SCENE_3D){
@@ -171,7 +176,7 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
 
                                         selText = nullptr;
 
-                                        ImGui::SetWindowFocus();
+                                        focusSceneWindow(*sceneProject);
                                     }
                                 }
                             } else if (isImage) {
@@ -203,7 +208,7 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
                                         selMesh = nullptr;
                                         originalMeshMaterials.clear();
 
-                                        ImGui::SetWindowFocus();
+                                        focusSceneWindow(*sceneProject);
                                     }
                                 } else if (UIComponent* ui = sceneProject->scene->findComponent<UIComponent>(selEntity)) {
                                     if (!selUI) {
@@ -224,7 +229,7 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
 
                                         selUI = nullptr;
 
-                                        ImGui::SetWindowFocus();
+                                        focusSceneWindow(*sceneProject);
                                     }
                                 }
                             } else if (isMaterial) {
@@ -276,7 +281,7 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
                                             originalMeshMaterials.clear();
                                             cachedDragPath.clear();
 
-                                            ImGui::SetWindowFocus();
+                                            focusSceneWindow(*sceneProject);
                                         }
                                     } catch (const std::exception& e) {
                                         Out::error("Error loading material file '%s': %s", droppedRelativePath.c_str(), e.what());
@@ -323,7 +328,7 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
                                 delete tempImage;
                                 tempImage = nullptr;
 
-                                ImGui::SetWindowFocus();
+                                focusSceneWindow(*sceneProject);
                             }
 
                         }

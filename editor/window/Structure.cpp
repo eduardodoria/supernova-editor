@@ -641,6 +641,10 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                     }
                     handleEntityFilesDrop(droppedPaths, parentEntity);
                 }
+
+                if (payload->IsDelivery()) {
+                    ImGui::SetWindowFocus(Structure::WINDOW_NAME);
+                }
             }
         }
 
@@ -1003,7 +1007,7 @@ void Editor::Structure::show(){
         }
     }
 
-    ImGui::Begin("Structure");
+    ImGui::Begin(Structure::WINDOW_NAME);
 
     showIconMenu();
     ImGui::BeginChild("StructureScrollRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
@@ -1115,6 +1119,10 @@ void Editor::Structure::show(){
 
                 handleSceneFilesDropAsChildScenes(droppedPaths, project->getSelectedSceneId());
                 handleEntityFilesDrop(droppedPaths);
+
+                if (payload->IsDelivery()) {
+                    ImGui::SetWindowFocus(Structure::WINDOW_NAME);
+                }
             }
         }
         ImGui::EndDragDropTarget();

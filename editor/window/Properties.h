@@ -151,6 +151,8 @@ namespace Supernova::Editor{
         void drawJoint3DComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
 
     public:
+        static constexpr const char* WINDOW_NAME = "Properties";
+
         Properties(Project* project);
 
         void show();

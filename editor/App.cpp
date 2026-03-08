@@ -520,18 +520,18 @@ void Editor::App::buildDockspace(){
     size = 14*ImGui::GetFontSize();
     ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.0f, &dock_id_left, &dock_id_middle);
     ImGui::DockBuilderSetNodeSize(dock_id_left, ImVec2(size, ImGui::GetMainViewport()->Size.y)); // Set left node size
-    ImGui::DockBuilderDockWindow("Structure", dock_id_left);
+    ImGui::DockBuilderDockWindow(Structure::WINDOW_NAME, dock_id_left);
 
     size = 50*ImGui::GetFontSize();
     ImGui::DockBuilderSplitNode(dock_id_left, ImGuiDir_Down, 0.0f, &dock_id_left_bottom, &dock_id_left_top);
     ImGui::DockBuilderSetNodeSize(dock_id_left_bottom, ImVec2(ImGui::GetMainViewport()->Size.x, size));
-    ImGui::DockBuilderDockWindow("Resources", dock_id_left_bottom);
+    ImGui::DockBuilderDockWindow(ResourcesWindow::WINDOW_NAME, dock_id_left_bottom);
 
     // Split the middle into right and remaining middle
     size = 19*ImGui::GetFontSize();
     ImGui::DockBuilderSplitNode(dock_id_middle, ImGuiDir_Right, 0.0f, &dock_id_right, &dock_id_middle);
     ImGui::DockBuilderSetNodeSize(dock_id_right, ImVec2(size, ImGui::GetMainViewport()->Size.y)); // Set right node size
-    ImGui::DockBuilderDockWindow("Properties", dock_id_right);
+    ImGui::DockBuilderDockWindow(Properties::WINDOW_NAME, dock_id_right);
 
     // Split the remaining middle into top and bottom
     size = 10*ImGui::GetFontSize();
