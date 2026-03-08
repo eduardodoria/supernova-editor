@@ -3685,7 +3685,222 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
     propertyRow(RowPropertyType::UInt, cpType, "height", "Height", sceneProject, entities, settingsInt);
     propertyRow(RowPropertyType::Enum, cpType, "pivotPreset", "Pivot", sceneProject, entities, settingsPivot);
     propertyRow(RowPropertyType::Float, cpType, "textureScaleFactor", "Texture Scale", sceneProject, entities, settingsTexScale);
+    propertyRow(RowPropertyType::Bool, cpType, "automaticFlipY", "Auto Flip Y", sceneProject, entities);
+    propertyRow(RowPropertyType::Bool, cpType, "flipY", "Flip Y", sceneProject, entities);
     endTable();
+
+    // --- Frames Rect Section ---
+    if (entities.size() == 1) {
+        SpriteComponent& sprite = sceneProject->scene->getComponent<SpriteComponent>(entities[0]);
+        Texture previewTexture;
+        if (MeshComponent* meshComp = sceneProject->scene->findComponent<MeshComponent>(entities[0])) {
+            if (meshComp->numSubmeshes > 0) {
+                previewTexture = meshComp->submeshes[0].material.baseColorTexture;
+            }
+        }
+
+        auto drawSpriteFramePreview = [&](Texture* texture, const Rect& rect, const ImVec2& size, const char* itemId) -> bool {
+            if (!texture || texture->empty() || !texture->getRender()) {
+                return false;
+            }
+
+            const float texWidth = static_cast<float>(texture->getWidth());
+            const float texHeight = static_cast<float>(texture->getHeight());
+            const float rectWidth = rect.getWidth();
+            const float rectHeight = rect.getHeight();
+
+            if (texWidth <= 0.0f || texHeight <= 0.0f || rectWidth <= 0.0f || rectHeight <= 0.0f) {
+                return false;
+            }
+
+            ImVec2 cursor = ImGui::GetCursorScreenPos();
+            ImVec2 p_min = cursor;
+            ImVec2 p_max = ImVec2(cursor.x + size.x, cursor.y + size.y);
+
+            float srcAspect = rectWidth / rectHeight;
+            float dstAspect = size.x / size.y;
+
+            float drawWidth = size.x;
+            float drawHeight = size.y;
+            if (fabs(srcAspect - dstAspect) > 1e-3f) {
+                if (srcAspect > dstAspect) {
+                    drawHeight = size.x / srcAspect;
+                } else {
+                    drawWidth = size.y * srcAspect;
+                }
+            }
+
+            ImVec2 imageMin(cursor.x + (size.x - drawWidth) * 0.5f, cursor.y + (size.y - drawHeight) * 0.5f);
+            ImVec2 imageMax(imageMin.x + drawWidth, imageMin.y + drawHeight);
+
+            ImVec2 uv0(rect.getX() / texWidth, rect.getY() / texHeight);
+            ImVec2 uv1((rect.getX() + rectWidth) / texWidth, (rect.getY() + rectHeight) / texHeight);
+
+            ImDrawList* drawList = ImGui::GetWindowDrawList();
+            float rounding = ImGui::GetStyle().FrameRounding;
+            ImU32 borderColor = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyle().Colors[ImGuiCol_FrameBg]);
+
+            drawList->AddRectFilled(p_min, p_max, textureLabel, rounding, ImDrawFlags_RoundCornersAll);
+            drawList->AddImageRounded((ImTextureID)(intptr_t)texture->getRender()->getGLHandler(), imageMin, imageMax, uv0, uv1, IM_COL32_WHITE, rounding, ImDrawFlags_RoundCornersAll);
+            drawList->AddRect(p_min, p_max, borderColor, rounding, ImDrawFlags_RoundCornersAll, 1.0f);
+
+            ImGui::InvisibleButton(itemId, size);
+            return true;
+        };
+
+        ImGui::SeparatorText("Sprite Frames");
+
+        // Count active frames
+        int activeFrameCount = 0;
+        for (int i = 0; i < MAX_SPRITE_FRAMES; i++) {
+            if (sprite.framesRect[i].active) activeFrameCount++;
+        }
+
+        // Sprite sheet slicer button
+        float buttonWidth = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
+        if (ImGui::Button(ICON_FA_GRIP " Slice Sheet", ImVec2(buttonWidth, 0))) {
+            spriteSheetSlicerDialog.open(
+                previewTexture,
+                static_cast<int>(sprite.width),
+                static_cast<int>(sprite.height),
+                [this, sceneProject, entities, cpType](const SpriteSheetSlicerDialog::SliceResult& result) {
+                    Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+
+                    // First clear all existing frames
+                    for (int i = 0; i < MAX_SPRITE_FRAMES; i++) {
+                        multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entities[0], cpType,
+                            "framesRect[" + std::to_string(i) + "].active", false);
+                    }
+
+                    // Then set new frames from slicer result
+                    for (size_t i = 0; i < result.frames.size() && i < MAX_SPRITE_FRAMES; i++) {
+                        std::string prefix = "framesRect[" + std::to_string(i) + "]";
+                        multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entities[0], cpType,
+                            prefix + ".active", true);
+                        multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
+                            prefix + ".name", result.frames[i].name);
+                        multiCmd->addPropertyCmd<Vector4>(project, sceneProject->id, entities[0], cpType,
+                            prefix + ".rect", Vector4(result.frames[i].rect.getX(), result.frames[i].rect.getY(),
+                                result.frames[i].rect.getWidth(), result.frames[i].rect.getHeight()));
+                    }
+
+                    multiCmd->setNoMerge();
+                    CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+                }
+            );
+        }
+
+        ImGui::SameLine();
+
+        // Add frame button
+        if (ImGui::Button(ICON_FA_PLUS " Add Frame", ImVec2(buttonWidth, 0))) {
+            // Find first inactive slot
+            int freeSlot = -1;
+            for (int i = 0; i < MAX_SPRITE_FRAMES; i++) {
+                if (!sprite.framesRect[i].active) {
+                    freeSlot = i;
+                    break;
+                }
+            }
+            if (freeSlot >= 0) {
+                Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+                std::string prefix = "framesRect[" + std::to_string(freeSlot) + "]";
+                multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entities[0], cpType,
+                    prefix + ".active", true);
+                multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
+                    prefix + ".name", "frame_" + std::to_string(freeSlot));
+                multiCmd->setNoMerge();
+                CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+            }
+        }
+
+        ImGui::Text("Frames: %d / %d", activeFrameCount, MAX_SPRITE_FRAMES);
+
+        // Draw each active frame
+        RowSettings settingsFrameRect;
+        settingsFrameRect.stepSize = 1.0f;
+        settingsFrameRect.secondColSize = -1;
+        settingsFrameRect.format = "%.0f";
+
+        for (int i = 0; i < MAX_SPRITE_FRAMES; i++) {
+            if (!sprite.framesRect[i].active) continue;
+
+            ImGui::PushID(i);
+
+            std::string frameLabel = "[" + std::to_string(i) + "] " + sprite.framesRect[i].name;
+            bool frameOpen = ImGui::TreeNode(("##frame_" + std::to_string(i)).c_str(), "%s", frameLabel.c_str());
+
+            float previewSize = ImGui::GetFrameHeight() * 2.2f;
+            float deleteButtonWidth = ImGui::CalcTextSize(ICON_FA_TRASH_CAN).x + ImGui::GetStyle().FramePadding.x * 2.0f;
+            float trailingWidth = deleteButtonWidth;
+            bool hasFramePreview = !previewTexture.empty() && sprite.framesRect[i].rect.getWidth() > 0.0f && sprite.framesRect[i].rect.getHeight() > 0.0f;
+            if (hasFramePreview) {
+                trailingWidth += ImGui::GetStyle().ItemSpacing.x + previewSize;
+            }
+
+            ImGui::SameLine();
+            float targetX = ImGui::GetCursorPosX() + std::max(0.0f, ImGui::GetContentRegionAvail().x - trailingWidth);
+            ImGui::SetCursorPosX(targetX);
+
+            if (hasFramePreview) {
+                drawSpriteFramePreview(&previewTexture, sprite.framesRect[i].rect, ImVec2(previewSize, previewSize), "##frame_preview");
+                if (ImGui::IsItemHovered()) {
+                    ImGui::BeginTooltip();
+                    ImGui::Text("%s", frameLabel.c_str());
+
+                    float tooltipMaxSize = 200.0f;
+                    float scale = std::min(tooltipMaxSize / std::max(1.0f, sprite.framesRect[i].rect.getWidth()),
+                                           tooltipMaxSize / std::max(1.0f, sprite.framesRect[i].rect.getHeight()));
+                    scale = std::min(scale, 1.0f);
+                    ImVec2 tooltipSize(std::max(32.0f, sprite.framesRect[i].rect.getWidth() * scale),
+                                       std::max(32.0f, sprite.framesRect[i].rect.getHeight() * scale));
+
+                    drawSpriteFramePreview(&previewTexture, sprite.framesRect[i].rect, tooltipSize, "##frame_preview_tooltip");
+                    ImGui::EndTooltip();
+                }
+
+                ImGui::SameLine();
+            }
+
+            // Delete button on the same line
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+            if (ImGui::SmallButton(ICON_FA_TRASH_CAN)) {
+                Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+                std::string prefix = "framesRect[" + std::to_string(i) + "]";
+                multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entities[0], cpType,
+                    prefix + ".active", false);
+                multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
+                    prefix + ".name", std::string(""));
+                multiCmd->addPropertyCmd<Vector4>(project, sceneProject->id, entities[0], cpType,
+                    prefix + ".rect", Vector4(0, 0, 0, 0));
+                multiCmd->setNoMerge();
+                CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+
+                if (frameOpen) ImGui::TreePop();
+                ImGui::PopStyleColor(2);
+                ImGui::PopID();
+                continue;
+            }
+            ImGui::PopStyleColor(2);
+
+            if (frameOpen) {
+                std::string prefix = "framesRect[" + std::to_string(i) + "]";
+
+                beginTable(cpType, getLabelSize("Rect"), "frame_" + std::to_string(i));
+                propertyRow(RowPropertyType::String, cpType, prefix + ".name", "Name", sceneProject, entities);
+                propertyRow(RowPropertyType::Vector4, cpType, prefix + ".rect", "Rect", sceneProject, entities, settingsFrameRect);
+                endTable();
+
+                ImGui::TreePop();
+            }
+
+            ImGui::PopID();
+        }
+    } else {
+        ImGui::SeparatorText("Sprite Frames");
+        ImGui::TextDisabled("Select a single entity to edit sprite frames");
+    }
 }
 
 void Editor::Properties::drawCameraComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
@@ -5901,6 +6116,7 @@ void Editor::Properties::show(){
     usedPreviewIds.clear();
 
     scriptCreateDialog.show();
+    spriteSheetSlicerDialog.show();
 
     ImGui::End();
 }

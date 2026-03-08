@@ -181,11 +181,13 @@ namespace {
         makeFastProperty<ButtonComponent, bool, &ButtonComponent::disabled>("disabled", PropertyType::Bool, UpdateFlags_None),
     };
 
-    static const FastPropertyDescriptor kSpriteProperties[] = {
+    static const FastPropertyDescriptor kSpriteTopProperties[] = {
         makeFastPropertyNoDefault<SpriteComponent, unsigned int, &SpriteComponent::width>("width", PropertyType::UInt, UpdateFlags_Sprite),
         makeFastPropertyNoDefault<SpriteComponent, unsigned int, &SpriteComponent::height>("height", PropertyType::UInt, UpdateFlags_Sprite),
         makeFastProperty<SpriteComponent, PivotPreset, &SpriteComponent::pivotPreset>("pivotPreset", PropertyType::Enum, UpdateFlags_Sprite),
         makeFastProperty<SpriteComponent, float, &SpriteComponent::textureScaleFactor>("textureScaleFactor", PropertyType::Float, UpdateFlags_Sprite),
+        makeFastProperty<SpriteComponent, bool, &SpriteComponent::automaticFlipY>("automaticFlipY", PropertyType::Bool, UpdateFlags_Sprite),
+        makeFastProperty<SpriteComponent, bool, &SpriteComponent::flipY>("flipY", PropertyType::Bool, UpdateFlags_Sprite),
     };
 
     static const FastPropertyDescriptor kLightProperties[] = {
@@ -789,8 +791,59 @@ namespace {
         return resolveDirectProperties(static_cast<ButtonComponent*>(comp), propertyName, kButtonProperties);
     }
 
+    PropertyData getSpritePropertyFast(SpriteComponent* comp, const std::string& propertyName) {
+        SpriteComponent& def = getDefaultComponent<SpriteComponent>();
+
+        if (!comp) {
+            return PropertyData();
+        }
+
+        // Flat properties
+        PropertyData result = resolveDirectProperties(comp, propertyName, kSpriteTopProperties);
+        if (result.ref) return result;
+
+        // framesRect[N].field
+        if (propertyName.compare(0, 11, "framesRect[") != 0) {
+            return PropertyData();
+        }
+
+        size_t pos = 11;
+        size_t frameIndex = 0;
+        if (!parseIndex(propertyName, pos, frameIndex) || pos >= propertyName.size() || propertyName[pos] != ']') {
+            return PropertyData();
+        }
+        if (frameIndex >= MAX_SPRITE_FRAMES) {
+            return PropertyData();
+        }
+
+        SpriteFrameData& frame = comp->framesRect[frameIndex];
+        SpriteFrameData& defFrame = def.framesRect[0];
+
+        pos++;
+        if (pos == propertyName.size()) {
+            return {PropertyType::Custom, UpdateFlags_Sprite, (void*)&defFrame, (void*)&frame};
+        }
+        if (propertyName[pos] != '.') {
+            return PropertyData();
+        }
+
+        const size_t fieldPos = pos + 1;
+
+        if (propertyName.compare(fieldPos, 6, "active") == 0 && fieldPos + 6 == propertyName.size()) {
+            return {PropertyType::Bool, UpdateFlags_Sprite, (void*)&defFrame.active, (void*)&frame.active};
+        }
+        if (propertyName.compare(fieldPos, 4, "name") == 0 && fieldPos + 4 == propertyName.size()) {
+            return {PropertyType::String, UpdateFlags_Sprite, (void*)&defFrame.name, (void*)&frame.name};
+        }
+        if (propertyName.compare(fieldPos, 4, "rect") == 0 && fieldPos + 4 == propertyName.size()) {
+            return {PropertyType::Vector4, UpdateFlags_Sprite, (void*)&defFrame.rect, (void*)&frame.rect};
+        }
+
+        return PropertyData();
+    }
+
     PropertyData resolveSpritePropertyFast(void* comp, const std::string& propertyName) {
-        return resolveDirectProperties(static_cast<SpriteComponent*>(comp), propertyName, kSpriteProperties);
+        return getSpritePropertyFast(static_cast<SpriteComponent*>(comp), propertyName);
     }
 
     PropertyData resolveLightPropertyFast(void* comp, const std::string& propertyName) {
@@ -885,8 +938,22 @@ namespace {
         enumerateFromDescriptors(comp, ps, kButtonProperties);
     }
 
-    void enumerateSpriteProperties(void* comp, std::map<std::string, PropertyData>& ps) {
-        enumerateFromDescriptors(comp, ps, kSpriteProperties);
+    void enumerateSpriteProperties(void* compRef, std::map<std::string, PropertyData>& ps) {
+        SpriteComponent* comp = static_cast<SpriteComponent*>(compRef);
+        SpriteComponent& def = getDefaultComponent<SpriteComponent>();
+
+        enumerateFromDescriptors(compRef, ps, kSpriteTopProperties);
+
+        for (int i = 0; i < (compRef ? MAX_SPRITE_FRAMES : 1); i++) {
+            std::string idx = compRef ? std::to_string(i) : "";
+
+            SpriteFrameData& frame = compRef ? comp->framesRect[i] : def.framesRect[0];
+            SpriteFrameData& defFrame = def.framesRect[0];
+
+            ps["framesRect[" + idx + "].active"] = {PropertyType::Bool, UpdateFlags_Sprite, (void*)&defFrame.active, compRef ? (void*)&frame.active : nullptr};
+            ps["framesRect[" + idx + "].name"] = {PropertyType::String, UpdateFlags_Sprite, (void*)&defFrame.name, compRef ? (void*)&frame.name : nullptr};
+            ps["framesRect[" + idx + "].rect"] = {PropertyType::Vector4, UpdateFlags_Sprite, (void*)&defFrame.rect, compRef ? (void*)&frame.rect : nullptr};
+        }
     }
 
     void enumerateLightProperties(void* comp, std::map<std::string, PropertyData>& ps) {

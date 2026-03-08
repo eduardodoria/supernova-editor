@@ -2276,10 +2276,22 @@ SpriteComponent Editor::Stream::decodeSpriteComponent(const YAML::Node& node, co
     //if (node["needUpdateSprite"]) sprite.needUpdateSprite = node["needUpdateSprite"].as<bool>();
 
     if (node["framesRect"]) {
-        for (const auto& frameNode : node["framesRect"]) {
-            int index = frameNode.first.as<int>();
-            if (index >= 0 && index < MAX_SPRITE_FRAMES) {
-                sprite.framesRect[index] = decodeSpriteFrameData(frameNode.second);
+        const YAML::Node& framesNode = node["framesRect"];
+
+        if (framesNode.IsSequence()) {
+            for (std::size_t i = 0; i < framesNode.size() && i < MAX_SPRITE_FRAMES; i++) {
+                if (!framesNode[i] || framesNode[i].IsNull()) {
+                    continue;
+                }
+
+                sprite.framesRect[i] = decodeSpriteFrameData(framesNode[i]);
+            }
+        } else {
+            for (const auto& frameNode : framesNode) {
+                int index = frameNode.first.as<int>();
+                if (index >= 0 && index < MAX_SPRITE_FRAMES) {
+                    sprite.framesRect[index] = decodeSpriteFrameData(frameNode.second);
+                }
             }
         }
     }

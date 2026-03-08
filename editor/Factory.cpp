@@ -784,8 +784,20 @@ std::string Editor::Factory::createSpriteComponent(int indentSpaces, Scene* scen
     code << ind << "SpriteComponent sprite;\n";
     code << ind << "sprite.width = " << formatUInt(sprite.width) << ";\n";
     code << ind << "sprite.height = " << formatUInt(sprite.height) << ";\n";
+    code << ind << "sprite.automaticFlipY = " << formatBool(sprite.automaticFlipY) << ";\n";
+    code << ind << "sprite.flipY = " << formatBool(sprite.flipY) << ";\n";
     code << ind << "sprite.pivotPreset = " << formatPivotPreset(sprite.pivotPreset) << ";\n";
     code << ind << "sprite.textureScaleFactor = " << formatFloat(sprite.textureScaleFactor) << ";\n";
+    for (int i = 0; i < MAX_SPRITE_FRAMES; i++) {
+        if (!sprite.framesRect[i].active) {
+            continue;
+        }
+        code << ind << "sprite.framesRect[" << i << "].active = true;\n";
+        if (!sprite.framesRect[i].name.empty()) {
+            code << ind << "sprite.framesRect[" << i << "].name = " << formatString(sprite.framesRect[i].name) << ";\n";
+        }
+        code << ind << "sprite.framesRect[" << i << "].rect = " << formatRect(sprite.framesRect[i].rect) << ";\n";
+    }
     addComponentCode(code, ind, sceneName, entityName, entity, "SpriteComponent", "sprite");
     return code.str();
 }
