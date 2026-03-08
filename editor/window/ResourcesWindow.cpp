@@ -808,7 +808,7 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories){
                 codeEditor->closeFile(filePath.string());
             }
 
-            project->getProjectCommandHistory()->addCommand(new DeleteFileCmd(pathsToDelete, project->getProjectPath()));
+            project->getProjectCommandHistory()->addCommand(new DeleteFileCmd(project, pathsToDelete, project->getProjectPath()));
             selectedFiles.clear();
             scanDirectory(currentPath);
             showDeleteConfirmation = false;

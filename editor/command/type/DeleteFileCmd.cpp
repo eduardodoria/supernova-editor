@@ -1,10 +1,12 @@
 #include "DeleteFileCmd.h"
+
 #include <filesystem>
 #include <string>
 
 using namespace Supernova;
 
-Editor::DeleteFileCmd::DeleteFileCmd(std::vector<fs::path> filePaths, fs::path rootPath){
+Editor::DeleteFileCmd::DeleteFileCmd(Project* project, std::vector<fs::path> filePaths, fs::path rootPath){
+    this->project = project;
     for (fs::path& file : filePaths){
         this->files.push_back({file, fs::path()});
     }
@@ -35,6 +37,8 @@ bool Editor::DeleteFileCmd::execute(){
         fs::create_directory(trash);
     }
 
+    std::vector<fs::path> deletedPaths;
+
     for (DeleteFilesData& file : files){
         try {
             if (fs::exists(file.originalFile)) {
@@ -54,12 +58,24 @@ bool Editor::DeleteFileCmd::execute(){
                     file.trashFile = generateUniqueTrashPath(trash, file.originalFile);
                     fs::rename(file.originalFile, file.trashFile);
                 }
+
+                deletedPaths.push_back(file.originalFile);
             }
         } catch (const fs::filesystem_error& e) {
             printf("Error: Deleting %s: %s\n", file.originalFile.string().c_str(), e.what());
             return false;
         }
     }
+
+    if (project) {
+        for (const auto& deletedPath : deletedPaths) {
+            project->cleanupMaterialFilePath(deletedPath);
+            project->cleanupSceneFilePath(deletedPath);
+            project->cleanupSharedEntityFilePath(deletedPath);
+            project->cleanupScriptFilePath(deletedPath);
+        }
+    }
+
     return true;
 }
 

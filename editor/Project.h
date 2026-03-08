@@ -171,6 +171,8 @@ namespace Supernova::Editor{
         void registerSceneManager();
 
         fs::path normalizeToProjectRelative(const fs::path& path) const;
+        static bool matchesRelativePath(const fs::path& relativeBase, const fs::path& currentPath);
+        static bool matchesRelativeString(const fs::path& relativeBase, const std::string& currentPath);
         static bool remapRelativePath(const fs::path& oldRelative, const fs::path& newRelative,
                           const fs::path& currentPath, fs::path& updatedPath);
         static bool remapRelativeString(const fs::path& oldRelative, const fs::path& newRelative,
@@ -181,6 +183,8 @@ namespace Supernova::Editor{
                              const fs::path& newRelative, SceneProject* sceneProject = nullptr);
         bool remapScriptPathsInRegistry(EntityRegistry* registry, const fs::path& oldRelative,
                         const fs::path& newRelative);
+        bool cleanupSharedEntityRefsInRegistry(EntityRegistry* registry, const fs::path& deletedRelative);
+        bool cleanupScriptPathsInRegistry(EntityRegistry* registry, const fs::path& deletedRelative);
 
         void finalizeStart(SceneProject* mainSceneProject, std::vector<PlayRuntimeScene>& runtimeScenes);
         void finalizeStop(SceneProject* mainSceneProject, std::vector<PlayRuntimeScene> runtimeScenes);
@@ -227,6 +231,10 @@ namespace Supernova::Editor{
         void remapSceneFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
         void remapSharedEntityFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
         void remapScriptFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
+        void cleanupMaterialFilePath(const std::filesystem::path& deletedPath);
+        void cleanupSceneFilePath(const std::filesystem::path& deletedPath);
+        void cleanupSharedEntityFilePath(const std::filesystem::path& deletedPath);
+        void cleanupScriptFilePath(const std::filesystem::path& deletedPath);
 
         //=== end File path remapping ===
 

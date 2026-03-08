@@ -61,18 +61,37 @@ fs::path Editor::Project::normalizeToProjectRelative(const fs::path& path) const
     return normalizedPath;
 }
 
+bool Editor::Project::matchesRelativePath(const fs::path& relativeBase, const fs::path& currentPath) {
+    if (relativeBase.empty() || currentPath.empty()) {
+        return false;
+    }
+
+    const std::string relativeBaseStr = relativeBase.lexically_normal().generic_string();
+    const std::string currentPathStr = currentPath.lexically_normal().generic_string();
+    const std::string relativePrefix = relativeBaseStr + "/";
+
+    return currentPathStr == relativeBaseStr ||
+           (!relativeBaseStr.empty() && currentPathStr.rfind(relativePrefix, 0) == 0);
+}
+
+bool Editor::Project::matchesRelativeString(const fs::path& relativeBase, const std::string& currentPath) {
+    if (relativeBase.empty() || currentPath.empty()) {
+        return false;
+    }
+
+    return matchesRelativePath(relativeBase, fs::path(currentPath));
+}
+
 bool Editor::Project::remapRelativePath(const fs::path& oldRelative, const fs::path& newRelative,
                                         const fs::path& currentPath, fs::path& updatedPath) {
     if (oldRelative.empty() || newRelative.empty() || currentPath.empty()) {
         return false;
     }
 
-    const std::string oldRelativeStr = oldRelative.generic_string();
+    const std::string oldRelativeStr = oldRelative.lexically_normal().generic_string();
     const std::string currentPathStr = currentPath.lexically_normal().generic_string();
-    const std::string oldPrefix = oldRelativeStr + "/";
-
-    bool isExactMatch = (currentPathStr == oldRelativeStr);
-    bool isChildMatch = (!oldRelativeStr.empty() && currentPathStr.rfind(oldPrefix, 0) == 0);
+    const bool isExactMatch = (currentPathStr == oldRelativeStr);
+    const bool isChildMatch = matchesRelativePath(oldRelative, currentPath) && !isExactMatch;
 
     if (!isExactMatch && !isChildMatch) {
         return false;
@@ -171,6 +190,62 @@ bool Editor::Project::remapScriptPathsInRegistry(EntityRegistry* registry, const
         for (auto& scriptEntry : scriptComponent.scripts) {
             changed |= remapScriptEntryPaths(scriptEntry, oldRelative, newRelative);
         }
+    }
+
+    return changed;
+}
+
+bool Editor::Project::cleanupSharedEntityRefsInRegistry(EntityRegistry* registry, const fs::path& deletedRelative) {
+    if (!registry) {
+        return false;
+    }
+
+    auto scriptsArray = registry->getComponentArray<ScriptComponent>();
+    bool changed = false;
+
+    for (size_t i = 0; i < scriptsArray->size(); ++i) {
+        ScriptComponent& scriptComponent = scriptsArray->getComponentFromIndex(i);
+
+        for (auto& scriptEntry : scriptComponent.scripts) {
+            for (auto& prop : scriptEntry.properties) {
+                if (prop.type != ScriptPropertyType::EntityPointer) continue;
+                if (!std::holds_alternative<EntityRef>(prop.value)) continue;
+
+                EntityRef& ref = std::get<EntityRef>(prop.value);
+                if (ref.locator.kind != EntityRefKind::SharedEntity || ref.locator.sharedPath.empty()) continue;
+
+                if (matchesRelativeString(deletedRelative, ref.locator.sharedPath)) {
+                    ref = EntityRef{};
+                    changed = true;
+                }
+            }
+        }
+    }
+
+    return changed;
+}
+
+bool Editor::Project::cleanupScriptPathsInRegistry(EntityRegistry* registry, const fs::path& deletedRelative) {
+    if (!registry) {
+        return false;
+    }
+
+    auto scriptsArray = registry->getComponentArray<ScriptComponent>();
+    bool changed = false;
+
+    for (size_t i = 0; i < scriptsArray->size(); ++i) {
+        ScriptComponent& scriptComponent = scriptsArray->getComponentFromIndex(i);
+        const size_t originalSize = scriptComponent.scripts.size();
+
+        scriptComponent.scripts.erase(
+            std::remove_if(scriptComponent.scripts.begin(), scriptComponent.scripts.end(),
+                [&deletedRelative](const ScriptEntry& scriptEntry) {
+                    return matchesRelativeString(deletedRelative, scriptEntry.path) ||
+                           matchesRelativeString(deletedRelative, scriptEntry.headerPath);
+                }),
+            scriptComponent.scripts.end());
+
+        changed |= (scriptComponent.scripts.size() != originalSize);
     }
 
     return changed;
@@ -406,6 +481,227 @@ void Editor::Project::remapScriptFilePath(const std::filesystem::path& oldPath, 
 
     for (auto& [filepath, group] : sharedGroups) {
         if (remapScriptPathsInRegistry(group.registry.get(), oldRelative, newRelative)) {
+            group.isModified = true;
+
+            for (const auto& [sceneId, instances] : group.instances) {
+                if (!instances.empty()) {
+                    affectedSceneIds.insert(sceneId);
+                }
+            }
+        }
+    }
+
+    for (uint32_t sceneId : affectedSceneIds) {
+        if (SceneProject* sceneProject = getScene(sceneId)) {
+            sceneProject->isModified = true;
+            if (sceneProject->scene) {
+                updateSceneCppScripts(sceneProject);
+            }
+        }
+    }
+}
+
+void Editor::Project::cleanupMaterialFilePath(const std::filesystem::path& deletedPath) {
+    if (projectPath.empty()) {
+        return;
+    }
+
+    fs::path deletedRelative = normalizeToProjectRelative(deletedPath);
+    if (deletedRelative.empty()) {
+        return;
+    }
+
+    for (auto it = materialFileLinks.begin(); it != materialFileLinks.end();) {
+        if (matchesRelativeString(deletedRelative, it->second.filePath)) {
+            it = materialFileLinks.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    for (auto& sceneProject : scenes) {
+        if (!sceneProject.scene) {
+            continue;
+        }
+
+        auto meshes = sceneProject.scene->getComponentArray<MeshComponent>();
+        bool sceneChanged = false;
+
+        for (size_t i = 0; i < meshes->size(); ++i) {
+            Entity entity = meshes->getEntity(i);
+            MeshComponent& mesh = meshes->getComponentFromIndex(i);
+
+            for (unsigned int submeshIndex = 0; submeshIndex < mesh.numSubmeshes; ++submeshIndex) {
+                Material& material = mesh.submeshes[submeshIndex].material;
+                if (!matchesRelativeString(deletedRelative, material.name)) {
+                    continue;
+                }
+
+                material.name.clear();
+                mesh.submeshes[submeshIndex].needUpdateTexture = true;
+                sceneProject.needUpdateRender = true;
+                sceneProject.isModified = true;
+                sceneChanged = true;
+
+                unlinkMaterialFile(sceneProject.id, entity, submeshIndex);
+            }
+        }
+
+        if (sceneChanged) {
+            sceneProject.needUpdateRender = true;
+        }
+    }
+
+    for (auto& [filepath, group] : sharedGroups) {
+        if (!group.registry) {
+            continue;
+        }
+
+        auto meshes = group.registry->getComponentArray<MeshComponent>();
+        for (size_t i = 0; i < meshes->size(); ++i) {
+            MeshComponent& mesh = meshes->getComponentFromIndex(i);
+            for (unsigned int submeshIndex = 0; submeshIndex < mesh.numSubmeshes; ++submeshIndex) {
+                Material& material = mesh.submeshes[submeshIndex].material;
+                if (matchesRelativeString(deletedRelative, material.name)) {
+                    material.name.clear();
+                    mesh.submeshes[submeshIndex].needUpdateTexture = true;
+                    group.isModified = true;
+                }
+            }
+        }
+    }
+}
+
+void Editor::Project::cleanupSceneFilePath(const std::filesystem::path& deletedPath) {
+    if (projectPath.empty()) {
+        return;
+    }
+
+    fs::path deletedRelative = normalizeToProjectRelative(deletedPath);
+    if (deletedRelative.empty()) {
+        return;
+    }
+
+    bool changed = false;
+
+    for (auto& sceneProject : scenes) {
+        if (sceneProject.filepath.empty()) {
+            continue;
+        }
+
+        if (matchesRelativePath(deletedRelative, sceneProject.filepath)) {
+            sceneProject.filepath.clear();
+            sceneProject.isModified = true;
+            changed = true;
+        }
+    }
+
+    if (changed) {
+        saveProject();
+    }
+}
+
+void Editor::Project::cleanupSharedEntityFilePath(const std::filesystem::path& deletedPath) {
+    if (projectPath.empty()) {
+        return;
+    }
+
+    fs::path deletedRelative = normalizeToProjectRelative(deletedPath);
+    if (deletedRelative.empty()) {
+        return;
+    }
+
+    // Phase 1: collect and remove matching shared groups (unimport all instances, then erase).
+    // Phase 2: clean up stale EntityRef locators in the remaining registries.
+    std::vector<fs::path> groupsToRemove;
+
+    for (const auto& [filepath, group] : sharedGroups) {
+        if (matchesRelativePath(deletedRelative, filepath)) {
+            groupsToRemove.push_back(filepath);
+        }
+    }
+
+    bool changed = !groupsToRemove.empty();
+
+    for (const auto& groupPath : groupsToRemove) {
+        SharedGroup* group = getSharedGroup(groupPath);
+        if (!group) {
+            continue;
+        }
+
+        std::vector<std::pair<uint32_t, std::vector<Entity>>> instancesToRemove;
+        for (const auto& [sceneId, instances] : group->instances) {
+            for (const auto& instance : instances) {
+                std::vector<Entity> entities;
+                entities.reserve(instance.members.size());
+
+                for (const auto& member : instance.members) {
+                    if (member.localEntity != NULL_ENTITY) {
+                        entities.push_back(member.localEntity);
+                    }
+                }
+
+                if (!entities.empty()) {
+                    instancesToRemove.emplace_back(sceneId, std::move(entities));
+                }
+            }
+        }
+
+        for (const auto& [sceneId, entities] : instancesToRemove) {
+            unimportSharedEntity(sceneId, groupPath, entities, true);
+        }
+
+        removeSharedGroup(groupPath);
+    }
+
+    for (auto& sceneProject : scenes) {
+        if (!sceneProject.scene) {
+            continue;
+        }
+
+        if (cleanupSharedEntityRefsInRegistry(sceneProject.scene, deletedRelative)) {
+            sceneProject.isModified = true;
+            changed = true;
+        }
+    }
+
+    for (auto& [filepath, group] : sharedGroups) {
+        if (cleanupSharedEntityRefsInRegistry(group.registry.get(), deletedRelative)) {
+            group.isModified = true;
+            changed = true;
+        }
+    }
+
+    if (changed) {
+        resolveAllEntityRefs();
+    }
+}
+
+void Editor::Project::cleanupScriptFilePath(const std::filesystem::path& deletedPath) {
+    if (projectPath.empty()) {
+        return;
+    }
+
+    fs::path deletedRelative = normalizeToProjectRelative(deletedPath);
+    if (deletedRelative.empty()) {
+        return;
+    }
+
+    std::unordered_set<uint32_t> affectedSceneIds;
+
+    for (auto& sceneProject : scenes) {
+        if (!sceneProject.scene) {
+            continue;
+        }
+
+        if (cleanupScriptPathsInRegistry(sceneProject.scene, deletedRelative)) {
+            sceneProject.isModified = true;
+            updateSceneCppScripts(&sceneProject);
+        }
+    }
+
+    for (auto& [filepath, group] : sharedGroups) {
+        if (cleanupScriptPathsInRegistry(group.registry.get(), deletedRelative)) {
             group.isModified = true;
 
             for (const auto& [sceneId, instances] : group.instances) {
