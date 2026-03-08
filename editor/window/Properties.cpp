@@ -3768,14 +3768,14 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
             if (sprite.framesRect[i].active) activeFrameCount++;
         }
 
-        // Sprite sheet slicer button
+        // Sprite slicer tool button
         float buttonWidth = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
-        if (ImGui::Button(ICON_FA_GRIP " Slice Sheet", ImVec2(buttonWidth, 0))) {
-            spriteSheetSlicerDialog.open(
+        if (ImGui::Button(ICON_FA_GRIP " Slicer Tool", ImVec2(buttonWidth, 0))) {
+            spriteSlicerToolDialog.open(
                 previewTexture,
                 static_cast<int>(sprite.width),
                 static_cast<int>(sprite.height),
-                [this, sceneProject, entities, cpType](const SpriteSheetSlicerDialog::SliceResult& result) {
+                [this, sceneProject, entities, cpType](const SpriteSlicerToolDialog::SliceResult& result) {
                     Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
 
                     // First clear all existing frames
@@ -6167,7 +6167,7 @@ void Editor::Properties::show(){
     usedPreviewIds.clear();
 
     scriptCreateDialog.show();
-    spriteSheetSlicerDialog.show();
+    spriteSlicerToolDialog.show();
 
     ImGui::End();
 }

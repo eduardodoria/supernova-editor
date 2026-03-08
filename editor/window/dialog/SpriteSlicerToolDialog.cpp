@@ -1,4 +1,4 @@
-#include "SpriteSheetSlicerDialog.h"
+#include "SpriteSlicerToolDialog.h"
 #include "external/IconsFontAwesome6.h"
 #include <cstring>
 #include <algorithm>
@@ -7,7 +7,7 @@
 namespace Supernova {
 namespace Editor {
 
-void SpriteSheetSlicerDialog::open(const Texture& previewTexture,
+void SpriteSlicerToolDialog::open(const Texture& previewTexture,
                                     int sheetWidth, int sheetHeight,
                                     std::function<void(const SliceResult&)> onApply,
                                     std::function<void()> onCancel) {
@@ -53,7 +53,7 @@ void SpriteSheetSlicerDialog::open(const Texture& previewTexture,
     m_prefixBuffer[sizeof(m_prefixBuffer) - 1] = '\0';
 }
 
-void SpriteSheetSlicerDialog::generatePreview() {
+void SpriteSlicerToolDialog::generatePreview() {
     m_previewFrames.clear();
 
     if (m_sheetWidth <= 0 || m_sheetHeight <= 0) return;
@@ -107,10 +107,10 @@ void SpriteSheetSlicerDialog::generatePreview() {
     m_previewDirty = false;
 }
 
-void SpriteSheetSlicerDialog::show() {
+void SpriteSlicerToolDialog::show() {
     if (!m_isOpen) return;
 
-    const char* popupTitle = ICON_FA_GRIP " Sprite Sheet Slicer##SlicerModal";
+    const char* popupTitle = ICON_FA_GRIP " Sprite Slicer Tool##SpriteSlicerToolModal";
 
     ImGui::OpenPopup(popupTitle);
 

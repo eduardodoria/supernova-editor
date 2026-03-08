@@ -6,7 +6,7 @@
 #include "util/ShapeParameters.h"
 #include "window/dialog/ScriptCreateDialog.h"
 #include "window/dialog/ComponentAddDialog.h"
-#include "window/dialog/SpriteSheetSlicerDialog.h"
+#include "window/dialog/SpriteSlicerToolDialog.h"
 
 #include "imgui.h"
 
@@ -96,7 +96,7 @@ namespace Supernova::Editor{
         // Dialogs
         ScriptCreateDialog scriptCreateDialog;
         ComponentAddDialog componentAddDialog;
-        SpriteSheetSlicerDialog spriteSheetSlicerDialog;
+        SpriteSlicerToolDialog spriteSlicerToolDialog;
 
         const ImU32 textureLabel = IM_COL32(50, 50, 50, 255);
 

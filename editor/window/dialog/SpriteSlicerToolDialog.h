@@ -11,7 +11,7 @@
 namespace Supernova {
 namespace Editor {
 
-class SpriteSheetSlicerDialog {
+class SpriteSlicerToolDialog {
 public:
     enum class SliceMode {
         GRID,       // by columns x rows
@@ -52,8 +52,8 @@ private:
     void generatePreview();
 
 public:
-    SpriteSheetSlicerDialog() = default;
-    ~SpriteSheetSlicerDialog() = default;
+    SpriteSlicerToolDialog() = default;
+    ~SpriteSlicerToolDialog() = default;
 
     void open(const Texture& previewTexture,
               int sheetWidth, int sheetHeight,

@@ -201,7 +201,7 @@ add_executable(
     ${EDITOR_DIR}/window/dialog/ComponentAddDialog.cpp
     ${EDITOR_DIR}/window/dialog/ProjectSaveDialog.cpp
     ${EDITOR_DIR}/window/dialog/ScriptCreateDialog.cpp
-    ${EDITOR_DIR}/window/dialog/SpriteSheetSlicerDialog.cpp
+    ${EDITOR_DIR}/window/dialog/SpriteSlicerToolDialog.cpp
     ${EDITOR_DIR}/window/widget/CustomTextEditor.cpp
     ${EDITOR_DIR}/window/widget/SemanticSuggestions.cpp
 
