@@ -2318,14 +2318,21 @@ fs::path Editor::Project::getThumbsDir() const{
 
 fs::path Editor::Project::getThumbnailPath(const fs::path& originalPath) const {
     fs::path thumbsDir = getThumbsDir();
+    fs::path resolvedPath = originalPath;
+
+    if (resolvedPath.is_relative() && !projectPath.empty()) {
+        resolvedPath = projectPath / resolvedPath;
+    }
+
+    resolvedPath = resolvedPath.lexically_normal();
 
     // Get relative path from project root, as a string
-    fs::path relativePath = fs::relative(originalPath, getProjectPath());
+    fs::path relativePath = fs::relative(resolvedPath, getProjectPath());
     std::string relPathStr = relativePath.generic_string();
 
     // Include file size and modification time in hash for uniqueness
-    auto fileSize = fs::file_size(originalPath);
-    auto modTime = fs::last_write_time(originalPath).time_since_epoch().count();
+    auto fileSize = fs::file_size(resolvedPath);
+    auto modTime = fs::last_write_time(resolvedPath).time_since_epoch().count();
     std::string hashInput = relPathStr + "_" + std::to_string(static_cast<uint64_t>(fileSize)) + "_" + std::to_string(static_cast<int64_t>(modTime));
 
     // Hash the combined string

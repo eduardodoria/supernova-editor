@@ -412,8 +412,14 @@ Texture* Editor::Properties::findThumbnail(const std::string& path) {
     std::filesystem::path projectPath = project->getProjectPath();
     std::filesystem::path thumbnailPath;
 
-    // Only try if the texture path is not empty and is inside the project
-    if (!texPath.empty() && texPath.is_absolute() && texPath.string().find(projectPath.string()) == 0) {
+    if (!texPath.empty() && texPath.is_relative() && !projectPath.empty()) {
+        texPath = projectPath / texPath;
+    }
+
+    texPath = texPath.lexically_normal();
+    projectPath = projectPath.lexically_normal();
+
+    if (!texPath.empty() && texPath.is_absolute()) {
         thumbnailPath = project->getThumbnailPath(texPath);
 
         // If the thumbnail exists, load and use it
