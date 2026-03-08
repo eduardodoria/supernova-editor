@@ -54,10 +54,10 @@ Editor::App::App(){
 }
 
 void Editor::App::saveFunc(){
-    if (lastFocusedWindow == LastFocusedWindow::Scene) {
-        project.saveLastSelectedScene();
-    } else if (lastFocusedWindow == LastFocusedWindow::Code) {
+    if (lastFocusedWindow == LastFocusedWindow::Code) {
         codeEditor->saveLastFocused();
+    }else{
+        project.saveLastSelectedScene();
     }
 }
 
@@ -184,10 +184,10 @@ void Editor::App::showMenu(){
             }
             ImGui::Separator();
             bool canSave = false;
-            if (lastFocusedWindow == LastFocusedWindow::Scene) {
-                canSave = project.hasSelectedSceneUnsavedChanges();
-            } else if (lastFocusedWindow == LastFocusedWindow::Code) {
+            if (lastFocusedWindow == LastFocusedWindow::Code) {
                 canSave = codeEditor->hasLastFocusedUnsavedChanges();
+            }else{
+                canSave = project.hasSelectedSceneUnsavedChanges();
             }
             bool canSaveAll = project.hasScenesUnsavedChanges() || codeEditor->hasUnsavedChanges();
 
@@ -621,12 +621,12 @@ void Editor::App::setup() {
 }
 
 void Editor::App::show(){
-    if (sceneWindow->isFocused()) {
-        lastFocusedWindow = LastFocusedWindow::Scene;
-    } else if (resourcesWindow->isFocused()) {
+    if (resourcesWindow->isFocused()) {
         lastFocusedWindow = LastFocusedWindow::Resources;
     } else if (codeEditor->isFocused()) {
         lastFocusedWindow = LastFocusedWindow::Code;
+    }else{
+        lastFocusedWindow = LastFocusedWindow::AnySceneWindow;
     }
 
     ImGuiIO& io = ImGui::GetIO();
