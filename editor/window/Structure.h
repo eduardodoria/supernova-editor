@@ -4,7 +4,7 @@
 #include "Project.h"
 #include "SceneWindow.h"
 #include "imgui.h"
-#include <deque>
+#include <list>
 #include <string>
 #include <vector>
 #include <filesystem>
@@ -30,7 +30,7 @@ namespace Supernova::Editor{
         uint32_t parent = NULL_ENTITY;
         uint32_t childSceneId = 0;          // Scene ID for child scene nodes
         uint32_t ownerSceneId = 0;          // Parent/owner scene ID (for child scene nodes)
-        std::deque<TreeNode> children;
+        std::list<TreeNode> children;
     };
 
     class Structure{
