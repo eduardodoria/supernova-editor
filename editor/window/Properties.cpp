@@ -2931,7 +2931,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         // Button to show entity (with icon)
         std::string buttonLabel = ICON_FA_CIRCLE_DOT " " + entityName + "##entity_" + id;
         float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
-        float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_XMARK).x;
+        float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_TRASH_CAN).x;
         ImVec2 buttonSize = ImVec2(ImGui::GetContentRegionAvail().x - clearButtonWidth - ImGui::GetStyle().ItemSpacing.x - clearButtonFramePadding * 2, 0);
 
         if (ImGui::Button(buttonLabel.c_str(), buttonSize)) {
@@ -2995,11 +2995,13 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             ImGui::PopStyleColor();
         }
 
-        // Clear button (X)
+        // Clear button (trash)
         ImGui::SameLine();
         ImGui::BeginDisabled(newValue.entity == NULL_ENTITY);
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
-        if (ImGui::Button((ICON_FA_XMARK "##clear_entity_" + id).c_str())) {
+        if (ImGui::Button((ICON_FA_TRASH_CAN "##clear_entity_" + id).c_str())) {
             for (Entity& entity : entities) {
                 cmd = new PropertyCmd<EntityRef>(project, sceneProject->id, entity, cpType, id, *defVal);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -3007,6 +3009,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             finishProperty = true;
         }
         ImGui::PopStyleVar();
+        ImGui::PopStyleColor(2);
         ImGui::EndDisabled();
         if (ImGui::IsItemHovered()) {
             ImGui::SetTooltip("Clear entity reference");
@@ -3062,7 +3065,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
         std::string buttonLabel = ICON_FA_CIRCLE_DOT " " + entityName + "##local_entity_" + id;
         float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
-        float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_XMARK).x;
+        float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_TRASH_CAN).x;
         ImVec2 inputSize = ImVec2(ImGui::GetContentRegionAvail().x - clearButtonWidth - ImGui::GetStyle().ItemSpacing.x - clearButtonFramePadding * 2, 0);
 
         if (ImGui::Button(buttonLabel.c_str(), inputSize)) {
@@ -3099,8 +3102,10 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
         ImGui::SameLine();
         ImGui::BeginDisabled(newValue == NULL_ENTITY && !different);
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
-        if (ImGui::Button((ICON_FA_XMARK "##clear_local_entity_" + id).c_str())) {
+        if (ImGui::Button((ICON_FA_TRASH_CAN "##clear_local_entity_" + id).c_str())) {
             for (Entity& entity : entities) {
                 cmd = new PropertyCmd<unsigned int>(project, sceneProject->id, entity, cpType, id, NULL_ENTITY, settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -3108,6 +3113,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             finishProperty = true;
         }
         ImGui::PopStyleVar();
+        ImGui::PopStyleColor(2);
         ImGui::EndDisabled();
         if (ImGui::IsItemHovered()) {
             ImGui::SetTooltip("Clear entity reference");
@@ -4728,7 +4734,7 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
             }
             bool removedVertex = false;
             float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
-            float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_XMARK).x;
+            float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_TRASH_CAN).x;
             ImVec2 inputVerSize = ImVec2(ImGui::GetContentRegionAvail().x - clearButtonWidth - ImGui::GetStyle().ItemSpacing.x - clearButtonFramePadding * 2, 0);
             if (inputVerSize.x < 100.0f){
                 inputVerSize.x = 100.0f;
@@ -4744,8 +4750,10 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
 
                 ImGui::SameLine();
 
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+                ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
                 ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
-                std::string removeVertexId = std::string(ICON_FA_XMARK) + "##remove_polygon_vertex_" + std::to_string(s) + "_" + std::to_string(v);
+                std::string removeVertexId = std::string(ICON_FA_TRASH_CAN) + "##remove_polygon_vertex_" + std::to_string(s) + "_" + std::to_string(v);
                 if (ImGui::Button(removeVertexId.c_str())){
                     MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
                     for (Entity entity : entities){
@@ -4769,9 +4777,11 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
 
                     removedVertex = true;
                     ImGui::PopStyleVar();
+                    ImGui::PopStyleColor(2);
                     break;
                 }
                 ImGui::PopStyleVar();
+                ImGui::PopStyleColor(2);
                 if (ImGui::IsItemHovered()) {
                     ImGui::SetTooltip("Remove vertex");
                 }
@@ -4828,7 +4838,7 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
 
             bool removedVertex = false;
             float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
-            float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_XMARK).x;
+            float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_TRASH_CAN).x;
             ImVec2 inputVerSize = ImVec2(ImGui::GetContentRegionAvail().x - clearButtonWidth - ImGui::GetStyle().ItemSpacing.x - clearButtonFramePadding * 2, 0);
             if (inputVerSize.x < 100.0f){
                 inputVerSize.x = 100.0f;
@@ -4842,8 +4852,10 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
 
                 ImGui::SameLine();
 
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+                ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
                 ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
-                std::string removeVertexId = std::string(ICON_FA_XMARK) + "##remove_chain_vertex_" + std::to_string(s) + "_" + std::to_string(v);
+                std::string removeVertexId = std::string(ICON_FA_TRASH_CAN) + "##remove_chain_vertex_" + std::to_string(s) + "_" + std::to_string(v);
                 if (ImGui::Button(removeVertexId.c_str())){
                     MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
                     for (Entity entity : entities){
@@ -4867,9 +4879,11 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
 
                     removedVertex = true;
                     ImGui::PopStyleVar();
+                    ImGui::PopStyleColor(2);
                     break;
                 }
                 ImGui::PopStyleVar();
+                ImGui::PopStyleColor(2);
                 if (ImGui::IsItemHovered()) {
                     ImGui::SetTooltip("Remove vertex");
                 }
@@ -5293,7 +5307,7 @@ void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject*
                 }
 
                 float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
-                float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_XMARK).x;
+                float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_TRASH_CAN).x;
                 ImVec2 inputVerSize = ImVec2(ImGui::GetContentRegionAvail().x - clearButtonWidth - ImGui::GetStyle().ItemSpacing.x - clearButtonFramePadding * 2, 0);
                 if (inputVerSize.x < 100.0f){
                     inputVerSize.x = 100.0f;
@@ -5306,7 +5320,9 @@ void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject*
                     propertyRow(RowPropertyType::Vector3, cpType, shapeKey + ".vertices[" + std::to_string(v) + "]", "Vertex " + std::to_string(v + 1), sceneProject, entities, settingsVertex);
                     ImGui::SameLine();
 
-                    std::string removeVertexId = std::string(ICON_FA_XMARK) + "##remove_convex_vertex_" + std::to_string(s) + "_" + std::to_string(v);
+                    std::string removeVertexId = std::string(ICON_FA_TRASH_CAN) + "##remove_convex_vertex_" + std::to_string(s) + "_" + std::to_string(v);
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
                     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
                     if (ImGui::Button(removeVertexId.c_str())){
                         MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
@@ -5326,6 +5342,7 @@ void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject*
                         CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
                     }
                     ImGui::PopStyleVar();
+                    ImGui::PopStyleColor(2);
                     if (ImGui::IsItemHovered()) {
                         ImGui::SetTooltip("Remove vertex");
                     }
@@ -5367,7 +5384,7 @@ void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject*
                 }
 
                 float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
-                float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_XMARK).x;
+                float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_TRASH_CAN).x;
                 ImVec2 inputVerSize = ImVec2(ImGui::GetContentRegionAvail().x - clearButtonWidth - ImGui::GetStyle().ItemSpacing.x - clearButtonFramePadding * 2, 0);
                 if (inputVerSize.x < 100.0f){
                     inputVerSize.x = 100.0f;
@@ -5380,7 +5397,9 @@ void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject*
                     propertyRow(RowPropertyType::Vector3, cpType, shapeKey + ".vertices[" + std::to_string(v) + "]", "Vertex " + std::to_string(v + 1), sceneProject, entities, settingsVertex);
                     ImGui::SameLine();
 
-                    std::string removeVertexId = std::string(ICON_FA_XMARK) + "##remove_mesh_vertex_" + std::to_string(s) + "_" + std::to_string(v);
+                    std::string removeVertexId = std::string(ICON_FA_TRASH_CAN) + "##remove_mesh_vertex_" + std::to_string(s) + "_" + std::to_string(v);
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
                     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
                     if (ImGui::Button(removeVertexId.c_str())){
                         MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
@@ -5400,6 +5419,7 @@ void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject*
                         CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
                     }
                     ImGui::PopStyleVar();
+                    ImGui::PopStyleColor(2);
                     if (ImGui::IsItemHovered()) {
                         ImGui::SetTooltip("Remove vertex");
                     }
@@ -5462,7 +5482,9 @@ void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject*
                         CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
                     }
                     ImGui::SameLine();
-                    std::string removeTriId = std::string(ICON_FA_XMARK) + "##remove_mesh_tri_" + std::to_string(s) + "_" + std::to_string(t);
+                    std::string removeTriId = std::string(ICON_FA_TRASH_CAN) + "##remove_mesh_tri_" + std::to_string(s) + "_" + std::to_string(t);
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
                     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
                     if (ImGui::Button(removeTriId.c_str())){
                         MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
@@ -5482,6 +5504,7 @@ void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject*
                         CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
                     }
                     ImGui::PopStyleVar();
+                    ImGui::PopStyleColor(2);
                     if (ImGui::IsItemHovered()) {
                         ImGui::SetTooltip("Remove triangle");
                     }
@@ -5711,7 +5734,7 @@ void Editor::Properties::drawJoint3DComponent(ComponentType cpType, SceneProject
 
         bool removedPoint = false;
         float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
-        float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_XMARK).x;
+        float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_TRASH_CAN).x;
         ImVec2 inputSize = ImVec2(ImGui::GetContentRegionAvail().x - clearButtonWidth - ImGui::GetStyle().ItemSpacing.x - clearButtonFramePadding * 2, 0);
         if (inputSize.x < 100.0f){
             inputSize.x = 100.0f;
@@ -5727,8 +5750,10 @@ void Editor::Properties::drawJoint3DComponent(ComponentType cpType, SceneProject
 
             ImGui::SameLine();
 
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
-            std::string removePointId = std::string(ICON_FA_XMARK) + "##remove_path_point_" + std::to_string(pointIndex);
+            std::string removePointId = std::string(ICON_FA_TRASH_CAN) + "##remove_path_point_" + std::to_string(pointIndex);
             if (ImGui::Button(removePointId.c_str())){
                 MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
                 for (Entity entity : entities){
@@ -5746,9 +5771,11 @@ void Editor::Properties::drawJoint3DComponent(ComponentType cpType, SceneProject
 
                 removedPoint = true;
                 ImGui::PopStyleVar();
+                ImGui::PopStyleColor(2);
                 break;
             }
             ImGui::PopStyleVar();
+            ImGui::PopStyleColor(2);
             if (ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("Remove point");
             }
