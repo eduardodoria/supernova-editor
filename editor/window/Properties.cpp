@@ -3820,88 +3820,106 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
             }
         }
 
-        ImGui::Text("Frames: %d / %d", activeFrameCount, MAX_SPRITE_FRAMES);
+        beginTable(cpType, getLabelSize("Frames"), "sprite_frames_header");
+        propertyHeader("Frames", -1, false, false);
+        ImGui::Text("%d / %d", activeFrameCount, MAX_SPRITE_FRAMES);
+        ImGui::SameLine();
+        if (ImGui::ArrowButton("##toggle_all_frames", spriteFramesExpanded ? ImGuiDir_Up : ImGuiDir_Down)) {
+            spriteFramesExpanded = !spriteFramesExpanded;
+        }
+        endTable();
 
-        // Draw each active frame
-        RowSettings settingsFrameRect;
-        settingsFrameRect.stepSize = 1.0f;
-        settingsFrameRect.secondColSize = -1;
-        settingsFrameRect.format = "%.0f";
+        if (spriteFramesExpanded) {
+            // Draw each active frame
+            RowSettings settingsFrameRect;
+            settingsFrameRect.stepSize = 1.0f;
+            settingsFrameRect.format = "%.0f";
 
-        for (int i = 0; i < MAX_SPRITE_FRAMES; i++) {
-            if (!sprite.framesRect[i].active) continue;
+            for (int i = 0; i < MAX_SPRITE_FRAMES; i++) {
+                if (!sprite.framesRect[i].active) continue;
 
-            ImGui::PushID(i);
+                ImGui::PushID(i);
 
-            std::string frameLabel = "[" + std::to_string(i) + "] " + sprite.framesRect[i].name;
-            bool frameOpen = ImGui::TreeNode(("##frame_" + std::to_string(i)).c_str(), "%s", frameLabel.c_str());
+                std::string frameLabel = "[" + std::to_string(i) + "] " + sprite.framesRect[i].name;
+                std::string frameGroupStr = "frame_" + std::to_string(i);
+                std::string prefix = "framesRect[" + std::to_string(i) + "]";
 
-            float previewSize = ImGui::GetFrameHeight() * 2.2f;
-            float deleteButtonWidth = ImGui::CalcTextSize(ICON_FA_TRASH_CAN).x + ImGui::GetStyle().FramePadding.x * 2.0f;
-            float trailingWidth = deleteButtonWidth;
-            bool hasFramePreview = !previewTexture.empty() && sprite.framesRect[i].rect.getWidth() > 0.0f && sprite.framesRect[i].rect.getHeight() > 0.0f;
-            if (hasFramePreview) {
-                trailingWidth += ImGui::GetStyle().ItemSpacing.x + previewSize;
-            }
+                ImGui::SeparatorText(frameLabel.c_str());
 
-            ImGui::SameLine();
-            float targetX = ImGui::GetCursorPosX() + std::max(0.0f, ImGui::GetContentRegionAvail().x - trailingWidth);
-            ImGui::SetCursorPosX(targetX);
+                beginTable(cpType, getLabelSize("Frame"), frameGroupStr);
 
-            if (hasFramePreview) {
-                drawSpriteFramePreview(&previewTexture, sprite.framesRect[i].rect, ImVec2(previewSize, previewSize), "##frame_preview");
-                if (ImGui::IsItemHovered()) {
-                    ImGui::BeginTooltip();
-                    ImGui::Text("%s", frameLabel.c_str());
+                // Frame row: Preview + Trash button
+                propertyHeader("Frame", -1, false, false);
 
-                    float tooltipMaxSize = 200.0f;
-                    float scale = std::min(tooltipMaxSize / std::max(1.0f, sprite.framesRect[i].rect.getWidth()),
-                                           tooltipMaxSize / std::max(1.0f, sprite.framesRect[i].rect.getHeight()));
-                    scale = std::min(scale, 1.0f);
-                    ImVec2 tooltipSize(std::max(32.0f, sprite.framesRect[i].rect.getWidth() * scale),
-                                       std::max(32.0f, sprite.framesRect[i].rect.getHeight() * scale));
+                {
+                    float previewSize = ImGui::GetFrameHeight() * 2.2f;
+                    float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
+                    float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_TRASH_CAN).x;
+                    ImVec2 deleteButtonSize = ImVec2(clearButtonWidth + clearButtonFramePadding * 2, 0);
+                    ImVec2 arrowButtonSize = ImGui::CalcItemSize(ImVec2(0, 0), ImGui::GetFrameHeight(), ImGui::GetFrameHeight());
 
-                    drawSpriteFramePreview(&previewTexture, sprite.framesRect[i].rect, tooltipSize, "##frame_preview_tooltip");
-                    ImGui::EndTooltip();
+                    bool hasFramePreview = !previewTexture.empty() && sprite.framesRect[i].rect.getWidth() > 0.0f && sprite.framesRect[i].rect.getHeight() > 0.0f;
+
+                    float trailingWidth = arrowButtonSize.x + ImGui::GetStyle().ItemSpacing.x + deleteButtonSize.x;
+                    if (hasFramePreview) {
+                        trailingWidth += previewSize + ImGui::GetStyle().ItemSpacing.x;
+                    }
+
+                    float targetX = ImGui::GetCursorPosX() + std::max(0.0f, ImGui::GetContentRegionAvail().x - trailingWidth);
+                    ImGui::SetCursorPosX(targetX);
+
+                    if (hasFramePreview) {
+                        drawSpriteFramePreview(&previewTexture, sprite.framesRect[i].rect, ImVec2(previewSize, previewSize), "##frame_preview");
+                        if (ImGui::IsItemHovered()) {
+                            ImGui::BeginTooltip();
+                            ImGui::Text("%s", frameLabel.c_str());
+
+                            float tooltipMaxSize = 200.0f;
+                            float scale = std::min(tooltipMaxSize / std::max(1.0f, sprite.framesRect[i].rect.getWidth()),
+                                                   tooltipMaxSize / std::max(1.0f, sprite.framesRect[i].rect.getHeight()));
+                            scale = std::min(scale, 1.0f);
+                            ImVec2 tooltipSize(std::max(32.0f, sprite.framesRect[i].rect.getWidth() * scale),
+                                               std::max(32.0f, sprite.framesRect[i].rect.getHeight() * scale));
+
+                            drawSpriteFramePreview(&previewTexture, sprite.framesRect[i].rect, tooltipSize, "##frame_preview_tooltip");
+                            ImGui::EndTooltip();
+                        }
+
+                        ImGui::SameLine();
+                    }
+
+                    if (ImGui::ArrowButton("##toggle_frame", spriteFramesButtonGroups[frameGroupStr] ? ImGuiDir_Up : ImGuiDir_Down)) {
+                        spriteFramesButtonGroups[frameGroupStr] = !spriteFramesButtonGroups[frameGroupStr];
+                    }
+                    ImGui::SameLine();
+
+                    bool deleted = false;
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
+                    if (ImGui::Button(ICON_FA_TRASH_CAN"##delete_frame")) {
+                        Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+                        multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entities[0], cpType, prefix + ".active", false);
+                        multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType, prefix + ".name", std::string(""));
+                        multiCmd->addPropertyCmd<Vector4>(project, sceneProject->id, entities[0], cpType, prefix + ".rect", Vector4(0, 0, 0, 0));
+                        multiCmd->setNoMerge();
+                        CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+                        deleted = true;
+                    }
+                    ImGui::PopStyleVar();
+                    ImGui::PopStyleColor(2);
+
+                    // Name and Rect rows
+                    if (!deleted && spriteFramesButtonGroups[frameGroupStr]) {
+                        propertyRow(RowPropertyType::String, cpType, prefix + ".name", "Name", sceneProject, entities);
+                        propertyRow(RowPropertyType::Vector4, cpType, prefix + ".rect", "Rect", sceneProject, entities, settingsFrameRect);
+                    }
                 }
 
-                ImGui::SameLine();
-            }
-
-            // Delete button on the same line
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-            if (ImGui::SmallButton(ICON_FA_TRASH_CAN)) {
-                Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
-                std::string prefix = "framesRect[" + std::to_string(i) + "]";
-                multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entities[0], cpType,
-                    prefix + ".active", false);
-                multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
-                    prefix + ".name", std::string(""));
-                multiCmd->addPropertyCmd<Vector4>(project, sceneProject->id, entities[0], cpType,
-                    prefix + ".rect", Vector4(0, 0, 0, 0));
-                multiCmd->setNoMerge();
-                CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
-
-                if (frameOpen) ImGui::TreePop();
-                ImGui::PopStyleColor(2);
-                ImGui::PopID();
-                continue;
-            }
-            ImGui::PopStyleColor(2);
-
-            if (frameOpen) {
-                std::string prefix = "framesRect[" + std::to_string(i) + "]";
-
-                beginTable(cpType, getLabelSize("Rect"), "frame_" + std::to_string(i));
-                propertyRow(RowPropertyType::String, cpType, prefix + ".name", "Name", sceneProject, entities);
-                propertyRow(RowPropertyType::Vector4, cpType, prefix + ".rect", "Rect", sceneProject, entities, settingsFrameRect);
                 endTable();
 
-                ImGui::TreePop();
+                ImGui::PopID();
             }
-
-            ImGui::PopID();
         }
     } else {
         ImGui::SeparatorText("Sprite Frames");

@@ -80,6 +80,8 @@ namespace Supernova::Editor{
         std::map<std::string, std::map<Entity, std::string>> originalFont;
 
         std::map<std::string, bool> materialButtonGroups;
+        std::map<std::string, bool> spriteFramesButtonGroups;
+        bool spriteFramesExpanded = false;
 
         std::map<std::string, bool> textureCubeSingleMode;
 
