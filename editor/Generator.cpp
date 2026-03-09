@@ -668,6 +668,8 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     cmakeContent += "# Default SUPERNOVA_LIB_DIR if not provided\n";
     cmakeContent += "if(NOT DEFINED SUPERNOVA_LIB_DIR OR SUPERNOVA_LIB_DIR STREQUAL \"\")\n";
     cmakeContent += "    set(SUPERNOVA_LIB_DIR \"" + exePath.generic_string() + "\")\n";
+    cmakeContent += "    # Must be the same as the editor's library to not ODR violation / ABI mismatch\n";
+    cmakeContent += "    add_compile_definitions(SUPERNOVA_EDITOR)\n";
     cmakeContent += "endif()\n\n";
 
     cmakeContent += "# Find supernova library in specified location\n";
