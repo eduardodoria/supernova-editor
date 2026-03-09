@@ -3762,11 +3762,8 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
 
         ImGui::SeparatorText("Sprite Frames");
 
-        // Count active frames
-        int activeFrameCount = 0;
-        for (int i = 0; i < (int)sprite.framesRect.size(); i++) {
-            if (sprite.framesRect[i].active) activeFrameCount++;
-        }
+        // Frame count from numFramesRect
+        int activeFrameCount = (int)sprite.numFramesRect;
 
         // Sprite slicer tool button
         float buttonWidth = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
@@ -3778,23 +3775,30 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
                 [this, sceneProject, entities, cpType](const SpriteSlicerToolDialog::SliceResult& result) {
                     Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
 
-                    // First clear all existing frames
-                    for (int i = 0; i < MAX_SPRITE_FRAMES; i++) {
-                        multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entities[0], cpType,
-                            "framesRect[" + std::to_string(i) + "].active", false);
+                    // Clear existing frames beyond new count
+                    SpriteComponent& sprite = sceneProject->scene->getComponent<SpriteComponent>(entities[0]);
+                    for (unsigned int i = (unsigned int)result.frames.size(); i < sprite.numFramesRect; i++) {
+                        std::string prefix = "framesRect[" + std::to_string(i) + "]";
+                        multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
+                            prefix + ".name", std::string(""));
+                        multiCmd->addPropertyCmd<Vector4>(project, sceneProject->id, entities[0], cpType,
+                            prefix + ".rect", Vector4(0, 0, 0, 0));
                     }
 
-                    // Then set new frames from slicer result
+                    // Set new frames from slicer result
                     for (size_t i = 0; i < result.frames.size() && i < MAX_SPRITE_FRAMES; i++) {
                         std::string prefix = "framesRect[" + std::to_string(i) + "]";
-                        multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entities[0], cpType,
-                            prefix + ".active", true);
                         multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
                             prefix + ".name", result.frames[i].name);
                         multiCmd->addPropertyCmd<Vector4>(project, sceneProject->id, entities[0], cpType,
                             prefix + ".rect", Vector4(result.frames[i].rect.getX(), result.frames[i].rect.getY(),
                                 result.frames[i].rect.getWidth(), result.frames[i].rect.getHeight()));
                     }
+
+                    // Update numFramesRect
+                    unsigned int newCount = (unsigned int)std::min(result.frames.size(), (size_t)MAX_SPRITE_FRAMES);
+                    multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entities[0], cpType,
+                        "numFramesRect", newCount);
 
                     multiCmd->setNoMerge();
                     CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
@@ -3806,21 +3810,14 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
 
         // Add frame button
         if (ImGui::Button(ICON_FA_PLUS " Add Frame", ImVec2(buttonWidth, 0))) {
-            // Find first inactive slot
-            int freeSlot = -1;
-            for (int i = 0; i < (int)sprite.framesRect.size(); i++) {
-                if (!sprite.framesRect[i].active) {
-                    freeSlot = i;
-                    break;
-                }
-            }
-            if (freeSlot >= 0) {
+            int freeSlot = (int)sprite.numFramesRect;
+            if (freeSlot < (int)sprite.framesRect.size()) {
                 Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
                 std::string prefix = "framesRect[" + std::to_string(freeSlot) + "]";
-                multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entities[0], cpType,
-                    prefix + ".active", true);
                 multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
                     prefix + ".name", "frame_" + std::to_string(freeSlot));
+                multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entities[0], cpType,
+                    "numFramesRect", (unsigned int)(freeSlot + 1));
                 multiCmd->setNoMerge();
                 CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
             }
@@ -3836,13 +3833,12 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
         endTable();
 
         if (spriteFramesExpanded) {
-            // Draw each active frame
+            // Draw each frame
             RowSettings settingsFrameRect;
             settingsFrameRect.stepSize = 1.0f;
             settingsFrameRect.format = "%.0f";
 
-            for (int i = 0; i < (int)sprite.framesRect.size(); i++) {
-                if (!sprite.framesRect[i].active) continue;
+            for (unsigned int i = 0; i < sprite.numFramesRect; i++) {
 
                 ImGui::PushID(i);
 
@@ -3905,9 +3901,28 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
                     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
                     if (ImGui::Button(ICON_FA_TRASH_CAN"##delete_frame")) {
                         Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
-                        multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entities[0], cpType, prefix + ".active", false);
-                        multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType, prefix + ".name", std::string(""));
-                        multiCmd->addPropertyCmd<Vector4>(project, sceneProject->id, entities[0], cpType, prefix + ".rect", Vector4(0, 0, 0, 0));
+
+                        // Shift frames after deleted one
+                        for (unsigned int j = i; j + 1 < sprite.numFramesRect; j++) {
+                            std::string srcPrefix = "framesRect[" + std::to_string(j + 1) + "]";
+                            std::string dstPrefix = "framesRect[" + std::to_string(j) + "]";
+                            multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
+                                dstPrefix + ".name", sprite.framesRect[j + 1].name);
+                            multiCmd->addPropertyCmd<Vector4>(project, sceneProject->id, entities[0], cpType,
+                                dstPrefix + ".rect", Vector4(sprite.framesRect[j + 1].rect.getX(), sprite.framesRect[j + 1].rect.getY(),
+                                    sprite.framesRect[j + 1].rect.getWidth(), sprite.framesRect[j + 1].rect.getHeight()));
+                        }
+
+                        // Clear last slot
+                        unsigned int lastIdx = sprite.numFramesRect - 1;
+                        std::string lastPrefix = "framesRect[" + std::to_string(lastIdx) + "]";
+                        multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType, lastPrefix + ".name", std::string(""));
+                        multiCmd->addPropertyCmd<Vector4>(project, sceneProject->id, entities[0], cpType, lastPrefix + ".rect", Vector4(0, 0, 0, 0));
+
+                        // Decrement count
+                        multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entities[0], cpType,
+                            "numFramesRect", sprite.numFramesRect - 1);
+
                         multiCmd->setNoMerge();
                         CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
                         deleted = true;

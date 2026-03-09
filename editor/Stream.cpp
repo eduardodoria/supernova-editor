@@ -778,7 +778,6 @@ AABB Editor::Stream::decodeAABB(const YAML::Node& node) {
 
 YAML::Node Editor::Stream::encodeSpriteFrameData(const SpriteFrameData& frameData) {
     YAML::Node node;
-    node["active"] = frameData.active;
     node["name"] = frameData.name;
     node["rect"] = encodeRect(frameData.rect);
     return node;
@@ -786,7 +785,6 @@ YAML::Node Editor::Stream::encodeSpriteFrameData(const SpriteFrameData& frameDat
 
 SpriteFrameData Editor::Stream::decodeSpriteFrameData(const YAML::Node& node) {
     SpriteFrameData frameData;
-    if (node["active"]) frameData.active = node["active"].as<bool>();
     if (node["name"]) frameData.name = node["name"].as<std::string>();
     if (node["rect"]) frameData.rect = decodeRect(node["rect"]);
     return frameData;
@@ -2265,10 +2263,8 @@ YAML::Node Editor::Stream::encodeSpriteComponent(const SpriteComponent& sprite) 
     //node["needUpdateSprite"] = sprite.needUpdateSprite;
 
     YAML::Node framesNode;
-    for (int i = 0; i < (int)sprite.framesRect.size(); i++) {
-        if (sprite.framesRect[i].active) {
-            framesNode[i] = encodeSpriteFrameData(sprite.framesRect[i]);
-        }
+    for (unsigned int i = 0; i < sprite.numFramesRect; i++) {
+        framesNode.push_back(encodeSpriteFrameData(sprite.framesRect[i]));
     }
     if (framesNode.size() > 0) {
         node["framesRect"] = framesNode;
@@ -2297,20 +2293,25 @@ SpriteComponent Editor::Stream::decodeSpriteComponent(const YAML::Node& node, co
         const YAML::Node& framesNode = node["framesRect"];
 
         if (framesNode.IsSequence()) {
+            sprite.numFramesRect = 0;
             for (std::size_t i = 0; i < framesNode.size() && i < sprite.framesRect.size(); i++) {
                 if (!framesNode[i] || framesNode[i].IsNull()) {
                     continue;
                 }
 
-                sprite.framesRect[i] = decodeSpriteFrameData(framesNode[i]);
+                sprite.framesRect[sprite.numFramesRect] = decodeSpriteFrameData(framesNode[i]);
+                sprite.numFramesRect++;
             }
         } else {
+            // Legacy map format: convert to dense
+            unsigned int count = 0;
             for (const auto& frameNode : framesNode) {
-                int index = frameNode.first.as<int>();
-                if (sprite.framesRect.validIndex(index)) {
-                    sprite.framesRect[index] = decodeSpriteFrameData(frameNode.second);
+                if (count < sprite.framesRect.size()) {
+                    sprite.framesRect[count] = decodeSpriteFrameData(frameNode.second);
+                    count++;
                 }
             }
+            sprite.numFramesRect = count;
         }
     }
 

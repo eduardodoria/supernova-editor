@@ -802,6 +802,11 @@ namespace {
         PropertyData result = resolveDirectProperties(comp, propertyName, kSpriteTopProperties);
         if (result.ref) return result;
 
+        // numFramesRect
+        if (propertyName == "numFramesRect") {
+            return {PropertyType::UInt, UpdateFlags_Sprite, (void*)&def.numFramesRect, (void*)&comp->numFramesRect};
+        }
+
         // framesRect[N].field
         if (propertyName.compare(0, 11, "framesRect[") != 0) {
             return PropertyData();
@@ -829,9 +834,6 @@ namespace {
 
         const size_t fieldPos = pos + 1;
 
-        if (propertyName.compare(fieldPos, 6, "active") == 0 && fieldPos + 6 == propertyName.size()) {
-            return {PropertyType::Bool, UpdateFlags_Sprite, (void*)&defFrame.active, (void*)&frame.active};
-        }
         if (propertyName.compare(fieldPos, 4, "name") == 0 && fieldPos + 4 == propertyName.size()) {
             return {PropertyType::String, UpdateFlags_Sprite, (void*)&defFrame.name, (void*)&frame.name};
         }
@@ -944,15 +946,16 @@ namespace {
 
         enumerateFromDescriptors(compRef, ps, kSpriteTopProperties);
 
-        for (int i = 0; i < (compRef ? (int)comp->framesRect.size() : 1); i++) {
-            std::string idx = compRef ? std::to_string(i) : "";
+        ps["numFramesRect"] = {PropertyType::UInt, UpdateFlags_Sprite, (void*)&def.numFramesRect, compRef ? (void*)&comp->numFramesRect : nullptr};
 
-            SpriteFrameData& frame = compRef ? comp->framesRect[i] : def.framesRect[0];
+        for (unsigned int i = 0; i < (compRef ? comp->numFramesRect : 0); i++) {
+            std::string idx = std::to_string(i);
+
+            SpriteFrameData& frame = comp->framesRect[i];
             SpriteFrameData& defFrame = def.framesRect[0];
 
-            ps["framesRect[" + idx + "].active"] = {PropertyType::Bool, UpdateFlags_Sprite, (void*)&defFrame.active, compRef ? (void*)&frame.active : nullptr};
-            ps["framesRect[" + idx + "].name"] = {PropertyType::String, UpdateFlags_Sprite, (void*)&defFrame.name, compRef ? (void*)&frame.name : nullptr};
-            ps["framesRect[" + idx + "].rect"] = {PropertyType::Vector4, UpdateFlags_Sprite, (void*)&defFrame.rect, compRef ? (void*)&frame.rect : nullptr};
+            ps["framesRect[" + idx + "].name"] = {PropertyType::String, UpdateFlags_Sprite, (void*)&defFrame.name, (void*)&frame.name};
+            ps["framesRect[" + idx + "].rect"] = {PropertyType::Vector4, UpdateFlags_Sprite, (void*)&defFrame.rect, (void*)&frame.rect};
         }
     }
 

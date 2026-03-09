@@ -93,7 +93,6 @@ void SpriteSlicerToolDialog::generatePreview() {
             if (fw <= 0 || fh <= 0) continue;
 
             SpriteFrameData frame;
-            frame.active = true;
             frame.name = prefix + std::to_string(frameIndex);
             frame.rect = Rect(fx, fy, fw, fh);
 
