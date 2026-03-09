@@ -3764,7 +3764,7 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
 
         // Count active frames
         int activeFrameCount = 0;
-        for (int i = 0; i < MAX_SPRITE_FRAMES; i++) {
+        for (int i = 0; i < (int)sprite.framesRect.size(); i++) {
             if (sprite.framesRect[i].active) activeFrameCount++;
         }
 
@@ -3808,7 +3808,7 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
         if (ImGui::Button(ICON_FA_PLUS " Add Frame", ImVec2(buttonWidth, 0))) {
             // Find first inactive slot
             int freeSlot = -1;
-            for (int i = 0; i < MAX_SPRITE_FRAMES; i++) {
+            for (int i = 0; i < (int)sprite.framesRect.size(); i++) {
                 if (!sprite.framesRect[i].active) {
                     freeSlot = i;
                     break;
@@ -3828,7 +3828,7 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
 
         beginTable(cpType, getLabelSize("Frames"), "sprite_frames_header");
         propertyHeader("Frames", -1, false, false);
-        ImGui::Text("%d / %d", activeFrameCount, MAX_SPRITE_FRAMES);
+        ImGui::Text("%d / %d", activeFrameCount, (int)sprite.framesRect.size());
         ImGui::SameLine();
         if (ImGui::ArrowButton("##toggle_all_frames", spriteFramesExpanded ? ImGuiDir_Up : ImGuiDir_Down)) {
             spriteFramesExpanded = !spriteFramesExpanded;
@@ -3841,7 +3841,7 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
             settingsFrameRect.stepSize = 1.0f;
             settingsFrameRect.format = "%.0f";
 
-            for (int i = 0; i < MAX_SPRITE_FRAMES; i++) {
+            for (int i = 0; i < (int)sprite.framesRect.size(); i++) {
                 if (!sprite.framesRect[i].active) continue;
 
                 ImGui::PushID(i);

@@ -788,7 +788,7 @@ std::string Editor::Factory::createSpriteComponent(int indentSpaces, Scene* scen
     code << ind << "sprite.flipY = " << formatBool(sprite.flipY) << ";\n";
     code << ind << "sprite.pivotPreset = " << formatPivotPreset(sprite.pivotPreset) << ";\n";
     code << ind << "sprite.textureScaleFactor = " << formatFloat(sprite.textureScaleFactor) << ";\n";
-    for (int i = 0; i < MAX_SPRITE_FRAMES; i++) {
+    for (int i = 0; i < (int)sprite.framesRect.size(); i++) {
         if (!sprite.framesRect[i].active) {
             continue;
         }

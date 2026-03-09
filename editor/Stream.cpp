@@ -1917,7 +1917,7 @@ MeshComponent Editor::Stream::decodeMeshComponent(const YAML::Node& node, const 
     // Decode external buffers
     if (node["eBuffers"]) {
         auto eBuffersNode = node["eBuffers"];
-        for (unsigned int i = 0; i < eBuffersNode.size() && i < MAX_EXTERNAL_BUFFERS; i++) {
+        for (unsigned int i = 0; i < eBuffersNode.size() && i < mesh.eBuffers.size(); i++) {
             decodeExternalBuffer(mesh.eBuffers[i], eBuffersNode[i]);
         }
         mesh.numExternalBuffers = eBuffersNode.size();
@@ -1928,7 +1928,7 @@ MeshComponent Editor::Stream::decodeMeshComponent(const YAML::Node& node, const 
     // Decode submeshes
     if (node["submeshes"]) {
         auto submeshesNode = node["submeshes"];
-        for(unsigned int i = 0; i < submeshesNode.size() && i < MAX_SUBMESHES; i++) {
+        for(unsigned int i = 0; i < submeshesNode.size() && i < mesh.submeshes.size(); i++) {
             mesh.submeshes[i] = decodeSubmesh(submeshesNode[i], &mesh.submeshes[i]);
         }
         mesh.numSubmeshes = submeshesNode.size();
@@ -2247,7 +2247,7 @@ YAML::Node Editor::Stream::encodeSpriteComponent(const SpriteComponent& sprite) 
     //node["needUpdateSprite"] = sprite.needUpdateSprite;
 
     YAML::Node framesNode;
-    for (int i = 0; i < MAX_SPRITE_FRAMES; i++) {
+    for (int i = 0; i < (int)sprite.framesRect.size(); i++) {
         if (sprite.framesRect[i].active) {
             framesNode[i] = encodeSpriteFrameData(sprite.framesRect[i]);
         }
@@ -2279,7 +2279,7 @@ SpriteComponent Editor::Stream::decodeSpriteComponent(const YAML::Node& node, co
         const YAML::Node& framesNode = node["framesRect"];
 
         if (framesNode.IsSequence()) {
-            for (std::size_t i = 0; i < framesNode.size() && i < MAX_SPRITE_FRAMES; i++) {
+            for (std::size_t i = 0; i < framesNode.size() && i < sprite.framesRect.size(); i++) {
                 if (!framesNode[i] || framesNode[i].IsNull()) {
                     continue;
                 }
@@ -2289,7 +2289,7 @@ SpriteComponent Editor::Stream::decodeSpriteComponent(const YAML::Node& node, co
         } else {
             for (const auto& frameNode : framesNode) {
                 int index = frameNode.first.as<int>();
-                if (index >= 0 && index < MAX_SPRITE_FRAMES) {
+                if (sprite.framesRect.validIndex(index)) {
                     sprite.framesRect[index] = decodeSpriteFrameData(frameNode.second);
                 }
             }

@@ -325,7 +325,7 @@ namespace {
         if (!parseIndex(propertyName, pos, submeshIndex) || pos >= propertyName.size() || propertyName[pos] != ']') {
             return PropertyData();
         }
-        if (submeshIndex >= MAX_SUBMESHES) {
+        if (!comp->submeshes.validIndex(submeshIndex)) {
             return PropertyData();
         }
 
@@ -812,7 +812,7 @@ namespace {
         if (!parseIndex(propertyName, pos, frameIndex) || pos >= propertyName.size() || propertyName[pos] != ']') {
             return PropertyData();
         }
-        if (frameIndex >= MAX_SPRITE_FRAMES) {
+        if (!comp->framesRect.validIndex(frameIndex)) {
             return PropertyData();
         }
 
@@ -944,7 +944,7 @@ namespace {
 
         enumerateFromDescriptors(compRef, ps, kSpriteTopProperties);
 
-        for (int i = 0; i < (compRef ? MAX_SPRITE_FRAMES : 1); i++) {
+        for (int i = 0; i < (compRef ? (int)comp->framesRect.size() : 1); i++) {
             std::string idx = compRef ? std::to_string(i) : "";
 
             SpriteFrameData& frame = compRef ? comp->framesRect[i] : def.framesRect[0];
@@ -1072,7 +1072,7 @@ namespace {
 
         enumerateFromDescriptors(compRef, ps, kMeshTopProperties);
 
-        for (int s = 0; s < (compRef ? MAX_SUBMESHES : 1); s++) {
+        for (int s = 0; s < (compRef ? (int)comp->submeshes.size() : 1); s++) {
             std::string idx = compRef ? std::to_string(s) : "";
 
             Submesh& sub = compRef ? comp->submeshes[s] : def.submeshes[0];
