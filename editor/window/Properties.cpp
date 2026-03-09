@@ -3773,7 +3773,7 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
                 previewTexture,
                 static_cast<int>(sprite.width),
                 static_cast<int>(sprite.height),
-                [this, sceneProject, entities, cpType](const SpriteSlicerToolDialog::SliceResult& result) {
+                [this, sceneProject, entities, cpType, previewTexture](const SpriteSlicerToolDialog::SliceResult& result) {
                     Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
 
                     // Clear existing frames beyond new count
@@ -3787,7 +3787,7 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
                     }
 
                     // Set new frames from slicer result
-                    for (size_t i = 0; i < result.frames.size() && i < MAX_SPRITE_FRAMES; i++) {
+                    for (size_t i = 0; i < result.frames.size(); i++) {
                         std::string prefix = "framesRect[" + std::to_string(i) + "]";
                         multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
                             prefix + ".name", result.frames[i].name);
@@ -3797,9 +3797,23 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
                     }
 
                     // Update numFramesRect
-                    unsigned int newCount = (unsigned int)std::min(result.frames.size(), (size_t)MAX_SPRITE_FRAMES);
+                    unsigned int newCount = (unsigned int)result.frames.size();
                     multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entities[0], cpType,
                         "numFramesRect", newCount);
+
+                    // Apply first frame to sprite mesh
+                    MeshComponent* meshComp = sceneProject->scene->findComponent<MeshComponent>(entities[0]);
+                    int sheetWidth = !previewTexture.empty() ? previewTexture.getWidth() : (int)sprite.width;
+                    int sheetHeight = !previewTexture.empty() ? previewTexture.getHeight() : (int)sprite.height;
+                    if (meshComp && meshComp->numSubmeshes > 0 && !result.frames.empty() && sheetWidth > 0 && sheetHeight > 0) {
+                        const Rect& firstFrameRect = result.frames[0].rect;
+                        multiCmd->addPropertyCmd<Vector4>(project, sceneProject->id, entities[0], ComponentType::MeshComponent,
+                            "submeshes[0].textureRect", Vector4(
+                                firstFrameRect.getX() / (float)sheetWidth,
+                                firstFrameRect.getY() / (float)sheetHeight,
+                                firstFrameRect.getWidth() / (float)sheetWidth,
+                                firstFrameRect.getHeight() / (float)sheetHeight));
+                    }
 
                     multiCmd->setNoMerge();
                     CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
@@ -3826,7 +3840,7 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
 
         beginTable(cpType, getLabelSize("Frames"), "sprite_frames_header");
         propertyHeader("Frames", -1, false, false);
-        ImGui::Text("%d / %d", activeFrameCount, (int)sprite.framesRect.size());
+        ImGui::Text("%d", activeFrameCount);
         ImGui::SameLine();
         if (ImGui::ArrowButton("##toggle_all_frames", spriteFramesExpanded ? ImGuiDir_Up : ImGuiDir_Down)) {
             spriteFramesExpanded = !spriteFramesExpanded;

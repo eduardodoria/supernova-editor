@@ -98,10 +98,7 @@ void SpriteSlicerToolDialog::generatePreview() {
 
             m_previewFrames.push_back(frame);
             frameIndex++;
-
-            if (frameIndex >= MAX_SPRITE_FRAMES) break;
         }
-        if (frameIndex >= MAX_SPRITE_FRAMES) break;
     }
 
     m_previewDirty = false;
@@ -334,11 +331,6 @@ void SpriteSlicerToolDialog::show() {
         }
         ImGui::EndChild();
         ImGui::TreePop();
-    }
-
-    if (m_previewFrames.size() >= MAX_SPRITE_FRAMES) {
-        ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.3f, 1.0f),
-            "Warning: Frame count capped at %d (MAX_SPRITE_FRAMES)", MAX_SPRITE_FRAMES);
     }
 
     ImGui::Spacing();
