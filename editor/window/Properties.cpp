@@ -3875,10 +3875,14 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
                     ImVec2 deleteButtonSize = ImVec2(clearButtonWidth + clearButtonFramePadding * 2, 0);
                     ImVec2 arrowButtonSize = ImGui::CalcItemSize(ImVec2(0, 0), ImGui::GetFrameHeight(), ImGui::GetFrameHeight());
                     ImVec2 applyButtonSize = arrowButtonSize;
+                    ImVec2 resizeButtonSize = arrowButtonSize;
 
                     bool hasFramePreview = !previewTexture.empty() && sprite.framesRect[i].rect.getWidth() > 0.0f && sprite.framesRect[i].rect.getHeight() > 0.0f;
                     bool hasValidMeshTextureRect = meshComp && meshComp->numSubmeshes > 0;
                     bool canApplyFrame = hasValidMeshTextureRect && !previewTexture.empty() && previewTexture.getWidth() > 0 && previewTexture.getHeight() > 0;
+                    bool canResizeToFrame = sprite.framesRect[i].rect.getWidth() > 0.0f && sprite.framesRect[i].rect.getHeight() > 0.0f;
+                    unsigned int frameWidth = canResizeToFrame ? static_cast<unsigned int>(sprite.framesRect[i].rect.getWidth()) : 0;
+                    unsigned int frameHeight = canResizeToFrame ? static_cast<unsigned int>(sprite.framesRect[i].rect.getHeight()) : 0;
                     Rect normalizedFrameRect = sprite.framesRect[i].rect;
                     if (canApplyFrame) {
                         normalizedFrameRect = Rect(
@@ -3896,9 +3900,11 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
                                 && appliedRect.getWidth() == normalizedFrameRect.getWidth()
                                 && appliedRect.getHeight() == normalizedFrameRect.getHeight();
                     }
+                        bool isSizedToFrame = canResizeToFrame && sprite.width == frameWidth && sprite.height == frameHeight;
 
                     float trailingWidth = arrowButtonSize.x
                             + ImGui::GetStyle().ItemSpacing.x + applyButtonSize.x
+                            + ImGui::GetStyle().ItemSpacing.x + resizeButtonSize.x
                             + ImGui::GetStyle().ItemSpacing.x + deleteButtonSize.x;
                     if (hasFramePreview) {
                         trailingWidth += previewSize + ImGui::GetStyle().ItemSpacing.x;
@@ -3951,6 +3957,31 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
                             ImGui::SetTooltip("Sprite needs a valid texture to apply a frame");
                         } else {
                             ImGui::SetTooltip("Apply frame to sprite");
+                        }
+                    }
+                    ImGui::PopStyleVar();
+                    ImGui::EndDisabled();
+
+                    ImGui::SameLine();
+
+                    ImGui::BeginDisabled(!canResizeToFrame || isSizedToFrame);
+                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
+                    if (ImGui::Button(ICON_FA_EXPAND "##resize_to_frame", resizeButtonSize)) {
+                        Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+                        multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entities[0], cpType,
+                            "width", frameWidth);
+                        multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entities[0], cpType,
+                            "height", frameHeight);
+                        multiCmd->setNoMerge();
+                        CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+                    }
+                    if (ImGui::IsItemHovered()) {
+                        if (!canResizeToFrame) {
+                            ImGui::SetTooltip("Frame needs a valid size to resize the sprite");
+                        } else if (isSizedToFrame) {
+                            ImGui::SetTooltip("Sprite already matches this frame size");
+                        } else {
+                            ImGui::SetTooltip("Resize sprite to this frame size");
                         }
                     }
                     ImGui::PopStyleVar();
