@@ -40,6 +40,14 @@ namespace Supernova::Editor{
         INTO
     };
 
+    struct SceneMaxValues {
+        unsigned int maxSubmeshes = 0;
+        unsigned int maxTilemapTilesRect = 0;
+        unsigned int maxTilemapTiles = 0;
+        unsigned int maxExternalBuffers = 0;
+        unsigned int maxSpriteFrames = 0;
+    };
+
     struct SceneProject{
         uint32_t id = NULL_PROJECT_SCENE;
         std::string name = "Unknown";
@@ -58,6 +66,7 @@ namespace Supernova::Editor{
         SceneDisplaySettings displaySettings;
         ScenePlayState playState = ScenePlayState::STOPPED;
         YAML::Node playStateSnapshot;
+        SceneMaxValues maxValues;
         std::vector<uint32_t> childScenes;
         std::vector<SceneScriptSource> cppScripts;
     };
@@ -157,6 +166,7 @@ namespace Supernova::Editor{
         bool createNewComponent(uint32_t sceneId, Entity entity, ComponentType component);
         void deleteSceneProject(SceneProject* sceneProject);
         void updateSceneCppScripts(SceneProject* sceneProject);
+        SceneMaxValues calculateSceneMaxValues(const SceneProject* sceneProject) const;
         void resetConfigs();
 
         size_t countEntitiesInBranch(const YAML::Node& entityNode);

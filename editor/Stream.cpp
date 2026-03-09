@@ -944,6 +944,14 @@ YAML::Node Editor::Stream::encodeSceneProject(const Project* project, const Scen
     root["sceneType"] = sceneTypeToString(sceneProject->sceneType);
     root["mainCamera"] = sceneProject->mainCamera;
 
+    YAML::Node maxValuesNode;
+    maxValuesNode["maxSubmeshes"] = sceneProject->maxValues.maxSubmeshes;
+    maxValuesNode["maxTilemapTilesRect"] = sceneProject->maxValues.maxTilemapTilesRect;
+    maxValuesNode["maxTilemapTiles"] = sceneProject->maxValues.maxTilemapTiles;
+    maxValuesNode["maxExternalBuffers"] = sceneProject->maxValues.maxExternalBuffers;
+    maxValuesNode["maxSpriteFrames"] = sceneProject->maxValues.maxSpriteFrames;
+    root["maxValues"] = maxValuesNode;
+
     if (!sceneProject->childScenes.empty()) {
         YAML::Node childScenesNode;
         for (const auto& childSceneId : sceneProject->childScenes) {
@@ -1007,6 +1015,16 @@ void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::
     }
     if (node["sceneType"]) sceneProject->sceneType = stringToSceneType(node["sceneType"].as<std::string>());
     if (node["mainCamera"]) sceneProject->mainCamera = node["mainCamera"].as<Entity>();
+
+    sceneProject->maxValues = {};
+    if (node["maxValues"]) {
+        const YAML::Node& maxValuesNode = node["maxValues"];
+        if (maxValuesNode["maxSubmeshes"]) sceneProject->maxValues.maxSubmeshes = maxValuesNode["maxSubmeshes"].as<unsigned int>();
+        if (maxValuesNode["maxTilemapTilesRect"]) sceneProject->maxValues.maxTilemapTilesRect = maxValuesNode["maxTilemapTilesRect"].as<unsigned int>();
+        if (maxValuesNode["maxTilemapTiles"]) sceneProject->maxValues.maxTilemapTiles = maxValuesNode["maxTilemapTiles"].as<unsigned int>();
+        if (maxValuesNode["maxExternalBuffers"]) sceneProject->maxValues.maxExternalBuffers = maxValuesNode["maxExternalBuffers"].as<unsigned int>();
+        if (maxValuesNode["maxSpriteFrames"]) sceneProject->maxValues.maxSpriteFrames = maxValuesNode["maxSpriteFrames"].as<unsigned int>();
+    }
 
     sceneProject->childScenes.clear();
     if (node["childScenes"]) {

@@ -1112,6 +1112,67 @@ void Editor::Project::updateSceneCppScripts(SceneProject* sceneProject) {
     }
 }
 
+Editor::SceneMaxValues Editor::Project::calculateSceneMaxValues(const SceneProject* sceneProject) const {
+    SceneMaxValues maxValues;
+
+    if (!sceneProject || !sceneProject->scene) {
+        return maxValues;
+    }
+
+    auto getLastActiveSpriteFrame = [](const auto& framesRect) -> unsigned int {
+        unsigned int lastActiveFrame = 0;
+
+        for (size_t i = 0; i < framesRect.size(); ++i) {
+            if (framesRect[i].active) {
+                lastActiveFrame = static_cast<unsigned int>(i + 1);
+            }
+        }
+
+        return lastActiveFrame;
+    };
+
+    auto getLastUsedTileRect = [](const TilemapComponent& tilemap) -> unsigned int {
+        unsigned int lastUsedTileRect = 0;
+
+        for (size_t i = 0; i < tilemap.tilesRect.size(); ++i) {
+            const TileRectData& rect = tilemap.tilesRect[i];
+            if (rect.submeshId >= 0 || !rect.name.empty()) {
+                lastUsedTileRect = static_cast<unsigned int>(i + 1);
+            }
+        }
+
+        return lastUsedTileRect;
+    };
+
+    auto meshes = sceneProject->scene->getComponentArray<MeshComponent>();
+    for (size_t i = 0; i < meshes->size(); ++i) {
+        const MeshComponent& mesh = meshes->getComponentFromIndex(i);
+        maxValues.maxSubmeshes = std::max(maxValues.maxSubmeshes, mesh.numSubmeshes);
+        maxValues.maxExternalBuffers = std::max(maxValues.maxExternalBuffers, mesh.numExternalBuffers);
+    }
+
+    auto sprites = sceneProject->scene->getComponentArray<SpriteComponent>();
+    for (size_t i = 0; i < sprites->size(); ++i) {
+        const SpriteComponent& sprite = sprites->getComponentFromIndex(i);
+        maxValues.maxSpriteFrames = std::max(maxValues.maxSpriteFrames, getLastActiveSpriteFrame(sprite.framesRect));
+    }
+
+    auto points = sceneProject->scene->getComponentArray<PointsComponent>();
+    for (size_t i = 0; i < points->size(); ++i) {
+        const PointsComponent& pointsComponent = points->getComponentFromIndex(i);
+        maxValues.maxSpriteFrames = std::max(maxValues.maxSpriteFrames, getLastActiveSpriteFrame(pointsComponent.framesRect));
+    }
+
+    auto tilemaps = sceneProject->scene->getComponentArray<TilemapComponent>();
+    for (size_t i = 0; i < tilemaps->size(); ++i) {
+        const TilemapComponent& tilemap = tilemaps->getComponentFromIndex(i);
+        maxValues.maxTilemapTilesRect = std::max(maxValues.maxTilemapTilesRect, getLastUsedTileRect(tilemap));
+        maxValues.maxTilemapTiles = std::max(maxValues.maxTilemapTiles, tilemap.numTiles);
+    }
+
+    return maxValues;
+}
+
 Entity Editor::Project::getSceneCamera(const SceneProject* sceneProject) const {
     if (sceneProject->mainCamera != NULL_ENTITY && sceneProject->scene->isEntityCreated(sceneProject->mainCamera)) {
         return sceneProject->mainCamera;
@@ -2026,6 +2087,8 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
             break;
         }
     }
+
+    sceneProject->maxValues = calculateSceneMaxValues(sceneProject);
 
     YAML::Node root = Stream::encodeSceneProject(this, sceneProject);
     std::ofstream fout(path.string());
