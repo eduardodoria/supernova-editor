@@ -2931,7 +2931,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         // Button to show entity (with icon)
         std::string buttonLabel = ICON_FA_CIRCLE_DOT " " + entityName + "##entity_" + id;
         float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
-        float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_TRASH_CAN).x;
+        float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_XMARK).x;
         ImVec2 buttonSize = ImVec2(ImGui::GetContentRegionAvail().x - clearButtonWidth - ImGui::GetStyle().ItemSpacing.x - clearButtonFramePadding * 2, 0);
 
         if (ImGui::Button(buttonLabel.c_str(), buttonSize)) {
@@ -2995,13 +2995,11 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             ImGui::PopStyleColor();
         }
 
-        // Clear button (trash)
+        // Clear button (X)
         ImGui::SameLine();
         ImGui::BeginDisabled(newValue.entity == NULL_ENTITY);
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
-        if (ImGui::Button((ICON_FA_TRASH_CAN "##clear_entity_" + id).c_str())) {
+        if (ImGui::Button((ICON_FA_XMARK "##clear_entity_" + id).c_str())) {
             for (Entity& entity : entities) {
                 cmd = new PropertyCmd<EntityRef>(project, sceneProject->id, entity, cpType, id, *defVal);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -3009,7 +3007,6 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             finishProperty = true;
         }
         ImGui::PopStyleVar();
-        ImGui::PopStyleColor(2);
         ImGui::EndDisabled();
         if (ImGui::IsItemHovered()) {
             ImGui::SetTooltip("Clear entity reference");
@@ -3065,7 +3062,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
         std::string buttonLabel = ICON_FA_CIRCLE_DOT " " + entityName + "##local_entity_" + id;
         float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
-        float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_TRASH_CAN).x;
+        float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_XMARK).x;
         ImVec2 inputSize = ImVec2(ImGui::GetContentRegionAvail().x - clearButtonWidth - ImGui::GetStyle().ItemSpacing.x - clearButtonFramePadding * 2, 0);
 
         if (ImGui::Button(buttonLabel.c_str(), inputSize)) {
@@ -3102,10 +3099,8 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
         ImGui::SameLine();
         ImGui::BeginDisabled(newValue == NULL_ENTITY && !different);
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
-        if (ImGui::Button((ICON_FA_TRASH_CAN "##clear_local_entity_" + id).c_str())) {
+        if (ImGui::Button((ICON_FA_XMARK "##clear_local_entity_" + id).c_str())) {
             for (Entity& entity : entities) {
                 cmd = new PropertyCmd<unsigned int>(project, sceneProject->id, entity, cpType, id, NULL_ENTITY, settings.onValueChanged);
                 CommandHandle::get(sceneProject->id)->addCommand(cmd);
@@ -3113,7 +3108,6 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             finishProperty = true;
         }
         ImGui::PopStyleVar();
-        ImGui::PopStyleColor(2);
         ImGui::EndDisabled();
         if (ImGui::IsItemHovered()) {
             ImGui::SetTooltip("Clear entity reference");
