@@ -2711,7 +2711,7 @@ Body2DComponent Editor::Stream::decodeBody2DComponent(const YAML::Node& node, co
     if (node["numShapes"]) body.numShapes = node["numShapes"].as<unsigned int>();
 
     if (node["shapes"]) {
-        size_t count = std::min(node["shapes"].size(), (size_t)MAX_SHAPES);
+        size_t count = node["shapes"].size();
         for (size_t i = 0; i < count; i++) {
             if (node["shapes"][i]["type"]) {
                 body.shapes[i].type = stringToShape2DType(node["shapes"][i]["type"].as<std::string>());
@@ -2737,7 +2737,7 @@ Body2DComponent Editor::Stream::decodeBody2DComponent(const YAML::Node& node, co
             if (node["shapes"][i]["groupIndex"]) body.shapes[i].groupIndex = node["shapes"][i]["groupIndex"].as<int16_t>();
 
             if (node["shapes"][i]["vertices"]) {
-                size_t vcount = std::min(node["shapes"][i]["vertices"].size(), (size_t)MAX_SHAPE_POINTS_2D);
+                size_t vcount = node["shapes"][i]["vertices"].size();
                 body.shapes[i].verticesCount = (uint8_t)vcount;
                 for (size_t j = 0; j < vcount; j++) {
                     body.shapes[i].vertices[j] = decodeVector2(node["shapes"][i]["vertices"][j]);
@@ -2824,7 +2824,7 @@ Body3DComponent Editor::Stream::decodeBody3DComponent(const YAML::Node& node, co
     if (node["numShapes"]) body.numShapes = node["numShapes"].as<unsigned int>();
 
     if (node["shapes"]) {
-        size_t count = std::min(node["shapes"].size(), (size_t)MAX_SHAPES);
+        size_t count = node["shapes"].size();
         for (size_t i = 0; i < count; i++) {
             if (node["shapes"][i]["type"]) {
                 body.shapes[i].type = stringToShape3DType(node["shapes"][i]["type"].as<std::string>());
@@ -2873,7 +2873,7 @@ Body3DComponent Editor::Stream::decodeBody3DComponent(const YAML::Node& node, co
             if (node["shapes"][i]["samplesSize"]) body.shapes[i].samplesSize = node["shapes"][i]["samplesSize"].as<unsigned int>();
 
             if (node["shapes"][i]["vertices"]) {
-                size_t vcount = std::min(node["shapes"][i]["vertices"].size(), (size_t)MAX_SHAPE_VERTICES_3D);
+                size_t vcount = node["shapes"][i]["vertices"].size();
                 body.shapes[i].numVertices = (uint16_t)vcount;
                 for (size_t j = 0; j < vcount; j++) {
                     body.shapes[i].vertices[j] = decodeVector3(node["shapes"][i]["vertices"][j]);
@@ -2881,7 +2881,7 @@ Body3DComponent Editor::Stream::decodeBody3DComponent(const YAML::Node& node, co
             }
 
             if (node["shapes"][i]["indices"]) {
-                size_t icount = std::min(node["shapes"][i]["indices"].size(), (size_t)MAX_SHAPE_INDICES_3D);
+                size_t icount = node["shapes"][i]["indices"].size();
                 body.shapes[i].numIndices = (uint16_t)icount;
                 for (size_t j = 0; j < icount; j++) {
                     body.shapes[i].indices[j] = node["shapes"][i]["indices"][j].as<uint16_t>();

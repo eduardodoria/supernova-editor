@@ -4661,7 +4661,7 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
     endTable();
 
     ImGui::SeparatorText("Shapes");
-    ImGui::Text("Shapes: %zu / %d", body.numShapes, MAX_SHAPES);
+    ImGui::Text("Shapes: %zu", body.numShapes);
 
     static int createShape2DType = (int)Shape2DType::POLYGON;
     const char* createShape2DLabel = "Polygon";
@@ -4686,14 +4686,11 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
         ImGui::EndCombo();
     }
     ImGui::SameLine();
-    if (body.numShapes < MAX_SHAPES && ImGui::Button("Add Shape##body2d")){
+    if (ImGui::Button("Add Shape##body2d")){
         MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
 
         for (Entity entity : entities){
             if (Body2DComponent* bodyComp = sceneProject->scene->findComponent<Body2DComponent>(entity)){
-                if (bodyComp->numShapes >= MAX_SHAPES){
-                    continue;
-                }
 
                 Shape2D shape;
                 shape.type = (Shape2DType)createShape2DType;
@@ -4811,34 +4808,30 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
         settingsFloat.secondColSize = 6 * ImGui::GetFontSize();
 
         if (shape.type == Shape2DType::POLYGON){
-            const int polygonVerticesCount = std::max(0, std::min((int)shape.verticesCount, (int)MAX_SHAPE_POINTS_2D));
             propertyHeader("Vertices");
-            ImGui::Text("%d / %d", polygonVerticesCount, MAX_SHAPE_POINTS_2D);
-            if (polygonVerticesCount < MAX_SHAPE_POINTS_2D){
-                ImGui::SameLine();
-                if (ImGui::Button("Add Vertex")){
-                    MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
-                    for (Entity entity : entities){
-                        if (Body2DComponent* bodyComp = sceneProject->scene->findComponent<Body2DComponent>(entity)){
-                            if (s >= bodyComp->numShapes) continue;
-                            Shape2D shapeValue = bodyComp->shapes[s];
-                            if (shapeValue.verticesCount >= MAX_SHAPE_POINTS_2D) continue;
+            ImGui::Text("%d", shape.verticesCount);
+            ImGui::SameLine();
+            if (ImGui::Button("Add Vertex")){
+                MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+                for (Entity entity : entities){
+                    if (Body2DComponent* bodyComp = sceneProject->scene->findComponent<Body2DComponent>(entity)){
+                        if (s >= bodyComp->numShapes) continue;
+                        Shape2D shapeValue = bodyComp->shapes[s];
 
-                            const uint8_t oldCount = shapeValue.verticesCount;
-                            if (oldCount >= 2){
-                                shapeValue.vertices[oldCount] = shapeValue.vertices[oldCount - 1] + (shapeValue.vertices[oldCount - 1] - shapeValue.vertices[oldCount - 2]);
-                            }else if (oldCount == 1){
-                                shapeValue.vertices[oldCount] = shapeValue.vertices[0] + Vector2(10.0f, 0.0f);
-                            }else{
-                                shapeValue.vertices[oldCount] = Vector2::ZERO;
-                            }
-                            shapeValue.verticesCount = oldCount + 1;
-                            multiCmd->addPropertyCmd<Shape2D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
+                        const uint8_t oldCount = shapeValue.verticesCount;
+                        if (oldCount >= 2){
+                            shapeValue.vertices[oldCount] = shapeValue.vertices[oldCount - 1] + (shapeValue.vertices[oldCount - 1] - shapeValue.vertices[oldCount - 2]);
+                        }else if (oldCount == 1){
+                            shapeValue.vertices[oldCount] = shapeValue.vertices[0] + Vector2(10.0f, 0.0f);
+                        }else{
+                            shapeValue.vertices[oldCount] = Vector2::ZERO;
                         }
+                        shapeValue.verticesCount = oldCount + 1;
+                        multiCmd->addPropertyCmd<Shape2D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
                     }
-                    multiCmd->setNoMerge();
-                    CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
                 }
+                multiCmd->setNoMerge();
+                CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
             }
             bool removedVertex = false;
             float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
@@ -4851,8 +4844,7 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
             RowSettings settingsVertex = settingsShapeValue;
             settingsVertex.secondColSize = inputVerSize.x;
 
-            const int drawVertexCount = std::max(0, std::min((int)shape.verticesCount, (int)MAX_SHAPE_POINTS_2D));
-            for (int v = 0; v < drawVertexCount; v++){
+            for (int v = 0; v < (int)shape.verticesCount; v++){
 
                 propertyRow(RowPropertyType::Vector2, cpType, shapeKey + ".vertices[" + std::to_string(v) + "]", "Vertex " + std::to_string(v + 1), sceneProject, entities, settingsVertex);
 
@@ -4914,34 +4906,30 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
         }else if (shape.type == Shape2DType::CHAIN){
             propertyRow(RowPropertyType::Bool, cpType, shapeKey + ".loop", "Loop", sceneProject, entities);
 
-            const int chainVerticesCount = std::max(0, std::min((int)shape.verticesCount, (int)MAX_SHAPE_POINTS_2D));
             propertyHeader("Vertices");
-            ImGui::Text("%d / %d", chainVerticesCount, MAX_SHAPE_POINTS_2D);
-            if (chainVerticesCount < MAX_SHAPE_POINTS_2D){
-                ImGui::SameLine();
-                if (ImGui::Button("Add Vertex")){
-                    MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
-                    for (Entity entity : entities){
-                        if (Body2DComponent* bodyComp = sceneProject->scene->findComponent<Body2DComponent>(entity)){
-                            if (s >= bodyComp->numShapes) continue;
-                            Shape2D shapeValue = bodyComp->shapes[s];
-                            if (shapeValue.verticesCount >= MAX_SHAPE_POINTS_2D) continue;
+            ImGui::Text("%d", shape.verticesCount);
+            ImGui::SameLine();
+            if (ImGui::Button("Add Vertex")){
+                MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+                for (Entity entity : entities){
+                    if (Body2DComponent* bodyComp = sceneProject->scene->findComponent<Body2DComponent>(entity)){
+                        if (s >= bodyComp->numShapes) continue;
+                        Shape2D shapeValue = bodyComp->shapes[s];
 
-                            const uint8_t oldCount = shapeValue.verticesCount;
-                            if (oldCount >= 2){
-                                shapeValue.vertices[oldCount] = shapeValue.vertices[oldCount - 1] + (shapeValue.vertices[oldCount - 1] - shapeValue.vertices[oldCount - 2]);
-                            }else if (oldCount == 1){
-                                shapeValue.vertices[oldCount] = shapeValue.vertices[0] + Vector2(10.0f, 0.0f);
-                            }else{
-                                shapeValue.vertices[oldCount] = Vector2::ZERO;
-                            }
-                            shapeValue.verticesCount = oldCount + 1;
-                            multiCmd->addPropertyCmd<Shape2D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
+                        const uint8_t oldCount = shapeValue.verticesCount;
+                        if (oldCount >= 2){
+                            shapeValue.vertices[oldCount] = shapeValue.vertices[oldCount - 1] + (shapeValue.vertices[oldCount - 1] - shapeValue.vertices[oldCount - 2]);
+                        }else if (oldCount == 1){
+                            shapeValue.vertices[oldCount] = shapeValue.vertices[0] + Vector2(10.0f, 0.0f);
+                        }else{
+                            shapeValue.vertices[oldCount] = Vector2::ZERO;
                         }
+                        shapeValue.verticesCount = oldCount + 1;
+                        multiCmd->addPropertyCmd<Shape2D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
                     }
-                    multiCmd->setNoMerge();
-                    CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
                 }
+                multiCmd->setNoMerge();
+                CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
             }
 
             bool removedVertex = false;
@@ -4955,7 +4943,7 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
             RowSettings settingsVertex = settingsShapeValue;
             settingsVertex.secondColSize = inputVerSize.x;
 
-            for (int v = 0; v < chainVerticesCount; v++){
+            for (int v = 0; v < (int)shape.verticesCount; v++){
                 propertyRow(RowPropertyType::Vector2, cpType, shapeKey + ".vertices[" + std::to_string(v) + "]", "Vertex " + std::to_string(v + 1), sceneProject, entities, settingsVertex);
 
                 ImGui::SameLine();
@@ -5116,7 +5104,7 @@ void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject*
     endTable();
 
     ImGui::SeparatorText("Shapes");
-    ImGui::Text("Shapes: %zu / %d", body.numShapes, MAX_SHAPES);
+    ImGui::Text("Shapes: %zu", body.numShapes);
 
     static int createShape3DType = (int)Shape3DType::BOX;
     const char* createShape3DLabel = "Unknown";
@@ -5141,14 +5129,11 @@ void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject*
         ImGui::EndCombo();
     }
     ImGui::SameLine();
-    if (body.numShapes < MAX_SHAPES && ImGui::Button("Add Shape##body3d")){
+    if (ImGui::Button("Add Shape##body3d")){
         MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
 
         for (Entity entity : entities){
             if (Body3DComponent* bodyComp = sceneProject->scene->findComponent<Body3DComponent>(entity)){
-                if (bodyComp->numShapes >= MAX_SHAPES){
-                    continue;
-                }
 
                 Shape3D shape;
                 shape.type = (Shape3DType)createShape3DType;
@@ -5385,33 +5370,29 @@ void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject*
             if (normalizedSourceUI == Shape3DSource::ENTITY_MESH){
                 propertyRow(RowPropertyType::LocalEntity, cpType, shapeKey + ".sourceEntity", "Source Entity", sceneProject, entities, settingsShapeValue);
             }else if (normalizedSourceUI == Shape3DSource::RAW_VERTICES){
-                const int verticesCount = std::max(0, std::min((int)shape.numVertices, (int)MAX_SHAPE_VERTICES_3D));
                 propertyHeader("Vertices");
-                ImGui::Text("%d / %d", verticesCount, MAX_SHAPE_VERTICES_3D);
-                if (verticesCount < MAX_SHAPE_VERTICES_3D){
-                    ImGui::SameLine();
-                    if (ImGui::Button(("Add Vertex##convex_" + std::to_string(s)).c_str())){
-                        MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
-                        for (Entity entity : entities){
-                            if (Body3DComponent* bodyComp = sceneProject->scene->findComponent<Body3DComponent>(entity)){
-                                if (s >= bodyComp->numShapes) continue;
-                                Shape3D shapeValue = bodyComp->shapes[s];
-                                if (shapeValue.numVertices >= MAX_SHAPE_VERTICES_3D) continue;
-                                const uint16_t oldCount = shapeValue.numVertices;
-                                if (oldCount >= 2){
-                                    shapeValue.vertices[oldCount] = shapeValue.vertices[oldCount - 1] + (shapeValue.vertices[oldCount - 1] - shapeValue.vertices[oldCount - 2]);
-                                }else if (oldCount == 1){
-                                    shapeValue.vertices[oldCount] = shapeValue.vertices[0] + Vector3(1.0f, 0.0f, 0.0f);
-                                }else{
-                                    shapeValue.vertices[oldCount] = Vector3::ZERO;
-                                }
-                                shapeValue.numVertices = oldCount + 1;
-                                multiCmd->addPropertyCmd<Shape3D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
+                ImGui::Text("%d", shape.numVertices);
+                ImGui::SameLine();
+                if (ImGui::Button(("Add Vertex##convex_" + std::to_string(s)).c_str())){
+                    MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+                    for (Entity entity : entities){
+                        if (Body3DComponent* bodyComp = sceneProject->scene->findComponent<Body3DComponent>(entity)){
+                            if (s >= bodyComp->numShapes) continue;
+                            Shape3D shapeValue = bodyComp->shapes[s];
+                            const uint16_t oldCount = shapeValue.numVertices;
+                            if (oldCount >= 2){
+                                shapeValue.vertices[oldCount] = shapeValue.vertices[oldCount - 1] + (shapeValue.vertices[oldCount - 1] - shapeValue.vertices[oldCount - 2]);
+                            }else if (oldCount == 1){
+                                shapeValue.vertices[oldCount] = shapeValue.vertices[0] + Vector3(1.0f, 0.0f, 0.0f);
+                            }else{
+                                shapeValue.vertices[oldCount] = Vector3::ZERO;
                             }
+                            shapeValue.numVertices = oldCount + 1;
+                            multiCmd->addPropertyCmd<Shape3D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
                         }
-                        multiCmd->setNoMerge();
-                        CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
                     }
+                    multiCmd->setNoMerge();
+                    CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
                 }
 
                 float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
@@ -5423,8 +5404,7 @@ void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject*
                 RowSettings settingsVertex = settingsShapeValue;
                 settingsVertex.secondColSize = inputVerSize.x;
 
-                const int drawVertexCount = std::max(0, std::min((int)shape.numVertices, (int)MAX_SHAPE_VERTICES_3D));
-                for (int v = 0; v < drawVertexCount; v++){
+                for (int v = 0; v < (int)shape.numVertices; v++){
                     propertyRow(RowPropertyType::Vector3, cpType, shapeKey + ".vertices[" + std::to_string(v) + "]", "Vertex " + std::to_string(v + 1), sceneProject, entities, settingsVertex);
                     ImGui::SameLine();
 
@@ -5462,33 +5442,29 @@ void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject*
                 propertyRow(RowPropertyType::LocalEntity, cpType, shapeKey + ".sourceEntity", "Source Entity", sceneProject, entities, settingsShapeValue);
             }else if (normalizedSourceUI == Shape3DSource::RAW_MESH){
                 // Vertices
-                const int verticesCount = std::max(0, std::min((int)shape.numVertices, (int)MAX_SHAPE_VERTICES_3D));
                 propertyHeader("Vertices");
-                ImGui::Text("%d / %d", verticesCount, MAX_SHAPE_VERTICES_3D);
-                if (verticesCount < MAX_SHAPE_VERTICES_3D){
-                    ImGui::SameLine();
-                    if (ImGui::Button(("Add Vertex##mesh_" + std::to_string(s)).c_str())){
-                        MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
-                        for (Entity entity : entities){
-                            if (Body3DComponent* bodyComp = sceneProject->scene->findComponent<Body3DComponent>(entity)){
-                                if (s >= bodyComp->numShapes) continue;
-                                Shape3D shapeValue = bodyComp->shapes[s];
-                                if (shapeValue.numVertices >= MAX_SHAPE_VERTICES_3D) continue;
-                                const uint16_t oldCount = shapeValue.numVertices;
-                                if (oldCount >= 2){
-                                    shapeValue.vertices[oldCount] = shapeValue.vertices[oldCount - 1] + (shapeValue.vertices[oldCount - 1] - shapeValue.vertices[oldCount - 2]);
-                                }else if (oldCount == 1){
-                                    shapeValue.vertices[oldCount] = shapeValue.vertices[0] + Vector3(1.0f, 0.0f, 0.0f);
-                                }else{
-                                    shapeValue.vertices[oldCount] = Vector3::ZERO;
-                                }
-                                shapeValue.numVertices = oldCount + 1;
-                                multiCmd->addPropertyCmd<Shape3D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
+                ImGui::Text("%d", shape.numVertices);
+                ImGui::SameLine();
+                if (ImGui::Button(("Add Vertex##mesh_" + std::to_string(s)).c_str())){
+                    MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+                    for (Entity entity : entities){
+                        if (Body3DComponent* bodyComp = sceneProject->scene->findComponent<Body3DComponent>(entity)){
+                            if (s >= bodyComp->numShapes) continue;
+                            Shape3D shapeValue = bodyComp->shapes[s];
+                            const uint16_t oldCount = shapeValue.numVertices;
+                            if (oldCount >= 2){
+                                shapeValue.vertices[oldCount] = shapeValue.vertices[oldCount - 1] + (shapeValue.vertices[oldCount - 1] - shapeValue.vertices[oldCount - 2]);
+                            }else if (oldCount == 1){
+                                shapeValue.vertices[oldCount] = shapeValue.vertices[0] + Vector3(1.0f, 0.0f, 0.0f);
+                            }else{
+                                shapeValue.vertices[oldCount] = Vector3::ZERO;
                             }
+                            shapeValue.numVertices = oldCount + 1;
+                            multiCmd->addPropertyCmd<Shape3D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
                         }
-                        multiCmd->setNoMerge();
-                        CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
                     }
+                    multiCmd->setNoMerge();
+                    CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
                 }
 
                 float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
@@ -5500,8 +5476,7 @@ void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject*
                 RowSettings settingsVertex = settingsShapeValue;
                 settingsVertex.secondColSize = inputVerSize.x;
 
-                const int drawVertexCount = std::max(0, std::min((int)shape.numVertices, (int)MAX_SHAPE_VERTICES_3D));
-                for (int v = 0; v < drawVertexCount; v++){
+                for (int v = 0; v < (int)shape.numVertices; v++){
                     propertyRow(RowPropertyType::Vector3, cpType, shapeKey + ".vertices[" + std::to_string(v) + "]", "Vertex " + std::to_string(v + 1), sceneProject, entities, settingsVertex);
                     ImGui::SameLine();
 
@@ -5534,31 +5509,26 @@ void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject*
                 }
 
                 // Triangles (indices)
-                const int indicesCount = std::max(0, std::min((int)shape.numIndices, (int)MAX_SHAPE_INDICES_3D));
-                const int triangleCount = indicesCount / 3;
-                const int maxTriangles = MAX_SHAPE_INDICES_3D / 3;
+                const int triangleCount = shape.numIndices / 3;
                 propertyHeader("Triangles");
-                ImGui::Text("%d / %d", triangleCount, maxTriangles);
-                if (triangleCount < maxTriangles){
-                    ImGui::SameLine();
-                    if (ImGui::Button(("Add Triangle##mesh_tri_" + std::to_string(s)).c_str())){
-                        MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
-                        for (Entity entity : entities){
-                            if (Body3DComponent* bodyComp = sceneProject->scene->findComponent<Body3DComponent>(entity)){
-                                if (s >= bodyComp->numShapes) continue;
-                                Shape3D shapeValue = bodyComp->shapes[s];
-                                if (shapeValue.numIndices + 3 > MAX_SHAPE_INDICES_3D) continue;
-                                const uint16_t idx = shapeValue.numIndices;
-                                shapeValue.indices[idx] = 0;
-                                shapeValue.indices[idx + 1] = (shapeValue.numVertices > 1) ? (uint16_t)1 : (uint16_t)0;
-                                shapeValue.indices[idx + 2] = (shapeValue.numVertices > 2) ? (uint16_t)2 : (uint16_t)0;
-                                shapeValue.numIndices = idx + 3;
-                                multiCmd->addPropertyCmd<Shape3D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
-                            }
+                ImGui::Text("%d", triangleCount);
+                ImGui::SameLine();
+                if (ImGui::Button(("Add Triangle##mesh_tri_" + std::to_string(s)).c_str())){
+                    MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+                    for (Entity entity : entities){
+                        if (Body3DComponent* bodyComp = sceneProject->scene->findComponent<Body3DComponent>(entity)){
+                            if (s >= bodyComp->numShapes) continue;
+                            Shape3D shapeValue = bodyComp->shapes[s];
+                            const uint16_t idx = shapeValue.numIndices;
+                            shapeValue.indices[idx] = 0;
+                            shapeValue.indices[idx + 1] = (shapeValue.numVertices > 1) ? (uint16_t)1 : (uint16_t)0;
+                            shapeValue.indices[idx + 2] = (shapeValue.numVertices > 2) ? (uint16_t)2 : (uint16_t)0;
+                            shapeValue.numIndices = idx + 3;
+                            multiCmd->addPropertyCmd<Shape3D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
                         }
-                        multiCmd->setNoMerge();
-                        CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
                     }
+                    multiCmd->setNoMerge();
+                    CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
                 }
 
                 for (int t = 0; t < triangleCount; t++){

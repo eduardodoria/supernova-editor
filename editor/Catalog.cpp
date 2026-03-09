@@ -325,9 +325,6 @@ namespace {
         if (!parseIndex(propertyName, pos, submeshIndex) || pos >= propertyName.size() || propertyName[pos] != ']') {
             return PropertyData();
         }
-        if (!comp->submeshes.validIndex(submeshIndex)) {
-            return PropertyData();
-        }
 
         Submesh& sub = comp->submeshes[submeshIndex];
         Submesh& defSub = def.submeshes[0];
@@ -575,10 +572,6 @@ namespace {
             return PropertyData();
         }
 
-        if (shapeIndex >= MAX_SHAPES) {
-            return PropertyData();
-        }
-
         Shape2D& shape = comp->shapes[shapeIndex];
         Shape2D& defaultShape = defaultBody2D.shapes[0];
 
@@ -637,7 +630,7 @@ namespace {
                 return PropertyData();
             }
 
-            if (vertexPos + 1 != propertyName.size() || vertexIndex >= MAX_SHAPE_POINTS_2D) {
+            if (vertexPos + 1 != propertyName.size()) {
                 return PropertyData();
             }
 
@@ -681,10 +674,6 @@ namespace {
         size_t pos = 7;
         size_t shapeIndex = 0;
         if (!parseIndex(propertyName, pos, shapeIndex) || pos >= propertyName.size() || propertyName[pos] != ']') {
-            return PropertyData();
-        }
-
-        if (shapeIndex >= MAX_SHAPES) {
             return PropertyData();
         }
 
@@ -759,7 +748,7 @@ namespace {
                 return PropertyData();
             }
 
-            if (vertexPos + 1 != propertyName.size() || vertexIndex >= MAX_SHAPE_VERTICES_3D) {
+            if (vertexPos + 1 != propertyName.size()) {
                 return PropertyData();
             }
 
@@ -815,9 +804,6 @@ namespace {
         size_t pos = 11;
         size_t frameIndex = 0;
         if (!parseIndex(propertyName, pos, frameIndex) || pos >= propertyName.size() || propertyName[pos] != ']') {
-            return PropertyData();
-        }
-        if (!comp->framesRect.validIndex(frameIndex)) {
             return PropertyData();
         }
 
@@ -1000,7 +986,7 @@ namespace {
         ps["type"] = {PropertyType::Enum, UpdateFlags_Body2D, (void*)&def.type, compRef ? (void*)&comp->type : nullptr};
         ps["numShapes"] = {PropertyType::UInt, UpdateFlags_Body2D, (void*)&def.numShapes, compRef ? (void*)&comp->numShapes : nullptr};
 
-        for (int s = 0; s < (compRef ? MAX_SHAPES : 1); s++) {
+        for (int s = 0; s < (compRef ? (int)comp->numShapes : 1); s++) {
             std::string idx = compRef ? std::to_string(s) : "";
 
             Shape2D& shape = compRef ? comp->shapes[s] : def.shapes[0];
@@ -1020,7 +1006,7 @@ namespace {
             ps["shapes[" + idx + "].preSolveEvents"] = {PropertyType::Bool, UpdateFlags_Body2D, (void*)&defShape.preSolveEvents, compRef ? (void*)&shape.preSolveEvents : nullptr};
             ps["shapes[" + idx + "].sensorEvents"] = {PropertyType::Bool, UpdateFlags_Body2D, (void*)&defShape.sensorEvents, compRef ? (void*)&shape.sensorEvents : nullptr};
 
-            for (int v = 0; v < (compRef ? MAX_SHAPE_POINTS_2D : 1); v++) {
+            for (int v = 0; v < (compRef ? (int)shape.verticesCount : 1); v++) {
                 std::string vidx = compRef ? std::to_string(v) : "";
                 ps["shapes[" + idx + "].vertices[" + vidx + "]"] = {PropertyType::Vector2, UpdateFlags_Body2D, (void*)&defShape.vertices[0], compRef ? (void*)&shape.vertices[v] : nullptr};
             }
@@ -1038,7 +1024,7 @@ namespace {
         ps["solidBoxDensity"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&def.solidBoxDensity, compRef ? (void*)&comp->solidBoxDensity : nullptr};
         ps["lockBody"] = {PropertyType::Bool, UpdateFlags_Body3D, (void*)&def.lockBody, compRef ? (void*)&comp->lockBody : nullptr};
 
-        for (int s = 0; s < (compRef ? MAX_SHAPES : 1); s++) {
+        for (int s = 0; s < (compRef ? (int)comp->numShapes : 1); s++) {
             std::string idx = compRef ? std::to_string(s) : "";
 
             Shape3D& shape = compRef ? comp->shapes[s] : def.shapes[0];
@@ -1062,7 +1048,7 @@ namespace {
             ps["shapes[" + idx + "].numVertices"] = {PropertyType::UInt, UpdateFlags_Body3D, (void*)&defShape.numVertices, compRef ? (void*)&shape.numVertices : nullptr};
             ps["shapes[" + idx + "].numIndices"] = {PropertyType::UInt, UpdateFlags_Body3D, (void*)&defShape.numIndices, compRef ? (void*)&shape.numIndices : nullptr};
 
-            for (int v = 0; v < (compRef ? MAX_SHAPE_VERTICES_3D : 1); v++) {
+            for (int v = 0; v < (compRef ? (int)shape.numVertices : 1); v++) {
                 std::string vidx = compRef ? std::to_string(v) : "";
                 ps["shapes[" + idx + "].vertices[" + vidx + "]"] = {PropertyType::Vector3, UpdateFlags_Body3D, (void*)&defShape.vertices[0], compRef ? (void*)&shape.vertices[v] : nullptr};
             }
