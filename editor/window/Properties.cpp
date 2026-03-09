@@ -3704,8 +3704,9 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
     // --- Frames Rect Section ---
     if (entities.size() == 1) {
         SpriteComponent& sprite = sceneProject->scene->getComponent<SpriteComponent>(entities[0]);
+        MeshComponent* meshComp = sceneProject->scene->findComponent<MeshComponent>(entities[0]);
         Texture previewTexture;
-        if (MeshComponent* meshComp = sceneProject->scene->findComponent<MeshComponent>(entities[0])) {
+        if (meshComp) {
             if (meshComp->numSubmeshes > 0) {
                 previewTexture = meshComp->submeshes[0].material.baseColorTexture;
             }
@@ -3859,10 +3860,32 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
                     float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_TRASH_CAN).x;
                     ImVec2 deleteButtonSize = ImVec2(clearButtonWidth + clearButtonFramePadding * 2, 0);
                     ImVec2 arrowButtonSize = ImGui::CalcItemSize(ImVec2(0, 0), ImGui::GetFrameHeight(), ImGui::GetFrameHeight());
+                    ImVec2 applyButtonSize = arrowButtonSize;
 
                     bool hasFramePreview = !previewTexture.empty() && sprite.framesRect[i].rect.getWidth() > 0.0f && sprite.framesRect[i].rect.getHeight() > 0.0f;
+                    bool hasValidMeshTextureRect = meshComp && meshComp->numSubmeshes > 0;
+                    bool canApplyFrame = hasValidMeshTextureRect && !previewTexture.empty() && previewTexture.getWidth() > 0 && previewTexture.getHeight() > 0;
+                    Rect normalizedFrameRect = sprite.framesRect[i].rect;
+                    if (canApplyFrame) {
+                        normalizedFrameRect = Rect(
+                            sprite.framesRect[i].rect.getX() / (float)previewTexture.getWidth(),
+                            sprite.framesRect[i].rect.getY() / (float)previewTexture.getHeight(),
+                            sprite.framesRect[i].rect.getWidth() / (float)previewTexture.getWidth(),
+                            sprite.framesRect[i].rect.getHeight() / (float)previewTexture.getHeight()
+                        );
+                    }
+                    bool isAppliedFrame = false;
+                    if (hasValidMeshTextureRect) {
+                        const Rect& appliedRect = meshComp->submeshes[0].textureRect;
+                        isAppliedFrame = appliedRect.getX() == normalizedFrameRect.getX()
+                                && appliedRect.getY() == normalizedFrameRect.getY()
+                                && appliedRect.getWidth() == normalizedFrameRect.getWidth()
+                                && appliedRect.getHeight() == normalizedFrameRect.getHeight();
+                    }
 
-                    float trailingWidth = arrowButtonSize.x + ImGui::GetStyle().ItemSpacing.x + deleteButtonSize.x;
+                    float trailingWidth = arrowButtonSize.x
+                            + ImGui::GetStyle().ItemSpacing.x + applyButtonSize.x
+                            + ImGui::GetStyle().ItemSpacing.x + deleteButtonSize.x;
                     if (hasFramePreview) {
                         trailingWidth += previewSize + ImGui::GetStyle().ItemSpacing.x;
                     }
@@ -3896,6 +3919,31 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
                     ImGui::SameLine();
 
                     bool deleted = false;
+                    ImGui::BeginDisabled(!canApplyFrame || isAppliedFrame);
+                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
+                    if (ImGui::Button(ICON_FA_CHECK "##apply_frame", applyButtonSize)) {
+                        Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+                        multiCmd->addPropertyCmd<Vector4>(project, sceneProject->id, entities[0], ComponentType::MeshComponent,
+                            "submeshes[0].textureRect", Vector4(normalizedFrameRect.getX(), normalizedFrameRect.getY(), normalizedFrameRect.getWidth(), normalizedFrameRect.getHeight()));
+                        multiCmd->setNoMerge();
+                        CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+                    }
+                    if (ImGui::IsItemHovered()) {
+                        if (!meshComp) {
+                            ImGui::SetTooltip("Sprite entity has no MeshComponent");
+                        } else if (meshComp->numSubmeshes == 0) {
+                            ImGui::SetTooltip("Sprite mesh has no submeshes");
+                        } else if (!canApplyFrame) {
+                            ImGui::SetTooltip("Sprite needs a valid texture to apply a frame");
+                        } else {
+                            ImGui::SetTooltip("Apply frame to sprite");
+                        }
+                    }
+                    ImGui::PopStyleVar();
+                    ImGui::EndDisabled();
+
+                    ImGui::SameLine();
+
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
                     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
                     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
