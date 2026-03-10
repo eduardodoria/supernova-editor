@@ -11,6 +11,7 @@
 #include "window/SceneWindow.h"
 #include "window/ResourcesWindow.h"
 #include "window/CodeEditor.h"
+#include "window/AnimationWindow.h"
 
 #include "window/LoadingWindow.h"
 
@@ -67,6 +68,7 @@ namespace Supernova::Editor{
         SceneWindow* sceneWindow;
         CodeEditor* codeEditor;
         ResourcesWindow* resourcesWindow;
+        AnimationWindow* animationWindow;
 
         LoadingWindow* loadingWindow;
 

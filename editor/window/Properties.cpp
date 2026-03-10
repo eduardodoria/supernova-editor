@@ -161,6 +161,12 @@ static std::vector<Editor::EnumEntry> entriesJoint3DType = {
 static std::vector<int> cascadeValues = { 1, 2, 3, 4, 5, 6 };
 static std::vector<int> po2Values = { 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384 };
 
+static std::vector<Editor::EnumEntry> entriesActionState = {
+    { (int)ActionState::Running, "Running" },
+    { (int)ActionState::Paused, "Paused" },
+    { (int)ActionState::Stopped, "Stopped" }
+};
+
 namespace {
     enum class ScenePropertyInputType {
         Checkbox,
@@ -6077,6 +6083,41 @@ void Editor::Properties::drawJoint3DComponent(ComponentType cpType, SceneProject
     endTable();
 }
 
+void Editor::Properties::drawActionComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+    RowSettings settingsState;
+    settingsState.enumEntries = &entriesActionState;
+
+    beginTable(cpType, getLabelSize("Owned target"));
+    propertyRow(RowPropertyType::Enum, cpType, "state", "State", sceneProject, entities, settingsState);
+    propertyRow(RowPropertyType::Float, cpType, "speed", "Speed", sceneProject, entities);
+    propertyRow(RowPropertyType::EntityPointer, cpType, "target", "Target", sceneProject, entities);
+    propertyRow(RowPropertyType::Bool, cpType, "ownedTarget", "Owned target", sceneProject, entities);
+    endTable();
+}
+
+void Editor::Properties::drawSpriteAnimationComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+    beginTable(cpType, getLabelSize("Frame count"));
+    propertyRow(RowPropertyType::String, cpType, "name", "Name", sceneProject, entities);
+    propertyRow(RowPropertyType::Bool, cpType, "loop", "Loop", sceneProject, entities);
+    propertyRow(RowPropertyType::Label, cpType, "framesSize", "Frames", sceneProject, entities);
+    propertyRow(RowPropertyType::Label, cpType, "framesTimeSize", "Intervals", sceneProject, entities);
+    propertyRow(RowPropertyType::Label, cpType, "frameIndex", "Frame index", sceneProject, entities);
+    propertyRow(RowPropertyType::Label, cpType, "spriteFrameCount", "Frame count", sceneProject, entities);
+    endTable();
+}
+
+void Editor::Properties::drawAnimationComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+    beginTable(cpType, getLabelSize("Owned actions"));
+    propertyRow(RowPropertyType::String, cpType, "name", "Name", sceneProject, entities);
+    propertyRow(RowPropertyType::Bool, cpType, "loop", "Loop", sceneProject, entities);
+    propertyRow(RowPropertyType::Float, cpType, "duration", "Duration", sceneProject, entities);
+    propertyRow(RowPropertyType::Bool, cpType, "ownedActions", "Owned actions", sceneProject, entities);
+    endTable();
+
+    AnimationComponent& anim = sceneProject->scene->getComponent<AnimationComponent>(entities[0]);
+    ImGui::Text("Action frames: %zu", anim.actions.size());
+}
+
 void Editor::Properties::show(){
     // Flush any debounced material file writes
     flushDirtyMaterials(project, ImGui::GetIO().DeltaTime);
@@ -6361,6 +6402,12 @@ void Editor::Properties::show(){
                     drawJoint2DComponent(cpType, sceneProject, entities);
                 }else if (cpType == ComponentType::Joint3DComponent){
                     drawJoint3DComponent(cpType, sceneProject, entities);
+                }else if (cpType == ComponentType::ActionComponent){
+                    drawActionComponent(cpType, sceneProject, entities);
+                }else if (cpType == ComponentType::SpriteAnimationComponent){
+                    drawSpriteAnimationComponent(cpType, sceneProject, entities);
+                }else if (cpType == ComponentType::AnimationComponent){
+                    drawAnimationComponent(cpType, sceneProject, entities);
                 }
 
                 if (compReadOnly) ImGui::EndDisabled();

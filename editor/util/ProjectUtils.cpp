@@ -250,8 +250,7 @@ void Editor::ProjectUtils::addEntityComponent(EntityRegistry* registry, Entity e
             if (!componentNode.IsDefined() || componentNode.IsNull()){
                 registry->addComponent<ActionComponent>(entity, {});
             }else{
-                registry->addComponent<ActionComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                registry->addComponent<ActionComponent>(entity, Stream::decodeActionComponent(componentNode));
             }
             break;
         case ComponentType::AlphaActionComponent:
@@ -266,8 +265,7 @@ void Editor::ProjectUtils::addEntityComponent(EntityRegistry* registry, Entity e
             if (!componentNode.IsDefined() || componentNode.IsNull()){
                 registry->addComponent<AnimationComponent>(entity, {});
             }else{
-                registry->addComponent<AnimationComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                registry->addComponent<AnimationComponent>(entity, Stream::decodeAnimationComponent(componentNode));
             }
             break;
         case ComponentType::AudioComponent:
@@ -506,8 +504,7 @@ void Editor::ProjectUtils::addEntityComponent(EntityRegistry* registry, Entity e
             if (!componentNode.IsDefined() || componentNode.IsNull()){
                 registry->addComponent<SpriteAnimationComponent>(entity, {});
             }else{
-                registry->addComponent<SpriteAnimationComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                registry->addComponent<SpriteAnimationComponent>(entity, Stream::decodeSpriteAnimationComponent(componentNode));
             }
             break;
         case ComponentType::SpriteComponent:
@@ -608,7 +605,7 @@ YAML::Node Editor::ProjectUtils::removeEntityComponent(EntityRegistry* registry,
             break;
         case ComponentType::ActionComponent:
             if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                oldComponent = Stream::encodeActionComponent(registry->getComponent<ActionComponent>(entity));
             }
             registry->removeComponent<ActionComponent>(entity);
             break;
@@ -620,7 +617,7 @@ YAML::Node Editor::ProjectUtils::removeEntityComponent(EntityRegistry* registry,
             break;
         case ComponentType::AnimationComponent:
             if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                oldComponent = Stream::encodeAnimationComponent(registry->getComponent<AnimationComponent>(entity));
             }
             registry->removeComponent<AnimationComponent>(entity);
             break;
@@ -806,7 +803,7 @@ YAML::Node Editor::ProjectUtils::removeEntityComponent(EntityRegistry* registry,
             break;
         case ComponentType::SpriteAnimationComponent:
             if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                oldComponent = Stream::encodeSpriteAnimationComponent(registry->getComponent<SpriteAnimationComponent>(entity));
             }
             registry->removeComponent<SpriteAnimationComponent>(entity);
             break;

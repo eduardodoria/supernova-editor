@@ -247,6 +247,16 @@ bool Editor::CreateEntityCmd::execute(){
 
         scene->addComponent<SkyComponent>(entity, {});
 
+    }else if (type == EntityCreationType::ANIMATION){
+
+        scene->addComponent<ActionComponent>(entity, {});
+        scene->addComponent<AnimationComponent>(entity, {});
+
+    }else if (type == EntityCreationType::SPRITE_ANIMATION){
+
+        scene->addComponent<ActionComponent>(entity, {});
+        scene->addComponent<SpriteAnimationComponent>(entity, {});
+
     }else if (type == EntityCreationType::CAMERA){
 
         scene->addComponent<Transform>(entity, {});

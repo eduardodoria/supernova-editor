@@ -206,5 +206,17 @@ namespace Supernova::Editor {
 
         static YAML::Node encodeJoint3DComponent(const Joint3DComponent& joint);
         static Joint3DComponent decodeJoint3DComponent(const YAML::Node& node, const Joint3DComponent* oldJoint = nullptr);
+
+        static std::string actionStateToString(ActionState state);
+        static ActionState stringToActionState(const std::string& str);
+
+        static YAML::Node encodeActionComponent(const ActionComponent& action);
+        static ActionComponent decodeActionComponent(const YAML::Node& node, const ActionComponent* oldAction = nullptr);
+
+        static YAML::Node encodeSpriteAnimationComponent(const SpriteAnimationComponent& spriteanim);
+        static SpriteAnimationComponent decodeSpriteAnimationComponent(const YAML::Node& node, const SpriteAnimationComponent* oldSpriteanim = nullptr);
+
+        static YAML::Node encodeAnimationComponent(const AnimationComponent& animation);
+        static AnimationComponent decodeAnimationComponent(const YAML::Node& node, const AnimationComponent* oldAnimation = nullptr);
     };
 }

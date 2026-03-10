@@ -994,6 +994,15 @@ std::string Editor::Factory::formatJoint3DType(Joint3DType type) {
     }
 }
 
+std::string Editor::Factory::formatActionState(ActionState state) {
+    switch (state) {
+        case ActionState::Running: return "ActionState::Running";
+        case ActionState::Paused: return "ActionState::Paused";
+        case ActionState::Stopped: return "ActionState::Stopped";
+        default: return "ActionState::Stopped";
+    }
+}
+
 std::string Editor::Factory::createBody2DComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<Body2DComponent>(entity)) return "";
     Body2DComponent& body = scene->getComponent<Body2DComponent>(entity);
@@ -1170,6 +1179,59 @@ std::string Editor::Factory::createJoint3DComponent(int indentSpaces, Scene* sce
     return code.str();
 }
 
+std::string Editor::Factory::createActionComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+    if (!scene->findComponent<ActionComponent>(entity)) return "";
+    ActionComponent& action = scene->getComponent<ActionComponent>(entity);
+    std::ostringstream code;
+    const std::string ind = indentation(indentSpaces);
+    code << ind << "ActionComponent actioncomp;\n";
+    code << ind << "actioncomp.state = " << formatActionState(action.state) << ";\n";
+    code << ind << "actioncomp.speed = " << formatFloat(action.speed) << ";\n";
+    code << ind << "actioncomp.target = " << formatUInt(action.target) << ";\n";
+    code << ind << "actioncomp.ownedTarget = " << formatBool(action.ownedTarget) << ";\n";
+    addComponentCode(code, ind, sceneName, entityName, entity, "ActionComponent", "actioncomp");
+    return code.str();
+}
+
+std::string Editor::Factory::createSpriteAnimationComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+    if (!scene->findComponent<SpriteAnimationComponent>(entity)) return "";
+    SpriteAnimationComponent& spriteanim = scene->getComponent<SpriteAnimationComponent>(entity);
+    std::ostringstream code;
+    const std::string ind = indentation(indentSpaces);
+    code << ind << "SpriteAnimationComponent spriteanim;\n";
+    code << ind << "spriteanim.name = " << formatString(spriteanim.name) << ";\n";
+    code << ind << "spriteanim.loop = " << formatBool(spriteanim.loop) << ";\n";
+    code << ind << "spriteanim.spriteFrameCount = " << formatUInt(spriteanim.spriteFrameCount) << ";\n";
+    code << ind << "spriteanim.framesSize = " << formatUInt(spriteanim.framesSize) << ";\n";
+    for (unsigned int i = 0; i < spriteanim.framesSize; i++) {
+        code << ind << "spriteanim.frames[" << i << "] = " << formatInt(spriteanim.frames[i]) << ";\n";
+    }
+    code << ind << "spriteanim.framesTimeSize = " << formatUInt(spriteanim.framesTimeSize) << ";\n";
+    for (unsigned int i = 0; i < spriteanim.framesTimeSize; i++) {
+        code << ind << "spriteanim.framesTime[" << i << "] = " << formatInt(spriteanim.framesTime[i]) << ";\n";
+    }
+    addComponentCode(code, ind, sceneName, entityName, entity, "SpriteAnimationComponent", "spriteanim");
+    return code.str();
+}
+
+std::string Editor::Factory::createAnimationComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+    if (!scene->findComponent<AnimationComponent>(entity)) return "";
+    AnimationComponent& anim = scene->getComponent<AnimationComponent>(entity);
+    std::ostringstream code;
+    const std::string ind = indentation(indentSpaces);
+    code << ind << "AnimationComponent animcomp;\n";
+    code << ind << "animcomp.name = " << formatString(anim.name) << ";\n";
+    code << ind << "animcomp.loop = " << formatBool(anim.loop) << ";\n";
+    code << ind << "animcomp.duration = " << formatFloat(anim.duration) << ";\n";
+    code << ind << "animcomp.ownedActions = " << formatBool(anim.ownedActions) << ";\n";
+    code << ind << "animcomp.actions.clear();\n";
+    for (size_t i = 0; i < anim.actions.size(); i++) {
+        code << ind << "animcomp.actions.push_back({" << formatFloat(anim.actions[i].startTime) << ", " << formatFloat(anim.actions[i].duration) << ", " << formatUInt(anim.actions[i].action) << "});\n";
+    }
+    addComponentCode(code, ind, sceneName, entityName, entity, "AnimationComponent", "animcomp");
+    return code.str();
+}
+
 std::string Editor::Factory::createComponent(int indentSpaces, Scene* scene, Entity entity, ComponentType componentType, const fs::path& projectPath, std::string sceneName, std::string entityName) {
     switch (componentType) {
         case ComponentType::Transform: return createTransform(indentSpaces, scene, entity, sceneName, entityName);
@@ -1189,6 +1251,9 @@ std::string Editor::Factory::createComponent(int indentSpaces, Scene* scene, Ent
         case ComponentType::Body3DComponent: return createBody3DComponent(indentSpaces, scene, entity, sceneName, entityName);
         case ComponentType::Joint2DComponent: return createJoint2DComponent(indentSpaces, scene, entity, sceneName, entityName);
         case ComponentType::Joint3DComponent: return createJoint3DComponent(indentSpaces, scene, entity, sceneName, entityName);
+        case ComponentType::ActionComponent: return createActionComponent(indentSpaces, scene, entity, sceneName, entityName);
+        case ComponentType::SpriteAnimationComponent: return createSpriteAnimationComponent(indentSpaces, scene, entity, sceneName, entityName);
+        case ComponentType::AnimationComponent: return createAnimationComponent(indentSpaces, scene, entity, sceneName, entityName);
         default: return "";
     }
 }

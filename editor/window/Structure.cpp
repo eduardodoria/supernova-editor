@@ -144,6 +144,18 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addT
         ImGui::EndMenu();
     }
 
+    if (ImGui::BeginMenu(ICON_FA_FILM"  Animation")){
+        if (ImGui::MenuItem(ICON_FA_FILM"  Animation")){
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Animation", EntityCreationType::ANIMATION, parent, addToShared));
+            openParent = parent;
+        }
+        if (ImGui::MenuItem(ICON_FA_IMAGE"  Sprite Animation")){
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "SpriteAnimation", EntityCreationType::SPRITE_ANIMATION, parent, addToShared));
+            openParent = parent;
+        }
+        ImGui::EndMenu();
+    }
+
     if (ImGui::MenuItem(ICON_FA_PERSON_RUNNING"  Model")){
         // Action for Item 2
     }

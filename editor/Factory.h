@@ -33,6 +33,7 @@ namespace Supernova::Editor{
         static std::string formatShape3DSource(Shape3DSource source);
         static std::string formatJoint2DType(Joint2DType type);
         static std::string formatJoint3DType(Joint3DType type);
+        static std::string formatActionState(ActionState state);
         static std::string formatLightState(LightState state);
         static std::string formatUIEventState(UIEventState state);
         static std::string formatCameraType(CameraType type);
@@ -86,6 +87,9 @@ namespace Supernova::Editor{
         static std::string createBody3DComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
         static std::string createJoint2DComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
         static std::string createJoint3DComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
+        static std::string createActionComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
+        static std::string createSpriteAnimationComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
+        static std::string createAnimationComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName = "", std::string entityName = "");
     };
 
 }

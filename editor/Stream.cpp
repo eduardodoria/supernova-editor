@@ -1557,6 +1557,21 @@ YAML::Node Editor::Stream::encodeComponents(const Entity entity, const EntityReg
         compNode[Catalog::getComponentName(ComponentType::Joint3DComponent, true)] = encodeJoint3DComponent(joint);
     }
 
+    if (signature.test(registry->getComponentId<ActionComponent>())) {
+        ActionComponent action = registry->getComponent<ActionComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::ActionComponent, true)] = encodeActionComponent(action);
+    }
+
+    if (signature.test(registry->getComponentId<SpriteAnimationComponent>())) {
+        SpriteAnimationComponent spriteanim = registry->getComponent<SpriteAnimationComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::SpriteAnimationComponent, true)] = encodeSpriteAnimationComponent(spriteanim);
+    }
+
+    if (signature.test(registry->getComponentId<AnimationComponent>())) {
+        AnimationComponent animation = registry->getComponent<AnimationComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::AnimationComponent, true)] = encodeAnimationComponent(animation);
+    }
+
     return compNode;
 }
 
@@ -1784,6 +1799,45 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
         }else{
             int flags = Catalog::getChangedUpdateFlags(ComponentType::Joint3DComponent, existing, &joint);
             registry->getComponent<Joint3DComponent>(entity) = joint;
+            Catalog::updateEntity(registry, entity, flags);
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::ActionComponent, true);
+    if (compNode[compName]) {
+        ActionComponent* existing = registry->findComponent<ActionComponent>(entity);
+        ActionComponent action = decodeActionComponent(compNode[compName], existing);
+        if (!signature.test(registry->getComponentId<ActionComponent>())){
+            registry->addComponent<ActionComponent>(entity, action);
+        }else{
+            int flags = Catalog::getChangedUpdateFlags(ComponentType::ActionComponent, existing, &action);
+            registry->getComponent<ActionComponent>(entity) = action;
+            Catalog::updateEntity(registry, entity, flags);
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::SpriteAnimationComponent, true);
+    if (compNode[compName]) {
+        SpriteAnimationComponent* existing = registry->findComponent<SpriteAnimationComponent>(entity);
+        SpriteAnimationComponent spriteanim = decodeSpriteAnimationComponent(compNode[compName], existing);
+        if (!signature.test(registry->getComponentId<SpriteAnimationComponent>())){
+            registry->addComponent<SpriteAnimationComponent>(entity, spriteanim);
+        }else{
+            int flags = Catalog::getChangedUpdateFlags(ComponentType::SpriteAnimationComponent, existing, &spriteanim);
+            registry->getComponent<SpriteAnimationComponent>(entity) = spriteanim;
+            Catalog::updateEntity(registry, entity, flags);
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::AnimationComponent, true);
+    if (compNode[compName]) {
+        AnimationComponent* existing = registry->findComponent<AnimationComponent>(entity);
+        AnimationComponent animation = decodeAnimationComponent(compNode[compName], existing);
+        if (!signature.test(registry->getComponentId<AnimationComponent>())){
+            registry->addComponent<AnimationComponent>(entity, animation);
+        }else{
+            int flags = Catalog::getChangedUpdateFlags(ComponentType::AnimationComponent, existing, &animation);
+            registry->getComponent<AnimationComponent>(entity) = animation;
             Catalog::updateEntity(registry, entity, flags);
         }
     }
@@ -3043,4 +3097,152 @@ Joint3DComponent Editor::Stream::decodeJoint3DComponent(const YAML::Node& node, 
     }
 
     return joint;
+}
+
+// ── ActionComponent ──
+
+std::string Editor::Stream::actionStateToString(ActionState state) {
+    switch (state) {
+        case ActionState::Running: return "Running";
+        case ActionState::Paused: return "Paused";
+        case ActionState::Stopped: return "Stopped";
+        default: return "Stopped";
+    }
+}
+
+ActionState Editor::Stream::stringToActionState(const std::string& str) {
+    if (str == "Running") return ActionState::Running;
+    if (str == "Paused") return ActionState::Paused;
+    return ActionState::Stopped;
+}
+
+YAML::Node Editor::Stream::encodeActionComponent(const ActionComponent& action) {
+    YAML::Node node;
+
+    node["state"] = actionStateToString(action.state);
+    node["speed"] = action.speed;
+    node["target"] = action.target;
+    node["ownedTarget"] = action.ownedTarget;
+
+    return node;
+}
+
+ActionComponent Editor::Stream::decodeActionComponent(const YAML::Node& node, const ActionComponent* oldAction) {
+    ActionComponent action;
+
+    if (oldAction) {
+        action = *oldAction;
+    }
+
+    if (node["state"]) action.state = stringToActionState(node["state"].as<std::string>());
+    if (node["speed"]) action.speed = node["speed"].as<float>();
+    if (node["target"]) action.target = node["target"].as<Entity>();
+    if (node["ownedTarget"]) action.ownedTarget = node["ownedTarget"].as<bool>();
+
+    return action;
+}
+
+// ── SpriteAnimationComponent ──
+
+YAML::Node Editor::Stream::encodeSpriteAnimationComponent(const SpriteAnimationComponent& spriteanim) {
+    YAML::Node node;
+
+    node["name"] = spriteanim.name;
+    node["loop"] = spriteanim.loop;
+    node["spriteFrameCount"] = spriteanim.spriteFrameCount;
+
+    YAML::Node framesNode;
+    for (unsigned int i = 0; i < spriteanim.framesSize; i++) {
+        framesNode.push_back(spriteanim.frames[i]);
+    }
+    node["frames"] = framesNode;
+
+    YAML::Node framesTimeNode;
+    for (unsigned int i = 0; i < spriteanim.framesTimeSize; i++) {
+        framesTimeNode.push_back(spriteanim.framesTime[i]);
+    }
+    node["framesTime"] = framesTimeNode;
+
+    return node;
+}
+
+SpriteAnimationComponent Editor::Stream::decodeSpriteAnimationComponent(const YAML::Node& node, const SpriteAnimationComponent* oldSpriteanim) {
+    SpriteAnimationComponent spriteanim;
+
+    if (oldSpriteanim) {
+        spriteanim = *oldSpriteanim;
+    }
+
+    if (node["name"]) spriteanim.name = node["name"].as<std::string>();
+    if (node["loop"]) spriteanim.loop = node["loop"].as<bool>();
+    if (node["spriteFrameCount"]) spriteanim.spriteFrameCount = node["spriteFrameCount"].as<unsigned int>();
+
+    if (node["frames"]) {
+        spriteanim.framesSize = 0;
+        for (const YAML::Node& frameNode : node["frames"]) {
+            if (!spriteanim.frames.validIndex(spriteanim.framesSize)) break;
+            spriteanim.frames[spriteanim.framesSize] = frameNode.as<int>();
+            spriteanim.framesSize++;
+        }
+    }
+
+    if (node["framesTime"]) {
+        spriteanim.framesTimeSize = 0;
+        for (const YAML::Node& timeNode : node["framesTime"]) {
+            if (!spriteanim.framesTime.validIndex(spriteanim.framesTimeSize)) break;
+            spriteanim.framesTime[spriteanim.framesTimeSize] = timeNode.as<int>();
+            spriteanim.framesTimeSize++;
+        }
+    }
+
+    return spriteanim;
+}
+
+// ── AnimationComponent ──
+
+YAML::Node Editor::Stream::encodeAnimationComponent(const AnimationComponent& animation) {
+    YAML::Node node;
+
+    node["name"] = animation.name;
+    node["loop"] = animation.loop;
+    node["duration"] = animation.duration;
+    node["ownedActions"] = animation.ownedActions;
+
+    YAML::Node actionsNode;
+    for (const auto& frame : animation.actions) {
+        YAML::Node frameNode;
+        frameNode["startTime"] = frame.startTime;
+        frameNode["duration"] = frame.duration;
+        frameNode["action"] = frame.action;
+        actionsNode.push_back(frameNode);
+    }
+    node["actions"] = actionsNode;
+
+    return node;
+}
+
+AnimationComponent Editor::Stream::decodeAnimationComponent(const YAML::Node& node, const AnimationComponent* oldAnimation) {
+    AnimationComponent animation;
+
+    if (oldAnimation) {
+        animation = *oldAnimation;
+    }
+
+    if (node["name"]) animation.name = node["name"].as<std::string>();
+    if (node["loop"]) animation.loop = node["loop"].as<bool>();
+    if (node["duration"]) animation.duration = node["duration"].as<float>();
+    if (node["ownedActions"]) animation.ownedActions = node["ownedActions"].as<bool>();
+
+    if (node["actions"]) {
+        animation.actions.clear();
+        for (const YAML::Node& frameNode : node["actions"]) {
+            ActionFrame frame;
+            if (frameNode["startTime"]) frame.startTime = frameNode["startTime"].as<float>();
+            if (frameNode["duration"]) frame.duration = frameNode["duration"].as<float>();
+            if (frameNode["action"]) frame.action = frameNode["action"].as<Entity>();
+            animation.actions.push_back(frame);
+        }
+    }
+
+    return animation;
 }

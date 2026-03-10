@@ -196,6 +196,7 @@ add_executable(
     ${EDITOR_DIR}/window/Structure.cpp
     ${EDITOR_DIR}/window/ResourcesWindow.cpp
     ${EDITOR_DIR}/window/CodeEditor.cpp
+    ${EDITOR_DIR}/window/AnimationWindow.cpp
     ${EDITOR_DIR}/window/LoadingWindow.cpp
     ${EDITOR_DIR}/window/dialog/SceneSaveDialog.cpp
     ${EDITOR_DIR}/window/dialog/ComponentAddDialog.cpp

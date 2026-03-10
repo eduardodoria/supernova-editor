@@ -190,6 +190,30 @@ namespace {
         makeFastProperty<SpriteComponent, bool, &SpriteComponent::flipY>("flipY", PropertyType::Bool, UpdateFlags_Sprite),
     };
 
+    static const FastPropertyDescriptor kActionProperties[] = {
+        makeFastPropertyNoDefault<ActionComponent, ActionState, &ActionComponent::state>("state", PropertyType::Enum, UpdateFlags_None),
+        makeFastProperty<ActionComponent, float, &ActionComponent::speed>("speed", PropertyType::Float, UpdateFlags_None),
+        makeFastProperty<ActionComponent, Entity, &ActionComponent::target>("target", PropertyType::EntityPointer, UpdateFlags_None),
+        makeFastProperty<ActionComponent, bool, &ActionComponent::ownedTarget>("ownedTarget", PropertyType::Bool, UpdateFlags_None),
+    };
+
+    static const FastPropertyDescriptor kSpriteAnimationProperties[] = {
+        makeFastProperty<SpriteAnimationComponent, std::string, &SpriteAnimationComponent::name>("name", PropertyType::String, UpdateFlags_None),
+        makeFastProperty<SpriteAnimationComponent, bool, &SpriteAnimationComponent::loop>("loop", PropertyType::Bool, UpdateFlags_None),
+        makeFastPropertyNoDefault<SpriteAnimationComponent, unsigned int, &SpriteAnimationComponent::framesSize>("framesSize", PropertyType::UInt, UpdateFlags_None),
+        makeFastPropertyNoDefault<SpriteAnimationComponent, unsigned int, &SpriteAnimationComponent::framesTimeSize>("framesTimeSize", PropertyType::UInt, UpdateFlags_None),
+        makeFastPropertyNoDefault<SpriteAnimationComponent, int, &SpriteAnimationComponent::frameIndex>("frameIndex", PropertyType::Int, UpdateFlags_None),
+        makeFastPropertyNoDefault<SpriteAnimationComponent, int, &SpriteAnimationComponent::frameTimeIndex>("frameTimeIndex", PropertyType::Int, UpdateFlags_None),
+        makeFastPropertyNoDefault<SpriteAnimationComponent, unsigned int, &SpriteAnimationComponent::spriteFrameCount>("spriteFrameCount", PropertyType::UInt, UpdateFlags_None),
+    };
+
+    static const FastPropertyDescriptor kAnimationProperties[] = {
+        makeFastProperty<AnimationComponent, std::string, &AnimationComponent::name>("name", PropertyType::String, UpdateFlags_None),
+        makeFastProperty<AnimationComponent, bool, &AnimationComponent::loop>("loop", PropertyType::Bool, UpdateFlags_None),
+        makeFastProperty<AnimationComponent, float, &AnimationComponent::duration>("duration", PropertyType::Float, UpdateFlags_None),
+        makeFastProperty<AnimationComponent, bool, &AnimationComponent::ownedActions>("ownedActions", PropertyType::Bool, UpdateFlags_None),
+    };
+
     static const FastPropertyDescriptor kLightProperties[] = {
         makeFastPropertyNoDefault<LightComponent, LightType, &LightComponent::type>("type", PropertyType::Enum, UpdateFlags_LightShadowMap | UpdateFlags_LightShadowCamera | UpdateFlags_Scene_Mesh_Reload),
         makeFastProperty<LightComponent, Vector3, &LightComponent::direction>("direction", PropertyType::Vector3, UpdateFlags_Transform),
@@ -889,6 +913,18 @@ namespace {
         return getBody3DPropertyFast(static_cast<Body3DComponent*>(comp), propertyName);
     }
 
+    PropertyData resolveActionPropertyFast(void* comp, const std::string& propertyName) {
+        return resolveDirectProperties(static_cast<ActionComponent*>(comp), propertyName, kActionProperties);
+    }
+
+    PropertyData resolveSpriteAnimationPropertyFast(void* comp, const std::string& propertyName) {
+        return resolveDirectProperties(static_cast<SpriteAnimationComponent*>(comp), propertyName, kSpriteAnimationProperties);
+    }
+
+    PropertyData resolveAnimationPropertyFast(void* comp, const std::string& propertyName) {
+        return resolveDirectProperties(static_cast<AnimationComponent*>(comp), propertyName, kAnimationProperties);
+    }
+
     PropertyData resolveMeshPropertyFast(void* comp, const std::string& propertyName) {
         return getMeshPropertyFast(static_cast<MeshComponent*>(comp), propertyName);
     }
@@ -902,6 +938,24 @@ namespace {
     }
 
     // ── Enumerate functions (build full property map) ──
+
+    void enumerateActionProperties(void* comp, std::map<std::string, PropertyData>& ps) {
+        enumerateFromDescriptors(comp, ps, kActionProperties);
+    }
+
+    void enumerateSpriteAnimationProperties(void* comp, std::map<std::string, PropertyData>& ps) {
+        enumerateFromDescriptors(comp, ps, kSpriteAnimationProperties);
+    }
+
+    void enumerateAnimationProperties(void* compRef, std::map<std::string, PropertyData>& ps) {
+        AnimationComponent* comp = static_cast<AnimationComponent*>(compRef);
+
+        enumerateFromDescriptors(compRef, ps, kAnimationProperties);
+
+        size_t actionCount = compRef ? comp->actions.size() : 0;
+        static size_t defActionCount = 0;
+        ps["actionFrameCount"] = {PropertyType::UInt, UpdateFlags_None, (void*)&defActionCount, compRef ? (void*)&actionCount : nullptr};
+    }
 
     void enumerateTransformProperties(void* comp, std::map<std::string, PropertyData>& ps) {
         enumerateFromDescriptors(comp, ps, kTransformProperties);
@@ -1190,6 +1244,9 @@ namespace {
         {ComponentType::Joint3DComponent, &findComponentPtr<Joint3DComponent>, &resolveJoint3DPropertyFast, &enumerateJoint3DProperties},
         {ComponentType::Body2DComponent, &findComponentPtr<Body2DComponent>, &resolveBody2DPropertyFast, &enumerateBody2DProperties},
         {ComponentType::Body3DComponent, &findComponentPtr<Body3DComponent>, &resolveBody3DPropertyFast, &enumerateBody3DProperties},
+        {ComponentType::ActionComponent, &findComponentPtr<ActionComponent>, &resolveActionPropertyFast, &enumerateActionProperties},
+        {ComponentType::SpriteAnimationComponent, &findComponentPtr<SpriteAnimationComponent>, &resolveSpriteAnimationPropertyFast, &enumerateSpriteAnimationProperties},
+        {ComponentType::AnimationComponent, &findComponentPtr<AnimationComponent>, &resolveAnimationPropertyFast, &enumerateAnimationProperties},
     };
 
     PropertyData tryGetFastProperty(EntityRegistry* registry, Entity entity, ComponentType component, const std::string& propertyName) {
@@ -1608,6 +1665,9 @@ std::vector<Editor::ComponentType> Editor::Catalog::findComponents(EntityRegistr
     }
     if (registry->findComponent<AlphaActionComponent>(entity)){
         ret.push_back(ComponentType::AlphaActionComponent);
+    }
+    if (registry->findComponent<AnimationComponent>(entity)){
+        ret.push_back(ComponentType::AnimationComponent);
     }
     if (registry->findComponent<AudioComponent>(entity)){
         ret.push_back(ComponentType::AudioComponent);

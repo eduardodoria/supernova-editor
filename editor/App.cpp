@@ -41,6 +41,7 @@ Editor::App::App(){
     codeEditor = new CodeEditor(&project);
     resourcesWindow = new ResourcesWindow(&project, codeEditor);
     loadingWindow = new LoadingWindow();
+    animationWindow = new AnimationWindow(&project);
 
     isInitialized = false;
 
@@ -538,6 +539,7 @@ void Editor::App::buildDockspace(){
     ImGui::DockBuilderSplitNode(dock_id_middle, ImGuiDir_Down, 0.0f, &dock_id_middle_bottom, &dock_id_middle_top);
     ImGui::DockBuilderSetNodeSize(dock_id_middle_bottom, ImVec2(ImGui::GetMainViewport()->Size.x, size)); // Set bottom node size
     ImGui::DockBuilderDockWindow("Output", dock_id_middle_bottom);
+    ImGui::DockBuilderDockWindow(AnimationWindow::WINDOW_NAME, dock_id_middle_bottom);
 
     for (auto& sceneProject : project.getScenes()) {
         if (!sceneProject.opened) continue;
@@ -737,6 +739,7 @@ void Editor::App::show(){
     propertiesWindow->show();
     codeEditor->show();
     sceneWindow->show();
+    animationWindow->show();
 
     loadingWindow->show();
 }
