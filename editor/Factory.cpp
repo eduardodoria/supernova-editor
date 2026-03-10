@@ -1046,7 +1046,6 @@ std::string Editor::Factory::createBody3DComponent(int indentSpaces, Scene* scen
     code << ind << "body3d.overrideMassProperties = " << formatBool(body.overrideMassProperties) << ";\n";
     code << ind << "body3d.solidBoxSize = " << formatVector3(body.solidBoxSize) << ";\n";
     code << ind << "body3d.solidBoxDensity = " << formatFloat(body.solidBoxDensity) << ";\n";
-    code << ind << "body3d.lockBody = " << formatBool(body.lockBody) << ";\n";
     code << ind << "body3d.numShapes = " << body.numShapes << ";\n";
 
     auto sanitizeSourceForType = [](Shape3DType type, Shape3DSource source) {

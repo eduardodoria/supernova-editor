@@ -662,9 +662,6 @@ namespace {
         if (propertyName == "solidBoxDensity") {
             return {PropertyType::Float, UpdateFlags_Body3D, (void*)&defaultBody3D.solidBoxDensity, (void*)&comp->solidBoxDensity};
         }
-        if (propertyName == "lockBody") {
-            return {PropertyType::Bool, UpdateFlags_Body3D, (void*)&defaultBody3D.lockBody, (void*)&comp->lockBody};
-        }
 
         constexpr const char* shapePrefix = "shapes[";
         if (propertyName.compare(0, 7, shapePrefix) != 0) {
@@ -1022,7 +1019,6 @@ namespace {
         ps["overrideMassProperties"] = {PropertyType::Bool, UpdateFlags_Body3D, (void*)&def.overrideMassProperties, compRef ? (void*)&comp->overrideMassProperties : nullptr};
         ps["solidBoxSize"] = {PropertyType::Vector3, UpdateFlags_Body3D, (void*)&def.solidBoxSize, compRef ? (void*)&comp->solidBoxSize : nullptr};
         ps["solidBoxDensity"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&def.solidBoxDensity, compRef ? (void*)&comp->solidBoxDensity : nullptr};
-        ps["lockBody"] = {PropertyType::Bool, UpdateFlags_Body3D, (void*)&def.lockBody, compRef ? (void*)&comp->lockBody : nullptr};
 
         for (int s = 0; s < (compRef ? (int)comp->numShapes : 1); s++) {
             std::string idx = compRef ? std::to_string(s) : "";

@@ -3690,9 +3690,45 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
     propertyRow(RowPropertyType::UInt, cpType, "width", "Width", sceneProject, entities, settingsInt);
     propertyRow(RowPropertyType::UInt, cpType, "height", "Height", sceneProject, entities, settingsInt);
     propertyRow(RowPropertyType::Enum, cpType, "pivotPreset", "Pivot", sceneProject, entities, settingsPivot);
+    RowSettings settingsFlipY;
+    settingsFlipY.onValueChanged = [this, sceneProject, entities, cpType]() {
+        Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+        for (const Entity& entity : entities) {
+            multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entity, cpType, "automaticFlipY", false);
+        }
+        CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+    };
+
     propertyRow(RowPropertyType::Float, cpType, "textureScaleFactor", "Texture Scale", sceneProject, entities, settingsTexScale);
-    propertyRow(RowPropertyType::Bool, cpType, "automaticFlipY", "Auto Flip Y", sceneProject, entities);
-    propertyRow(RowPropertyType::Bool, cpType, "flipY", "Flip Y", sceneProject, entities);
+    propertyRow(RowPropertyType::Bool, cpType, "flipY", "Flip Y", sceneProject, entities, settingsFlipY);
+
+    ImGui::SameLine();
+    bool isAuto = true;
+    for (const Entity& entity : entities){
+        if (!sceneProject->scene->getComponent<SpriteComponent>(entity).automaticFlipY){
+            isAuto = false;
+        }
+    }
+
+    if (isAuto){
+        ImGui::PushStyleColor(ImGuiCol_Button, App::ThemeColors::ButtonActivated);
+    }
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(ImGui::GetStyle().FramePadding.x / 4.0f, ImGui::GetStyle().FramePadding.y));
+    if (ImGui::Button(ICON_FA_WAND_MAGIC_SPARKLES)){
+        Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+        for (const Entity& entity : entities){
+            multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entity, cpType, "automaticFlipY", !isAuto);
+        }
+        CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+    }
+    ImGui::PopStyleVar();
+    if (isAuto) {
+        ImGui::PopStyleColor();
+    }
+    if (ImGui::IsItemHovered()){
+        ImGui::SetTooltip("Automatic Flip Y");
+    }
+
     endTable();
 
     // --- Frames Rect Section ---
@@ -5091,10 +5127,12 @@ void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject*
 
     beginTable(cpType, getLabelSize("Override Mass"));
     propertyRow(RowPropertyType::Enum, cpType, "type", "Body Type", sceneProject, entities, settingsBodyType);
-    propertyRow(RowPropertyType::Bool, cpType, "lockBody", "Lock Body", sceneProject, entities, settingsBodyValue);
     propertyRow(RowPropertyType::Bool, cpType, "overrideMassProperties", "Override Mass", sceneProject, entities, settingsBodyValue);
-    propertyRow(RowPropertyType::Vector3, cpType, "solidBoxSize", "Solid Box Size", sceneProject, entities, settingsBodyValue);
-    propertyRow(RowPropertyType::Float, cpType, "solidBoxDensity", "Solid Box Density", sceneProject, entities, settingsBodyValue);
+
+    if (body.overrideMassProperties) {
+        propertyRow(RowPropertyType::Vector3, cpType, "solidBoxSize", "Solid Box Size", sceneProject, entities, settingsBodyValue);
+        propertyRow(RowPropertyType::Float, cpType, "solidBoxDensity", "Solid Box Density", sceneProject, entities, settingsBodyValue);
+    }
     endTable();
 
     ImGui::SeparatorText("Shapes");
