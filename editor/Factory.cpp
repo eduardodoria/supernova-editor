@@ -1012,8 +1012,8 @@ std::string Editor::Factory::createBody2DComponent(int indentSpaces, Scene* scen
         code << ind << "body2d.shapes[" << idx << "].pointA = " << formatVector2(body.shapes[i].pointA) << ";\n";
         code << ind << "body2d.shapes[" << idx << "].pointB = " << formatVector2(body.shapes[i].pointB) << ";\n";
         code << ind << "body2d.shapes[" << idx << "].radius = " << formatFloat(body.shapes[i].radius) << ";\n";
-        code << ind << "body2d.shapes[" << idx << "].verticesCount = " << (int)body.shapes[i].verticesCount << ";\n";
-        for (size_t j = 0; j < body.shapes[i].verticesCount; j++) {
+        code << ind << "body2d.shapes[" << idx << "].numVertices = " << (int)body.shapes[i].numVertices << ";\n";
+        for (size_t j = 0; j < body.shapes[i].numVertices; j++) {
             code << ind << "body2d.shapes[" << idx << "].vertices[" << j << "] = " << formatVector2(body.shapes[i].vertices[j]) << ";\n";
         }
         code << ind << "body2d.shapes[" << idx << "].loop = " << formatBool(body.shapes[i].loop) << ";\n";

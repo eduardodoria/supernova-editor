@@ -2688,7 +2688,7 @@ YAML::Node Editor::Stream::encodeBody2DComponent(const Body2DComponent& body) {
         shapeNode["groupIndex"] = body.shapes[i].groupIndex;
 
         YAML::Node verticesNode;
-        for (size_t j = 0; j < body.shapes[i].verticesCount; j++) {
+        for (size_t j = 0; j < body.shapes[i].numVertices; j++) {
             verticesNode.push_back(encodeVector2(body.shapes[i].vertices[j]));
         }
         shapeNode["vertices"] = verticesNode;
@@ -2738,7 +2738,7 @@ Body2DComponent Editor::Stream::decodeBody2DComponent(const YAML::Node& node, co
 
             if (node["shapes"][i]["vertices"]) {
                 size_t vcount = node["shapes"][i]["vertices"].size();
-                body.shapes[i].verticesCount = (uint8_t)vcount;
+                body.shapes[i].numVertices = (uint8_t)vcount;
                 for (size_t j = 0; j < vcount; j++) {
                     body.shapes[i].vertices[j] = decodeVector2(node["shapes"][i]["vertices"][j]);
                 }

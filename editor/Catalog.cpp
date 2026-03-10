@@ -1006,7 +1006,7 @@ namespace {
             ps["shapes[" + idx + "].preSolveEvents"] = {PropertyType::Bool, UpdateFlags_Body2D, (void*)&defShape.preSolveEvents, compRef ? (void*)&shape.preSolveEvents : nullptr};
             ps["shapes[" + idx + "].sensorEvents"] = {PropertyType::Bool, UpdateFlags_Body2D, (void*)&defShape.sensorEvents, compRef ? (void*)&shape.sensorEvents : nullptr};
 
-            for (int v = 0; v < (compRef ? (int)shape.verticesCount : 1); v++) {
+            for (int v = 0; v < (compRef ? (int)shape.numVertices : 1); v++) {
                 std::string vidx = compRef ? std::to_string(v) : "";
                 ps["shapes[" + idx + "].vertices[" + vidx + "]"] = {PropertyType::Vector2, UpdateFlags_Body2D, (void*)&defShape.vertices[0], compRef ? (void*)&shape.vertices[v] : nullptr};
             }

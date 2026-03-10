@@ -4694,7 +4694,7 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
                 {
                     Vector2 layoutSize = getSizeForShape(entity, 0.0f);
 
-                    shape.verticesCount = 4;
+                    shape.numVertices = 4;
 
                     if (layoutSize != Vector2::ZERO){
                         shape.pointA = Vector2(0.0f, 0.0f);
@@ -4733,7 +4733,7 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
                     shape.pointB = Vector2(1.0f, 0.0f);
                     break;
                 case Shape2DType::CHAIN:
-                    shape.verticesCount = 4;
+                    shape.numVertices = 4;
                     shape.vertices[0] = Vector2(-0.5f, -0.5f);
                     shape.vertices[1] = Vector2(0.5f, -0.5f);
                     shape.vertices[2] = Vector2(0.5f, 0.5f);
@@ -4803,7 +4803,7 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
 
         if (shape.type == Shape2DType::POLYGON){
             propertyHeader("Vertices");
-            ImGui::Text("%d", shape.verticesCount);
+            ImGui::Text("%d", shape.numVertices);
             ImGui::SameLine();
             if (ImGui::Button("Add Vertex")){
                 MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
@@ -4812,7 +4812,7 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
                         if (s >= bodyComp->numShapes) continue;
                         Shape2D shapeValue = bodyComp->shapes[s];
 
-                        const uint8_t oldCount = shapeValue.verticesCount;
+                        const uint8_t oldCount = shapeValue.numVertices;
                         if (oldCount >= 2){
                             shapeValue.vertices[oldCount] = shapeValue.vertices[oldCount - 1] + (shapeValue.vertices[oldCount - 1] - shapeValue.vertices[oldCount - 2]);
                         }else if (oldCount == 1){
@@ -4820,7 +4820,7 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
                         }else{
                             shapeValue.vertices[oldCount] = Vector2::ZERO;
                         }
-                        shapeValue.verticesCount = oldCount + 1;
+                        shapeValue.numVertices = oldCount + 1;
                         multiCmd->addPropertyCmd<Shape2D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
                     }
                 }
@@ -4838,7 +4838,7 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
             RowSettings settingsVertex = settingsShapeValue;
             settingsVertex.secondColSize = inputVerSize.x;
 
-            for (int v = 0; v < (int)shape.verticesCount; v++){
+            for (int v = 0; v < (int)shape.numVertices; v++){
 
                 propertyRow(RowPropertyType::Vector2, cpType, shapeKey + ".vertices[" + std::to_string(v) + "]", "Vertex " + std::to_string(v + 1), sceneProject, entities, settingsVertex);
 
@@ -4855,12 +4855,12 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
                             if (s >= bodyComp->numShapes) continue;
 
                             Shape2D shapeValue = bodyComp->shapes[s];
-                            if (v >= shapeValue.verticesCount) continue;
+                            if (v >= shapeValue.numVertices) continue;
 
-                            for (size_t i = (size_t)v + 1; i < shapeValue.verticesCount; i++){
+                            for (size_t i = (size_t)v + 1; i < shapeValue.numVertices; i++){
                                 shapeValue.vertices[i - 1] = shapeValue.vertices[i];
                             }
-                            shapeValue.verticesCount -= 1;
+                            shapeValue.numVertices -= 1;
 
                             multiCmd->addPropertyCmd<Shape2D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
                         }
@@ -4901,7 +4901,7 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
             propertyRow(RowPropertyType::Bool, cpType, shapeKey + ".loop", "Loop", sceneProject, entities);
 
             propertyHeader("Vertices");
-            ImGui::Text("%d", shape.verticesCount);
+            ImGui::Text("%d", shape.numVertices);
             ImGui::SameLine();
             if (ImGui::Button("Add Vertex")){
                 MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
@@ -4910,7 +4910,7 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
                         if (s >= bodyComp->numShapes) continue;
                         Shape2D shapeValue = bodyComp->shapes[s];
 
-                        const uint8_t oldCount = shapeValue.verticesCount;
+                        const uint8_t oldCount = shapeValue.numVertices;
                         if (oldCount >= 2){
                             shapeValue.vertices[oldCount] = shapeValue.vertices[oldCount - 1] + (shapeValue.vertices[oldCount - 1] - shapeValue.vertices[oldCount - 2]);
                         }else if (oldCount == 1){
@@ -4918,7 +4918,7 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
                         }else{
                             shapeValue.vertices[oldCount] = Vector2::ZERO;
                         }
-                        shapeValue.verticesCount = oldCount + 1;
+                        shapeValue.numVertices = oldCount + 1;
                         multiCmd->addPropertyCmd<Shape2D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
                     }
                 }
@@ -4937,7 +4937,7 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
             RowSettings settingsVertex = settingsShapeValue;
             settingsVertex.secondColSize = inputVerSize.x;
 
-            for (int v = 0; v < (int)shape.verticesCount; v++){
+            for (int v = 0; v < (int)shape.numVertices; v++){
                 propertyRow(RowPropertyType::Vector2, cpType, shapeKey + ".vertices[" + std::to_string(v) + "]", "Vertex " + std::to_string(v + 1), sceneProject, entities, settingsVertex);
 
                 ImGui::SameLine();
@@ -4953,12 +4953,12 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
                             if (s >= bodyComp->numShapes) continue;
 
                             Shape2D shapeValue = bodyComp->shapes[s];
-                            if (v >= shapeValue.verticesCount) continue;
+                            if (v >= shapeValue.numVertices) continue;
 
-                            for (size_t i = (size_t)v + 1; i < shapeValue.verticesCount; i++){
+                            for (size_t i = (size_t)v + 1; i < shapeValue.numVertices; i++){
                                 shapeValue.vertices[i - 1] = shapeValue.vertices[i];
                             }
-                            shapeValue.verticesCount -= 1;
+                            shapeValue.numVertices -= 1;
 
                             multiCmd->addPropertyCmd<Shape2D>(project, sceneProject->id, entity, cpType, shapeKey, shapeValue);
                         }
@@ -5009,7 +5009,7 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
                         Shape2D shapeValue = bodyComp->shapes[s];
                         Vector2 layoutSize = getSizeForShape(entity);
 
-                        shapeValue.verticesCount = 4;
+                        shapeValue.numVertices = 4;
                         shapeValue.radius = 0.0f;
                         shapeValue.pointA = Vector2(0.0f, 0.0f);
                         shapeValue.pointB = Vector2(layoutSize.x, layoutSize.y);
@@ -5035,7 +5035,7 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
                         const float halfW = layoutSize.x * 0.5f;
                         const float halfH = layoutSize.y * 0.5f;
 
-                        shapeValue.verticesCount = 4;
+                        shapeValue.numVertices = 4;
                         shapeValue.radius = 0.0f;
                         shapeValue.pointA = Vector2(-halfW, -halfH);
                         shapeValue.pointB = Vector2(halfW, halfH);
@@ -5061,7 +5061,7 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
                         const float halfW = layoutSize.x * 0.5f;
                         const float halfH = layoutSize.y * 0.5f;
 
-                        shapeValue.verticesCount = 4;
+                        shapeValue.numVertices = 4;
                         shapeValue.radius = std::max(1.0f, std::min(layoutSize.x, layoutSize.y) * 0.04f);
                         shapeValue.pointA = Vector2(-halfW, -halfH);
                         shapeValue.pointB = Vector2(halfW, halfH);

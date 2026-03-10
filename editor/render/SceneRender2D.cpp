@@ -171,13 +171,13 @@ void Editor::SceneRender2D::createOrUpdateBodyLines(Entity entity, const Transfo
         const Shape2D& shape = body.shapes[i];
 
         if (shape.type == Shape2DType::POLYGON){
-            if (shape.verticesCount >= 3){
+            if (shape.numVertices >= 3){
                 if (shape.radius > 0.0f){
                     addRoundedRect(shape.pointA, shape.pointB, shape.radius);
                 }else{
-                    for (size_t j = 0; j < shape.verticesCount; j++){
+                    for (size_t j = 0; j < shape.numVertices; j++){
                         const Vector2& p0 = shape.vertices[j];
-                        const Vector2& p1 = shape.vertices[(j + 1) % shape.verticesCount];
+                        const Vector2& p1 = shape.vertices[(j + 1) % shape.numVertices];
                         bodyLinesObj->addLine(toWorld(p0), toWorld(p1), bodyColor);
                     }
                 }
@@ -229,13 +229,13 @@ void Editor::SceneRender2D::createOrUpdateBodyLines(Entity entity, const Transfo
         }else if (shape.type == Shape2DType::SEGMENT){
             bodyLinesObj->addLine(toWorld(shape.pointA), toWorld(shape.pointB), bodyColor);
         }else if (shape.type == Shape2DType::CHAIN){
-            if (shape.verticesCount >= 2){
-                for (size_t j = 0; j < shape.verticesCount - 1; j++){
+            if (shape.numVertices >= 2){
+                for (size_t j = 0; j < shape.numVertices - 1; j++){
                     bodyLinesObj->addLine(toWorld(shape.vertices[j]), toWorld(shape.vertices[j + 1]), bodyColor);
                 }
 
                 if (shape.loop){
-                    bodyLinesObj->addLine(toWorld(shape.vertices[shape.verticesCount - 1]), toWorld(shape.vertices[0]), bodyColor);
+                    bodyLinesObj->addLine(toWorld(shape.vertices[shape.numVertices - 1]), toWorld(shape.vertices[0]), bodyColor);
                 }
             }
         }
