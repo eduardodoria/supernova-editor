@@ -52,6 +52,7 @@ namespace Supernova::Editor{
         bool child = false;
         std::string help = "";
         const char *format = "%.2f";
+        bool showColors = true;
         std::vector<EnumEntry>* enumEntries = nullptr;
         std::vector<int>* sliderValues = nullptr;
         std::function<void()> onValueChanged = nullptr;
