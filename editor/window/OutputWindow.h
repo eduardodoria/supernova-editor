@@ -59,6 +59,8 @@ namespace Supernova::Editor {
         bool passTextFilter(const char* text) const;
 
     public:
+        static constexpr const char* WINDOW_NAME = "Output";
+
         OutputWindow();
         void clear();
         void addLog(LogType type, const char* fmt, ...);

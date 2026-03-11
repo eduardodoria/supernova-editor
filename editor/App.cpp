@@ -538,7 +538,7 @@ void Editor::App::buildDockspace(){
     size = 10*ImGui::GetFontSize();
     ImGui::DockBuilderSplitNode(dock_id_middle, ImGuiDir_Down, 0.0f, &dock_id_middle_bottom, &dock_id_middle_top);
     ImGui::DockBuilderSetNodeSize(dock_id_middle_bottom, ImVec2(ImGui::GetMainViewport()->Size.x, size)); // Set bottom node size
-    ImGui::DockBuilderDockWindow("Output", dock_id_middle_bottom);
+    ImGui::DockBuilderDockWindow(OutputWindow::WINDOW_NAME, dock_id_middle_bottom);
     ImGui::DockBuilderDockWindow(AnimationWindow::WINDOW_NAME, dock_id_middle_bottom);
 
     for (auto& sceneProject : project.getScenes()) {
@@ -736,10 +736,10 @@ void Editor::App::show(){
     structureWindow->show();
     resourcesWindow->show();
     outputWindow->show();
+    animationWindow->show();
     propertiesWindow->show();
     codeEditor->show();
     sceneWindow->show();
-    animationWindow->show();
 
     loadingWindow->show();
 }

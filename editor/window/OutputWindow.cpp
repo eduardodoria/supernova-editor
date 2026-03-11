@@ -388,7 +388,7 @@ bool OutputWindow::passTextFilter(const char* text) const {
 }
 
 void OutputWindow::show() {
-    if (!ImGui::Begin("Output")) {
+    if (!ImGui::Begin(OutputWindow::WINDOW_NAME)) {
         ImGui::End();
         return;
     }

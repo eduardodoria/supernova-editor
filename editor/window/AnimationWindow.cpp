@@ -38,6 +38,8 @@ Editor::AnimationWindow::AnimationWindow(Project* project){
     snapToGrid = true;
     snapInterval = 0.1f;
 
+    autoFocusOnSelection = true;
+
     selectedEntity = NULL_ENTITY;
     selectedSceneId = 0;
 }
@@ -80,16 +82,56 @@ std::string Editor::AnimationWindow::getActionLabel(Entity actionEntity, Scene* 
 }
 
 void Editor::AnimationWindow::selectEntity(Entity entity, uint32_t sceneId) {
-    selectedEntity = entity;
-    selectedSceneId = sceneId;
-    currentTime = 0;
-    isPlaying = false;
-    selectedTrackIndex = -1;
+    if (selectedEntity != entity || selectedSceneId != sceneId) {
+        selectedEntity = entity;
+        selectedSceneId = sceneId;
+        currentTime = 0;
+        isPlaying = false;
+        selectedTrackIndex = -1;
+    }
+}
+
+std::string Editor::AnimationWindow::getAnimationEntityLabel(Entity entity, AnimationComponent& anim, Scene* scene) const {
+    std::string entityName = scene->getEntityName(entity);
+    std::string label = entityName.empty() ? "Entity " + std::to_string(entity) : entityName;
+    if (!anim.name.empty()) {
+        label += " (" + anim.name + ")";
+    }
+    return label;
 }
 
 void Editor::AnimationWindow::drawToolbar(float width, AnimationComponent& anim, Scene* scene) {
-    // Add Track
-    if (ImGui::Button(ICON_FA_PLUS " Add Track")) {
+    // Animation entity combo selector
+    auto animations = scene->getComponentArray<AnimationComponent>();
+    std::string currentLabel = getAnimationEntityLabel(selectedEntity, anim, scene);
+
+    float textWidth = ImGui::CalcTextSize(currentLabel.c_str()).x;
+    float arrowWidth = ImGui::GetFrameHeight();
+    float padding = ImGui::GetStyle().FramePadding.x * 2.0f;
+    float minWidth = 150.0f;
+    float desiredWidth = textWidth + arrowWidth + padding + 10.0f;
+
+    ImGui::SetNextItemWidth(std::max(minWidth, desiredWidth));
+    if (ImGui::BeginCombo("##anim_entity_combo", currentLabel.c_str())) {
+        for (int i = 0; i < (int)animations->size(); i++) {
+            Entity entity = animations->getEntity(i);
+            AnimationComponent& animItem = animations->getComponentFromIndex(i);
+            std::string label = getAnimationEntityLabel(entity, animItem, scene);
+
+            bool isSelected = (entity == selectedEntity);
+            if (ImGui::Selectable(label.c_str(), isSelected)) {
+                selectEntity(entity, selectedSceneId);
+            }
+            if (isSelected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::SameLine();
+
+    // Add Frame
+    if (ImGui::Button(ICON_FA_PLUS " Add Frame")) {
         anim.actions.push_back({0.0f, 1.0f, NULL_ENTITY});
         selectedTrackIndex = anim.actions.size() - 1;
     }
@@ -142,6 +184,23 @@ void Editor::AnimationWindow::drawToolbar(float width, AnimationComponent& anim,
     if (snapToGrid) {
         ImGui::SetNextItemWidth(50);
         ImGui::DragFloat("##snap_int", &snapInterval, 0.01f, 0.01f, 1.0f, "%.2f");
+    }
+
+    ImGui::SameLine();
+    ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+    ImGui::SameLine();
+
+    // Settings
+    if (ImGui::Button(ICON_FA_GEAR "##anim_settings")) {
+        ImGui::OpenPopup("AnimationSettingsPopup");
+    }
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Animation Settings");
+    }
+
+    if (ImGui::BeginPopup("AnimationSettingsPopup")) {
+        ImGui::Checkbox("Auto-focus on selection", &autoFocusOnSelection);
+        ImGui::EndPopup();
     }
 }
 
@@ -363,31 +422,51 @@ void Editor::AnimationWindow::show() {
         return;
     }
 
-    std::vector<Entity> selectedEntities = project->getSelectedEntities(sceneProject->id);
-
-    // Find the first selected entity with AnimationComponent
-    AnimationComponent* animComp = nullptr;
-    Entity animEntity = NULL_ENTITY;
-
-    for (Entity entity : selectedEntities) {
-        if (scene->findComponent<AnimationComponent>(entity)) {
-            animEntity = entity;
-            animComp = &scene->getComponent<AnimationComponent>(entity);
-            break;
-        }
-    }
-
-    if (!animComp) {
+    // Collect all entities with AnimationComponent in the scene
+    auto animations = scene->getComponentArray<AnimationComponent>();
+    if (animations->size() == 0) {
         selectedEntity = NULL_ENTITY;
         selectedSceneId = 0;
-        ImGui::TextDisabled("Select an entity with AnimationComponent to edit its timeline.");
+        ImGui::TextDisabled("No entities with AnimationComponent in this scene.");
         ImGui::End();
         return;
     }
 
-    // Update cached selection
-    selectedEntity = animEntity;
-    selectedSceneId = sceneProject->id;
+    // Validate current selection still exists
+    if (selectedEntity != NULL_ENTITY && !scene->findComponent<AnimationComponent>(selectedEntity)) {
+        selectedEntity = NULL_ENTITY;
+    }
+
+    // Auto-select from scene selection if user clicked a new animation entity
+    // We only update if the selected entities in the project changed to avoid overriding combo selection
+    static std::vector<Entity> lastSceneSelectedEntities;
+    std::vector<Entity> selectedEntities = project->getSelectedEntities(sceneProject->id);
+
+    if (selectedEntities != lastSceneSelectedEntities) {
+        lastSceneSelectedEntities = selectedEntities;
+        for (Entity entity : selectedEntities) {
+            if (scene->findComponent<AnimationComponent>(entity)) {
+                if (selectedEntity != entity) {
+                    selectEntity(entity, sceneProject->id);
+                }
+                if (autoFocusOnSelection) {
+                    ImGui::SetWindowFocus();
+                }
+                break;
+            }
+        }
+    }
+
+    // Default to first animation entity if nothing selected
+    if (selectedEntity == NULL_ENTITY) {
+        selectedEntity = animations->getEntity(0);
+        selectedSceneId = sceneProject->id;
+        currentTime = 0;
+        isPlaying = false;
+        selectedTrackIndex = -1;
+    }
+
+    AnimationComponent* animComp = &scene->getComponent<AnimationComponent>(selectedEntity);
 
     // Playback update
     if (isPlaying) {

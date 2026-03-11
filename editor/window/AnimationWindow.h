@@ -33,6 +33,9 @@ namespace Supernova::Editor{
         bool snapToGrid;
         float snapInterval;
 
+        // Settings
+        bool autoFocusOnSelection;
+
         // Cached entity
         Entity selectedEntity;
         uint32_t selectedSceneId;
@@ -49,6 +52,7 @@ namespace Supernova::Editor{
         float xToTime(float x, float timeStart, ImVec2 canvasPos) const;
 
         std::string getActionLabel(Entity actionEntity, Scene* scene) const;
+        std::string getAnimationEntityLabel(Entity entity, AnimationComponent& anim, Scene* scene) const;
 
     public:
         static constexpr const char* WINDOW_NAME = "Animation";
