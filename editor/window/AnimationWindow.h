@@ -30,6 +30,13 @@ namespace Supernova::Editor{
         float dragStartTime;
         uint32_t dragStartTrack;
 
+        // Resize
+        bool isResizingFrame;
+        int resizingFrameIndex;
+        int resizeSide; // -1 = left edge, 1 = right edge
+        float resizeStartTime;
+        float resizeStartDuration;
+
         // Snap
         bool snapToGrid;
         float snapInterval;

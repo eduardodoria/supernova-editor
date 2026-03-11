@@ -36,6 +36,12 @@ Editor::AnimationWindow::AnimationWindow(Project* project){
     dragStartTime = 0;
     dragStartTrack = 0;
 
+    isResizingFrame = false;
+    resizingFrameIndex = -1;
+    resizeSide = 0;
+    resizeStartTime = 0;
+    resizeStartDuration = 0;
+
     snapToGrid = true;
     snapInterval = 0.1f;
 
@@ -358,19 +364,43 @@ void Editor::AnimationWindow::drawTracks(ImVec2 canvasPos, ImVec2 canvasSize, fl
                                   IM_COL32(255, 255, 255, 255), blockLabel.c_str());
             }
 
-            // Interaction: click to select, drag to move
+            // Interaction: click to select, drag to move/resize
+            float edgeZone = 5.0f;
             ImVec2 blockMin(visStart, trackY);
             ImVec2 blockMax(visEnd, trackY + trackHeight);
             ImGui::SetCursorScreenPos(blockMin);
             ImGui::InvisibleButton(("frame_" + std::to_string(i)).c_str(),
                                    ImVec2(blockMax.x - blockMin.x, blockMax.y - blockMin.y));
 
+            // Detect edge hover for resize cursor
+            bool hovered = ImGui::IsItemHovered();
+            if (hovered && !isDraggingFrame && !isResizingFrame) {
+                float mouseX = ImGui::GetIO().MousePos.x;
+                bool onLeftEdge = (mouseX - blockStart) < edgeZone && (mouseX >= blockStart);
+                bool onRightEdge = (blockEnd - mouseX) < edgeZone && (mouseX <= blockEnd);
+                if (onLeftEdge || onRightEdge) {
+                    ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+                }
+            }
+
             if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
                 selectedFrameIndex = (int)i;
-                isDraggingFrame = true;
-                draggingFrameIndex = (int)i;
-                dragStartTime = frame.startTime;
-                dragStartTrack = frame.track;
+                float mouseX = ImGui::GetIO().MousePos.x;
+                bool onLeftEdge = (mouseX - blockStart) < edgeZone && (mouseX >= blockStart);
+                bool onRightEdge = (blockEnd - mouseX) < edgeZone && (mouseX <= blockEnd);
+
+                if (onLeftEdge || onRightEdge) {
+                    isResizingFrame = true;
+                    resizingFrameIndex = (int)i;
+                    resizeSide = onLeftEdge ? -1 : 1;
+                    resizeStartTime = frame.startTime;
+                    resizeStartDuration = frame.duration;
+                } else {
+                    isDraggingFrame = true;
+                    draggingFrameIndex = (int)i;
+                    dragStartTime = frame.startTime;
+                    dragStartTrack = frame.track;
+                }
             }
         }
     }
@@ -437,6 +467,100 @@ void Editor::AnimationWindow::drawTracks(ImVec2 canvasPos, ImVec2 canvasSize, fl
         frame.startTime = validPos;
         frame.track = newTrack;
         sceneProject->isModified = true;
+    }
+
+    // Handle frame resizing
+    if (isResizingFrame && ImGui::IsMouseDragging(ImGuiMouseButton_Left) &&
+        resizingFrameIndex >= 0 && resizingFrameIndex < (int)anim.actions.size()) {
+        float mouseDragDeltaX = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left).x;
+        float timeDelta = mouseDragDeltaX / pixelsPerSecond;
+        ActionFrame& frame = anim.actions[resizingFrameIndex];
+        float minDuration = 0.01f;
+
+        ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+
+        // Find nearest neighbors on the same track to prevent overlap
+        float neighborLeftEnd = 0.0f;   // max end time of actions to our left
+        float neighborRightStart = 1e9f; // min start time of actions to our right
+        float origEnd = resizeStartTime + resizeStartDuration;
+        for (size_t i = 0; i < anim.actions.size(); i++) {
+            if ((int)i == resizingFrameIndex) continue;
+            const auto& a = anim.actions[i];
+            if (a.track != frame.track) continue;
+            float aEnd = a.startTime + a.duration;
+            if (aEnd <= resizeStartTime + 0.001f) {
+                neighborLeftEnd = std::max(neighborLeftEnd, aEnd);
+            }
+            if (a.startTime >= origEnd - 0.001f) {
+                neighborRightStart = std::min(neighborRightStart, a.startTime);
+            }
+        }
+
+        if (resizeSide == 1) {
+            // Right edge: only change duration, clamp to neighbor on right
+            float newDuration = snapTime(resizeStartDuration + timeDelta);
+            float maxDuration = neighborRightStart - frame.startTime;
+            frame.duration = std::clamp(newDuration, minDuration, maxDuration);
+        } else {
+            // Left edge: move start and adjust duration (right end stays fixed)
+            float newStart = snapTime(resizeStartTime + timeDelta);
+            float endTime = resizeStartTime + resizeStartDuration;
+            newStart = std::clamp(newStart, neighborLeftEnd, endTime - minDuration);
+            frame.startTime = newStart;
+            frame.duration = endTime - newStart;
+        }
+        sceneProject->isModified = true;
+    }
+
+    if (isResizingFrame && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+        if (resizingFrameIndex >= 0 && resizingFrameIndex < (int)anim.actions.size()) {
+            ActionFrame& frame = anim.actions[resizingFrameIndex];
+
+            bool timeChanged = (frame.startTime != resizeStartTime);
+            bool durationChanged = (frame.duration != resizeStartDuration);
+
+            if (timeChanged || durationChanged) {
+                float finalStartTime = frame.startTime;
+                float finalDuration = frame.duration;
+
+                // Revert so cmd logs exactly old -> new
+                frame.startTime = resizeStartTime;
+                frame.duration = resizeStartDuration;
+
+                if (timeChanged && durationChanged) {
+                    auto* multiCmd = new MultiPropertyCmd();
+                    multiCmd->addPropertyCmd<float>(
+                        project, selectedSceneId, selectedEntity, ComponentType::AnimationComponent,
+                        "actions[" + std::to_string(resizingFrameIndex) + "].startTime", finalStartTime,
+                        [sceneProject]() { sceneProject->isModified = true; }
+                    );
+                    multiCmd->addPropertyCmd<float>(
+                        project, selectedSceneId, selectedEntity, ComponentType::AnimationComponent,
+                        "actions[" + std::to_string(resizingFrameIndex) + "].duration", finalDuration,
+                        [sceneProject]() { sceneProject->isModified = true; }
+                    );
+                    CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+                } else if (durationChanged) {
+                    auto* cmd = new PropertyCmd<float>(
+                        project, selectedSceneId, selectedEntity, ComponentType::AnimationComponent,
+                        "actions[" + std::to_string(resizingFrameIndex) + "].duration", finalDuration,
+                        [sceneProject]() { sceneProject->isModified = true; }
+                    );
+                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                } else if (timeChanged) {
+                    auto* cmd = new PropertyCmd<float>(
+                        project, selectedSceneId, selectedEntity, ComponentType::AnimationComponent,
+                        "actions[" + std::to_string(resizingFrameIndex) + "].startTime", finalStartTime,
+                        [sceneProject]() { sceneProject->isModified = true; }
+                    );
+                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                }
+            }
+        }
+
+        isResizingFrame = false;
+        resizingFrameIndex = -1;
+        resizeSide = 0;
     }
 
     if (isDraggingFrame && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
