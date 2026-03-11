@@ -788,11 +788,21 @@ std::string Editor::Factory::createSpriteComponent(int indentSpaces, Scene* scen
     code << ind << "sprite.flipY = " << formatBool(sprite.flipY) << ";\n";
     code << ind << "sprite.pivotPreset = " << formatPivotPreset(sprite.pivotPreset) << ";\n";
     code << ind << "sprite.textureScaleFactor = " << formatFloat(sprite.textureScaleFactor) << ";\n";
+    float texW = 0.0f, texH = 0.0f;
+    MeshComponent* meshComp = scene->findComponent<MeshComponent>(entity);
+    if (meshComp && meshComp->numSubmeshes > 0) {
+        texW = (float)meshComp->submeshes[0].material.baseColorTexture.getWidth();
+        texH = (float)meshComp->submeshes[0].material.baseColorTexture.getHeight();
+    }
     for (unsigned int i = 0; i < sprite.numFramesRect; i++) {
         if (!sprite.framesRect[i].name.empty()) {
             code << ind << "sprite.framesRect[" << i << "].name = " << formatString(sprite.framesRect[i].name) << ";\n";
         }
-        code << ind << "sprite.framesRect[" << i << "].rect = " << formatRect(sprite.framesRect[i].rect) << ";\n";
+        Rect rect = sprite.framesRect[i].rect;
+        if (!rect.isNormalized() && texW > 0.0f && texH > 0.0f) {
+            rect = Rect(rect.getX() / texW, rect.getY() / texH, rect.getWidth() / texW, rect.getHeight() / texH);
+        }
+        code << ind << "sprite.framesRect[" << i << "].rect = " << formatRect(rect) << ";\n";
     }
     if (sprite.numFramesRect > 0) {
         code << ind << "sprite.numFramesRect = " << sprite.numFramesRect << ";\n";
