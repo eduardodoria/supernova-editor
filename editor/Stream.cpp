@@ -3218,6 +3218,7 @@ YAML::Node Editor::Stream::encodeAnimationComponent(const AnimationComponent& an
     YAML::Node actionsNode;
     for (const auto& frame : animation.actions) {
         YAML::Node frameNode;
+        frameNode["track"] = frame.track;
         frameNode["startTime"] = frame.startTime;
         frameNode["duration"] = frame.duration;
         frameNode["action"] = frame.action;
@@ -3244,6 +3245,7 @@ AnimationComponent Editor::Stream::decodeAnimationComponent(const YAML::Node& no
         animation.actions.clear();
         for (const YAML::Node& frameNode : node["actions"]) {
             ActionFrame frame;
+            if (frameNode["track"]) frame.track = frameNode["track"].as<uint32_t>();
             if (frameNode["startTime"]) frame.startTime = frameNode["startTime"].as<float>();
             if (frameNode["duration"]) frame.duration = frameNode["duration"].as<float>();
             if (frameNode["action"]) frame.action = frameNode["action"].as<Entity>();

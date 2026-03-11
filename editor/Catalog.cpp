@@ -977,6 +977,10 @@ namespace {
                     static Entity defAction = NULL_ENTITY;
                     return {PropertyType::UInt, UpdateFlags_None, (void*)&defAction, (void*)&comp->actions[index].action};
                 }
+                if (fieldName == ".track") {
+                    static uint32_t defTrack = 0;
+                    return {PropertyType::UInt, UpdateFlags_None, (void*)&defTrack, (void*)&comp->actions[index].track};
+                }
             }
         }
 

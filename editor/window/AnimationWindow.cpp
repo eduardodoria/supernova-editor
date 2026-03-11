@@ -29,11 +29,12 @@ Editor::AnimationWindow::AnimationWindow(Project* project){
     minPixelsPerSecond = 20.0f;
     maxPixelsPerSecond = 500.0f;
 
-    selectedTrackIndex = -1;
+    selectedFrameIndex = -1;
     isDraggingPlayhead = false;
-    isDraggingTrack = false;
-    draggingTrackIndex = -1;
+    isDraggingFrame = false;
+    draggingFrameIndex = -1;
     dragStartTime = 0;
+    dragStartTrack = 0;
 
     snapToGrid = true;
     snapInterval = 0.1f;
@@ -87,7 +88,7 @@ void Editor::AnimationWindow::selectEntity(Entity entity, uint32_t sceneId) {
         selectedSceneId = sceneId;
         currentTime = 0;
         isPlaying = false;
-        selectedTrackIndex = -1;
+        selectedFrameIndex = -1;
     }
 }
 
@@ -130,10 +131,38 @@ void Editor::AnimationWindow::drawToolbar(float width, AnimationComponent& anim,
     }
     ImGui::SameLine();
 
-    // Add Frame
-    if (ImGui::Button(ICON_FA_PLUS " Add Frame")) {
-        anim.actions.push_back({0.0f, 1.0f, NULL_ENTITY});
-        selectedTrackIndex = anim.actions.size() - 1;
+    // Add Action
+    if (ImGui::Button(ICON_FA_PLUS " Add Action")) {
+        // If a frame is selected, add to the same track, otherwise track 0
+        uint32_t targetTrack = 0;
+        if (selectedFrameIndex >= 0 && selectedFrameIndex < (int)anim.actions.size()) {
+            targetTrack = anim.actions[selectedFrameIndex].track;
+        }
+
+        ActionFrame newFrame = {0.0f, 1.0f, NULL_ENTITY, targetTrack};
+
+        // Find non-overlapping track
+        bool overlap;
+        do {
+            overlap = false;
+            for (const auto& a : anim.actions) {
+                if (a.track == newFrame.track) {
+                    float startA = a.startTime;
+                    float endA = a.startTime + a.duration;
+                    float startB = newFrame.startTime;
+                    float endB = newFrame.startTime + newFrame.duration;
+                    // Strict less-than for overlap means adjoining frames (e.g. 0-1 and 1-2) are OK
+                    if (std::max(startA, startB) < std::min(endA, endB)) {
+                        overlap = true;
+                        newFrame.track++;
+                        break;
+                    }
+                }
+            }
+        } while (overlap);
+
+        anim.actions.push_back(newFrame);
+        selectedFrameIndex = anim.actions.size() - 1;
     }
     ImGui::SameLine();
     ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
@@ -273,21 +302,37 @@ void Editor::AnimationWindow::drawTracks(ImVec2 canvasPos, ImVec2 canvasSize, fl
     };
     int numColors = sizeof(trackColors) / sizeof(trackColors[0]);
 
-    for (size_t i = 0; i < anim.actions.size(); i++) {
-        ActionFrame& frame = anim.actions[i];
-        float trackY = canvasPos.y + rulerHeight + i * (trackHeight + trackPadding);
+    // Find highest track
+    uint32_t maxTrack = 0;
+    for (const auto& frame : anim.actions) {
+        if (frame.track > maxTrack) {
+            maxTrack = frame.track;
+        }
+    }
+    // Always draw at least 3 tracks, or maxTrack + 2 to give space to drag down
+    uint32_t numTracks = std::max((uint32_t)3, maxTrack + 2);
+
+    // 1. Draw track backgrounds and labels
+    for (uint32_t t = 0; t < numTracks; t++) {
+        float trackY = canvasPos.y + rulerHeight + t * (trackHeight + trackPadding);
 
         // Track background
-        ImU32 bgColor = (i % 2 == 0) ? IM_COL32(35, 35, 35, 255) : IM_COL32(45, 45, 45, 255);
+        ImU32 bgColor = (t % 2 == 0) ? IM_COL32(35, 35, 35, 255) : IM_COL32(45, 45, 45, 255);
         drawList->AddRectFilled(ImVec2(canvasPos.x, trackY),
                                 ImVec2(canvasPos.x + canvasSize.x, trackY + trackHeight), bgColor);
 
         // Label area
-        std::string label = std::to_string(i) + ": " + getActionLabel(frame.action, scene);
+        std::string label = "Track " + std::to_string(t);
         drawList->AddRectFilled(ImVec2(canvasPos.x, trackY),
                                 ImVec2(canvasPos.x + labelWidth, trackY + trackHeight),
                                 IM_COL32(50, 50, 50, 255));
         drawList->AddText(ImVec2(canvasPos.x + 4, trackY + 4), IM_COL32(200, 200, 200, 255), label.c_str());
+    }
+
+    // 2. Draw blocks
+    for (size_t i = 0; i < anim.actions.size(); i++) {
+        ActionFrame& frame = anim.actions[i];
+        float trackY = canvasPos.y + rulerHeight + frame.track * (trackHeight + trackPadding);
 
         // Action frame block
         float blockStart = timeToX(frame.startTime, timeStart, ImVec2(canvasPos.x + labelWidth, 0));
@@ -298,15 +343,15 @@ void Editor::AnimationWindow::drawTracks(ImVec2 canvasPos, ImVec2 canvasSize, fl
         float visEnd = std::min(blockEnd, canvasPos.x + canvasSize.x);
 
         if (visEnd > visStart) {
-            ImU32 blockColor = trackColors[i % numColors];
-            if ((int)i == selectedTrackIndex) {
+            ImU32 blockColor = trackColors[frame.track % numColors];
+            if ((int)i == selectedFrameIndex) {
                 blockColor = IM_COL32(255, 200, 50, 220); // Selected highlight
             }
             drawList->AddRectFilled(ImVec2(visStart, trackY + 2), ImVec2(visEnd, trackY + trackHeight - 2),
                                     blockColor, 3.0f);
 
             // Block label
-            std::string blockLabel = getActionLabel(frame.action, scene);
+            std::string blockLabel = std::to_string(i) + ": " + getActionLabel(frame.action, scene);
             float textWidth = ImGui::CalcTextSize(blockLabel.c_str()).x;
             if (visEnd - visStart > textWidth + 8) {
                 drawList->AddText(ImVec2(visStart + 4, trackY + 4),
@@ -317,55 +362,131 @@ void Editor::AnimationWindow::drawTracks(ImVec2 canvasPos, ImVec2 canvasSize, fl
             ImVec2 blockMin(visStart, trackY);
             ImVec2 blockMax(visEnd, trackY + trackHeight);
             ImGui::SetCursorScreenPos(blockMin);
-            ImGui::InvisibleButton(("track_" + std::to_string(i)).c_str(),
+            ImGui::InvisibleButton(("frame_" + std::to_string(i)).c_str(),
                                    ImVec2(blockMax.x - blockMin.x, blockMax.y - blockMin.y));
 
             if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-                selectedTrackIndex = (int)i;
-                isDraggingTrack = true;
-                draggingTrackIndex = (int)i;
+                selectedFrameIndex = (int)i;
+                isDraggingFrame = true;
+                draggingFrameIndex = (int)i;
                 dragStartTime = frame.startTime;
+                dragStartTrack = frame.track;
             }
         }
     }
 
-    // Handle track dragging
-    if (isDraggingTrack && ImGui::IsMouseDragging(ImGuiMouseButton_Left) &&
-        draggingTrackIndex >= 0 && draggingTrackIndex < (int)anim.actions.size()) {
+    // Handle frame dragging
+    if (isDraggingFrame && ImGui::IsMouseDragging(ImGuiMouseButton_Left) &&
+        draggingFrameIndex >= 0 && draggingFrameIndex < (int)anim.actions.size()) {
         float mouseDragDeltaX = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left).x;
         float timeDelta = mouseDragDeltaX / pixelsPerSecond;
         float newStart = dragStartTime + timeDelta;
 
-        ActionFrame& frame = anim.actions[draggingTrackIndex];
-        if (newStart >= 0) {
-            frame.startTime = snapTime(newStart);
-            sceneProject->isModified = true; // Mark scene as modified!
-        }
+        float mouseDragDeltaY = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left).y;
+        int trackDelta = (int)std::round(mouseDragDeltaY / (trackHeight + trackPadding));
+        int newTrack = std::max(0, (int)dragStartTrack + trackDelta);
+
+        ActionFrame& frame = anim.actions[draggingFrameIndex];
+        float snappedStart = std::max(0.0f, snapTime(newStart));
+        float frameDur = frame.duration;
+
+        // Find valid position on a track closest to desiredStart without overlap
+        auto findValidPosition = [&](float desiredStart, int track) -> float {
+            // Collect occupied intervals on this track (excluding dragged frame)
+            std::vector<std::pair<float, float>> occupied;
+            for (size_t i = 0; i < anim.actions.size(); i++) {
+                if ((int)i == draggingFrameIndex) continue;
+                const auto& a = anim.actions[i];
+                if ((int)a.track == track) {
+                    occupied.push_back({a.startTime, a.startTime + a.duration});
+                }
+            }
+
+            if (occupied.empty()) return std::max(0.0f, desiredStart);
+
+            std::sort(occupied.begin(), occupied.end());
+
+            float bestStart = desiredStart;
+            float bestDist = 1e9f;
+
+            auto tryGap = [&](float gapLo, float gapHi) {
+                float maxStart = gapHi - frameDur;
+                if (maxStart >= gapLo) {
+                    float clamped = std::clamp(desiredStart, gapLo, maxStart);
+                    float dist = std::abs(clamped - desiredStart);
+                    if (dist < bestDist) {
+                        bestDist = dist;
+                        bestStart = clamped;
+                    }
+                }
+            };
+
+            // Gap before first block
+            tryGap(0.0f, occupied[0].first);
+            // Gaps between blocks
+            for (size_t j = 0; j + 1 < occupied.size(); j++) {
+                tryGap(occupied[j].second, occupied[j + 1].first);
+            }
+            // Gap after last block
+            tryGap(occupied.back().second, 1e9f);
+
+            return bestStart;
+        };
+
+        float validPos = findValidPosition(snappedStart, newTrack);
+        frame.startTime = validPos;
+        frame.track = newTrack;
+        sceneProject->isModified = true;
     }
 
-    if (isDraggingTrack && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-        if (draggingTrackIndex >= 0 && draggingTrackIndex < (int)anim.actions.size()) {
-            ActionFrame& frame = anim.actions[draggingTrackIndex];
+    if (isDraggingFrame && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+        if (draggingFrameIndex >= 0 && draggingFrameIndex < (int)anim.actions.size()) {
+            ActionFrame& frame = anim.actions[draggingFrameIndex];
 
-            if (frame.startTime != dragStartTime) {
+            bool timeChanged = (frame.startTime != dragStartTime);
+            bool trackChanged = (frame.track != dragStartTrack);
+
+            if (timeChanged || trackChanged) {
                 float finalStartTime = frame.startTime;
-                frame.startTime = dragStartTime;
+                uint32_t finalTrack = frame.track;
 
-                auto* cmd = new PropertyCmd<float>(
-                    project, 
-                    selectedSceneId, 
-                    selectedEntity, 
-                    ComponentType::AnimationComponent, 
-                    "actions[" + std::to_string(draggingTrackIndex) + "].startTime", 
-                    finalStartTime, 
-                    [sceneProject]() { sceneProject->isModified = true; }
-                );
-                CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                // Revert so cmd logs exactly old -> new
+                frame.startTime = dragStartTime;
+                frame.track = dragStartTrack;
+
+                if (timeChanged && trackChanged) {
+                    auto* multiCmd = new MultiPropertyCmd();
+                    multiCmd->addPropertyCmd<float>(
+                        project, selectedSceneId, selectedEntity, ComponentType::AnimationComponent, 
+                        "actions[" + std::to_string(draggingFrameIndex) + "].startTime", finalStartTime,
+                        [sceneProject]() { sceneProject->isModified = true; }
+                    );
+                    multiCmd->addPropertyCmd<uint32_t>(
+                        project, selectedSceneId, selectedEntity, ComponentType::AnimationComponent, 
+                        "actions[" + std::to_string(draggingFrameIndex) + "].track", finalTrack,
+                        [sceneProject]() { sceneProject->isModified = true; }
+                    );
+                    CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+                } else if (timeChanged) {
+                    auto* cmd = new PropertyCmd<float>(
+                        project, selectedSceneId, selectedEntity, ComponentType::AnimationComponent, 
+                        "actions[" + std::to_string(draggingFrameIndex) + "].startTime", finalStartTime, 
+                        [sceneProject]() { sceneProject->isModified = true; }
+                    );
+                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                } else if (trackChanged) {
+                    auto* cmd = new PropertyCmd<uint32_t>(
+                        project, selectedSceneId, selectedEntity, ComponentType::AnimationComponent, 
+                        "actions[" + std::to_string(draggingFrameIndex) + "].track", finalTrack, 
+                        [sceneProject]() { sceneProject->isModified = true; }
+                    );
+                    CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                }
             }
         }
 
-        isDraggingTrack = false;
-        draggingTrackIndex = -1;
+        isDraggingFrame = false;
+        draggingFrameIndex = -1;
     }
 }
 
@@ -463,7 +584,7 @@ void Editor::AnimationWindow::show() {
         selectedSceneId = sceneProject->id;
         currentTime = 0;
         isPlaying = false;
-        selectedTrackIndex = -1;
+        selectedFrameIndex = -1;
     }
 
     AnimationComponent* animComp = &scene->getComponent<AnimationComponent>(selectedEntity);
@@ -524,10 +645,12 @@ void Editor::AnimationWindow::show() {
     if (scrollX > maxScroll) scrollX = maxScroll;
 
     // Selected track info
-    if (selectedTrackIndex >= 0 && selectedTrackIndex < (int)animComp->actions.size()) {
+    if (selectedFrameIndex >= 0 && selectedFrameIndex < (int)animComp->actions.size()) {
         ImGui::Separator();
-        ActionFrame& frame = animComp->actions[selectedTrackIndex];
-        ImGui::Text("Track %d:", selectedTrackIndex);
+        ActionFrame& frame = animComp->actions[selectedFrameIndex];
+        ImGui::Text("Frame %d:", selectedFrameIndex);
+        ImGui::SameLine();
+        ImGui::Text("Track: %d", frame.track);
         ImGui::SameLine();
         ImGui::Text("Start: %.2fs", frame.startTime);
         ImGui::SameLine();

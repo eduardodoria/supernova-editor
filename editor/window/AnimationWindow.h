@@ -23,11 +23,12 @@ namespace Supernova::Editor{
         float maxPixelsPerSecond;
 
         // Selection
-        int selectedTrackIndex;
+        int selectedFrameIndex;
         bool isDraggingPlayhead;
-        bool isDraggingTrack;
-        int draggingTrackIndex;
+        bool isDraggingFrame;
+        int draggingFrameIndex;
         float dragStartTime;
+        uint32_t dragStartTrack;
 
         // Snap
         bool snapToGrid;

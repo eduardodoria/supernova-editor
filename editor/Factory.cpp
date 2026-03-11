@@ -1238,7 +1238,7 @@ std::string Editor::Factory::createAnimationComponent(int indentSpaces, Scene* s
     code << ind << "animcomp.ownedActions = " << formatBool(anim.ownedActions) << ";\n";
     code << ind << "animcomp.actions.clear();\n";
     for (size_t i = 0; i < anim.actions.size(); i++) {
-        code << ind << "animcomp.actions.push_back({" << formatFloat(anim.actions[i].startTime) << ", " << formatFloat(anim.actions[i].duration) << ", " << formatUInt(anim.actions[i].action) << "});\n";
+        code << ind << "animcomp.actions.push_back({" << formatFloat(anim.actions[i].startTime) << ", " << formatFloat(anim.actions[i].duration) << ", " << formatUInt(anim.actions[i].action) << ", " << formatUInt(anim.actions[i].track) << "});\n";
     }
     addComponentCode(code, ind, sceneName, entityName, entity, "AnimationComponent", "animcomp");
     return code.str();

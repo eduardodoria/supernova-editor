@@ -6384,14 +6384,35 @@ void Editor::Properties::drawAnimationComponent(ComponentType cpType, SceneProje
 
     AnimationComponent& anim = sceneProject->scene->getComponent<AnimationComponent>(entities[0]);
 
-    ImGui::SeparatorText("Tracks");
+    ImGui::SeparatorText("Actions");
 
-    if (ImGui::Button("Add Track")) {
+    if (ImGui::Button("Add Action")) {
         MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
         for (Entity entity : entities) {
             if (AnimationComponent* animComp = sceneProject->scene->findComponent<AnimationComponent>(entity)) {
                 std::vector<ActionFrame> newActions = animComp->actions;
-                newActions.push_back({0.0f, 1.0f, NULL_ENTITY});
+                ActionFrame newFrame = {0.0f, 1.0f, NULL_ENTITY, 0};
+
+                // Find non-overlapping track
+                bool overlap;
+                do {
+                    overlap = false;
+                    for (const auto& a : newActions) {
+                        if (a.track == newFrame.track) {
+                            float startA = a.startTime;
+                            float endA = a.startTime + a.duration;
+                            float startB = newFrame.startTime;
+                            float endB = newFrame.startTime + newFrame.duration;
+                            if (std::max(startA, startB) < std::min(endA, endB)) {
+                                overlap = true;
+                                newFrame.track++;
+                                break;
+                            }
+                        }
+                    }
+                } while (overlap);
+
+                newActions.push_back(newFrame);
                 multiCmd->addPropertyCmd<std::vector<ActionFrame>>(project, sceneProject->id, entity, cpType, "actions", newActions, nullptr);
             }
         }
@@ -6400,15 +6421,15 @@ void Editor::Properties::drawAnimationComponent(ComponentType cpType, SceneProje
     }
 
     if (!anim.actions.empty()) {
-        beginTable(cpType, getLabelSize("Start Time"), "animation_tracks_table");
+        beginTable(cpType, getLabelSize("Start Time"), "animation_actions_table");
         for (size_t i = 0; i < anim.actions.size(); i++) {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
-            ImGui::Text("Track %zu", i);
+            ImGui::Text("Action %zu", i);
             ImGui::TableSetColumnIndex(1);
 
             ImGui::PushID((int)i);
-            if (ImGui::Button(ICON_FA_TRASH_CAN "##remove_track")) {
+            if (ImGui::Button(ICON_FA_TRASH_CAN "##remove_action")) {
                 MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
                 for (Entity entity : entities) {
                     if (AnimationComponent* animComp = sceneProject->scene->findComponent<AnimationComponent>(entity)) {
@@ -6427,6 +6448,7 @@ void Editor::Properties::drawAnimationComponent(ComponentType cpType, SceneProje
             ImGui::PopID();
 
             std::string prefix = "actions[" + std::to_string(i) + "]";
+            propertyRow(RowPropertyType::UInt, cpType, prefix + ".track", "Track", sceneProject, entities);
             propertyRow(RowPropertyType::Float, cpType, prefix + ".startTime", "Start Time", sceneProject, entities);
             propertyRow(RowPropertyType::Float, cpType, prefix + ".duration", "Duration", sceneProject, entities);
             propertyRow(RowPropertyType::LocalEntity, cpType, prefix + ".action", "Action", sceneProject, entities);
