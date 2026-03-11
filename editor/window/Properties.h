@@ -83,6 +83,8 @@ namespace Supernova::Editor{
         std::map<std::string, bool> materialButtonGroups;
         std::map<std::string, bool> spriteFramesButtonGroups;
         bool spriteFramesExpanded = false;
+        std::map<std::string, bool> spriteAnimationFramesButtonGroups;
+        bool spriteAnimationFramesExpanded = false;
 
         std::map<std::string, bool> textureCubeSingleMode;
 
@@ -126,6 +128,7 @@ namespace Supernova::Editor{
 
         Texture getMaterialPreview(const Material& material, const std::string id);
         Texture getDirectionPreview(const Vector3& direction, const std::string id);
+        bool drawSpriteFramePreview(Texture* texture, const Rect& rect, const ImVec2& size, const char* itemId);
 
         void updateShapePreview(const ShapeParameters& shapeParams);
         void updateMeshShape(MeshComponent& meshComp, MeshSystem* meshSys, const ShapeParameters& shapeParams);

@@ -38,10 +38,10 @@ namespace Supernova::Editor{
         uint32_t selectedSceneId;
 
         // Helpers
-        void drawToolbar(float width);
+        void drawToolbar(float width, AnimationComponent& anim, Scene* scene);
         void drawTimeRuler(ImVec2 canvasPos, ImVec2 canvasSize, float timeStart, float timeEnd);
         void drawTracks(ImVec2 canvasPos, ImVec2 canvasSize, float timeStart, float timeEnd,
-                        AnimationComponent& anim, Scene* scene);
+                        AnimationComponent& anim, SceneProject* sceneProject);
         void drawPlayhead(ImVec2 canvasPos, ImVec2 canvasSize, float timeStart, float timeEnd);
 
         float snapTime(float time) const;

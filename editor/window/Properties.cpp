@@ -22,6 +22,7 @@
 #include "render/SceneRender2D.h"
 #include "App.h"
 #include "Backend.h"
+#include "component/ActionComponent.h"
 #include "util/SHA1.h"
 #include "util/ProjectUtils.h"
 #include "Stream.h"
@@ -913,6 +914,55 @@ Texture Editor::Properties::getDirectionPreview(const Vector3& direction, const 
     usedPreviewIds.insert(id);
 
     return directionRender.getTexture();
+}
+
+bool Editor::Properties::drawSpriteFramePreview(Texture* texture, const Rect& rect, const ImVec2& size, const char* itemId){
+    if (!texture || texture->empty() || !texture->getRender()) {
+        return false;
+    }
+
+    const float texWidth = static_cast<float>(texture->getWidth());
+    const float texHeight = static_cast<float>(texture->getHeight());
+    const float rectWidth = rect.getWidth();
+    const float rectHeight = rect.getHeight();
+
+    if (texWidth <= 0.0f || texHeight <= 0.0f || rectWidth <= 0.0f || rectHeight <= 0.0f) {
+        return false;
+    }
+
+    ImVec2 cursor = ImGui::GetCursorScreenPos();
+    ImVec2 p_min = cursor;
+    ImVec2 p_max = ImVec2(cursor.x + size.x, cursor.y + size.y);
+
+    float srcAspect = rectWidth / rectHeight;
+    float dstAspect = size.x / size.y;
+
+    float drawWidth = size.x;
+    float drawHeight = size.y;
+    if (fabs(srcAspect - dstAspect) > 1e-3f) {
+        if (srcAspect > dstAspect) {
+            drawHeight = size.x / srcAspect;
+        } else {
+            drawWidth = size.y * srcAspect;
+        }
+    }
+
+    ImVec2 imageMin(cursor.x + (size.x - drawWidth) * 0.5f, cursor.y + (size.y - drawHeight) * 0.5f);
+    ImVec2 imageMax(imageMin.x + drawWidth, imageMin.y + drawHeight);
+
+    ImVec2 uv0(rect.getX() / texWidth, rect.getY() / texHeight);
+    ImVec2 uv1((rect.getX() + rectWidth) / texWidth, (rect.getY() + rectHeight) / texHeight);
+
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    float rounding = ImGui::GetStyle().FrameRounding;
+    ImU32 borderColor = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyle().Colors[ImGuiCol_FrameBg]);
+
+    drawList->AddRectFilled(p_min, p_max, textureLabel, rounding, ImDrawFlags_RoundCornersAll);
+    drawList->AddImageRounded((ImTextureID)(intptr_t)texture->getRender()->getGLHandler(), imageMin, imageMax, uv0, uv1, IM_COL32_WHITE, rounding, ImDrawFlags_RoundCornersAll);
+    drawList->AddRect(p_min, p_max, borderColor, rounding, ImDrawFlags_RoundCornersAll, 1.0f);
+
+    ImGui::InvisibleButton(itemId, size);
+    return true;
 }
 
 void Editor::Properties::updateShapePreview(const ShapeParameters& shapeParams){
@@ -3924,55 +3974,6 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
             }
         }
 
-        auto drawSpriteFramePreview = [&](Texture* texture, const Rect& rect, const ImVec2& size, const char* itemId) -> bool {
-            if (!texture || texture->empty() || !texture->getRender()) {
-                return false;
-            }
-
-            const float texWidth = static_cast<float>(texture->getWidth());
-            const float texHeight = static_cast<float>(texture->getHeight());
-            const float rectWidth = rect.getWidth();
-            const float rectHeight = rect.getHeight();
-
-            if (texWidth <= 0.0f || texHeight <= 0.0f || rectWidth <= 0.0f || rectHeight <= 0.0f) {
-                return false;
-            }
-
-            ImVec2 cursor = ImGui::GetCursorScreenPos();
-            ImVec2 p_min = cursor;
-            ImVec2 p_max = ImVec2(cursor.x + size.x, cursor.y + size.y);
-
-            float srcAspect = rectWidth / rectHeight;
-            float dstAspect = size.x / size.y;
-
-            float drawWidth = size.x;
-            float drawHeight = size.y;
-            if (fabs(srcAspect - dstAspect) > 1e-3f) {
-                if (srcAspect > dstAspect) {
-                    drawHeight = size.x / srcAspect;
-                } else {
-                    drawWidth = size.y * srcAspect;
-                }
-            }
-
-            ImVec2 imageMin(cursor.x + (size.x - drawWidth) * 0.5f, cursor.y + (size.y - drawHeight) * 0.5f);
-            ImVec2 imageMax(imageMin.x + drawWidth, imageMin.y + drawHeight);
-
-            ImVec2 uv0(rect.getX() / texWidth, rect.getY() / texHeight);
-            ImVec2 uv1((rect.getX() + rectWidth) / texWidth, (rect.getY() + rectHeight) / texHeight);
-
-            ImDrawList* drawList = ImGui::GetWindowDrawList();
-            float rounding = ImGui::GetStyle().FrameRounding;
-            ImU32 borderColor = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyle().Colors[ImGuiCol_FrameBg]);
-
-            drawList->AddRectFilled(p_min, p_max, textureLabel, rounding, ImDrawFlags_RoundCornersAll);
-            drawList->AddImageRounded((ImTextureID)(intptr_t)texture->getRender()->getGLHandler(), imageMin, imageMax, uv0, uv1, IM_COL32_WHITE, rounding, ImDrawFlags_RoundCornersAll);
-            drawList->AddRect(p_min, p_max, borderColor, rounding, ImDrawFlags_RoundCornersAll, 1.0f);
-
-            ImGui::InvisibleButton(itemId, size);
-            return true;
-        };
-
         ImGui::SeparatorText("Sprite Frames");
 
         // Frame count from numFramesRect
@@ -6090,20 +6091,287 @@ void Editor::Properties::drawActionComponent(ComponentType cpType, SceneProject*
     beginTable(cpType, getLabelSize("Owned target"));
     propertyRow(RowPropertyType::Enum, cpType, "state", "State", sceneProject, entities, settingsState);
     propertyRow(RowPropertyType::Float, cpType, "speed", "Speed", sceneProject, entities);
-    propertyRow(RowPropertyType::EntityPointer, cpType, "target", "Target", sceneProject, entities);
+    propertyRow(RowPropertyType::LocalEntity, cpType, "target", "Target", sceneProject, entities);
     propertyRow(RowPropertyType::Bool, cpType, "ownedTarget", "Owned target", sceneProject, entities);
     endTable();
 }
 
 void Editor::Properties::drawSpriteAnimationComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
-    beginTable(cpType, getLabelSize("Frame count"));
+    beginTable(cpType, getLabelSize("Sprite counter"));
     propertyRow(RowPropertyType::String, cpType, "name", "Name", sceneProject, entities);
     propertyRow(RowPropertyType::Bool, cpType, "loop", "Loop", sceneProject, entities);
-    propertyRow(RowPropertyType::Label, cpType, "framesSize", "Frames", sceneProject, entities);
-    propertyRow(RowPropertyType::Label, cpType, "framesTimeSize", "Intervals", sceneProject, entities);
     propertyRow(RowPropertyType::Label, cpType, "frameIndex", "Frame index", sceneProject, entities);
+    propertyRow(RowPropertyType::Label, cpType, "frameTimeIndex", "Interval index", sceneProject, entities);
     propertyRow(RowPropertyType::Label, cpType, "spriteFrameCount", "Frame count", sceneProject, entities);
     endTable();
+
+    if (entities.size() != 1) {
+        ImGui::SeparatorText("Animation Frames");
+        ImGui::TextDisabled("Select a single entity to edit sprite animation frames");
+        return;
+    }
+
+    Entity entity = entities[0];
+    SpriteAnimationComponent& spriteAnim = sceneProject->scene->getComponent<SpriteAnimationComponent>(entity);
+
+    Entity previewEntity = NULL_ENTITY;
+    if (ActionComponent* actionComp = sceneProject->scene->findComponent<ActionComponent>(entity)) {
+        previewEntity = actionComp->target;
+    }
+
+    SpriteComponent* spriteComp = nullptr;
+    MeshComponent* meshComp = nullptr;
+    if (previewEntity != NULL_ENTITY) {
+        spriteComp = sceneProject->scene->findComponent<SpriteComponent>(previewEntity);
+        meshComp = sceneProject->scene->findComponent<MeshComponent>(previewEntity);
+    }
+
+    Texture previewTexture;
+    if (meshComp && meshComp->numSubmeshes > 0) {
+        previewTexture = meshComp->submeshes[0].material.baseColorTexture;
+    }
+
+    unsigned int visibleFrameCount = std::max(spriteAnim.framesSize, spriteAnim.framesTimeSize);
+    bool countsMatch = spriteAnim.framesSize == spriteAnim.framesTimeSize;
+    bool canAddFrame = spriteAnim.frames.validIndex(visibleFrameCount) && spriteAnim.framesTime.validIndex(visibleFrameCount);
+
+    ImGui::SeparatorText("Animation Frames");
+
+    ImGui::BeginDisabled(!canAddFrame);
+    if (ImGui::Button(ICON_FA_PLUS " Add Frame", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+        MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+        for (const Entity& selectedEntity : entities) {
+            if (SpriteAnimationComponent* animComp = sceneProject->scene->findComponent<SpriteAnimationComponent>(selectedEntity)) {
+                unsigned int nextIndex = std::max(animComp->framesSize, animComp->framesTimeSize);
+                if (!animComp->frames.validIndex(nextIndex) || !animComp->framesTime.validIndex(nextIndex)) {
+                    continue;
+                }
+
+                int defaultFrame = 0;
+                if (animComp->framesSize > 0 && animComp->frames.validIndex(animComp->framesSize - 1)) {
+                    defaultFrame = animComp->frames[animComp->framesSize - 1];
+                }
+
+                multiCmd->addPropertyCmd<int>(project, sceneProject->id, selectedEntity, cpType,
+                    "frames[" + std::to_string(nextIndex) + "]", defaultFrame);
+                multiCmd->addPropertyCmd<int>(project, sceneProject->id, selectedEntity, cpType,
+                    "framesTime[" + std::to_string(nextIndex) + "]", 100);
+                multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, selectedEntity, cpType,
+                    "framesSize", nextIndex + 1);
+                multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, selectedEntity, cpType,
+                    "framesTimeSize", nextIndex + 1);
+            }
+        }
+        multiCmd->setNoMerge();
+        CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+    }
+    if (ImGui::IsItemHovered() && !canAddFrame) {
+        ImGui::SetTooltip("Sprite animation has reached the maximum number of frames");
+    }
+    ImGui::EndDisabled();
+
+    beginTable(cpType, getLabelSize("Animation Frames"), "sprite_animation_frames_header");
+    propertyHeader("Animation Frames", -1, false, false);
+    ImGui::Text("%u", visibleFrameCount);
+    if (!countsMatch) {
+        ImGui::SameLine();
+        ImGui::TextDisabled("(frames/intervals mismatch)");
+    }
+    ImGui::SameLine();
+    if (ImGui::ArrowButton("##toggle_all_sprite_animation_frames", spriteAnimationFramesExpanded ? ImGuiDir_Up : ImGuiDir_Down)) {
+        spriteAnimationFramesExpanded = !spriteAnimationFramesExpanded;
+    }
+    endTable();
+
+    if (!spriteAnimationFramesExpanded || visibleFrameCount == 0) {
+        return;
+    }
+
+    RowSettings settingsFrame;
+    settingsFrame.stepSize = 1.0f;
+    settingsFrame.format = "%.0f";
+    settingsFrame.showColors = false;
+
+    RowSettings settingsInterval = settingsFrame;
+
+    for (unsigned int i = 0; i < visibleFrameCount; i++) {
+        ImGui::PushID((int)i);
+
+        std::string frameGroupStr = "sprite_animation_frame_" + std::to_string(i);
+        std::string framePropId = "frames[" + std::to_string(i) + "]";
+        std::string intervalPropId = "framesTime[" + std::to_string(i) + "]";
+
+        bool hasFrameValue = i < spriteAnim.framesSize;
+        bool hasIntervalValue = i < spriteAnim.framesTimeSize;
+        int frameId = hasFrameValue ? spriteAnim.frames[i] : -1;
+
+        bool hasSpriteFrame = spriteComp && frameId >= 0 && (unsigned int)frameId < spriteComp->numFramesRect;
+        Rect frameRect;
+        std::string spriteFrameName = "Invalid";
+        if (hasSpriteFrame) {
+            frameRect = spriteComp->framesRect[frameId].rect;
+            if (!spriteComp->framesRect[frameId].name.empty()) {
+                spriteFrameName = spriteComp->framesRect[frameId].name;
+            } else {
+                spriteFrameName = "Frame " + std::to_string(frameId);
+            }
+        }
+
+        std::string frameLabel = "[" + std::to_string(i) + "] ";
+        if (hasFrameValue) {
+            frameLabel += spriteFrameName;
+        } else {
+            frameLabel += "Missing frame";
+        }
+
+        ImGui::SeparatorText(frameLabel.c_str());
+
+        beginTable(cpType, getLabelSize("Interval (ms)"), frameGroupStr);
+        propertyHeader("Frame", -1, false, false);
+
+        float previewSize = ImGui::GetFrameHeight() * 2.2f;
+        float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
+        float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_TRASH_CAN).x;
+        ImVec2 deleteButtonSize = ImVec2(clearButtonWidth + clearButtonFramePadding * 2, 0);
+        ImVec2 arrowButtonSize = ImGui::CalcItemSize(ImVec2(0, 0), ImGui::GetFrameHeight(), ImGui::GetFrameHeight());
+
+        bool hasFramePreview = hasSpriteFrame
+                && !previewTexture.empty()
+                && frameRect.getWidth() > 0.0f
+                && frameRect.getHeight() > 0.0f;
+        float trailingWidth = deleteButtonSize.x + ImGui::GetStyle().ItemSpacing.x + arrowButtonSize.x;
+        if (hasFramePreview) {
+            trailingWidth += previewSize + ImGui::GetStyle().ItemSpacing.x;
+        }
+
+        float targetX = ImGui::GetCursorPosX() + std::max(0.0f, ImGui::GetContentRegionAvail().x - trailingWidth);
+        ImGui::SetCursorPosX(targetX);
+
+        if (hasFramePreview) {
+            drawSpriteFramePreview(&previewTexture, frameRect, ImVec2(previewSize, previewSize), "##sprite_animation_frame_preview");
+            if (ImGui::IsItemHovered()) {
+                ImGui::BeginTooltip();
+                ImGui::Text("Sprite frame %d", frameId);
+                if (spriteComp && !spriteComp->framesRect[frameId].name.empty()) {
+                    ImGui::TextDisabled("%s", spriteComp->framesRect[frameId].name.c_str());
+                }
+
+                float tooltipMaxSize = 200.0f;
+                float scale = std::min(tooltipMaxSize / std::max(1.0f, frameRect.getWidth()),
+                                       tooltipMaxSize / std::max(1.0f, frameRect.getHeight()));
+                scale = std::min(scale, 1.0f);
+                ImVec2 tooltipSize(std::max(32.0f, frameRect.getWidth() * scale),
+                                   std::max(32.0f, frameRect.getHeight() * scale));
+
+                drawSpriteFramePreview(&previewTexture, frameRect, tooltipSize, "##sprite_animation_frame_preview_tooltip");
+                ImGui::EndTooltip();
+            }
+            ImGui::SameLine();
+        }
+
+        if (ImGui::ArrowButton("##toggle_sprite_animation_frame", spriteAnimationFramesButtonGroups[frameGroupStr] ? ImGuiDir_Up : ImGuiDir_Down)) {
+            spriteAnimationFramesButtonGroups[frameGroupStr] = !spriteAnimationFramesButtonGroups[frameGroupStr];
+        }
+        ImGui::SameLine();
+
+        bool deleted = false;
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
+        if (ImGui::Button(ICON_FA_TRASH_CAN "##delete_sprite_animation_frame", deleteButtonSize)) {
+            MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+            for (const Entity& selectedEntity : entities) {
+                if (SpriteAnimationComponent* animComp = sceneProject->scene->findComponent<SpriteAnimationComponent>(selectedEntity)) {
+                    if (i < animComp->framesSize) {
+                        for (unsigned int j = i; j + 1 < animComp->framesSize; j++) {
+                            multiCmd->addPropertyCmd<int>(project, sceneProject->id, selectedEntity, cpType,
+                                "frames[" + std::to_string(j) + "]", animComp->frames[j + 1]);
+                        }
+                        multiCmd->addPropertyCmd<int>(project, sceneProject->id, selectedEntity, cpType,
+                            "frames[" + std::to_string(animComp->framesSize - 1) + "]", 0);
+                        multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, selectedEntity, cpType,
+                            "framesSize", animComp->framesSize - 1);
+                    }
+
+                    if (i < animComp->framesTimeSize) {
+                        for (unsigned int j = i; j + 1 < animComp->framesTimeSize; j++) {
+                            multiCmd->addPropertyCmd<int>(project, sceneProject->id, selectedEntity, cpType,
+                                "framesTime[" + std::to_string(j) + "]", animComp->framesTime[j + 1]);
+                        }
+                        multiCmd->addPropertyCmd<int>(project, sceneProject->id, selectedEntity, cpType,
+                            "framesTime[" + std::to_string(animComp->framesTimeSize - 1) + "]", 0);
+                        multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, selectedEntity, cpType,
+                            "framesTimeSize", animComp->framesTimeSize - 1);
+                    }
+
+                    int nextFrameIndex = 0;
+                    if (animComp->framesSize > 1) {
+                        nextFrameIndex = std::min(animComp->frameIndex, (int)animComp->framesSize - 2);
+                    }
+                    multiCmd->addPropertyCmd<int>(project, sceneProject->id, selectedEntity, cpType,
+                        "frameIndex", std::max(0, nextFrameIndex));
+
+                    int nextFrameTimeIndex = 0;
+                    if (animComp->framesTimeSize > 1) {
+                        nextFrameTimeIndex = std::min(animComp->frameTimeIndex, (int)animComp->framesTimeSize - 2);
+                    }
+                    multiCmd->addPropertyCmd<int>(project, sceneProject->id, selectedEntity, cpType,
+                        "frameTimeIndex", std::max(0, nextFrameTimeIndex));
+                }
+            }
+            multiCmd->setNoMerge();
+            CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+            deleted = true;
+        }
+        ImGui::PopStyleVar();
+        ImGui::PopStyleColor(2);
+
+        if (!deleted && spriteAnimationFramesButtonGroups[frameGroupStr]) {
+            propertyRow(RowPropertyType::Int, cpType, framePropId, "Sprite Frame", sceneProject, entities, settingsFrame);
+            propertyRow(RowPropertyType::Int, cpType, intervalPropId, "Interval (ms)", sceneProject, entities, settingsInterval);
+
+            if (previewEntity == NULL_ENTITY) {
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextDisabled("Preview");
+                ImGui::TableSetColumnIndex(1);
+                ImGui::TextDisabled("Assign Action target to preview animation frames");
+            } else if (!spriteComp) {
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextDisabled("Preview");
+                ImGui::TableSetColumnIndex(1);
+                ImGui::TextDisabled("Target entity needs SpriteComponent to preview animation frames");
+            } else if (!meshComp || meshComp->numSubmeshes == 0 || previewTexture.empty()) {
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextDisabled("Preview");
+                ImGui::TableSetColumnIndex(1);
+                ImGui::TextDisabled("Target entity needs MeshComponent with a valid texture for previews");
+            } else if (!hasFrameValue) {
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextDisabled("Preview");
+                ImGui::TableSetColumnIndex(1);
+                ImGui::TextDisabled("Missing frame entry for this slot");
+            } else if (frameId < 0 || (unsigned int)frameId >= spriteComp->numFramesRect) {
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextDisabled("Preview");
+                ImGui::TableSetColumnIndex(1);
+                ImGui::TextDisabled("Frame %d is outside SpriteComponent frame range", frameId);
+            } else if (!hasIntervalValue) {
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextDisabled("Interval");
+                ImGui::TableSetColumnIndex(1);
+                ImGui::TextDisabled("Missing interval entry for this slot");
+            }
+        }
+
+        endTable();
+        ImGui::PopID();
+    }
 }
 
 void Editor::Properties::drawAnimationComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
@@ -6115,7 +6383,64 @@ void Editor::Properties::drawAnimationComponent(ComponentType cpType, SceneProje
     endTable();
 
     AnimationComponent& anim = sceneProject->scene->getComponent<AnimationComponent>(entities[0]);
-    ImGui::Text("Action frames: %zu", anim.actions.size());
+
+    ImGui::SeparatorText("Tracks");
+
+    if (ImGui::Button("Add Track")) {
+        MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+        for (Entity entity : entities) {
+            if (AnimationComponent* animComp = sceneProject->scene->findComponent<AnimationComponent>(entity)) {
+                std::vector<ActionFrame> newActions = animComp->actions;
+                newActions.push_back({0.0f, 1.0f, NULL_ENTITY});
+                multiCmd->addPropertyCmd<std::vector<ActionFrame>>(project, sceneProject->id, entity, cpType, "actions", newActions, nullptr);
+            }
+        }
+        multiCmd->setNoMerge();
+        CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+    }
+
+    if (!anim.actions.empty()) {
+        beginTable(cpType, getLabelSize("Start Time"), "animation_tracks_table");
+        for (size_t i = 0; i < anim.actions.size(); i++) {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("Track %zu", i);
+            ImGui::TableSetColumnIndex(1);
+
+            ImGui::PushID((int)i);
+            if (ImGui::Button(ICON_FA_TRASH_CAN "##remove_track")) {
+                MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+                for (Entity entity : entities) {
+                    if (AnimationComponent* animComp = sceneProject->scene->findComponent<AnimationComponent>(entity)) {
+                        if (i < animComp->actions.size()) {
+                            std::vector<ActionFrame> newActions = animComp->actions;
+                            newActions.erase(newActions.begin() + i);
+                            multiCmd->addPropertyCmd<std::vector<ActionFrame>>(project, sceneProject->id, entity, cpType, "actions", newActions, nullptr);
+                        }
+                    }
+                }
+                multiCmd->setNoMerge();
+                CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+                ImGui::PopID();
+                break; // break early to reset next frame cleanly
+            }
+            ImGui::PopID();
+
+            std::string prefix = "actions[" + std::to_string(i) + "]";
+            propertyRow(RowPropertyType::Float, cpType, prefix + ".startTime", "Start Time", sceneProject, entities);
+            propertyRow(RowPropertyType::Float, cpType, prefix + ".duration", "Duration", sceneProject, entities);
+            propertyRow(RowPropertyType::LocalEntity, cpType, prefix + ".action", "Action", sceneProject, entities);
+
+            if (i < anim.actions.size() - 1) {
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::Separator();
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Separator();
+            }
+        }
+        endTable();
+    }
 }
 
 void Editor::Properties::show(){

@@ -202,9 +202,9 @@ namespace {
         makeFastProperty<SpriteAnimationComponent, bool, &SpriteAnimationComponent::loop>("loop", PropertyType::Bool, UpdateFlags_None),
         makeFastPropertyNoDefault<SpriteAnimationComponent, unsigned int, &SpriteAnimationComponent::framesSize>("framesSize", PropertyType::UInt, UpdateFlags_None),
         makeFastPropertyNoDefault<SpriteAnimationComponent, unsigned int, &SpriteAnimationComponent::framesTimeSize>("framesTimeSize", PropertyType::UInt, UpdateFlags_None),
-        makeFastPropertyNoDefault<SpriteAnimationComponent, int, &SpriteAnimationComponent::frameIndex>("frameIndex", PropertyType::Int, UpdateFlags_None),
+        makeFastPropertyNoDefault<SpriteAnimationComponent, int, &SpriteAnimationComponent::frameIndex>("frameIndex", PropertyType::Int, UpdateFlags_Sprite),
         makeFastPropertyNoDefault<SpriteAnimationComponent, int, &SpriteAnimationComponent::frameTimeIndex>("frameTimeIndex", PropertyType::Int, UpdateFlags_None),
-        makeFastPropertyNoDefault<SpriteAnimationComponent, unsigned int, &SpriteAnimationComponent::spriteFrameCount>("spriteFrameCount", PropertyType::UInt, UpdateFlags_None),
+        makeFastPropertyNoDefault<SpriteAnimationComponent, unsigned int, &SpriteAnimationComponent::spriteFrameCount>("spriteFrameCount", PropertyType::UInt, UpdateFlags_Sprite),
     };
 
     static const FastPropertyDescriptor kAnimationProperties[] = {
@@ -917,12 +917,70 @@ namespace {
         return resolveDirectProperties(static_cast<ActionComponent*>(comp), propertyName, kActionProperties);
     }
 
-    PropertyData resolveSpriteAnimationPropertyFast(void* comp, const std::string& propertyName) {
-        return resolveDirectProperties(static_cast<SpriteAnimationComponent*>(comp), propertyName, kSpriteAnimationProperties);
+    PropertyData resolveSpriteAnimationPropertyFast(void* compRef, const std::string& propertyName) {
+        SpriteAnimationComponent* comp = static_cast<SpriteAnimationComponent*>(compRef);
+        if (!comp) return PropertyData();
+
+        PropertyData result = resolveDirectProperties(comp, propertyName, kSpriteAnimationProperties);
+        if (result.ref) return result;
+
+        SpriteAnimationComponent& def = getDefaultComponent<SpriteAnimationComponent>();
+
+        if (propertyName.compare(0, 7, "frames[") == 0) {
+            size_t pos = 7;
+            size_t index = 0;
+            if (!parseIndex(propertyName, pos, index) || pos >= propertyName.size() || propertyName[pos] != ']') return PropertyData();
+            if (index < MAX_SPRITE_FRAMES) {
+                return {PropertyType::Int, UpdateFlags_None, (void*)&def.frames[index], (void*)&comp->frames[index]};
+            }
+        }
+        if (propertyName.compare(0, 11, "framesTime[") == 0) {
+            size_t pos = 11;
+            size_t index = 0;
+            if (!parseIndex(propertyName, pos, index) || pos >= propertyName.size() || propertyName[pos] != ']') return PropertyData();
+            if (index < MAX_SPRITE_FRAMES) {
+                return {PropertyType::Int, UpdateFlags_None, (void*)&def.framesTime[index], (void*)&comp->framesTime[index]};
+            }
+        }
+        return PropertyData();
     }
 
-    PropertyData resolveAnimationPropertyFast(void* comp, const std::string& propertyName) {
-        return resolveDirectProperties(static_cast<AnimationComponent*>(comp), propertyName, kAnimationProperties);
+    PropertyData resolveAnimationPropertyFast(void* compRef, const std::string& propertyName) {
+        AnimationComponent* comp = static_cast<AnimationComponent*>(compRef);
+        if (!comp) return PropertyData();
+
+        PropertyData result = resolveDirectProperties(comp, propertyName, kAnimationProperties);
+        if (result.ref) return result;
+
+        AnimationComponent& def = getDefaultComponent<AnimationComponent>();
+
+        if (propertyName == "actions") {
+            return {PropertyType::Custom, UpdateFlags_None, (void*)&def.actions, (void*)&comp->actions};
+        }
+
+        if (propertyName.compare(0, 8, "actions[") == 0) {
+            size_t pos = 8;
+            size_t index = 0;
+            if (!parseIndex(propertyName, pos, index)) return PropertyData();
+            if (pos + 1 >= propertyName.length() || propertyName[pos] != ']') return PropertyData();
+            if (index < comp->actions.size()) {
+                std::string fieldName = propertyName.substr(pos + 1);
+                if (fieldName == ".startTime") {
+                    static float defStartTime = 0;
+                    return {PropertyType::Float, UpdateFlags_None, (void*)&defStartTime, (void*)&comp->actions[index].startTime};
+                }
+                if (fieldName == ".duration") {
+                    static float defDuration = 0;
+                    return {PropertyType::Float, UpdateFlags_None, (void*)&defDuration, (void*)&comp->actions[index].duration};
+                }
+                if (fieldName == ".action") {
+                    static Entity defAction = NULL_ENTITY;
+                    return {PropertyType::UInt, UpdateFlags_None, (void*)&defAction, (void*)&comp->actions[index].action};
+                }
+            }
+        }
+
+        return PropertyData();
     }
 
     PropertyData resolveMeshPropertyFast(void* comp, const std::string& propertyName) {
@@ -1932,7 +1990,17 @@ void Editor::Catalog::updateEntity(EntityRegistry* registry, Entity entity, int 
         registry->getComponent<SkyComponent>(entity).needUpdateSky = true;
     }
     if (updateFlags & UpdateFlags_Sprite){
-        registry->getComponent<SpriteComponent>(entity).needUpdateSprite = true;
+        // May be requested by ActionComponent or SpriteAnimationComponent even if not have SpriteComponent
+        if (SpriteComponent* sprite = registry->findComponent<SpriteComponent>(entity)){
+            sprite->needUpdateSprite = true;
+        }
+        if (ActionComponent* action = registry->findComponent<ActionComponent>(entity)){
+            if (action->target != NULL_ENTITY){
+                if (SpriteComponent* targetSprite = registry->findComponent<SpriteComponent>(action->target)){
+                    targetSprite->needUpdateSprite = true;
+                }
+            }
+        }
     }
     if (updateFlags & UpdateFlags_Text){
         registry->getComponent<TextComponent>(entity).needUpdateText = true;

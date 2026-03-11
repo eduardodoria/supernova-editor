@@ -4,6 +4,8 @@
 #include "external/IconsFontAwesome6.h"
 #include "Catalog.h"
 #include "command/CommandHandle.h"
+#include "command/type/PropertyCmd.h"
+#include "command/type/MultiPropertyCmd.h"
 
 #include "component/ActionComponent.h"
 #include "component/AnimationComponent.h"
@@ -85,7 +87,16 @@ void Editor::AnimationWindow::selectEntity(Entity entity, uint32_t sceneId) {
     selectedTrackIndex = -1;
 }
 
-void Editor::AnimationWindow::drawToolbar(float width) {
+void Editor::AnimationWindow::drawToolbar(float width, AnimationComponent& anim, Scene* scene) {
+    // Add Track
+    if (ImGui::Button(ICON_FA_PLUS " Add Track")) {
+        anim.actions.push_back({0.0f, 1.0f, NULL_ENTITY});
+        selectedTrackIndex = anim.actions.size() - 1;
+    }
+    ImGui::SameLine();
+    ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+    ImGui::SameLine();
+
     // Play/Pause
     if (isPlaying) {
         if (ImGui::Button(ICON_FA_PAUSE "##anim_pause")) {
@@ -186,8 +197,9 @@ void Editor::AnimationWindow::drawTimeRuler(ImVec2 canvasPos, ImVec2 canvasSize,
 }
 
 void Editor::AnimationWindow::drawTracks(ImVec2 canvasPos, ImVec2 canvasSize, float timeStart, float timeEnd,
-                                          AnimationComponent& anim, Scene* scene) {
+                                          AnimationComponent& anim, SceneProject* sceneProject) {
     ImDrawList* drawList = ImGui::GetWindowDrawList();
+    Scene* scene = sceneProject->scene;
     float rulerHeight = 20.0f;
     float trackHeight = 24.0f;
     float trackPadding = 2.0f;
@@ -220,7 +232,7 @@ void Editor::AnimationWindow::drawTracks(ImVec2 canvasPos, ImVec2 canvasSize, fl
 
         // Action frame block
         float blockStart = timeToX(frame.startTime, timeStart, ImVec2(canvasPos.x + labelWidth, 0));
-        float blockEnd = timeToX(frame.duration, timeStart, ImVec2(canvasPos.x + labelWidth, 0));
+        float blockEnd = timeToX(frame.startTime + frame.duration, timeStart, ImVec2(canvasPos.x + labelWidth, 0));
 
         // Clamp to visible area
         float visStart = std::max(blockStart, canvasPos.x + labelWidth);
@@ -261,19 +273,38 @@ void Editor::AnimationWindow::drawTracks(ImVec2 canvasPos, ImVec2 canvasSize, fl
     // Handle track dragging
     if (isDraggingTrack && ImGui::IsMouseDragging(ImGuiMouseButton_Left) &&
         draggingTrackIndex >= 0 && draggingTrackIndex < (int)anim.actions.size()) {
-        float mouseDeltaX = ImGui::GetIO().MouseDelta.x;
-        float timeDelta = mouseDeltaX / pixelsPerSecond;
-        ActionFrame& frame = anim.actions[draggingTrackIndex];
-        float newStart = frame.startTime + timeDelta;
-        float newDuration = frame.duration + timeDelta;
+        float mouseDragDeltaX = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left).x;
+        float timeDelta = mouseDragDeltaX / pixelsPerSecond;
+        float newStart = dragStartTime + timeDelta;
 
+        ActionFrame& frame = anim.actions[draggingTrackIndex];
         if (newStart >= 0) {
             frame.startTime = snapTime(newStart);
-            frame.duration = snapTime(newDuration);
+            sceneProject->isModified = true; // Mark scene as modified!
         }
     }
 
     if (isDraggingTrack && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+        if (draggingTrackIndex >= 0 && draggingTrackIndex < (int)anim.actions.size()) {
+            ActionFrame& frame = anim.actions[draggingTrackIndex];
+
+            if (frame.startTime != dragStartTime) {
+                float finalStartTime = frame.startTime;
+                frame.startTime = dragStartTime;
+
+                auto* cmd = new PropertyCmd<float>(
+                    project, 
+                    selectedSceneId, 
+                    selectedEntity, 
+                    ComponentType::AnimationComponent, 
+                    "actions[" + std::to_string(draggingTrackIndex) + "].startTime", 
+                    finalStartTime, 
+                    [sceneProject]() { sceneProject->isModified = true; }
+                );
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
+            }
+        }
+
         isDraggingTrack = false;
         draggingTrackIndex = -1;
     }
@@ -375,7 +406,7 @@ void Editor::AnimationWindow::show() {
     }
 
     // Draw toolbar
-    drawToolbar(ImGui::GetContentRegionAvail().x);
+    drawToolbar(ImGui::GetContentRegionAvail().x, *animComp, scene);
 
     ImGui::Separator();
 
@@ -401,7 +432,7 @@ void Editor::AnimationWindow::show() {
                             IM_COL32(30, 30, 30, 255));
 
     drawTimeRuler(canvasPos, canvasSize, timeStart, timeEnd);
-    drawTracks(canvasPos, canvasSize, timeStart, timeEnd, *animComp, scene);
+    drawTracks(canvasPos, canvasSize, timeStart, timeEnd, *animComp, sceneProject);
     drawPlayhead(canvasPos, canvasSize, timeStart, timeEnd);
 
     // Reserve space
