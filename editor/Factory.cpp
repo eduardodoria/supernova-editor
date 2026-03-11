@@ -1201,7 +1201,9 @@ std::string Editor::Factory::createSpriteAnimationComponent(int indentSpaces, Sc
     code << ind << "SpriteAnimationComponent spriteanim;\n";
     code << ind << "spriteanim.name = " << formatString(spriteanim.name) << ";\n";
     code << ind << "spriteanim.loop = " << formatBool(spriteanim.loop) << ";\n";
-    code << ind << "spriteanim.spriteFrameCount = " << formatUInt(spriteanim.spriteFrameCount) << ";\n";
+    code << ind << "spriteanim.frameIndex = 0;\n";
+    code << ind << "spriteanim.frameTimeIndex = 0;\n";
+    code << ind << "spriteanim.spriteFrameCount = 0;\n";
     code << ind << "spriteanim.framesSize = " << formatUInt(spriteanim.framesSize) << ";\n";
     for (unsigned int i = 0; i < spriteanim.framesSize; i++) {
         code << ind << "spriteanim.frames[" << i << "] = " << formatInt(spriteanim.frames[i]) << ";\n";

@@ -3134,6 +3134,11 @@ ActionComponent Editor::Stream::decodeActionComponent(const YAML::Node& node, co
         action = *oldAction;
     }
 
+    action.timecount = 0;
+    action.startTrigger = false;
+    action.stopTrigger = false;
+    action.pauseTrigger = false;
+
     if (node["state"]) action.state = stringToActionState(node["state"].as<std::string>());
     if (node["speed"]) action.speed = node["speed"].as<float>();
     if (node["target"]) action.target = node["target"].as<Entity>();
@@ -3149,7 +3154,6 @@ YAML::Node Editor::Stream::encodeSpriteAnimationComponent(const SpriteAnimationC
 
     node["name"] = spriteanim.name;
     node["loop"] = spriteanim.loop;
-    node["spriteFrameCount"] = spriteanim.spriteFrameCount;
 
     YAML::Node framesNode;
     for (unsigned int i = 0; i < spriteanim.framesSize; i++) {
@@ -3173,9 +3177,12 @@ SpriteAnimationComponent Editor::Stream::decodeSpriteAnimationComponent(const YA
         spriteanim = *oldSpriteanim;
     }
 
+    spriteanim.frameIndex = 0;
+    spriteanim.frameTimeIndex = 0;
+    spriteanim.spriteFrameCount = 0;
+
     if (node["name"]) spriteanim.name = node["name"].as<std::string>();
     if (node["loop"]) spriteanim.loop = node["loop"].as<bool>();
-    if (node["spriteFrameCount"]) spriteanim.spriteFrameCount = node["spriteFrameCount"].as<unsigned int>();
 
     if (node["frames"]) {
         spriteanim.framesSize = 0;

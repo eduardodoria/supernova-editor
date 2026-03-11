@@ -1696,7 +1696,6 @@ void Editor::Project::copyEngineApiToProject() {
 }
 
 void Editor::Project::finalizeStart(SceneProject* mainSceneProject, std::vector<PlayRuntimeScene>& runtimeScenes) {
-
     for (auto& entry : runtimeScenes) {
         SceneProject* sceneProject = entry.runtime;
         if (!sceneProject || !sceneProject->scene) {
@@ -1722,7 +1721,6 @@ void Editor::Project::finalizeStart(SceneProject* mainSceneProject, std::vector<
 }
 
 void Editor::Project::finalizeStop(SceneProject* mainSceneProject, std::vector<PlayRuntimeScene> runtimeScenes) {
-
     for (const auto& entry : runtimeScenes) {
         SceneProject* sceneProject = entry.runtime;
         if (!sceneProject || !sceneProject->scene) {
