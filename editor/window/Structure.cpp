@@ -28,6 +28,26 @@
 
 using namespace Supernova;
 
+std::vector<Entity> Editor::Structure::getTopLevelSelectedEntities(Entity draggedEntity) {
+    SceneProject* sceneProject = project->getSelectedScene();
+    if (!sceneProject) {
+        return {draggedEntity};
+    }
+
+    std::vector<Entity> selection = project->getSelectedEntities(sceneProject->id);
+    if (selection.empty() || std::find(selection.begin(), selection.end(), draggedEntity) == selection.end()) {
+        return {draggedEntity};
+    }
+
+    std::vector<Entity> result = Project::getTopLevelEntities(sceneProject->scene, selection);
+
+    if (result.empty()) {
+        result.push_back(draggedEntity);
+    }
+
+    return result;
+}
+
 Editor::Structure::Structure(Project* project, SceneWindow* sceneWindow){
     this->project = project;
     this->sceneWindow = sceneWindow;
@@ -428,7 +448,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     } else if (node.isChildScene) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 0.80f, 0.85f, 1.0f)); // Soft teal for child scenes
         pushedHighlightColor = true;
-    } else if (node.isShared) {
+    } else if (node.isShared || node.isBundle) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.7f, 1.0f, 1.0f)); // Light blue for shared
         pushedHighlightColor = true;
     }
@@ -461,6 +481,24 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                 ImGui::Text("Shared: %u", registryEntity);
                 ImGui::EndTooltip();
             }
+        } else if (node.isBundle) {
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal)) {
+                EntityBundle* bundle = project->getEntityBundle(node.bundleFilepath);
+                uint32_t instanceId = bundle ? bundle->getInstanceId(project->getSelectedSceneId(), node.id) : 0;
+                Entity registryEntity = bundle ? bundle->getRegistryEntity(project->getSelectedSceneId(), node.id) : NULL_ENTITY;
+
+                ImGui::BeginTooltip();
+                ImGui::Text("Entity: %u", node.id);
+                ImGui::Separator();
+                ImGui::Text("Path: %s", node.bundleFilepath.string().c_str());
+                if (instanceId != 0) {
+                    ImGui::Text("Instance: %u", instanceId);
+                }
+                if (registryEntity != NULL_ENTITY) {
+                    ImGui::Text("Bundle: %u", registryEntity);
+                }
+                ImGui::EndTooltip();
+            }
         } else {
             ImGui::SetItemTooltip("Entity: %u", node.id);
         }
@@ -471,21 +509,32 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
             // Add entity drag drop payload for dragging to resources
             if (!node.isScene) {
                 SceneProject* sceneProject = project->getSelectedScene();
-            YAML::Node entityData = Stream::encodeEntity(node.id, sceneProject->scene, project, sceneProject);
-            std::string yamlString = YAML::Dump(entityData);
+                std::vector<Entity> draggedEntities = getTopLevelSelectedEntities(node.id);
 
-            size_t yamlSize = yamlString.size();
-            size_t payloadSize = sizeof(EntityPayload) + yamlSize;
-            std::vector<char> payloadData(payloadSize);
+                if (draggedEntities.size() == 1){
+                    YAML::Node entityData = Stream::encodeEntity(draggedEntities[0], sceneProject->scene, project, sceneProject);
 
-            EntityPayload* payload = reinterpret_cast<EntityPayload*>(payloadData.data());
-            payload->entity = node.id;
-            payload->parent = node.parent;
-            payload->order = node.order;
-            payload->hasTransform = node.hasTransform;
-            memcpy(payloadData.data() + sizeof(EntityPayload), yamlString.data(), yamlSize);
+                    std::string yamlString = YAML::Dump(entityData);
 
-            ImGui::SetDragDropPayload("entity", payloadData.data(), payloadSize);
+                    size_t yamlSize = yamlString.size();
+                    size_t payloadSize = sizeof(EntityPayload) + yamlSize;
+                    std::vector<char> payloadData(payloadSize);
+
+                    EntityPayload* payload = reinterpret_cast<EntityPayload*>(payloadData.data());
+                    payload->entity = node.id;
+                    payload->parent = node.parent;
+                    payload->order = node.order;
+                    payload->hasTransform = node.hasTransform;
+                    memcpy(payloadData.data() + sizeof(EntityPayload), yamlString.data(), yamlSize);
+
+                    ImGui::SetDragDropPayload("entity", payloadData.data(), payloadSize);
+                }else{
+                    YAML::Node entityData = Stream::encodeEntitySelection(draggedEntities, sceneProject->scene);
+
+                    std::string yamlString = YAML::Dump(entityData);
+
+                    ImGui::SetDragDropPayload("bundle", yamlString.data(), yamlString.size());
+                }
         }
 
         ImGui::Text("Moving %s", node.name.c_str());
@@ -842,15 +891,15 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         ImGui::PopStyleColor();
     }
 
-    if (node.separator){
-        ImGui::Separator();
-    }
-
     if (nodeOpen) {
         for (auto& child : node.children) {
             showTreeNode(child);
         }
         ImGui::TreePop();
+    }
+
+    if (node.separator){
+        ImGui::Separator();
     }
 
     popNodeImGuiId(node);
@@ -891,13 +940,21 @@ void Editor::Structure::show(){
     Entity mainCamera = sceneProject->mainCamera;
     size_t order = 0;
     std::unordered_set<Entity> sceneEntitiesSet(sceneProject->entities.begin(), sceneProject->entities.end());
-    std::unordered_map<Entity, TreeNode*> hierarchyNodeMap;
+    std::unordered_map<Entity, TreeNode*> entityNodeMap;
     std::unordered_map<Entity, std::filesystem::path> sharedEntityPaths;
+    std::unordered_map<Entity, std::filesystem::path> bundleEntityPaths;
+    std::unordered_map<Entity, std::list<TreeNode>> virtualBundleChildren;
 
     for (Entity entity : sceneProject->entities) {
         std::filesystem::path sharedPath = project->findGroupPathFor(sceneProject->id, entity);
         if (!sharedPath.empty()) {
             sharedEntityPaths.emplace(entity, std::move(sharedPath));
+            continue;
+        }
+
+        std::filesystem::path bundlePath = project->findEntityBundlePathFor(sceneProject->id, entity);
+        if (!bundlePath.empty()) {
+            bundleEntityPaths.emplace(entity, std::move(bundlePath));
         }
     }
 
@@ -959,9 +1016,24 @@ void Editor::Structure::show(){
             if (sharedIt != sharedEntityPaths.end()) {
                 child.isShared = true;
                 child.sharedFilepath = sharedIt->second;
+            } else {
+                auto bundleIt = bundleEntityPaths.find(entity);
+                if (bundleIt != bundleEntityPaths.end()) {
+                    child.isBundle = true;
+                    child.bundleFilepath = bundleIt->second;
+
+                    EntityBundle* bundle = project->getEntityBundle(bundleIt->second);
+                    Entity bundleRoot = bundle ? bundle->getRootEntity(sceneProject->id, entity) : NULL_ENTITY;
+                    if (bundleRoot != NULL_ENTITY && bundleRoot != entity) {
+                        child.parent = bundleRoot;
+                        virtualBundleChildren[bundleRoot].push_back(std::move(child));
+                        continue;
+                    }
+                }
             }
 
             root.children.push_back(child);
+            entityNodeMap[entity] = &root.children.back();
         }
     }
 
@@ -1000,23 +1072,43 @@ void Editor::Structure::show(){
             if (sharedIt != sharedEntityPaths.end()) {
                 child.isShared = true;
                 child.sharedFilepath = sharedIt->second;
+            } else {
+                auto bundleIt = bundleEntityPaths.find(entity);
+                if (bundleIt != bundleEntityPaths.end()) {
+                    child.isBundle = true;
+                    child.bundleFilepath = bundleIt->second;
+                }
             }
             if (transform.parent == NULL_ENTITY){
                 root.children.push_back(child);
-                hierarchyNodeMap[entity] = &root.children.back();
+                entityNodeMap[entity] = &root.children.back();
             }else{
-                auto parentIt = hierarchyNodeMap.find(transform.parent);
-                TreeNode* parent = parentIt != hierarchyNodeMap.end() ? parentIt->second : nullptr;
+                auto parentIt = entityNodeMap.find(transform.parent);
+                TreeNode* parent = parentIt != entityNodeMap.end() ? parentIt->second : nullptr;
                 if (parent){
                     child.parent = parent->id;
                     child.isParentShared = sharedEntityPaths.find(transform.parent) != sharedEntityPaths.end();
                     parent->children.push_back(child);
-                    hierarchyNodeMap[entity] = &parent->children.back();
+                    entityNodeMap[entity] = &parent->children.back();
                 }else{
                     printf("ERROR: Could not find parent of entity %u\n", entity);
                 }
             }
         }
+    }
+
+    for (auto& [rootEntity, children] : virtualBundleChildren) {
+        auto parentIt = entityNodeMap.find(rootEntity);
+        if (parentIt == entityNodeMap.end() || children.empty()) {
+            continue;
+        }
+
+        TreeNode* parent = parentIt->second;
+        if (!parent->children.empty()) {
+            children.back().separator = true;
+        }
+
+        parent->children.splice(parent->children.begin(), children);
     }
 
     ImGui::Begin(Structure::WINDOW_NAME);
