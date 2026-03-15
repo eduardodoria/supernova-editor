@@ -11,7 +11,6 @@
 #include "command/type/RenameFileCmd.h"
 #include "command/type/CreateDirCmd.h"
 #include "command/type/DeleteFileCmd.h"
-#include "command/type/MarkEntitySharedCmd.h"
 #include "command/type/CreateEntityBundleCmd.h"
 
 #include "window/Widgets.h"
@@ -1441,53 +1440,47 @@ bool Editor::ResourcesWindow::loadThumbnail(FileEntry& entry) {
     return true;
 }
 
+fs::path Editor::ResourcesWindow::uniqueRelativePath(const fs::path& directory, const std::string& baseName, const std::string& extension) {
+    std::string sanitized = baseName;
+    for (char& c : sanitized) {
+        if (c == '/' || c == '\\' || c == ':' || c == '*' || c == '?' || c == '"' || c == '<' || c == '>' || c == '|') {
+            c = '_';
+        }
+    }
+    std::string fileName = sanitized + extension;
+    fs::path targetFile = directory / fileName;
+    int counter = 1;
+    while (fs::exists(targetFile)) {
+        fileName = sanitized + "_" + std::to_string(counter) + extension;
+        targetFile = directory / fileName;
+        counter++;
+    }
+    return fs::relative(targetFile, project->getProjectPath());
+}
+
 void Editor::ResourcesWindow::saveMaterialFile(const fs::path& directory, const char* materialContent, size_t contentLen, const MaterialPayload* sourceMaterial) {
     project->getProjectCommandHistory()->addCommandNoMerge(new CreateMaterialFileCmd(project, directory, materialContent, contentLen, sourceMaterial));
     scanDirectory(currentPath);
 }
 
 void Editor::ResourcesWindow::saveEntityFile(const fs::path& directory, const char* entityContent, size_t contentLen) {
-    Entity entity = NULL_ENTITY;
     std::string yamlString;
     if (contentLen >= sizeof(EntityPayload)) {
-        const EntityPayload* p = reinterpret_cast<const EntityPayload*>(entityContent);
-        entity = p->entity;
         yamlString = std::string(entityContent + sizeof(EntityPayload), contentLen - sizeof(EntityPayload));
     }
 
     YAML::Node entityNode = YAML::Load(yamlString);
 
-    std::string entityName = "Entity";
+    std::string entityName = "Bundle";
     if (entityNode["name"]) {
         entityName = entityNode["name"].as<std::string>();
-    } else if (entityNode["members"] && entityNode["members"].IsSequence() && entityNode["members"].size() > 0) {
-        YAML::Node firstMember = entityNode["members"][0];
-        if (firstMember["name"]) {
-            entityName = firstMember["name"].as<std::string>();
-        }
     }
 
-    std::string baseName = entityName.empty() ? "Entity" : entityName;
-    // Replace invalid filename characters with underscores
-    for (char& c : baseName) {
-        if (c == '/' || c == '\\' || c == ':' || c == '*' || c == '?' || c == '"' || c == '<' || c == '>' || c == '|') {
-            c = '_';
-        }
-    }
-    std::string fileName = baseName + ".entity";
-    fs::path targetFile = directory / fileName;
-    int counter = 1;
-    while (fs::exists(targetFile)) {
-        fileName = baseName + "_" + std::to_string(counter) + ".entity";
-        targetFile = directory / fileName;
-        counter++;
-    }
+    std::string baseName = entityName.empty() ? "Bundle" : entityName;
+    fs::path relativePath = uniqueRelativePath(directory, baseName, ".bundle");
 
-    std::filesystem::path relativePath = std::filesystem::relative(targetFile, project->getProjectPath());
-
-    // Use the command instead of calling markEntityShared directly
-    MarkEntitySharedCmd* markSharedCmd = new MarkEntitySharedCmd(project, project->getSelectedSceneId(), entity, relativePath, entityNode);
-    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(markSharedCmd);
+    CreateEntityBundleCmd* createBundleCmd = new CreateEntityBundleCmd(project, project->getSelectedSceneId(), relativePath, entityNode);
+    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(createBundleCmd);
 
     scanDirectory(currentPath);
 }
@@ -1509,22 +1502,7 @@ void Editor::ResourcesWindow::saveBundleFile(const fs::path& directory, const ch
     }
 
     std::string baseName = bundleName.empty() ? "Bundle" : bundleName;
-    for (char& c : baseName) {
-        if (c == '/' || c == '\\' || c == ':' || c == '*' || c == '?' || c == '"' || c == '<' || c == '>' || c == '|') {
-            c = '_';
-        }
-    }
-
-    std::string fileName = baseName + ".bundle";
-    fs::path targetFile = directory / fileName;
-    int counter = 1;
-    while (fs::exists(targetFile)) {
-        fileName = baseName + "_" + std::to_string(counter) + ".bundle";
-        targetFile = directory / fileName;
-        counter++;
-    }
-
-    std::filesystem::path relativePath = std::filesystem::relative(targetFile, project->getProjectPath());
+    fs::path relativePath = uniqueRelativePath(directory, baseName, ".bundle");
 
     // Use the command instead of calling markEntityShared directly
     CreateEntityBundleCmd* createBundleCmd = new CreateEntityBundleCmd(project, project->getSelectedSceneId(), relativePath, bundleNode);

@@ -153,6 +153,8 @@ namespace Supernova::Editor {
         void saveEntityFile(const fs::path& directory, const char* entityContent, size_t contentLen);
         void saveBundleFile(const fs::path& directory, const char* bundleContent, size_t contentLen);
 
+        fs::path uniqueRelativePath(const fs::path& directory, const std::string& baseName, const std::string& extension);
+
     public:
         static constexpr const char* WINDOW_NAME = "Resources";
 
