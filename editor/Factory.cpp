@@ -864,6 +864,10 @@ std::string Editor::Factory::createScriptComponent(int indentSpaces, Scene* scen
             code << ind << "script.scripts[" << idx << "].properties[" << pidx << "].name = " << formatString(prop.name) << ";\n";
             code << ind << "script.scripts[" << idx << "].properties[" << pidx << "].type = " << formatScriptPropertyType(prop.type) << ";\n";
             code << ind << "script.scripts[" << idx << "].properties[" << pidx << "].value = " << formatScriptPropertyValue(scene, prop.value) << ";\n";
+            code << ind << "script.scripts[" << idx << "].properties[" << pidx << "].defaultValue = " << formatScriptPropertyValue(scene, prop.defaultValue) << ";\n";
+            if (!prop.ptrTypeName.empty()) {
+                code << ind << "script.scripts[" << idx << "].properties[" << pidx << "].ptrTypeName = " << formatString(prop.ptrTypeName) << ";\n";
+            }
         }
     }
 
