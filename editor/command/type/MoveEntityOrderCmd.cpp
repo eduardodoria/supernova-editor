@@ -53,6 +53,36 @@ bool Editor::MoveEntityOrderCmd::execute(){
         if (targetSharedPath == sourceSharedPath){
             sharedMoveRecovery = project->moveEntityFromSharedGroup(sceneId, source, target, type, false);
         }
+    }else if (project->isEntityInBundle(sceneId, source)){
+
+        fs::path sourceBundlePath = project->findEntityBundlePathFor(sceneId, source);
+        fs::path targetBundlePath = project->findEntityBundlePathFor(sceneId, target);
+
+        if (type == InsertionType::INTO){
+            if (!project->isEntityInBundle(sceneId, target)){
+                Out::error("Cannot move bundle entity %u into target %u", source, target);
+                return false;
+            }
+        }else{
+            Transform* transformTarget = sceneProject->scene->findComponent<Transform>(target);
+            if (transformTarget){
+                fs::path parentBundlePath = project->findEntityBundlePathFor(sceneId, transformTarget->parent);
+
+                EntityBundle* sourceBundle = project->getEntityBundle(sourceBundlePath);
+                uint32_t sourceInstanceId = sourceBundle->getInstanceId(sceneId, source);
+
+                bool isSourceRoot = sourceBundle && (sourceBundle->getRootEntity(sceneId, sourceInstanceId) == source);
+
+                if (parentBundlePath != sourceBundlePath && !isSourceRoot){
+                    Out::error("Cannot move bundle entity %u outside entity bundle", source);
+                    return false;
+                }
+            }
+        }
+
+        if (targetBundlePath == sourceBundlePath){
+            bundleMoveRecovery = project->moveEntityFromBundle(sceneId, source, target, type, false);
+        }
     }
     ProjectUtils::moveEntityOrderByTarget(sceneProject->scene, sceneProject->entities, source, target, type, oldParent, oldIndex, hasTransform);
 
@@ -66,6 +96,9 @@ void Editor::MoveEntityOrderCmd::undo(){
 
     if (sharedMoveRecovery.size() > 0){
         project->undoMoveEntityInSharedGroup(sceneId, source, target, sharedMoveRecovery, false);
+    }
+    if (bundleMoveRecovery.size() > 0){
+        project->undoMoveEntityInBundle(sceneId, source, target, bundleMoveRecovery, false);
     }
     ProjectUtils::moveEntityOrderByIndex(sceneProject->scene, sceneProject->entities, source, oldParent, oldIndex, hasTransform);
 

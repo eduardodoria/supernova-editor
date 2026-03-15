@@ -132,6 +132,8 @@ namespace Supernova::Editor {
         static YAML::Node encodeScene(Scene* scene);
         static Scene* decodeScene(Scene* scene, const YAML::Node& node);
 
+        static YAML::Node encodeEntitySelection(const std::vector<Entity>& entities, const EntityRegistry* registry, const Project* project = nullptr, const SceneProject* sceneProject = nullptr);
+        static std::vector<Entity> decodeEntitySelection(const YAML::Node& entityNode, EntityRegistry* registry, std::vector<Entity>* entities = nullptr, Project* project = nullptr, SceneProject* sceneProject = nullptr, Entity parent = NULL_ENTITY, bool returnSharedEntities = true, bool createNewIfExists = true);
         static YAML::Node encodeEntity(const Entity entity, const EntityRegistry* registry, const Project* project = nullptr, const SceneProject* sceneProject = nullptr);
         static std::vector<Entity> decodeEntity(const YAML::Node& entityNode, EntityRegistry* registry, std::vector<Entity>* entities = nullptr, Project* project = nullptr, SceneProject* sceneProject = nullptr, Entity parent = NULL_ENTITY, bool returnSharedEntities = true, bool createNewIfExists = true);
 
@@ -179,6 +181,9 @@ namespace Supernova::Editor {
 
         static YAML::Node encodeSkyComponent(const SkyComponent& sky);
         static SkyComponent decodeSkyComponent(const YAML::Node& node, const SkyComponent* oldSky = nullptr);
+
+        static YAML::Node encodeBundleComponent(const BundleComponent& bundle);
+        static BundleComponent decodeBundleComponent(const YAML::Node& node, const BundleComponent* oldBundle = nullptr);
 
         static std::string bodyTypeToString(BodyType type);
         static BodyType stringToBodyType(const std::string& str);

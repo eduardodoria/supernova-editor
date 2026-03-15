@@ -23,6 +23,8 @@ bool Editor::AddComponentCmd::execute() {
 
             if (project->isEntityShared(sceneId, entity)){
                 project->addComponentToSharedGroup(sceneId, entity, componentType, false);
+            }else if (project->isEntityInBundle(sceneId, entity)){
+                project->addComponentToBundle(sceneId, entity, componentType, false);
             }
         }
 
@@ -42,6 +44,8 @@ void Editor::AddComponentCmd::undo() {
 
             if (project->isEntityShared(sceneId, entity)){
                 project->removeComponentToSharedGroup(sceneId, entity, componentType, false, false);
+            }else if (project->isEntityInBundle(sceneId, entity)){
+                project->removeComponentFromBundle(sceneId, entity, componentType, false, false);
             }
         }
 

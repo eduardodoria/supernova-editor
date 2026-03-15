@@ -45,6 +45,7 @@ namespace Supernova::Editor{
         Body2DComponent,
         Body3DComponent,
         BoneComponent,
+        BundleComponent,
         ButtonComponent,
         CameraComponent,
         ColorActionComponent,

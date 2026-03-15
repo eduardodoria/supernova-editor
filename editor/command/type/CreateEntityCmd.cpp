@@ -7,7 +7,7 @@
 
 using namespace Supernova;
 
-Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, bool addToShared){
+Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, bool addToShared, bool addToBundle){
     this->project = project;
     this->sceneId = sceneId;
     this->entityName = entityName;
@@ -16,12 +16,13 @@ Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std
     this->parent = NULL_ENTITY;
     this->type = EntityCreationType::EMPTY;
     this->addToShared = addToShared;
+    this->addToBundle = addToBundle;
     this->wasModified = project->getScene(sceneId)->isModified;
     this->wasMainCamera = false;
     this->updateFlags = 0;
 }
 
-Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type, bool addToShared){
+Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type, bool addToShared, bool addToBundle){
     this->project = project;
     this->sceneId = sceneId;
     this->entityName = entityName;
@@ -30,12 +31,13 @@ Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std
     this->parent = NULL_ENTITY;
     this->type = type;
     this->addToShared = addToShared;
+    this->addToBundle = addToBundle;
     this->wasModified = project->getScene(sceneId)->isModified;
     this->wasMainCamera = false;
     this->updateFlags = 0;
 }
 
-Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type, Entity parent, bool addToShared){
+Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type, Entity parent, bool addToShared, bool addToBundle){
     this->project = project;
     this->sceneId = sceneId;
     this->entityName = entityName;
@@ -44,6 +46,7 @@ Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std
     this->parent = parent;
     this->type = type;
     this->addToShared = addToShared;
+    this->addToBundle = addToBundle;
     this->wasModified = project->getScene(sceneId)->isModified;
     this->wasMainCamera = false;
     this->updateFlags = 0;
@@ -315,6 +318,13 @@ bool Editor::CreateEntityCmd::execute(){
         }
     }
 
+    if (addToBundle){
+        project->addEntityToBundle(sceneId, entity, parent, false);
+        if (childEntity != NULL_ENTITY){
+            project->addEntityToBundle(sceneId, childEntity, entity, false);
+        }
+    }
+
     ImGui::SetWindowFocus(("###Scene" + std::to_string(sceneId)).c_str());
 
     Editor::Out::info("Created entity '%s' at scene '%s'", entityName.c_str(), sceneProject->name.c_str());
@@ -326,6 +336,13 @@ void Editor::CreateEntityCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     if (sceneProject){
+        if (addToBundle){
+            if (childEntity != NULL_ENTITY){
+                project->removeEntityFromBundle(sceneId, childEntity, false);
+            }
+            project->removeEntityFromBundle(sceneId, entity, false);
+        }
+
         if (addToShared){
             if (childEntity != NULL_ENTITY){
                 project->removeEntityFromSharedGroup(sceneId, childEntity, false);

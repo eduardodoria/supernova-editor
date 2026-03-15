@@ -99,6 +99,19 @@ namespace Supernova::Editor{
             return entityExtensions.find(ext) != entityExtensions.end();
         }
 
+        inline static bool isBundleFile(const std::string& path) {
+             static const std::unordered_set<std::string> bundleExtensions = {
+                ".bundle"
+            };
+
+            std::string ext = std::filesystem::path(path).extension().string();
+            if (ext.empty() && !path.empty() && path[0] == '.') {
+                ext = path;
+            }
+            std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+            return bundleExtensions.find(ext) != bundleExtensions.end();
+        }
+
         inline static bool isScriptFile(const std::string& path) {
              static const std::unordered_set<std::string> scriptExtensions = {
                 ".lua", ".cpp", ".cc", ".cxx", ".h", ".hh", ".hpp", ".hxx"

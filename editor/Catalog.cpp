@@ -197,6 +197,11 @@ namespace {
         makeFastProperty<ActionComponent, bool, &ActionComponent::ownedTarget>("ownedTarget", PropertyType::Bool, UpdateFlags_None),
     };
 
+    static const FastPropertyDescriptor kBundleProperties[] = {
+        makeFastProperty<BundleComponent, std::string, &BundleComponent::name>("name", PropertyType::String, UpdateFlags_None),
+        makeFastProperty<BundleComponent, std::string, &BundleComponent::path>("path", PropertyType::String, UpdateFlags_None),
+    };
+
     static const FastPropertyDescriptor kSpriteAnimationProperties[] = {
         makeFastProperty<SpriteAnimationComponent, std::string, &SpriteAnimationComponent::name>("name", PropertyType::String, UpdateFlags_None),
         makeFastProperty<SpriteAnimationComponent, bool, &SpriteAnimationComponent::loop>("loop", PropertyType::Bool, UpdateFlags_None),
@@ -999,10 +1004,18 @@ namespace {
         return getScriptPropertyFast(static_cast<ScriptComponent*>(comp), propertyName);
     }
 
+    PropertyData resolveBundlePropertyFast(void* comp, const std::string& propertyName) {
+        return resolveDirectProperties(static_cast<BundleComponent*>(comp), propertyName, kBundleProperties);
+    }
+
     // ── Enumerate functions (build full property map) ──
 
     void enumerateActionProperties(void* comp, std::map<std::string, PropertyData>& ps) {
         enumerateFromDescriptors(comp, ps, kActionProperties);
+    }
+
+    void enumerateBundleProperties(void* comp, std::map<std::string, PropertyData>& ps) {
+        enumerateFromDescriptors(comp, ps, kBundleProperties);
     }
 
     void enumerateSpriteAnimationProperties(void* comp, std::map<std::string, PropertyData>& ps) {
@@ -1309,6 +1322,7 @@ namespace {
         {ComponentType::ActionComponent, &findComponentPtr<ActionComponent>, &resolveActionPropertyFast, &enumerateActionProperties},
         {ComponentType::SpriteAnimationComponent, &findComponentPtr<SpriteAnimationComponent>, &resolveSpriteAnimationPropertyFast, &enumerateSpriteAnimationProperties},
         {ComponentType::AnimationComponent, &findComponentPtr<AnimationComponent>, &resolveAnimationPropertyFast, &enumerateAnimationProperties},
+        {ComponentType::BundleComponent, &findComponentPtr<BundleComponent>, &resolveBundlePropertyFast, &enumerateBundleProperties},
     };
 
     PropertyData tryGetFastProperty(EntityRegistry* registry, Entity entity, ComponentType component, const std::string& propertyName) {
@@ -1389,6 +1403,8 @@ std::string Editor::Catalog::getComponentName(ComponentType component, bool remo
         name = "Body3DComponent";
     }else if(component == ComponentType::BoneComponent){
         name = "BoneComponent";
+    }else if(component == ComponentType::BundleComponent){
+        name = "BundleComponent";
     }else if(component == ComponentType::ButtonComponent){
         name = "ButtonComponent";
     }else if(component == ComponentType::CameraComponent){
@@ -1503,6 +1519,8 @@ ComponentId Editor::Catalog::getComponentId(const EntityRegistry* registry, Comp
             return registry->getComponentId<Body3DComponent>();
         case ComponentType::BoneComponent:
             return registry->getComponentId<BoneComponent>();
+        case ComponentType::BundleComponent:
+            return registry->getComponentId<BundleComponent>();
         case ComponentType::ButtonComponent:
             return registry->getComponentId<ButtonComponent>();
         case ComponentType::CameraComponent:
@@ -1595,6 +1613,8 @@ Editor::ComponentType Editor::Catalog::getComponentType(const std::string& compo
         return ComponentType::Body3DComponent;
     }else if(normalizedName == "bone"){
         return ComponentType::BoneComponent;
+    }else if(normalizedName == "bundle"){
+        return ComponentType::BundleComponent;
     }else if(normalizedName == "button"){
         return ComponentType::ButtonComponent;
     }else if(normalizedName == "camera"){
@@ -1742,6 +1762,9 @@ std::vector<Editor::ComponentType> Editor::Catalog::findComponents(EntityRegistr
     }
     if (registry->findComponent<BoneComponent>(entity)){
         ret.push_back(ComponentType::BoneComponent);
+    }
+    if (registry->findComponent<BundleComponent>(entity)){
+        ret.push_back(ComponentType::BundleComponent);
     }
     if (registry->findComponent<ButtonComponent>(entity)){
         ret.push_back(ComponentType::ButtonComponent);
@@ -2064,6 +2087,12 @@ void Editor::Catalog::copyComponent(EntityRegistry* sourceRegistry, Entity sourc
         case ComponentType::ButtonComponent: {
             YAML::Node encoded = Stream::encodeButtonComponent(sourceRegistry->getComponent<ButtonComponent>(sourceEntity));
             targetRegistry->getComponent<ButtonComponent>(targetEntity) = Stream::decodeButtonComponent(encoded);
+            break;
+        }
+
+        case ComponentType::BundleComponent: {
+            YAML::Node encoded = Stream::encodeBundleComponent(sourceRegistry->getComponent<BundleComponent>(sourceEntity));
+            targetRegistry->getComponent<BundleComponent>(targetEntity) = Stream::decodeBundleComponent(encoded);
             break;
         }
 

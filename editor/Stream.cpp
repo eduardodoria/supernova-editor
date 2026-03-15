@@ -991,6 +991,17 @@ YAML::Node Editor::Stream::encodeSceneProject(const Project* project, const Scen
 
     YAML::Node entitiesNode;
     for (Entity entity : sceneProject->entities) {
+        // Skip bundle children (they are stored in the bundle file)
+        if (project) {
+            fs::path bundlePath = project->findEntityBundlePathFor(sceneProject->id, entity);
+            if (!bundlePath.empty()) {
+                const EntityBundle* bundle = project->getEntityBundle(bundlePath);
+                if (bundle && bundle->getRootEntity(sceneProject->id, entity) != entity) {
+                    continue;
+                }
+            }
+        }
+
         if (Transform* transform = sceneProject->scene->findComponent<Transform>(entity)) {
             if (transform->parent == NULL_ENTITY) {
                 entitiesNode.push_back(encodeEntity(entity, sceneProject->scene, project, sceneProject));
@@ -1130,6 +1141,43 @@ Scene* Editor::Stream::decodeScene(Scene* scene, const YAML::Node& node) {
     return scene;
 }
 
+YAML::Node Editor::Stream::encodeEntitySelection(const std::vector<Entity>& entities, const EntityRegistry* registry, const Project* project, const SceneProject* sceneProject) {
+    if (entities.empty()) {
+        return YAML::Node();
+    }
+
+    if (entities.size() == 1) {
+        return encodeEntity(entities[0], registry, project, sceneProject);
+    }
+
+    YAML::Node bundleNode;
+    bundleNode["type"] = "SharedEntityBundle";
+    YAML::Node membersNode(YAML::NodeType::Sequence);
+    for (Entity entity : entities) {
+        membersNode.push_back(encodeEntity(entity, registry, project, sceneProject));
+    }
+    bundleNode["members"] = membersNode;
+
+    return bundleNode;
+}
+
+std::vector<Entity> Editor::Stream::decodeEntitySelection(const YAML::Node& entityNode, EntityRegistry* registry, std::vector<Entity>* entities, Project* project, SceneProject* sceneProject, Entity parent, bool returnSharedEntities, bool createNewIfExists) {
+    if (!entityNode || !entityNode.IsMap()) {
+        return {};
+    }
+
+    if (entityNode["members"] && entityNode["members"].IsSequence()) {
+        std::vector<Entity> allEntities;
+        for (const auto& memberNode : entityNode["members"]) {
+            std::vector<Entity> memberEntities = decodeEntitySelection(memberNode, registry, entities, project, sceneProject, parent, returnSharedEntities, createNewIfExists);
+            allEntities.insert(allEntities.end(), memberEntities.begin(), memberEntities.end());
+        }
+        return allEntities;
+    }
+
+    return decodeEntity(entityNode, registry, entities, project, sceneProject, parent, returnSharedEntities, createNewIfExists);
+}
+
 YAML::Node Editor::Stream::encodeEntity(const Entity entity, const EntityRegistry* registry, const Project* project, const SceneProject* sceneProject) {
     std::map<Entity, YAML::Node> entityNodes;
 
@@ -1142,6 +1190,11 @@ YAML::Node Editor::Stream::encodeEntity(const Entity entity, const EntityRegistr
     if (hasCurrentEntity) {
         YAML::Node& currentNode = entityNodes[entity];
         currentNode = encodeEntityAux(entity, registry, project, sceneProject);
+
+        // Bundle root: children are part of the bundle file, skip hierarchy walk
+        if (registry->getSignature(entity).test(registry->getComponentId<BundleComponent>())) {
+            return entityNodes[entity];
+        }
 
         Signature signature = registry->getSignature(entity);
 
@@ -1209,16 +1262,112 @@ YAML::Node Editor::Stream::encodeEntityAux(const Entity entity, const EntityRegi
         }
 
     }else{
-        entityNode["type"] = "Entity";
+        fs::path bundlePath = "";
+        if (project && sceneProject) {
+            bundlePath = project->findEntityBundlePathFor(sceneProject->id, entity);
+        }
 
-        entityNode["entity"] = entity;
-        entityNode["name"] = registry->getEntityName(entity);
+        if (!bundlePath.empty()) {
+            const EntityBundle* bundle = project->getEntityBundle(bundlePath);
+            const Entity rootEntity = bundle->getRootEntity(sceneProject->id, entity);
 
-        Signature signature = registry->getSignature(entity);
-        YAML::Node components = encodeComponents(entity, registry, signature);
+            if (rootEntity == entity) {
+                // Bundle root: encode as normal Entity (BundleComponent carries the path)
+                entityNode["type"] = "Entity";
+                entityNode["entity"] = entity;
+                entityNode["name"] = registry->getEntityName(entity);
 
-        if ((components.IsMap() && components.size() > 0)){
-            entityNode["components"] = components;
+                Signature signature = registry->getSignature(entity);
+                YAML::Node components = encodeComponents(entity, registry, signature);
+
+                if ((components.IsMap() && components.size() > 0)){
+                    entityNode["components"] = components;
+                }
+
+                // Encode bundle overrides and local entities
+                auto sceneIt = bundle->instances.find(sceneProject->id);
+                if (sceneIt != bundle->instances.end()) {
+                    for (const auto& instance : sceneIt->second) {
+                        if (instance.rootEntity != entity) continue;
+
+                        // Encode component overrides keyed by registryEntity
+                        YAML::Node overridesNode;
+                        for (const auto& member : instance.members) {
+                            auto overrideIt = instance.overrides.find(member.localEntity);
+                            if (overrideIt != instance.overrides.end() && overrideIt->second != 0) {
+                                YAML::Node entry;
+                                entry["registryEntity"] = member.registryEntity;
+                                Signature sig = Catalog::componentMaskToSignature(registry, overrideIt->second);
+                                YAML::Node overrideComps = encodeComponents(member.localEntity, registry, sig);
+                                if (overrideComps.IsMap() && overrideComps.size() > 0) {
+                                    entry["components"] = overrideComps;
+                                }
+                                overridesNode.push_back(entry);
+                            }
+                        }
+                        if (overridesNode.size() > 0) {
+                            entityNode["bundleOverrides"] = overridesNode;
+                        }
+
+                        // Encode scene-specific local entities (children of bundle members/root not in members list)
+                        YAML::Node localEntsNode;
+                        std::unordered_set<Entity> memberSet;
+                        memberSet.insert(instance.rootEntity);
+                        for (const auto& m : instance.members) {
+                            memberSet.insert(m.localEntity);
+                        }
+
+                        // Check root and each member for non-member children
+                        std::vector<std::pair<Entity, Entity>> parentCandidates; // {parentLocal, parentRegistry}
+                        parentCandidates.push_back({instance.rootEntity, NULL_ENTITY});
+                        for (const auto& m : instance.members) {
+                            parentCandidates.push_back({m.localEntity, m.registryEntity});
+                        }
+
+                        for (const auto& [parentLocal, parentReg] : parentCandidates) {
+                            if (!registry->getSignature(parentLocal).test(registry->getComponentId<Transform>())) continue;
+                            auto transforms = registry->getComponentArray<Transform>();
+                            size_t parentIdx = transforms->getIndex(parentLocal);
+                            size_t childPos = 0;
+                            for (size_t ti = parentIdx + 1; ti < transforms->size(); ti++) {
+                                Transform& t = transforms->getComponentFromIndex(ti);
+                                Entity childEnt = transforms->getEntity(ti);
+                                if (t.parent != parentLocal) {
+                                    if (t.parent == NULL_ENTITY) break;
+                                    // Skip deeper descendants
+                                    continue;
+                                }
+                                if (memberSet.find(childEnt) == memberSet.end()) {
+                                    // This is a local entity
+                                    YAML::Node localEntNode = encodeEntity(childEnt, registry, project, sceneProject);
+                                    localEntNode["parentRegistryEntity"] = parentReg;
+                                    localEntNode["childIndex"] = childPos;
+                                    localEntsNode.push_back(localEntNode);
+                                }
+                                childPos++;
+                            }
+                        }
+                        if (localEntsNode.size() > 0) {
+                            entityNode["bundleLocalEntities"] = localEntsNode;
+                        }
+
+                        break;
+                    }
+                }
+            }
+            // Bundle children are not encoded (they live in the bundle file)
+        }else{
+            entityNode["type"] = "Entity";
+
+            entityNode["entity"] = entity;
+            entityNode["name"] = registry->getEntityName(entity);
+
+            Signature signature = registry->getSignature(entity);
+            YAML::Node components = encodeComponents(entity, registry, signature);
+
+            if ((components.IsMap() && components.size() > 0)){
+                entityNode["components"] = components;
+            }
         }
     }
 
@@ -1385,6 +1534,17 @@ std::vector<Entity> Editor::Stream::decodeEntity(const YAML::Node& entityNode, E
 
         if (entityNode["components"]){
             decodeComponents(entity, parent, registry, entityNode["components"]);
+        }
+
+        // If entity has BundleComponent, import bundle children from its path
+        if (project && sceneProject) {
+            BundleComponent* bundleComp = registry->findComponent<BundleComponent>(entity);
+            if (bundleComp && !bundleComp->path.empty()) {
+                std::vector<Entity> bundleEntities = project->importEntityBundle(
+                    sceneProject, entities, bundleComp->path, entity, false,
+                    entityNode["bundleOverrides"], entityNode["bundleLocalEntities"]);
+                allEntities.insert(allEntities.end(), bundleEntities.begin(), bundleEntities.end());
+            }
         }
 
         // Decode children from actualNode
@@ -1570,6 +1730,11 @@ YAML::Node Editor::Stream::encodeComponents(const Entity entity, const EntityReg
     if (signature.test(registry->getComponentId<AnimationComponent>())) {
         AnimationComponent animation = registry->getComponent<AnimationComponent>(entity);
         compNode[Catalog::getComponentName(ComponentType::AnimationComponent, true)] = encodeAnimationComponent(animation);
+    }
+
+    if (signature.test(registry->getComponentId<BundleComponent>())) {
+        BundleComponent bundle = registry->getComponent<BundleComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::BundleComponent, true)] = encodeBundleComponent(bundle);
     }
 
     return compNode;
@@ -1839,6 +2004,17 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
             int flags = Catalog::getChangedUpdateFlags(ComponentType::AnimationComponent, existing, &animation);
             registry->getComponent<AnimationComponent>(entity) = animation;
             Catalog::updateEntity(registry, entity, flags);
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::BundleComponent, true);
+    if (compNode[compName]) {
+        BundleComponent* existing = registry->findComponent<BundleComponent>(entity);
+        BundleComponent bundle = decodeBundleComponent(compNode[compName], existing);
+        if (!signature.test(registry->getComponentId<BundleComponent>())){
+            registry->addComponent<BundleComponent>(entity, bundle);
+        }else{
+            registry->getComponent<BundleComponent>(entity) = bundle;
         }
     }
 }
@@ -2590,6 +2766,30 @@ SkyComponent Editor::Stream::decodeSkyComponent(const YAML::Node& node, const Sk
     if (node["rotation"]) sky.rotation = node["rotation"].as<float>();
 
     return sky;
+}
+
+// ==============================
+// BundleComponent
+// ==============================
+
+YAML::Node Editor::Stream::encodeBundleComponent(const BundleComponent& bundle) {
+    YAML::Node node;
+    node["name"] = bundle.name;
+    node["path"] = bundle.path;
+    return node;
+}
+
+BundleComponent Editor::Stream::decodeBundleComponent(const YAML::Node& node, const BundleComponent* oldBundle) {
+    BundleComponent bundle;
+
+    if (oldBundle) {
+        bundle = *oldBundle;
+    }
+
+    if (node["name"]) bundle.name = node["name"].as<std::string>();
+    if (node["path"]) bundle.path = node["path"].as<std::string>();
+
+    return bundle;
 }
 
 // ==============================

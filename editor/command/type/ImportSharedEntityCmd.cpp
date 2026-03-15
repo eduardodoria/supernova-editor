@@ -59,7 +59,11 @@ void Editor::ImportSharedEntityCmd::undo(){
     }
 
     // Get entity info to recover same ids
-    extendNode = Stream::encodeEntity(importedEntities[0], sceneProject->scene, project, sceneProject);
+    std::vector<Entity> topLevelEntities = Project::getTopLevelEntities(sceneProject->scene, importedEntities);
+    extendNode = Stream::encodeEntitySelection(topLevelEntities, sceneProject->scene, project, sceneProject);
+    if (extendNode && extendNode.IsMap() && extendNode["type"] && extendNode["type"].as<std::string>() == "SharedEntityBundle") {
+        extendNode["path"] = filepath.generic_string();
+    }
 
     // Unimport the shared entity
     project->unimportSharedEntity(sceneId, filepath, importedEntities);

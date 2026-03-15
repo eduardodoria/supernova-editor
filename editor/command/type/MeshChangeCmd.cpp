@@ -24,6 +24,9 @@ bool Editor::MeshChangeCmd::execute(){
     if (project->isEntityShared(sceneId, entity)){
         project->sharedGroupPropertyChanged(sceneId, entity, ComponentType::MeshComponent, {});
     }
+    if (project->isEntityInBundle(sceneId, entity)){
+        project->bundlePropertyChanged(sceneId, entity, ComponentType::MeshComponent, {});
+    }
 
     return true;
 }
@@ -37,6 +40,9 @@ void Editor::MeshChangeCmd::undo(){
 
     if (project->isEntityShared(sceneId, entity)){
         project->sharedGroupPropertyChanged(sceneId, entity, ComponentType::MeshComponent, {});
+    }
+    if (project->isEntityInBundle(sceneId, entity)){
+        project->bundlePropertyChanged(sceneId, entity, ComponentType::MeshComponent, {});
     }
 }
 

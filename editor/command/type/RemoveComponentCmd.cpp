@@ -29,14 +29,26 @@ bool Editor::RemoveComponentCmd::execute() {
             fs::path filepath = project->findGroupPathFor(sceneId, entityData.entity);
             SharedGroup* group = project->getSharedGroup(filepath);
 
+            fs::path bundlePath = project->findEntityBundlePathFor(sceneId, entityData.entity);
+            EntityBundle* bundle = project->getEntityBundle(bundlePath);
+
             if (group && componentType == ComponentType::Transform){
                 Out::error("Cannot remove Transform component from shared entity '%s' in scene '%s'", scene->getEntityName(entityData.entity).c_str(), sceneProject->name.c_str());
+                continue;
+            }
+
+            if (bundle && componentType == ComponentType::Transform){
+                Out::error("Cannot remove Transform component from bundle entity '%s' in scene '%s'", scene->getEntityName(entityData.entity).c_str(), sceneProject->name.c_str());
                 continue;
             }
 
             if (group && !group->hasComponentOverride(sceneId, entityData.entity, componentType)){
 
                 entityData.recovery = project->removeComponentToSharedGroup(sceneId, entityData.entity, componentType, true, true);
+
+            }else if (bundle && !bundle->hasComponentOverride(sceneId, entityData.entity, componentType)){
+
+                entityData.recovery = project->removeComponentFromBundle(sceneId, entityData.entity, componentType, true, true);
 
             }else{
 
@@ -46,6 +58,11 @@ bool Editor::RemoveComponentCmd::execute() {
                     entityData.hasOverride = group->hasComponentOverride(sceneId, entityData.entity, componentType);
                     if (entityData.hasOverride){
                         group->clearComponentOverride(sceneId, entityData.entity, componentType);
+                    }
+                }else if (bundle){
+                    entityData.hasOverride = bundle->hasComponentOverride(sceneId, entityData.entity, componentType);
+                    if (entityData.hasOverride){
+                        bundle->clearComponentOverride(sceneId, entityData.entity, componentType);
                     }
                 }
 
@@ -66,7 +83,12 @@ void Editor::RemoveComponentCmd::undo() {
         for (RemoveComponentData& entityData : entities){
             if (entityData.recovery.size() > 0){
 
-                project->addComponentToSharedGroup(sceneId, entityData.entity, componentType, entityData.recovery, true);
+                fs::path filepath = project->findGroupPathFor(sceneId, entityData.entity);
+                if (!filepath.empty()){
+                    project->addComponentToSharedGroup(sceneId, entityData.entity, componentType, entityData.recovery, true);
+                }else{
+                    project->addComponentToBundle(sceneId, entityData.entity, componentType, entityData.recovery, true);
+                }
 
             }else{
 
@@ -78,6 +100,13 @@ void Editor::RemoveComponentCmd::undo() {
 
                     if (group){
                         group->setComponentOverride(sceneId, entityData.entity, componentType);
+                    }else{
+                        fs::path bundlePath = project->findEntityBundlePathFor(sceneId, entityData.entity);
+                        EntityBundle* bundle = project->getEntityBundle(bundlePath);
+
+                        if (bundle){
+                            bundle->setComponentOverride(sceneId, entityData.entity, componentType);
+                        }
                     }
                 }
 

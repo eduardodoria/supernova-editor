@@ -27,7 +27,8 @@ namespace Supernova::Editor {
         IMAGE,
         MATERIAL,
         SCENE,
-        ENTITY
+        ENTITY,
+        BUNDLE
     };
 
     struct FileEntry {
@@ -150,6 +151,7 @@ namespace Supernova::Editor {
 
         void saveMaterialFile(const fs::path& directory, const char* materialContent, size_t contentLen, const MaterialPayload* sourceMaterial = nullptr);
         void saveEntityFile(const fs::path& directory, const char* entityContent, size_t contentLen);
+        void saveBundleFile(const fs::path& directory, const char* bundleContent, size_t contentLen);
 
     public:
         static constexpr const char* WINDOW_NAME = "Resources";

@@ -18,6 +18,8 @@
 #include "command/type/RemoveComponentCmd.h"
 #include "command/type/ComponentToSharedCmd.h"
 #include "command/type/ComponentToLocalCmd.h"
+#include "command/type/ComponentToBundleSharedCmd.h"
+#include "command/type/ComponentToBundleLocalCmd.h"
 #include "command/type/ScenePropertyCmd.h"
 #include "render/SceneRender2D.h"
 #include "App.h"
@@ -839,7 +841,7 @@ void Editor::Properties::dragDropResourcesTextureCubeSingleFile(ComponentType cp
     }
 }
 
-void Editor::Properties::handleComponentMenu(SceneProject* sceneProject, std::vector<Entity> entities, ComponentType cpType, bool isSharedGroup, bool isComponentOverridden, bool& headerOpen, bool readOnly) {
+void Editor::Properties::handleComponentMenu(SceneProject* sceneProject, std::vector<Entity> entities, ComponentType cpType, bool isSharedGroup, bool isComponentOverridden, bool isBundle, bool isBundleOverridden, bool& headerOpen, bool readOnly) {
     if (ImGui::BeginPopupContextItem(("component_options_menu_" + std::to_string(static_cast<int>(cpType))).c_str())) {
         ImGui::TextDisabled("Component options");
         ImGui::Separator();
@@ -867,7 +869,28 @@ void Editor::Properties::handleComponentMenu(SceneProject* sceneProject, std::ve
             }
         }
 
-        bool canRemove = !(cpType == ComponentType::Transform && isSharedGroup);
+        if (isBundle){
+            if (isBundleOverridden) {
+                if (ImGui::MenuItem(ICON_FA_CUBE " Revert to Bundle")) {
+                    for (Entity& entity : entities){
+                        cmd = new ComponentToBundleSharedCmd(project, sceneProject->id, entity, cpType);
+                        CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                    }
+                    cmd->setNoMerge();
+                }
+
+            } else {
+                if (ImGui::MenuItem(ICON_FA_LOCK_OPEN " Make Unique")) {
+                    for (Entity& entity : entities){
+                        cmd = new ComponentToBundleLocalCmd(project, sceneProject->id, entity, cpType);
+                        CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                    }
+                    cmd->setNoMerge();
+                }
+            }
+        }
+
+        bool canRemove = !(cpType == ComponentType::Transform && (isSharedGroup || isBundle));
         if (ImGui::MenuItem(ICON_FA_TRASH " Remove", nullptr, false, canRemove)) {
             for (Entity& entity : entities){
                 cmd = new RemoveComponentCmd(project, sceneProject->id, entity, cpType);
@@ -6465,6 +6488,12 @@ void Editor::Properties::drawAnimationComponent(ComponentType cpType, SceneProje
     }
 }
 
+void Editor::Properties::drawBundleComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+    beginTable(cpType, getLabelSize("Name"));
+    propertyRow(RowPropertyType::Label, cpType, "name", "Name", sceneProject, entities);
+    endTable();
+}
+
 void Editor::Properties::show(){
     // Flush any debounced material file writes
     flushDirtyMaterials(project, ImGui::GetIO().DeltaTime);
@@ -6490,6 +6519,7 @@ void Editor::Properties::show(){
 
         // to change component view order, need change ComponentType
         std::filesystem::path sharedGroupPath;
+        std::filesystem::path bundlePath;
         std::string names;
         bool isFirstEntity = true;
         for (Entity& entity : entities){
@@ -6502,9 +6532,12 @@ void Editor::Properties::show(){
             std::filesystem::path newSharedGroupPath = project->findGroupPathFor(sceneProject->id, entity);
             sharedGroupPath = project->findGroupPathFor(sceneProject->id, entity);
 
+            std::filesystem::path newBundlePath = project->findEntityBundlePathFor(sceneProject->id, entity);
+
             if (isFirstEntity) {
                 components = newComponents;
                 sharedGroupPath = newSharedGroupPath;
+                bundlePath = newBundlePath;
                 isFirstEntity = false;
             } else {
                 std::vector<ComponentType> intersection;
@@ -6519,6 +6552,10 @@ void Editor::Properties::show(){
 
                 if (sharedGroupPath != newSharedGroupPath) {
                     sharedGroupPath.clear(); // Different groups, so no shared group
+                }
+
+                if (bundlePath != newBundlePath) {
+                    bundlePath.clear(); // Different bundles, so no bundle
                 }
 
                 names += ", ";
@@ -6656,6 +6693,21 @@ void Editor::Properties::show(){
         componentAddDialog.show();
 
         bool isShared = !sharedGroupPath.empty();
+        bool isBundle = !bundlePath.empty();
+
+        // Root entity of a bundle is always local, not part of the bundle template
+        if (isBundle) {
+            EntityBundle* bundle = project->getEntityBundle(bundlePath);
+            if (bundle) {
+                for (Entity& entity : entities) {
+                    Entity root = bundle->getRootEntity(sceneProject->id, entity);
+                    if (root == entity && bundle->getRegistryEntity(sceneProject->id, entity) == NULL_ENTITY) {
+                        isBundle = false;
+                        break;
+                    }
+                }
+            }
+        }
 
         for (ComponentType& cpType : components){
 
@@ -6676,6 +6728,22 @@ void Editor::Properties::show(){
                 }
             }
 
+            // Check if this component is overridden for bundle entities
+            bool isBundleOverridden = false;
+            EntityBundle* entityBundle = nullptr;
+            if (isBundle) {
+                entityBundle = project->getEntityBundle(bundlePath);
+                if (entityBundle) {
+                    for (Entity& entity : entities) {
+                        if (entityBundle->hasComponentOverride(sceneProject->id, entity, cpType)) {
+                            isBundleOverridden = true;
+                            break;
+                        }
+                        isBundleOverridden = false;
+                    }
+                }
+            }
+
             // Create header with appropriate styling
             ImGui::PushID(static_cast<int>(cpType));
 
@@ -6687,6 +6755,10 @@ void Editor::Properties::show(){
                 // Shared components - blue color with link icon
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.6f, 1.0f, 1.0f));
                 headerText = ICON_FA_LINK " ";
+            } else if (isBundle && !isBundleOverridden) {
+                // Bundle components - light blue with cube icon (same as Structure window)
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.7f, 1.0f, 1.0f));
+                headerText = ICON_FA_CUBE " ";
             }
             headerText += Catalog::getComponentName(cpType);
 
@@ -6695,17 +6767,24 @@ void Editor::Properties::show(){
 
             if (isShared && !isComponentOverridden) {
                 ImGui::PopStyleColor();
+            } else if (isBundle && !isBundleOverridden) {
+                ImGui::PopStyleColor();
             }
 
             // Context menu disabled while playing
             bool compReadOnly = false;
-            handleComponentMenu(sceneProject, entities, cpType, isShared, isComponentOverridden, headerOpen, compReadOnly);
+            handleComponentMenu(sceneProject, entities, cpType, isShared, isComponentOverridden, isBundle, isBundleOverridden, headerOpen, compReadOnly);
 
-            // Add hover tooltip only for shared components
+            // Add hover tooltip for shared or bundle components
             if (isShared && !isComponentOverridden && ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
                 ImGui::TextColored(ImVec4(0.4f, 0.6f, 1.0f, 1.0f), ICON_FA_LINK " Shared Component");
                 ImGui::Text("This component is shared across all instances.");
+                ImGui::EndTooltip();
+            } else if (isBundle && !isBundleOverridden && ImGui::IsItemHovered()) {
+                ImGui::BeginTooltip();
+                ImGui::TextColored(ImVec4(0.4f, 0.7f, 1.0f, 1.0f), ICON_FA_CUBE " Bundle Component");
+                ImGui::Text("This component comes from the bundle template.");
                 ImGui::EndTooltip();
             }
 
@@ -6755,6 +6834,8 @@ void Editor::Properties::show(){
                     drawSpriteAnimationComponent(cpType, sceneProject, entities);
                 }else if (cpType == ComponentType::AnimationComponent){
                     drawAnimationComponent(cpType, sceneProject, entities);
+                }else if (cpType == ComponentType::BundleComponent){
+                    drawBundleComponent(cpType, sceneProject, entities);
                 }
 
                 if (compReadOnly) ImGui::EndDisabled();

@@ -9,6 +9,7 @@
 #include "Generator.h"
 #include "Configs.h"
 #include "util/SharedGroup.h"
+#include "util/EntityBundle.h"
 #include "util/ScriptParser.h"
 #include "util/ScopedDefaultEntityPool.h"
 
@@ -155,6 +156,7 @@ namespace Supernova::Editor{
         std::chrono::steady_clock::time_point lastMaterialRefreshTime;
         static constexpr double materialRefreshIntervalSec = 0.2;
 
+        std::map<std::filesystem::path, EntityBundle> entityBundles;
         std::map<std::filesystem::path, SharedGroup> sharedGroups;
 
         const std::string libName = "projectlib";
@@ -240,10 +242,12 @@ namespace Supernova::Editor{
         void remapMaterialFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
         void remapSceneFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
         void remapSharedEntityFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
+        void remapEntityBundleFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
         void remapScriptFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
         void cleanupMaterialFilePath(const std::filesystem::path& deletedPath);
         void cleanupSceneFilePath(const std::filesystem::path& deletedPath);
         void cleanupSharedEntityFilePath(const std::filesystem::path& deletedPath);
+        void cleanupEntityBundleFilePath(const std::filesystem::path& deletedPath);
         void cleanupScriptFilePath(const std::filesystem::path& deletedPath);
 
         //=== end File path remapping ===
@@ -307,10 +311,13 @@ namespace Supernova::Editor{
 
         bool hasSelectedSceneUnsavedChanges() const;
         bool hasSelectedSceneUnsavedSharedEntities() const;
+        bool hasSelectedSceneUnsavedEntityBundles() const;
         bool hasSceneUnsavedChanges(uint32_t sceneId) const;
         bool hasUnsavedSharedEntities(uint32_t sceneId) const;
+        bool hasUnsavedEntityBundles(uint32_t sceneId) const;
         bool hasScenesUnsavedChanges() const;
         bool hasUnsavedSharedEntities() const;
+        bool hasUnsavedEntityBundles() const;
 
         void updateAllScriptsProperties(uint32_t sceneId);
         void updateScriptProperties(SceneProject* sceneProject, Entity entity, std::vector<ScriptEntry>& scripts);
@@ -318,6 +325,45 @@ namespace Supernova::Editor{
         void resolveEntityRef(EntityRef& ref, SceneProject* sceneProject, Entity entity);
         void resolveEntityRefs(SceneProject* sceneProject);
         void resolveAllEntityRefs();
+
+        static std::vector<Entity> getTopLevelEntities(const EntityRegistry* registry, const std::vector<Entity>& orderedEntities);
+        static bool isNumericEntityReference(ComponentType componentType, const std::string& propertyName, PropertyType propertyType);
+        static void remapNumericEntityReferences(EntityRegistry* registry, const std::vector<Entity>& entities, const std::unordered_map<Entity, Entity>& entityMap);
+
+        //=== EntityBundle part ===
+
+        bool createEntityBundle(uint32_t sceneId, fs::path filepath, YAML::Node entityNode);
+        bool removeEntityBundle(const std::filesystem::path& filepath);
+
+        void saveEntityBundleToDisk(const std::filesystem::path& filepath);
+
+        EntityBundle* getEntityBundle(const std::filesystem::path& filepath);
+        const EntityBundle* getEntityBundle(const std::filesystem::path& filepath) const;
+        std::filesystem::path findEntityBundlePathFor(uint32_t sceneId, Entity entity) const;
+
+        YAML::Node encodeEntityBundleNode(const std::filesystem::path& filepath) const;
+
+        std::vector<Entity> importEntityBundle(SceneProject* sceneProject, std::vector<Entity>* entities, const std::filesystem::path& filepath, Entity rootEntity, bool needSaveScene = true, const YAML::Node& bundleOverrides = YAML::Node(), const YAML::Node& bundleLocalEntities = YAML::Node());
+        bool unimportEntityBundle(uint32_t sceneId, const std::filesystem::path& filepath, Entity rootEntity, const std::vector<Entity>& memberEntities);
+
+        bool addEntityToBundle(uint32_t sceneId, Entity entity, Entity parent, bool createItself = true);
+        bool addEntityToBundle(uint32_t sceneId, const NodeRecovery& recoveryData, Entity parent, bool createItself = true);
+        NodeRecovery removeEntityFromBundle(uint32_t sceneId, Entity entity, bool destroyItself = true);
+
+        bool bundlePropertyChanged(uint32_t sceneId, Entity entity, ComponentType componentType, std::vector<std::string> properties, bool changeItself = false);
+        bool bundleNameChanged(uint32_t sceneId, Entity entity, std::string name, bool changeItself = false);
+        bool isEntityInBundle(uint32_t sceneId, Entity entity) const;
+
+        bool addComponentToBundle(uint32_t sceneId, Entity entity, ComponentType componentType, bool addToItself = true);
+        bool addComponentToBundle(uint32_t sceneId, Entity entity, ComponentType componentType, const ComponentRecovery& recovery, bool addToItself = true);
+        ComponentRecovery removeComponentFromBundle(uint32_t sceneId, Entity entity, ComponentType componentType, bool encodeComponent = true, bool removeToItself = true);
+
+        SharedMoveRecovery moveEntityFromBundle(uint32_t sceneId, Entity entity, Entity target, InsertionType type, bool moveItself = true);
+        bool undoMoveEntityInBundle(uint32_t sceneId, Entity entity, Entity target, const SharedMoveRecovery& recovery, bool moveItself = true);
+
+        void cleanupEntityBundlesForScene(uint32_t sceneId);
+
+        //=== end EntityBundle part ===
 
         //=== Shared Entities part ===
 

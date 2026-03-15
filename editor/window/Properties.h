@@ -122,7 +122,7 @@ namespace Supernova::Editor{
         void dragDropResourcesTextureCubeSingleFile(ComponentType cpType, const std::string& id, const ImVec2& rectMin, const ImVec2& rectMax, SceneProject* sceneProject, const std::vector<Entity>& entities, ComponentType componentType);
         void dragDropResourcesTextureCubeFace(ComponentType cpType, const std::string& id, size_t faceIndex, const ImVec2& rectMin, const ImVec2& rectMax, SceneProject* sceneProject, const std::vector<Entity>& entities, ComponentType componentType);
 
-        void handleComponentMenu(SceneProject* sceneProject, std::vector<Entity> entities, ComponentType cpType, bool isSharedGroup, bool isComponentOverridden, bool& headerOpen, bool readOnly);
+        void handleComponentMenu(SceneProject* sceneProject, std::vector<Entity> entities, ComponentType cpType, bool isSharedGroup, bool isComponentOverridden, bool isBundle, bool isBundleOverridden, bool& headerOpen, bool readOnly);
 
         bool canAddComponent(SceneProject* sceneProject, Entity entity, ComponentType cpType);
 
@@ -160,6 +160,7 @@ namespace Supernova::Editor{
         void drawActionComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
         void drawSpriteAnimationComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
         void drawAnimationComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
+        void drawBundleComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
 
     public:
         static constexpr const char* WINDOW_NAME = "Properties";

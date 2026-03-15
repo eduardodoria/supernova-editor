@@ -40,6 +40,9 @@ bool Editor::LinkMaterialCmd::execute(){
         if (project->isEntityShared(sceneId, entity)){
             project->sharedGroupPropertyChanged(sceneId, entity, componentType, {propertyName});
         }
+        if (project->isEntityInBundle(sceneId, entity)){
+            project->bundlePropertyChanged(sceneId, entity, componentType, {propertyName});
+        }
     }
 
     // Link the new material file
@@ -74,6 +77,9 @@ void Editor::LinkMaterialCmd::undo(){
 
         if (project->isEntityShared(sceneId, entity)){
             project->sharedGroupPropertyChanged(sceneId, entity, componentType, {propertyName});
+        }
+        if (project->isEntityInBundle(sceneId, entity)){
+            project->bundlePropertyChanged(sceneId, entity, componentType, {propertyName});
         }
     }
 

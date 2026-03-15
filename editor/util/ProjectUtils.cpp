@@ -305,6 +305,13 @@ void Editor::ProjectUtils::addEntityComponent(EntityRegistry* registry, Entity e
                 registry->addComponent<ButtonComponent>(entity, Stream::decodeButtonComponent(componentNode));
             }
             break;
+        case ComponentType::BundleComponent:
+            if (!componentNode.IsDefined() || componentNode.IsNull()){
+                registry->addComponent<BundleComponent>(entity, {});
+            }else{
+                registry->addComponent<BundleComponent>(entity, Stream::decodeBundleComponent(componentNode));
+            }
+            break;
         case ComponentType::CameraComponent:
             if (!componentNode.IsDefined() || componentNode.IsNull()){
                 registry->addComponent<CameraComponent>(entity, {});
@@ -650,6 +657,12 @@ YAML::Node Editor::ProjectUtils::removeEntityComponent(EntityRegistry* registry,
                 oldComponent = Stream::encodeButtonComponent(registry->getComponent<ButtonComponent>(entity));
             }
             registry->removeComponent<ButtonComponent>(entity);
+            break;
+        case ComponentType::BundleComponent:
+            if (encodeComponent){
+                oldComponent = Stream::encodeBundleComponent(registry->getComponent<BundleComponent>(entity));
+            }
+            registry->removeComponent<BundleComponent>(entity);
             break;
         case ComponentType::CameraComponent:
             if (encodeComponent){

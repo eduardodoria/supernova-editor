@@ -12,6 +12,7 @@
 #include "command/type/CreateDirCmd.h"
 #include "command/type/DeleteFileCmd.h"
 #include "command/type/MarkEntitySharedCmd.h"
+#include "command/type/CreateEntityBundleCmd.h"
 
 #include "window/Widgets.h"
 
@@ -161,6 +162,7 @@ ImU32 Editor::ResourcesWindow::fileSeparatorColor(const FileEntry& fe) const{
         case FileType::SCENE:
             return ImGui::GetColorU32(ImVec4(0.90f, 0.70f, 0.20f, 1.0f));
         case FileType::ENTITY:
+        case FileType::BUNDLE:
             return ImGui::GetColorU32(ImVec4(0.30f, 0.85f, 0.30f, 1.0f));
         case FileType::NONE:
         default:
@@ -961,6 +963,9 @@ void Editor::ResourcesWindow::scanDirectory(const fs::path& path) {
             }else if (Util::isEntityFile(fileEntry.extension)){
                 fileEntry.type = FileType::ENTITY;
                 fileEntry.icon = entityIconH;
+            }else if (Util::isBundleFile(fileEntry.extension)){
+                fileEntry.type = FileType::BUNDLE;
+                fileEntry.icon = entityIconH;
             }
 
             if (fileEntry.type == FileType::IMAGE || fileEntry.type == FileType::MATERIAL) {
@@ -1455,6 +1460,11 @@ void Editor::ResourcesWindow::saveEntityFile(const fs::path& directory, const ch
     std::string entityName = "Entity";
     if (entityNode["name"]) {
         entityName = entityNode["name"].as<std::string>();
+    } else if (entityNode["members"] && entityNode["members"].IsSequence() && entityNode["members"].size() > 0) {
+        YAML::Node firstMember = entityNode["members"][0];
+        if (firstMember["name"]) {
+            entityName = firstMember["name"].as<std::string>();
+        }
     }
 
     std::string baseName = entityName.empty() ? "Entity" : entityName;
@@ -1476,8 +1486,49 @@ void Editor::ResourcesWindow::saveEntityFile(const fs::path& directory, const ch
     std::filesystem::path relativePath = std::filesystem::relative(targetFile, project->getProjectPath());
 
     // Use the command instead of calling markEntityShared directly
-    MarkEntitySharedCmd* markSharedCmd = new MarkEntitySharedCmd(project, project->getSelectedSceneId(), entity, relativePath);
+    MarkEntitySharedCmd* markSharedCmd = new MarkEntitySharedCmd(project, project->getSelectedSceneId(), entity, relativePath, entityNode);
     CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(markSharedCmd);
+
+    scanDirectory(currentPath);
+}
+
+void Editor::ResourcesWindow::saveBundleFile(const fs::path& directory, const char* bundleContent, size_t contentLen) {
+    if (!bundleContent || contentLen == 0) {
+        return;
+    }
+
+    std::string yamlString(bundleContent, contentLen);
+    YAML::Node bundleNode = YAML::Load(yamlString);
+
+    std::string bundleName = "Bundle";
+    if (bundleNode["members"] && bundleNode["members"].IsSequence() && bundleNode["members"].size() > 0) {
+        YAML::Node firstMember = bundleNode["members"][0];
+        if (firstMember["name"]) {
+            bundleName = firstMember["name"].as<std::string>();
+        }
+    }
+
+    std::string baseName = bundleName.empty() ? "Bundle" : bundleName;
+    for (char& c : baseName) {
+        if (c == '/' || c == '\\' || c == ':' || c == '*' || c == '?' || c == '"' || c == '<' || c == '>' || c == '|') {
+            c = '_';
+        }
+    }
+
+    std::string fileName = baseName + ".bundle";
+    fs::path targetFile = directory / fileName;
+    int counter = 1;
+    while (fs::exists(targetFile)) {
+        fileName = baseName + "_" + std::to_string(counter) + ".bundle";
+        targetFile = directory / fileName;
+        counter++;
+    }
+
+    std::filesystem::path relativePath = std::filesystem::relative(targetFile, project->getProjectPath());
+
+    // Use the command instead of calling markEntityShared directly
+    CreateEntityBundleCmd* createBundleCmd = new CreateEntityBundleCmd(project, project->getSelectedSceneId(), relativePath, bundleNode);
+    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(createBundleCmd);
 
     scanDirectory(currentPath);
 }
@@ -1719,6 +1770,12 @@ void Editor::ResourcesWindow::show() {
             size_t contentLen = payload->DataSize;
 
             saveEntityFile(currentPath, entityContent, contentLen);
+        }
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("bundle")) {
+            const char* bundleContent = static_cast<const char*>(payload->Data);
+            size_t contentLen = payload->DataSize;
+
+            saveBundleFile(currentPath, bundleContent, contentLen);
         }
         ImGui::EndDragDropTarget();
     }

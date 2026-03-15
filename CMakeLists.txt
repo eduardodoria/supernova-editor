@@ -183,6 +183,7 @@ add_executable(
     ${EDITOR_DIR}/Stream.cpp
 
     ${EDITOR_DIR}/util/GraphicUtils.cpp
+    ${EDITOR_DIR}/util/EntityBundle.cpp
     ${EDITOR_DIR}/util/ProjectUtils.cpp
     ${EDITOR_DIR}/util/ScriptParser.cpp
     ${EDITOR_DIR}/util/SharedGroup.cpp
@@ -235,8 +236,11 @@ add_executable(
     ${EDITOR_DIR}/command/type/RemoveChildSceneCmd.cpp
     ${EDITOR_DIR}/command/type/EntityNameCmd.cpp
     ${EDITOR_DIR}/command/type/ImportSharedEntityCmd.cpp
+    ${EDITOR_DIR}/command/type/ImportEntityBundleCmd.cpp
     ${EDITOR_DIR}/command/type/MakeEntityLocalCmd.cpp
     ${EDITOR_DIR}/command/type/MakeEntitySharedCmd.cpp
+    ${EDITOR_DIR}/command/type/RemoveEntityFromBundleCmd.cpp
+    ${EDITOR_DIR}/command/type/AddEntityToBundleCmd.cpp
     ${EDITOR_DIR}/command/type/MarkEntitySharedCmd.cpp
     ${EDITOR_DIR}/command/type/MeshChangeCmd.cpp
     ${EDITOR_DIR}/command/type/SceneNameCmd.cpp
@@ -248,6 +252,9 @@ add_executable(
     ${EDITOR_DIR}/command/type/CreateMaterialFileCmd.cpp
     ${EDITOR_DIR}/command/type/UnlinkMaterialCmd.cpp
     ${EDITOR_DIR}/command/type/LinkMaterialCmd.cpp
+    ${EDITOR_DIR}/command/type/CreateEntityBundleCmd.cpp
+    ${EDITOR_DIR}/command/type/ComponentToBundleLocalCmd.cpp
+    ${EDITOR_DIR}/command/type/ComponentToBundleSharedCmd.cpp
 
     ${IMGUI_SOURCES}
     ${BACKEND_SOURCES}

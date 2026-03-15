@@ -95,6 +95,9 @@ namespace Supernova::Editor{
                 if (project->isEntityShared(sceneId, entity)){
                     project->sharedGroupPropertyChanged(sceneId, entity, type, {propertyName});
                 }
+                if (project->isEntityInBundle(sceneId, entity)){
+                    project->bundlePropertyChanged(sceneId, entity, type, {propertyName});
+                }
             }
 
             sceneProject->isModified = true;
@@ -127,6 +130,9 @@ namespace Supernova::Editor{
 
                 if (project->isEntityShared(sceneId, entity)){
                     project->sharedGroupPropertyChanged(sceneId, entity, type, {propertyName});
+                }
+                if (project->isEntityInBundle(sceneId, entity)){
+                    project->bundlePropertyChanged(sceneId, entity, type, {propertyName});
                 }
             }
 

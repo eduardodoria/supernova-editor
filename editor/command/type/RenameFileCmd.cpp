@@ -29,6 +29,9 @@ bool Editor::RenameFileCmd::execute(){
                 if (isDir || Util::isEntityFile(extension)) {
                     project->remapSharedEntityFilePath(sourceFs, destFs);
                 }
+                if (isDir || Util::isBundleFile(extension)) {
+                    project->remapEntityBundleFilePath(sourceFs, destFs);
+                }
                 if (isDir || Util::isScriptFile(extension)) {
                     project->remapScriptFilePath(sourceFs, destFs);
                 }
@@ -59,6 +62,9 @@ void Editor::RenameFileCmd::undo(){
                 }
                 if (isDir || Util::isEntityFile(extension)) {
                     project->remapSharedEntityFilePath(sourceFs, destFs);
+                }
+                if (isDir || Util::isBundleFile(extension)) {
+                    project->remapEntityBundleFilePath(sourceFs, destFs);
                 }
                 if (isDir || Util::isScriptFile(extension)) {
                     project->remapScriptFilePath(sourceFs, destFs);
