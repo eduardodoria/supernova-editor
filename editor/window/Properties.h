@@ -121,7 +121,7 @@ namespace Supernova::Editor{
         void dragDropResourcesTextureCubeSingleFile(ComponentType cpType, const std::string& id, const ImVec2& rectMin, const ImVec2& rectMax, SceneProject* sceneProject, const std::vector<Entity>& entities, ComponentType componentType);
         void dragDropResourcesTextureCubeFace(ComponentType cpType, const std::string& id, size_t faceIndex, const ImVec2& rectMin, const ImVec2& rectMax, SceneProject* sceneProject, const std::vector<Entity>& entities, ComponentType componentType);
 
-        void handleComponentMenu(SceneProject* sceneProject, std::vector<Entity> entities, ComponentType cpType, bool isSharedGroup, bool isComponentOverridden, bool isBundle, bool isBundleOverridden, bool& headerOpen, bool readOnly);
+        void handleComponentMenu(SceneProject* sceneProject, std::vector<Entity> entities, ComponentType cpType, bool isBundle, bool isBundleOverridden, bool& headerOpen, bool readOnly);
 
         bool canAddComponent(SceneProject* sceneProject, Entity entity, ComponentType cpType);
 

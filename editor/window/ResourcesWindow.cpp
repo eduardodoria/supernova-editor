@@ -160,7 +160,6 @@ ImU32 Editor::ResourcesWindow::fileSeparatorColor(const FileEntry& fe) const{
             return ImGui::GetColorU32(ImVec4(0.20f, 0.80f, 0.70f, 1.0f));
         case FileType::SCENE:
             return ImGui::GetColorU32(ImVec4(0.90f, 0.70f, 0.20f, 1.0f));
-        case FileType::ENTITY:
         case FileType::BUNDLE:
             return ImGui::GetColorU32(ImVec4(0.30f, 0.85f, 0.30f, 1.0f));
         case FileType::NONE:
@@ -959,9 +958,6 @@ void Editor::ResourcesWindow::scanDirectory(const fs::path& path) {
                 fileEntry.icon = sceneIconH;
             }else if (Util::isMaterialFile(fileEntry.extension)){
                 fileEntry.type = FileType::MATERIAL;
-            }else if (Util::isEntityFile(fileEntry.extension)){
-                fileEntry.type = FileType::ENTITY;
-                fileEntry.icon = entityIconH;
             }else if (Util::isBundleFile(fileEntry.extension)){
                 fileEntry.type = FileType::BUNDLE;
                 fileEntry.icon = entityIconH;
@@ -1504,7 +1500,7 @@ void Editor::ResourcesWindow::saveBundleFile(const fs::path& directory, const ch
     std::string baseName = bundleName.empty() ? "Bundle" : bundleName;
     fs::path relativePath = uniqueRelativePath(directory, baseName, ".bundle");
 
-    // Use the command instead of calling markEntityShared directly
+    // Use the command to create a bundle file
     CreateEntityBundleCmd* createBundleCmd = new CreateEntityBundleCmd(project, project->getSelectedSceneId(), relativePath, bundleNode);
     CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(createBundleCmd);
 

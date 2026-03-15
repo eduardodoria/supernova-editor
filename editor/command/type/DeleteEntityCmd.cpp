@@ -82,28 +82,28 @@ bool Editor::DeleteEntityCmd::execute(){
         entityData.data = Stream::encodeEntity(entityData.entity, sceneProject->scene, project, sceneProject);
 
         std::vector<Entity> allEntities;
-        std::vector<Entity> sharedEntities;
-        project->collectEntities(entityData.data, allEntities, sharedEntities);
+        project->collectEntities(entityData.data, allEntities);
 
-        if (sharedEntities.size() > 0) {
-            Entity entity = sharedEntities[0];
+        // Check if entity is part of a bundle
+        if (allEntities.size() > 0) {
+            Entity entity = allEntities[0];
 
-            fs::path sharedGroupPath = project->findGroupPathFor(sceneId, entity);
-            SharedGroup* group = project->getSharedGroup(sharedGroupPath);
-            entityData.instanceId = group->getInstanceId(sceneId, entity);
+            fs::path bundlePath = project->findEntityBundlePathFor(sceneId, entity);
+            EntityBundle* bundle = project->getEntityBundle(bundlePath);
 
-            if (entity == group->getRootEntity(sceneId, entityData.instanceId)) {
+            if (bundle) {
+                entityData.instanceId = bundle->getInstanceId(sceneId, entity);
 
-                project->unimportSharedEntity(sceneId, sharedGroupPath, sharedEntities, false);
-
-            }else{
-
-                entityData.recoverySharedData = project->removeEntityFromSharedGroup(sceneId, entity, true);
-
+                if (entity == bundle->getRootEntity(sceneId, entityData.instanceId)) {
+                    std::vector<Entity> memberEntities(allEntities.begin() + 1, allEntities.end());
+                    project->unimportEntityBundle(sceneId, bundlePath, entity, memberEntities);
+                } else {
+                    entityData.recoveryBundleData = project->removeEntityFromBundle(sceneId, entity, true);
+                }
             }
         }
 
-        if (entityData.recoverySharedData.size() == 0){
+        if (entityData.recoveryBundleData.size() == 0){
             for (const Entity& entity : allEntities) {
 
                 destroyEntity(sceneProject->scene, entity, sceneProject->entities, project, sceneId);
@@ -121,7 +121,7 @@ void Editor::DeleteEntityCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     for (DeleteEntityData& entityData : entities){
-        if (entityData.recoverySharedData.size() == 0){
+        if (entityData.recoveryBundleData.size() == 0){
 
             std::vector<Entity> allEntities = Stream::decodeEntity(entityData.data, sceneProject->scene, &sceneProject->entities, project, sceneProject);
             entityData.entity = allEntities[0];
@@ -130,7 +130,7 @@ void Editor::DeleteEntityCmd::undo(){
 
         }else{
 
-            project->addEntityToSharedGroup(sceneId, entityData.recoverySharedData, entityData.parent, entityData.instanceId, true);
+            project->addEntityToBundle(sceneId, entityData.recoveryBundleData, entityData.parent, true);
         }
     }
 

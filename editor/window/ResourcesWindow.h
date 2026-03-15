@@ -27,7 +27,6 @@ namespace Supernova::Editor {
         IMAGE,
         MATERIAL,
         SCENE,
-        ENTITY,
         BUNDLE
     };
 

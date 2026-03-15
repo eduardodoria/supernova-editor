@@ -44,9 +44,6 @@ bool Editor::UnlinkMaterialCmd::execute(){
             matRef->name = "";
             Catalog::updateEntity(sceneProject->scene, entity, prop.updateFlags);
 
-            if (project->isEntityShared(sceneId, entity)){
-                project->sharedGroupPropertyChanged(sceneId, entity, componentType, {propertyName});
-            }
             if (project->isEntityInBundle(sceneId, entity)){
                 project->bundlePropertyChanged(sceneId, entity, componentType, {propertyName});
             }
@@ -76,9 +73,6 @@ void Editor::UnlinkMaterialCmd::undo(){
             *matRef = data.oldMaterial;
             Catalog::updateEntity(sceneProject->scene, entity, prop.updateFlags);
 
-            if (project->isEntityShared(sceneId, entity)){
-                project->sharedGroupPropertyChanged(sceneId, entity, componentType, {propertyName});
-            }
             if (project->isEntityInBundle(sceneId, entity)){
                 project->bundlePropertyChanged(sceneId, entity, componentType, {propertyName});
             }

@@ -24,7 +24,6 @@ namespace Supernova::Editor{
         bool hasTransform;
         Entity oldParent;
 
-        SharedMoveRecovery sharedMoveRecovery;
         SharedMoveRecovery bundleMoveRecovery;
 
         bool wasModified;

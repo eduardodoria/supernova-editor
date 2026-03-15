@@ -26,9 +26,6 @@ bool Editor::RenameFileCmd::execute(){
                 if (isDir || Util::isSceneFile(extension)) {
                     project->remapSceneFilePath(sourceFs, destFs);
                 }
-                if (isDir || Util::isEntityFile(extension)) {
-                    project->remapSharedEntityFilePath(sourceFs, destFs);
-                }
                 if (isDir || Util::isBundleFile(extension)) {
                     project->remapEntityBundleFilePath(sourceFs, destFs);
                 }
@@ -59,9 +56,6 @@ void Editor::RenameFileCmd::undo(){
                 }
                 if (isDir || Util::isSceneFile(extension)) {
                     project->remapSceneFilePath(sourceFs, destFs);
-                }
-                if (isDir || Util::isEntityFile(extension)) {
-                    project->remapSharedEntityFilePath(sourceFs, destFs);
                 }
                 if (isDir || Util::isBundleFile(extension)) {
                     project->remapEntityBundleFilePath(sourceFs, destFs);

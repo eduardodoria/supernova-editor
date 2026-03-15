@@ -15,9 +15,6 @@ bool Editor::EntityNameCmd::execute(){
     oldName = sceneProject->scene->getEntityName(entity);
     wasModified = project->getScene(sceneId)->isModified;
 
-    if (project->isEntityShared(sceneId, entity)){
-        project->sharedGroupNameChanged(sceneId, entity, newName, false);
-    }
     if (project->isEntityInBundle(sceneId, entity)){
         project->bundleNameChanged(sceneId, entity, newName, false);
     }
@@ -31,9 +28,6 @@ bool Editor::EntityNameCmd::execute(){
 void Editor::EntityNameCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
-    if (project->isEntityShared(sceneId, entity)){
-        project->sharedGroupNameChanged(sceneId, entity, oldName, false);
-    }
     if (project->isEntityInBundle(sceneId, entity)){
         project->bundleNameChanged(sceneId, entity, oldName, false);
     }

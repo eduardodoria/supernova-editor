@@ -92,9 +92,6 @@ namespace Supernova::Editor{
 
                 Catalog::updateEntity(sceneProject->scene, entity, prop.updateFlags);
 
-                if (project->isEntityShared(sceneId, entity)){
-                    project->sharedGroupPropertyChanged(sceneId, entity, type, {propertyName});
-                }
                 if (project->isEntityInBundle(sceneId, entity)){
                     project->bundlePropertyChanged(sceneId, entity, type, {propertyName});
                 }
@@ -128,9 +125,6 @@ namespace Supernova::Editor{
 
                 Catalog::updateEntity(sceneProject->scene, entity, prop.updateFlags);
 
-                if (project->isEntityShared(sceneId, entity)){
-                    project->sharedGroupPropertyChanged(sceneId, entity, type, {propertyName});
-                }
                 if (project->isEntityInBundle(sceneId, entity)){
                     project->bundlePropertyChanged(sceneId, entity, type, {propertyName});
                 }

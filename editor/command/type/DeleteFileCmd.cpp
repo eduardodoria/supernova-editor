@@ -71,7 +71,6 @@ bool Editor::DeleteFileCmd::execute(){
         for (const auto& deletedPath : deletedPaths) {
             project->cleanupMaterialFilePath(deletedPath);
             project->cleanupSceneFilePath(deletedPath);
-            project->cleanupSharedEntityFilePath(deletedPath);
             project->cleanupEntityBundleFilePath(deletedPath);
             project->cleanupScriptFilePath(deletedPath);
         }

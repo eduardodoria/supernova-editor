@@ -10,10 +10,7 @@
 #include "command/type/SceneNameCmd.h"
 #include "command/type/DeleteEntityCmd.h"
 #include "command/type/AddComponentCmd.h"
-#include "command/type/ImportSharedEntityCmd.h"
 #include "command/type/ImportEntityBundleCmd.h"
-#include "command/type/MakeEntityLocalCmd.h"
-#include "command/type/MakeEntitySharedCmd.h"
 #include "command/type/RemoveEntityFromBundleCmd.h"
 #include "command/type/AddEntityToBundleCmd.h"
 #include "command/type/SetMainCameraCmd.h"
@@ -57,39 +54,39 @@ Editor::Structure::Structure(Project* project, SceneWindow* sceneWindow){
     this->openParent = NULL_ENTITY;
 }
 
-void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addToShared, bool addToBundle){
+void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addToBundle){
     if (isScene){
         parent = NULL_ENTITY;
 
         if (ImGui::MenuItem(ICON_FA_CIRCLE_DOT"  Empty entity")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Entity", addToShared, addToBundle));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Entity", addToBundle));
         }
 
         ImGui::Separator();
     }
 
     if (ImGui::MenuItem(ICON_FA_SITEMAP"  Empty object")){
-        CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Object", EntityCreationType::OBJECT, parent, addToShared, addToBundle));
+        CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Object", EntityCreationType::OBJECT, parent, addToBundle));
         openParent = parent;
     }
 
     if (ImGui::MenuItem(ICON_FA_CLOUD"  Sky")){
-        CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Sky", EntityCreationType::SKY, parent, addToShared, addToBundle));
+        CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Sky", EntityCreationType::SKY, parent, addToBundle));
         openParent = parent;
     }
 
     if (ImGui::MenuItem(ICON_FA_VIDEO"  Camera")){
-        CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Camera", EntityCreationType::CAMERA, parent, addToShared, addToBundle));
+        CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Camera", EntityCreationType::CAMERA, parent, addToBundle));
         openParent = parent;
     }
 
     if (ImGui::BeginMenu(ICON_FA_LINK"  Joint")){
         if (ImGui::MenuItem(ICON_FA_LINK"  Joint2D")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Joint2D", EntityCreationType::JOINT2D, parent, addToShared, addToBundle));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Joint2D", EntityCreationType::JOINT2D, parent, addToBundle));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_LINK"  Joint3D")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Joint3D", EntityCreationType::JOINT3D, parent, addToShared, addToBundle));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Joint3D", EntityCreationType::JOINT3D, parent, addToBundle));
             openParent = parent;
         }
         ImGui::EndMenu();
@@ -97,27 +94,27 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addT
 
     if (ImGui::BeginMenu(ICON_FA_CUBE"  Basic shape")){
         if (ImGui::MenuItem(ICON_FA_CUBE"  Box")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Box", EntityCreationType::BOX, parent, addToShared, addToBundle));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Box", EntityCreationType::BOX, parent, addToBundle));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_CUBE"  Plane")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Plane", EntityCreationType::PLANE, parent, addToShared, addToBundle));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Plane", EntityCreationType::PLANE, parent, addToBundle));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_CUBE"  Sphere")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Sphere", EntityCreationType::SPHERE, parent, addToShared, addToBundle));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Sphere", EntityCreationType::SPHERE, parent, addToBundle));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_CUBE"  Cylinder")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Cylinder", EntityCreationType::CYLINDER, parent, addToShared, addToBundle));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Cylinder", EntityCreationType::CYLINDER, parent, addToBundle));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_CUBE"  Capsule")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Capsule", EntityCreationType::CAPSULE, parent, addToShared, addToBundle));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Capsule", EntityCreationType::CAPSULE, parent, addToBundle));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_CUBE"  Torus")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Torus", EntityCreationType::TORUS, parent, addToShared, addToBundle));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Torus", EntityCreationType::TORUS, parent, addToBundle));
             openParent = parent;
         }
         ImGui::EndMenu();
@@ -125,7 +122,7 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addT
 
     if (ImGui::BeginMenu(ICON_FA_CUBES_STACKED"  2D")){
         if (ImGui::MenuItem(ICON_FA_IMAGE"  Sprite")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Sprite", EntityCreationType::SPRITE, parent, addToShared, addToBundle));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Sprite", EntityCreationType::SPRITE, parent, addToBundle));
             openParent = parent;
         }
         ImGui::EndMenu();
@@ -133,19 +130,19 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addT
 
     if (ImGui::BeginMenu(ICON_FA_WINDOW_RESTORE"  UI")){
         if (ImGui::MenuItem(ICON_FA_OBJECT_GROUP"  Container")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Container", EntityCreationType::CONTAINER, parent, addToShared, addToBundle));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Container", EntityCreationType::CONTAINER, parent, addToBundle));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_IMAGE"  Image")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Image", EntityCreationType::IMAGE, parent, addToShared, addToBundle));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Image", EntityCreationType::IMAGE, parent, addToBundle));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_FONT"  Text")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Text", EntityCreationType::TEXT, parent, addToShared, addToBundle));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Text", EntityCreationType::TEXT, parent, addToBundle));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_SQUARE_CARET_RIGHT"  Button")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Button", EntityCreationType::BUTTON, parent, addToShared, addToBundle));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Button", EntityCreationType::BUTTON, parent, addToBundle));
             openParent = parent;
         }
         ImGui::EndMenu();
@@ -153,15 +150,15 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addT
 
     if (ImGui::BeginMenu(ICON_FA_LIGHTBULB"  Light")){
         if (ImGui::MenuItem(ICON_FA_LIGHTBULB"  Point")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Point Light", EntityCreationType::POINT_LIGHT, parent, addToShared, addToBundle));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Point Light", EntityCreationType::POINT_LIGHT, parent, addToBundle));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_LIGHTBULB"  Directional")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Directional Light", EntityCreationType::DIRECTIONAL_LIGHT, parent, addToShared, addToBundle));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Directional Light", EntityCreationType::DIRECTIONAL_LIGHT, parent, addToBundle));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_LIGHTBULB"  Spot")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Spot Light", EntityCreationType::SPOT_LIGHT, parent, addToShared, addToBundle));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Spot Light", EntityCreationType::SPOT_LIGHT, parent, addToBundle));
             openParent = parent;
         }
         ImGui::EndMenu();
@@ -169,11 +166,11 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addT
 
     if (ImGui::BeginMenu(ICON_FA_FILM"  Animation")){
         if (ImGui::MenuItem(ICON_FA_FILM"  Animation")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Animation", EntityCreationType::ANIMATION, parent, addToShared, addToBundle));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Animation", EntityCreationType::ANIMATION, parent, addToBundle));
             openParent = parent;
         }
         if (ImGui::MenuItem(ICON_FA_IMAGE"  Sprite Animation")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "SpriteAnimation", EntityCreationType::SPRITE_ANIMATION, parent, addToShared, addToBundle));
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "SpriteAnimation", EntityCreationType::SPRITE_ANIMATION, parent, addToBundle));
             openParent = parent;
         }
         ImGui::EndMenu();
@@ -213,7 +210,7 @@ void Editor::Structure::showIconMenu(){
         ImGui::Separator();
         if (ImGui::BeginMenu(ICON_FA_CIRCLE_DOT"  Create entity"))
         {
-            showNewEntityMenu(true, NULL_ENTITY, false, false);
+            showNewEntityMenu(true, NULL_ENTITY, false);
         }
 
         ImGui::EndPopup();
@@ -267,22 +264,7 @@ void Editor::Structure::handleEntityFilesDrop(const std::vector<std::string>& fi
     for (const std::string& filePath : filePaths) {
         std::filesystem::path path(filePath);
 
-        // Check if it's an entity file
-        if (path.extension() == ".entity") {
-            // Import the shared entity into the current scene using command
-            std::filesystem::path relativePath = std::filesystem::relative(path, project->getProjectPath());
-
-            ImportSharedEntityCmd* importCmd = new ImportSharedEntityCmd(project, project->getSelectedSceneId(), relativePath, parent, true);
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(importCmd);
-
-            std::vector<Entity> newEntities = importCmd->getImportedEntities();
-
-            if (newEntities.size() > 0) {
-                Out::info("Successfully imported entity from: %s", path.string().c_str());
-            } else {
-                Out::warning("Failed to import entity from: %s (might already exist in scene)", path.string().c_str());
-            }
-        } else if (path.extension() == ".bundle") {
+        if (path.extension() == ".bundle") {
             // Import the entity bundle into the current scene using command
             std::filesystem::path relativePath = std::filesystem::relative(path, project->getProjectPath());
 
@@ -467,8 +449,8 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     } else if (node.isChildScene) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 0.80f, 0.85f, 1.0f)); // Soft teal for child scenes
         pushedHighlightColor = true;
-    } else if (node.isShared || node.isBundle) {
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.7f, 1.0f, 1.0f)); // Light blue for shared
+    } else if (node.isBundle) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.7f, 1.0f, 1.0f)); // Light blue for bundle
         pushedHighlightColor = true;
     }
 
@@ -487,20 +469,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     }else if (node.isChildScene){
         ImGui::SetItemTooltip("Child Scene\nId: %u", node.childSceneId);
     }else{
-        if (node.isShared) {
-            if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal)) {
-                SharedGroup* group = project->getSharedGroup(node.sharedFilepath);
-                uint32_t instanceId = group->getInstanceId(project->getSelectedSceneId(), node.id);
-                Entity registryEntity = group->getRegistryEntity(project->getSelectedSceneId(), node.id);
-
-                ImGui::BeginTooltip();
-                ImGui::Text("Entity: %u", node.id);
-                ImGui::Separator();
-                ImGui::Text("Path: %s", node.sharedFilepath.string().c_str());
-                ImGui::Text("Shared: %u", registryEntity);
-                ImGui::EndTooltip();
-            }
-        } else if (node.isBundle) {
+        if (node.isBundle) {
             if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal)) {
                 EntityBundle* bundle = project->getEntityBundle(node.bundleFilepath);
                 uint32_t instanceId = bundle ? bundle->getInstanceId(project->getSelectedSceneId(), node.id) : 0;
@@ -674,12 +643,12 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                     std::string path(data + offset);
                     if (!path.empty()) {
                         if (node.isScene) {
-                            if (Util::isSceneFile(path) || Util::isEntityFile(path) || Util::isBundleFile(path)) {
+                            if (Util::isSceneFile(path) || Util::isBundleFile(path)) {
                                 allowResourceDragDrop = true;
                                 break;
                             }
                         } else {
-                            if (Util::isEntityFile(path) || Util::isBundleFile(path)) {
+                            if (Util::isBundleFile(path)) {
                                 allowResourceDragDrop = true;
                                 break;
                             }
@@ -708,7 +677,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                 }
 
                 // Dropping on the scene root: allow adding child scenes via .scene files,
-                // and keep supporting .entity imports.
+                // and keep supporting .bundle imports.
                 if (node.isScene) {
                     handleSceneFilesDropAsChildScenes(droppedPaths, node.id);
                     handleEntityFilesDrop(droppedPaths, NULL_ENTITY);
@@ -848,19 +817,6 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                     }
                 }
             }
-            if (node.isParentShared){
-                ImGui::Separator();
-                if (ImGui::MenuItem(ICON_FA_LOCK_OPEN"  Make this entity local", nullptr, false, node.isShared)){
-                    if (node.isShared){
-                        CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new MakeEntityLocalCmd(project, project->getSelectedSceneId(), node.id, node.parent));
-                    }
-                }
-                if (ImGui::MenuItem(ICON_FA_LINK"  Make this entity shared", nullptr, false, !node.isShared)){
-                    if (!node.isShared){
-                        CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new MakeEntitySharedCmd(project, project->getSelectedSceneId(), node.id, node.parent));
-                    }
-                }
-            }
             if (node.isParentBundle){
                 ImGui::Separator();
                 if (ImGui::MenuItem(ICON_FA_LOCK_OPEN"  Remove from bundle", nullptr, false, node.isBundle)){
@@ -876,20 +832,14 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
             }
             if (node.hasTransform || node.isScene){
                 ImGui::Separator();
-                static bool createSharedChild = false;
                 static bool createBundleChild = false;
-                if (node.isShared){
-                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(ImGui::GetStyle().FramePadding.x, ImGui::GetStyle().FramePadding.y * 0.5f));
-                    ImGui::Checkbox("Create new shared", &createSharedChild);
-                    ImGui::PopStyleVar(1);
-                }
                 if (node.isBundle){
                     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(ImGui::GetStyle().FramePadding.x, ImGui::GetStyle().FramePadding.y * 0.5f));
                     ImGui::Checkbox("Create new bundle", &createBundleChild);
                     ImGui::PopStyleVar(1);
                 }
                 if (ImGui::BeginMenu(ICON_FA_CIRCLE_DOT"  Create child")){
-                    showNewEntityMenu(node.isScene, node.id, createSharedChild, createBundleChild);
+                    showNewEntityMenu(node.isScene, node.id, createBundleChild);
                 }
             }
 
@@ -979,17 +929,10 @@ void Editor::Structure::show(){
     size_t order = 0;
     std::unordered_set<Entity> sceneEntitiesSet(sceneProject->entities.begin(), sceneProject->entities.end());
     std::unordered_map<Entity, TreeNode*> entityNodeMap;
-    std::unordered_map<Entity, std::filesystem::path> sharedEntityPaths;
     std::unordered_map<Entity, std::filesystem::path> bundleEntityPaths;
     std::unordered_map<Entity, std::list<TreeNode>> virtualBundleChildren;
 
     for (Entity entity : sceneProject->entities) {
-        std::filesystem::path sharedPath = project->findGroupPathFor(sceneProject->id, entity);
-        if (!sharedPath.empty()) {
-            sharedEntityPaths.emplace(entity, std::move(sharedPath));
-            continue;
-        }
-
         std::filesystem::path bundlePath = project->findEntityBundlePathFor(sceneProject->id, entity);
         if (!bundlePath.empty()) {
             bundleEntityPaths.emplace(entity, std::move(bundlePath));
@@ -1050,23 +993,17 @@ void Editor::Structure::show(){
             child.isMainCamera = (entity == mainCamera);
             child.order = order++;
             child.name = sceneProject->scene->getEntityName(entity);
-            auto sharedIt = sharedEntityPaths.find(entity);
-            if (sharedIt != sharedEntityPaths.end()) {
-                child.isShared = true;
-                child.sharedFilepath = sharedIt->second;
-            } else {
-                auto bundleIt = bundleEntityPaths.find(entity);
-                if (bundleIt != bundleEntityPaths.end()) {
-                    child.isBundle = true;
-                    child.bundleFilepath = bundleIt->second;
+            auto bundleIt = bundleEntityPaths.find(entity);
+            if (bundleIt != bundleEntityPaths.end()) {
+                child.isBundle = true;
+                child.bundleFilepath = bundleIt->second;
 
-                    EntityBundle* bundle = project->getEntityBundle(bundleIt->second);
-                    Entity bundleRoot = bundle ? bundle->getRootEntity(sceneProject->id, entity) : NULL_ENTITY;
-                    if (bundleRoot != NULL_ENTITY && bundleRoot != entity) {
-                        child.parent = bundleRoot;
-                        virtualBundleChildren[bundleRoot].push_back(std::move(child));
-                        continue;
-                    }
+                EntityBundle* bundle = project->getEntityBundle(bundleIt->second);
+                Entity bundleRoot = bundle ? bundle->getRootEntity(sceneProject->id, entity) : NULL_ENTITY;
+                if (bundleRoot != NULL_ENTITY && bundleRoot != entity) {
+                    child.parent = bundleRoot;
+                    virtualBundleChildren[bundleRoot].push_back(std::move(child));
+                    continue;
                 }
             }
 
@@ -1106,16 +1043,10 @@ void Editor::Structure::show(){
             child.isLocked = ProjectUtils::isEntityLocked(sceneProject->scene, entity);
             child.order = order++;
             child.name = sceneProject->scene->getEntityName(entity);
-            auto sharedIt = sharedEntityPaths.find(entity);
-            if (sharedIt != sharedEntityPaths.end()) {
-                child.isShared = true;
-                child.sharedFilepath = sharedIt->second;
-            } else {
-                auto bundleIt = bundleEntityPaths.find(entity);
-                if (bundleIt != bundleEntityPaths.end()) {
-                    child.isBundle = true;
-                    child.bundleFilepath = bundleIt->second;
-                }
+            auto bundleIt = bundleEntityPaths.find(entity);
+            if (bundleIt != bundleEntityPaths.end()) {
+                child.isBundle = true;
+                child.bundleFilepath = bundleIt->second;
             }
             if (transform.parent == NULL_ENTITY){
                 root.children.push_back(child);
@@ -1125,7 +1056,6 @@ void Editor::Structure::show(){
                 TreeNode* parent = parentIt != entityNodeMap.end() ? parentIt->second : nullptr;
                 if (parent){
                     child.parent = parent->id;
-                    child.isParentShared = sharedEntityPaths.find(transform.parent) != sharedEntityPaths.end();
                     child.isParentBundle = bundleEntityPaths.find(transform.parent) != bundleEntityPaths.end();
                     parent->children.push_back(child);
                     entityNodeMap[entity] = &parent->children.back();
@@ -1175,7 +1105,7 @@ void Editor::Structure::show(){
     // Empty space context menu
     if (ImGui::BeginPopup("EmptySpaceContextMenu")) {
         if (ImGui::BeginMenu(ICON_FA_CIRCLE_DOT"  Create entity")) {
-            showNewEntityMenu(true, NULL_ENTITY, false, false);
+            showNewEntityMenu(true, NULL_ENTITY, false);
         }
         ImGui::EndPopup();
     }
@@ -1233,7 +1163,7 @@ void Editor::Structure::show(){
                 while (offset < dataSize) {
                     std::string path(data + offset);
                     if (!path.empty()) {
-                        if (Util::isSceneFile(path) || Util::isEntityFile(path) || Util::isBundleFile(path)) {
+                        if (Util::isSceneFile(path) || Util::isBundleFile(path)) {
                             allowResourceDragDrop = true;
                             break;
                         }

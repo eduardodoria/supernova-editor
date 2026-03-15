@@ -44,7 +44,6 @@ bool Editor::CopyFileCmd::execute(){
                         if (project) {
                             project->remapMaterialFilePath(sourceFs, destFs);
                             project->remapSceneFilePath(sourceFs, destFs);
-                            project->remapSharedEntityFilePath(sourceFs, destFs);
                             project->remapEntityBundleFilePath(sourceFs, destFs);
                             project->remapScriptFilePath(sourceFs, destFs);
                         }
@@ -61,9 +60,6 @@ bool Editor::CopyFileCmd::execute(){
                             }
                             if (Util::isSceneFile(extension)) {
                                 project->remapSceneFilePath(sourceFs, destFs);
-                            }
-                            if (Util::isEntityFile(extension)) {
-                                project->remapSharedEntityFilePath(sourceFs, destFs);
                             }
                             if (Util::isBundleFile(extension)) {
                                 project->remapEntityBundleFilePath(sourceFs, destFs);
@@ -98,7 +94,6 @@ void Editor::CopyFileCmd::undo(){
                         if (project) {
                             project->remapMaterialFilePath(sourceFs, destFs);
                             project->remapSceneFilePath(sourceFs, destFs);
-                            project->remapSharedEntityFilePath(sourceFs, destFs);
                             project->remapEntityBundleFilePath(sourceFs, destFs);
                             project->remapScriptFilePath(sourceFs, destFs);
                         }
@@ -115,9 +110,6 @@ void Editor::CopyFileCmd::undo(){
                             }
                             if (Util::isSceneFile(extension)) {
                                 project->remapSceneFilePath(sourceFs, destFs);
-                            }
-                            if (Util::isEntityFile(extension)) {
-                                project->remapSharedEntityFilePath(sourceFs, destFs);
                             }
                             if (Util::isBundleFile(extension)) {
                                 project->remapEntityBundleFilePath(sourceFs, destFs);

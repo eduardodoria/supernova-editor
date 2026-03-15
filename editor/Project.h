@@ -8,7 +8,6 @@
 #include "Conector.h"
 #include "Generator.h"
 #include "Configs.h"
-#include "util/SharedGroup.h"
 #include "util/EntityBundle.h"
 #include "util/ScriptParser.h"
 #include "util/ScopedDefaultEntityPool.h"
@@ -72,14 +71,8 @@ namespace Supernova::Editor{
         std::vector<SceneScriptSource> cppScripts;
     };
 
-    struct MergeResult {
-        bool isShared; // Whether the entity was already part of a shared group
-        uint64_t overrides; // Bitmask of overridden ComponentTypes for each entity
-    };
-
     struct NodeRecoveryEntry {
         YAML::Node node;
-        std::vector<MergeResult> mergeResults;
         size_t transformIndex;
     };
 
@@ -157,7 +150,6 @@ namespace Supernova::Editor{
         static constexpr double materialRefreshIntervalSec = 0.2;
 
         std::map<std::filesystem::path, EntityBundle> entityBundles;
-        std::map<std::filesystem::path, SharedGroup> sharedGroups;
 
         const std::string libName = "projectlib";
 
@@ -170,9 +162,6 @@ namespace Supernova::Editor{
         void updateSceneCppScripts(SceneProject* sceneProject);
         SceneMaxValues calculateSceneMaxValues(const SceneProject* sceneProject) const;
         void resetConfigs();
-
-        size_t countEntitiesInBranch(const YAML::Node& entityNode);
-        void insertNewChild(YAML::Node& node, YAML::Node child, size_t index);
 
         std::vector<SceneScriptSource> collectAllSceneCppScripts() const;
 
@@ -238,12 +227,10 @@ namespace Supernova::Editor{
 
         void remapMaterialFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
         void remapSceneFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
-        void remapSharedEntityFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
         void remapEntityBundleFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
         void remapScriptFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
         void cleanupMaterialFilePath(const std::filesystem::path& deletedPath);
         void cleanupSceneFilePath(const std::filesystem::path& deletedPath);
-        void cleanupSharedEntityFilePath(const std::filesystem::path& deletedPath);
         void cleanupEntityBundleFilePath(const std::filesystem::path& deletedPath);
         void cleanupScriptFilePath(const std::filesystem::path& deletedPath);
 
@@ -307,13 +294,10 @@ namespace Supernova::Editor{
         bool hasSelectedEntities(uint32_t sceneId) const;
 
         bool hasSelectedSceneUnsavedChanges() const;
-        bool hasSelectedSceneUnsavedSharedEntities() const;
         bool hasSelectedSceneUnsavedEntityBundles() const;
         bool hasSceneUnsavedChanges(uint32_t sceneId) const;
-        bool hasUnsavedSharedEntities(uint32_t sceneId) const;
         bool hasUnsavedEntityBundles(uint32_t sceneId) const;
         bool hasScenesUnsavedChanges() const;
-        bool hasUnsavedSharedEntities() const;
         bool hasUnsavedEntityBundles() const;
 
         void updateAllScriptsProperties(uint32_t sceneId);
@@ -359,44 +343,10 @@ namespace Supernova::Editor{
 
         //=== end EntityBundle part ===
 
-        //=== Shared Entities part ===
-
-        bool markEntityShared(uint32_t sceneId, Entity entity, fs::path filepath, YAML::Node entityNode);
-        bool removeSharedGroup(const std::filesystem::path& filepath);
-
-        std::vector<Entity> importSharedEntity(SceneProject* sceneProject, std::vector<Entity>* entities, const std::filesystem::path& filepath, Entity parent = NULL_ENTITY, bool needSaveScene = true, YAML::Node extendNode = YAML::Node());
-        bool unimportSharedEntity(uint32_t sceneId, const std::filesystem::path& filepath, const std::vector<Entity>& entities, bool destroyEntities = true);
-
-        bool addEntityToSharedGroup(uint32_t sceneId, Entity entity, Entity parent, bool createItself = true);
-        bool addEntityToSharedGroup(uint32_t sceneId, const NodeRecovery& recoveryData, Entity parent, uint32_t instanceId = 0, bool createItself = true);
-        NodeRecovery removeEntityFromSharedGroup(uint32_t sceneId, Entity entity, bool destroyItself = true);
-
-        SharedMoveRecovery moveEntityFromSharedGroup(uint32_t sceneId, Entity entity, Entity target, InsertionType type, bool moveItself = true);
-        bool undoMoveEntityInSharedGroup(uint32_t sceneId, Entity entity, Entity target, const SharedMoveRecovery& recovery, bool moveItself = true);
-
-        bool addComponentToSharedGroup(uint32_t sceneId, Entity entity, ComponentType componentType, bool addToItself = true);
-        bool addComponentToSharedGroup(uint32_t sceneId, Entity entity, ComponentType componentType, const ComponentRecovery& recovery, bool addToItself = true);
-        ComponentRecovery removeComponentToSharedGroup(uint32_t sceneId, Entity entity, ComponentType componentType, bool encodeComponent = true, bool removeToItself = true);
-
-        void saveSharedGroupToDisk(const std::filesystem::path& filepath);
-
-        SharedGroup* getSharedGroup(const std::filesystem::path& filepath);
-        const SharedGroup* getSharedGroup(const std::filesystem::path& filepath) const;
-        std::filesystem::path findGroupPathFor(uint32_t sceneId, Entity entity) const;
-        bool isEntityShared(uint32_t sceneId, Entity entity) const;
-
-        std::vector<MergeResult> mergeEntityNodes(const YAML::Node& extendNode, YAML::Node& outputNode);
-
         YAML::Node clearEntitiesNode(YAML::Node node);
         YAML::Node changeEntitiesNode(Entity& firstEntity, YAML::Node node);
 
         void collectEntities(const YAML::Node& entityNode, std::vector<Entity>& allEntities);
-        void collectEntities(const YAML::Node& entityNode, std::vector<Entity>& allEntities, std::vector<Entity>& sharedEntities);
-
-        bool sharedGroupPropertyChanged(uint32_t sceneId, Entity entity, ComponentType componentType, std::vector<std::string> properties, bool changeItself = false);
-        bool sharedGroupNameChanged(uint32_t sceneId, Entity entity, std::string name, bool changeItself = false);
-
-        //=== end Shared Entities part ===
 
         bool isAnyScenePlaying() const;
 

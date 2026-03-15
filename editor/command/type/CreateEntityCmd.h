@@ -47,7 +47,6 @@ namespace Supernova::Editor{
         Entity parent;
         EntityCreationType type;
         std::vector<Entity> lastSelected;
-        bool addToShared;
         bool addToBundle;
         bool wasModified;
         bool wasMainCamera;
@@ -57,9 +56,9 @@ namespace Supernova::Editor{
         int updateFlags;
 
     public:
-        CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, bool addToShared = false, bool addToBundle = false);
-        CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type, bool addToShared = false, bool addToBundle = false);
-        CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type, Entity parent, bool addToShared = false, bool addToBundle = false);
+        CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, bool addToBundle = false);
+        CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type, bool addToBundle = false);
+        CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type, Entity parent, bool addToBundle = false);
 
         bool execute() override;
         void undo() override;

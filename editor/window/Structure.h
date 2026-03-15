@@ -14,13 +14,10 @@ namespace Supernova::Editor{
     struct TreeNode {
         std::string icon;
         std::string name;
-        std::filesystem::path sharedFilepath;
         std::filesystem::path bundleFilepath;
         bool isScene = false;
         bool isChildScene = false;
-        bool isShared = false;
         bool isBundle = false;
-        bool isParentShared = false;
         bool isParentBundle = false;
         bool isMainCamera = false;
         bool isLocked = false;
@@ -52,7 +49,7 @@ namespace Supernova::Editor{
 
         std::vector<Entity> getTopLevelSelectedEntities(Entity draggedEntity);
 
-        void showNewEntityMenu(bool isScene, Entity parent, bool addToShared, bool addToBundle);
+        void showNewEntityMenu(bool isScene, Entity parent, bool addToBundle);
         void showIconMenu();
         void showTreeNode(TreeNode& node);
         void pushNodeImGuiId(const TreeNode& node);

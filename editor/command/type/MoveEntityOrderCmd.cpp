@@ -23,37 +23,7 @@ bool Editor::MoveEntityOrderCmd::execute(){
         return false;
     }
 
-    if (project->isEntityShared(sceneId, source)){
-
-        fs::path sourceSharedPath = project->findGroupPathFor(sceneId, source);
-        fs::path targetSharedPath = project->findGroupPathFor(sceneId, target);
-
-        if (type == InsertionType::INTO){
-            if (!project->isEntityShared(sceneId, target)){
-                Out::error("Cannot move shared entity %u into target %u", source, target);
-                return false;
-            }
-        }else{
-            Transform* transformTarget = sceneProject->scene->findComponent<Transform>(target);
-            if (transformTarget){
-                fs::path parentSharedPath = project->findGroupPathFor(sceneId, transformTarget->parent);
-
-                SharedGroup* sourceSourceGroup = project->getSharedGroup(sourceSharedPath);
-                uint32_t souceInstanceId = sourceSourceGroup->getInstanceId(sceneId, source);
-
-                bool isSourceRoot = sourceSourceGroup && (sourceSourceGroup->getRootEntity(sceneId, souceInstanceId) == source);
-
-                if (parentSharedPath != sourceSharedPath && !isSourceRoot){
-                    Out::error("Cannot move shared entity %u outside shared group", source);
-                    return false;
-                }
-            }
-        }
-
-        if (targetSharedPath == sourceSharedPath){
-            sharedMoveRecovery = project->moveEntityFromSharedGroup(sceneId, source, target, type, false);
-        }
-    }else if (project->isEntityInBundle(sceneId, source)){
+    if (project->isEntityInBundle(sceneId, source)){
 
         fs::path sourceBundlePath = project->findEntityBundlePathFor(sceneId, source);
         fs::path targetBundlePath = project->findEntityBundlePathFor(sceneId, target);
@@ -94,9 +64,6 @@ bool Editor::MoveEntityOrderCmd::execute(){
 void Editor::MoveEntityOrderCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
-    if (sharedMoveRecovery.size() > 0){
-        project->undoMoveEntityInSharedGroup(sceneId, source, target, sharedMoveRecovery, false);
-    }
     if (bundleMoveRecovery.size() > 0){
         project->undoMoveEntityInBundle(sceneId, source, target, bundleMoveRecovery, false);
     }

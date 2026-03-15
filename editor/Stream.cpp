@@ -1084,7 +1084,7 @@ YAML::Node Editor::Stream::encodeEntitySelection(const std::vector<Entity>& enti
     }
 
     YAML::Node bundleNode;
-    bundleNode["type"] = "SharedEntityBundle";
+    bundleNode["type"] = "EntityBundle";
     YAML::Node membersNode(YAML::NodeType::Sequence);
     for (Entity entity : entities) {
         membersNode.push_back(encodeEntity(entity, registry, project, sceneProject));
@@ -1094,7 +1094,7 @@ YAML::Node Editor::Stream::encodeEntitySelection(const std::vector<Entity>& enti
     return bundleNode;
 }
 
-std::vector<Entity> Editor::Stream::decodeEntitySelection(const YAML::Node& entityNode, EntityRegistry* registry, std::vector<Entity>* entities, Project* project, SceneProject* sceneProject, Entity parent, bool returnSharedEntities, bool createNewIfExists) {
+std::vector<Entity> Editor::Stream::decodeEntitySelection(const YAML::Node& entityNode, EntityRegistry* registry, std::vector<Entity>* entities, Project* project, SceneProject* sceneProject, Entity parent, bool createNewIfExists) {
     if (!entityNode || !entityNode.IsMap()) {
         return {};
     }
@@ -1102,13 +1102,13 @@ std::vector<Entity> Editor::Stream::decodeEntitySelection(const YAML::Node& enti
     if (entityNode["members"] && entityNode["members"].IsSequence()) {
         std::vector<Entity> allEntities;
         for (const auto& memberNode : entityNode["members"]) {
-            std::vector<Entity> memberEntities = decodeEntitySelection(memberNode, registry, entities, project, sceneProject, parent, returnSharedEntities, createNewIfExists);
+            std::vector<Entity> memberEntities = decodeEntitySelection(memberNode, registry, entities, project, sceneProject, parent, createNewIfExists);
             allEntities.insert(allEntities.end(), memberEntities.begin(), memberEntities.end());
         }
         return allEntities;
     }
 
-    return decodeEntity(entityNode, registry, entities, project, sceneProject, parent, returnSharedEntities, createNewIfExists);
+    return decodeEntity(entityNode, registry, entities, project, sceneProject, parent, createNewIfExists);
 }
 
 YAML::Node Editor::Stream::encodeEntity(const Entity entity, const EntityRegistry* registry, const Project* project, const SceneProject* sceneProject) {
@@ -1170,42 +1170,16 @@ YAML::Node Editor::Stream::encodeEntity(const Entity entity, const EntityRegistr
 YAML::Node Editor::Stream::encodeEntityAux(const Entity entity, const EntityRegistry* registry, const Project* project, const SceneProject* sceneProject) {
     YAML::Node entityNode;
 
-    fs::path sharedPath = "";
+    fs::path bundlePath = "";
     if (project && sceneProject) {
-        sharedPath = project->findGroupPathFor(sceneProject->id, entity);
+        bundlePath = project->findEntityBundlePathFor(sceneProject->id, entity);
     }
 
-    if (!sharedPath.empty()) {
-        const SharedGroup* group = project->getSharedGroup(sharedPath);
-        const uint32_t instanceId = group->getInstanceId(sceneProject->id, entity);
-        // Check if this is the root entity of the shared group
-        if (group->getRootEntity(sceneProject->id, instanceId) == entity) {
-            entityNode["type"] = "SharedEntity";
-            entityNode["path"] = sharedPath.string();
-        }else{
-            entityNode["type"] = "SharedEntityChild";
-        }
+    if (!bundlePath.empty()) {
+        const EntityBundle* bundle = project->getEntityBundle(bundlePath);
+        const Entity rootEntity = bundle->getRootEntity(sceneProject->id, entity);
 
-        entityNode["entity"] = entity;
-
-        Signature signature = Catalog::componentMaskToSignature(registry, group->getEntityOverrides(sceneProject->id, entity));
-        YAML::Node components = encodeComponents(entity, registry, signature);
-
-        if ((components.IsMap() && components.size() > 0)){
-            entityNode["components"] = components;
-        }
-
-    }else{
-        fs::path bundlePath = "";
-        if (project && sceneProject) {
-            bundlePath = project->findEntityBundlePathFor(sceneProject->id, entity);
-        }
-
-        if (!bundlePath.empty()) {
-            const EntityBundle* bundle = project->getEntityBundle(bundlePath);
-            const Entity rootEntity = bundle->getRootEntity(sceneProject->id, entity);
-
-            if (rootEntity == entity) {
+        if (rootEntity == entity) {
                 // Bundle root: encode as normal Entity (BundleComponent carries the path)
                 entityNode["type"] = "Entity";
                 entityNode["entity"] = entity;
@@ -1289,19 +1263,18 @@ YAML::Node Editor::Stream::encodeEntityAux(const Entity entity, const EntityRegi
                     }
                 }
             }
-            // Bundle children are not encoded (they live in the bundle file)
-        }else{
-            entityNode["type"] = "Entity";
+        // Bundle children are not encoded (they live in the bundle file)
+    }else{
+        entityNode["type"] = "Entity";
 
-            entityNode["entity"] = entity;
-            entityNode["name"] = registry->getEntityName(entity);
+        entityNode["entity"] = entity;
+        entityNode["name"] = registry->getEntityName(entity);
 
-            Signature signature = registry->getSignature(entity);
-            YAML::Node components = encodeComponents(entity, registry, signature);
+        Signature signature = registry->getSignature(entity);
+        YAML::Node components = encodeComponents(entity, registry, signature);
 
-            if ((components.IsMap() && components.size() > 0)){
-                entityNode["components"] = components;
-            }
+        if ((components.IsMap() && components.size() > 0)){
+            entityNode["components"] = components;
         }
     }
 
@@ -1428,22 +1401,12 @@ ScriptProperty Editor::Stream::decodeScriptProperty(const YAML::Node& node) {
     return prop;
 }
 
-std::vector<Entity> Editor::Stream::decodeEntity(const YAML::Node& entityNode, EntityRegistry* registry, std::vector<Entity>* entities, Project* project, SceneProject* sceneProject, Entity parent, bool returnSharedEntities, bool createNewIfExists) {
+std::vector<Entity> Editor::Stream::decodeEntity(const YAML::Node& entityNode, EntityRegistry* registry, std::vector<Entity>* entities, Project* project, SceneProject* sceneProject, Entity parent, bool createNewIfExists) {
     std::vector<Entity> allEntities;
 
     std::string entityType = entityNode["type"].as<std::string>();
 
-    if (entityType == "SharedEntity") {
-
-        if (project && sceneProject){
-            std::filesystem::path sharedPath = entityNode["path"].as<std::string>();
-            std::vector<Entity> sharedEntities = project->importSharedEntity(sceneProject, entities, sharedPath, parent, false, entityNode);
-            if (returnSharedEntities) {
-                allEntities.insert(allEntities.end(), sharedEntities.begin(), sharedEntities.end());
-            }
-        }
-
-    }else if (entityType == "Entity") {
+    if (entityType == "Entity") {
 
         Entity entity = NULL_ENTITY;
         if (entityNode["entity"]){
@@ -1484,7 +1447,7 @@ std::vector<Entity> Editor::Stream::decodeEntity(const YAML::Node& entityNode, E
         // Decode children from actualNode
         if (entityNode["children"]) {
             for (const auto& childNode : entityNode["children"]) {
-                std::vector<Entity> childEntities = decodeEntity(childNode, registry, entities, project, sceneProject, entity, returnSharedEntities, createNewIfExists);
+                std::vector<Entity> childEntities = decodeEntity(childNode, registry, entities, project, sceneProject, entity, createNewIfExists);
                 std::copy(childEntities.begin(), childEntities.end(), std::back_inserter(allEntities));
             }
         }

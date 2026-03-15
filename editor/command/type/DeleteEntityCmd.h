@@ -18,8 +18,8 @@ namespace Supernova::Editor{
 
         YAML::Node data;
 
-        // Track if entity was part of a shared group
-        NodeRecovery recoverySharedData;
+        // Track if entity was part of a bundle
+        NodeRecovery recoveryBundleData;
         uint32_t instanceId;
     };
 

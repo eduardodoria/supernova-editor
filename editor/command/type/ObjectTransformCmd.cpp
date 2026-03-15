@@ -39,9 +39,6 @@ bool Editor::ObjectTransformCmd::execute(){
 
             transform->needUpdate = true;
 
-            if (project->isEntityShared(sceneId, entity)){
-                project->sharedGroupPropertyChanged(sceneId, entity, ComponentType::Transform, {"position", "rotation", "scale"});
-            }
             if (project->isEntityInBundle(sceneId, entity)){
                 project->bundlePropertyChanged(sceneId, entity, ComponentType::Transform, {"position", "rotation", "scale"});
             }
@@ -66,9 +63,6 @@ void Editor::ObjectTransformCmd::undo(){
 
             transform->needUpdate = true;
 
-            if (project->isEntityShared(sceneId, entity)){
-                project->sharedGroupPropertyChanged(sceneId, entity, ComponentType::Transform, {"position", "rotation", "scale"});
-            }
             if (project->isEntityInBundle(sceneId, entity)){
                 project->bundlePropertyChanged(sceneId, entity, ComponentType::Transform, {"position", "rotation", "scale"});
             }

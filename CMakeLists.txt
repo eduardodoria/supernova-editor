@@ -186,7 +186,6 @@ add_executable(
     ${EDITOR_DIR}/util/EntityBundle.cpp
     ${EDITOR_DIR}/util/ProjectUtils.cpp
     ${EDITOR_DIR}/util/ScriptParser.cpp
-    ${EDITOR_DIR}/util/SharedGroup.cpp
     ${EDITOR_DIR}/util/UIUtils.cpp
 
     ${EDITOR_DIR}/shader/ShaderBuilder.cpp
@@ -226,8 +225,6 @@ add_executable(
     ${EDITOR_DIR}/command/CommandHistory.cpp
     ${EDITOR_DIR}/command/type/AddChildSceneCmd.cpp
     ${EDITOR_DIR}/command/type/AddComponentCmd.cpp
-    ${EDITOR_DIR}/command/type/ComponentToLocalCmd.cpp
-    ${EDITOR_DIR}/command/type/ComponentToSharedCmd.cpp
     ${EDITOR_DIR}/command/type/RemoveComponentCmd.cpp
     ${EDITOR_DIR}/command/type/CreateEntityCmd.cpp
     ${EDITOR_DIR}/command/type/DeleteEntityCmd.cpp
@@ -235,13 +232,9 @@ add_executable(
     ${EDITOR_DIR}/command/type/ObjectTransformCmd.cpp
     ${EDITOR_DIR}/command/type/RemoveChildSceneCmd.cpp
     ${EDITOR_DIR}/command/type/EntityNameCmd.cpp
-    ${EDITOR_DIR}/command/type/ImportSharedEntityCmd.cpp
     ${EDITOR_DIR}/command/type/ImportEntityBundleCmd.cpp
-    ${EDITOR_DIR}/command/type/MakeEntityLocalCmd.cpp
-    ${EDITOR_DIR}/command/type/MakeEntitySharedCmd.cpp
     ${EDITOR_DIR}/command/type/RemoveEntityFromBundleCmd.cpp
     ${EDITOR_DIR}/command/type/AddEntityToBundleCmd.cpp
-    ${EDITOR_DIR}/command/type/MarkEntitySharedCmd.cpp
     ${EDITOR_DIR}/command/type/MeshChangeCmd.cpp
     ${EDITOR_DIR}/command/type/SceneNameCmd.cpp
     ${EDITOR_DIR}/command/type/CopyFileCmd.cpp
