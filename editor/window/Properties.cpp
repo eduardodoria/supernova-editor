@@ -1886,6 +1886,10 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             ImGui::PopStyleColor();
         //ImGui::SetItemTooltip("%s", prop.label.c_str());
 
+        if (!settings.help.empty()){
+            ImGui::SameLine(); helpMarker(settings.help);
+        }
+
     }else if (type == RowPropertyType::Float || type == RowPropertyType::Float_0_1 || type == RowPropertyType::HalfCone){
         float* value = nullptr;
         std::map<Entity, float> eValue;
@@ -3223,6 +3227,81 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
     return result;
 }
 
+bool Editor::Properties::propertyRowWithAutoButton(RowPropertyType propType, ComponentType cpType, std::string id, std::string label, std::string autoId, std::string autoLabel, SceneProject* sceneProject, std::vector<Entity> entities, RowSettings settings) {
+    auto onValueChanged = settings.onValueChanged;
+    settings.onValueChanged = [this, sceneProject, entities, cpType, autoId, onValueChanged]() {
+        if (onValueChanged) {
+            onValueChanged();
+        }
+        for (auto& entity : entities){
+            PropertyData autoProp = Catalog::getProperty(sceneProject->scene, entity, cpType, autoId);
+            bool* autoVal = static_cast<bool*>(autoProp.ref);
+            if (autoVal && *autoVal) {
+                Editor::MultiPropertyCmd* cmd = new Editor::MultiPropertyCmd();
+                cmd->addPropertyCmd<bool>(project, sceneProject->id, entity, cpType, autoId, false);
+                cmd->setNoMerge();
+                CommandHandle::get(sceneProject->id)->addCommand(cmd);
+            }
+        }
+    };
+
+    std::string helpText = settings.help;
+    settings.help = "";
+
+    bool rowChanged = propertyRow(propType, cpType, id, label, sceneProject, entities, settings);
+
+    ImGui::SameLine();
+    bool allAuto = true;
+    bool anyAuto = false;
+    for (auto& entity : entities){
+        PropertyData autoProp = Catalog::getProperty(sceneProject->scene, entity, cpType, autoId);
+        bool val = *static_cast<bool*>(autoProp.ref);
+        if (val) anyAuto = true;
+        else allAuto = false;
+    }
+
+    if (allAuto) {
+        ImGui::PushStyleColor(ImGuiCol_Button, App::ThemeColors::ButtonActivated);
+    } else if (anyAuto) {
+        ImGui::PushStyleColor(ImGuiCol_Button, App::ThemeColors::ButtonActivated);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+    } else {
+        ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyle().Colors[ImGuiCol_Button]);
+    }
+
+    float btnPaddingY = std::max(0.0f, (ImGui::GetFrameHeight() - ImGui::GetFontSize()) / 2.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(ImGui::GetStyle().FramePadding.x / 4.0f, btnPaddingY));
+
+    std::string autoBtnId = ICON_FA_WAND_MAGIC_SPARKLES "##auto_" + id;
+    if (ImGui::Button(autoBtnId.c_str())) {
+        bool targetValue = !allAuto;
+        Editor::MultiPropertyCmd* cmdAuto = new Editor::MultiPropertyCmd();
+        for (auto& entity : entities) {
+            cmdAuto->addPropertyCmd<bool>(project, sceneProject->id, entity, cpType, autoId, targetValue);
+        }
+        cmdAuto->setNoMerge();
+        CommandHandle::get(sceneProject->id)->addCommand(cmdAuto);
+    }
+
+    ImGui::PopStyleVar();
+
+    if (anyAuto) {
+        ImGui::PopStyleColor(allAuto ? 1 : 2);
+    } else {
+        ImGui::PopStyleColor(1);
+    }
+
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("%s", autoLabel.c_str());
+    }
+
+    if (!helpText.empty()) {
+        ImGui::SameLine(); helpMarker(helpText);
+    }
+
+    return rowChanged;
+}
+
 void Editor::Properties::drawTransform(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     // Add this code to calculate appropriate step size based on selected scene
     RowSettings settingsPos;
@@ -3471,6 +3550,10 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, SceneProject* s
 
     propertyRow(RowPropertyType::Bool, cpType, "castShadows", "Cast Shadows", sceneProject, entities);
     propertyRow(RowPropertyType::Bool, cpType, "receiveShadows", "Receive Shadows", sceneProject, entities);
+
+    RowSettings transparencySettings;
+    transparencySettings.help = "Just for render ordering";
+    propertyRowWithAutoButton(RowPropertyType::Bool, cpType, "transparent", "Transparent", "autoTransparency", "Auto Transparency", sceneProject, entities, transparencySettings);
 
     endTable();
 
@@ -3787,44 +3870,8 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
     propertyRow(RowPropertyType::UInt, cpType, "width", "Width", sceneProject, entities, settingsInt);
     propertyRow(RowPropertyType::UInt, cpType, "height", "Height", sceneProject, entities, settingsInt);
     propertyRow(RowPropertyType::Enum, cpType, "pivotPreset", "Pivot", sceneProject, entities, settingsPivot);
-    RowSettings settingsFlipY;
-    settingsFlipY.onValueChanged = [this, sceneProject, entities, cpType]() {
-        Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
-        for (const Entity& entity : entities) {
-            multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entity, cpType, "automaticFlipY", false);
-        }
-        CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
-    };
-
     propertyRow(RowPropertyType::Float, cpType, "textureScaleFactor", "Texture Scale", sceneProject, entities, settingsTexScale);
-    propertyRow(RowPropertyType::Bool, cpType, "flipY", "Flip Y", sceneProject, entities, settingsFlipY);
-
-    ImGui::SameLine();
-    bool isAuto = true;
-    for (const Entity& entity : entities){
-        if (!sceneProject->scene->getComponent<SpriteComponent>(entity).automaticFlipY){
-            isAuto = false;
-        }
-    }
-
-    if (isAuto){
-        ImGui::PushStyleColor(ImGuiCol_Button, App::ThemeColors::ButtonActivated);
-    }
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(ImGui::GetStyle().FramePadding.x / 4.0f, ImGui::GetStyle().FramePadding.y));
-    if (ImGui::Button(ICON_FA_WAND_MAGIC_SPARKLES)){
-        Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
-        for (const Entity& entity : entities){
-            multiCmd->addPropertyCmd<bool>(project, sceneProject->id, entity, cpType, "automaticFlipY", !isAuto);
-        }
-        CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
-    }
-    ImGui::PopStyleVar();
-    if (isAuto) {
-        ImGui::PopStyleColor();
-    }
-    if (ImGui::IsItemHovered()){
-        ImGui::SetTooltip("Automatic Flip Y");
-    }
+    propertyRowWithAutoButton(RowPropertyType::Bool, cpType, "flipY", "Flip Y", "automaticFlipY", "Automatic Flip Y", sceneProject, entities);
 
     endTable();
 
