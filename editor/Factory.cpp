@@ -405,34 +405,11 @@ std::string Editor::Factory::formatScriptPropertyValue(const Scene* scene, const
         return formatVector3(std::get<Vector3>(value));
     } else if (std::holds_alternative<Vector4>(value)) {
         return formatVector4(std::get<Vector4>(value));
-    } else if (std::holds_alternative<EntityRef>(value)) {
-        const EntityRef& ref = std::get<EntityRef>(value);
-        std::string res = "EntityRef{";
-        if (ref.scene == scene){
-            res += std::to_string(ref.entity) + ", ";
-            res += "scene, ";
-        } else {
-            res += "NULL_ENTITY, ";
-            res += "nullptr, "; // different scene, set to nullptr
-        }
-        res += "EntityLocator{";
-        res += formatEntityRefKind(ref.locator.kind) + ", ";
-        res += std::to_string(ref.locator.scopedEntity) + ", ";
-        res += std::to_string(ref.locator.sceneId) + ", ";
-        res += formatString(ref.locator.sharedPath);
-        res += "}}";
-        return res;
+    } else if (std::holds_alternative<Entity>(value)) {
+        Entity entity = std::get<Entity>(value);
+        return "Entity(" + std::to_string(entity) + ")";
     }
     return "ScriptPropertyValue{}";
-}
-
-std::string Editor::Factory::formatEntityRefKind(EntityRefKind kind) {
-    switch (kind) {
-        case EntityRefKind::None: return "EntityRefKind::None";
-        case EntityRefKind::LocalEntity: return "EntityRefKind::LocalEntity";
-        case EntityRefKind::SharedEntity: return "EntityRefKind::SharedEntity";
-        default: return "EntityRefKind::None";
-    }
 }
 
 std::string Editor::Factory::formatTexture(int indentSpaces, const Texture& texture, const std::string& variableName, const fs::path& projectPath) {
@@ -503,6 +480,10 @@ std::string Editor::Factory::formatPropertyValue(const PropertyData& property, c
         }
         case PropertyType::UInt: {
             unsigned int* value = static_cast<unsigned int*>(property.ref);
+            return formatUInt(*value);
+        }
+        case PropertyType::Entity: {
+            Entity* value = static_cast<Entity*>(property.ref);
             return formatUInt(*value);
         }
         case PropertyType::Vector2: {

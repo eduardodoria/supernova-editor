@@ -191,11 +191,8 @@ namespace Supernova::Editor{
                         const std::string& currentPath, std::string& updatedPath);
         static bool remapScriptEntryPaths(ScriptEntry& scriptEntry, const fs::path& oldRelative,
                           const fs::path& newRelative);
-        bool remapSharedEntityRefsInRegistry(EntityRegistry* registry, const fs::path& oldRelative,
-                             const fs::path& newRelative, SceneProject* sceneProject = nullptr);
         bool remapScriptPathsInRegistry(EntityRegistry* registry, const fs::path& oldRelative,
                         const fs::path& newRelative);
-        bool cleanupSharedEntityRefsInRegistry(EntityRegistry* registry, const fs::path& deletedRelative);
         bool cleanupScriptPathsInRegistry(EntityRegistry* registry, const fs::path& deletedRelative);
 
         void finalizeStart(SceneProject* mainSceneProject, std::vector<PlayRuntimeScene>& runtimeScenes);
@@ -322,13 +319,10 @@ namespace Supernova::Editor{
         void updateAllScriptsProperties(uint32_t sceneId);
         void updateScriptProperties(SceneProject* sceneProject, Entity entity, std::vector<ScriptEntry>& scripts);
 
-        void resolveEntityRef(EntityRef& ref, SceneProject* sceneProject, Entity entity);
-        void resolveEntityRefs(SceneProject* sceneProject);
-        void resolveAllEntityRefs();
-
         static std::vector<Entity> getTopLevelEntities(const EntityRegistry* registry, const std::vector<Entity>& orderedEntities);
-        static bool isNumericEntityReference(ComponentType componentType, const std::string& propertyName, PropertyType propertyType);
-        static void remapNumericEntityReferences(EntityRegistry* registry, const std::vector<Entity>& entities, const std::unordered_map<Entity, Entity>& entityMap);
+        static bool isEntityReference(PropertyType propertyType);
+        static void remapEntityReferences(EntityRegistry* registry, const std::vector<Entity>& entities, const std::unordered_map<Entity, Entity>& entityMap);
+        static void remapEntityReferencesInComponent(EntityRegistry* registry, Entity entity, ComponentType componentType, const std::vector<std::string>& properties, const std::unordered_map<Entity, Entity>& entityMap);
 
         //=== EntityBundle part ===
 

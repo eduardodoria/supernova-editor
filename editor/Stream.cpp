@@ -389,21 +389,6 @@ ScriptType Editor::Stream::stringToScriptType(const std::string& str) {
     return ScriptType::SUBCLASS;
 }
 
-std::string Editor::Stream::entityRefKindToString(EntityRefKind kind){
-    switch(kind){
-        case EntityRefKind::LocalEntity: return "local_entity";
-        case EntityRefKind::SharedEntity: return "shared_entity";
-        case EntityRefKind::None:
-        default: return "none";
-    }
-}
-
-EntityRefKind Editor::Stream::stringToEntityRefKind(const std::string& str){
-    if (str == "local_entity") return EntityRefKind::LocalEntity;
-    if (str == "shared_entity") return EntityRefKind::SharedEntity;
-    return EntityRefKind::None;
-}
-
 YAML::Node Editor::Stream::encodeVector2(const Vector2& vec){
     YAML::Node node;
     node.SetStyle(YAML::EmitterStyle::Flow);
@@ -790,58 +775,6 @@ SpriteFrameData Editor::Stream::decodeSpriteFrameData(const YAML::Node& node) {
     return frameData;
 }
 
-YAML::Node Editor::Stream::encodeEntityRef(const EntityRef& ref) {
-    YAML::Node node;
-    const EntityLocator& loc = ref.locator;
-
-    if (loc.kind != EntityRefKind::None) {
-        YAML::Node locNode;
-        locNode["kind"] = entityRefKindToString(loc.kind);
-
-        if (loc.scopedEntity != NULL_ENTITY)
-            locNode["scopedEntity"] = loc.scopedEntity;
-
-        if (loc.kind == EntityRefKind::LocalEntity) {
-            if (loc.sceneId != 0)
-                locNode["sceneId"] = loc.sceneId;
-        } else if (loc.kind == EntityRefKind::SharedEntity) {
-            if (!loc.sharedPath.empty())
-                locNode["sharedPath"] = loc.sharedPath;
-        }
-
-        node["locator"] = locNode;
-    }
-    return node;
-}
-
-EntityRef Editor::Stream::decodeEntityRef(const YAML::Node& node) {
-    EntityRef ref;
-    if (!node || !node.IsMap()) {
-        return ref; // defaults: entityIndex = -1, sceneId = 0, entity=NULL_ENTITY, scene=nullptr
-    }
-    if (node["locator"] && node["locator"].IsMap()) {
-        auto locNode = node["locator"];
-        EntityLocator loc;
-
-        if (locNode["kind"])
-            loc.kind = stringToEntityRefKind(locNode["kind"].as<std::string>());
-
-        if (locNode["scopedEntity"])
-            loc.scopedEntity = locNode["scopedEntity"].as<Entity>();
-
-        if (loc.kind == EntityRefKind::LocalEntity) {
-            if (locNode["sceneId"])
-                loc.sceneId = locNode["sceneId"].as<uint32_t>();
-        } else if (loc.kind == EntityRefKind::SharedEntity) {
-            if (locNode["sharedPath"])
-                loc.sharedPath = locNode["sharedPath"].as<std::string>();
-        }
-
-        ref.locator = loc;
-    }
-    return ref;
-}
-
 YAML::Node Editor::Stream::encodeProject(Project* project) {
     YAML::Node root;
 
@@ -1192,7 +1125,8 @@ YAML::Node Editor::Stream::encodeEntity(const Entity entity, const EntityRegistr
         currentNode = encodeEntityAux(entity, registry, project, sceneProject);
 
         // Bundle root: children are part of the bundle file, skip hierarchy walk
-        if (registry->getSignature(entity).test(registry->getComponentId<BundleComponent>())) {
+        // Only skip when saving to file (project != nullptr); snapshots need all entities
+        if (project && registry->getSignature(entity).test(registry->getComponentId<BundleComponent>())) {
             return entityNodes[entity];
         }
 
@@ -1417,8 +1351,8 @@ YAML::Node Editor::Stream::encodeScriptProperty(const ScriptProperty& prop) {
             node["defaultValue"] = encodeVector4(std::get<Vector4>(prop.defaultValue));
             break;
         case ScriptPropertyType::EntityPointer:
-            node["value"] = encodeEntityRef(std::get<EntityRef>(prop.value));
-            node["defaultValue"] = encodeEntityRef(std::get<EntityRef>(prop.defaultValue));
+            node["value"] = std::get<Entity>(prop.value);
+            node["defaultValue"] = std::get<Entity>(prop.defaultValue);
             break;
     }
 
@@ -1470,8 +1404,8 @@ ScriptProperty Editor::Stream::decodeScriptProperty(const YAML::Node& node) {
                 prop.defaultValue = node["defaultValue"] ? decodeVector4(node["defaultValue"]) : Vector4();
                 break;
             case ScriptPropertyType::EntityPointer: {
-                prop.value = decodeEntityRef(node["value"]);
-                prop.defaultValue = node["defaultValue"] ? decodeEntityRef(node["defaultValue"]) : EntityRef();
+                prop.value = node["value"].as<Entity>(NULL_ENTITY);
+                prop.defaultValue = node["defaultValue"] ? node["defaultValue"].as<Entity>(NULL_ENTITY) : Entity(NULL_ENTITY);
                 break;
             }
         }
@@ -1487,7 +1421,7 @@ ScriptProperty Editor::Stream::decodeScriptProperty(const YAML::Node& node) {
             case ScriptPropertyType::Color3: prop.value = Vector3(); prop.defaultValue = Vector3(); break;
             case ScriptPropertyType::Vector4:
             case ScriptPropertyType::Color4: prop.value = Vector4(); prop.defaultValue = Vector4(); break;
-            case ScriptPropertyType::EntityPointer: prop.value = EntityRef(); prop.defaultValue = EntityRef(); break;
+            case ScriptPropertyType::EntityPointer: prop.value = Entity(NULL_ENTITY); prop.defaultValue = Entity(NULL_ENTITY); break;
         }
     }
 

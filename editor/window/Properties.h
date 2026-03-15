@@ -36,7 +36,6 @@ namespace Supernova::Editor{
         Direction,
         Enum,
         Custom,
-        EntityPointer,
         LocalEntity,
         Font
     };

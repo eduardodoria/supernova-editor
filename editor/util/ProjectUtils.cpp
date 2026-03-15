@@ -936,8 +936,8 @@ ScriptPropertyValue Editor::ProjectUtils::luaValueToScriptPropertyValue(lua_Stat
     }
 
     case ScriptPropertyType::EntityPointer: {
-        // For now, leave empty EntityRef. The editor will fill locator later.
-        return ScriptPropertyValue(EntityRef{});
+        // For now, leave as null entity. The editor will fill it later.
+        return ScriptPropertyValue(Entity(NULL_ENTITY));
     }
     }
 

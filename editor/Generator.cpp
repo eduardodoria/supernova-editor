@@ -464,11 +464,11 @@ std::string Editor::Generator::buildInitSceneScriptsSource(const std::vector<Sce
                 sourceContent += "                    if (prop.name == \"" + prop.name + "\") {\n";
 
                 if (prop.isPtr && !prop.ptrTypeName.empty()) {
-                    sourceContent += "                        Supernova::EntityRef entityRef = std::get<Supernova::EntityRef>(prop.value);\n";
+                    sourceContent += "                        Supernova::Entity targetEntity = std::get<Supernova::Entity>(prop.value);\n";
                     sourceContent += "                        void* instancePtr = nullptr;\n";
                     sourceContent += "\n";
-                    sourceContent += "                        if (entityRef.entity != NULL_ENTITY && entityRef.scene) {\n";
-                    sourceContent += "                            Supernova::ScriptComponent* targetScriptComp = entityRef.scene->findComponent<Supernova::ScriptComponent>(entityRef.entity);\n";
+                    sourceContent += "                        if (targetEntity != NULL_ENTITY) {\n";
+                    sourceContent += "                            Supernova::ScriptComponent* targetScriptComp = scene->findComponent<Supernova::ScriptComponent>(targetEntity);\n";
                     sourceContent += "                            if (targetScriptComp) {\n";
                     sourceContent += "                                for (auto& targetScript : targetScriptComp->scripts) {\n";
                     sourceContent += "                                    if (targetScript.type != ScriptType::SCRIPT_LUA) {\n";
@@ -488,7 +488,7 @@ std::string Editor::Generator::buildInitSceneScriptsSource(const std::vector<Sce
                         sourceContent += "                                #ifdef SUPERNOVA_EDITOR_PLUGIN\n";
                         sourceContent += "                                printf(\"[DEBUG]   No C++ script instance found, creating '" + prop.ptrTypeName + "' type\\n\");\n";
                         sourceContent += "                                #endif\n";
-                        sourceContent += "                                instancePtr = new " + prop.ptrTypeName + "(entityRef.scene, entityRef.entity);\n";
+                        sourceContent += "                                instancePtr = new " + prop.ptrTypeName + "(scene, targetEntity);\n";
                         sourceContent += "                            }\n";
                     }
                     sourceContent += "                        }\n";

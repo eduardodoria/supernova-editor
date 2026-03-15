@@ -110,12 +110,6 @@ namespace Supernova::Editor {
         static YAML::Node encodeSpriteFrameData(const SpriteFrameData& frameData);
         static SpriteFrameData decodeSpriteFrameData(const YAML::Node& node);
 
-        static std::string entityRefKindToString(EntityRefKind kind);
-        static EntityRefKind stringToEntityRefKind(const std::string& str);
-
-        static YAML::Node encodeEntityRef(const EntityRef& ref);
-        static EntityRef decodeEntityRef(const YAML::Node& node);
-
         static YAML::Node encodeEntityAux(const Entity entity, const EntityRegistry* registry, const Project* project = nullptr, const SceneProject* sceneProject = nullptr);
 
         static YAML::Node encodeScriptProperty(const ScriptProperty& prop);

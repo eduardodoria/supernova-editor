@@ -59,32 +59,11 @@ std::vector<Entity> Editor::Project::getTopLevelEntities(const EntityRegistry* r
     return topLevelEntities;
 }
 
-bool Editor::Project::isNumericEntityReference(ComponentType componentType, const std::string& propertyName, PropertyType propertyType) {
-    if (propertyType == PropertyType::EntityPointer) {
-        return true;
-    }
-
-    if (propertyType != PropertyType::UInt) {
-        return false;
-    }
-
-    switch (componentType) {
-        case ComponentType::Joint2DComponent:
-            return propertyName == "bodyA" || propertyName == "bodyB";
-        case ComponentType::Joint3DComponent:
-            return propertyName == "bodyA" || propertyName == "bodyB" ||
-                propertyName == "hingeA" || propertyName == "hingeB" ||
-                propertyName == "hinge" || propertyName == "slider";
-        case ComponentType::Body3DComponent:
-            return propertyName.size() >= 12 && propertyName.compare(propertyName.size() - 12, 12, "sourceEntity") == 0;
-        case ComponentType::AnimationComponent:
-            return propertyName.size() >= 7 && propertyName.compare(propertyName.size() - 7, 7, ".action") == 0;
-        default:
-            return false;
-    }
+bool Editor::Project::isEntityReference(PropertyType propertyType) {
+    return propertyType == PropertyType::Entity;
 }
 
-void Editor::Project::remapNumericEntityReferences(EntityRegistry* registry, const std::vector<Entity>& entities, const std::unordered_map<Entity, Entity>& entityMap) {
+void Editor::Project::remapEntityReferences(EntityRegistry* registry, const std::vector<Entity>& entities, const std::unordered_map<Entity, Entity>& entityMap) {
     if (entityMap.empty()) {
         return;
     }
@@ -96,7 +75,7 @@ void Editor::Project::remapNumericEntityReferences(EntityRegistry* registry, con
             int updateFlags = 0;
 
             for (auto& [propertyName, property] : properties) {
-                if (!property.ref || !isNumericEntityReference(componentType, propertyName, property.type)) {
+                if (!property.ref || !isEntityReference(property.type)) {
                     continue;
                 }
 
@@ -117,6 +96,33 @@ void Editor::Project::remapNumericEntityReferences(EntityRegistry* registry, con
             if (updateFlags != 0) {
                 Catalog::updateEntity(registry, entity, updateFlags);
             }
+        }
+    }
+}
+
+void Editor::Project::remapEntityReferencesInComponent(EntityRegistry* registry, Entity entity, ComponentType componentType, const std::vector<std::string>& properties, const std::unordered_map<Entity, Entity>& entityMap) {
+    if (entityMap.empty()) return;
+
+    auto allProperties = Catalog::findEntityProperties(registry, entity, componentType);
+
+    for (auto& [propertyName, property] : allProperties) {
+        if (!property.ref || !isEntityReference(property.type)) {
+            continue;
+        }
+
+        // If specific properties were given, only remap those
+        if (!properties.empty() && std::find(properties.begin(), properties.end(), propertyName) == properties.end()) {
+            continue;
+        }
+
+        Entity* value = static_cast<Entity*>(property.ref);
+        if (!value || *value == NULL_ENTITY) {
+            continue;
+        }
+
+        auto it = entityMap.find(*value);
+        if (it != entityMap.end()) {
+            *value = it->second;
         }
     }
 }
@@ -222,42 +228,6 @@ bool Editor::Project::remapScriptEntryPaths(ScriptEntry& scriptEntry, const fs::
     return changed;
 }
 
-bool Editor::Project::remapSharedEntityRefsInRegistry(EntityRegistry* registry, const fs::path& oldRelative,
-                                                      const fs::path& newRelative, SceneProject* sceneProject) {
-    if (!registry) {
-        return false;
-    }
-
-    auto scriptsArray = registry->getComponentArray<ScriptComponent>();
-    bool changed = false;
-
-    for (size_t i = 0; i < scriptsArray->size(); ++i) {
-        Entity entity = scriptsArray->getEntity(i);
-        ScriptComponent& scriptComponent = scriptsArray->getComponentFromIndex(i);
-
-        for (auto& scriptEntry : scriptComponent.scripts) {
-            for (auto& prop : scriptEntry.properties) {
-                if (prop.type != ScriptPropertyType::EntityPointer) continue;
-                if (!std::holds_alternative<EntityRef>(prop.value)) continue;
-
-                EntityRef& ref = std::get<EntityRef>(prop.value);
-                if (ref.locator.kind != EntityRefKind::SharedEntity || ref.locator.sharedPath.empty()) continue;
-
-                std::string updatedPath;
-                if (remapRelativeString(oldRelative, newRelative, ref.locator.sharedPath, updatedPath)) {
-                    ref.locator.sharedPath = updatedPath;
-                    if (sceneProject) {
-                        resolveEntityRef(ref, sceneProject, entity);
-                    }
-                    changed = true;
-                }
-            }
-        }
-    }
-
-    return changed;
-}
-
 bool Editor::Project::remapScriptPathsInRegistry(EntityRegistry* registry, const fs::path& oldRelative,
                                                  const fs::path& newRelative) {
     if (!registry) {
@@ -271,36 +241,6 @@ bool Editor::Project::remapScriptPathsInRegistry(EntityRegistry* registry, const
         ScriptComponent& scriptComponent = scriptsArray->getComponentFromIndex(i);
         for (auto& scriptEntry : scriptComponent.scripts) {
             changed |= remapScriptEntryPaths(scriptEntry, oldRelative, newRelative);
-        }
-    }
-
-    return changed;
-}
-
-bool Editor::Project::cleanupSharedEntityRefsInRegistry(EntityRegistry* registry, const fs::path& deletedRelative) {
-    if (!registry) {
-        return false;
-    }
-
-    auto scriptsArray = registry->getComponentArray<ScriptComponent>();
-    bool changed = false;
-
-    for (size_t i = 0; i < scriptsArray->size(); ++i) {
-        ScriptComponent& scriptComponent = scriptsArray->getComponentFromIndex(i);
-
-        for (auto& scriptEntry : scriptComponent.scripts) {
-            for (auto& prop : scriptEntry.properties) {
-                if (prop.type != ScriptPropertyType::EntityPointer) continue;
-                if (!std::holds_alternative<EntityRef>(prop.value)) continue;
-
-                EntityRef& ref = std::get<EntityRef>(prop.value);
-                if (ref.locator.kind != EntityRefKind::SharedEntity || ref.locator.sharedPath.empty()) continue;
-
-                if (matchesRelativeString(deletedRelative, ref.locator.sharedPath)) {
-                    ref = EntityRef{};
-                    changed = true;
-                }
-            }
         }
     }
 
@@ -503,36 +443,10 @@ void Editor::Project::remapSharedEntityFilePath(const std::filesystem::path& old
 
     bool changed = !remappedGroups.empty();
 
-    for (auto& sceneProject : scenes) {
-        if (!sceneProject.scene) {
-            continue;
-        }
-
-        bool sceneChanged = remapSharedEntityRefsInRegistry(sceneProject.scene, oldRelative, newRelative, &sceneProject);
-
-        if (sceneChanged) {
-            sceneProject.isModified = true;
-            changed = true;
-        }
-    }
-
-    for (auto& [filepath, group] : sharedGroups) {
-        bool groupChanged = remapSharedEntityRefsInRegistry(group.registry.get(), oldRelative, newRelative);
-
-        if (groupChanged) {
-            group.isModified = true;
-            changed = true;
-        }
-    }
-
     for (uint32_t sceneId : affectedSceneIds) {
         if (SceneProject* sceneProject = getScene(sceneId)) {
             sceneProject->isModified = true;
         }
-    }
-
-    if (changed) {
-        resolveAllEntityRefs();
     }
 }
 
@@ -590,32 +504,12 @@ void Editor::Project::remapEntityBundleFilePath(const std::filesystem::path& old
                 changed = true;
             }
         }
-
-        bool sceneChanged = remapSharedEntityRefsInRegistry(sceneProject.scene, oldRelative, newRelative, &sceneProject);
-
-        if (sceneChanged) {
-            sceneProject.isModified = true;
-            changed = true;
-        }
-    }
-
-    for (auto& [filepath, bundle] : entityBundles) {
-        bool bundleChanged = remapSharedEntityRefsInRegistry(bundle.registry.get(), oldRelative, newRelative);
-
-        if (bundleChanged) {
-            bundle.isModified = true;
-            changed = true;
-        }
     }
 
     for (uint32_t sceneId : affectedSceneIds) {
         if (SceneProject* sceneProject = getScene(sceneId)) {
             sceneProject->isModified = true;
         }
-    }
-
-    if (changed) {
-        resolveAllEntityRefs();
     }
 }
 
@@ -818,28 +712,6 @@ void Editor::Project::cleanupSharedEntityFilePath(const std::filesystem::path& d
 
         removeSharedGroup(groupPath);
     }
-
-    for (auto& sceneProject : scenes) {
-        if (!sceneProject.scene) {
-            continue;
-        }
-
-        if (cleanupSharedEntityRefsInRegistry(sceneProject.scene, deletedRelative)) {
-            sceneProject.isModified = true;
-            changed = true;
-        }
-    }
-
-    for (auto& [filepath, group] : sharedGroups) {
-        if (cleanupSharedEntityRefsInRegistry(group.registry.get(), deletedRelative)) {
-            group.isModified = true;
-            changed = true;
-        }
-    }
-
-    if (changed) {
-        resolveAllEntityRefs();
-    }
 }
 
 void Editor::Project::cleanupEntityBundleFilePath(const std::filesystem::path& deletedPath) {
@@ -889,28 +761,6 @@ void Editor::Project::cleanupEntityBundleFilePath(const std::filesystem::path& d
         }
 
         removeEntityBundle(bundlePath);
-    }
-
-    for (auto& sceneProject : scenes) {
-        if (!sceneProject.scene) {
-            continue;
-        }
-
-        if (cleanupSharedEntityRefsInRegistry(sceneProject.scene, deletedRelative)) {
-            sceneProject.isModified = true;
-            changed = true;
-        }
-    }
-
-    for (auto& [filepath, bundle] : entityBundles) {
-        if (cleanupSharedEntityRefsInRegistry(bundle.registry.get(), deletedRelative)) {
-            bundle.isModified = true;
-            changed = true;
-        }
-    }
-
-    if (changed) {
-        resolveAllEntityRefs();
     }
 }
 
@@ -2322,7 +2172,6 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
     sceneProject->isModified = false;
     saveProject();
 
-    resolveEntityRefs(sceneProject);
     updateSceneCppScripts(sceneProject);
 
     generator.writeSceneSource(sceneProject->scene, sceneProject->name, sceneProject->entities, getSceneCamera(sceneProject), getProjectPath(), getProjectInternalPath());
@@ -2916,57 +2765,6 @@ void Editor::Project::updateScriptProperties(SceneProject* sceneProject, Entity 
     }
 }
 
-void Editor::Project::resolveEntityRef(EntityRef& ref, SceneProject* sceneProject, Entity entity){
-    if (ref.locator.kind == EntityRefKind::LocalEntity){
-        if (sceneProject->id == ref.locator.sceneId){
-            ref.scene = sceneProject->scene;
-            ref.entity = ref.locator.scopedEntity;
-        }
-    }else if (ref.locator.kind == EntityRefKind::SharedEntity){
-        SharedGroup* group = getSharedGroup(ref.locator.sharedPath);
-        if (!group) {
-            ref.entity = NULL_ENTITY;
-            ref.scene = nullptr;
-            return;
-        }
-        uint32_t instanceId = group->getInstanceId(sceneProject->id, entity);
-        if (instanceId != 0 && ref.locator.scopedEntity != NULL_ENTITY) {
-            Entity local = group->getLocalEntity(sceneProject->id, instanceId, ref.locator.scopedEntity);
-            if (local != NULL_ENTITY) {
-                ref.scene  = sceneProject->scene;
-                ref.entity = local;
-            }
-        }
-    }
-}
-
-void Editor::Project::resolveEntityRefs(SceneProject* sceneProject){
-    Scene* scene = sceneProject->scene;
-    if (!scene) return;
-
-    auto scriptsArray = scene->getComponentArray<ScriptComponent>();
-
-    for (size_t i = 0; i < scriptsArray->size(); ++i) {
-        Entity entity = scriptsArray->getEntity(i);
-        ScriptComponent& scriptComponent = scriptsArray->getComponentFromIndex(i);
-        for (auto& scriptEntry : scriptComponent.scripts){
-            for (auto& prop : scriptEntry.properties){
-                if (prop.type != ScriptPropertyType::EntityPointer) continue;
-                if (!std::holds_alternative<EntityRef>(prop.value)) continue;
-
-                resolveEntityRef(std::get<EntityRef>(prop.value), sceneProject, entity);
-            }
-        }
-    }
-
-}
-
-void Editor::Project::resolveAllEntityRefs(){
-    for (auto& sceneProject : scenes){
-        resolveEntityRefs(&sceneProject);
-    }
-}
-
 bool Editor::Project::createEntityBundle(uint32_t sceneId, fs::path filepath, YAML::Node entityNode){
     if (!filepath.is_relative()) {
         Out::error("EntityBundle filepath must be relative: %s", filepath.string().c_str());
@@ -3003,7 +2801,7 @@ bool Editor::Project::createEntityBundle(uint32_t sceneId, fs::path filepath, YA
         for (size_t i = 0; i < branchEntities.size(); ++i) {
             localToRegistry[branchEntities[i]] = regEntities[i];
         }
-        remapNumericEntityReferences(newGroup.registry.get(), regEntities, localToRegistry);
+        remapEntityReferences(newGroup.registry.get(), regEntities, localToRegistry);
     }
 
     Scene* scene = sceneProject->scene;
@@ -4543,7 +4341,7 @@ std::vector<Entity> Editor::Project::importEntityBundle(SceneProject* sceneProje
             newInstance.members.push_back({newEntities[i], regEntities[i]});
             registryToLocal[regEntities[i]] = newEntities[i];
         }
-        remapNumericEntityReferences(scene, newEntities, registryToLocal);
+        remapEntityReferences(scene, newEntities, registryToLocal);
     }
 
     // Apply component overrides keyed by registryEntity
@@ -5029,6 +4827,16 @@ bool Editor::Project::bundlePropertyChanged(uint32_t sceneId, Entity entity, Com
             return false;
         }
         EntityRegistry* registry = bundle->registry.get();
+
+        // Build localToRegistry map from the source instance
+        std::unordered_map<Entity, Entity> localToRegistry;
+        const EntityBundle::Instance* sourceInstance = bundle->getInstanceById(sceneId, instanceId);
+        if (sourceInstance) {
+            for (const auto& member : sourceInstance->members) {
+                localToRegistry[member.localEntity] = member.registryEntity;
+            }
+        }
+
         if (properties.size() == 0){
             Catalog::copyComponent(getScene(sceneId)->scene, entity, registry, registryEntity, componentType);
         }else{
@@ -5036,6 +4844,8 @@ bool Editor::Project::bundlePropertyChanged(uint32_t sceneId, Entity entity, Com
                 Catalog::copyPropertyValue(getScene(sceneId)->scene, entity, registry, registryEntity, componentType, property);
             }
         }
+        // Remap entity references from scene-local IDs to registry IDs
+        remapEntityReferencesInComponent(registry, registryEntity, componentType, properties, localToRegistry);
 
         std::vector<uint32_t> staleBundleScenes;
         for (auto& [otherSceneId, sceneInstances] : bundle->instances) {
@@ -5058,13 +4868,20 @@ bool Editor::Project::bundlePropertyChanged(uint32_t sceneId, Entity entity, Com
                         if (otherScene->isVisible){
                             otherScene->needUpdateRender = true;
                         }
+                        // Copy from registry (with correct registry IDs) to target scene
                         if (properties.size() == 0){
-                            Catalog::copyComponent(getScene(sceneId)->scene, entity, otherScene->scene, otherEntity, componentType);
+                            Catalog::copyComponent(registry, registryEntity, otherScene->scene, otherEntity, componentType);
                         }else{
                             for (const auto& property : properties) {
-                                Catalog::copyPropertyValue(getScene(sceneId)->scene, entity, otherScene->scene, otherEntity, componentType, property);
+                                Catalog::copyPropertyValue(registry, registryEntity, otherScene->scene, otherEntity, componentType, property);
                             }
                         }
+                        // Remap entity references from registry IDs to target-local IDs
+                        std::unordered_map<Entity, Entity> registryToOtherLocal;
+                        for (const auto& member : instance.members) {
+                            registryToOtherLocal[member.registryEntity] = member.localEntity;
+                        }
+                        remapEntityReferencesInComponent(otherScene->scene, otherEntity, componentType, properties, registryToOtherLocal);
                     }
                 }
             }
@@ -5463,7 +5280,6 @@ void Editor::Project::registerSceneManager() {
                             newEntry.ownedRuntime = true;
 
                             if (newEntry.runtime) {
-                                resolveEntityRefs(newEntry.runtime);
                                 session->runtimeScenes.push_back(newEntry);
                                 entryIndex = session->runtimeScenes.size() - 1;
                             }
@@ -5601,8 +5417,6 @@ void Editor::Project::start(uint32_t sceneId) {
                 Log::error("Failed to create runtime for scene %u", sceneProject.id);
                 continue;
             }
-
-            resolveEntityRefs(entry.runtime);
 
             if (!savedNow) {
                 generator.writeSceneSource(entry.runtime->scene, entry.runtime->name, entry.runtime->entities, getSceneCamera(entry.runtime), getProjectPath(), getProjectInternalPath());

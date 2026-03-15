@@ -193,7 +193,7 @@ namespace {
     static const FastPropertyDescriptor kActionProperties[] = {
         makeFastPropertyNoDefault<ActionComponent, ActionState, &ActionComponent::state>("state", PropertyType::Enum, UpdateFlags_None),
         makeFastProperty<ActionComponent, float, &ActionComponent::speed>("speed", PropertyType::Float, UpdateFlags_None),
-        makeFastProperty<ActionComponent, Entity, &ActionComponent::target>("target", PropertyType::EntityPointer, UpdateFlags_None),
+        makeFastProperty<ActionComponent, Entity, &ActionComponent::target>("target", PropertyType::Entity, UpdateFlags_None),
         makeFastProperty<ActionComponent, bool, &ActionComponent::ownedTarget>("ownedTarget", PropertyType::Bool, UpdateFlags_None),
     };
 
@@ -274,8 +274,8 @@ namespace {
 
     static const FastPropertyDescriptor kJoint2DProperties[] = {
         makeFastProperty<Joint2DComponent, Joint2DType, &Joint2DComponent::type>("type", PropertyType::Enum, UpdateFlags_Joint2D),
-        makeFastProperty<Joint2DComponent, Entity, &Joint2DComponent::bodyA>("bodyA", PropertyType::UInt, UpdateFlags_Joint2D),
-        makeFastProperty<Joint2DComponent, Entity, &Joint2DComponent::bodyB>("bodyB", PropertyType::UInt, UpdateFlags_Joint2D),
+        makeFastProperty<Joint2DComponent, Entity, &Joint2DComponent::bodyA>("bodyA", PropertyType::Entity, UpdateFlags_Joint2D),
+        makeFastProperty<Joint2DComponent, Entity, &Joint2DComponent::bodyB>("bodyB", PropertyType::Entity, UpdateFlags_Joint2D),
         makeFastProperty<Joint2DComponent, Vector2, &Joint2DComponent::anchorA>("anchorA", PropertyType::Vector2, UpdateFlags_Joint2D),
         makeFastProperty<Joint2DComponent, Vector2, &Joint2DComponent::anchorB>("anchorB", PropertyType::Vector2, UpdateFlags_Joint2D),
         makeFastProperty<Joint2DComponent, Vector2, &Joint2DComponent::axis>("axis", PropertyType::Vector2, UpdateFlags_Joint2D),
@@ -286,8 +286,8 @@ namespace {
 
     static const FastPropertyDescriptor kJoint3DProperties[] = {
         makeFastProperty<Joint3DComponent, Joint3DType, &Joint3DComponent::type>("type", PropertyType::Enum, UpdateFlags_Joint3D),
-        makeFastProperty<Joint3DComponent, Entity, &Joint3DComponent::bodyA>("bodyA", PropertyType::UInt, UpdateFlags_Joint3D),
-        makeFastProperty<Joint3DComponent, Entity, &Joint3DComponent::bodyB>("bodyB", PropertyType::UInt, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, Entity, &Joint3DComponent::bodyA>("bodyA", PropertyType::Entity, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, Entity, &Joint3DComponent::bodyB>("bodyB", PropertyType::Entity, UpdateFlags_Joint3D),
         makeFastProperty<Joint3DComponent, Vector3, &Joint3DComponent::anchorA>("anchorA", PropertyType::Vector3, UpdateFlags_Joint3D),
         makeFastProperty<Joint3DComponent, Vector3, &Joint3DComponent::anchorB>("anchorB", PropertyType::Vector3, UpdateFlags_Joint3D),
         makeFastProperty<Joint3DComponent, Vector3, &Joint3DComponent::anchor>("anchor", PropertyType::Vector3, UpdateFlags_Joint3D),
@@ -305,10 +305,10 @@ namespace {
         makeFastProperty<Joint3DComponent, float, &Joint3DComponent::twistMaxAngle>("twistMaxAngle", PropertyType::Float, UpdateFlags_Joint3D),
         makeFastProperty<Joint3DComponent, Vector3, &Joint3DComponent::fixedPointA>("fixedPointA", PropertyType::Vector3, UpdateFlags_Joint3D),
         makeFastProperty<Joint3DComponent, Vector3, &Joint3DComponent::fixedPointB>("fixedPointB", PropertyType::Vector3, UpdateFlags_Joint3D),
-        makeFastProperty<Joint3DComponent, Entity, &Joint3DComponent::hingeA>("hingeA", PropertyType::UInt, UpdateFlags_Joint3D),
-        makeFastProperty<Joint3DComponent, Entity, &Joint3DComponent::hingeB>("hingeB", PropertyType::UInt, UpdateFlags_Joint3D),
-        makeFastProperty<Joint3DComponent, Entity, &Joint3DComponent::hinge>("hinge", PropertyType::UInt, UpdateFlags_Joint3D),
-        makeFastProperty<Joint3DComponent, Entity, &Joint3DComponent::slider>("slider", PropertyType::UInt, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, Entity, &Joint3DComponent::hingeA>("hingeA", PropertyType::Entity, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, Entity, &Joint3DComponent::hingeB>("hingeB", PropertyType::Entity, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, Entity, &Joint3DComponent::hinge>("hinge", PropertyType::Entity, UpdateFlags_Joint3D),
+        makeFastProperty<Joint3DComponent, Entity, &Joint3DComponent::slider>("slider", PropertyType::Entity, UpdateFlags_Joint3D),
         makeFastProperty<Joint3DComponent, int, &Joint3DComponent::numTeethGearA>("numTeethGearA", PropertyType::Int, UpdateFlags_Joint3D),
         makeFastProperty<Joint3DComponent, int, &Joint3DComponent::numTeethGearB>("numTeethGearB", PropertyType::Int, UpdateFlags_Joint3D),
         makeFastProperty<Joint3DComponent, int, &Joint3DComponent::numTeethRack>("numTeethRack", PropertyType::Int, UpdateFlags_Joint3D),
@@ -561,8 +561,8 @@ namespace {
                         result.def = const_cast<Vector4*>(&std::get<Vector4>(prop.defaultValue));
                         break;
                     case ScriptPropertyType::EntityPointer:
-                        result.ref = const_cast<EntityRef*>(&std::get<EntityRef>(prop.value));
-                        result.def = const_cast<EntityRef*>(&std::get<EntityRef>(prop.defaultValue));
+                        result.ref = const_cast<Entity*>(&std::get<Entity>(prop.value));
+                        result.def = const_cast<Entity*>(&std::get<Entity>(prop.defaultValue));
                         break;
                     default:
                         result.ref = nullptr;
@@ -754,7 +754,7 @@ namespace {
             return {PropertyType::Enum, UpdateFlags_Body3D, (void*)&defaultShape.source, (void*)&shape.source};
         }
         if (propertyName.compare(fieldPos, 12, "sourceEntity") == 0 && fieldPos + 12 == propertyName.size()) {
-            return {PropertyType::UInt, UpdateFlags_Body3D, (void*)&defaultShape.sourceEntity, (void*)&shape.sourceEntity};
+            return {PropertyType::Entity, UpdateFlags_Body3D, (void*)&defaultShape.sourceEntity, (void*)&shape.sourceEntity};
         }
         if (propertyName.compare(fieldPos, 11, "samplesSize") == 0 && fieldPos + 11 == propertyName.size()) {
             return {PropertyType::UInt, UpdateFlags_Body3D, (void*)&defaultShape.samplesSize, (void*)&shape.samplesSize};
@@ -980,7 +980,7 @@ namespace {
                 }
                 if (fieldName == ".action") {
                     static Entity defAction = NULL_ENTITY;
-                    return {PropertyType::UInt, UpdateFlags_None, (void*)&defAction, (void*)&comp->actions[index].action};
+                    return {PropertyType::Entity, UpdateFlags_None, (void*)&defAction, (void*)&comp->actions[index].action};
                 }
                 if (fieldName == ".track") {
                     static uint32_t defTrack = 0;
@@ -1168,7 +1168,7 @@ namespace {
             ps["shapes[" + idx + "].bottomRadius"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&defShape.bottomRadius, compRef ? (void*)&shape.bottomRadius : nullptr};
             ps["shapes[" + idx + "].density"] = {PropertyType::Float, UpdateFlags_Body3D, (void*)&defShape.density, compRef ? (void*)&shape.density : nullptr};
             ps["shapes[" + idx + "].source"] = {PropertyType::Enum, UpdateFlags_Body3D, (void*)&defShape.source, compRef ? (void*)&shape.source : nullptr};
-            ps["shapes[" + idx + "].sourceEntity"] = {PropertyType::UInt, UpdateFlags_Body3D, (void*)&defShape.sourceEntity, compRef ? (void*)&shape.sourceEntity : nullptr};
+            ps["shapes[" + idx + "].sourceEntity"] = {PropertyType::Entity, UpdateFlags_Body3D, (void*)&defShape.sourceEntity, compRef ? (void*)&shape.sourceEntity : nullptr};
             ps["shapes[" + idx + "].samplesSize"] = {PropertyType::UInt, UpdateFlags_Body3D, (void*)&defShape.samplesSize, compRef ? (void*)&shape.samplesSize : nullptr};
             ps["shapes[" + idx + "].numVertices"] = {PropertyType::UInt, UpdateFlags_Body3D, (void*)&defShape.numVertices, compRef ? (void*)&shape.numVertices : nullptr};
             ps["shapes[" + idx + "].numIndices"] = {PropertyType::UInt, UpdateFlags_Body3D, (void*)&defShape.numIndices, compRef ? (void*)&shape.numIndices : nullptr};
@@ -1284,8 +1284,8 @@ namespace {
                             propData.def = &std::get<Vector4>(prop.defaultValue);
                             break;
                         case ScriptPropertyType::EntityPointer:
-                            propData.ref = &std::get<EntityRef>(prop.value);
-                            propData.def = &std::get<EntityRef>(prop.defaultValue);
+                            propData.ref = &std::get<Entity>(prop.value);
+                            propData.def = &std::get<Entity>(prop.defaultValue);
                             break;
                         default:
                             propData.ref = nullptr;
@@ -1728,7 +1728,7 @@ Editor::PropertyType Editor::Catalog::scriptPropertyTypeToPropertyType(ScriptPro
         case Supernova::ScriptPropertyType::Vector4: return Editor::PropertyType::Vector4;
         case Supernova::ScriptPropertyType::Color3: return Editor::PropertyType::Vector3;
         case Supernova::ScriptPropertyType::Color4: return Editor::PropertyType::Vector4;
-        case Supernova::ScriptPropertyType::EntityPointer: return PropertyType::EntityPointer;
+        case Supernova::ScriptPropertyType::EntityPointer: return PropertyType::Entity;
         default: return Editor::PropertyType::Custom;
     }
 }
@@ -1946,7 +1946,9 @@ int Editor::Catalog::getChangedUpdateFlags(ComponentType compType, void* oldComp
             case PropertyType::Material:
                 changed = *static_cast<Material*>(oldProp.ref) != *static_cast<Material*>(newProp.ref);
                 break;
-            case PropertyType::EntityPointer:
+            case PropertyType::Entity:
+                changed = *static_cast<Entity*>(oldProp.ref) != *static_cast<Entity*>(newProp.ref);
+                break;
             case PropertyType::Custom:
                 // Conservative: assume changed for complex types
                 changed = true;
@@ -2255,16 +2257,10 @@ void Editor::Catalog::copyPropertyValue(EntityRegistry* sourceRegistry, Entity s
             if (source && target) *target = *source;
             break;
         }
-        case PropertyType::EntityPointer: {
-            EntityRef* source = Catalog::getPropertyRef<EntityRef>(sourceRegistry, sourceEntity, compType, property);
-            EntityRef* target = Catalog::getPropertyRef<EntityRef>(targetRegistry, targetEntity, compType, property);
-            if (source && target) {
-                // Reset runtime refs to defaults
-                target->entity = NULL_ENTITY;
-                target->scene = nullptr;
-                // Copy only editor-facing metadata
-                target->locator = source->locator;
-            }
+        case PropertyType::Entity: {
+            Entity* source = Catalog::getPropertyRef<Entity>(sourceRegistry, sourceEntity, compType, property);
+            Entity* target = Catalog::getPropertyRef<Entity>(targetRegistry, targetEntity, compType, property);
+            if (source && target) *target = *source;
             break;
         }
         case PropertyType::Custom:
