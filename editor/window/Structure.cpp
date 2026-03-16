@@ -791,15 +791,17 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
             }
 
             ImGui::Separator();
+            bool entityDeleted = false;
             if (ImGui::MenuItem(ICON_FA_COPY"  Duplicate")){
                 // Action for SubItem 1
             }
             if (ImGui::MenuItem(ICON_FA_TRASH"  Delete", nullptr, false, !node.isLocked)){
                 if (!node.isScene){
                     CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new DeleteEntityCmd(project, project->getSelectedSceneId(), node.id));
+                    entityDeleted = true;
                 }
             }
-            if (!node.isScene && node.hasTransform) {
+            if (!entityDeleted && !node.isScene && node.hasTransform) {
                 SceneProject* selectedScene = project->getSelectedScene();
                 bool allowPhysicsBody = selectedScene &&
                     (selectedScene->sceneType == SceneType::SCENE_2D || selectedScene->sceneType == SceneType::SCENE_3D);
@@ -820,7 +822,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                     }
                 }
             }
-            if (node.isParentBundle){
+            if (!entityDeleted && node.isParentBundle){
                 ImGui::Separator();
                 if (ImGui::MenuItem(ICON_FA_LOCK_OPEN"  Remove from bundle", nullptr, false, node.isBundle)){
                     if (node.isBundle){
@@ -833,7 +835,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                     }
                 }
             }
-            if (!node.isScene && !node.isBundle && !node.isParentBundle){
+            if (!entityDeleted && !node.isScene && !node.isBundle && !node.isParentBundle){
                 uint32_t sceneId = project->getSelectedSceneId();
                 const auto& sceneBundles = project->getEntityBundles(sceneId);
 
@@ -853,7 +855,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                     }
                 }
             }
-            if (node.hasTransform || node.isScene){
+            if (!entityDeleted && (node.hasTransform || node.isScene)){
                 ImGui::Separator();
                 static bool createBundleChild = false;
                 if (node.isBundle){
@@ -872,7 +874,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                 showAddChildSceneMenu();
             }
 
-            if (!node.isScene) {
+            if (!entityDeleted && !node.isScene) {
                 SceneProject* sceneProject = project->getSelectedScene();
                 if (sceneProject->scene->getSignature(node.id).test(sceneProject->scene->getComponentId<CameraComponent>())) {
                     ImGui::Separator();

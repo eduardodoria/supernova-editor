@@ -79,35 +79,38 @@ bool Editor::DeleteEntityCmd::execute(){
     lastSelected = project->getSelectedEntities(sceneId);
 
     for (DeleteEntityData& entityData : entities){
-        entityData.data = Stream::encodeEntity(entityData.entity, sceneProject->scene, project, sceneProject);
+        // Check if entity is part of a bundle BEFORE encoding (non-root members produce empty nodes)
+        fs::path bundlePath = project->findEntityBundlePathFor(sceneId, entityData.entity);
+        EntityBundle* bundle = project->getEntityBundle(bundlePath);
 
-        std::vector<Entity> allEntities;
-        project->collectEntities(entityData.data, allEntities);
+        if (bundle) {
+            entityData.instanceId = bundle->getInstanceId(sceneId, entityData.entity);
 
-        // Check if entity is part of a bundle
-        if (allEntities.size() > 0) {
-            Entity entity = allEntities[0];
-
-            fs::path bundlePath = project->findEntityBundlePathFor(sceneId, entity);
-            EntityBundle* bundle = project->getEntityBundle(bundlePath);
-
-            if (bundle) {
-                entityData.instanceId = bundle->getInstanceId(sceneId, entity);
-
-                if (entity == bundle->getRootEntity(sceneId, entityData.instanceId)) {
-                    std::vector<Entity> memberEntities(allEntities.begin() + 1, allEntities.end());
-                    project->unimportEntityBundle(sceneId, bundlePath, entity, memberEntities);
-                } else {
-                    entityData.recoveryBundleData = project->removeEntityFromBundle(sceneId, entity, true);
+            if (entityData.entity == bundle->getRootEntity(sceneId, entityData.entity)) {
+                entityData.isBundleRoot = true;
+                entityData.data = Stream::encodeEntity(entityData.entity, sceneProject->scene, project, sceneProject);
+                const auto* inst = bundle->getInstance(sceneId, entityData.entity);
+                std::vector<Entity> memberEntities;
+                if (inst) {
+                    for (const auto& member : inst->members) {
+                        memberEntities.push_back(member.localEntity);
+                    }
                 }
+                project->unimportEntityBundle(sceneId, bundlePath, entityData.entity, memberEntities);
+            } else {
+                if (!entityData.hasTransform) {
+                    entityData.parent = bundle->getRootEntity(sceneId, entityData.entity);
+                }
+                entityData.recoveryBundleData = project->removeEntityFromBundle(sceneId, entityData.entity, true);
             }
-        }
+        } else {
+            entityData.data = Stream::encodeEntity(entityData.entity, sceneProject->scene, project, sceneProject);
 
-        if (entityData.recoveryBundleData.size() == 0){
+            std::vector<Entity> allEntities;
+            project->collectEntities(entityData.data, allEntities);
+
             for (const Entity& entity : allEntities) {
-
                 destroyEntity(sceneProject->scene, entity, sceneProject->entities, project, sceneId);
-
             }
         }
 

@@ -21,6 +21,7 @@ namespace Supernova::Editor{
         // Track if entity was part of a bundle
         NodeRecovery recoveryBundleData;
         uint32_t instanceId;
+        bool isBundleRoot = false;
     };
 
     class DeleteEntityCmd: public Command{
