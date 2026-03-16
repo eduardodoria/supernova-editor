@@ -29,7 +29,7 @@ bool Editor::Factory::writeHeaderIfChanged(const fs::path& path, const std::stri
     out << "#ifndef " << varName << "_H\n";
     out << "#define " << varName << "_H\n\n";
 
-    out << "unsigned char " << varName << "_data[] = {";
+    out << "inline unsigned char " << varName << "_data[] = {";
     for (size_t i = 0; i < len; i++) {
         if (i % 20 == 0) {
             out << "\n    ";
@@ -37,7 +37,7 @@ bool Editor::Factory::writeHeaderIfChanged(const fs::path& path, const std::stri
         out << "0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(data[i]) << ", ";
     }
     out << "\n};\n";
-    out << "const unsigned int " << varName << "_len = " << std::dec << len << ";\n\n";
+    out << "inline const unsigned int " << varName << "_len = " << std::dec << len << ";\n\n";
 
     out << "#endif // " << varName << "_H\n";
 
