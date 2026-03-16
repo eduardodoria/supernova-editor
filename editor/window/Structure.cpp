@@ -840,16 +840,13 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                 if (!sceneBundles.empty()) {
                     ImGui::Separator();
                     if (ImGui::BeginMenu(ICON_FA_BOXES_STACKED "  Insert to Bundle")) {
-                        SceneProject* sceneProject = project->getSelectedScene();
                         for (const auto& [path, bundlePtr] : sceneBundles) {
                             auto sceneIt = bundlePtr->instances.find(sceneId);
-                            if (sceneIt == bundlePtr->instances.end()) continue;
-                            for (const auto& instance : sceneIt->second) {
-                                std::string rootName = sceneProject->scene->getEntityName(instance.rootEntity);
-                                std::string label = path.stem().string() + " (" + rootName + ")";
-                                if (ImGui::MenuItem(label.c_str())) {
-                                    CommandHandle::get(sceneId)->addCommandNoMerge(new AddEntityToBundleCmd(project, sceneId, node.id, instance.rootEntity));
-                                }
+                            if (sceneIt == bundlePtr->instances.end() || sceneIt->second.empty()) continue;
+                            std::string label = path.stem().string();
+                            if (ImGui::MenuItem(label.c_str())) {
+                                Entity rootEntity = sceneIt->second.front().rootEntity;
+                                CommandHandle::get(sceneId)->addCommandNoMerge(new AddEntityToBundleCmd(project, sceneId, node.id, rootEntity));
                             }
                         }
                         ImGui::EndMenu();
