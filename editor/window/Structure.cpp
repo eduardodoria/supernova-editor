@@ -449,8 +449,11 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     } else if (node.isChildScene) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 0.80f, 0.85f, 1.0f)); // Soft teal for child scenes
         pushedHighlightColor = true;
-    } else if (node.isBundle) {
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.7f, 1.0f, 1.0f)); // Light blue for bundle
+    } else if (node.isBundle && !node.isParentBundle) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.7f, 1.0f, 1.0f)); // Light blue for bundle root
+        pushedHighlightColor = true;
+    } else if (node.isBundle && node.isParentBundle) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.62f, 0.82f, 1.0f, 0.82f)); // Softer blue for bundle children
         pushedHighlightColor = true;
     }
 
@@ -830,6 +833,29 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                     }
                 }
             }
+            if (!node.isScene && !node.isBundle && !node.isParentBundle){
+                uint32_t sceneId = project->getSelectedSceneId();
+                const auto& sceneBundles = project->getEntityBundles(sceneId);
+
+                if (!sceneBundles.empty()) {
+                    ImGui::Separator();
+                    if (ImGui::BeginMenu(ICON_FA_BOXES_STACKED "  Insert to Bundle")) {
+                        SceneProject* sceneProject = project->getSelectedScene();
+                        for (const auto& [path, bundlePtr] : sceneBundles) {
+                            auto sceneIt = bundlePtr->instances.find(sceneId);
+                            if (sceneIt == bundlePtr->instances.end()) continue;
+                            for (const auto& instance : sceneIt->second) {
+                                std::string rootName = sceneProject->scene->getEntityName(instance.rootEntity);
+                                std::string label = path.stem().string() + " (" + rootName + ")";
+                                if (ImGui::MenuItem(label.c_str())) {
+                                    CommandHandle::get(sceneId)->addCommandNoMerge(new AddEntityToBundleCmd(project, sceneId, node.id, instance.rootEntity));
+                                }
+                            }
+                        }
+                        ImGui::EndMenu();
+                    }
+                }
+            }
             if (node.hasTransform || node.isScene){
                 ImGui::Separator();
                 static bool createBundleChild = false;
@@ -1002,6 +1028,7 @@ void Editor::Structure::show(){
                 Entity bundleRoot = bundle ? bundle->getRootEntity(sceneProject->id, entity) : NULL_ENTITY;
                 if (bundleRoot != NULL_ENTITY && bundleRoot != entity) {
                     child.parent = bundleRoot;
+                    child.isParentBundle = true;
                     virtualBundleChildren[bundleRoot].push_back(std::move(child));
                     continue;
                 }

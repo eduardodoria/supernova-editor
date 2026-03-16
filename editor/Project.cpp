@@ -2906,6 +2906,16 @@ const Editor::EntityBundle* Editor::Project::getEntityBundle(const std::filesyst
     return nullptr;
 }
 
+std::map<std::filesystem::path, const Editor::EntityBundle*> Editor::Project::getEntityBundles(uint32_t sceneId) const {
+    std::map<std::filesystem::path, const EntityBundle*> bundlesInScene;
+    for (const auto& [filepath, bundle] : entityBundles) {
+        if (bundle.hasInstances(sceneId)) {
+            bundlesInScene[filepath] = &bundle;
+        }
+    }
+    return bundlesInScene;
+}
+
 std::filesystem::path Editor::Project::findEntityBundlePathFor(uint32_t sceneId, Entity entity) const {
     for (const auto& [filepath, bundle] : entityBundles) {
         auto sceneIt = bundle.instances.find(sceneId);

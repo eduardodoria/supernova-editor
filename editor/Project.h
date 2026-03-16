@@ -317,6 +317,7 @@ namespace Supernova::Editor{
 
         EntityBundle* getEntityBundle(const std::filesystem::path& filepath);
         const EntityBundle* getEntityBundle(const std::filesystem::path& filepath) const;
+        std::map<std::filesystem::path, const EntityBundle*> getEntityBundles(uint32_t sceneId) const;
         std::filesystem::path findEntityBundlePathFor(uint32_t sceneId, Entity entity) const;
 
         YAML::Node encodeEntityBundleNode(const std::filesystem::path& filepath) const;
