@@ -1,4 +1,5 @@
 #include "AddEntityToBundleCmd.h"
+#include "util/ProjectUtils.h"
 
 using namespace Supernova;
 
@@ -7,8 +8,21 @@ Editor::AddEntityToBundleCmd::AddEntityToBundleCmd(Project* project, uint32_t sc
     this->sceneId = sceneId;
     this->entity = entity;
     this->parent = parent;
-
     this->wasModified = project->getScene(sceneId)->isModified;
+
+    this->originalParent = NULL_ENTITY;
+    this->originalTransformIndex = 0;
+    this->hasTransform = false;
+
+    SceneProject* sceneProject = project->getScene(sceneId);
+    if (sceneProject) {
+        Transform* transform = sceneProject->scene->findComponent<Transform>(entity);
+        if (transform) {
+            this->hasTransform = true;
+            this->originalParent = transform->parent;
+            this->originalTransformIndex = ProjectUtils::getTransformIndex(sceneProject->scene, entity);
+        }
+    }
 }
 
 bool Editor::AddEntityToBundleCmd::execute(){
@@ -23,6 +37,13 @@ bool Editor::AddEntityToBundleCmd::execute(){
 
 void Editor::AddEntityToBundleCmd::undo(){
     project->removeEntityFromBundle(sceneId, entity, false);
+
+    if (hasTransform) {
+        SceneProject* sceneProject = project->getScene(sceneId);
+        if (sceneProject) {
+            ProjectUtils::moveEntityOrderByTransform(sceneProject->scene, sceneProject->entities, entity, originalParent, originalTransformIndex, true);
+        }
+    }
 
     project->getScene(sceneId)->isModified = wasModified;
 }

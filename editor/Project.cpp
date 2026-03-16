@@ -3236,9 +3236,6 @@ bool Editor::Project::addEntityToBundle(uint32_t sceneId, Entity entity, Entity 
         return false;
     }
 
-    // Save the entity's current transform index before any modifications
-    size_t currentTransformIndex = ProjectUtils::getTransformIndex(scene, entity);
-
     Entity registryParent = bundle->getRegistryEntity(sceneId, parent);
     // parent could be the bundle root (no registryEntity)
     // In that case the entity will be a top-level member under root
@@ -3252,6 +3249,13 @@ bool Editor::Project::addEntityToBundle(uint32_t sceneId, Entity entity, Entity 
     if (regEntities.empty()) {
         Out::error("Failed to decode entity into bundle registry");
         return false;
+    }
+
+    bool hasTransform = scene->findComponent<Transform>(entity) != nullptr;
+    Entity previousRegistryEntity = NULL_ENTITY;
+    auto regEntityIt = std::find(bundle->registryEntities.begin(), bundle->registryEntities.end(), regEntities[0]);
+    if (regEntityIt != bundle->registryEntities.begin() && regEntityIt != bundle->registryEntities.end()) {
+        previousRegistryEntity = *std::prev(regEntityIt);
     }
 
     // Position in registry if parent has a registry entity
@@ -3284,13 +3288,32 @@ bool Editor::Project::addEntityToBundle(uint32_t sceneId, Entity entity, Entity 
 
                 YAML::Node nodeData = Stream::encodeEntity(regEntities[0], bundle->registry.get());
                 newOtherEntities = Stream::decodeEntity(nodeData, otherScene->scene, &otherScene->entities);
-                ProjectUtils::moveEntityOrderByTransform(otherScene->scene, otherScene->entities, newOtherEntities[0], otherParent, 0, false);
+                if (hasTransform && !newOtherEntities.empty()) {
+                    ProjectUtils::moveEntityOrderByTransform(otherScene->scene, otherScene->entities, newOtherEntities[0], otherParent, 0, false);
+                }
             } else {
                 // Current instance: collect the existing entity IDs and reparent under the bundle.
                 collectEntities(nodeOriginal, newOtherEntities);
 
-                if (!newOtherEntities.empty() && otherScene->scene->findComponent<Transform>(newOtherEntities[0])) {
-                    ProjectUtils::moveEntityOrderByTransform(otherScene->scene, otherScene->entities, newOtherEntities[0], otherParent, currentTransformIndex, true);
+                if (hasTransform && !newOtherEntities.empty()) {
+                    ProjectUtils::moveEntityOrderByTransform(otherScene->scene, otherScene->entities, newOtherEntities[0], otherParent, 0, false);
+                }
+            }
+
+            if (!hasTransform && !newOtherEntities.empty()) {
+                Entity orderAnchor = instance.rootEntity;
+                if (previousRegistryEntity != NULL_ENTITY) {
+                    Entity previousLocalEntity = bundle->getLocalEntity(otherSceneId, instance.instanceId, previousRegistryEntity);
+                    if (previousLocalEntity != NULL_ENTITY) {
+                        orderAnchor = previousLocalEntity;
+                    }
+                }
+
+                if (orderAnchor != NULL_ENTITY && orderAnchor != newOtherEntities[0]) {
+                    Entity oldParent = NULL_ENTITY;
+                    size_t oldIndex = 0;
+                    bool hasTransform = false;
+                    ProjectUtils::moveEntityOrderByTarget(otherScene->scene, otherScene->entities, newOtherEntities[0], orderAnchor, InsertionType::AFTER, oldParent, oldIndex, hasTransform);
                 }
             }
 

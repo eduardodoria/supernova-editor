@@ -17,6 +17,10 @@ namespace Supernova::Editor{
 
         bool wasModified;
 
+        Entity originalParent;
+        size_t originalTransformIndex;
+        bool hasTransform;
+
     public:
         AddEntityToBundleCmd(Project* project, uint32_t sceneId, Entity entity, Entity parent);
 
