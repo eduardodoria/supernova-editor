@@ -43,7 +43,7 @@ bool Editor::MoveEntityOrderCmd::execute(){
 
                 bool isSourceRoot = sourceBundle && (sourceBundle->getRootEntity(sceneId, sourceInstanceId) == source);
 
-                if (parentBundlePath != sourceBundlePath && !isSourceRoot){
+                if (parentBundlePath != sourceBundlePath && targetBundlePath != sourceBundlePath && !isSourceRoot){
                     Out::error("Cannot move bundle entity %u outside entity bundle", source);
                     return false;
                 }

@@ -3403,7 +3403,23 @@ bool Editor::Project::addEntityToBundle(uint32_t sceneId, Entity entity, Entity 
     Scene* scene = sceneProject->scene;
 
     // Find which bundle the parent belongs to
-    fs::path filepath = findEntityBundlePathFor(sceneId, parent);
+    // First check if parent is a bundle root (for explicit "Insert to Bundle" targeting)
+    fs::path filepath;
+    for (const auto& [bundlePath, bundle] : entityBundles) {
+        auto sceneIt = bundle.instances.find(sceneId);
+        if (sceneIt == bundle.instances.end()) continue;
+        for (const auto& instance : sceneIt->second) {
+            if (instance.rootEntity == parent) {
+                filepath = bundlePath;
+                break;
+            }
+        }
+        if (!filepath.empty()) break;
+    }
+    // Fall back to general lookup if parent is not a root
+    if (filepath.empty()) {
+        filepath = findEntityBundlePathFor(sceneId, parent);
+    }
     if (filepath.empty()) {
         Out::error("Entity parent %u in scene %u is not part of any entity bundle", parent, sceneId);
         return false;
