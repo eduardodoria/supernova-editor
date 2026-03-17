@@ -962,7 +962,7 @@ uint32_t Editor::Project::createNewSceneInternal(std::string sceneName, SceneTyp
 
     // Close the previous scene after the new one is created
     if (previousSceneId != NULL_PROJECT_SCENE) {
-        closeScene(previousSceneId);
+        closeScene(previousSceneId, true);
     }
 
     return data.id;
@@ -1283,17 +1283,16 @@ void Editor::Project::openSceneInternal(fs::path filepath, uint32_t sceneToClose
         if (it->opened) {
             setSelectedSceneId(it->id);
             if (sceneToClose != NULL_PROJECT_SCENE && sceneToClose != it->id) {
-                closeScene(sceneToClose);
+                closeScene(sceneToClose, true);
             }
             return;
         }
         // Scene exists in project but is closed
-        loadScene(filepath, true, false);
         if (sceneToClose != NULL_PROJECT_SCENE && sceneToClose != it->id) {
-            closeScene(sceneToClose);
-        }else{
-            saveProject();
+            closeScene(sceneToClose, true);
         }
+        loadScene(filepath, true, false);
+        saveProject();
         return;
     }
 
@@ -1302,12 +1301,11 @@ void Editor::Project::openSceneInternal(fs::path filepath, uint32_t sceneToClose
         "Add Scene",
         "This scene is not part of the current project. Do you want to add it?",
         [this, filepath, sceneToClose]() {
-            loadScene(filepath, true, true);
             if (sceneToClose != NULL_PROJECT_SCENE) {
-                closeScene(sceneToClose);
-            }else{
-                saveProject();
+                closeScene(sceneToClose, true);
             }
+            loadScene(filepath, true, true);
+            saveProject();
         },
         []() {
             // Do nothing
@@ -1315,7 +1313,7 @@ void Editor::Project::openSceneInternal(fs::path filepath, uint32_t sceneToClose
     );
 }
 
-void Editor::Project::closeScene(uint32_t sceneId) {
+void Editor::Project::closeScene(uint32_t sceneId, bool systemClose) {
     auto it = std::find_if(scenes.begin(), scenes.end(),
         [sceneId](const SceneProject& scene) { return scene.id == sceneId; });
 
@@ -1331,14 +1329,16 @@ void Editor::Project::closeScene(uint32_t sceneId) {
         }
     }
 
-    if (openedCount == 1) {
-        Out::error("Cannot close last scene");
-        return;
-    }
+    if (!systemClose){
+        if (openedCount == 1) {
+            Out::error("Cannot close last scene");
+            return;
+        }
 
-    if (selectedScene == sceneId) {
-        Out::error("Scene is selected, cannot close it");
-        return;
+        if (selectedScene == sceneId) {
+            Out::error("Scene is selected, cannot close it");
+            return;
+        }
     }
 
     deleteSceneProject(&(*it));
@@ -1347,7 +1347,9 @@ void Editor::Project::closeScene(uint32_t sceneId) {
 
     it->opened = false;
 
-    saveProject();
+    if (!systemClose){
+        saveProject();
+    }
 }
 
 void Editor::Project::removeScene(uint32_t sceneId) {
@@ -1511,6 +1513,7 @@ void Editor::Project::resetConfigs() {
         deleteSceneProject(&sceneProject);
     }
     scenes.clear();
+    entityBundles.clear();
     Backend::getApp().resetLastActivatedScene();
 
     // Reset state
