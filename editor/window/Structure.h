@@ -20,6 +20,7 @@ namespace Supernova::Editor{
         bool isChildScene = false;
         bool isBundle = false;
         bool isBundleRoot = false;
+        bool hasBundleParent = false;
         bool isParentBundle = false;
         bool isMainCamera = false;
         bool isLocked = false;

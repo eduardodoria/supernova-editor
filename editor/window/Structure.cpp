@@ -471,7 +471,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 0.80f, 0.85f, 1.0f)); // Soft teal for child scenes
         pushedHighlightColor = true;
     } else if (node.isBundle && !node.isParentBundle) {
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.7f, 1.0f, 1.0f)); // Light blue for bundle root
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.9f, 0.8f, 1.0f)); // Pale gold for bundle root
         pushedHighlightColor = true;
     } else if (node.isBundleRoot && node.isParentBundle) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.7f, 1.0f, 1.0f)); // Light blue for nested bundle root
@@ -870,6 +870,16 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                     }
                 }
             }
+            if (!entityDeleted && node.isBundleRoot && node.hasBundleParent){
+                ImGui::Separator();
+                bool isNestedMember = node.isBundle && (node.bundleFilepath != node.nestedBundleFilepath);
+                if (ImGui::MenuItem(ICON_FA_LOCK_OPEN"  Remove from bundle (nested)", nullptr, false, isNestedMember)){
+                    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new RemoveEntityFromBundleCmd(project, project->getSelectedSceneId(), node.id, node.parent));
+                }
+                if (ImGui::MenuItem(ICON_FA_BOXES_STACKED"  Insert into bundle (nested)", nullptr, false, !isNestedMember)){
+                    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new AddEntityToBundleCmd(project, project->getSelectedSceneId(), node.id, node.parent));
+                }
+            }
             if (!entityDeleted && !node.isScene && !node.isBundle && !node.isParentBundle){
                 uint32_t sceneId = project->getSelectedSceneId();
                 const auto& sceneBundles = project->getEntityBundles(sceneId);
@@ -1125,7 +1135,15 @@ void Editor::Structure::show(){
                 TreeNode* parent = parentIt != entityNodeMap.end() ? parentIt->second : nullptr;
                 if (parent){
                     child.parent = parent->id;
-                    child.isParentBundle = bundleEntityPaths.find(transform.parent) != bundleEntityPaths.end();
+                    auto parentBundleIt = bundleEntityPaths.find(transform.parent);
+                    if (parentBundleIt != bundleEntityPaths.end()) {
+                        child.isParentBundle = true;
+                        child.hasBundleParent = true;
+                        // Locally added bundle roots treated as top-level visually, not nested
+                        if (child.isBundleRoot && child.bundleFilepath != parentBundleIt->second) {
+                            child.isParentBundle = false;
+                        }
+                    }
                     parent->children.push_back(child);
                     entityNodeMap[entity] = &parent->children.back();
                 }else{
