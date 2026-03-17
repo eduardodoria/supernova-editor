@@ -3154,6 +3154,9 @@ std::vector<Entity> Editor::Project::importEntityBundle(SceneProject* sceneProje
         for (const auto& entry : bundleOverrides) {
             if (entry["bundlePath"]) {
                 std::string bp = entry["bundlePath"].as<std::string>();
+                if (entry["bundleRootRegistryEntity"]) {
+                    bp += "_" + std::to_string(entry["bundleRootRegistryEntity"].as<Entity>());
+                }
                 YAML::Node cleanEntry;
                 cleanEntry["registryEntity"] = entry["registryEntity"];
                 if (entry["components"]) cleanEntry["components"] = entry["components"];
@@ -3166,8 +3169,12 @@ std::vector<Entity> Editor::Project::importEntityBundle(SceneProject* sceneProje
         for (const auto& entry : bundleLocalEntities) {
             if (entry["bundlePath"]) {
                 std::string bp = entry["bundlePath"].as<std::string>();
+                if (entry["bundleRootRegistryEntity"]) {
+                    bp += "_" + std::to_string(entry["bundleRootRegistryEntity"].as<Entity>());
+                }
                 YAML::Node cleanEntry = YAML::Clone(entry);
                 cleanEntry.remove("bundlePath");
+                cleanEntry.remove("bundleRootRegistryEntity");
                 nestedLocalEntitiesMap[bp].push_back(cleanEntry);
             }
         }
@@ -3210,10 +3217,24 @@ std::vector<Entity> Editor::Project::importEntityBundle(SceneProject* sceneProje
     for (Entity ent : newEntities) {
         BundleComponent* bundleComp = scene->findComponent<BundleComponent>(ent);
         if (bundleComp && !bundleComp->path.empty()) {
+            // Find the registry entity for this nested bundle root in the parent bundle
+            Entity nestedRegEntity = NULL_ENTITY;
+            for (const auto& member : newInstance.members) {
+                if (member.localEntity == ent) {
+                    nestedRegEntity = member.registryEntity;
+                    break;
+                }
+            }
+
+            std::string nestedKey = bundleComp->path;
+            if (nestedRegEntity != NULL_ENTITY) {
+                nestedKey += "_" + std::to_string(nestedRegEntity);
+            }
+
             YAML::Node nestedOvr, nestedLoc;
-            auto ovrIt = nestedOverridesMap.find(bundleComp->path);
+            auto ovrIt = nestedOverridesMap.find(nestedKey);
             if (ovrIt != nestedOverridesMap.end()) nestedOvr = ovrIt->second;
-            auto locIt = nestedLocalEntitiesMap.find(bundleComp->path);
+            auto locIt = nestedLocalEntitiesMap.find(nestedKey);
             if (locIt != nestedLocalEntitiesMap.end()) nestedLoc = locIt->second;
             std::vector<Entity> nestedEntities = importEntityBundle(sceneProject, entities, bundleComp->path, ent, false, nestedOvr, nestedLoc);
             allResult.insert(allResult.end(), nestedEntities.begin(), nestedEntities.end());

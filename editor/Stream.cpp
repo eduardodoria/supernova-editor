@@ -1235,6 +1235,7 @@ YAML::Node Editor::Stream::encodeEntityAux(const Entity entity, const EntityRegi
                                         YAML::Node entry;
                                         entry["registryEntity"] = nestedMember.registryEntity;
                                         entry["bundlePath"] = nestedBC.path;
+                                        entry["bundleRootRegistryEntity"] = member.registryEntity;
                                         Signature sig = Catalog::componentMaskToSignature(registry, nOverrideIt->second);
                                         YAML::Node overrideComps = encodeComponents(nestedMember.localEntity, registry, sig);
                                         if (overrideComps.IsMap() && overrideComps.size() > 0) {
@@ -1359,6 +1360,7 @@ YAML::Node Editor::Stream::encodeEntityAux(const Entity entity, const EntityRegi
                                             localEntNode["parentRegistryEntity"] = nParentReg;
                                             localEntNode["childIndex"] = nChildPos;
                                             localEntNode["bundlePath"] = nestedBCLoc.path;
+                                            localEntNode["bundleRootRegistryEntity"] = member.registryEntity;
                                             localEntsNode.push_back(localEntNode);
                                         }
                                         nChildPos++;
