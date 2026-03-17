@@ -3201,7 +3201,11 @@ std::vector<Entity> Editor::Project::importEntityBundle(SceneProject* sceneProje
             if (localEntity == NULL_ENTITY) continue;
 
             if (entry["components"]) {
-                Stream::decodeComponents(localEntity, NULL_ENTITY, scene, entry["components"]);
+                // Save parent before decoding so Transform overrides don't reparent
+                Transform* existingTf = scene->findComponent<Transform>(localEntity);
+                Entity savedParent = existingTf ? existingTf->parent : NULL_ENTITY;
+
+                Stream::decodeComponents(localEntity, savedParent, scene, entry["components"]);
 
                 // Track which components are overridden
                 uint64_t overrideMask = 0;
