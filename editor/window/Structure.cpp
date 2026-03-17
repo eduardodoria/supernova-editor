@@ -92,28 +92,28 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addT
         ImGui::EndMenu();
     }
 
-    if (ImGui::BeginMenu(ICON_FA_CUBE"  Basic shape")){
-        if (ImGui::MenuItem(ICON_FA_CUBE"  Box")){
+    if (ImGui::BeginMenu(ICON_FA_DICE_D20"  Basic shape")){
+        if (ImGui::MenuItem(ICON_FA_DICE_D20"  Box")){
             CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Box", EntityCreationType::BOX, parent, addToBundle));
             openParent = parent;
         }
-        if (ImGui::MenuItem(ICON_FA_CUBE"  Plane")){
+        if (ImGui::MenuItem(ICON_FA_DICE_D20"  Plane")){
             CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Plane", EntityCreationType::PLANE, parent, addToBundle));
             openParent = parent;
         }
-        if (ImGui::MenuItem(ICON_FA_CUBE"  Sphere")){
+        if (ImGui::MenuItem(ICON_FA_DICE_D20"  Sphere")){
             CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Sphere", EntityCreationType::SPHERE, parent, addToBundle));
             openParent = parent;
         }
-        if (ImGui::MenuItem(ICON_FA_CUBE"  Cylinder")){
+        if (ImGui::MenuItem(ICON_FA_DICE_D20"  Cylinder")){
             CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Cylinder", EntityCreationType::CYLINDER, parent, addToBundle));
             openParent = parent;
         }
-        if (ImGui::MenuItem(ICON_FA_CUBE"  Capsule")){
+        if (ImGui::MenuItem(ICON_FA_DICE_D20"  Capsule")){
             CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Capsule", EntityCreationType::CAPSULE, parent, addToBundle));
             openParent = parent;
         }
-        if (ImGui::MenuItem(ICON_FA_CUBE"  Torus")){
+        if (ImGui::MenuItem(ICON_FA_DICE_D20"  Torus")){
             CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Torus", EntityCreationType::TORUS, parent, addToBundle));
             openParent = parent;
         }
@@ -226,11 +226,11 @@ void Editor::Structure::drawInsertionMarker(const ImVec2& p1, const ImVec2& p2) 
 
 std::string Editor::Structure::getObjectIcon(Signature signature, Scene* scene){
     if (signature.test(scene->getComponentId<BundleComponent>())){
-        return ICON_FA_BOXES_STACKED;
+        return ICON_FA_CUBE;
     }else if (signature.test(scene->getComponentId<ModelComponent>())){
         return ICON_FA_PERSON_WALKING;
     }else if (signature.test(scene->getComponentId<MeshComponent>())){
-        return ICON_FA_CUBE;
+        return ICON_FA_DICE_D20;
     }else if (signature.test(scene->getComponentId<SkyComponent>())){
         return ICON_FA_CLOUD;
     }else if (signature.test(scene->getComponentId<UIContainerComponent>())){
