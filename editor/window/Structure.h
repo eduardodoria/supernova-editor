@@ -60,6 +60,7 @@ namespace Supernova::Editor{
         std::string getObjectIcon(Signature signature, Scene* scene);
         void handleEntityFilesDrop(const std::vector<std::string>& filePaths, Entity parent = NULL_ENTITY);
         void handleSceneFilesDropAsChildScenes(const std::vector<std::string>& filePaths, uint32_t ownerSceneId);
+        void moveEntityToRootLevel(Entity sourceEntity, const std::unordered_set<Entity>& entitiesSet);
         void showAddChildSceneMenu();
 
         // Search-related methods

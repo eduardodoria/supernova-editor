@@ -260,6 +260,27 @@ std::string Editor::Structure::getObjectIcon(Signature signature, Scene* scene){
     return ICON_FA_CIRCLE_DOT;
 }
 
+void Editor::Structure::moveEntityToRootLevel(Entity sourceEntity, const std::unordered_set<Entity>& entitiesSet) {
+    SceneProject* sceneProject = project->getSelectedScene();
+    auto transforms = sceneProject->scene->getComponentArray<Transform>();
+    Entity lastRootEntity = NULL_ENTITY;
+
+    for (int i = transforms->size() - 1; i >= 0; i--) {
+        Transform& transform = transforms->getComponentFromIndex(i);
+        Entity entity = transforms->getEntity(i);
+
+        if (transform.parent == NULL_ENTITY &&
+            entitiesSet.find(entity) != entitiesSet.end()) {
+            lastRootEntity = entity;
+            break;
+        }
+    }
+
+    if (lastRootEntity != NULL_ENTITY && lastRootEntity != sourceEntity) {
+        CommandHandle::get(project->getSelectedSceneId())->addCommand(new MoveEntityOrderCmd(project, project->getSelectedSceneId(), sourceEntity, lastRootEntity, InsertionType::AFTER));
+    }
+}
+
 void Editor::Structure::handleEntityFilesDrop(const std::vector<std::string>& filePaths, Entity parent) {
     for (const std::string& filePath : filePaths) {
         std::filesystem::path path(filePath);
@@ -557,7 +578,11 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                 sourceHasTransform = p->hasTransform;
             }
 
-            if (sourceHasTransform != node.hasTransform) {
+            if (sourceHasTransform != node.hasTransform && !node.isScene) {
+                allowEntityDragDrop = false;
+            }
+            // For scene node, only allow if entity has a parent (has transform and is a child)
+            if (node.isScene && (!sourceHasTransform || sourceParent == NULL_ENTITY)) {
                 allowEntityDragDrop = false;
             }
         }
@@ -586,22 +611,28 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
             ImGuiDragDropFlags flags = 0;
             //ImGuiDragDropFlags flags = ImGuiDragDropFlags_AcceptBeforeDelivery;
 
-            if (insertBefore || insertAfter){
+            if (!node.isScene && (insertBefore || insertAfter)){
                 flags |= ImGuiDragDropFlags_AcceptNoDrawDefaultRect;
             }
 
             if (ImGui::AcceptDragDropPayload("entity", flags)) {
 
-                if (!node.isScene && payload->IsDelivery()){
-                    InsertionType type;
-                    if (insertBefore){
-                        type = InsertionType::BEFORE;
-                    }else if (insertAfter){
-                        type = InsertionType::AFTER;
-                    }else{
-                        type = InsertionType::INTO;
+                if (payload->IsDelivery()){
+                    if (node.isScene) {
+                        SceneProject* sceneProject = project->getSelectedScene();
+                        std::unordered_set<Entity> entitiesSet(sceneProject->entities.begin(), sceneProject->entities.end());
+                        moveEntityToRootLevel(sourceEntity, entitiesSet);
+                    } else {
+                        InsertionType type;
+                        if (insertBefore){
+                            type = InsertionType::BEFORE;
+                        }else if (insertAfter){
+                            type = InsertionType::AFTER;
+                        }else{
+                            type = InsertionType::INTO;
+                        }
+                        CommandHandle::get(project->getSelectedSceneId())->addCommand(new MoveEntityOrderCmd(project, project->getSelectedSceneId(), sourceEntity, node.id, type));
                     }
-                    CommandHandle::get(project->getSelectedSceneId())->addCommand(new MoveEntityOrderCmd(project, project->getSelectedSceneId(), sourceEntity, node.id, type));
                 }
 
             }
@@ -1166,24 +1197,7 @@ void Editor::Structure::show(){
                     if (sourceHasTransform && sourceParent != NULL_ENTITY) {
                         if (ImGui::AcceptDragDropPayload("entity")) {
                             if (payload->IsDelivery()) {
-                                // Find the last root entity with transform
-                                auto transforms = sceneProject->scene->getComponentArray<Transform>();
-                                Entity lastRootEntity = NULL_ENTITY;
-
-                                for (int i = transforms->size() - 1; i >= 0; i--) {
-                                    Transform& transform = transforms->getComponentFromIndex(i);
-                                    Entity entity = transforms->getEntity(i);
-
-                                    if (transform.parent == NULL_ENTITY &&
-                                        sceneEntitiesSet.find(entity) != sceneEntitiesSet.end()) {
-                                        lastRootEntity = entity;
-                                        break;
-                                    }
-                                }
-
-                                if (lastRootEntity != NULL_ENTITY && lastRootEntity != sourceEntity) {
-                                    CommandHandle::get(project->getSelectedSceneId())->addCommand(new MoveEntityOrderCmd(project, project->getSelectedSceneId(), sourceEntity, lastRootEntity, InsertionType::AFTER));
-                                }
+                                moveEntityToRootLevel(sourceEntity, sceneEntitiesSet);
                             }
                         }
                     }
