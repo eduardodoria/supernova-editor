@@ -23,6 +23,7 @@ namespace Supernova::Editor{
         Entity rootEntity;
         std::vector<Entity> lastSelected;
         bool wasModified;
+        bool addedToParentBundle;
 
     public:
         ImportEntityBundleCmd(Project* project, uint32_t sceneId, const fs::path& filepath, Entity parent = NULL_ENTITY, bool needSaveScene = true);

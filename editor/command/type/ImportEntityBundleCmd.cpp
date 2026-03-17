@@ -13,6 +13,7 @@ Editor::ImportEntityBundleCmd::ImportEntityBundleCmd(Project* project, uint32_t 
     this->needSaveScene = needSaveScene;
     this->rootEntity = NULL_ENTITY;
     this->wasModified = project->getScene(sceneId)->isModified;
+    this->addedToParentBundle = false;
 }
 
 bool Editor::ImportEntityBundleCmd::execute(){
@@ -109,6 +110,12 @@ bool Editor::ImportEntityBundleCmd::execute(){
         return false;
     }
 
+    // If parent is part of a bundle, add the new root as a nested bundle member
+    addedToParentBundle = false;
+    if (parent != NULL_ENTITY && project->isEntityInBundle(sceneId, parent)) {
+        addedToParentBundle = project->addEntityToBundle(sceneId, rootEntity, parent, false);
+    }
+
     // Select the root entity
     project->setSelectedEntity(sceneId, rootEntity);
 
@@ -123,6 +130,12 @@ void Editor::ImportEntityBundleCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
     if (!sceneProject) {
         return;
+    }
+
+    // Remove from parent bundle first if it was added
+    if (addedToParentBundle) {
+        project->removeEntityFromBundle(sceneId, rootEntity, false);
+        addedToParentBundle = false;
     }
 
     // Unimport the entity bundle (removes instance + destroys entities)

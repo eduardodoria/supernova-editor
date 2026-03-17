@@ -452,6 +452,9 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     } else if (node.isBundle && !node.isParentBundle) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.7f, 1.0f, 1.0f)); // Light blue for bundle root
         pushedHighlightColor = true;
+    } else if (node.isBundleRoot && node.isParentBundle) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.7f, 1.0f, 1.0f)); // Light blue for nested bundle root
+        pushedHighlightColor = true;
     } else if (node.isBundle && node.isParentBundle) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.62f, 0.82f, 1.0f, 0.82f)); // Softer blue for bundle children
         pushedHighlightColor = true;
@@ -474,14 +477,15 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     }else{
         if (node.isBundle) {
             if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal)) {
-                EntityBundle* bundle = project->getEntityBundle(node.bundleFilepath);
+                std::filesystem::path tooltipPath = node.isBundleRoot ? node.nestedBundleFilepath : node.bundleFilepath;
+                EntityBundle* bundle = project->getEntityBundle(tooltipPath);
                 uint32_t instanceId = bundle ? bundle->getInstanceId(project->getSelectedSceneId(), node.id) : 0;
                 Entity registryEntity = bundle ? bundle->getRegistryEntity(project->getSelectedSceneId(), node.id) : NULL_ENTITY;
 
                 ImGui::BeginTooltip();
                 ImGui::Text("Entity: %u", node.id);
                 ImGui::Separator();
-                ImGui::Text("Path: %s", node.bundleFilepath.string().c_str());
+                ImGui::Text("Path: %s", tooltipPath.string().c_str());
                 if (instanceId != 0) {
                     ImGui::Text("Instance: %u", instanceId);
                 }
@@ -822,7 +826,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                     }
                 }
             }
-            if (!entityDeleted && node.isParentBundle){
+            if (!entityDeleted && node.isParentBundle && !node.isBundleRoot){
                 ImGui::Separator();
                 if (ImGui::MenuItem(ICON_FA_LOCK_OPEN"  Remove from bundle", nullptr, false, node.isBundle)){
                     if (node.isBundle){
@@ -1022,6 +1026,10 @@ void Editor::Structure::show(){
             if (bundleIt != bundleEntityPaths.end()) {
                 child.isBundle = true;
                 child.bundleFilepath = bundleIt->second;
+                if (signature.test(sceneProject->scene->getComponentId<BundleComponent>())) {
+                    child.isBundleRoot = true;
+                    child.nestedBundleFilepath = sceneProject->scene->getComponent<BundleComponent>(entity).path;
+                }
 
                 EntityBundle* bundle = project->getEntityBundle(bundleIt->second);
                 Entity bundleRoot = bundle ? bundle->getRootEntity(sceneProject->id, entity) : NULL_ENTITY;
@@ -1073,6 +1081,10 @@ void Editor::Structure::show(){
             if (bundleIt != bundleEntityPaths.end()) {
                 child.isBundle = true;
                 child.bundleFilepath = bundleIt->second;
+            }
+            if (signature.test(sceneProject->scene->getComponentId<BundleComponent>())) {
+                child.isBundleRoot = true;
+                child.nestedBundleFilepath = sceneProject->scene->getComponent<BundleComponent>(entity).path;
             }
             if (transform.parent == NULL_ENTITY){
                 root.children.push_back(child);

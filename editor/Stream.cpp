@@ -1213,6 +1213,40 @@ YAML::Node Editor::Stream::encodeEntityAux(const Entity entity, const EntityRegi
                                 overridesNode.push_back(entry);
                             }
                         }
+
+                        // Encode nested bundle overrides (tagged with bundlePath)
+                        for (const auto& member : instance.members) {
+                            if (!registry->getSignature(member.localEntity).test(registry->getComponentId<BundleComponent>())) continue;
+                            const BundleComponent& nestedBC = registry->getComponent<BundleComponent>(member.localEntity);
+                            if (nestedBC.path.empty()) continue;
+
+                            const EntityBundle* nestedBundle = project->getEntityBundle(nestedBC.path);
+                            if (!nestedBundle) continue;
+
+                            auto nestedSceneIt = nestedBundle->instances.find(sceneProject->id);
+                            if (nestedSceneIt == nestedBundle->instances.end()) continue;
+
+                            for (const auto& nestedInst : nestedSceneIt->second) {
+                                if (nestedInst.rootEntity != member.localEntity) continue;
+
+                                for (const auto& nestedMember : nestedInst.members) {
+                                    auto nOverrideIt = nestedInst.overrides.find(nestedMember.localEntity);
+                                    if (nOverrideIt != nestedInst.overrides.end() && nOverrideIt->second != 0) {
+                                        YAML::Node entry;
+                                        entry["registryEntity"] = nestedMember.registryEntity;
+                                        entry["bundlePath"] = nestedBC.path;
+                                        Signature sig = Catalog::componentMaskToSignature(registry, nOverrideIt->second);
+                                        YAML::Node overrideComps = encodeComponents(nestedMember.localEntity, registry, sig);
+                                        if (overrideComps.IsMap() && overrideComps.size() > 0) {
+                                            entry["components"] = overrideComps;
+                                        }
+                                        overridesNode.push_back(entry);
+                                    }
+                                }
+                                break;
+                            }
+                        }
+
                         if (overridesNode.size() > 0) {
                             entityNode["bundleOverrides"] = overridesNode;
                         }
@@ -1223,12 +1257,37 @@ YAML::Node Editor::Stream::encodeEntityAux(const Entity entity, const EntityRegi
                         memberSet.insert(instance.rootEntity);
                         for (const auto& m : instance.members) {
                             memberSet.insert(m.localEntity);
+
+                            // Also add nested bundle members to memberSet
+                            if (registry->getSignature(m.localEntity).test(registry->getComponentId<BundleComponent>())) {
+                                const BundleComponent& nbc = registry->getComponent<BundleComponent>(m.localEntity);
+                                if (!nbc.path.empty()) {
+                                    const EntityBundle* nb = project->getEntityBundle(nbc.path);
+                                    if (nb) {
+                                        auto nsi = nb->instances.find(sceneProject->id);
+                                        if (nsi != nb->instances.end()) {
+                                            for (const auto& ni : nsi->second) {
+                                                if (ni.rootEntity == m.localEntity) {
+                                                    for (const auto& nm : ni.members) {
+                                                        memberSet.insert(nm.localEntity);
+                                                    }
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
 
                         // Check root and each member for non-member children
+                        // Skip nested bundle roots (their local entities are handled separately)
                         std::vector<std::pair<Entity, Entity>> parentCandidates; // {parentLocal, parentRegistry}
                         parentCandidates.push_back({instance.rootEntity, NULL_ENTITY});
                         for (const auto& m : instance.members) {
+                            if (registry->getSignature(m.localEntity).test(registry->getComponentId<BundleComponent>())) {
+                                continue;
+                            }
                             parentCandidates.push_back({m.localEntity, m.registryEntity});
                         }
 
@@ -1255,6 +1314,60 @@ YAML::Node Editor::Stream::encodeEntityAux(const Entity entity, const EntityRegi
                                 childPos++;
                             }
                         }
+
+                        // Encode nested bundle local entities (tagged with bundlePath)
+                        for (const auto& member : instance.members) {
+                            if (!registry->getSignature(member.localEntity).test(registry->getComponentId<BundleComponent>())) continue;
+                            const BundleComponent& nestedBCLoc = registry->getComponent<BundleComponent>(member.localEntity);
+                            if (nestedBCLoc.path.empty()) continue;
+
+                            const EntityBundle* nestedBundle = project->getEntityBundle(nestedBCLoc.path);
+                            if (!nestedBundle) continue;
+
+                            auto nestedSceneIt = nestedBundle->instances.find(sceneProject->id);
+                            if (nestedSceneIt == nestedBundle->instances.end()) continue;
+
+                            for (const auto& nestedInst : nestedSceneIt->second) {
+                                if (nestedInst.rootEntity != member.localEntity) continue;
+
+                                std::unordered_set<Entity> nestedMemberSet;
+                                nestedMemberSet.insert(nestedInst.rootEntity);
+                                for (const auto& nm : nestedInst.members) {
+                                    nestedMemberSet.insert(nm.localEntity);
+                                }
+
+                                std::vector<std::pair<Entity, Entity>> nestedParentCandidates;
+                                nestedParentCandidates.push_back({nestedInst.rootEntity, NULL_ENTITY});
+                                for (const auto& nm : nestedInst.members) {
+                                    nestedParentCandidates.push_back({nm.localEntity, nm.registryEntity});
+                                }
+
+                                for (const auto& [nParentLocal, nParentReg] : nestedParentCandidates) {
+                                    if (!registry->getSignature(nParentLocal).test(registry->getComponentId<Transform>())) continue;
+                                    auto transforms = registry->getComponentArray<Transform>();
+                                    size_t nParentIdx = transforms->getIndex(nParentLocal);
+                                    size_t nChildPos = 0;
+                                    for (size_t ti = nParentIdx + 1; ti < transforms->size(); ti++) {
+                                        Transform& t = transforms->getComponentFromIndex(ti);
+                                        Entity childEnt = transforms->getEntity(ti);
+                                        if (t.parent != nParentLocal) {
+                                            if (t.parent == NULL_ENTITY) break;
+                                            continue;
+                                        }
+                                        if (nestedMemberSet.find(childEnt) == nestedMemberSet.end()) {
+                                            YAML::Node localEntNode = encodeEntity(childEnt, registry, project, sceneProject);
+                                            localEntNode["parentRegistryEntity"] = nParentReg;
+                                            localEntNode["childIndex"] = nChildPos;
+                                            localEntNode["bundlePath"] = nestedBCLoc.path;
+                                            localEntsNode.push_back(localEntNode);
+                                        }
+                                        nChildPos++;
+                                    }
+                                }
+                                break;
+                            }
+                        }
+
                         if (localEntsNode.size() > 0) {
                             entityNode["bundleLocalEntities"] = localEntsNode;
                         }

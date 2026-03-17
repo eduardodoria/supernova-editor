@@ -15,9 +15,11 @@ namespace Supernova::Editor{
         std::string icon;
         std::string name;
         std::filesystem::path bundleFilepath;
+        std::filesystem::path nestedBundleFilepath;
         bool isScene = false;
         bool isChildScene = false;
         bool isBundle = false;
+        bool isBundleRoot = false;
         bool isParentBundle = false;
         bool isMainCamera = false;
         bool isLocked = false;
