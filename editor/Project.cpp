@@ -3066,7 +3066,15 @@ std::vector<Entity> Editor::Project::importEntityBundle(SceneProject* sceneProje
     YAML::Node node;
     if (bundle.isModified && !bundle.registryEntities.empty()) {
         std::vector<Entity> topLevelEntities = getTopLevelEntities(bundle.registry.get(), bundle.registryEntities);
-        node = Stream::encodeEntitySelection(topLevelEntities, bundle.registry.get(), this);
+        // Always encode as EntityBundle with members for consistent decode
+        YAML::Node bundleNode;
+        bundleNode["type"] = "EntityBundle";
+        YAML::Node membersNode(YAML::NodeType::Sequence);
+        for (Entity entity : topLevelEntities) {
+            membersNode.push_back(Stream::encodeEntity(entity, bundle.registry.get(), this));
+        }
+        bundleNode["members"] = membersNode;
+        node = bundleNode;
     } else {
         try {
             std::filesystem::path fullBundlePath = getProjectPath() / filepath;
@@ -3107,6 +3115,9 @@ std::vector<Entity> Editor::Project::importEntityBundle(SceneProject* sceneProje
             registryToLocal[regEntities[i]] = newEntities[i];
         }
         remapEntityReferences(scene, newEntities, registryToLocal);
+    } else {
+        Out::error("importEntityBundle(%s): entity count mismatch: newEntities=%zu, regEntities=%zu",
+            filepath.string().c_str(), newEntities.size(), regEntities.size());
     }
 
     // Remove decoded children of nested bundle roots
