@@ -2544,16 +2544,6 @@ SpriteComponent Editor::Stream::decodeSpriteComponent(const YAML::Node& node, co
                 sprite.framesRect[sprite.numFramesRect] = decodeSpriteFrameData(framesNode[i]);
                 sprite.numFramesRect++;
             }
-        } else {
-            // Legacy map format: convert to dense
-            unsigned int count = 0;
-            for (const auto& frameNode : framesNode) {
-                if (count < sprite.framesRect.size()) {
-                    sprite.framesRect[count] = decodeSpriteFrameData(frameNode.second);
-                    count++;
-                }
-            }
-            sprite.numFramesRect = count;
         }
     }
 
