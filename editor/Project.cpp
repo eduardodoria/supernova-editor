@@ -443,6 +443,7 @@ void Editor::Project::remapEntityBundleFilePath(const std::filesystem::path& old
             continue;
         }
 
+        bool sceneBundleChanged = false;
         auto bundleArray = sceneProject.scene->getComponentArray<BundleComponent>();
         for (size_t i = 0; i < bundleArray->size(); ++i) {
             BundleComponent& bundleComp = bundleArray->getComponentFromIndex(i);
@@ -451,13 +452,21 @@ void Editor::Project::remapEntityBundleFilePath(const std::filesystem::path& old
                 bundleComp.path = updatedPath;
                 sceneProject.isModified = true;
                 changed = true;
+                sceneBundleChanged = true;
             }
+        }
+
+        if (sceneBundleChanged) {
+            updateSceneBundleFileNames(&sceneProject);
         }
     }
 
     for (uint32_t sceneId : affectedSceneIds) {
         if (SceneProject* sceneProject = getScene(sceneId)) {
             sceneProject->isModified = true;
+            if (sceneProject->scene) {
+                updateSceneBundleFileNames(sceneProject);
+            }
         }
     }
 }
@@ -597,6 +606,7 @@ void Editor::Project::cleanupEntityBundleFilePath(const std::filesystem::path& d
     }
 
     bool changed = !bundlesToRemove.empty();
+    std::unordered_set<uint32_t> affectedSceneIds;
 
     for (const auto& bundlePath : bundlesToRemove) {
         EntityBundle* bundle = getEntityBundle(bundlePath);
@@ -606,6 +616,7 @@ void Editor::Project::cleanupEntityBundleFilePath(const std::filesystem::path& d
 
         std::vector<std::pair<uint32_t, std::pair<Entity, std::vector<Entity>>>> instancesToRemove;
         for (const auto& [sceneId, instances] : bundle->instances) {
+            affectedSceneIds.insert(sceneId);
             for (const auto& instance : instances) {
                 std::vector<Entity> memberEntities;
                 memberEntities.reserve(instance.members.size());
@@ -625,6 +636,15 @@ void Editor::Project::cleanupEntityBundleFilePath(const std::filesystem::path& d
         }
 
         removeEntityBundle(bundlePath);
+    }
+
+    for (uint32_t sceneId : affectedSceneIds) {
+        if (SceneProject* sceneProject = getScene(sceneId)) {
+            sceneProject->isModified = true;
+            if (sceneProject->scene) {
+                updateSceneBundleFileNames(sceneProject);
+            }
+        }
     }
 }
 
@@ -1051,6 +1071,20 @@ void Editor::Project::updateSceneCppScripts(SceneProject* sceneProject) {
     }
 }
 
+void Editor::Project::updateSceneBundleFileNames(SceneProject* sceneProject) {
+    if (!sceneProject) {
+        return;
+    }
+
+    sceneProject->bundleFileNames.clear();
+
+    for (const auto& [bundlePath, bundle] : entityBundles) {
+        if (bundle.instances.find(sceneProject->id) != bundle.instances.end()) {
+            sceneProject->bundleFileNames.push_back(Factory::bundleToFileName(bundlePath));
+        }
+    }
+}
+
 Editor::SceneMaxValues Editor::Project::calculateSceneMaxValues(const SceneProject* sceneProject) const {
     SceneMaxValues maxValues;
 
@@ -1237,6 +1271,7 @@ void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene)
 
         if (opened) {
             updateSceneCppScripts(targetScene);
+            updateSceneBundleFileNames(targetScene);
         }
 
     } catch (const YAML::Exception& e) {
@@ -1549,6 +1584,23 @@ std::vector<Editor::SceneScriptSource> Editor::Project::collectAllSceneCppScript
     }
 
     return mergedScripts;
+}
+
+std::vector<std::string> Editor::Project::collectAllBundleFileNames() const {
+    std::unordered_set<std::string> uniqueNames;
+    std::vector<std::string> mergedBundleFileNames;
+
+    for (const auto& sceneProject : scenes) {
+        for (const auto& name : sceneProject.bundleFileNames) {
+            if (!uniqueNames.insert(name).second) {
+                continue;
+            }
+
+            mergedBundleFileNames.push_back(name);
+        }
+    }
+
+    return mergedBundleFileNames;
 }
 
 void Editor::Project::pauseEngineScene(Scene* scene, bool pause) const{
@@ -1960,6 +2012,9 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
 
     sceneProject->maxValues = calculateSceneMaxValues(sceneProject);
 
+    updateSceneCppScripts(sceneProject);
+    updateSceneBundleFileNames(sceneProject);
+
     YAML::Node root = Stream::encodeSceneProject(this, sceneProject);
     std::ofstream fout(path.string());
     fout << YAML::Dump(root);
@@ -1969,17 +2024,8 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
     sceneProject->isModified = false;
     saveProject();
 
-    updateSceneCppScripts(sceneProject);
-
-    generator.writeSceneSource(sceneProject->scene, sceneProject->name, sceneProject->entities, getSceneCamera(sceneProject), getProjectPath(), getProjectInternalPath(), entityBundles, sceneId);
-
-    // Collect bundle file names for CMake
-    std::set<std::string> bundleFileNames;
-    for (const auto& [bundlePath, bundle] : entityBundles) {
-        if (!bundle.instances.empty()) {
-            bundleFileNames.insert(Factory::bundleToFileName(bundlePath));
-        }
-    }
+    std::vector<BundleInstanceInfo> bundleInstances = generator.writeBundleSources(entityBundles, sceneId, getProjectPath(),getProjectInternalPath());
+    generator.writeSceneSource(sceneProject->scene, sceneProject->name, sceneProject->entities, getSceneCamera(sceneProject), getProjectPath(), getProjectInternalPath(), bundleInstances);
 
     std::vector<Editor::SceneBuildInfo> scenesToConfig;
     for (SceneProject& sceneConf : scenes) {
@@ -1991,6 +2037,7 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
     }
 
     std::vector<SceneScriptSource> mergedCppScripts = collectAllSceneCppScripts();
+    std::vector<std::string> bundleFileNames = collectAllBundleFileNames();
     generator.configure(scenesToConfig, libName, mergedCppScripts, getProjectPath(), getProjectInternalPath(), bundleFileNames);
 
     Out::info("Scene saved to: \"%s\"", path.string().c_str());
@@ -4321,7 +4368,8 @@ void Editor::Project::start(uint32_t sceneId) {
             }
 
             if (!savedNow) {
-                generator.writeSceneSource(entry.runtime->scene, entry.runtime->name, entry.runtime->entities, getSceneCamera(entry.runtime), getProjectPath(), getProjectInternalPath(), entityBundles, sceneProject.id);
+                std::vector<BundleInstanceInfo> bundleInstances = generator.writeBundleSources(entityBundles, sceneId, getProjectPath(),getProjectInternalPath());
+                generator.writeSceneSource(entry.runtime->scene, entry.runtime->name, entry.runtime->entities, getSceneCamera(entry.runtime), getProjectPath(), getProjectInternalPath(), bundleInstances);
             }
 
             session->runtimeScenes.push_back(entry);
@@ -4347,13 +4395,7 @@ void Editor::Project::start(uint32_t sceneId) {
     Backend::getApp().getCodeEditor()->saveAll();
 
     std::vector<SceneScriptSource> mergedCppScripts = collectAllSceneCppScripts();
-
-    std::set<std::string> bundleFileNames;
-    for (const auto& [bundlePath, bundle] : entityBundles) {
-        if (!bundle.instances.empty()) {
-            bundleFileNames.insert(Factory::bundleToFileName(bundlePath));
-        }
-    }
+    std::vector<std::string> bundleFileNames = collectAllBundleFileNames();
 
     generator.configure(scenesToGenerate, libName, mergedCppScripts, getProjectPath(), getProjectInternalPath(), bundleFileNames);
 

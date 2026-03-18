@@ -69,6 +69,7 @@ namespace Supernova::Editor{
         SceneMaxValues maxValues;
         std::vector<uint32_t> childScenes;
         std::vector<SceneScriptSource> cppScripts;
+        std::vector<std::string> bundleFileNames;
     };
 
     struct NodeRecoveryEntry {
@@ -160,10 +161,12 @@ namespace Supernova::Editor{
         bool createNewComponent(uint32_t sceneId, Entity entity, ComponentType component);
         void deleteSceneProject(SceneProject* sceneProject);
         void updateSceneCppScripts(SceneProject* sceneProject);
+        void updateSceneBundleFileNames(SceneProject* sceneProject);
         SceneMaxValues calculateSceneMaxValues(const SceneProject* sceneProject) const;
         void resetConfigs();
 
         std::vector<SceneScriptSource> collectAllSceneCppScripts() const;
+        std::vector<std::string> collectAllBundleFileNames() const;
 
         void pauseEngineScene(Scene* scene, bool pause) const;
 
