@@ -10,6 +10,7 @@
 #include <unordered_set>
 #include <map>
 #include "Scene.h"
+#include "Factory.h"
 #include "util/EntityBundle.h"
 
 #ifdef _WIN32
@@ -72,6 +73,7 @@ namespace Supernova::Editor {
         std::string buildCleanupSceneScriptsSource(const std::vector<SceneScriptSource>& scriptFiles);
 
         void writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, std::string libName, const std::vector<SceneScriptSource>& scriptFiles, const std::vector<SceneBuildInfo>& scenes, const std::set<std::string>& bundleFileNames);
+        std::vector<BundleInstanceInfo> writeBundleSources(const std::map<fs::path, EntityBundle>& entityBundles, uint32_t sceneId, const fs::path& projectPath, const fs::path& generatedPath);
         void terminateCurrentProcess();
 
     public:
