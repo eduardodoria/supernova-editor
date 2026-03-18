@@ -8,7 +8,9 @@
 #include <atomic>
 #include <mutex>
 #include <unordered_set>
+#include <map>
 #include "Scene.h"
+#include "util/EntityBundle.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -69,15 +71,15 @@ namespace Supernova::Editor {
         std::string buildInitSceneScriptsSource(const std::vector<SceneScriptSource>& scriptFiles);
         std::string buildCleanupSceneScriptsSource(const std::vector<SceneScriptSource>& scriptFiles);
 
-        void writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, std::string libName, const std::vector<SceneScriptSource>& scriptFiles, const std::vector<SceneBuildInfo>& scenes);
+        void writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, std::string libName, const std::vector<SceneScriptSource>& scriptFiles, const std::vector<SceneBuildInfo>& scenes, const std::set<std::string>& bundleFileNames);
         void terminateCurrentProcess();
 
     public:
         Generator();
         ~Generator();
-        void writeSceneSource(Scene* scene, const std::string& sceneName, const std::vector<Entity>& entities, const Entity camera, const fs::path& projectPath, const fs::path& projectInternalPath);
+        void writeSceneSource(Scene* scene, const std::string& sceneName, const std::vector<Entity>& entities, const Entity camera, const fs::path& projectPath, const fs::path& projectInternalPath, const std::map<fs::path, EntityBundle>& entityBundles = {}, uint32_t sceneId = 0);
         void clearSceneSource(const std::string& sceneName, const fs::path& projectInternalPath);
-        void configure(const std::vector<SceneBuildInfo>& scenes, std::string libName, const std::vector<SceneScriptSource>& scriptFiles, const fs::path& projectPath, const fs::path& projectInternalPath);
+        void configure(const std::vector<SceneBuildInfo>& scenes, std::string libName, const std::vector<SceneScriptSource>& scriptFiles, const fs::path& projectPath, const fs::path& projectInternalPath, const std::set<std::string>& bundleFileNames = {});
         void build(const fs::path projectPath, const fs::path projectInternalPath, const fs::path buildPath);
         bool isBuildInProgress() const;
         void waitForBuildToComplete();

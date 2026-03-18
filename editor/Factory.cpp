@@ -3,12 +3,14 @@
 
 #include "Scene.h"
 #include "Catalog.h"
+#include "Configs.h"
 #include <sstream>
 #include <iomanip>
 #include <cctype>
 #include <array>
 #include <fstream>
 #include <unordered_set>
+#include <unordered_map>
 #include <algorithm>
 #include <filesystem>
 
@@ -64,6 +66,20 @@ bool Editor::Factory::ensureDefaultSkyFiles(const fs::path& baseDir) {
     if (!writeHeaderIfChanged(bottomPath, "Daylight_Box_Bottom", Daylight_Box_Bottom_png, Daylight_Box_Bottom_png_len)) return false;
 
     return true;
+}
+
+void Editor::Factory::writeSkyIncludes(std::ostringstream& out, bool usesDefaultSky, const fs::path& generatedPath, const std::string& ind) {
+    fs::path skyResourcesPath = generatedPath / "resources" / "sky";
+    if (usesDefaultSky) {
+        ensureDefaultSkyFiles(skyResourcesPath);
+        out << ind << "#include \"resources/sky/Daylight_Box_Front.h\"\n";
+        out << ind << "#include \"resources/sky/Daylight_Box_Back.h\"\n";
+        out << ind << "#include \"resources/sky/Daylight_Box_Left.h\"\n";
+        out << ind << "#include \"resources/sky/Daylight_Box_Right.h\"\n";
+        out << ind << "#include \"resources/sky/Daylight_Box_Top.h\"\n";
+        out << ind << "#include \"resources/sky/Daylight_Box_Bottom.h\"\n";
+    }
+    out << ind << "\n";
 }
 
 Editor::Factory::Factory(){
@@ -390,7 +406,7 @@ std::string Editor::Factory::formatScriptPropertyType(ScriptPropertyType type) {
     }
 }
 
-std::string Editor::Factory::formatScriptPropertyValue(const Scene* scene, const ScriptPropertyValue& value) {
+std::string Editor::Factory::formatScriptPropertyValue(const EntityRegistry* scene, const ScriptPropertyValue& value) {
     if (std::holds_alternative<bool>(value)) {
         return formatBool(std::get<bool>(value));
     } else if (std::holds_alternative<int>(value)) {
@@ -527,7 +543,7 @@ void Editor::Factory::addComponentCode(std::ostringstream& code, const std::stri
     }
 }
 
-std::string Editor::Factory::createTransform(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createTransform(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName, bool skipParent) {
     if (!scene->findComponent<Transform>(entity)) return "";
     Transform& transform = scene->getComponent<Transform>(entity);
     std::ostringstream code;
@@ -541,12 +557,14 @@ std::string Editor::Factory::createTransform(int indentSpaces, Scene* scene, Ent
     code << ind << "transform.fakeBillboard = " << formatBool(transform.fakeBillboard) << ";\n";
     code << ind << "transform.cylindricalBillboard = " << formatBool(transform.cylindricalBillboard) << ";\n";
     code << ind << "transform.billboardRotation = " << formatQuaternion(transform.billboardRotation) << ";\n";
-    code << ind << "transform.parent = " << transform.parent << ";\n";
+    if (!skipParent) {
+        code << ind << "transform.parent = " << transform.parent << ";\n";
+    }
     addComponentCode(code, ind, sceneName, entityName, entity, "Transform", "transform");
     return code.str();
 }
 
-std::string Editor::Factory::createMeshComponent(int indentSpaces, Scene* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createMeshComponent(int indentSpaces, EntityRegistry* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<MeshComponent>(entity)) return "";
     MeshComponent& mesh = scene->getComponent<MeshComponent>(entity);
     std::ostringstream code;
@@ -654,7 +672,7 @@ std::string Editor::Factory::createMeshComponent(int indentSpaces, Scene* scene,
     return code.str();
 }
 
-std::string Editor::Factory::createUIComponent(int indentSpaces, Scene* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createUIComponent(int indentSpaces, EntityRegistry* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<UIComponent>(entity)) return "";
     UIComponent& ui = scene->getComponent<UIComponent>(entity);
     std::ostringstream code;
@@ -666,7 +684,7 @@ std::string Editor::Factory::createUIComponent(int indentSpaces, Scene* scene, E
     return code.str();
 }
 
-std::string Editor::Factory::createButtonComponent(int indentSpaces, Scene* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createButtonComponent(int indentSpaces, EntityRegistry* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<ButtonComponent>(entity)) return "";
     ButtonComponent& button = scene->getComponent<ButtonComponent>(entity);
     std::ostringstream code;
@@ -684,7 +702,7 @@ std::string Editor::Factory::createButtonComponent(int indentSpaces, Scene* scen
     return code.str();
 }
 
-std::string Editor::Factory::createUILayoutComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createUILayoutComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<UILayoutComponent>(entity)) return "";
     UILayoutComponent& layout = scene->getComponent<UILayoutComponent>(entity);
     std::ostringstream code;
@@ -709,7 +727,7 @@ std::string Editor::Factory::createUILayoutComponent(int indentSpaces, Scene* sc
     return code.str();
 }
 
-std::string Editor::Factory::createUIContainerComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createUIContainerComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<UIContainerComponent>(entity)) return "";
     UIContainerComponent& container = scene->getComponent<UIContainerComponent>(entity);
     std::ostringstream code;
@@ -723,7 +741,7 @@ std::string Editor::Factory::createUIContainerComponent(int indentSpaces, Scene*
     return code.str();
 }
 
-std::string Editor::Factory::createTextComponent(int indentSpaces, Scene* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createTextComponent(int indentSpaces, EntityRegistry* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<TextComponent>(entity)) return "";
     TextComponent& text = scene->getComponent<TextComponent>(entity);
     std::ostringstream code;
@@ -742,7 +760,7 @@ std::string Editor::Factory::createTextComponent(int indentSpaces, Scene* scene,
     return code.str();
 }
 
-std::string Editor::Factory::createImageComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createImageComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<ImageComponent>(entity)) return "";
     ImageComponent& image = scene->getComponent<ImageComponent>(entity);
     std::ostringstream code;
@@ -757,7 +775,7 @@ std::string Editor::Factory::createImageComponent(int indentSpaces, Scene* scene
     return code.str();
 }
 
-std::string Editor::Factory::createSpriteComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createSpriteComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<SpriteComponent>(entity)) return "";
     SpriteComponent& sprite = scene->getComponent<SpriteComponent>(entity);
     std::ostringstream code;
@@ -792,7 +810,7 @@ std::string Editor::Factory::createSpriteComponent(int indentSpaces, Scene* scen
     return code.str();
 }
 
-std::string Editor::Factory::createLightComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createLightComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<LightComponent>(entity)) return "";
     LightComponent& light = scene->getComponent<LightComponent>(entity);
     std::ostringstream code;
@@ -816,7 +834,7 @@ std::string Editor::Factory::createLightComponent(int indentSpaces, Scene* scene
     return code.str();
 }
 
-std::string Editor::Factory::createCameraComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createCameraComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<CameraComponent>(entity)) return "";
     CameraComponent& camera = scene->getComponent<CameraComponent>(entity);
     std::ostringstream code;
@@ -841,7 +859,7 @@ std::string Editor::Factory::createCameraComponent(int indentSpaces, Scene* scen
     return code.str();
 }
 
-std::string Editor::Factory::createScriptComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createScriptComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<ScriptComponent>(entity)) return "";
     ScriptComponent& script = scene->getComponent<ScriptComponent>(entity);
     std::ostringstream code;
@@ -875,7 +893,7 @@ std::string Editor::Factory::createScriptComponent(int indentSpaces, Scene* scen
     return code.str();
 }
 
-std::string Editor::Factory::createSkyComponent(int indentSpaces, Scene* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createSkyComponent(int indentSpaces, EntityRegistry* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<SkyComponent>(entity)) return "";
     SkyComponent& sky = scene->getComponent<SkyComponent>(entity);
     std::ostringstream code;
@@ -998,7 +1016,7 @@ std::string Editor::Factory::formatActionState(ActionState state) {
     }
 }
 
-std::string Editor::Factory::createBody2DComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createBody2DComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<Body2DComponent>(entity)) return "";
     Body2DComponent& body = scene->getComponent<Body2DComponent>(entity);
     std::ostringstream code;
@@ -1037,7 +1055,7 @@ std::string Editor::Factory::createBody2DComponent(int indentSpaces, Scene* scen
     return code.str();
 }
 
-std::string Editor::Factory::createBody3DComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createBody3DComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<Body3DComponent>(entity)) return "";
     Body3DComponent& body = scene->getComponent<Body3DComponent>(entity);
     std::ostringstream code;
@@ -1107,7 +1125,7 @@ std::string Editor::Factory::createBody3DComponent(int indentSpaces, Scene* scen
     return code.str();
 }
 
-std::string Editor::Factory::createJoint2DComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createJoint2DComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<Joint2DComponent>(entity)) return "";
     Joint2DComponent& joint = scene->getComponent<Joint2DComponent>(entity);
     std::ostringstream code;
@@ -1127,7 +1145,7 @@ std::string Editor::Factory::createJoint2DComponent(int indentSpaces, Scene* sce
     return code.str();
 }
 
-std::string Editor::Factory::createJoint3DComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createJoint3DComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<Joint3DComponent>(entity)) return "";
     Joint3DComponent& joint = scene->getComponent<Joint3DComponent>(entity);
     std::ostringstream code;
@@ -1174,7 +1192,7 @@ std::string Editor::Factory::createJoint3DComponent(int indentSpaces, Scene* sce
     return code.str();
 }
 
-std::string Editor::Factory::createActionComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createActionComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<ActionComponent>(entity)) return "";
     ActionComponent& action = scene->getComponent<ActionComponent>(entity);
     std::ostringstream code;
@@ -1188,7 +1206,7 @@ std::string Editor::Factory::createActionComponent(int indentSpaces, Scene* scen
     return code.str();
 }
 
-std::string Editor::Factory::createSpriteAnimationComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createSpriteAnimationComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<SpriteAnimationComponent>(entity)) return "";
     SpriteAnimationComponent& spriteanim = scene->getComponent<SpriteAnimationComponent>(entity);
     std::ostringstream code;
@@ -1211,7 +1229,7 @@ std::string Editor::Factory::createSpriteAnimationComponent(int indentSpaces, Sc
     return code.str();
 }
 
-std::string Editor::Factory::createAnimationComponent(int indentSpaces, Scene* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createAnimationComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
     if (!scene->findComponent<AnimationComponent>(entity)) return "";
     AnimationComponent& anim = scene->getComponent<AnimationComponent>(entity);
     std::ostringstream code;
@@ -1229,7 +1247,7 @@ std::string Editor::Factory::createAnimationComponent(int indentSpaces, Scene* s
     return code.str();
 }
 
-std::string Editor::Factory::createComponent(int indentSpaces, Scene* scene, Entity entity, ComponentType componentType, const fs::path& projectPath, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createComponent(int indentSpaces, EntityRegistry* scene, Entity entity, ComponentType componentType, const fs::path& projectPath, std::string sceneName, std::string entityName) {
     switch (componentType) {
         case ComponentType::Transform: return createTransform(indentSpaces, scene, entity, sceneName, entityName);
         case ComponentType::MeshComponent: return createMeshComponent(indentSpaces, scene, entity, projectPath, sceneName, entityName);
@@ -1255,7 +1273,7 @@ std::string Editor::Factory::createComponent(int indentSpaces, Scene* scene, Ent
     }
 }
 
-std::string Editor::Factory::createAllComponents(int indentSpaces, Scene* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createAllComponents(int indentSpaces, EntityRegistry* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName) {
     // Find all components for this entity
     std::vector<ComponentType> components = Catalog::findComponents(scene, entity);
 
@@ -1278,14 +1296,31 @@ std::string Editor::Factory::createAllComponents(int indentSpaces, Scene* scene,
     return code.str();
 }
 
-std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::string name, std::vector<Entity> entities, Entity camera, const fs::path& projectPath, const fs::path& generatedPath) {
+std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::string name, std::vector<Entity> entities, Entity camera, const fs::path& projectPath, const fs::path& generatedPath, const std::vector<BundleInstanceInfo>& bundleInstances) {
     std::ostringstream out;
 
     std::string funcId = toIdentifier(name);
     const std::string ind = indentation(indentSpaces);
 
+    // Build lookup sets for bundle entities
+    std::set<Entity> bundleRoots;
+    std::set<Entity> bundleMemberEntities;
+    std::map<Entity, const BundleInstanceInfo*> rootToInstance;
+    std::set<std::string> bundleHeaderIncludes;
+
+    for (const auto& bi : bundleInstances) {
+        bundleRoots.insert(bi.rootEntity);
+        rootToInstance[bi.rootEntity] = &bi;
+        for (Entity member : bi.memberEntities) {
+            bundleMemberEntities.insert(member);
+        }
+        std::string headerName = bundleToFileName(bi.bundlePath) + ".h";
+        bundleHeaderIncludes.insert(headerName);
+    }
+
     bool usesDefaultSky = false;
     for (Entity entity : entities) {
+        if (bundleMemberEntities.count(entity)) continue;
         if (scene->findComponent<SkyComponent>(entity)) {
             SkyComponent& sky = scene->getComponent<SkyComponent>(entity);
             if (sky.texture.getId() == DEFAULT_SKY_ID) {
@@ -1297,18 +1332,10 @@ std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::st
 
     out << ind << "// This file is auto-generated by Supernova Editor. Do not edit manually.\n\n";
     out << ind << "#include \"Supernova.h\"\n";
-    fs::path skyResourcesPath = generatedPath / "resources" / "sky";
-    if (usesDefaultSky) {
-        ensureDefaultSkyFiles(skyResourcesPath);
-
-        out << ind << "#include \"resources/sky/Daylight_Box_Front.h\"\n";
-        out << ind << "#include \"resources/sky/Daylight_Box_Back.h\"\n";
-        out << ind << "#include \"resources/sky/Daylight_Box_Left.h\"\n";
-        out << ind << "#include \"resources/sky/Daylight_Box_Right.h\"\n";
-        out << ind << "#include \"resources/sky/Daylight_Box_Top.h\"\n";
-        out << ind << "#include \"resources/sky/Daylight_Box_Bottom.h\"\n";
+    for (const auto& headerName : bundleHeaderIncludes) {
+        out << ind << "#include \"" << headerName << "\"\n";
     }
-    out << ind << "\n";
+    writeSkyIncludes(out, usesDefaultSky, generatedPath, ind);
     out << ind << "using namespace Supernova;\n\n";
     out << ind << "extern \"C\" void initScripts(Supernova::Scene* scene);\n\n";
 
@@ -1316,24 +1343,79 @@ std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::st
 
     const std::string ind2 = indentation(indentSpaces+4);
     const std::string ind3 = indentation(indentSpaces+8);
+    const std::string ind4 = indentation(indentSpaces+12);
 
     bool firstEntity = true;
 
     for (Entity entity : entities) {
+        // Skip bundle member entities - they are created by bundle functions
+        if (bundleMemberEntities.count(entity)) {
+            continue;
+        }
+
         if (!firstEntity) {
             out << "\n";
         }
         firstEntity = false;
-        out << ind2 << "{\n";
-        std::string entityName = scene->getEntityName(entity);
-        out << ind3 << "// Entity " << entity << " (" << entityName << ")\n";
-        out << ind3 << "scene->recreateEntity(" << entity << ");\n";
-        out << ind3 << "scene->setEntityName(" << entity << ", " << formatString(entityName) << ");\n\n";
 
-        // Create and set all components
-        std::string componentsCode = createAllComponents(indentSpaces+8, scene, entity, projectPath, "scene");
-        out << componentsCode;
-        out << ind2 << "}\n";
+        if (bundleRoots.count(entity)) {
+            // Bundle root entity - create root and call bundle function
+            const BundleInstanceInfo* bi = rootToInstance[entity];
+            std::string funcName = bundleToFunctionName(bi->bundlePath);
+
+            out << ind2 << "{\n";
+            std::string entityName = scene->getEntityName(entity);
+            out << ind3 << "// Bundle instance: " << bi->bundlePath.string() << " (" << entityName << ")\n";
+            out << ind3 << "scene->recreateEntity(" << entity << ");\n";
+            out << ind3 << "scene->setEntityName(" << entity << ", " << formatString(entityName) << ");\n\n";
+
+            // Create root entity components (from scene data)
+            std::string componentsCode = createAllComponents(indentSpaces+8, scene, entity, projectPath, "scene");
+            out << componentsCode;
+
+            out << "\n";
+            out << ind3 << funcName << "(scene, " << entity << ");\n";
+
+            // Apply local overrides for bundle member entities
+            if (!bi->overrides.empty()) {
+                out << "\n";
+                out << ind3 << "// Local component overrides\n";
+                for (const auto& ovr : bi->overrides) {
+                    std::string entityStr = std::to_string(ovr.sceneEntity);
+                    std::string memberEntityName = scene->getEntityName(ovr.sceneEntity);
+                    out << ind3 << "// Override for " << memberEntityName << " (" << entityStr << ")\n";
+                    out << ind3 << "{\n";
+                    for (ComponentType compType : ovr.overriddenComponents) {
+                        std::string compTypeName = Catalog::getComponentName(compType);
+                        std::string componentCode;
+                        if (compType == ComponentType::Transform) {
+                            componentCode = createTransform(indentSpaces+12, scene, ovr.sceneEntity, "scene", entityStr, true);
+                        } else {
+                            componentCode = createComponent(indentSpaces+12, scene, ovr.sceneEntity, compType, projectPath, "scene", entityStr);
+                        }
+                        if (!componentCode.empty()) {
+                            out << ind4 << "scene->removeComponent<" << compTypeName << ">(" << entityStr << ");\n";
+                            out << componentCode;
+                        }
+                    }
+                    out << ind3 << "}\n";
+                }
+            }
+
+            out << ind2 << "}\n";
+        } else {
+            // Normal entity - unchanged
+            out << ind2 << "{\n";
+            std::string entityName = scene->getEntityName(entity);
+            out << ind3 << "// Entity " << entity << " (" << entityName << ")\n";
+            out << ind3 << "scene->recreateEntity(" << entity << ");\n";
+            out << ind3 << "scene->setEntityName(" << entity << ", " << formatString(entityName) << ");\n\n";
+
+            // Create and set all components
+            std::string componentsCode = createAllComponents(indentSpaces+8, scene, entity, projectPath, "scene");
+            out << componentsCode;
+            out << ind2 << "}\n";
+        }
     }
 
     if (camera != NULL_ENTITY){
@@ -1366,7 +1448,7 @@ std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::st
     return out.str();
 }
 
-std::string Editor::Factory::setComponent(Scene* scene, Entity entity, ComponentType componentType, const fs::path& projectPath) {
+std::string Editor::Factory::setComponent(EntityRegistry* scene, Entity entity, ComponentType componentType, const fs::path& projectPath) {
     // Check if entity has this component
     Signature signature = scene->getSignature(entity);
     ComponentId compId = Catalog::getComponentId(scene, componentType);
@@ -1410,7 +1492,7 @@ std::string Editor::Factory::setComponent(Scene* scene, Entity entity, Component
     return code.str();
 }
 
-std::string Editor::Factory::setAllComponents(Scene* scene, Entity entity, const fs::path& projectPath) {
+std::string Editor::Factory::setAllComponents(EntityRegistry* scene, Entity entity, const fs::path& projectPath) {
     // Find all components for this entity
     std::vector<ComponentType> components = Catalog::findComponents(scene, entity);
 
@@ -1432,4 +1514,199 @@ std::string Editor::Factory::setAllComponents(Scene* scene, Entity entity, const
     }
 
     return code.str();
+}
+
+std::string Editor::Factory::bundleToFunctionName(const fs::path& bundlePath) {
+    fs::path noExt = bundlePath;
+    noExt.replace_extension();
+    std::string pathStr = noExt.generic_string();
+    return "create_bundle_" + toIdentifier(pathStr);
+}
+
+std::string Editor::Factory::bundleToFileName(const fs::path& bundlePath) {
+    fs::path noExt = bundlePath;
+    noExt.replace_extension();
+    std::string pathStr = noExt.generic_string();
+    return "bundle_" + toIdentifier(pathStr);
+}
+
+std::string Editor::Factory::createBundleHeader(const fs::path& bundlePath) {
+    std::string funcName = bundleToFunctionName(bundlePath);
+
+    std::ostringstream out;
+    out << "// This file is auto-generated by Supernova Editor. Do not edit manually.\n\n";
+    out << "#pragma once\n\n";
+    out << "#include \"Supernova.h\"\n\n";
+    out << "using namespace Supernova;\n\n";
+    out << "void " << funcName << "(Scene* scene, Entity root);\n";
+    return out.str();
+}
+
+std::vector<Entity> Editor::Factory::getBundleMemberEntities(EntityRegistry* registry, const std::vector<Entity>& registryEntities) {
+    // Identify nested bundle roots (entities with BundleComponent)
+    std::unordered_set<Entity> nestedBundleRoots;
+    for (Entity entity : registryEntities) {
+        BundleComponent* bc = registry->findComponent<BundleComponent>(entity);
+        if (bc && !bc->path.empty()) {
+            nestedBundleRoots.insert(entity);
+        }
+    }
+
+    // Skip entities that are children of nested bundle roots
+    std::unordered_set<Entity> entitiesToSkip;
+    if (!nestedBundleRoots.empty()) {
+        std::unordered_set<Entity> entitySet(registryEntities.begin(), registryEntities.end());
+        for (Entity entity : registryEntities) {
+            if (nestedBundleRoots.count(entity)) continue;
+            Transform* tf = registry->findComponent<Transform>(entity);
+            if (!tf) continue;
+            Entity ancestor = tf->parent;
+            while (ancestor != NULL_ENTITY && entitySet.count(ancestor)) {
+                if (nestedBundleRoots.count(ancestor)) {
+                    entitiesToSkip.insert(entity);
+                    break;
+                }
+                Transform* parentTf = registry->findComponent<Transform>(ancestor);
+                ancestor = parentTf ? parentTf->parent : NULL_ENTITY;
+            }
+        }
+    }
+
+    std::vector<Entity> memberEntities;
+    for (Entity entity : registryEntities) {
+        if (entitiesToSkip.count(entity)) continue;
+        memberEntities.push_back(entity);
+    }
+    return memberEntities;
+}
+
+std::string Editor::Factory::createBundle(const fs::path& bundlePath, EntityRegistry* registry, const std::vector<Entity>& registryEntities, const fs::path& projectPath, const fs::path& generatedPath) {
+    std::string funcName = bundleToFunctionName(bundlePath);
+    std::string fileName = bundleToFileName(bundlePath);
+
+    std::ostringstream out;
+
+    // Identify nested bundle roots and their includes
+    std::set<std::string> nestedBundleIncludes;
+    for (Entity entity : registryEntities) {
+        BundleComponent* bc = registry->findComponent<BundleComponent>(entity);
+        if (bc && !bc->path.empty()) {
+            nestedBundleIncludes.insert(bundleToFileName(bc->path));
+        }
+    }
+
+    // Get filtered member entities (excludes children of nested bundle roots)
+    std::vector<Entity> memberEntities = getBundleMemberEntities(registry, registryEntities);
+
+    // Build entity variable name map
+    std::unordered_map<Entity, std::string> entityVarNames;
+    for (size_t i = 0; i < memberEntities.size(); i++) {
+        entityVarNames[memberEntities[i]] = "e" + std::to_string(i);
+    }
+
+    std::unordered_set<Entity> memberSet(memberEntities.begin(), memberEntities.end());
+
+    // Check for default sky usage
+    bool usesDefaultSky = false;
+    for (Entity entity : memberEntities) {
+        SkyComponent* sky = registry->findComponent<SkyComponent>(entity);
+        if (sky && sky->texture.getId() == DEFAULT_SKY_ID) {
+            usesDefaultSky = true;
+            break;
+        }
+    }
+
+    // File header
+    out << "// This file is auto-generated by Supernova Editor. Do not edit manually.\n\n";
+    out << "#include \"" << fileName << ".h\"\n";
+    for (const auto& inc : nestedBundleIncludes) {
+        out << "#include \"" << inc << ".h\"\n";
+    }
+
+    writeSkyIncludes(out, usesDefaultSky, generatedPath);
+
+    const std::string ind1 = indentation(4);
+    const std::string ind2 = indentation(8);
+
+    // Function definition
+    out << "void " << funcName << "(Scene* scene, Entity root) {\n";
+
+    // Phase 1: Create all member entities
+    out << ind1 << "// Create member entities\n";
+    for (size_t i = 0; i < memberEntities.size(); i++) {
+        Entity entity = memberEntities[i];
+        std::string varName = entityVarNames[entity];
+        std::string entityName = registry->getEntityName(entity);
+        out << ind1 << "Entity " << varName << " = scene->createEntity();\n";
+        out << ind1 << "scene->setEntityName(" << varName << ", " << formatString(entityName) << ");\n";
+    }
+    out << "\n";
+
+    // Phase 2: Set up components for each entity
+    for (size_t i = 0; i < memberEntities.size(); i++) {
+        Entity entity = memberEntities[i];
+        std::string varName = entityVarNames[entity];
+        std::string entityName = registry->getEntityName(entity);
+
+        out << ind1 << "// Components for " << entityName << "\n";
+        out << ind1 << "{\n";
+
+        std::vector<ComponentType> components = Catalog::findComponents(registry, entity);
+        bool first = true;
+        for (ComponentType compType : components) {
+            // Skip BundleComponent - editor-internal only
+            if (compType == ComponentType::BundleComponent) continue;
+
+            std::string componentCode;
+            if (compType == ComponentType::Transform) {
+                componentCode = createTransform(8, registry, entity, "scene", varName, true);
+            } else {
+                componentCode = createComponent(8, registry, entity, compType, projectPath, "scene", varName);
+            }
+
+            if (!componentCode.empty()) {
+                if (!first) out << "\n";
+                out << componentCode;
+                first = false;
+            }
+        }
+
+        out << ind1 << "}\n\n";
+    }
+
+    // Phase 3: Set up parent-child hierarchy
+    out << ind1 << "// Parent-child hierarchy\n";
+    for (Entity entity : memberEntities) {
+        Transform* tf = registry->findComponent<Transform>(entity);
+        if (!tf) continue;
+
+        std::string childVar = entityVarNames[entity];
+
+        if (tf->parent != NULL_ENTITY && memberSet.count(tf->parent)) {
+            std::string parentVar = entityVarNames[tf->parent];
+            out << ind1 << "scene->addEntityChild(" << parentVar << ", " << childVar << ", false);\n";
+        } else {
+            out << ind1 << "scene->addEntityChild(root, " << childVar << ", false);\n";
+        }
+    }
+
+    // Phase 4: Handle nested bundles
+    bool hasNestedBundles = false;
+    for (Entity entity : memberEntities) {
+        BundleComponent* bc = registry->findComponent<BundleComponent>(entity);
+        if (bc && !bc->path.empty()) {
+            if (!hasNestedBundles) {
+                out << "\n";
+                out << ind1 << "// Nested bundles\n";
+                hasNestedBundles = true;
+            }
+            std::string nestedFuncName = bundleToFunctionName(bc->path);
+            std::string varName = entityVarNames[entity];
+            out << ind1 << nestedFuncName << "(scene, " << varName << ");\n";
+        }
+    }
+
+    out << "}\n";
+
+    return out.str();
 }

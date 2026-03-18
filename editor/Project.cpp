@@ -1971,7 +1971,15 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
 
     updateSceneCppScripts(sceneProject);
 
-    generator.writeSceneSource(sceneProject->scene, sceneProject->name, sceneProject->entities, getSceneCamera(sceneProject), getProjectPath(), getProjectInternalPath());
+    generator.writeSceneSource(sceneProject->scene, sceneProject->name, sceneProject->entities, getSceneCamera(sceneProject), getProjectPath(), getProjectInternalPath(), entityBundles, sceneId);
+
+    // Collect bundle file names for CMake
+    std::set<std::string> bundleFileNames;
+    for (const auto& [bundlePath, bundle] : entityBundles) {
+        if (!bundle.instances.empty()) {
+            bundleFileNames.insert(Factory::bundleToFileName(bundlePath));
+        }
+    }
 
     std::vector<Editor::SceneBuildInfo> scenesToConfig;
     for (SceneProject& sceneConf : scenes) {
@@ -1983,7 +1991,7 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
     }
 
     std::vector<SceneScriptSource> mergedCppScripts = collectAllSceneCppScripts();
-    generator.configure(scenesToConfig, libName, mergedCppScripts, getProjectPath(), getProjectInternalPath());
+    generator.configure(scenesToConfig, libName, mergedCppScripts, getProjectPath(), getProjectInternalPath(), bundleFileNames);
 
     Out::info("Scene saved to: \"%s\"", path.string().c_str());
 }
@@ -4313,7 +4321,7 @@ void Editor::Project::start(uint32_t sceneId) {
             }
 
             if (!savedNow) {
-                generator.writeSceneSource(entry.runtime->scene, entry.runtime->name, entry.runtime->entities, getSceneCamera(entry.runtime), getProjectPath(), getProjectInternalPath());
+                generator.writeSceneSource(entry.runtime->scene, entry.runtime->name, entry.runtime->entities, getSceneCamera(entry.runtime), getProjectPath(), getProjectInternalPath(), entityBundles, sceneProject.id);
             }
 
             session->runtimeScenes.push_back(entry);
@@ -4340,7 +4348,14 @@ void Editor::Project::start(uint32_t sceneId) {
 
     std::vector<SceneScriptSource> mergedCppScripts = collectAllSceneCppScripts();
 
-    generator.configure(scenesToGenerate, libName, mergedCppScripts, getProjectPath(), getProjectInternalPath());
+    std::set<std::string> bundleFileNames;
+    for (const auto& [bundlePath, bundle] : entityBundles) {
+        if (!bundle.instances.empty()) {
+            bundleFileNames.insert(Factory::bundleToFileName(bundlePath));
+        }
+    }
+
+    generator.configure(scenesToGenerate, libName, mergedCppScripts, getProjectPath(), getProjectInternalPath(), bundleFileNames);
 
     // Check if we have C++ scripts that need building
     bool hasCppScripts = !mergedCppScripts.empty();

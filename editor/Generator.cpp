@@ -556,7 +556,7 @@ std::string Editor::Generator::buildCleanupSceneScriptsSource(const std::vector<
     return sourceContent;
 }
 
-void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, std::string libName, const std::vector<SceneScriptSource>& scriptFiles, const std::vector<Editor::SceneBuildInfo>& scenes) {
+void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, std::string libName, const std::vector<SceneScriptSource>& scriptFiles, const std::vector<Editor::SceneBuildInfo>& scenes, const std::set<std::string>& bundleFileNames) {
     const fs::path exePath = getExecutableDir();
 
     fs::path relativeInternalPath = fs::relative(projectInternalPath, projectPath);
@@ -571,6 +571,12 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     for (const auto& sceneData : scenes) {
         std::string sceneName = Factory::toIdentifier(sceneData.name);
         std::string filename = sceneName + ".cpp";
+        if (addedFactorySources.insert(filename).second) {
+            factorySources += "    " + internalPathStr + "/generated/" + filename + "\n";
+        }
+    }
+    for (const auto& bundleFileName : bundleFileNames) {
+        std::string filename = bundleFileName + ".cpp";
         if (addedFactorySources.insert(filename).second) {
             factorySources += "    " + internalPathStr + "/generated/" + filename + "\n";
         }
@@ -772,14 +778,59 @@ void Editor::Generator::terminateCurrentProcess() {
     #endif
 }
 
-void Editor::Generator::writeSceneSource(Scene* scene, const std::string& sceneName, const std::vector<Entity>& entities, const Entity camera, const fs::path& projectPath, const fs::path& projectInternalPath){
+void Editor::Generator::writeSceneSource(Scene* scene, const std::string& sceneName, const std::vector<Entity>& entities, const Entity camera, const fs::path& projectPath, const fs::path& projectInternalPath, const std::map<fs::path, EntityBundle>& entityBundles, uint32_t sceneId){
     const fs::path generatedPath = getGeneratedPath(projectInternalPath);
 
-    std::string sceneId = Factory::toIdentifier(sceneName);
+    std::string sceneIdStr = Factory::toIdentifier(sceneName);
 
-    std::string sceneContent = Factory::createScene(0, scene, sceneName, entities, camera, projectPath, generatedPath);
+    // Build BundleInstanceInfo vector for this scene
+    std::vector<BundleInstanceInfo> bundleInstances;
+    for (const auto& [bundlePath, bundle] : entityBundles) {
+        auto sceneIt = bundle.instances.find(sceneId);
+        if (sceneIt == bundle.instances.end()) continue;
 
-    std::string filename = sceneId + ".cpp";
+        for (const auto& instance : sceneIt->second) {
+            BundleInstanceInfo info;
+            info.bundlePath = bundlePath;
+            info.rootEntity = instance.rootEntity;
+            for (const auto& member : instance.members) {
+                info.memberEntities.insert(member.localEntity);
+            }
+
+            // Build override info from instance overrides
+            if (!instance.overrides.empty()) {
+                for (const auto& [sceneEntity, bitmask] : instance.overrides) {
+                    BundleOverrideInfo ovr;
+                    ovr.sceneEntity = sceneEntity;
+
+                    // Decode bitmask to ComponentType list
+                    for (int bit = 0; bit < 64; bit++) {
+                        if (bitmask & (1ULL << bit)) {
+                            ovr.overriddenComponents.push_back(static_cast<ComponentType>(bit));
+                        }
+                    }
+
+                    if (!ovr.overriddenComponents.empty()) {
+                        info.overrides.push_back(std::move(ovr));
+                    }
+                }
+            }
+
+            bundleInstances.push_back(std::move(info));
+        }
+
+        // Write bundle .h and .cpp files
+        std::string headerContent = Factory::createBundleHeader(bundlePath);
+        std::string sourceContent = Factory::createBundle(bundlePath, bundle.registry.get(), bundle.registryEntities, projectPath, generatedPath);
+
+        std::string bundleFileName = Factory::bundleToFileName(bundlePath);
+        FileUtils::writeIfChanged(generatedPath / (bundleFileName + ".h"), headerContent);
+        FileUtils::writeIfChanged(generatedPath / (bundleFileName + ".cpp"), sourceContent);
+    }
+
+    std::string sceneContent = Factory::createScene(0, scene, sceneName, entities, camera, projectPath, generatedPath, bundleInstances);
+
+    std::string filename = sceneIdStr + ".cpp";
     const fs::path sourceFile = generatedPath / filename;
 
     FileUtils::writeIfChanged(sourceFile, sceneContent);
@@ -799,7 +850,7 @@ void Editor::Generator::clearSceneSource(const std::string& sceneName, const fs:
     }
 }
 
-void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& scenes, std::string libName, const std::vector<SceneScriptSource>& scriptFiles, const fs::path& projectPath, const fs::path& projectInternalPath){
+void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& scenes, std::string libName, const std::vector<SceneScriptSource>& scriptFiles, const fs::path& projectPath, const fs::path& projectInternalPath, const std::set<std::string>& bundleFileNames){
     const fs::path generatedPath = getGeneratedPath(projectInternalPath);
 
     // Build main.cpp content
@@ -891,7 +942,7 @@ void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& sce
     const fs::path platformSourceFile = generatedPath / "PlatformEditor.cpp";
     FileUtils::writeIfChanged(platformSourceFile, getPlatformEditorSource(projectPath));
 
-    writeSourceFiles(projectPath, projectInternalPath, libName, scriptFiles, scenes);
+    writeSourceFiles(projectPath, projectInternalPath, libName, scriptFiles, scenes, bundleFileNames);
 }
 
 std::string Editor::Generator::getPlatformEditorHeader() {
