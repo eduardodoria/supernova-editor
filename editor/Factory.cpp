@@ -533,17 +533,24 @@ std::string Editor::Factory::formatPropertyValue(const PropertyData& property, c
     }
 }
 
-void Editor::Factory::addComponentCode(std::ostringstream& code, const std::string& ind, const std::string& sceneName, const std::string& entityName, Entity entity, const std::string& componentType, const std::string& varName) {
+void Editor::Factory::addComponentCode(std::ostringstream& code, const std::string& ind, const std::string& sceneName, const std::string& entityName, Entity entity, const std::string& componentType, const std::string& varName, bool assignExisting) {
     if (!sceneName.empty()) {
         std::string entityRef = entityName.empty() ? std::to_string(entity) : entityName;
-        if (sceneName == "scene")
-            code << ind << sceneName << "->addComponent<" << componentType << ">(" << entityRef << ", " << varName << ");\n";
-        else
-            code << ind << sceneName << ".addComponent<" << componentType << ">(" << entityRef << ", " << varName << ");\n";
+        if (sceneName == "scene") {
+            if (assignExisting)
+                code << ind << sceneName << "->getComponent<" << componentType << ">(" << entityRef << ") = " << varName << ";\n";
+            else
+                code << ind << sceneName << "->addComponent<" << componentType << ">(" << entityRef << ", " << varName << ");\n";
+        } else {
+            if (assignExisting)
+                code << ind << sceneName << ".getComponent<" << componentType << ">(" << entityRef << ") = " << varName << ";\n";
+            else
+                code << ind << sceneName << ".addComponent<" << componentType << ">(" << entityRef << ", " << varName << ");\n";
+        }
     }
 }
 
-std::string Editor::Factory::createTransform(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName, bool skipParent) {
+std::string Editor::Factory::createTransform(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName, bool skipParent, bool assignExisting) {
     if (!scene->findComponent<Transform>(entity)) return "";
     Transform& transform = scene->getComponent<Transform>(entity);
     std::ostringstream code;
@@ -560,11 +567,11 @@ std::string Editor::Factory::createTransform(int indentSpaces, EntityRegistry* s
     if (!skipParent) {
         code << ind << "transform.parent = " << transform.parent << ";\n";
     }
-    addComponentCode(code, ind, sceneName, entityName, entity, "Transform", "transform");
+    addComponentCode(code, ind, sceneName, entityName, entity, "Transform", "transform", assignExisting);
     return code.str();
 }
 
-std::string Editor::Factory::createMeshComponent(int indentSpaces, EntityRegistry* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createMeshComponent(int indentSpaces, EntityRegistry* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName, bool assignExisting) {
     if (!scene->findComponent<MeshComponent>(entity)) return "";
     MeshComponent& mesh = scene->getComponent<MeshComponent>(entity);
     std::ostringstream code;
@@ -668,11 +675,11 @@ std::string Editor::Factory::createMeshComponent(int indentSpaces, EntityRegistr
         code << ind << "mesh.indices.setCount(" << formatUInt(mesh.indices.getCount()) << ");\n";
     }
 
-    addComponentCode(code, ind, sceneName, entityName, entity, "MeshComponent", "mesh");
+    addComponentCode(code, ind, sceneName, entityName, entity, "MeshComponent", "mesh", assignExisting);
     return code.str();
 }
 
-std::string Editor::Factory::createUIComponent(int indentSpaces, EntityRegistry* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createUIComponent(int indentSpaces, EntityRegistry* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName, bool assignExisting) {
     if (!scene->findComponent<UIComponent>(entity)) return "";
     UIComponent& ui = scene->getComponent<UIComponent>(entity);
     std::ostringstream code;
@@ -680,11 +687,11 @@ std::string Editor::Factory::createUIComponent(int indentSpaces, EntityRegistry*
     code << ind << "UIComponent ui;\n";
     code << ind << "ui.color = " << formatVector4(ui.color) << ";\n";
     code << formatTexture(indentSpaces, ui.texture, "ui.texture", projectPath);
-    addComponentCode(code, ind, sceneName, entityName, entity, "UIComponent", "ui");
+    addComponentCode(code, ind, sceneName, entityName, entity, "UIComponent", "ui", assignExisting);
     return code.str();
 }
 
-std::string Editor::Factory::createButtonComponent(int indentSpaces, EntityRegistry* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createButtonComponent(int indentSpaces, EntityRegistry* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName, bool assignExisting) {
     if (!scene->findComponent<ButtonComponent>(entity)) return "";
     ButtonComponent& button = scene->getComponent<ButtonComponent>(entity);
     std::ostringstream code;
@@ -698,11 +705,11 @@ std::string Editor::Factory::createButtonComponent(int indentSpaces, EntityRegis
     code << ind << "button.colorPressed = " << formatVector4(button.colorPressed) << ";\n";
     code << ind << "button.colorDisabled = " << formatVector4(button.colorDisabled) << ";\n";
     code << ind << "button.disabled = " << formatBool(button.disabled) << ";\n";
-    addComponentCode(code, ind, sceneName, entityName, entity, "ButtonComponent", "button");
+    addComponentCode(code, ind, sceneName, entityName, entity, "ButtonComponent", "button", assignExisting);
     return code.str();
 }
 
-std::string Editor::Factory::createUILayoutComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createUILayoutComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName, bool assignExisting) {
     if (!scene->findComponent<UILayoutComponent>(entity)) return "";
     UILayoutComponent& layout = scene->getComponent<UILayoutComponent>(entity);
     std::ostringstream code;
@@ -723,11 +730,11 @@ std::string Editor::Factory::createUILayoutComponent(int indentSpaces, EntityReg
     code << ind << "layout.usingAnchors = " << formatBool(layout.usingAnchors) << ";\n";
     code << ind << "layout.ignoreScissor = " << formatBool(layout.ignoreScissor) << ";\n";
     code << ind << "layout.ignoreEvents = " << formatBool(layout.ignoreEvents) << ";\n";
-    addComponentCode(code, ind, sceneName, entityName, entity, "UILayoutComponent", "layout");
+    addComponentCode(code, ind, sceneName, entityName, entity, "UILayoutComponent", "layout", assignExisting);
     return code.str();
 }
 
-std::string Editor::Factory::createUIContainerComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createUIContainerComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName, bool assignExisting) {
     if (!scene->findComponent<UIContainerComponent>(entity)) return "";
     UIContainerComponent& container = scene->getComponent<UIContainerComponent>(entity);
     std::ostringstream code;
@@ -737,11 +744,11 @@ std::string Editor::Factory::createUIContainerComponent(int indentSpaces, Entity
     code << ind << "container.useAllWrapSpace = " << formatBool(container.useAllWrapSpace) << ";\n";
     code << ind << "container.wrapCellWidth = " << formatUInt(container.wrapCellWidth) << ";\n";
     code << ind << "container.wrapCellHeight = " << formatUInt(container.wrapCellHeight) << ";\n";
-    addComponentCode(code, ind, sceneName, entityName, entity, "UIContainerComponent", "container");
+    addComponentCode(code, ind, sceneName, entityName, entity, "UIContainerComponent", "container", assignExisting);
     return code.str();
 }
 
-std::string Editor::Factory::createTextComponent(int indentSpaces, EntityRegistry* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createTextComponent(int indentSpaces, EntityRegistry* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName, bool assignExisting) {
     if (!scene->findComponent<TextComponent>(entity)) return "";
     TextComponent& text = scene->getComponent<TextComponent>(entity);
     std::ostringstream code;
@@ -756,11 +763,11 @@ std::string Editor::Factory::createTextComponent(int indentSpaces, EntityRegistr
     code << ind << "text.fixedHeight = " << formatBool(text.fixedHeight) << ";\n";
     code << ind << "text.pivotBaseline = " << formatBool(text.pivotBaseline) << ";\n";
     code << ind << "text.pivotCentered = " << formatBool(text.pivotCentered) << ";\n";
-    addComponentCode(code, ind, sceneName, entityName, entity, "TextComponent", "text");
+    addComponentCode(code, ind, sceneName, entityName, entity, "TextComponent", "text", assignExisting);
     return code.str();
 }
 
-std::string Editor::Factory::createImageComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createImageComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName, bool assignExisting) {
     if (!scene->findComponent<ImageComponent>(entity)) return "";
     ImageComponent& image = scene->getComponent<ImageComponent>(entity);
     std::ostringstream code;
@@ -771,11 +778,11 @@ std::string Editor::Factory::createImageComponent(int indentSpaces, EntityRegist
     code << ind << "image.patchMarginTop = " << formatUInt(image.patchMarginTop) << ";\n";
     code << ind << "image.patchMarginBottom = " << formatUInt(image.patchMarginBottom) << ";\n";
     code << ind << "image.textureScaleFactor = " << formatFloat(image.textureScaleFactor) << ";\n";
-    addComponentCode(code, ind, sceneName, entityName, entity, "ImageComponent", "image");
+    addComponentCode(code, ind, sceneName, entityName, entity, "ImageComponent", "image", assignExisting);
     return code.str();
 }
 
-std::string Editor::Factory::createSpriteComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createSpriteComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName, bool assignExisting) {
     if (!scene->findComponent<SpriteComponent>(entity)) return "";
     SpriteComponent& sprite = scene->getComponent<SpriteComponent>(entity);
     std::ostringstream code;
@@ -806,11 +813,11 @@ std::string Editor::Factory::createSpriteComponent(int indentSpaces, EntityRegis
     if (sprite.numFramesRect > 0) {
         code << ind << "sprite.numFramesRect = " << sprite.numFramesRect << ";\n";
     }
-    addComponentCode(code, ind, sceneName, entityName, entity, "SpriteComponent", "sprite");
+    addComponentCode(code, ind, sceneName, entityName, entity, "SpriteComponent", "sprite", assignExisting);
     return code.str();
 }
 
-std::string Editor::Factory::createLightComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createLightComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName, bool assignExisting) {
     if (!scene->findComponent<LightComponent>(entity)) return "";
     LightComponent& light = scene->getComponent<LightComponent>(entity);
     std::ostringstream code;
@@ -830,11 +837,11 @@ std::string Editor::Factory::createLightComponent(int indentSpaces, EntityRegist
     code << ind << "light.shadowCameraNearFar.x = " << formatFloat(light.shadowCameraNearFar.x) << ";\n";
     code << ind << "light.shadowCameraNearFar.y = " << formatFloat(light.shadowCameraNearFar.y) << ";\n";
     code << ind << "light.numShadowCascades = " << formatUInt(light.numShadowCascades) << ";\n";
-    addComponentCode(code, ind, sceneName, entityName, entity, "LightComponent", "light");
+    addComponentCode(code, ind, sceneName, entityName, entity, "LightComponent", "light", assignExisting);
     return code.str();
 }
 
-std::string Editor::Factory::createCameraComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createCameraComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName, bool assignExisting) {
     if (!scene->findComponent<CameraComponent>(entity)) return "";
     CameraComponent& camera = scene->getComponent<CameraComponent>(entity);
     std::ostringstream code;
@@ -855,11 +862,11 @@ std::string Editor::Factory::createCameraComponent(int indentSpaces, EntityRegis
     code << ind << "camera.transparentSort = " << formatBool(camera.transparentSort) << ";\n";
     code << ind << "camera.useTarget = " << formatBool(camera.useTarget) << ";\n";
     code << ind << "camera.autoResize = " << formatBool(camera.autoResize) << ";\n";
-    addComponentCode(code, ind, sceneName, entityName, entity, "CameraComponent", "camera");
+    addComponentCode(code, ind, sceneName, entityName, entity, "CameraComponent", "camera", assignExisting);
     return code.str();
 }
 
-std::string Editor::Factory::createScriptComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createScriptComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName, bool assignExisting) {
     if (!scene->findComponent<ScriptComponent>(entity)) return "";
     ScriptComponent& script = scene->getComponent<ScriptComponent>(entity);
     std::ostringstream code;
@@ -889,11 +896,11 @@ std::string Editor::Factory::createScriptComponent(int indentSpaces, EntityRegis
         }
     }
 
-    addComponentCode(code, ind, sceneName, entityName, entity, "ScriptComponent", "script");
+    addComponentCode(code, ind, sceneName, entityName, entity, "ScriptComponent", "script", assignExisting);
     return code.str();
 }
 
-std::string Editor::Factory::createSkyComponent(int indentSpaces, EntityRegistry* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createSkyComponent(int indentSpaces, EntityRegistry* scene, Entity entity, const fs::path& projectPath, std::string sceneName, std::string entityName, bool assignExisting) {
     if (!scene->findComponent<SkyComponent>(entity)) return "";
     SkyComponent& sky = scene->getComponent<SkyComponent>(entity);
     std::ostringstream code;
@@ -927,7 +934,7 @@ std::string Editor::Factory::createSkyComponent(int indentSpaces, EntityRegistry
     code << ind << "sky.color = " << formatVector4(sky.color) << ";\n";
     code << ind << "sky.rotation = " << formatFloat(sky.rotation) << ";\n";
 
-    addComponentCode(code, ind, sceneName, entityName, entity, "SkyComponent", "sky");
+    addComponentCode(code, ind, sceneName, entityName, entity, "SkyComponent", "sky", assignExisting);
     return code.str();
 }
 
@@ -1016,7 +1023,7 @@ std::string Editor::Factory::formatActionState(ActionState state) {
     }
 }
 
-std::string Editor::Factory::createBody2DComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createBody2DComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName, bool assignExisting) {
     if (!scene->findComponent<Body2DComponent>(entity)) return "";
     Body2DComponent& body = scene->getComponent<Body2DComponent>(entity);
     std::ostringstream code;
@@ -1051,11 +1058,11 @@ std::string Editor::Factory::createBody2DComponent(int indentSpaces, EntityRegis
         code << ind << "body2d.shapes[" << idx << "].groupIndex = " << body.shapes[i].groupIndex << ";\n";
     }
 
-    addComponentCode(code, ind, sceneName, entityName, entity, "Body2DComponent", "body2d");
+    addComponentCode(code, ind, sceneName, entityName, entity, "Body2DComponent", "body2d", assignExisting);
     return code.str();
 }
 
-std::string Editor::Factory::createBody3DComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createBody3DComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName, bool assignExisting) {
     if (!scene->findComponent<Body3DComponent>(entity)) return "";
     Body3DComponent& body = scene->getComponent<Body3DComponent>(entity);
     std::ostringstream code;
@@ -1121,11 +1128,11 @@ std::string Editor::Factory::createBody3DComponent(int indentSpaces, EntityRegis
         }
     }
 
-    addComponentCode(code, ind, sceneName, entityName, entity, "Body3DComponent", "body3d");
+    addComponentCode(code, ind, sceneName, entityName, entity, "Body3DComponent", "body3d", assignExisting);
     return code.str();
 }
 
-std::string Editor::Factory::createJoint2DComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createJoint2DComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName, bool assignExisting) {
     if (!scene->findComponent<Joint2DComponent>(entity)) return "";
     Joint2DComponent& joint = scene->getComponent<Joint2DComponent>(entity);
     std::ostringstream code;
@@ -1141,11 +1148,11 @@ std::string Editor::Factory::createJoint2DComponent(int indentSpaces, EntityRegi
     code << ind << "joint2d.autoAnchors = " << formatBool(joint.autoAnchors) << ";\n";
     code << ind << "joint2d.rope = " << formatBool(joint.rope) << ";\n";
     code << ind << "joint2d.needUpdateJoint = " << formatBool(joint.needUpdateJoint) << ";\n";
-    addComponentCode(code, ind, sceneName, entityName, entity, "Joint2DComponent", "joint2d");
+    addComponentCode(code, ind, sceneName, entityName, entity, "Joint2DComponent", "joint2d", assignExisting);
     return code.str();
 }
 
-std::string Editor::Factory::createJoint3DComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createJoint3DComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName, bool assignExisting) {
     if (!scene->findComponent<Joint3DComponent>(entity)) return "";
     Joint3DComponent& joint = scene->getComponent<Joint3DComponent>(entity);
     std::ostringstream code;
@@ -1188,11 +1195,11 @@ std::string Editor::Factory::createJoint3DComponent(int indentSpaces, EntityRegi
     code << ind << "joint3d.isLooping = " << formatBool(joint.isLooping) << ";\n";
     code << ind << "joint3d.autoAnchors = " << formatBool(joint.autoAnchors) << ";\n";
     code << ind << "joint3d.needUpdateJoint = " << formatBool(joint.needUpdateJoint) << ";\n";
-    addComponentCode(code, ind, sceneName, entityName, entity, "Joint3DComponent", "joint3d");
+    addComponentCode(code, ind, sceneName, entityName, entity, "Joint3DComponent", "joint3d", assignExisting);
     return code.str();
 }
 
-std::string Editor::Factory::createActionComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createActionComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName, bool assignExisting) {
     if (!scene->findComponent<ActionComponent>(entity)) return "";
     ActionComponent& action = scene->getComponent<ActionComponent>(entity);
     std::ostringstream code;
@@ -1202,11 +1209,11 @@ std::string Editor::Factory::createActionComponent(int indentSpaces, EntityRegis
     code << ind << "actioncomp.speed = " << formatFloat(action.speed) << ";\n";
     code << ind << "actioncomp.target = " << formatUInt(action.target) << ";\n";
     code << ind << "actioncomp.ownedTarget = " << formatBool(action.ownedTarget) << ";\n";
-    addComponentCode(code, ind, sceneName, entityName, entity, "ActionComponent", "actioncomp");
+    addComponentCode(code, ind, sceneName, entityName, entity, "ActionComponent", "actioncomp", assignExisting);
     return code.str();
 }
 
-std::string Editor::Factory::createSpriteAnimationComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createSpriteAnimationComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName, bool assignExisting) {
     if (!scene->findComponent<SpriteAnimationComponent>(entity)) return "";
     SpriteAnimationComponent& spriteanim = scene->getComponent<SpriteAnimationComponent>(entity);
     std::ostringstream code;
@@ -1225,11 +1232,11 @@ std::string Editor::Factory::createSpriteAnimationComponent(int indentSpaces, En
     for (unsigned int i = 0; i < spriteanim.framesTimeSize; i++) {
         code << ind << "spriteanim.framesTime[" << i << "] = " << formatInt(spriteanim.framesTime[i]) << ";\n";
     }
-    addComponentCode(code, ind, sceneName, entityName, entity, "SpriteAnimationComponent", "spriteanim");
+    addComponentCode(code, ind, sceneName, entityName, entity, "SpriteAnimationComponent", "spriteanim", assignExisting);
     return code.str();
 }
 
-std::string Editor::Factory::createAnimationComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createAnimationComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName, bool assignExisting) {
     if (!scene->findComponent<AnimationComponent>(entity)) return "";
     AnimationComponent& anim = scene->getComponent<AnimationComponent>(entity);
     std::ostringstream code;
@@ -1243,32 +1250,32 @@ std::string Editor::Factory::createAnimationComponent(int indentSpaces, EntityRe
     for (size_t i = 0; i < anim.actions.size(); i++) {
         code << ind << "animcomp.actions.push_back({" << formatFloat(anim.actions[i].startTime) << ", " << formatFloat(anim.actions[i].duration) << ", " << formatUInt(anim.actions[i].action) << ", " << formatUInt(anim.actions[i].track) << "});\n";
     }
-    addComponentCode(code, ind, sceneName, entityName, entity, "AnimationComponent", "animcomp");
+    addComponentCode(code, ind, sceneName, entityName, entity, "AnimationComponent", "animcomp", assignExisting);
     return code.str();
 }
 
-std::string Editor::Factory::createComponent(int indentSpaces, EntityRegistry* scene, Entity entity, ComponentType componentType, const fs::path& projectPath, std::string sceneName, std::string entityName) {
+std::string Editor::Factory::createComponent(int indentSpaces, EntityRegistry* scene, Entity entity, ComponentType componentType, const fs::path& projectPath, std::string sceneName, std::string entityName, bool assignExisting) {
     switch (componentType) {
-        case ComponentType::Transform: return createTransform(indentSpaces, scene, entity, sceneName, entityName);
-        case ComponentType::MeshComponent: return createMeshComponent(indentSpaces, scene, entity, projectPath, sceneName, entityName);
-        case ComponentType::UIComponent: return createUIComponent(indentSpaces, scene, entity, projectPath, sceneName, entityName);
-        case ComponentType::ButtonComponent: return createButtonComponent(indentSpaces, scene, entity, projectPath, sceneName, entityName);
-        case ComponentType::UILayoutComponent: return createUILayoutComponent(indentSpaces, scene, entity, sceneName, entityName);
-        case ComponentType::UIContainerComponent: return createUIContainerComponent(indentSpaces, scene, entity, sceneName, entityName);
-        case ComponentType::TextComponent: return createTextComponent(indentSpaces, scene, entity, projectPath, sceneName, entityName);
-        case ComponentType::ImageComponent: return createImageComponent(indentSpaces, scene, entity, sceneName, entityName);
-        case ComponentType::SpriteComponent: return createSpriteComponent(indentSpaces, scene, entity, sceneName, entityName);
-        case ComponentType::LightComponent: return createLightComponent(indentSpaces, scene, entity, sceneName, entityName);
-        case ComponentType::CameraComponent: return createCameraComponent(indentSpaces, scene, entity, sceneName, entityName);
-        case ComponentType::ScriptComponent: return createScriptComponent(indentSpaces, scene, entity, sceneName, entityName);
-        case ComponentType::SkyComponent: return createSkyComponent(indentSpaces, scene, entity, projectPath, sceneName, entityName);
-        case ComponentType::Body2DComponent: return createBody2DComponent(indentSpaces, scene, entity, sceneName, entityName);
-        case ComponentType::Body3DComponent: return createBody3DComponent(indentSpaces, scene, entity, sceneName, entityName);
-        case ComponentType::Joint2DComponent: return createJoint2DComponent(indentSpaces, scene, entity, sceneName, entityName);
-        case ComponentType::Joint3DComponent: return createJoint3DComponent(indentSpaces, scene, entity, sceneName, entityName);
-        case ComponentType::ActionComponent: return createActionComponent(indentSpaces, scene, entity, sceneName, entityName);
-        case ComponentType::SpriteAnimationComponent: return createSpriteAnimationComponent(indentSpaces, scene, entity, sceneName, entityName);
-        case ComponentType::AnimationComponent: return createAnimationComponent(indentSpaces, scene, entity, sceneName, entityName);
+        case ComponentType::Transform: return createTransform(indentSpaces, scene, entity, sceneName, entityName, false, assignExisting);
+        case ComponentType::MeshComponent: return createMeshComponent(indentSpaces, scene, entity, projectPath, sceneName, entityName, assignExisting);
+        case ComponentType::UIComponent: return createUIComponent(indentSpaces, scene, entity, projectPath, sceneName, entityName, assignExisting);
+        case ComponentType::ButtonComponent: return createButtonComponent(indentSpaces, scene, entity, projectPath, sceneName, entityName, assignExisting);
+        case ComponentType::UILayoutComponent: return createUILayoutComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
+        case ComponentType::UIContainerComponent: return createUIContainerComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
+        case ComponentType::TextComponent: return createTextComponent(indentSpaces, scene, entity, projectPath, sceneName, entityName, assignExisting);
+        case ComponentType::ImageComponent: return createImageComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
+        case ComponentType::SpriteComponent: return createSpriteComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
+        case ComponentType::LightComponent: return createLightComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
+        case ComponentType::CameraComponent: return createCameraComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
+        case ComponentType::ScriptComponent: return createScriptComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
+        case ComponentType::SkyComponent: return createSkyComponent(indentSpaces, scene, entity, projectPath, sceneName, entityName, assignExisting);
+        case ComponentType::Body2DComponent: return createBody2DComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
+        case ComponentType::Body3DComponent: return createBody3DComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
+        case ComponentType::Joint2DComponent: return createJoint2DComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
+        case ComponentType::Joint3DComponent: return createJoint3DComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
+        case ComponentType::ActionComponent: return createActionComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
+        case ComponentType::SpriteAnimationComponent: return createSpriteAnimationComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
+        case ComponentType::AnimationComponent: return createAnimationComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
         default: return "";
     }
 }
@@ -1343,7 +1350,6 @@ std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::st
 
     const std::string ind2 = indentation(indentSpaces+4);
     const std::string ind3 = indentation(indentSpaces+8);
-    const std::string ind4 = indentation(indentSpaces+12);
 
     bool firstEntity = true;
 
@@ -1386,15 +1392,13 @@ std::string Editor::Factory::createScene(int indentSpaces, Scene* scene, std::st
                     out << ind3 << "// Override for " << memberEntityName << " (" << entityStr << ")\n";
                     out << ind3 << "{\n";
                     for (ComponentType compType : ovr.overriddenComponents) {
-                        std::string compTypeName = Catalog::getComponentName(compType);
                         std::string componentCode;
                         if (compType == ComponentType::Transform) {
-                            componentCode = createTransform(indentSpaces+12, scene, ovr.sceneEntity, "scene", entityStr, true);
+                            componentCode = createTransform(indentSpaces+12, scene, ovr.sceneEntity, "scene", entityStr, true, true);
                         } else {
-                            componentCode = createComponent(indentSpaces+12, scene, ovr.sceneEntity, compType, projectPath, "scene", entityStr);
+                            componentCode = createComponent(indentSpaces+12, scene, ovr.sceneEntity, compType, projectPath, "scene", entityStr, true);
                         }
                         if (!componentCode.empty()) {
-                            out << ind4 << "scene->removeComponent<" << compTypeName << ">(" << entityStr << ");\n";
                             out << componentCode;
                         }
                     }
