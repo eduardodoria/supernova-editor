@@ -29,6 +29,8 @@ namespace Supernova::Editor{
         SPOT_LIGHT,
         JOINT2D,
         JOINT3D,
+        BODY2D,
+        BODY3D,
         SKY,
         CAMERA,
         ANIMATION,

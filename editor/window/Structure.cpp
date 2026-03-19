@@ -80,18 +80,6 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addT
         openParent = parent;
     }
 
-    if (ImGui::BeginMenu(ICON_FA_LINK"  Joint")){
-        if (ImGui::MenuItem(ICON_FA_LINK"  Joint2D")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Joint2D", EntityCreationType::JOINT2D, parent, addToBundle));
-            openParent = parent;
-        }
-        if (ImGui::MenuItem(ICON_FA_LINK"  Joint3D")){
-            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Joint3D", EntityCreationType::JOINT3D, parent, addToBundle));
-            openParent = parent;
-        }
-        ImGui::EndMenu();
-    }
-
     if (ImGui::BeginMenu(ICON_FA_DICE_D20"  Basic shape")){
         if (ImGui::MenuItem(ICON_FA_DICE_D20"  Box")){
             CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Box", EntityCreationType::BOX, parent, addToBundle));
@@ -159,6 +147,26 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addT
         }
         if (ImGui::MenuItem(ICON_FA_LIGHTBULB"  Spot")){
             CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Spot Light", EntityCreationType::SPOT_LIGHT, parent, addToBundle));
+            openParent = parent;
+        }
+        ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu(ICON_FA_ATOM"  Physics")){
+        if (ImGui::MenuItem(ICON_FA_LINK"  Joint 2D")){
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Joint2D", EntityCreationType::JOINT2D, parent, addToBundle));
+            openParent = parent;
+        }
+        if (ImGui::MenuItem(ICON_FA_LINK"  Joint 3D")){
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Joint3D", EntityCreationType::JOINT3D, parent, addToBundle));
+            openParent = parent;
+        }
+        if (ImGui::MenuItem(ICON_FA_WEIGHT_HANGING"  Empty Body 2D")){
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Body2D", EntityCreationType::BODY2D, parent, addToBundle));
+            openParent = parent;
+        }
+        if (ImGui::MenuItem(ICON_FA_WEIGHT_HANGING"  Empty Body 3D")){
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Body3D", EntityCreationType::BODY3D, parent, addToBundle));
             openParent = parent;
         }
         ImGui::EndMenu();

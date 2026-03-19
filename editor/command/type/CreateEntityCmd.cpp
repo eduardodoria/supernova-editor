@@ -243,6 +243,16 @@ bool Editor::CreateEntityCmd::execute(){
 
         scene->addComponent<Joint3DComponent>(entity, {});
 
+    }else if (type == EntityCreationType::BODY2D){
+
+        scene->addComponent<Transform>(entity, {});
+        scene->addComponent<Body2DComponent>(entity, {});
+
+    }else if (type == EntityCreationType::BODY3D){
+
+        scene->addComponent<Transform>(entity, {});
+        scene->addComponent<Body3DComponent>(entity, {});
+
     }else if (type == EntityCreationType::SKY){
 
         scene->addComponent<SkyComponent>(entity, {});
