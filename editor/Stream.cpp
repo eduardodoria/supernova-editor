@@ -922,12 +922,12 @@ YAML::Node Editor::Stream::encodeSceneProject(const Project* project, const Scen
         root["cppScripts"] = scriptsNode;
     }
 
-    if (!sceneProject->bundleFileNames.empty()) {
-        YAML::Node bundleFileNamesNode;
-        for (const auto& name : sceneProject->bundleFileNames) {
-            bundleFileNamesNode.push_back(name);
+    if (!sceneProject->bundles.empty()) {
+        YAML::Node bundlesNode;
+        for (const auto& bundle : sceneProject->bundles) {
+            bundlesNode.push_back(bundle.bundlePath.generic_string());
         }
-        root["bundleFileNames"] = bundleFileNamesNode;
+        root["bundles"] = bundlesNode;
     }
 
     YAML::Node entitiesNode;
@@ -1023,10 +1023,12 @@ void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::
         }
     }
 
-    sceneProject->bundleFileNames.clear();
-    if (node["bundleFileNames"]) {
-        for (const auto& nameNode : node["bundleFileNames"]) {
-            sceneProject->bundleFileNames.push_back(nameNode.as<std::string>());
+    sceneProject->bundles.clear();
+    if (node["bundles"]) {
+        for (const auto& pathNode : node["bundles"]) {
+            BundleSceneInfo info;
+            info.bundlePath = pathNode.as<std::string>();
+            sceneProject->bundles.push_back(std::move(info));
         }
     }
 }

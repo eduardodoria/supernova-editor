@@ -38,6 +38,7 @@
 
 #include "texture/Texture.h"
 #include "SceneManager.h"
+#include "BundleManager.h"
 
 using namespace Supernova;
 
@@ -457,7 +458,7 @@ void Editor::Project::remapEntityBundleFilePath(const std::filesystem::path& old
         }
 
         if (sceneBundleChanged) {
-            updateSceneBundleFileNames(&sceneProject);
+            updateSceneBundles(&sceneProject);
         }
     }
 
@@ -465,7 +466,7 @@ void Editor::Project::remapEntityBundleFilePath(const std::filesystem::path& old
         if (SceneProject* sceneProject = getScene(sceneId)) {
             sceneProject->isModified = true;
             if (sceneProject->scene) {
-                updateSceneBundleFileNames(sceneProject);
+                updateSceneBundles(sceneProject);
             }
         }
     }
@@ -642,7 +643,7 @@ void Editor::Project::cleanupEntityBundleFilePath(const std::filesystem::path& d
         if (SceneProject* sceneProject = getScene(sceneId)) {
             sceneProject->isModified = true;
             if (sceneProject->scene) {
-                updateSceneBundleFileNames(sceneProject);
+                updateSceneBundles(sceneProject);
             }
         }
     }
@@ -1071,16 +1072,19 @@ void Editor::Project::updateSceneCppScripts(SceneProject* sceneProject) {
     }
 }
 
-void Editor::Project::updateSceneBundleFileNames(SceneProject* sceneProject) {
+void Editor::Project::updateSceneBundles(SceneProject* sceneProject) {
     if (!sceneProject) {
         return;
     }
 
-    sceneProject->bundleFileNames.clear();
+    sceneProject->bundles.clear();
 
     for (const auto& [bundlePath, bundle] : entityBundles) {
         if (bundle.instances.find(sceneProject->id) != bundle.instances.end()) {
-            sceneProject->bundleFileNames.push_back(Factory::bundleToFileName(bundlePath));
+            BundleSceneInfo info;
+            info.bundlePath = bundlePath;
+            info.functionName = Factory::bundleToFunctionName(bundlePath);
+            sceneProject->bundles.push_back(std::move(info));
         }
     }
 }
@@ -1271,7 +1275,7 @@ void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene)
 
         if (opened) {
             updateSceneCppScripts(targetScene);
-            updateSceneBundleFileNames(targetScene);
+            updateSceneBundles(targetScene);
         }
 
     } catch (const YAML::Exception& e) {
@@ -1586,21 +1590,21 @@ std::vector<Editor::SceneScriptSource> Editor::Project::collectAllSceneCppScript
     return mergedScripts;
 }
 
-std::vector<std::string> Editor::Project::collectAllBundleFileNames() const {
-    std::unordered_set<std::string> uniqueNames;
-    std::vector<std::string> mergedBundleFileNames;
+std::vector<Editor::BundleSceneInfo> Editor::Project::collectAllBundles() const {
+    std::unordered_set<std::string> uniquePaths;
+    std::vector<BundleSceneInfo> result;
 
     for (const auto& sceneProject : scenes) {
-        for (const auto& name : sceneProject.bundleFileNames) {
-            if (!uniqueNames.insert(name).second) {
+        for (const auto& bundle : sceneProject.bundles) {
+            std::string pathKey = bundle.bundlePath.generic_string();
+            if (!uniquePaths.insert(pathKey).second) {
                 continue;
             }
-
-            mergedBundleFileNames.push_back(name);
+            result.push_back(bundle);
         }
     }
 
-    return mergedBundleFileNames;
+    return result;
 }
 
 void Editor::Project::pauseEngineScene(Scene* scene, bool pause) const{
@@ -1680,6 +1684,9 @@ void Editor::Project::finalizeStop(SceneProject* mainSceneProject, std::vector<P
         pauseEngineScene(sceneProject->scene, true);
         sceneProject->scene->getSystem<UISystem>()->setAnchorReferenceSize(windowWidth, windowHeight);
 
+        // Destroy all bundle instances created during play before restoring snapshot
+        BundleManager::destroyAllInstances(sceneProject->scene);
+
         // Restore snapshot if present
         if (sceneProject->playStateSnapshot && !sceneProject->playStateSnapshot.IsNull()) {
             Stream::decodeScene(sceneProject->scene, sceneProject->playStateSnapshot["scene"]);
@@ -1721,6 +1728,7 @@ void Editor::Project::finalizeStop(SceneProject* mainSceneProject, std::vector<P
 
     Backend::getApp().enqueueMainThreadTask([]() {
         SceneManager::clearAll();
+        BundleManager::clearAll();
         Backend::getApp().resetLastActivatedScene();
     });
 
@@ -2013,7 +2021,7 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
     sceneProject->maxValues = calculateSceneMaxValues(sceneProject);
 
     updateSceneCppScripts(sceneProject);
-    updateSceneBundleFileNames(sceneProject);
+    updateSceneBundles(sceneProject);
 
     YAML::Node root = Stream::encodeSceneProject(this, sceneProject);
     std::ofstream fout(path.string());
@@ -2037,8 +2045,8 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
     }
 
     std::vector<SceneScriptSource> mergedCppScripts = collectAllSceneCppScripts();
-    std::vector<std::string> bundleFileNames = collectAllBundleFileNames();
-    generator.configure(scenesToConfig, libName, mergedCppScripts, getProjectPath(), getProjectInternalPath(), bundleFileNames);
+    std::vector<BundleSceneInfo> bundleBuildInfos = collectAllBundles();
+    generator.configure(scenesToConfig, libName, mergedCppScripts, bundleBuildInfos, getProjectPath(), getProjectInternalPath());
 
     Out::info("Scene saved to: \"%s\"", path.string().c_str());
 }
@@ -4288,6 +4296,95 @@ void Editor::Project::registerSceneManager() {
     }
 }
 
+// Safe: only called from BundleManager lambdas on the game thread (pauseGameEvents=false);
+// editor thread won't mutate scenes or runtimeScenes while game events are active.
+Editor::SceneProject* Editor::Project::findSceneProjectByScene(Scene* scene) {
+    for (auto& sp : scenes) {
+        if (sp.scene == scene) return &sp;
+    }
+    std::scoped_lock lock(playSessionMutex);
+    if (activePlaySession) {
+        for (auto& entry : activePlaySession->runtimeScenes) {
+            if (entry.runtime && entry.runtime->scene == scene) {
+                return entry.runtime;
+            }
+        }
+    }
+    return nullptr;
+}
+
+void Editor::Project::registerBundleManager() {
+    BundleManager::clearAll();
+    uint32_t bundleId = 0;
+    for (const auto& [bundlePath, bundle] : entityBundles) {
+        bundleId++;
+        fs::path noExt = bundlePath;
+        noExt.replace_extension();
+        std::string bundleName = noExt.generic_string();
+
+        // Determine if root needs Transform based on bundle's top-level entities
+        bool hasTopLevelTransform = false;
+        if (bundle.registry) {
+            std::vector<Entity> topLevelEntities = getTopLevelEntities(bundle.registry.get(), bundle.registryEntities);
+            for (Entity topLevelEntity : topLevelEntities) {
+                if (bundle.registry->getSignature(topLevelEntity).test(bundle.registry->getComponentId<Transform>())) {
+                    hasTopLevelTransform = true;
+                    break;
+                }
+            }
+        }
+
+        BundleManager::registerBundle(bundleId, bundleName,
+            // Factory: create bundle instance via importEntityBundle
+            [this, bundlePath, bundleName, hasTopLevelTransform](Scene* scene, Entity root) {
+                SceneProject* sceneProject = findSceneProjectByScene(scene);
+                if (!sceneProject) return;
+
+                // Set up root entity (matching createEntityBundle pattern)
+                scene->setEntityName(root, bundlePath.stem().string());
+
+                BundleComponent bundleComp;
+                bundleComp.name = bundlePath.stem().string();
+                bundleComp.path = bundlePath.string();
+                scene->addComponent<BundleComponent>(root, bundleComp);
+
+                if (hasTopLevelTransform) {
+                    scene->addComponent<Transform>(root, {});
+                }
+
+                sceneProject->entities.push_back(root);
+
+                importEntityBundle(sceneProject, &sceneProject->entities, bundlePath, root, false);
+            },
+            // Destroyer: remove bundle instance via unimportEntityBundle
+            [this, bundlePath](Scene* scene, Entity root) -> bool {
+                SceneProject* sceneProject = findSceneProjectByScene(scene);
+                if (!sceneProject) return false;
+
+                EntityBundle* bundle = getEntityBundle(bundlePath);
+                if (!bundle) return false;
+
+                auto sceneIt = bundle->instances.find(sceneProject->id);
+                if (sceneIt == bundle->instances.end()) return false;
+
+                for (const auto& instance : sceneIt->second) {
+                    if (instance.rootEntity == root) {
+                        std::vector<Entity> members;
+                        for (const auto& m : instance.members) {
+                            members.push_back(m.localEntity);
+                        }
+                        bool wasModified = sceneProject->isModified;
+                        bool result = unimportEntityBundle(sceneProject->id, bundlePath, root, members);
+                        sceneProject->isModified = wasModified;
+                        return result;
+                    }
+                }
+                return false;
+            }
+        );
+    }
+}
+
 void Editor::Project::start(uint32_t sceneId) {
     SceneProject* sceneProject = getScene(sceneId);
     if (!sceneProject) {
@@ -4387,6 +4484,7 @@ void Editor::Project::start(uint32_t sceneId) {
     }
 
     registerSceneManager();
+    registerBundleManager();
 
     // Save current scene state before starting
     sceneProject->playStateSnapshot = Stream::encodeSceneProject(nullptr, sceneProject);
@@ -4395,9 +4493,8 @@ void Editor::Project::start(uint32_t sceneId) {
     Backend::getApp().getCodeEditor()->saveAll();
 
     std::vector<SceneScriptSource> mergedCppScripts = collectAllSceneCppScripts();
-    std::vector<std::string> bundleFileNames = collectAllBundleFileNames();
-
-    generator.configure(scenesToGenerate, libName, mergedCppScripts, getProjectPath(), getProjectInternalPath(), bundleFileNames);
+    std::vector<BundleSceneInfo> bundleBuildInfos = collectAllBundles();
+    generator.configure(scenesToGenerate, libName, mergedCppScripts, bundleBuildInfos, getProjectPath(), getProjectInternalPath());
 
     // Check if we have C++ scripts that need building
     bool hasCppScripts = !mergedCppScripts.empty();

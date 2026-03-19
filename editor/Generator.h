@@ -45,6 +45,11 @@ namespace Supernova::Editor {
         bool isMain;
     };
 
+    struct BundleSceneInfo {
+        std::filesystem::path bundlePath; // relative path of the .bundle file
+        std::string functionName;         // generated C++ function name (e.g. create_bundle_X)
+    };
+
     class Generator {
     private:
         std::future<void> buildFuture;
@@ -72,7 +77,7 @@ namespace Supernova::Editor {
         std::string buildInitSceneScriptsSource(const std::vector<SceneScriptSource>& scriptFiles);
         std::string buildCleanupSceneScriptsSource(const std::vector<SceneScriptSource>& scriptFiles);
 
-        void writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, std::string libName, const std::vector<SceneScriptSource>& scriptFiles, const std::vector<SceneBuildInfo>& scenes, const std::vector<std::string>& bundleFileNames);
+        void writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, std::string libName, const std::vector<SceneScriptSource>& scriptFiles, const std::vector<SceneBuildInfo>& scenes, const std::vector<BundleSceneInfo>& bundles);
         void terminateCurrentProcess();
 
     public:
@@ -81,7 +86,7 @@ namespace Supernova::Editor {
         std::vector<BundleInstanceInfo> writeBundleSources(const std::map<fs::path, EntityBundle>& entityBundles, uint32_t sceneId, const fs::path& projectPath, const fs::path& projectInternalPath);
         void writeSceneSource(Scene* scene, const std::string& sceneName, const std::vector<Entity>& entities, const Entity camera, const fs::path& projectPath, const fs::path& projectInternalPath, std::vector<BundleInstanceInfo>& bundleInstances);
         void clearSceneSource(const std::string& sceneName, const fs::path& projectInternalPath);
-        void configure(const std::vector<SceneBuildInfo>& scenes, std::string libName, const std::vector<SceneScriptSource>& scriptFiles, const fs::path& projectPath, const fs::path& projectInternalPath, const std::vector<std::string>& bundleFileNames = {});
+        void configure(const std::vector<SceneBuildInfo>& scenes, std::string libName, const std::vector<SceneScriptSource>& scriptFiles, const std::vector<BundleSceneInfo>& bundles, const fs::path& projectPath, const fs::path& projectInternalPath);
         void build(const fs::path projectPath, const fs::path projectInternalPath, const fs::path buildPath);
         bool isBuildInProgress() const;
         void waitForBuildToComplete();

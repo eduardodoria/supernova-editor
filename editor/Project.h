@@ -69,7 +69,7 @@ namespace Supernova::Editor{
         SceneMaxValues maxValues;
         std::vector<uint32_t> childScenes;
         std::vector<SceneScriptSource> cppScripts;
-        std::vector<std::string> bundleFileNames;
+        std::vector<BundleSceneInfo> bundles;
     };
 
     struct NodeRecoveryEntry {
@@ -160,19 +160,23 @@ namespace Supernova::Editor{
         Entity createNewEntity(uint32_t sceneId, std::string entityName);
         bool createNewComponent(uint32_t sceneId, Entity entity, ComponentType component);
         void deleteSceneProject(SceneProject* sceneProject);
-        void updateSceneCppScripts(SceneProject* sceneProject);
-        void updateSceneBundleFileNames(SceneProject* sceneProject);
         SceneMaxValues calculateSceneMaxValues(const SceneProject* sceneProject) const;
         void resetConfigs();
 
+        void updateSceneCppScripts(SceneProject* sceneProject);
+        void updateSceneBundles(SceneProject* sceneProject);
+
         std::vector<SceneScriptSource> collectAllSceneCppScripts() const;
-        std::vector<std::string> collectAllBundleFileNames() const;
+        std::vector<BundleSceneInfo> collectAllBundles() const;
 
         void pauseEngineScene(Scene* scene, bool pause) const;
 
         void copyEngineApiToProject();
 
         void registerSceneManager();
+        void registerBundleManager();
+
+        SceneProject* findSceneProjectByScene(Scene* scene);
 
         fs::path normalizeToProjectRelative(const fs::path& path) const;
         static bool matchesRelativePath(const fs::path& relativeBase, const fs::path& currentPath);
