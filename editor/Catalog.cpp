@@ -994,6 +994,36 @@ namespace {
         return PropertyData();
     }
 
+    PropertyData resolveModelPropertyFast(void* compRef, const std::string& propertyName) {
+        ModelComponent* comp = static_cast<ModelComponent*>(compRef);
+        if (!comp) return PropertyData();
+
+        ModelComponent& def = getDefaultComponent<ModelComponent>();
+
+        if (propertyName == "skeleton") {
+            return {PropertyType::Entity, UpdateFlags_Mesh_Reload, (void*)&def.skeleton, (void*)&comp->skeleton};
+        }
+
+        if (propertyName == "animations") {
+            return {PropertyType::Custom, UpdateFlags_None, (void*)&def.animations, (void*)&comp->animations};
+        }
+
+        if (propertyName.compare(0, 11, "animations[") == 0) {
+            size_t pos = 11;
+            size_t index = 0;
+            if (!parseIndex(propertyName, pos, index) || pos >= propertyName.size() || propertyName[pos] != ']') {
+                return PropertyData();
+            }
+            if (pos + 1 != propertyName.size() || index >= comp->animations.size()) {
+                return PropertyData();
+            }
+            static Entity defEntity = NULL_ENTITY;
+            return {PropertyType::Entity, UpdateFlags_None, (void*)&defEntity, (void*)&comp->animations[index]};
+        }
+
+        return PropertyData();
+    }
+
     PropertyData resolveMeshPropertyFast(void* comp, const std::string& propertyName) {
         return getMeshPropertyFast(static_cast<MeshComponent*>(comp), propertyName);
     }
@@ -1014,6 +1044,20 @@ namespace {
 
     void enumerateActionProperties(void* comp, std::map<std::string, PropertyData>& ps) {
         enumerateFromDescriptors(comp, ps, kActionProperties);
+    }
+
+    void enumerateModelProperties(void* compRef, std::map<std::string, PropertyData>& ps) {
+        ModelComponent* comp = static_cast<ModelComponent*>(compRef);
+        ModelComponent& def = getDefaultComponent<ModelComponent>();
+
+        ps["skeleton"] = {PropertyType::Entity, UpdateFlags_Mesh_Reload, (void*)&def.skeleton, compRef ? (void*)&comp->skeleton : nullptr};
+        ps["animations"] = {PropertyType::Custom, UpdateFlags_None, (void*)&def.animations, compRef ? (void*)&comp->animations : nullptr};
+
+        for (size_t i = 0; i < (compRef ? comp->animations.size() : 0); i++) {
+            std::string idx = std::to_string(i);
+            static Entity defEntity = NULL_ENTITY;
+            ps["animations[" + idx + "]"] = {PropertyType::Entity, UpdateFlags_None, (void*)&defEntity, (void*)&comp->animations[i]};
+        }
     }
 
     void enumerateBundleProperties(void* comp, std::map<std::string, PropertyData>& ps) {
@@ -1324,6 +1368,7 @@ namespace {
         {ComponentType::ActionComponent, &findComponentPtr<ActionComponent>, &resolveActionPropertyFast, &enumerateActionProperties},
         {ComponentType::SpriteAnimationComponent, &findComponentPtr<SpriteAnimationComponent>, &resolveSpriteAnimationPropertyFast, &enumerateSpriteAnimationProperties},
         {ComponentType::AnimationComponent, &findComponentPtr<AnimationComponent>, &resolveAnimationPropertyFast, &enumerateAnimationProperties},
+        {ComponentType::ModelComponent, &findComponentPtr<ModelComponent>, &resolveModelPropertyFast, &enumerateModelProperties},
         {ComponentType::BundleComponent, &findComponentPtr<BundleComponent>, &resolveBundlePropertyFast, &enumerateBundleProperties},
     };
 

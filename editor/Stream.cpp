@@ -1726,6 +1726,11 @@ YAML::Node Editor::Stream::encodeComponents(const Entity entity, const EntityReg
         compNode[Catalog::getComponentName(ComponentType::SkyComponent, true)] = encodeSkyComponent(sky);
     }
 
+    if (signature.test(registry->getComponentId<ModelComponent>())) {
+        ModelComponent model = registry->getComponent<ModelComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::ModelComponent, true)] = encodeModelComponent(model);
+    }
+
     if (signature.test(registry->getComponentId<Body2DComponent>())) {
         Body2DComponent body = registry->getComponent<Body2DComponent>(entity);
         compNode[Catalog::getComponentName(ComponentType::Body2DComponent, true)] = encodeBody2DComponent(body);
@@ -1941,6 +1946,19 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
         }else{
             int flags = Catalog::getChangedUpdateFlags(ComponentType::SkyComponent, existing, &sky);
             registry->getComponent<SkyComponent>(entity) = sky;
+            Catalog::updateEntity(registry, entity, flags);
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::ModelComponent, true);
+    if (compNode[compName]) {
+        ModelComponent* existing = registry->findComponent<ModelComponent>(entity);
+        ModelComponent model = decodeModelComponent(compNode[compName], existing);
+        if (!signature.test(registry->getComponentId<ModelComponent>())){
+            registry->addComponent<ModelComponent>(entity, model);
+        }else{
+            int flags = Catalog::getChangedUpdateFlags(ComponentType::ModelComponent, existing, &model);
+            registry->getComponent<ModelComponent>(entity) = model;
             Catalog::updateEntity(registry, entity, flags);
         }
     }
@@ -2565,6 +2583,41 @@ SpriteComponent Editor::Stream::decodeSpriteComponent(const YAML::Node& node, co
     }
 
     return sprite;
+}
+
+YAML::Node Editor::Stream::encodeModelComponent(const ModelComponent& model) {
+    YAML::Node node;
+
+    node["skeleton"] = static_cast<uint32_t>(model.skeleton);
+
+    if (!model.animations.empty()) {
+        YAML::Node animsNode;
+        for (const auto& anim : model.animations) {
+            animsNode.push_back(static_cast<uint32_t>(anim));
+        }
+        node["animations"] = animsNode;
+    }
+
+    return node;
+}
+
+ModelComponent Editor::Stream::decodeModelComponent(const YAML::Node& node, const ModelComponent* oldModel) {
+    ModelComponent model;
+
+    if (oldModel) {
+        model = *oldModel;
+    }
+
+    if (node["skeleton"]) model.skeleton = static_cast<Entity>(node["skeleton"].as<uint32_t>());
+
+    if (node["animations"]) {
+        model.animations.clear();
+        for (const auto& animNode : node["animations"]) {
+            model.animations.push_back(static_cast<Entity>(animNode.as<uint32_t>()));
+        }
+    }
+
+    return model;
 }
 
 YAML::Node Editor::Stream::encodeLightComponent(const LightComponent& light) {

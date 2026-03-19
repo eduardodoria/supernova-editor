@@ -3628,6 +3628,33 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, SceneProject* s
     }
 }
 
+void Editor::Properties::drawModelComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+    beginTable(cpType, getLabelSize("Skeleton"));
+
+    propertyRow(RowPropertyType::LocalEntity, cpType, "skeleton", "Skeleton", sceneProject, entities);
+
+    endTable();
+
+    if (entities.size() == 1) {
+        Entity entity = entities[0];
+        ModelComponent* model = sceneProject->scene->findComponent<ModelComponent>(entity);
+
+        if (model && !model->animations.empty()) {
+            ImGui::SeparatorText("Animations");
+
+            beginTable(cpType, getLabelSize("Animation 00"));
+
+            for (size_t i = 0; i < model->animations.size(); i++) {
+                std::string propId = "animations[" + std::to_string(i) + "]";
+                std::string label = "Animation " + std::to_string(i);
+                propertyRow(RowPropertyType::LocalEntity, cpType, propId, label, sceneProject, entities);
+            }
+
+            endTable();
+        }
+    }
+}
+
 void Editor::Properties::drawUIComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     beginTable(cpType, getLabelSize("Texture"));
     propertyRow(RowPropertyType::Color4L, cpType, "color", "Color", sceneProject, entities);
@@ -6648,6 +6675,8 @@ void Editor::Properties::show(){
                     drawTransform(cpType, sceneProject, entities);
                 }else if (cpType == ComponentType::MeshComponent){
                     drawMeshComponent(cpType, sceneProject, entities);
+                }else if (cpType == ComponentType::ModelComponent){
+                    drawModelComponent(cpType, sceneProject, entities);
                 }else if (cpType == ComponentType::UIComponent){
                     drawUIComponent(cpType, sceneProject, entities);
                 }else if (cpType == ComponentType::ButtonComponent){

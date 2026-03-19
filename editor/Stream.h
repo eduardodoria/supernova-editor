@@ -176,6 +176,9 @@ namespace Supernova::Editor {
         static YAML::Node encodeSkyComponent(const SkyComponent& sky);
         static SkyComponent decodeSkyComponent(const YAML::Node& node, const SkyComponent* oldSky = nullptr);
 
+        static YAML::Node encodeModelComponent(const ModelComponent& model);
+        static ModelComponent decodeModelComponent(const YAML::Node& node, const ModelComponent* oldModel = nullptr);
+
         static YAML::Node encodeBundleComponent(const BundleComponent& bundle);
         static BundleComponent decodeBundleComponent(const YAML::Node& node, const BundleComponent* oldBundle = nullptr);
 

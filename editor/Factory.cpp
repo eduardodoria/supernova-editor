@@ -1254,6 +1254,23 @@ std::string Editor::Factory::createAnimationComponent(int indentSpaces, EntityRe
     return code.str();
 }
 
+std::string Editor::Factory::createModelComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName, bool assignExisting) {
+    if (!scene->findComponent<ModelComponent>(entity)) return "";
+    ModelComponent& model = scene->getComponent<ModelComponent>(entity);
+    std::ostringstream code;
+    const std::string ind = indentation(indentSpaces);
+    code << ind << "ModelComponent modelcomp;\n";
+    code << ind << "modelcomp.skeleton = " << formatUInt(model.skeleton) << ";\n";
+    if (!model.animations.empty()) {
+        code << ind << "modelcomp.animations.clear();\n";
+        for (size_t i = 0; i < model.animations.size(); i++) {
+            code << ind << "modelcomp.animations.push_back(" << formatUInt(model.animations[i]) << ");\n";
+        }
+    }
+    addComponentCode(code, ind, sceneName, entityName, entity, "ModelComponent", "modelcomp", assignExisting);
+    return code.str();
+}
+
 std::string Editor::Factory::createComponent(int indentSpaces, EntityRegistry* scene, Entity entity, ComponentType componentType, const fs::path& projectPath, std::string sceneName, std::string entityName, bool assignExisting) {
     switch (componentType) {
         case ComponentType::Transform: return createTransform(indentSpaces, scene, entity, sceneName, entityName, false, assignExisting);
@@ -1276,6 +1293,7 @@ std::string Editor::Factory::createComponent(int indentSpaces, EntityRegistry* s
         case ComponentType::ActionComponent: return createActionComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
         case ComponentType::SpriteAnimationComponent: return createSpriteAnimationComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
         case ComponentType::AnimationComponent: return createAnimationComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
+        case ComponentType::ModelComponent: return createModelComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
         default: return "";
     }
 }

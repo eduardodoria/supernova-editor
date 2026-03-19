@@ -114,6 +114,7 @@ namespace Supernova::Editor{
         static std::string createActionComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName = "", std::string entityName = "", bool assignExisting = false);
         static std::string createSpriteAnimationComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName = "", std::string entityName = "", bool assignExisting = false);
         static std::string createAnimationComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName = "", std::string entityName = "", bool assignExisting = false);
+        static std::string createModelComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName = "", std::string entityName = "", bool assignExisting = false);
     };
 
 }

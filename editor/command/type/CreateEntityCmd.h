@@ -32,7 +32,8 @@ namespace Supernova::Editor{
         SKY,
         CAMERA,
         ANIMATION,
-        SPRITE_ANIMATION
+        SPRITE_ANIMATION,
+        MODEL
     };
 
     class CreateEntityCmd: public Command{

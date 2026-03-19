@@ -280,6 +280,13 @@ bool Editor::CreateEntityCmd::execute(){
             sceneProject->mainCamera = entity;
             wasMainCamera = true;
         }
+
+    }else if (type == EntityCreationType::MODEL){
+
+        scene->addComponent<Transform>(entity, {});
+        scene->addComponent<MeshComponent>(entity, {});
+        scene->addComponent<ModelComponent>(entity, {});
+
     }
 
     scene->setEntityName(entity, entityName);

@@ -141,6 +141,7 @@ namespace Supernova::Editor{
         bool propertyRowWithAutoButton(RowPropertyType propType, ComponentType cpType, std::string id, std::string label, std::string autoId, std::string autoLabel, SceneProject* sceneProject, std::vector<Entity> entities, RowSettings settings = RowSettings());
         void drawTransform(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
         void drawMeshComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
+        void drawModelComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
         void drawUIComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
         void drawButtonComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
         void drawTextComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);

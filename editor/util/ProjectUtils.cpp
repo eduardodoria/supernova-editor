@@ -400,8 +400,7 @@ void Editor::ProjectUtils::addEntityComponent(EntityRegistry* registry, Entity e
             if (!componentNode.IsDefined() || componentNode.IsNull()){
                 registry->addComponent<ModelComponent>(entity, {});
             }else{
-                registry->addComponent<ModelComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                registry->addComponent<ModelComponent>(entity, Stream::decodeModelComponent(componentNode));
             }
             break;
         case ComponentType::MorphTracksComponent:
@@ -732,7 +731,7 @@ YAML::Node Editor::ProjectUtils::removeEntityComponent(EntityRegistry* registry,
             break;
         case ComponentType::ModelComponent:
             if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                oldComponent = Stream::encodeModelComponent(registry->getComponent<ModelComponent>(entity));
             }
             registry->removeComponent<ModelComponent>(entity);
             break;

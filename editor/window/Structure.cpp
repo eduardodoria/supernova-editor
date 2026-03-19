@@ -177,7 +177,8 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addT
     }
 
     if (ImGui::MenuItem(ICON_FA_PERSON_RUNNING"  Model")){
-        // Action for Item 2
+        CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Model", EntityCreationType::MODEL, parent, addToBundle));
+        openParent = parent;
     }
 
     ImGui::EndMenu();
