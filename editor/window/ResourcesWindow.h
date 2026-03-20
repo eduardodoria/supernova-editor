@@ -4,6 +4,7 @@
 #include "Project.h"
 #include "window/CodeEditor.h"
 #include "util/EntityPayload.h"
+#include "render/preview/ModelRender.h"
 
 #include <iostream>
 #include <filesystem>
@@ -27,7 +28,8 @@ namespace Supernova::Editor {
         IMAGE,
         MATERIAL,
         SCENE,
-        BUNDLE
+        BUNDLE,
+        MODEL
     };
 
     struct FileEntry {
@@ -112,6 +114,7 @@ namespace Supernova::Editor {
         bool showDeleteConfirmation;
 
         MaterialRender materialRender;
+        ModelRender modelRender;
 
         // Thumbnail generation
         std::thread thumbnailThread;
@@ -128,6 +131,10 @@ namespace Supernova::Editor {
         fs::path pendingMaterialPath;
         bool hasPendingMaterialRender = false;
         std::mutex materialRenderMutex;
+
+        fs::path pendingModelPath;
+        bool hasPendingModelRender = false;
+        std::mutex modelRenderMutex;
 
         ImU32 fileSeparatorColor(const FileEntry& fe) const;
 
@@ -169,6 +176,7 @@ namespace Supernova::Editor {
 
         // need to be after draw
         void processMaterialThumbnails();
+        void processModelThumbnails();
 
         void notifyResourceFileChanged(const fs::path& filePath);
 

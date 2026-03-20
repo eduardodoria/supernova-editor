@@ -818,6 +818,7 @@ void Editor::App::engineRender(){
                 Engine::systemDraw();
 
                 resourcesWindow->processMaterialThumbnails();
+                resourcesWindow->processModelThumbnails();
 
                 sceneProject.needUpdateRender = false;
             }

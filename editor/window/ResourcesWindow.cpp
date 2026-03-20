@@ -101,6 +101,8 @@ void Editor::ResourcesWindow::notifyResourceFileChanged(const fs::path& filePath
         type = FileType::IMAGE;
     } else if (Util::isMaterialFile(extension)) {
         type = FileType::MATERIAL;
+    } else if (Util::isModelFile(extension)) {
+        type = FileType::MODEL;
     }
 
     if (type == FileType::NONE) {
@@ -149,6 +151,28 @@ void Editor::ResourcesWindow::processMaterialThumbnails() {
     }
 }
 
+void Editor::ResourcesWindow::processModelThumbnails() {
+    if (hasPendingModelRender && !Engine::isSceneRunning(modelRender.getScene())) {
+        std::lock_guard<std::mutex> lock(modelRenderMutex);
+
+        fs::path thumbnailPath = project->getThumbnailPath(pendingModelPath);
+        fs::create_directories(thumbnailPath.parent_path());
+
+        fs::path capturedPath = pendingModelPath;
+        FileType capturedType = FileType::MODEL;
+
+        GraphicUtils::saveFramebufferImage(modelRender.getFramebuffer(), thumbnailPath, true,
+            [this, capturedPath, capturedType]() {
+                std::lock_guard<std::mutex> completedLock(completedThumbnailMutex);
+                completedThumbnailQueue.push({capturedPath, capturedType});
+            });
+
+        hasPendingModelRender = false;
+
+        thumbnailCondition.notify_one();
+    }
+}
+
 ImU32 Editor::ResourcesWindow::fileSeparatorColor(const FileEntry& fe) const{
     if (fe.isDirectory)
         return ImGui::GetColorU32(ImVec4(0.60f, 0.60f, 0.60f, 1.0f));
@@ -162,6 +186,8 @@ ImU32 Editor::ResourcesWindow::fileSeparatorColor(const FileEntry& fe) const{
             return ImGui::GetColorU32(ImVec4(0.90f, 0.70f, 0.20f, 1.0f));
         case FileType::BUNDLE:
             return ImGui::GetColorU32(ImVec4(0.30f, 0.85f, 0.30f, 1.0f));
+        case FileType::MODEL:
+            return ImGui::GetColorU32(ImVec4(0.80f, 0.40f, 0.40f, 1.0f));
         case FileType::NONE:
         default:
             return ImGui::GetColorU32(ImVec4(0.50f, 0.50f, 0.50f, 1.0f));
@@ -961,9 +987,11 @@ void Editor::ResourcesWindow::scanDirectory(const fs::path& path) {
             }else if (Util::isBundleFile(fileEntry.extension)){
                 fileEntry.type = FileType::BUNDLE;
                 fileEntry.icon = entityIconH;
+            }else if (Util::isModelFile(fileEntry.extension)){
+                fileEntry.type = FileType::MODEL;
             }
 
-            if (fileEntry.type == FileType::IMAGE || fileEntry.type == FileType::MATERIAL) {
+            if (fileEntry.type == FileType::IMAGE || fileEntry.type == FileType::MATERIAL || fileEntry.type == FileType::MODEL) {
                 queueThumbnailGeneration(entry.path(), fileEntry.type);
             }
         } else {
@@ -1308,7 +1336,7 @@ void Editor::ResourcesWindow::thumbnailWorker() {
             std::unique_lock<std::mutex> lock(thumbnailMutex);
             // Wait until there is work or the thread is stopped
             thumbnailCondition.wait(lock, [this]() {
-                return (!thumbnailQueue.empty() && !hasPendingMaterialRender) || stopThumbnailThread;
+                return (!thumbnailQueue.empty() && !hasPendingMaterialRender && !hasPendingModelRender) || stopThumbnailThread;
             });
 
             // If we're stopping, exit
@@ -1402,6 +1430,28 @@ void Editor::ResourcesWindow::thumbnailWorker() {
                 hasPendingMaterialRender = false;
             }
 
+        } else if (thumbFile.type == FileType::MODEL) {
+            try {
+                if (modelRender.loadModel(thumbFile.path.string())) {
+                    modelRender.fixDarkMaterials();
+                    modelRender.positionCameraForModel();
+
+                    Engine::startAsyncThread();
+                    Engine::executeSceneOnce(modelRender.getScene());
+                    Engine::endAsyncThread();
+
+                    {
+                        std::lock_guard<std::mutex> lock(modelRenderMutex);
+                        pendingModelPath = thumbFile.path;
+                        hasPendingModelRender = true;
+                    }
+                }
+            } catch (const std::exception& e) {
+                std::cerr << "Error generating thumbnail for model: " << thumbFile.path.string() << " - " << e.what() << std::endl;
+
+                std::lock_guard<std::mutex> lock(modelRenderMutex);
+                hasPendingModelRender = false;
+            }
         }
     }
 }
@@ -1517,7 +1567,7 @@ void Editor::ResourcesWindow::cleanupThumbnails() {
             continue;
 
         std::string ext = p.path().extension().string();
-        if (Util::isImageFile(ext) || Util::isMaterialFile(ext)) {
+        if (Util::isImageFile(ext) || Util::isMaterialFile(ext) || Util::isModelFile(ext)) {
             fs::path thumbnailPath = project->getThumbnailPath(p.path());
             validThumbPaths.insert(thumbnailPath.string());
         }
