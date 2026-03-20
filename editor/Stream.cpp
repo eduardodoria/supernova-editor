@@ -2588,6 +2588,10 @@ SpriteComponent Editor::Stream::decodeSpriteComponent(const YAML::Node& node, co
 YAML::Node Editor::Stream::encodeModelComponent(const ModelComponent& model) {
     YAML::Node node;
 
+    if (!model.filename.empty()) {
+        node["filename"] = model.filename;
+    }
+
     node["skeleton"] = static_cast<uint32_t>(model.skeleton);
 
     if (!model.animations.empty()) {
@@ -2608,6 +2612,8 @@ ModelComponent Editor::Stream::decodeModelComponent(const YAML::Node& node, cons
         model = *oldModel;
     }
 
+    // Also check for the old modelPath for exact backward compatibility with old save files
+    if (node["filename"]) model.filename = node["filename"].as<std::string>();
     if (node["skeleton"]) model.skeleton = static_cast<Entity>(node["skeleton"].as<uint32_t>());
 
     if (node["animations"]) {

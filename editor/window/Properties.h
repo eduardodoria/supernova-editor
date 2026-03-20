@@ -100,8 +100,6 @@ namespace Supernova::Editor{
         ComponentAddDialog componentAddDialog;
         SpriteSlicerToolDialog spriteSlicerToolDialog;
 
-        const ImU32 textureLabel = IM_COL32(50, 50, 50, 255);
-
         static RowPropertyType scriptPropertyTypeToRowPropertyType(ScriptPropertyType scriptType);
 
         // replace [number] with []

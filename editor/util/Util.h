@@ -34,6 +34,10 @@ namespace Supernova::Editor{
              return "entity";
         }
 
+        inline static std::string getModelExtensions() {
+             return "gltf,glb,obj";
+        }
+
         inline static bool isImageFile(const std::string& path) {
             static const std::unordered_set<std::string> imageExtensions = {
                 ".png", ".jpg", ".jpeg", ".bmp", ".tga", ".gif", ".hdr", ".psd", ".pic", ".pnm"
@@ -97,6 +101,19 @@ namespace Supernova::Editor{
             }
             std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
             return bundleExtensions.find(ext) != bundleExtensions.end();
+        }
+
+        inline static bool isModelFile(const std::string& path) {
+             static const std::unordered_set<std::string> modelExtensions = {
+                ".gltf", ".glb", ".obj"
+            };
+
+            std::string ext = std::filesystem::path(path).extension().string();
+            if (ext.empty() && !path.empty() && path[0] == '.') {
+                ext = path;
+            }
+            std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+            return modelExtensions.find(ext) != modelExtensions.end();
         }
 
         inline static bool isScriptFile(const std::string& path) {

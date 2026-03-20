@@ -4,6 +4,7 @@
 #include "Scene.h"
 #include "Catalog.h"
 #include "Configs.h"
+#include "Stream.h"
 #include <sstream>
 #include <iomanip>
 #include <cctype>
@@ -1260,6 +1261,7 @@ std::string Editor::Factory::createModelComponent(int indentSpaces, EntityRegist
     std::ostringstream code;
     const std::string ind = indentation(indentSpaces);
     code << ind << "ModelComponent modelcomp;\n";
+    code << ind << "modelcomp.filename = \"" << model.filename << "\";\n";
     code << ind << "modelcomp.skeleton = " << formatUInt(model.skeleton) << ";\n";
     if (!model.animations.empty()) {
         code << ind << "modelcomp.animations.clear();\n";

@@ -237,6 +237,7 @@ add_executable(
     ${EDITOR_DIR}/command/type/RemoveEntityFromBundleCmd.cpp
     ${EDITOR_DIR}/command/type/AddEntityToBundleCmd.cpp
     ${EDITOR_DIR}/command/type/MeshChangeCmd.cpp
+    ${EDITOR_DIR}/command/type/ModelLoadCmd.cpp
     ${EDITOR_DIR}/command/type/SceneNameCmd.cpp
     ${EDITOR_DIR}/command/type/CopyFileCmd.cpp
     ${EDITOR_DIR}/command/type/RenameFileCmd.cpp

@@ -12,7 +12,8 @@ namespace Supernova::Editor{
     enum FileDialogType {
         FILE_DIALOG_ALL = 0,
         FILE_DIALOG_IMAGE = 1 << 0,
-        FILE_DIALOG_FONT = 1 << 1
+        FILE_DIALOG_FONT = 1 << 1,
+        FILE_DIALOG_MODEL = 1 << 2
     };
 
     class FileDialogs{
@@ -48,6 +49,9 @@ namespace Supernova::Editor{
                 }
                 if (filterFlags & FILE_DIALOG_FONT) {
                     filterItems.push_back({ "Font files", Util::getFontExtensions().c_str() });
+                }
+                if (filterFlags & FILE_DIALOG_MODEL) {
+                    filterItems.push_back({ "Model files", Util::getModelExtensions().c_str() });
                 }
 
                 if (!filterItems.empty()) {

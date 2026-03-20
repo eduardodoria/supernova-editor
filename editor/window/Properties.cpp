@@ -14,6 +14,7 @@
 #include "command/type/EntityNameCmd.h"
 #include "command/type/SceneNameCmd.h"
 #include "command/type/MeshChangeCmd.h"
+#include "command/type/ModelLoadCmd.h"
 #include "command/type/AddComponentCmd.h"
 #include "command/type/RemoveComponentCmd.h"
 #include "command/type/ComponentToBundleSharedCmd.h"
@@ -959,7 +960,7 @@ bool Editor::Properties::drawSpriteFramePreview(Texture* texture, const Rect& re
     float rounding = ImGui::GetStyle().FrameRounding;
     ImU32 borderColor = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyle().Colors[ImGuiCol_FrameBg]);
 
-    drawList->AddRectFilled(p_min, p_max, textureLabel, rounding, ImDrawFlags_RoundCornersAll);
+    drawList->AddRectFilled(p_min, p_max, ImGui::GetColorU32(App::ThemeColors::filenameLabel), rounding, ImDrawFlags_RoundCornersAll);
     drawList->AddImageRounded((ImTextureID)(intptr_t)texture->getRender()->getGLHandler(), imageMin, imageMax, uv0, uv1, IM_COL32_WHITE, rounding, ImDrawFlags_RoundCornersAll);
     drawList->AddRect(p_min, p_max, borderColor, rounding, ImDrawFlags_RoundCornersAll, 1.0f);
 
@@ -2305,7 +2306,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         ImGui::BeginGroup();
         ImGui::PushID(("font_"+id).c_str());
 
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, textureLabel);
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, App::ThemeColors::filenameLabel);
 
         // Use calculated width for the frame
         ImGui::BeginChild("fontframe", ImVec2(- ImGui::CalcTextSize(ICON_FA_GEAR).x - ImGui::GetStyle().ItemSpacing.x * 2 - ImGui::GetStyle().FramePadding.x * 2, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2), 
@@ -2433,7 +2434,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         ImGui::BeginGroup();
         ImGui::PushID(("texture_"+id).c_str());
 
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, textureLabel);
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, App::ThemeColors::filenameLabel);
 
         float thumbSize = ImGui::GetFrameHeight() * 3;
         Texture* thumbTexture = findThumbnail(newValue.getPath());
@@ -2623,7 +2624,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             float iconButtonWidth = ImGui::CalcTextSize(ICON_FA_FOLDER_OPEN).x + ImGui::GetStyle().FramePadding.x * 2.0f;
             float rowHeight = ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2;
 
-            ImGui::PushStyleColor(ImGuiCol_ChildBg, textureLabel);
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, App::ThemeColors::filenameLabel);
 
             ImGui::BeginChild("textureframe", ImVec2(- iconButtonWidth - ImGui::GetStyle().ItemSpacing.x, rowHeight),
                 false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
@@ -2737,7 +2738,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
                 float iconButtonWidth = ImGui::CalcTextSize(ICON_FA_FOLDER_OPEN).x + ImGui::GetStyle().FramePadding.x * 2.0f;
                 float rowHeight = ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2;
 
-                ImGui::PushStyleColor(ImGuiCol_ChildBg, textureLabel);
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, App::ThemeColors::filenameLabel);
 
                 ImGui::BeginChild("textureframe", ImVec2(- iconButtonWidth - ImGui::GetStyle().ItemSpacing.x, rowHeight),
                     false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
@@ -2874,7 +2875,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             }
         }
 
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, textureLabel);
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, App::ThemeColors::filenameLabel);
 
         ImVec2 arrowButtonSize = ImGui::CalcItemSize(ImVec2(0, 0), ImGui::GetFrameHeight(), ImGui::GetFrameHeight());
         ImVec2 unlinkButtonSize = arrowButtonSize;
@@ -3629,7 +3630,72 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, SceneProject* s
 }
 
 void Editor::Properties::drawModelComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
-    beginTable(cpType, getLabelSize("Skeleton"));
+    beginTable(cpType, getLabelSize("Model File"));
+
+    propertyHeader("Model File");
+
+    if (entities.size() == 1) {
+        Entity entity = entities[0];
+        ModelComponent& model = sceneProject->scene->getComponent<ModelComponent>(entity);
+
+        std::string currentPath = model.filename;
+        std::string displayName = currentPath.empty() ? "< Not set >" : std::filesystem::path(currentPath).filename().string();
+
+        float availWidth = ImGui::GetContentRegionAvail().x;
+        float buttonWidth = ImGui::CalcTextSize(ICON_FA_FOLDER_OPEN).x + ImGui::GetStyle().FramePadding.x * 2;
+
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, App::ThemeColors::filenameLabel);
+
+        ImGui::BeginChild("modelfilename", ImVec2(availWidth - buttonWidth - ImGui::GetStyle().ItemSpacing.x, ImGui::GetFrameHeight()),
+            false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+        float textWidth = ImGui::CalcTextSize(displayName.c_str()).x;
+        float childAvail = ImGui::GetContentRegionAvail().x;
+        ImGui::SetCursorPosX(childAvail - textWidth - 2);
+        ImGui::SetCursorPosY(ImGui::GetStyle().FramePadding.y);
+        if (currentPath.empty())
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        ImGui::Text("%s", displayName.c_str());
+        if (currentPath.empty())
+            ImGui::PopStyleColor();
+        ImGui::EndChild();
+        if (!currentPath.empty()){
+            ImGui::SetItemTooltip("%s", currentPath.c_str());
+        }
+
+        ImGui::PopStyleColor();
+
+        ImGui::SameLine();
+
+        if (ImGui::Button(ICON_FA_FOLDER_OPEN "##model_load")) {
+            std::string path = Editor::FileDialogs::openFileDialog(project->getProjectPath().string(), FILE_DIALOG_MODEL);
+            if (!path.empty()) {
+                std::filesystem::path projectPath = project->getProjectPath();
+                std::filesystem::path filePath = std::filesystem::absolute(path);
+
+                std::error_code ec;
+                auto relative = std::filesystem::relative(filePath, projectPath, ec);
+                if (ec || relative.string().find("..") != std::string::npos) {
+                    ImGui::OpenPopup("Model Import Error");
+                }else{
+                    CommandHandle::get(sceneProject->id)->addCommandNoMerge(new ModelLoadCmd(project, sceneProject->id, entity, relative.string()));
+                }
+            }
+        }
+
+        if (ImGui::BeginPopupModal("Model Import Error", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("Selected file must be within the project directory.");
+            ImGui::Separator();
+            float bw = 120;
+            float ww = ImGui::GetWindowSize().x;
+            ImGui::SetCursorPosX((ww - bw) * 0.5f);
+            if (ImGui::Button("OK", ImVec2(120, 0))) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+    }else{
+        ImGui::TextDisabled("Select single entity");
+    }
 
     propertyRow(RowPropertyType::LocalEntity, cpType, "skeleton", "Skeleton", sceneProject, entities);
 
@@ -3642,7 +3708,7 @@ void Editor::Properties::drawModelComponent(ComponentType cpType, SceneProject* 
         if (model && !model->animations.empty()) {
             ImGui::SeparatorText("Animations");
 
-            beginTable(cpType, getLabelSize("Animation 00"));
+            beginTable(cpType, getLabelSize("Animation 00"), "model_animations");
 
             for (size_t i = 0; i < model->animations.size(); i++) {
                 std::string propId = "animations[" + std::to_string(i) + "]";

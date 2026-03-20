@@ -32,6 +32,7 @@ ImVec4 Editor::App::ThemeColors::ButtonActivated;
 ImVec4 Editor::App::ThemeColors::FileCardBackground;
 ImVec4 Editor::App::ThemeColors::FileCardBackgroundHovered;
 ImVec4 Editor::App::ThemeColors::SubtleText;
+ImVec4 Editor::App::ThemeColors::filenameLabel;
 
 Editor::App::App(){
     propertiesWindow = new Properties(&project);
@@ -917,6 +918,7 @@ void Editor::App::kewtStyleTheme(){
     ThemeColors::FileCardBackground = ImLerp(colors[ImGuiCol_WindowBg], colors[ImGuiCol_FrameBg], 0.5f);
     ThemeColors::FileCardBackgroundHovered = ImLerp(colors[ImGuiCol_WindowBg], colors[ImGuiCol_HeaderHovered], 0.25f);
     ThemeColors::SubtleText = ImLerp(colors[ImGuiCol_Text], colors[ImGuiCol_NavHighlight], 0.4f);
+    ThemeColors::filenameLabel = ImVec4(50.0f/255.0f, 50.0f/255.0f, 50.0f/255.0f, 1.0f);
 
     // main
     style.WindowPadding = ImVec2(8, 8);
