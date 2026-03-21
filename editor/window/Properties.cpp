@@ -3641,6 +3641,20 @@ void Editor::Properties::drawModelComponent(ComponentType cpType, SceneProject* 
         std::string currentPath = model.filename;
         std::string displayName = currentPath.empty() ? "< Not set >" : std::filesystem::path(currentPath).filename().string();
 
+        ImGui::BeginGroup();
+
+        float thumbSize = ImGui::GetFrameHeight() * 3;
+        Texture* thumbTexture = findThumbnail(currentPath);
+        if (thumbTexture) {
+            ImU32 border_col = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyle().Colors[ImGuiCol_FrameBg]);
+            drawImageWithBorderAndRounding(thumbTexture, ImVec2(thumbSize, thumbSize), ImGui::GetStyle().FrameRounding, border_col);
+            if (ImGui::IsItemHovered()) {
+                ImGui::BeginTooltip();
+                ImGui::Image(thumbTexture->getRender()->getGLHandler(), ImVec2(thumbTexture->getWidth(), thumbTexture->getHeight()));
+                ImGui::EndTooltip();
+            }
+        }
+
         float availWidth = ImGui::GetContentRegionAvail().x;
         float buttonWidth = ImGui::CalcTextSize(ICON_FA_FOLDER_OPEN).x + ImGui::GetStyle().FramePadding.x * 2;
 
@@ -3693,6 +3707,26 @@ void Editor::Properties::drawModelComponent(ComponentType cpType, SceneProject* 
             }
             ImGui::EndPopup();
         }
+
+        ImGui::EndGroup();
+
+        // Drag and drop model files from Resources
+        if (sceneProject && sceneProject->playState == ScenePlayState::STOPPED) {
+            if (ImGui::BeginDragDropTarget()) {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
+                    std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
+                    if (!receivedStrings.empty()) {
+                        const std::string droppedRelativePath = std::filesystem::relative(receivedStrings[0], project->getProjectPath()).generic_string();
+                        if (Util::isModelFile(droppedRelativePath)) {
+                            CommandHandle::get(sceneProject->id)->addCommandNoMerge(new ModelLoadCmd(project, sceneProject->id, entity, droppedRelativePath));
+                            ImGui::SetWindowFocus(Properties::WINDOW_NAME);
+                        }
+                    }
+                }
+                ImGui::EndDragDropTarget();
+            }
+        }
+
     }else{
         ImGui::TextDisabled("Select single entity");
     }
