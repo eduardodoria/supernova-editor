@@ -4,7 +4,10 @@
 #include "Catalog.h"
 #include "Stream.h"
 
+#include "component/AnimationComponent.h"
+#include "component/BoneComponent.h"
 #include "component/ButtonComponent.h"
+#include "component/ModelComponent.h"
 #include "component/Transform.h"
 
 #include <algorithm>
@@ -54,6 +57,18 @@ bool Editor::ProjectUtils::isEntityLocked(Scene* scene, Entity entity){
         return false;
 
     Signature signature = scene->getSignature(entity);
+    if (signature.test(scene->getComponentId<BoneComponent>())){
+        auto models = scene->getComponentArray<ModelComponent>();
+        for (size_t i = 0; i < models->size(); ++i) {
+            ModelComponent& model = models->getComponentFromIndex(i);
+            for (const auto& bone : model.bonesIdMapping) {
+                if (bone.second == entity) {
+                    return true;
+                }
+            }
+        }
+    }
+
     if (!signature.test(scene->getComponentId<Transform>())){
         return false;
     }

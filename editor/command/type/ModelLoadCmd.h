@@ -19,7 +19,14 @@ namespace Supernova::Editor{
         std::string modelPath;
         std::string oldModelPath;
 
+        std::vector<Entity> addedEntities;
+        std::vector<Entity> oldAddedEntities;
+
         bool wasModified;
+
+        void collectModelEntities(Scene* scene, const ModelComponent& model, std::vector<Entity>& out);
+        void addEntitiesToScene(SceneProject* sceneProject, const std::vector<Entity>& ents);
+        void removeEntitiesFromScene(SceneProject* sceneProject, const std::vector<Entity>& ents);
 
     public:
         ModelLoadCmd(Project* project, uint32_t sceneId, Entity entity, const std::string& modelPath);
