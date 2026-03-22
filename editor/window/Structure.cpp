@@ -177,7 +177,7 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addT
             CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Animation", EntityCreationType::ANIMATION, parent, addToBundle));
             openParent = parent;
         }
-        if (ImGui::MenuItem(ICON_FA_IMAGE"  Sprite Animation")){
+        if (ImGui::MenuItem(ICON_FA_PLAY"  Sprite Animation")){
             CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "SpriteAnimation", EntityCreationType::SPRITE_ANIMATION, parent, addToBundle));
             openParent = parent;
         }
@@ -262,6 +262,10 @@ std::string Editor::Structure::getObjectIcon(Signature signature, Scene* scene){
         return ICON_FA_VIDEO;
     }else if (signature.test(scene->getComponentId<Joint2DComponent>()) || signature.test(scene->getComponentId<Joint3DComponent>())){
         return ICON_FA_LINK;
+    }else if (signature.test(scene->getComponentId<AnimationComponent>())){
+        return ICON_FA_FILM;
+    }else if (signature.test(scene->getComponentId<ActionComponent>())){
+        return ICON_FA_PLAY;
     }else if (signature.test(scene->getComponentId<Transform>())){
         return ICON_FA_SITEMAP;
     }
@@ -535,8 +539,28 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
             if (!node.isScene) {
                 SceneProject* sceneProject = project->getSelectedScene();
                 std::vector<Entity> draggedEntities = getTopLevelSelectedEntities(node.id);
+                std::vector<Entity> exportEntities = draggedEntities;
 
-                if (draggedEntities.size() == 1){
+                // Add virtual children (and chained children) of dragged entities
+                auto actionArr = sceneProject->scene->getComponentArray<ActionComponent>();
+                if (actionArr) {
+                    bool foundNew;
+                    do {
+                        foundNew = false;
+                        for (size_t i = 0; i < actionArr->size(); ++i) {
+                            ActionComponent& action = actionArr->getComponentFromIndex(i);
+                            if (action.target != NULL_ENTITY && std::find(exportEntities.begin(), exportEntities.end(), action.target) != exportEntities.end()) {
+                                Entity actionEntity = actionArr->getEntity(i);
+                                if (std::find(exportEntities.begin(), exportEntities.end(), actionEntity) == exportEntities.end()) {
+                                    exportEntities.push_back(actionEntity);
+                                    foundNew = true;
+                                }
+                            }
+                        }
+                    } while (foundNew);
+                }
+
+                if (draggedEntities.size() == 1 && exportEntities.size() == 1){
                     YAML::Node entityData = Stream::encodeEntity(draggedEntities[0], sceneProject->scene, project, sceneProject);
 
                     std::string yamlString = YAML::Dump(entityData);
@@ -554,7 +578,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
 
                     ImGui::SetDragDropPayload("entity", payloadData.data(), payloadSize);
                 }else{
-                    YAML::Node entityData = Stream::encodeEntitySelection(draggedEntities, sceneProject->scene);
+                    YAML::Node entityData = Stream::encodeEntitySelection(exportEntities, sceneProject->scene);
 
                     std::string yamlString = YAML::Dump(entityData);
 
@@ -614,6 +638,14 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
             if (node.order == (sourceOrder-1) && insertAfter){
                 allowEntityDragDrop = false;
             }
+        }
+
+        // Block reordering between entities with different virtual parents
+        if (!sourceHasTransform && !node.hasTransform && !node.isScene
+            && (insertBefore || insertAfter)
+            && sourceParent != node.parent
+            && (sourceParent != NULL_ENTITY || node.parent != NULL_ENTITY)) {
+            allowEntityDragDrop = false;
         }
 
         if (allowEntityDragDrop){
@@ -1010,6 +1042,7 @@ void Editor::Structure::show(){
     std::unordered_map<Entity, TreeNode*> entityNodeMap;
     std::unordered_map<Entity, std::filesystem::path> bundleEntityPaths;
     std::unordered_map<Entity, std::list<TreeNode>> virtualBundleChildren;
+    std::unordered_map<Entity, std::list<TreeNode>> virtualActionChildren;
 
     for (Entity entity : sceneProject->entities) {
         std::filesystem::path bundlePath = project->findEntityBundlePathFor(sceneProject->id, entity);
@@ -1081,19 +1114,47 @@ void Editor::Structure::show(){
                     child.isBundleRoot = true;
                     child.nestedBundleFilepath = sceneProject->scene->getComponent<BundleComponent>(entity).path;
                 }
+            }
 
+            bool addedAsVirtualChild = false;
+            if (signature.test(sceneProject->scene->getComponentId<ActionComponent>())) {
+                ActionComponent& action = sceneProject->scene->getComponent<ActionComponent>(entity);
+                if (action.target != NULL_ENTITY && action.target != entity && sceneEntitiesSet.find(action.target) != sceneEntitiesSet.end()) {
+                    // Check if they are in the same bundle
+                    bool sameBundle = false;
+                    auto targetBundleIt = bundleEntityPaths.find(action.target);
+                    if (bundleIt != bundleEntityPaths.end() && targetBundleIt != bundleEntityPaths.end() && bundleIt->second == targetBundleIt->second) {
+                        sameBundle = true;
+                    }
+                    
+                    // Priority is Action target, but if both are bundles, ensure it prefers organizing by the actual local parent element correctly.
+                    if (sameBundle || bundleIt == bundleEntityPaths.end()) {
+                        child.parent = action.target;
+                        if (sameBundle) {
+                            child.isParentBundle = true;
+                            child.hasBundleParent = true;
+                        }
+                        virtualActionChildren[action.target].push_back(std::move(child));
+                        addedAsVirtualChild = true;
+                    }
+                }
+            }
+            
+            if (!addedAsVirtualChild && bundleIt != bundleEntityPaths.end()) {
                 EntityBundle* bundle = project->getEntityBundle(bundleIt->second);
                 Entity bundleRoot = bundle ? bundle->getRootEntity(sceneProject->id, entity) : NULL_ENTITY;
                 if (bundleRoot != NULL_ENTITY && bundleRoot != entity) {
                     child.parent = bundleRoot;
                     child.isParentBundle = true;
                     virtualBundleChildren[bundleRoot].push_back(std::move(child));
-                    continue;
+                    addedAsVirtualChild = true;
                 }
             }
-
-            root.children.push_back(child);
-            entityNodeMap[entity] = &root.children.back();
+            
+            if (!addedAsVirtualChild) {
+                root.children.push_back(child);
+                entityNodeMap[entity] = &root.children.back();
+            }
         }
     }
 
@@ -1176,6 +1237,35 @@ void Editor::Structure::show(){
 
         parent->children.splice(parent->children.begin(), children);
     }
+
+    // Splice action children, resolving targets that may themselves be action children
+    bool splicedNew;
+    do {
+        splicedNew = false;
+        for (auto it = virtualActionChildren.begin(); it != virtualActionChildren.end(); ) {
+            auto parentIt = entityNodeMap.find(it->first);
+            if (parentIt == entityNodeMap.end() || it->second.empty()) {
+                ++it;
+                continue;
+            }
+
+            TreeNode* parent = parentIt->second;
+            if (!parent->children.empty()) {
+                it->second.back().separator = true;
+            }
+
+            // Splice and register in entityNodeMap (std::list nodes are stable)
+            parent->children.splice(parent->children.begin(), it->second);
+            for (auto& child : parent->children) {
+                if (entityNodeMap.find(child.id) == entityNodeMap.end()) {
+                    entityNodeMap[child.id] = &child;
+                }
+            }
+
+            it = virtualActionChildren.erase(it);
+            splicedNew = true;
+        }
+    } while (splicedNew);
 
     ImGui::Begin(Structure::WINDOW_NAME);
 
