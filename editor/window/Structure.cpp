@@ -1070,6 +1070,7 @@ void Editor::Structure::show(){
             child.icon = getObjectIcon(signature, sceneProject->scene);
             child.id = entity;
             child.isMainCamera = (entity == mainCamera);
+            child.isLocked = ProjectUtils::isEntityLocked(sceneProject->scene, entity);
             child.order = order++;
             child.name = sceneProject->scene->getEntityName(entity);
             auto bundleIt = bundleEntityPaths.find(entity);
