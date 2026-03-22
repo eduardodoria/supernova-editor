@@ -1667,8 +1667,12 @@ YAML::Node Editor::Stream::encodeComponents(const Entity entity, const EntityReg
     }
 
     if (signature.test(registry->getComponentId<MeshComponent>())) {
-        MeshComponent mesh = registry->getComponent<MeshComponent>(entity);
-        compNode[Catalog::getComponentName(ComponentType::MeshComponent, true)] = encodeMeshComponent(mesh);
+        // Skip mesh buffer encoding for model entities - mesh will be regenerated from model file
+        bool isModelEntity = signature.test(registry->getComponentId<ModelComponent>());
+        if (!isModelEntity) {
+            MeshComponent mesh = registry->getComponent<MeshComponent>(entity);
+            compNode[Catalog::getComponentName(ComponentType::MeshComponent, true)] = encodeMeshComponent(mesh);
+        }
     }
 
     if (signature.test(registry->getComponentId<UIComponent>())) {
@@ -1796,14 +1800,19 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
 
     compName = Catalog::getComponentName(ComponentType::MeshComponent, true);
     if (compNode[compName]) {
-        MeshComponent* existing = registry->findComponent<MeshComponent>(entity);
-        MeshComponent mesh = decodeMeshComponent(compNode[compName], existing);
-        if (!signature.test(registry->getComponentId<MeshComponent>())){
-            registry->addComponent<MeshComponent>(entity, mesh);
-        }else{
-            int flags = Catalog::getChangedUpdateFlags(ComponentType::MeshComponent, existing, &mesh);
-            registry->getComponent<MeshComponent>(entity) = mesh;
-            Catalog::updateEntity(registry, entity, flags);
+        // Skip mesh buffer decoding for model entities - mesh will be regenerated from model file
+        std::string modelCompName = Catalog::getComponentName(ComponentType::ModelComponent, true);
+        bool isModelEntity = compNode[modelCompName] && compNode[modelCompName].IsDefined();
+        if (!isModelEntity) {
+            MeshComponent* existing = registry->findComponent<MeshComponent>(entity);
+            MeshComponent mesh = decodeMeshComponent(compNode[compName], existing);
+            if (!signature.test(registry->getComponentId<MeshComponent>())){
+                registry->addComponent<MeshComponent>(entity, mesh);
+            }else{
+                int flags = Catalog::getChangedUpdateFlags(ComponentType::MeshComponent, existing, &mesh);
+                registry->getComponent<MeshComponent>(entity) = mesh;
+                Catalog::updateEntity(registry, entity, flags);
+            }
         }
     }
 
@@ -2602,6 +2611,28 @@ YAML::Node Editor::Stream::encodeModelComponent(const ModelComponent& model) {
         node["animations"] = animsNode;
     }
 
+    if (!model.bonesIdMapping.empty()) {
+        YAML::Node bonesNode;
+        for (const auto& bone : model.bonesIdMapping) {
+            YAML::Node boneNode;
+            boneNode["id"] = bone.first;
+            boneNode["entity"] = static_cast<uint32_t>(bone.second);
+            bonesNode.push_back(boneNode);
+        }
+        node["bonesIdMapping"] = bonesNode;
+    }
+
+    if (!model.bonesNameMapping.empty()) {
+        YAML::Node bonesNode;
+        for (const auto& bone : model.bonesNameMapping) {
+            YAML::Node boneNode;
+            boneNode["name"] = bone.first;
+            boneNode["entity"] = static_cast<uint32_t>(bone.second);
+            bonesNode.push_back(boneNode);
+        }
+        node["bonesNameMapping"] = bonesNode;
+    }
+
     return node;
 }
 
@@ -2620,6 +2651,24 @@ ModelComponent Editor::Stream::decodeModelComponent(const YAML::Node& node, cons
         model.animations.clear();
         for (const auto& animNode : node["animations"]) {
             model.animations.push_back(static_cast<Entity>(animNode.as<uint32_t>()));
+        }
+    }
+
+    if (node["bonesIdMapping"]) {
+        model.bonesIdMapping.clear();
+        for (const auto& boneNode : node["bonesIdMapping"]) {
+            int id = boneNode["id"].as<int>();
+            Entity boneEntity = static_cast<Entity>(boneNode["entity"].as<uint32_t>());
+            model.bonesIdMapping[id] = boneEntity;
+        }
+    }
+
+    if (node["bonesNameMapping"]) {
+        model.bonesNameMapping.clear();
+        for (const auto& boneNode : node["bonesNameMapping"]) {
+            std::string name = boneNode["name"].as<std::string>();
+            Entity boneEntity = static_cast<Entity>(boneNode["entity"].as<uint32_t>());
+            model.bonesNameMapping[name] = boneEntity;
         }
     }
 

@@ -4,6 +4,8 @@
 #include "Out.h"
 #include "util/ProjectUtils.h"
 #include "command/type/MoveEntityOrderCmd.h"
+#include "subsystem/MeshSystem.h"
+#include "subsystem/ActionSystem.h"
 
 using namespace Supernova;
 
@@ -104,6 +106,52 @@ bool Editor::DeleteEntityCmd::execute(){
                 entityData.recoveryBundleData = project->removeEntityFromBundle(sceneId, entityData.entity, true);
             }
         } else {
+            // Handle model-owned non-transform entities (animations + action tracks)
+            Signature sig = sceneProject->scene->getSignature(entityData.entity);
+            if (sig.test(sceneProject->scene->getComponentId<ModelComponent>())) {
+                ModelComponent& model = sceneProject->scene->getComponent<ModelComponent>(entityData.entity);
+
+                for (Entity animEntity : model.animations) {
+                    AnimationComponent* animComp = sceneProject->scene->findComponent<AnimationComponent>(animEntity);
+                    if (animComp) {
+                        // Encode and destroy action tracks first
+                        for (const auto& frame : animComp->actions) {
+                            if (sceneProject->scene->isEntityCreated(frame.action)) {
+                                DeleteEntityData trackData;
+                                trackData.entity = frame.action;
+                                trackData.hasTransform = false;
+                                auto itTrack = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), frame.action);
+                                if (itTrack != sceneProject->entities.end()) {
+                                    trackData.entityIndex = std::distance(sceneProject->entities.begin(), itTrack);
+                                }
+                                trackData.data = Stream::encodeEntity(frame.action, sceneProject->scene, project, sceneProject);
+                                entityData.modelOwnedEntities.push_back(trackData);
+                                destroyEntity(sceneProject->scene, frame.action, sceneProject->entities, project, sceneId);
+                            }
+                        }
+                    }
+
+                    // Encode animation entity (while ownedActions is still true for correct encoding)
+                    if (sceneProject->scene->isEntityCreated(animEntity)) {
+                        DeleteEntityData animData;
+                        animData.entity = animEntity;
+                        animData.hasTransform = false;
+                        auto itAnim = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), animEntity);
+                        if (itAnim != sceneProject->entities.end()) {
+                            animData.entityIndex = std::distance(sceneProject->entities.begin(), itAnim);
+                        }
+                        animData.data = Stream::encodeEntity(animEntity, sceneProject->scene, project, sceneProject);
+                        entityData.modelOwnedEntities.push_back(animData);
+
+                        // Prevent animationDestroy from double-destroying already-destroyed tracks
+                        if (animComp) {
+                            animComp->ownedActions = false;
+                        }
+                        destroyEntity(sceneProject->scene, animEntity, sceneProject->entities, project, sceneId);
+                    }
+                }
+            }
+
             entityData.data = Stream::encodeEntity(entityData.entity, sceneProject->scene, project, sceneProject);
 
             std::vector<Entity> allEntities;
@@ -130,6 +178,13 @@ void Editor::DeleteEntityCmd::undo(){
             entityData.entity = allEntities[0];
 
             ProjectUtils::moveEntityOrderByIndex(sceneProject->scene, sceneProject->entities, entityData.entity, entityData.parent, entityData.entityIndex, entityData.hasTransform);
+
+            // Recreate model-owned non-transform entities (action tracks + animations)
+            for (DeleteEntityData& ownedEntity : entityData.modelOwnedEntities) {
+                std::vector<Entity> ownedEntities = Stream::decodeEntity(ownedEntity.data, sceneProject->scene, &sceneProject->entities, project, sceneProject);
+                ownedEntity.entity = ownedEntities[0];
+                ProjectUtils::moveEntityOrderByIndex(sceneProject->scene, sceneProject->entities, ownedEntity.entity, ownedEntity.parent, ownedEntity.entityIndex, ownedEntity.hasTransform);
+            }
 
         }else{
 
