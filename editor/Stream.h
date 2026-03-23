@@ -140,7 +140,7 @@ namespace Supernova::Editor {
         static YAML::Node encodeTransform(const Transform& transform);
         static Transform decodeTransform(const YAML::Node& node, const Transform* oldTransform = nullptr);
 
-        static YAML::Node encodeMeshComponent(const MeshComponent& mesh);
+        static YAML::Node encodeMeshComponent(const MeshComponent& mesh, bool encodeBuffers = true);
         static MeshComponent decodeMeshComponent(const YAML::Node& node, const MeshComponent* oldMesh = nullptr);
 
         static YAML::Node encodeUIComponent(const UIComponent& ui);

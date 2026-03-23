@@ -1667,12 +1667,9 @@ YAML::Node Editor::Stream::encodeComponents(const Entity entity, const EntityReg
     }
 
     if (signature.test(registry->getComponentId<MeshComponent>())) {
-        // Skip mesh buffer encoding for model entities - mesh will be regenerated from model file
-        bool isModelEntity = signature.test(registry->getComponentId<ModelComponent>());
-        if (!isModelEntity) {
-            MeshComponent mesh = registry->getComponent<MeshComponent>(entity);
-            compNode[Catalog::getComponentName(ComponentType::MeshComponent, true)] = encodeMeshComponent(mesh);
-        }
+        bool isModel = signature.test(registry->getComponentId<ModelComponent>());
+        MeshComponent mesh = registry->getComponent<MeshComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::MeshComponent, true)] = encodeMeshComponent(mesh, !isModel);
     }
 
     if (signature.test(registry->getComponentId<UIComponent>())) {
@@ -1830,19 +1827,14 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
 
     compName = Catalog::getComponentName(ComponentType::MeshComponent, true);
     if (compNode[compName]) {
-        // Skip mesh buffer decoding for model entities - mesh will be regenerated from model file
-        std::string modelCompName = Catalog::getComponentName(ComponentType::ModelComponent, true);
-        bool isModelEntity = compNode[modelCompName] && compNode[modelCompName].IsDefined();
-        if (!isModelEntity) {
-            MeshComponent* existing = registry->findComponent<MeshComponent>(entity);
-            MeshComponent mesh = decodeMeshComponent(compNode[compName], existing);
-            if (!signature.test(registry->getComponentId<MeshComponent>())){
-                registry->addComponent<MeshComponent>(entity, mesh);
-            }else{
-                int flags = Catalog::getChangedUpdateFlags(ComponentType::MeshComponent, existing, &mesh);
-                registry->getComponent<MeshComponent>(entity) = mesh;
-                Catalog::updateEntity(registry, entity, flags);
-            }
+        MeshComponent* existing = registry->findComponent<MeshComponent>(entity);
+        MeshComponent mesh = decodeMeshComponent(compNode[compName], existing);
+        if (!signature.test(registry->getComponentId<MeshComponent>())){
+            registry->addComponent<MeshComponent>(entity, mesh);
+        }else{
+            int flags = Catalog::getChangedUpdateFlags(ComponentType::MeshComponent, existing, &mesh);
+            registry->getComponent<MeshComponent>(entity) = mesh;
+            Catalog::updateEntity(registry, entity, flags);
         }
     }
 
@@ -2228,21 +2220,23 @@ Transform Editor::Stream::decodeTransform(const YAML::Node& node, const Transfor
     return transform;
 }
 
-YAML::Node Editor::Stream::encodeMeshComponent(const MeshComponent& mesh) {
+YAML::Node Editor::Stream::encodeMeshComponent(const MeshComponent& mesh, bool encodeBuffers) {
     YAML::Node node;
 
     //node["loaded"] = mesh.loaded;
     //node["loadCalled"] = mesh.loadCalled;
 
-    node["buffer"] = encodeInterleavedBuffer(mesh.buffer);
-    node["indices"] = encodeIndexBuffer(mesh.indices);
+    if (encodeBuffers){
+        node["buffer"] = encodeInterleavedBuffer(mesh.buffer);
+        node["indices"] = encodeIndexBuffer(mesh.indices);
 
-    // Encode external buffers
-    YAML::Node eBuffersNode;
-    for (unsigned int i = 0; i < mesh.numExternalBuffers; i++) {
-        eBuffersNode.push_back(encodeExternalBuffer(mesh.eBuffers[i]));
+        // Encode external buffers
+        YAML::Node eBuffersNode;
+        for (unsigned int i = 0; i < mesh.numExternalBuffers; i++) {
+            eBuffersNode.push_back(encodeExternalBuffer(mesh.eBuffers[i]));
+        }
+        node["eBuffers"] = eBuffersNode;
     }
-    node["eBuffers"] = eBuffersNode;
 
     //node["vertexCount"] = mesh.vertexCount;
 
