@@ -202,6 +202,19 @@ namespace {
         makeFastProperty<BundleComponent, std::string, &BundleComponent::path>("path", PropertyType::String, UpdateFlags_None),
     };
 
+    static const FastPropertyDescriptor kBoneProperties[] = {
+        makeFastPropertyNoDefault<BoneComponent, Entity, &BoneComponent::model>("model", PropertyType::Entity, UpdateFlags_None),
+        makeFastPropertyNoDefault<BoneComponent, int, &BoneComponent::index>("index", PropertyType::Int, UpdateFlags_None),
+        makeFastProperty<BoneComponent, Vector3, &BoneComponent::bindPosition>("bindPosition", PropertyType::Vector3, UpdateFlags_None),
+        makeFastProperty<BoneComponent, Quaternion, &BoneComponent::bindRotation>("bindRotation", PropertyType::Quat, UpdateFlags_None),
+        makeFastProperty<BoneComponent, Vector3, &BoneComponent::bindScale>("bindScale", PropertyType::Vector3, UpdateFlags_None),
+    };
+
+    static const FastPropertyDescriptor kKeyframeTracksProperties[] = {
+        makeFastPropertyNoDefault<KeyframeTracksComponent, int, &KeyframeTracksComponent::index>("index", PropertyType::Int, UpdateFlags_None),
+        makeFastProperty<KeyframeTracksComponent, float, &KeyframeTracksComponent::interpolation>("interpolation", PropertyType::Float, UpdateFlags_None),
+    };
+
     static const FastPropertyDescriptor kSpriteAnimationProperties[] = {
         makeFastProperty<SpriteAnimationComponent, std::string, &SpriteAnimationComponent::name>("name", PropertyType::String, UpdateFlags_None),
         makeFastProperty<SpriteAnimationComponent, bool, &SpriteAnimationComponent::loop>("loop", PropertyType::Bool, UpdateFlags_None),
@@ -1040,6 +1053,14 @@ namespace {
         return resolveDirectProperties(static_cast<BundleComponent*>(comp), propertyName, kBundleProperties);
     }
 
+    PropertyData resolveBonePropertyFast(void* comp, const std::string& propertyName) {
+        return resolveDirectProperties(static_cast<BoneComponent*>(comp), propertyName, kBoneProperties);
+    }
+
+    PropertyData resolveKeyframeTracksPropertyFast(void* comp, const std::string& propertyName) {
+        return resolveDirectProperties(static_cast<KeyframeTracksComponent*>(comp), propertyName, kKeyframeTracksProperties);
+    }
+
     // ── Enumerate functions (build full property map) ──
 
     void enumerateActionProperties(void* comp, std::map<std::string, PropertyData>& ps) {
@@ -1062,6 +1083,14 @@ namespace {
 
     void enumerateBundleProperties(void* comp, std::map<std::string, PropertyData>& ps) {
         enumerateFromDescriptors(comp, ps, kBundleProperties);
+    }
+
+    void enumerateBoneProperties(void* comp, std::map<std::string, PropertyData>& ps) {
+        enumerateFromDescriptors(comp, ps, kBoneProperties);
+    }
+
+    void enumerateKeyframeTracksProperties(void* comp, std::map<std::string, PropertyData>& ps) {
+        enumerateFromDescriptors(comp, ps, kKeyframeTracksProperties);
     }
 
     void enumerateSpriteAnimationProperties(void* comp, std::map<std::string, PropertyData>& ps) {
@@ -1370,6 +1399,8 @@ namespace {
         {ComponentType::AnimationComponent, &findComponentPtr<AnimationComponent>, &resolveAnimationPropertyFast, &enumerateAnimationProperties},
         {ComponentType::ModelComponent, &findComponentPtr<ModelComponent>, &resolveModelPropertyFast, &enumerateModelProperties},
         {ComponentType::BundleComponent, &findComponentPtr<BundleComponent>, &resolveBundlePropertyFast, &enumerateBundleProperties},
+        {ComponentType::BoneComponent, &findComponentPtr<BoneComponent>, &resolveBonePropertyFast, &enumerateBoneProperties},
+        {ComponentType::KeyframeTracksComponent, &findComponentPtr<KeyframeTracksComponent>, &resolveKeyframeTracksPropertyFast, &enumerateKeyframeTracksProperties},
     };
 
     PropertyData tryGetFastProperty(EntityRegistry* registry, Entity entity, ComponentType component, const std::string& propertyName) {
@@ -2208,6 +2239,42 @@ void Editor::Catalog::copyComponent(EntityRegistry* sourceRegistry, Entity sourc
         case ComponentType::Joint3DComponent: {
             YAML::Node encoded = Stream::encodeJoint3DComponent(sourceRegistry->getComponent<Joint3DComponent>(sourceEntity));
             targetRegistry->getComponent<Joint3DComponent>(targetEntity) = Stream::decodeJoint3DComponent(encoded);
+            break;
+        }
+
+        case ComponentType::BoneComponent: {
+            YAML::Node encoded = Stream::encodeBoneComponent(sourceRegistry->getComponent<BoneComponent>(sourceEntity));
+            targetRegistry->getComponent<BoneComponent>(targetEntity) = Stream::decodeBoneComponent(encoded);
+            break;
+        }
+
+        case ComponentType::KeyframeTracksComponent: {
+            YAML::Node encoded = Stream::encodeKeyframeTracksComponent(sourceRegistry->getComponent<KeyframeTracksComponent>(sourceEntity));
+            targetRegistry->getComponent<KeyframeTracksComponent>(targetEntity) = Stream::decodeKeyframeTracksComponent(encoded);
+            break;
+        }
+
+        case ComponentType::TranslateTracksComponent: {
+            YAML::Node encoded = Stream::encodeTranslateTracksComponent(sourceRegistry->getComponent<TranslateTracksComponent>(sourceEntity));
+            targetRegistry->getComponent<TranslateTracksComponent>(targetEntity) = Stream::decodeTranslateTracksComponent(encoded);
+            break;
+        }
+
+        case ComponentType::RotateTracksComponent: {
+            YAML::Node encoded = Stream::encodeRotateTracksComponent(sourceRegistry->getComponent<RotateTracksComponent>(sourceEntity));
+            targetRegistry->getComponent<RotateTracksComponent>(targetEntity) = Stream::decodeRotateTracksComponent(encoded);
+            break;
+        }
+
+        case ComponentType::ScaleTracksComponent: {
+            YAML::Node encoded = Stream::encodeScaleTracksComponent(sourceRegistry->getComponent<ScaleTracksComponent>(sourceEntity));
+            targetRegistry->getComponent<ScaleTracksComponent>(targetEntity) = Stream::decodeScaleTracksComponent(encoded);
+            break;
+        }
+
+        case ComponentType::MorphTracksComponent: {
+            YAML::Node encoded = Stream::encodeMorphTracksComponent(sourceRegistry->getComponent<MorphTracksComponent>(sourceEntity));
+            targetRegistry->getComponent<MorphTracksComponent>(targetEntity) = Stream::decodeMorphTracksComponent(encoded);
             break;
         }
 

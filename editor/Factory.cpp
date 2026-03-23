@@ -1273,6 +1273,128 @@ std::string Editor::Factory::createModelComponent(int indentSpaces, EntityRegist
     return code.str();
 }
 
+std::string Editor::Factory::createBoneComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName, bool assignExisting) {
+    if (!scene->findComponent<BoneComponent>(entity)) return "";
+    BoneComponent& bone = scene->getComponent<BoneComponent>(entity);
+    std::ostringstream code;
+    const std::string ind = indentation(indentSpaces);
+    code << ind << "BoneComponent bonecomp;\n";
+    code << ind << "bonecomp.model = " << formatUInt(bone.model) << ";\n";
+    code << ind << "bonecomp.index = " << formatInt(bone.index) << ";\n";
+    code << ind << "bonecomp.bindPosition = " << formatVector3(bone.bindPosition) << ";\n";
+    code << ind << "bonecomp.bindRotation = " << formatQuaternion(bone.bindRotation) << ";\n";
+    code << ind << "bonecomp.bindScale = " << formatVector3(bone.bindScale) << ";\n";
+    code << ind << "bonecomp.offsetMatrix = Matrix4(\n";
+    for (int col = 0; col < 4; col++) {
+        code << ind << "    ";
+        for (int row = 0; row < 4; row++) {
+            code << formatFloat(bone.offsetMatrix[col][row]);
+            if (col < 3 || row < 3) code << ", ";
+        }
+        code << "\n";
+    }
+    code << ind << ");\n";
+    addComponentCode(code, ind, sceneName, entityName, entity, "BoneComponent", "bonecomp", assignExisting);
+    return code.str();
+}
+
+std::string Editor::Factory::createKeyframeTracksComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName, bool assignExisting) {
+    if (!scene->findComponent<KeyframeTracksComponent>(entity)) return "";
+    KeyframeTracksComponent& kf = scene->getComponent<KeyframeTracksComponent>(entity);
+    std::ostringstream code;
+    const std::string ind = indentation(indentSpaces);
+    code << ind << "KeyframeTracksComponent kfcomp;\n";
+    code << ind << "kfcomp.index = " << formatInt(kf.index) << ";\n";
+    code << ind << "kfcomp.interpolation = " << formatFloat(kf.interpolation) << ";\n";
+    if (!kf.times.empty()) {
+        code << ind << "kfcomp.times = {";
+        for (size_t i = 0; i < kf.times.size(); i++) {
+            if (i > 0) code << ", ";
+            code << formatFloat(kf.times[i]);
+        }
+        code << "};\n";
+    }
+    addComponentCode(code, ind, sceneName, entityName, entity, "KeyframeTracksComponent", "kfcomp", assignExisting);
+    return code.str();
+}
+
+std::string Editor::Factory::createTranslateTracksComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName, bool assignExisting) {
+    if (!scene->findComponent<TranslateTracksComponent>(entity)) return "";
+    TranslateTracksComponent& tt = scene->getComponent<TranslateTracksComponent>(entity);
+    std::ostringstream code;
+    const std::string ind = indentation(indentSpaces);
+    code << ind << "TranslateTracksComponent ttcomp;\n";
+    if (!tt.values.empty()) {
+        code << ind << "ttcomp.values = {";
+        for (size_t i = 0; i < tt.values.size(); i++) {
+            if (i > 0) code << ", ";
+            code << formatVector3(tt.values[i]);
+        }
+        code << "};\n";
+    }
+    addComponentCode(code, ind, sceneName, entityName, entity, "TranslateTracksComponent", "ttcomp", assignExisting);
+    return code.str();
+}
+
+std::string Editor::Factory::createRotateTracksComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName, bool assignExisting) {
+    if (!scene->findComponent<RotateTracksComponent>(entity)) return "";
+    RotateTracksComponent& rt = scene->getComponent<RotateTracksComponent>(entity);
+    std::ostringstream code;
+    const std::string ind = indentation(indentSpaces);
+    code << ind << "RotateTracksComponent rtcomp;\n";
+    if (!rt.values.empty()) {
+        code << ind << "rtcomp.values = {";
+        for (size_t i = 0; i < rt.values.size(); i++) {
+            if (i > 0) code << ", ";
+            code << formatQuaternion(rt.values[i]);
+        }
+        code << "};\n";
+    }
+    addComponentCode(code, ind, sceneName, entityName, entity, "RotateTracksComponent", "rtcomp", assignExisting);
+    return code.str();
+}
+
+std::string Editor::Factory::createScaleTracksComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName, bool assignExisting) {
+    if (!scene->findComponent<ScaleTracksComponent>(entity)) return "";
+    ScaleTracksComponent& st = scene->getComponent<ScaleTracksComponent>(entity);
+    std::ostringstream code;
+    const std::string ind = indentation(indentSpaces);
+    code << ind << "ScaleTracksComponent stcomp;\n";
+    if (!st.values.empty()) {
+        code << ind << "stcomp.values = {";
+        for (size_t i = 0; i < st.values.size(); i++) {
+            if (i > 0) code << ", ";
+            code << formatVector3(st.values[i]);
+        }
+        code << "};\n";
+    }
+    addComponentCode(code, ind, sceneName, entityName, entity, "ScaleTracksComponent", "stcomp", assignExisting);
+    return code.str();
+}
+
+std::string Editor::Factory::createMorphTracksComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName, bool assignExisting) {
+    if (!scene->findComponent<MorphTracksComponent>(entity)) return "";
+    MorphTracksComponent& mt = scene->getComponent<MorphTracksComponent>(entity);
+    std::ostringstream code;
+    const std::string ind = indentation(indentSpaces);
+    code << ind << "MorphTracksComponent mtcomp;\n";
+    if (!mt.values.empty()) {
+        code << ind << "mtcomp.values.resize(" << mt.values.size() << ");\n";
+        for (size_t i = 0; i < mt.values.size(); i++) {
+            if (!mt.values[i].empty()) {
+                code << ind << "mtcomp.values[" << i << "] = {";
+                for (size_t j = 0; j < mt.values[i].size(); j++) {
+                    if (j > 0) code << ", ";
+                    code << formatFloat(mt.values[i][j]);
+                }
+                code << "};\n";
+            }
+        }
+    }
+    addComponentCode(code, ind, sceneName, entityName, entity, "MorphTracksComponent", "mtcomp", assignExisting);
+    return code.str();
+}
+
 std::string Editor::Factory::createComponent(int indentSpaces, EntityRegistry* scene, Entity entity, ComponentType componentType, const fs::path& projectPath, std::string sceneName, std::string entityName, bool assignExisting) {
     switch (componentType) {
         case ComponentType::Transform: return createTransform(indentSpaces, scene, entity, sceneName, entityName, false, assignExisting);
@@ -1296,6 +1418,12 @@ std::string Editor::Factory::createComponent(int indentSpaces, EntityRegistry* s
         case ComponentType::SpriteAnimationComponent: return createSpriteAnimationComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
         case ComponentType::AnimationComponent: return createAnimationComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
         case ComponentType::ModelComponent: return createModelComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
+        case ComponentType::BoneComponent: return createBoneComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
+        case ComponentType::KeyframeTracksComponent: return createKeyframeTracksComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
+        case ComponentType::TranslateTracksComponent: return createTranslateTracksComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
+        case ComponentType::RotateTracksComponent: return createRotateTracksComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
+        case ComponentType::ScaleTracksComponent: return createScaleTracksComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
+        case ComponentType::MorphTracksComponent: return createMorphTracksComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting);
         default: return "";
     }
 }

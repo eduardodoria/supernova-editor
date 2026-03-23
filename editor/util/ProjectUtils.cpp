@@ -321,8 +321,7 @@ void Editor::ProjectUtils::addEntityComponent(EntityRegistry* registry, Entity e
             if (!componentNode.IsDefined() || componentNode.IsNull()){
                 registry->addComponent<BoneComponent>(entity, {});
             }else{
-                registry->addComponent<BoneComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                registry->addComponent<BoneComponent>(entity, Stream::decodeBoneComponent(componentNode));
             }
             break;
         case ComponentType::ButtonComponent:
@@ -396,8 +395,7 @@ void Editor::ProjectUtils::addEntityComponent(EntityRegistry* registry, Entity e
             if (!componentNode.IsDefined() || componentNode.IsNull()){
                 registry->addComponent<KeyframeTracksComponent>(entity, {});
             }else{
-                registry->addComponent<KeyframeTracksComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                registry->addComponent<KeyframeTracksComponent>(entity, Stream::decodeKeyframeTracksComponent(componentNode));
             }
             break;
         case ComponentType::LightComponent:
@@ -434,8 +432,7 @@ void Editor::ProjectUtils::addEntityComponent(EntityRegistry* registry, Entity e
             if (!componentNode.IsDefined() || componentNode.IsNull()){
                 registry->addComponent<MorphTracksComponent>(entity, {});
             }else{
-                registry->addComponent<MorphTracksComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                registry->addComponent<MorphTracksComponent>(entity, Stream::decodeMorphTracksComponent(componentNode));
             }
             break;
         case ComponentType::PanelComponent:
@@ -482,8 +479,7 @@ void Editor::ProjectUtils::addEntityComponent(EntityRegistry* registry, Entity e
             if (!componentNode.IsDefined() || componentNode.IsNull()){
                 registry->addComponent<RotateTracksComponent>(entity, {});
             }else{
-                registry->addComponent<RotateTracksComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                registry->addComponent<RotateTracksComponent>(entity, Stream::decodeRotateTracksComponent(componentNode));
             }
             break;
         case ComponentType::RotationActionComponent:
@@ -506,8 +502,7 @@ void Editor::ProjectUtils::addEntityComponent(EntityRegistry* registry, Entity e
             if (!componentNode.IsDefined() || componentNode.IsNull()){
                 registry->addComponent<ScaleTracksComponent>(entity, {});
             }else{
-                registry->addComponent<ScaleTracksComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                registry->addComponent<ScaleTracksComponent>(entity, Stream::decodeScaleTracksComponent(componentNode));
             }
             break;
         case ComponentType::ScriptComponent:
@@ -591,8 +586,7 @@ void Editor::ProjectUtils::addEntityComponent(EntityRegistry* registry, Entity e
             if (!componentNode.IsDefined() || componentNode.IsNull()){
                 registry->addComponent<TranslateTracksComponent>(entity, {});
             }else{
-                registry->addComponent<TranslateTracksComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                registry->addComponent<TranslateTracksComponent>(entity, Stream::decodeTranslateTracksComponent(componentNode));
             }
             break;
         case ComponentType::UIContainerComponent:
@@ -674,7 +668,7 @@ YAML::Node Editor::ProjectUtils::removeEntityComponent(EntityRegistry* registry,
             break;
         case ComponentType::BoneComponent:
             if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                oldComponent = Stream::encodeBoneComponent(registry->getComponent<BoneComponent>(entity));
             }
             registry->removeComponent<BoneComponent>(entity);
             break;
@@ -734,7 +728,7 @@ YAML::Node Editor::ProjectUtils::removeEntityComponent(EntityRegistry* registry,
             break;
         case ComponentType::KeyframeTracksComponent:
             if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                oldComponent = Stream::encodeKeyframeTracksComponent(registry->getComponent<KeyframeTracksComponent>(entity));
             }
             registry->removeComponent<KeyframeTracksComponent>(entity);
             break;
@@ -764,7 +758,7 @@ YAML::Node Editor::ProjectUtils::removeEntityComponent(EntityRegistry* registry,
             break;
         case ComponentType::MorphTracksComponent:
             if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                oldComponent = Stream::encodeMorphTracksComponent(registry->getComponent<MorphTracksComponent>(entity));
             }
             registry->removeComponent<MorphTracksComponent>(entity);
             break;
@@ -800,7 +794,7 @@ YAML::Node Editor::ProjectUtils::removeEntityComponent(EntityRegistry* registry,
             break;
         case ComponentType::RotateTracksComponent:
             if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                oldComponent = Stream::encodeRotateTracksComponent(registry->getComponent<RotateTracksComponent>(entity));
             }
             registry->removeComponent<RotateTracksComponent>(entity);
             break;
@@ -818,7 +812,7 @@ YAML::Node Editor::ProjectUtils::removeEntityComponent(EntityRegistry* registry,
             break;
         case ComponentType::ScaleTracksComponent:
             if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                oldComponent = Stream::encodeScaleTracksComponent(registry->getComponent<ScaleTracksComponent>(entity));
             }
             registry->removeComponent<ScaleTracksComponent>(entity);
             break;
@@ -884,7 +878,7 @@ YAML::Node Editor::ProjectUtils::removeEntityComponent(EntityRegistry* registry,
             break;
         case ComponentType::TranslateTracksComponent:
             if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                oldComponent = Stream::encodeTranslateTracksComponent(registry->getComponent<TranslateTracksComponent>(entity));
             }
             registry->removeComponent<TranslateTracksComponent>(entity);
             break;

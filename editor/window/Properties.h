@@ -159,6 +159,12 @@ namespace Supernova::Editor{
         void drawSpriteAnimationComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
         void drawAnimationComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
         void drawBundleComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
+        void drawBoneComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
+        void drawKeyframeTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
+        void drawTranslateTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
+        void drawRotateTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
+        void drawScaleTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
+        void drawMorphTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
 
     public:
         static constexpr const char* WINDOW_NAME = "Properties";

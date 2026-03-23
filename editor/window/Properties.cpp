@@ -24,6 +24,12 @@
 #include "App.h"
 #include "Backend.h"
 #include "component/ActionComponent.h"
+#include "component/BoneComponent.h"
+#include "component/KeyframeTracksComponent.h"
+#include "component/TranslateTracksComponent.h"
+#include "component/RotateTracksComponent.h"
+#include "component/ScaleTracksComponent.h"
+#include "component/MorphTracksComponent.h"
 #include "util/SHA1.h"
 #include "util/ProjectUtils.h"
 #include "Stream.h"
@@ -6510,6 +6516,47 @@ void Editor::Properties::drawBundleComponent(ComponentType cpType, SceneProject*
     endTable();
 }
 
+void Editor::Properties::drawBoneComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+    beginTable(cpType, getLabelSize("Bind Rotation"));
+    propertyRow(RowPropertyType::LocalEntity, cpType, "model", "Model", sceneProject, entities);
+    propertyRow(RowPropertyType::Int, cpType, "index", "Index", sceneProject, entities);
+    propertyRow(RowPropertyType::Vector3, cpType, "bindPosition", "Bind Position", sceneProject, entities);
+    propertyRow(RowPropertyType::Quat, cpType, "bindRotation", "Bind Rotation", sceneProject, entities);
+    propertyRow(RowPropertyType::Vector3, cpType, "bindScale", "Bind Scale", sceneProject, entities);
+    endTable();
+}
+
+void Editor::Properties::drawKeyframeTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+    KeyframeTracksComponent& comp = sceneProject->scene->getComponent<KeyframeTracksComponent>(entities[0]);
+
+    beginTable(cpType, getLabelSize("Interpolation"));
+    propertyRow(RowPropertyType::Int, cpType, "index", "Index", sceneProject, entities);
+    propertyRow(RowPropertyType::Float, cpType, "interpolation", "Interpolation", sceneProject, entities);
+    endTable();
+
+    ImGui::Text("Keyframes: %zu", comp.times.size());
+}
+
+void Editor::Properties::drawTranslateTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+    TranslateTracksComponent& comp = sceneProject->scene->getComponent<TranslateTracksComponent>(entities[0]);
+    ImGui::Text("Values: %zu", comp.values.size());
+}
+
+void Editor::Properties::drawRotateTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+    RotateTracksComponent& comp = sceneProject->scene->getComponent<RotateTracksComponent>(entities[0]);
+    ImGui::Text("Values: %zu", comp.values.size());
+}
+
+void Editor::Properties::drawScaleTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+    ScaleTracksComponent& comp = sceneProject->scene->getComponent<ScaleTracksComponent>(entities[0]);
+    ImGui::Text("Values: %zu", comp.values.size());
+}
+
+void Editor::Properties::drawMorphTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+    MorphTracksComponent& comp = sceneProject->scene->getComponent<MorphTracksComponent>(entities[0]);
+    ImGui::Text("Values: %zu", comp.values.size());
+}
+
 void Editor::Properties::show(){
     // Flush any debounced material file writes
     flushDirtyMaterials(project, ImGui::GetIO().DeltaTime);
@@ -6815,6 +6862,18 @@ void Editor::Properties::show(){
                     drawAnimationComponent(cpType, sceneProject, entities);
                 }else if (cpType == ComponentType::BundleComponent){
                     drawBundleComponent(cpType, sceneProject, entities);
+                }else if (cpType == ComponentType::BoneComponent){
+                    drawBoneComponent(cpType, sceneProject, entities);
+                }else if (cpType == ComponentType::KeyframeTracksComponent){
+                    drawKeyframeTracksComponent(cpType, sceneProject, entities);
+                }else if (cpType == ComponentType::TranslateTracksComponent){
+                    drawTranslateTracksComponent(cpType, sceneProject, entities);
+                }else if (cpType == ComponentType::RotateTracksComponent){
+                    drawRotateTracksComponent(cpType, sceneProject, entities);
+                }else if (cpType == ComponentType::ScaleTracksComponent){
+                    drawScaleTracksComponent(cpType, sceneProject, entities);
+                }else if (cpType == ComponentType::MorphTracksComponent){
+                    drawMorphTracksComponent(cpType, sceneProject, entities);
                 }
 
                 if (compReadOnly) ImGui::EndDisabled();

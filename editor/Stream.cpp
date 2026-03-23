@@ -1770,6 +1770,36 @@ YAML::Node Editor::Stream::encodeComponents(const Entity entity, const EntityReg
         compNode[Catalog::getComponentName(ComponentType::AnimationComponent, true)] = encodeAnimationComponent(animation);
     }
 
+    if (signature.test(registry->getComponentId<BoneComponent>())) {
+        BoneComponent bone = registry->getComponent<BoneComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::BoneComponent, true)] = encodeBoneComponent(bone);
+    }
+
+    if (signature.test(registry->getComponentId<KeyframeTracksComponent>())) {
+        KeyframeTracksComponent tracks = registry->getComponent<KeyframeTracksComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::KeyframeTracksComponent, true)] = encodeKeyframeTracksComponent(tracks);
+    }
+
+    if (signature.test(registry->getComponentId<TranslateTracksComponent>())) {
+        TranslateTracksComponent tracks = registry->getComponent<TranslateTracksComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::TranslateTracksComponent, true)] = encodeTranslateTracksComponent(tracks);
+    }
+
+    if (signature.test(registry->getComponentId<RotateTracksComponent>())) {
+        RotateTracksComponent tracks = registry->getComponent<RotateTracksComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::RotateTracksComponent, true)] = encodeRotateTracksComponent(tracks);
+    }
+
+    if (signature.test(registry->getComponentId<ScaleTracksComponent>())) {
+        ScaleTracksComponent tracks = registry->getComponent<ScaleTracksComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::ScaleTracksComponent, true)] = encodeScaleTracksComponent(tracks);
+    }
+
+    if (signature.test(registry->getComponentId<MorphTracksComponent>())) {
+        MorphTracksComponent tracks = registry->getComponent<MorphTracksComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::MorphTracksComponent, true)] = encodeMorphTracksComponent(tracks);
+    }
+
     if (signature.test(registry->getComponentId<BundleComponent>())) {
         BundleComponent bundle = registry->getComponent<BundleComponent>(entity);
         compNode[Catalog::getComponentName(ComponentType::BundleComponent, true)] = encodeBundleComponent(bundle);
@@ -2060,6 +2090,72 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
             int flags = Catalog::getChangedUpdateFlags(ComponentType::AnimationComponent, existing, &animation);
             registry->getComponent<AnimationComponent>(entity) = animation;
             Catalog::updateEntity(registry, entity, flags);
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::BoneComponent, true);
+    if (compNode[compName]) {
+        BoneComponent* existing = registry->findComponent<BoneComponent>(entity);
+        BoneComponent bone = decodeBoneComponent(compNode[compName], existing);
+        if (!signature.test(registry->getComponentId<BoneComponent>())){
+            registry->addComponent<BoneComponent>(entity, bone);
+        }else{
+            registry->getComponent<BoneComponent>(entity) = bone;
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::KeyframeTracksComponent, true);
+    if (compNode[compName]) {
+        KeyframeTracksComponent* existing = registry->findComponent<KeyframeTracksComponent>(entity);
+        KeyframeTracksComponent tracks = decodeKeyframeTracksComponent(compNode[compName], existing);
+        if (!signature.test(registry->getComponentId<KeyframeTracksComponent>())){
+            registry->addComponent<KeyframeTracksComponent>(entity, tracks);
+        }else{
+            registry->getComponent<KeyframeTracksComponent>(entity) = tracks;
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::TranslateTracksComponent, true);
+    if (compNode[compName]) {
+        TranslateTracksComponent* existing = registry->findComponent<TranslateTracksComponent>(entity);
+        TranslateTracksComponent tracks = decodeTranslateTracksComponent(compNode[compName], existing);
+        if (!signature.test(registry->getComponentId<TranslateTracksComponent>())){
+            registry->addComponent<TranslateTracksComponent>(entity, tracks);
+        }else{
+            registry->getComponent<TranslateTracksComponent>(entity) = tracks;
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::RotateTracksComponent, true);
+    if (compNode[compName]) {
+        RotateTracksComponent* existing = registry->findComponent<RotateTracksComponent>(entity);
+        RotateTracksComponent tracks = decodeRotateTracksComponent(compNode[compName], existing);
+        if (!signature.test(registry->getComponentId<RotateTracksComponent>())){
+            registry->addComponent<RotateTracksComponent>(entity, tracks);
+        }else{
+            registry->getComponent<RotateTracksComponent>(entity) = tracks;
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::ScaleTracksComponent, true);
+    if (compNode[compName]) {
+        ScaleTracksComponent* existing = registry->findComponent<ScaleTracksComponent>(entity);
+        ScaleTracksComponent tracks = decodeScaleTracksComponent(compNode[compName], existing);
+        if (!signature.test(registry->getComponentId<ScaleTracksComponent>())){
+            registry->addComponent<ScaleTracksComponent>(entity, tracks);
+        }else{
+            registry->getComponent<ScaleTracksComponent>(entity) = tracks;
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::MorphTracksComponent, true);
+    if (compNode[compName]) {
+        MorphTracksComponent* existing = registry->findComponent<MorphTracksComponent>(entity);
+        MorphTracksComponent tracks = decodeMorphTracksComponent(compNode[compName], existing);
+        if (!signature.test(registry->getComponentId<MorphTracksComponent>())){
+            registry->addComponent<MorphTracksComponent>(entity, tracks);
+        }else{
+            registry->getComponent<MorphTracksComponent>(entity) = tracks;
         }
     }
 
@@ -3581,4 +3677,193 @@ AnimationComponent Editor::Stream::decodeAnimationComponent(const YAML::Node& no
     }
 
     return animation;
+}
+
+YAML::Node Editor::Stream::encodeBoneComponent(const BoneComponent& bone) {
+    YAML::Node node;
+
+    node["model"] = static_cast<uint32_t>(bone.model);
+    node["index"] = bone.index;
+    node["bindPosition"] = encodeVector3(bone.bindPosition);
+    node["bindRotation"] = encodeQuaternion(bone.bindRotation);
+    node["bindScale"] = encodeVector3(bone.bindScale);
+    node["offsetMatrix"] = encodeMatrix4(bone.offsetMatrix);
+
+    return node;
+}
+
+BoneComponent Editor::Stream::decodeBoneComponent(const YAML::Node& node, const BoneComponent* oldBone) {
+    BoneComponent bone;
+
+    if (oldBone) {
+        bone = *oldBone;
+    }
+
+    if (node["model"]) bone.model = static_cast<Entity>(node["model"].as<uint32_t>());
+    if (node["index"]) bone.index = node["index"].as<int>();
+    if (node["bindPosition"]) bone.bindPosition = decodeVector3(node["bindPosition"]);
+    if (node["bindRotation"]) bone.bindRotation = decodeQuaternion(node["bindRotation"]);
+    if (node["bindScale"]) bone.bindScale = decodeVector3(node["bindScale"]);
+    if (node["offsetMatrix"]) bone.offsetMatrix = decodeMatrix4(node["offsetMatrix"]);
+
+    return bone;
+}
+
+YAML::Node Editor::Stream::encodeKeyframeTracksComponent(const KeyframeTracksComponent& tracks) {
+    YAML::Node node;
+
+    node["index"] = tracks.index;
+    node["interpolation"] = tracks.interpolation;
+
+    YAML::Node timesNode;
+    for (float t : tracks.times) {
+        timesNode.push_back(t);
+    }
+    node["times"] = timesNode;
+
+    return node;
+}
+
+KeyframeTracksComponent Editor::Stream::decodeKeyframeTracksComponent(const YAML::Node& node, const KeyframeTracksComponent* oldTracks) {
+    KeyframeTracksComponent tracks;
+
+    if (oldTracks) {
+        tracks = *oldTracks;
+    }
+
+    if (node["index"]) tracks.index = node["index"].as<int>();
+    if (node["interpolation"]) tracks.interpolation = node["interpolation"].as<float>();
+
+    if (node["times"]) {
+        tracks.times.clear();
+        for (const YAML::Node& t : node["times"]) {
+            tracks.times.push_back(t.as<float>());
+        }
+    }
+
+    return tracks;
+}
+
+YAML::Node Editor::Stream::encodeTranslateTracksComponent(const TranslateTracksComponent& tracks) {
+    YAML::Node node;
+
+    YAML::Node valuesNode;
+    for (const auto& v : tracks.values) {
+        valuesNode.push_back(encodeVector3(v));
+    }
+    node["values"] = valuesNode;
+
+    return node;
+}
+
+TranslateTracksComponent Editor::Stream::decodeTranslateTracksComponent(const YAML::Node& node, const TranslateTracksComponent* oldTracks) {
+    TranslateTracksComponent tracks;
+
+    if (oldTracks) {
+        tracks = *oldTracks;
+    }
+
+    if (node["values"]) {
+        tracks.values.clear();
+        for (const YAML::Node& v : node["values"]) {
+            tracks.values.push_back(decodeVector3(v));
+        }
+    }
+
+    return tracks;
+}
+
+YAML::Node Editor::Stream::encodeRotateTracksComponent(const RotateTracksComponent& tracks) {
+    YAML::Node node;
+
+    YAML::Node valuesNode;
+    for (const auto& v : tracks.values) {
+        valuesNode.push_back(encodeQuaternion(v));
+    }
+    node["values"] = valuesNode;
+
+    return node;
+}
+
+RotateTracksComponent Editor::Stream::decodeRotateTracksComponent(const YAML::Node& node, const RotateTracksComponent* oldTracks) {
+    RotateTracksComponent tracks;
+
+    if (oldTracks) {
+        tracks = *oldTracks;
+    }
+
+    if (node["values"]) {
+        tracks.values.clear();
+        for (const YAML::Node& v : node["values"]) {
+            tracks.values.push_back(decodeQuaternion(v));
+        }
+    }
+
+    return tracks;
+}
+
+YAML::Node Editor::Stream::encodeScaleTracksComponent(const ScaleTracksComponent& tracks) {
+    YAML::Node node;
+
+    YAML::Node valuesNode;
+    for (const auto& v : tracks.values) {
+        valuesNode.push_back(encodeVector3(v));
+    }
+    node["values"] = valuesNode;
+
+    return node;
+}
+
+ScaleTracksComponent Editor::Stream::decodeScaleTracksComponent(const YAML::Node& node, const ScaleTracksComponent* oldTracks) {
+    ScaleTracksComponent tracks;
+
+    if (oldTracks) {
+        tracks = *oldTracks;
+    }
+
+    if (node["values"]) {
+        tracks.values.clear();
+        for (const YAML::Node& v : node["values"]) {
+            tracks.values.push_back(decodeVector3(v));
+        }
+    }
+
+    return tracks;
+}
+
+YAML::Node Editor::Stream::encodeMorphTracksComponent(const MorphTracksComponent& tracks) {
+    YAML::Node node;
+
+    YAML::Node valuesNode;
+    for (const auto& inner : tracks.values) {
+        YAML::Node innerNode;
+        for (float f : inner) {
+            innerNode.push_back(f);
+        }
+        valuesNode.push_back(innerNode);
+    }
+    node["values"] = valuesNode;
+
+    return node;
+}
+
+MorphTracksComponent Editor::Stream::decodeMorphTracksComponent(const YAML::Node& node, const MorphTracksComponent* oldTracks) {
+    MorphTracksComponent tracks;
+
+    if (oldTracks) {
+        tracks = *oldTracks;
+    }
+
+    if (node["values"]) {
+        tracks.values.clear();
+        for (const YAML::Node& innerNode : node["values"]) {
+            std::vector<float> inner;
+            for (const YAML::Node& f : innerNode) {
+                inner.push_back(f.as<float>());
+            }
+            tracks.values.push_back(inner);
+        }
+    }
+
+    return tracks;
 }
