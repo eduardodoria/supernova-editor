@@ -12,8 +12,10 @@ namespace Supernova::Editor{
         YAML::Node oldTransform;
         YAML::Node oldMesh;
         YAML::Node oldModel;
-        std::vector<YAML::Node> oldBones;
+        YAML::Node skeleton;
         std::vector<YAML::Node> oldAnimations;
+
+        bool hasSkeleton = false;
 
         Project* project;
         uint32_t sceneId;

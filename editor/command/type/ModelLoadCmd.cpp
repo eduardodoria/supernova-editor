@@ -69,12 +69,12 @@ bool Editor::ModelLoadCmd::execute(){
     MeshComponent& mesh = sceneProject->scene->getComponent<MeshComponent>(entity);
     ModelComponent& model = sceneProject->scene->getComponent<ModelComponent>(entity);
 
-    //oldModel = Stream::encodeEntity(entity, sceneProject->scene);
     oldTransform = Stream::encodeTransform(transform);
     oldMesh = Stream::encodeMeshComponent(mesh, false);
     oldModel = Stream::encodeModelComponent(model);
-    for (const auto& bone : model.bonesIdMapping){
-        oldBones.push_back(Stream::encodeEntity(bone.second, sceneProject->scene));
+    if (model.skeleton != NULL_ENTITY){
+        skeleton = Stream::encodeEntity(model.skeleton, sceneProject->scene);
+        hasSkeleton = true;
     }
     for (Entity animation : model.animations){
         oldAnimations.push_back(Stream::encodeEntity(animation, sceneProject->scene));
@@ -130,19 +130,23 @@ void Editor::ModelLoadCmd::undo(){
     meshSys->clearAnimationMapping(model);
 
     // Recreate old bone and animation entities from saved YAML
-    for (const auto& boneNode : oldBones){
-        Stream::decodeEntity(boneNode, sceneProject->scene);
-    }
-    for (const auto& animNode : oldAnimations){
-        Stream::decodeEntity(animNode, sceneProject->scene);
-    }
+    //for (const auto& boneNode : oldBones){
+    //    Stream::decodeEntity(boneNode, sceneProject->scene);
+    //}
 
     sceneProject->scene->getComponent<Transform>(entity) = Stream::decodeTransform(oldTransform);
     sceneProject->scene->getComponent<MeshComponent>(entity) = Stream::decodeMeshComponent(oldMesh);
     sceneProject->scene->getComponent<ModelComponent>(entity) = Stream::decodeModelComponent(oldModel);
 
+    if (hasSkeleton){
+        Stream::decodeEntity(skeleton, sceneProject->scene, &sceneProject->entities, project, sceneProject, entity);
+    }
+    for (const auto& animNode : oldAnimations){
+        Stream::decodeEntity(animNode, sceneProject->scene, &sceneProject->entities, project, sceneProject);
+    }
+
     // Add old model entities back to scene tracking
-    addEntitiesToScene(sceneProject, oldAddedEntities);
+    //addEntitiesToScene(sceneProject, oldAddedEntities);
 
     sceneProject->isModified = wasModified;
 
