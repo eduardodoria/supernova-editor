@@ -22,9 +22,6 @@ namespace Supernova::Editor{
         NodeRecovery recoveryBundleData;
         uint32_t instanceId;
         bool isBundleRoot = false;
-
-        // Model-owned non-transform entities (animations + action tracks)
-        std::vector<DeleteEntityData> modelOwnedEntities;
     };
 
     class DeleteEntityCmd: public Command{
