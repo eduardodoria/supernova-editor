@@ -601,6 +601,46 @@ void Editor::ProjectUtils::addEntityComponent(EntityRegistry* registry, Entity e
     }
 }
 
+Entity Editor::ProjectUtils::getVirtualParent(Scene* scene, Entity entity) {
+    Signature signature = scene->getSignature(entity);
+    if (!signature.test(scene->getComponentId<ActionComponent>())) return NULL_ENTITY;
+    if (signature.test(scene->getComponentId<Transform>())) return NULL_ENTITY;
+
+    ActionComponent& action = scene->getComponent<ActionComponent>(entity);
+    if (action.target != NULL_ENTITY && action.target != entity) {
+        return action.target;
+    }
+
+    return NULL_ENTITY;
+}
+
+std::vector<Entity> Editor::ProjectUtils::getVirtualChildren(Scene* scene, const std::vector<Entity>& parentEntities) {
+    std::vector<Entity> result;
+    auto actionArr = scene->getComponentArray<ActionComponent>();
+    if (!actionArr) {
+        return result;
+    }
+
+    std::vector<Entity> allEntities = parentEntities;
+    bool foundNew;
+    do {
+        foundNew = false;
+        for (size_t i = 0; i < actionArr->size(); ++i) {
+            Entity entity = actionArr->getEntity(i);
+            Entity vParent = getVirtualParent(scene, entity);
+            if (vParent != NULL_ENTITY
+                && std::find(allEntities.begin(), allEntities.end(), vParent) != allEntities.end()
+                && std::find(allEntities.begin(), allEntities.end(), entity) == allEntities.end()) {
+                allEntities.push_back(entity);
+                result.push_back(entity);
+                foundNew = true;
+            }
+        }
+    } while (foundNew);
+
+    return result;
+}
+
 YAML::Node Editor::ProjectUtils::removeEntityComponent(EntityRegistry* registry, Entity entity, ComponentType componentType, std::vector<Entity>& entities, bool encodeComponent){
     YAML::Node oldComponent;
 

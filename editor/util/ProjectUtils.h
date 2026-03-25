@@ -3,6 +3,8 @@
 #include "lua.hpp"
 
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "LuaBridge.h"
 #include "Out.h"
@@ -44,6 +46,10 @@ public:
 
     static void addEntityComponent(EntityRegistry* registry, Entity entity, ComponentType componentType, std::vector<Entity>& entities, YAML::Node componentNode = YAML::Node());
     static YAML::Node removeEntityComponent(EntityRegistry* registry, Entity entity, ComponentType componentType, std::vector<Entity>& entities, bool encodeComponent = false);
+
+    // --- Virtual children utilities ---
+    static Entity getVirtualParent(Scene* scene, Entity entity);
+    static std::vector<Entity> getVirtualChildren(Scene* scene, const std::vector<Entity>& parentEntities);
 
     // --- Lua script utilities ---
     static ScriptPropertyValue luaValueToScriptPropertyValue(lua_State* L, int idx, ScriptPropertyType type);

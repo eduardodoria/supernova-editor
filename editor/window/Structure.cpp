@@ -544,23 +544,8 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                 std::vector<Entity> exportEntities = draggedEntities;
 
                 // Add virtual children (and chained children) of dragged entities
-                auto actionArr = sceneProject->scene->getComponentArray<ActionComponent>();
-                if (actionArr) {
-                    bool foundNew;
-                    do {
-                        foundNew = false;
-                        for (size_t i = 0; i < actionArr->size(); ++i) {
-                            ActionComponent& action = actionArr->getComponentFromIndex(i);
-                            if (action.target != NULL_ENTITY && std::find(exportEntities.begin(), exportEntities.end(), action.target) != exportEntities.end()) {
-                                Entity actionEntity = actionArr->getEntity(i);
-                                if (std::find(exportEntities.begin(), exportEntities.end(), actionEntity) == exportEntities.end()) {
-                                    exportEntities.push_back(actionEntity);
-                                    foundNew = true;
-                                }
-                            }
-                        }
-                    } while (foundNew);
-                }
+                std::vector<Entity> virtualChildren = ProjectUtils::getVirtualChildren(sceneProject->scene, draggedEntities);
+                exportEntities.insert(exportEntities.end(), virtualChildren.begin(), virtualChildren.end());
 
                 if (draggedEntities.size() == 1 && exportEntities.size() == 1){
                     YAML::Node entityData = Stream::encodeEntity(draggedEntities[0], sceneProject->scene, project, sceneProject);
@@ -1119,26 +1104,24 @@ void Editor::Structure::show(){
             }
 
             bool addedAsVirtualChild = false;
-            if (signature.test(sceneProject->scene->getComponentId<ActionComponent>())) {
-                ActionComponent& action = sceneProject->scene->getComponent<ActionComponent>(entity);
-                if (action.target != NULL_ENTITY && action.target != entity && sceneEntitiesSet.find(action.target) != sceneEntitiesSet.end()) {
-                    // Check if they are in the same bundle
-                    bool sameBundle = false;
-                    auto targetBundleIt = bundleEntityPaths.find(action.target);
-                    if (bundleIt != bundleEntityPaths.end() && targetBundleIt != bundleEntityPaths.end() && bundleIt->second == targetBundleIt->second) {
-                        sameBundle = true;
+            Entity actionTarget = ProjectUtils::getVirtualParent(sceneProject->scene, entity);
+            if (actionTarget != NULL_ENTITY && sceneEntitiesSet.find(actionTarget) != sceneEntitiesSet.end()) {
+                // Check if they are in the same bundle
+                bool sameBundle = false;
+                auto targetBundleIt = bundleEntityPaths.find(actionTarget);
+                if (bundleIt != bundleEntityPaths.end() && targetBundleIt != bundleEntityPaths.end() && bundleIt->second == targetBundleIt->second) {
+                    sameBundle = true;
+                }
+
+                // Priority is Action target, but if both are bundles, ensure it prefers organizing by the actual local parent element correctly.
+                if (sameBundle || bundleIt == bundleEntityPaths.end()) {
+                    child.parent = actionTarget;
+                    if (sameBundle) {
+                        child.isParentBundle = true;
+                        child.hasBundleParent = true;
                     }
-                    
-                    // Priority is Action target, but if both are bundles, ensure it prefers organizing by the actual local parent element correctly.
-                    if (sameBundle || bundleIt == bundleEntityPaths.end()) {
-                        child.parent = action.target;
-                        if (sameBundle) {
-                            child.isParentBundle = true;
-                            child.hasBundleParent = true;
-                        }
-                        virtualActionChildren[action.target].push_back(std::move(child));
-                        addedAsVirtualChild = true;
-                    }
+                    virtualActionChildren[actionTarget].push_back(std::move(child));
+                    addedAsVirtualChild = true;
                 }
             }
             
