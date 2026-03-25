@@ -1400,6 +1400,8 @@ void Editor::ResourcesWindow::thumbnailWorker() {
                     std::lock_guard<std::mutex> lock(completedThumbnailMutex);
                     completedThumbnailQueue.push(thumbFile);
                 }
+            } else {
+                std::cerr << "Failed to load image for thumbnail: " << thumbFile.path.string() << " - " << stbi_failure_reason() << std::endl;
             }
         } else if (thumbFile.type == FileType::MATERIAL) {
             try {
@@ -1436,6 +1438,7 @@ void Editor::ResourcesWindow::thumbnailWorker() {
                     modelRender.fixDarkMaterials();
                     modelRender.positionCameraForModel();
 
+
                     Engine::startAsyncThread();
                     Engine::executeSceneOnce(modelRender.getScene());
                     Engine::endAsyncThread();
@@ -1445,6 +1448,8 @@ void Editor::ResourcesWindow::thumbnailWorker() {
                         pendingModelPath = thumbFile.path;
                         hasPendingModelRender = true;
                     }
+                } else {
+                    std::cerr << "Failed to load model for thumbnail: " << thumbFile.path.string() << std::endl;
                 }
             } catch (const std::exception& e) {
                 std::cerr << "Error generating thumbnail for model: " << thumbFile.path.string() << " - " << e.what() << std::endl;

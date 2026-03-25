@@ -73,11 +73,20 @@ bool Editor::ModelLoadCmd::execute(){
     oldMesh = Stream::encodeMeshComponent(mesh, false);
     oldModel = Stream::encodeModelComponent(model);
     if (model.skeleton != NULL_ENTITY){
-        skeleton = Stream::encodeEntity(model.skeleton, sceneProject->scene);
+        oldSkeleton = Stream::encodeEntity(model.skeleton, sceneProject->scene);
         hasSkeleton = true;
     }
     for (Entity animation : model.animations){
-        oldAnimations.push_back(Stream::encodeEntity(animation, sceneProject->scene));
+        Signature animsignature = sceneProject->scene->getSignature(animation);
+        if (animsignature.test(sceneProject->scene->getComponentId<AnimationComponent>())){
+            AnimationComponent& animComp = sceneProject->scene->getComponent<AnimationComponent>(animation);
+            for (const ActionFrame& actionFrame : animComp.actions){
+                if (actionFrame.action != NULL_ENTITY){
+                    oldAnimations.push_back(Stream::encodeEntity(actionFrame.action, sceneProject->scene));
+                }
+            }
+            oldAnimations.push_back(Stream::encodeEntity(animation, sceneProject->scene));
+        }
     }
 
     // Collect old generated entities to remove from scene tracking
@@ -139,7 +148,7 @@ void Editor::ModelLoadCmd::undo(){
     sceneProject->scene->getComponent<ModelComponent>(entity) = Stream::decodeModelComponent(oldModel);
 
     if (hasSkeleton){
-        Stream::decodeEntity(skeleton, sceneProject->scene, &sceneProject->entities, project, sceneProject, entity);
+        Stream::decodeEntity(oldSkeleton, sceneProject->scene, &sceneProject->entities, project, sceneProject, entity);
     }
     for (const auto& animNode : oldAnimations){
         Stream::decodeEntity(animNode, sceneProject->scene, &sceneProject->entities, project, sceneProject);
