@@ -12,6 +12,9 @@ ComponentAddDialog::ComponentAddDialog() {
 
 void ComponentAddDialog::initializeCategories() {
     m_categories = {
+        {"Core", ICON_FA_LOCATION_CROSSHAIRS, ImVec4(0.4f, 0.8f, 0.9f, 1.0f), {
+            {ComponentType::Transform, ICON_FA_UP_DOWN_LEFT_RIGHT, "Transform", "Position, rotation, scale and hierarchy", ImVec4(0.4f, 0.8f, 0.9f, 1.0f)}
+        }},
         {"Rendering", ICON_FA_CUBE, ImVec4(0.9f, 0.5f, 0.3f, 1.0f), {
             {ComponentType::MeshComponent, ICON_FA_SHAPES, "Mesh", "3D mesh renderer", ImVec4(0.9f, 0.5f, 0.3f, 1.0f)},
             {ComponentType::LightComponent, ICON_FA_LIGHTBULB, "Light", "Light source", ImVec4(1.0f, 0.9f, 0.3f, 1.0f)},
