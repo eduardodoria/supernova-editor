@@ -51,42 +51,65 @@ void Editor::ModelLoadCmd::removeEntitiesFromScene(SceneProject* sceneProject, c
 bool Editor::ModelLoadCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
-    oldMesh = Stream::encodeMeshComponent(sceneProject->scene->getComponent<MeshComponent>(entity));
-    oldModel = Stream::encodeModelComponent(sceneProject->scene->getComponent<ModelComponent>(entity));
-    oldModelPath = sceneProject->scene->getComponent<ModelComponent>(entity).filename;
+    Signature signature = sceneProject->scene->getSignature(entity);
+    if (!signature.test(sceneProject->scene->getComponentId<Transform>())){
+        Log::error("Entity %lu does not have a Transform component", entity);
+        return false;
+    }
+    if (!signature.test(sceneProject->scene->getComponentId<MeshComponent>())){
+        Log::error("Entity %lu does not have a MeshComponent", entity);
+        return false;
+    }
+    if (!signature.test(sceneProject->scene->getComponentId<ModelComponent>())){
+        Log::error("Entity %lu does not have a ModelComponent", entity);
+        return false;
+    }
+
+    Transform& transform = sceneProject->scene->getComponent<Transform>(entity);
+    MeshComponent& mesh = sceneProject->scene->getComponent<MeshComponent>(entity);
+    ModelComponent& model = sceneProject->scene->getComponent<ModelComponent>(entity);
+
+    //oldModel = Stream::encodeEntity(entity, sceneProject->scene);
+    oldTransform = Stream::encodeTransform(transform);
+    oldMesh = Stream::encodeMeshComponent(mesh, false);
+    oldModel = Stream::encodeModelComponent(model);
+    for (const auto& bone : model.bonesIdMapping){
+        oldBones.push_back(Stream::encodeEntity(bone.second, sceneProject->scene));
+    }
+    for (Entity animation : model.animations){
+        oldAnimations.push_back(Stream::encodeEntity(animation, sceneProject->scene));
+    }
 
     // Collect old generated entities to remove from scene tracking
     oldAddedEntities.clear();
-    collectModelEntities(sceneProject->scene, sceneProject->scene->getComponent<ModelComponent>(entity), oldAddedEntities);
+    collectModelEntities(sceneProject->scene, model, oldAddedEntities);
     removeEntitiesFromScene(sceneProject, oldAddedEntities);
 
-    // Load model from file (MeshSystem::destroyModel handles cleanup of old entities)
     std::shared_ptr<MeshSystem> meshSys = sceneProject->scene->getSystem<MeshSystem>();
+    meshSys->clearBoneMapping(model);
+    meshSys->clearAnimationMapping(model);
 
     std::string ext = FileData::getFilePathExtension(modelPath);
     bool ret = false;
     if (ext == "obj"){
-        ret = meshSys->loadOBJ(entity, modelPath);
+        ret = meshSys->loadOBJ(entity, modelPath, false);
     }else{
-        ret = meshSys->loadGLTF(entity, modelPath);
+        ret = meshSys->loadGLTF(entity, modelPath, false);
     }
 
     if (!ret){
         return false;
     }
 
-    sceneProject->scene->getComponent<MeshComponent>(entity).needReload = true;
-
-    sceneProject->scene->getComponent<ModelComponent>(entity).filename = modelPath;
-
     // Collect new generated entities and add to scene tracking
     addedEntities.clear();
-    collectModelEntities(sceneProject->scene, sceneProject->scene->getComponent<ModelComponent>(entity), addedEntities);
+    collectModelEntities(sceneProject->scene, model, addedEntities);
     addEntitiesToScene(sceneProject, addedEntities);
 
     sceneProject->isModified = true;
 
     if (project->isEntityInBundle(sceneId, entity)){
+        project->bundlePropertyChanged(sceneId, entity, ComponentType::Transform, {});
         project->bundlePropertyChanged(sceneId, entity, ComponentType::MeshComponent, {});
         project->bundlePropertyChanged(sceneId, entity, ComponentType::ModelComponent, {});
     }
@@ -97,25 +120,34 @@ bool Editor::ModelLoadCmd::execute(){
 void Editor::ModelLoadCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
-    // Remove current generated entities from scene tracking
+    ModelComponent& model = sceneProject->scene->getComponent<ModelComponent>(entity);
+
+    // Remove new model entities from scene tracking
     removeEntitiesFromScene(sceneProject, addedEntities);
 
-    // Destroy the currently loaded generated child entities before restoring the old model state
     std::shared_ptr<MeshSystem> meshSys = sceneProject->scene->getSystem<MeshSystem>();
-    meshSys->destroyModel(sceneProject->scene->getComponent<ModelComponent>(entity));
+    meshSys->clearBoneMapping(model);
+    meshSys->clearAnimationMapping(model);
 
+    // Recreate old bone and animation entities from saved YAML
+    for (const auto& boneNode : oldBones){
+        Stream::decodeEntity(boneNode, sceneProject->scene);
+    }
+    for (const auto& animNode : oldAnimations){
+        Stream::decodeEntity(animNode, sceneProject->scene);
+    }
+
+    sceneProject->scene->getComponent<Transform>(entity) = Stream::decodeTransform(oldTransform);
     sceneProject->scene->getComponent<MeshComponent>(entity) = Stream::decodeMeshComponent(oldMesh);
     sceneProject->scene->getComponent<ModelComponent>(entity) = Stream::decodeModelComponent(oldModel);
-    sceneProject->scene->getComponent<ModelComponent>(entity).filename = oldModelPath;
-    sceneProject->scene->getComponent<ModelComponent>(entity).needUpdateModel = true;
-    sceneProject->scene->getComponent<MeshComponent>(entity).needReload = true;
 
-    // Restore old generated entities to scene tracking
+    // Add old model entities back to scene tracking
     addEntitiesToScene(sceneProject, oldAddedEntities);
 
     sceneProject->isModified = wasModified;
 
     if (project->isEntityInBundle(sceneId, entity)){
+        project->bundlePropertyChanged(sceneId, entity, ComponentType::Transform, {});
         project->bundlePropertyChanged(sceneId, entity, ComponentType::MeshComponent, {});
         project->bundlePropertyChanged(sceneId, entity, ComponentType::ModelComponent, {});
     }
