@@ -58,6 +58,7 @@ bool Editor::ProjectUtils::isEntityLocked(Scene* scene, Entity entity){
         return false;
 
     Signature signature = scene->getSignature(entity);
+
     auto models = scene->getComponentArray<ModelComponent>();
     for (size_t i = 0; i < models->size(); ++i) {
         ModelComponent& model = models->getComponentFromIndex(i);
@@ -1087,4 +1088,27 @@ void Editor::ProjectUtils::loadLuaScriptProperties(ScriptEntry& entry, const std
     }
 
     lua_pop(L, 2);  // pop properties_table and script_table
+}
+
+void Editor::ProjectUtils::collectEntities(const YAML::Node& entityNode, std::vector<Entity>& allEntities) {
+    if (!entityNode || !entityNode.IsMap())
+        return;
+
+    if (entityNode["members"] && entityNode["members"].IsSequence()) {
+        for (const auto& member : entityNode["members"]) {
+            collectEntities(member, allEntities);
+        }
+        return;
+    }
+
+    if (entityNode["entity"]) {
+        allEntities.push_back(entityNode["entity"].as<Entity>());
+    }
+
+    // Recursively process children
+    if (entityNode["children"] && entityNode["children"].IsSequence()) {
+        for (const auto& child : entityNode["children"]) {
+            collectEntities(child, allEntities);
+        }
+    }
 }

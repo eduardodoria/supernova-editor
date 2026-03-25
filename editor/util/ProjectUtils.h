@@ -55,6 +55,8 @@ public:
     static ScriptPropertyValue luaValueToScriptPropertyValue(lua_State* L, int idx, ScriptPropertyType type);
     static void loadLuaScriptProperties(ScriptEntry& entry, const std::string& luaPath);
 
+    static void collectEntities(const YAML::Node& entityNode, std::vector<Entity>& allEntities);
+
     // Fills a Texture with the editor built-in default skybox cubemap.
     static void setDefaultSkyTexture(Texture& outTexture);
 };

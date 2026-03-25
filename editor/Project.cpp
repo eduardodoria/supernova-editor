@@ -2612,7 +2612,7 @@ bool Editor::Project::createEntityBundle(uint32_t sceneId, fs::path filepath, YA
 
     // Keep original scene order for member mapping and undo operations.
     std::vector<Entity> branchEntities;
-    collectEntities(entityNode, branchEntities);
+    ProjectUtils::collectEntities(entityNode, branchEntities);
 
     std::vector<Entity> regEntities = Stream::decodeEntitySelection(clearEntitiesNode(entityNode), newGroup.registry.get(), &newGroup.registryEntities);
     if (branchEntities.size() == regEntities.size()) {
@@ -3060,29 +3060,6 @@ YAML::Node Editor::Project::changeEntitiesNode(Entity& firstEntity, YAML::Node n
     }
 
     return node;
-}
-
-void Editor::Project::collectEntities(const YAML::Node& entityNode, std::vector<Entity>& allEntities) {
-    if (!entityNode || !entityNode.IsMap())
-        return;
-
-    if (entityNode["members"] && entityNode["members"].IsSequence()) {
-        for (const auto& member : entityNode["members"]) {
-            collectEntities(member, allEntities);
-        }
-        return;
-    }
-
-    if (entityNode["entity"]) {
-        allEntities.push_back(entityNode["entity"].as<Entity>());
-    }
-
-    // Recursively process children
-    if (entityNode["children"] && entityNode["children"].IsSequence()) {
-        for (const auto& child : entityNode["children"]) {
-            collectEntities(child, allEntities);
-        }
-    }
 }
 
 YAML::Node Editor::Project::encodeEntityBundleNode(const std::filesystem::path& filepath) const {
@@ -3588,7 +3565,7 @@ bool Editor::Project::addEntityToBundle(uint32_t sceneId, Entity entity, Entity 
                 if (isNestedBundle) {
                     newOtherEntities.push_back(entity);
                 } else {
-                    collectEntities(nodeOriginal, newOtherEntities);
+                    ProjectUtils::collectEntities(nodeOriginal, newOtherEntities);
                 }
 
                 if (hasTransform && !newOtherEntities.empty()) {
@@ -3703,7 +3680,7 @@ bool Editor::Project::addEntityToBundle(uint32_t sceneId, const NodeRecovery& re
                 newOtherEntities = Stream::decodeEntity(nodeData, otherScene->scene, &otherScene->entities);
                 ProjectUtils::moveEntityOrderByTransform(otherScene->scene, otherScene->entities, newOtherEntities[0], otherParent, transformIndex, hasRecoveryData);
             } else {
-                collectEntities(nodeData, newOtherEntities);
+                ProjectUtils::collectEntities(nodeData, newOtherEntities);
 
                 if (!newOtherEntities.empty() && otherScene->scene->findComponent<Transform>(newOtherEntities[0])) {
                     ProjectUtils::moveEntityOrderByTransform(otherScene->scene, otherScene->entities, newOtherEntities[0], otherParent, transformIndex, hasRecoveryData);
@@ -3785,7 +3762,7 @@ Editor::NodeRecovery Editor::Project::removeEntityFromBundle(uint32_t sceneId, E
             YAML::Node nodeExtend = Stream::encodeEntity(otherEntity, otherScene->scene, nullptr, nullptr);
 
             std::vector<Entity> allEntities;
-            collectEntities(nodeExtend, allEntities);
+            ProjectUtils::collectEntities(nodeExtend, allEntities);
 
             transformIndex = ProjectUtils::getTransformIndex(otherScene->scene, otherEntity);
 
@@ -3834,7 +3811,7 @@ Editor::NodeRecovery Editor::Project::removeEntityFromBundle(uint32_t sceneId, E
 
     // Destroy from registry
     std::vector<Entity> registryEntitiesToRemove;
-    collectEntities(regData, registryEntitiesToRemove);
+    ProjectUtils::collectEntities(regData, registryEntitiesToRemove);
 
     for (Entity regEntity : registryEntitiesToRemove) {
         DeleteEntityCmd::destroyEntity(bundle->registry.get(), regEntity, bundle->registryEntities);

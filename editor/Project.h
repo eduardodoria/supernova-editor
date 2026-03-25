@@ -354,8 +354,6 @@ namespace Supernova::Editor{
         YAML::Node clearEntitiesNode(YAML::Node node);
         YAML::Node changeEntitiesNode(Entity& firstEntity, YAML::Node node);
 
-        void collectEntities(const YAML::Node& entityNode, std::vector<Entity>& allEntities);
-
         bool isAnyScenePlaying() const;
 
         void start(uint32_t sceneId);

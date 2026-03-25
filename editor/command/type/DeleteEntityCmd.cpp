@@ -120,7 +120,7 @@ bool Editor::DeleteEntityCmd::execute(){
             entityData.data = Stream::encodeEntity(entityData.entity, sceneProject->scene, project, sceneProject);
 
             std::vector<Entity> allEntities;
-            project->collectEntities(entityData.data, allEntities);
+            ProjectUtils::collectEntities(entityData.data, allEntities);
 
             for (const Entity& entity : allEntities) {
                 destroyEntity(sceneProject->scene, entity, sceneProject->entities, project, sceneId);
