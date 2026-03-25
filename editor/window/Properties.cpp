@@ -3196,6 +3196,30 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
                     finishProperty = true;
                 }
             }
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("bundle", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
+                Entity droppedEntity = NULL_ENTITY;
+                bool valid = false;
+                try {
+                    std::string yamlString(static_cast<const char*>(payload->Data), payload->DataSize);
+                    YAML::Node bundleNode = YAML::Load(yamlString);
+                    if (bundleNode["members"] && bundleNode["members"].IsSequence() && bundleNode["members"].size() > 0) {
+                        droppedEntity = bundleNode["members"][0]["entity"].as<Entity>();
+                        valid = sceneProject->scene->isEntityCreated(droppedEntity);
+                    }
+                } catch (...) {}
+
+                if (!valid && ImGui::IsItemHovered()){
+                    ImGui::SetTooltip("Invalid entity");
+                }
+
+                if (payload->IsDelivery() && valid) {
+                    for (Entity& entity : entities) {
+                        cmd = new PropertyCmd<unsigned int>(project, sceneProject->id, entity, cpType, id, droppedEntity, settings.onValueChanged);
+                        CommandHandle::get(sceneProject->id)->addCommand(cmd);
+                    }
+                    finishProperty = true;
+                }
+            }
             ImGui::EndDragDropTarget();
         }
 
