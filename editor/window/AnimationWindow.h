@@ -3,6 +3,9 @@
 
 #include "Project.h"
 #include "imgui.h"
+#include "yaml-cpp/yaml.h"
+
+#include <unordered_set>
 
 namespace Supernova::Editor{
 
@@ -48,8 +51,17 @@ namespace Supernova::Editor{
         Entity selectedEntity;
         uint32_t selectedSceneId;
 
+        // Animation preview
+        bool isPreviewing;
+        struct PreviewEntityState {
+            Entity entity = NULL_ENTITY;
+            Entity parent = NULL_ENTITY;
+            YAML::Node components;
+        };
+        std::vector<PreviewEntityState> previewState;
+
         // Helpers
-        void drawToolbar(float width, AnimationComponent& anim, Scene* scene);
+        void drawToolbar(float width, AnimationComponent& anim, Scene* scene, SceneProject* sceneProject);
         void drawTimeRuler(ImVec2 canvasPos, ImVec2 canvasSize, float timeStart, float timeEnd);
         void drawTracks(ImVec2 canvasPos, ImVec2 canvasSize, float timeStart, float timeEnd,
                         AnimationComponent& anim, SceneProject* sceneProject);
@@ -61,6 +73,14 @@ namespace Supernova::Editor{
 
         std::string getActionLabel(Entity actionEntity, Scene* scene) const;
         std::string getAnimationEntityLabel(Entity entity, AnimationComponent& anim, Scene* scene) const;
+        bool canPreviewEntity(Entity entity, Scene* scene) const;
+        void collectPreviewEntitiesRecursive(Scene* scene, Entity entity, std::vector<Entity>& entities,
+                             std::unordered_set<Entity>& visitedAnimations,
+                             std::unordered_set<Entity>& collectedEntities) const;
+        PreviewEntityState buildPreviewEntityState(Scene* scene, Entity entity) const;
+
+        void startPreview(Scene* scene, SceneProject* sceneProject);
+        void stopPreview(Scene* scene, SceneProject* sceneProject);
 
     public:
         static constexpr const char* WINDOW_NAME = "Animation";
