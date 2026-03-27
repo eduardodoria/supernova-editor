@@ -474,6 +474,13 @@ void Editor::SceneRender2D::update(std::vector<Entity> selEntities, std::vector<
 
     std::set<Entity> selectedEntities(selEntities.begin(), selEntities.end());
 
+    auto isDescendantSelected = [&](Entity ancestor) -> bool {
+        for (Entity sel : selectedEntities) {
+            if (sel == ancestor || scene->isParentOf(ancestor, sel)) return true;
+        }
+        return false;
+    };
+
     std::set<Entity> currentContainers;
     std::set<Entity> currentBodies;
     std::set<Entity> currentJoints;
@@ -556,8 +563,8 @@ void Editor::SceneRender2D::update(std::vector<Entity> selEntities, std::vector<
             instanciateJointLines(entity);
 
             bool isSelectedJoint = selectedEntities.find(entity) != selectedEntities.end();
-            bool isBodyASelected = joint.bodyA != NULL_ENTITY && selectedEntities.find(joint.bodyA) != selectedEntities.end();
-            bool isBodyBSelected = joint.bodyB != NULL_ENTITY && selectedEntities.find(joint.bodyB) != selectedEntities.end();
+            bool isBodyASelected = joint.bodyA != NULL_ENTITY && isDescendantSelected(joint.bodyA);
+            bool isBodyBSelected = joint.bodyB != NULL_ENTITY && isDescendantSelected(joint.bodyB);
             bool highlighted = isSelectedJoint || isBodyASelected || isBodyBSelected;
             bool isVisible = displaySettings.showAllJoints || highlighted;
 

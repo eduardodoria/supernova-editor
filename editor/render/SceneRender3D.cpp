@@ -1235,6 +1235,13 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
 
     std::set<Entity> selectedEntities(selEntities.begin(), selEntities.end());
 
+    auto isDescendantSelected = [&](Entity ancestor) -> bool {
+        for (Entity sel : selectedEntities) {
+            if (sel == ancestor || scene->isParentOf(ancestor, sel)) return true;
+        }
+        return false;
+    };
+
     std::set<Entity> currentIconLights;
     std::set<Entity> currentIconCameras;
     std::set<Entity> currentBodyObjects;
@@ -1304,8 +1311,8 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
             instanciateJointObject(entity);
 
             bool isSelectedJoint = selectedEntities.find(entity) != selectedEntities.end();
-            bool isBodyASelected = joint.bodyA != NULL_ENTITY && selectedEntities.find(joint.bodyA) != selectedEntities.end();
-            bool isBodyBSelected = joint.bodyB != NULL_ENTITY && selectedEntities.find(joint.bodyB) != selectedEntities.end();
+            bool isBodyASelected = joint.bodyA != NULL_ENTITY && isDescendantSelected(joint.bodyA);
+            bool isBodyBSelected = joint.bodyB != NULL_ENTITY && isDescendantSelected(joint.bodyB);
             bool highlighted = isSelectedJoint || isBodyASelected || isBodyBSelected;
             bool isVisible = displaySettings.showAllJoints || highlighted;
 
@@ -1319,7 +1326,7 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
                 currentBoneModels.insert(entity);
                 instanciateBoneLines(entity);
 
-                bool isSelected = selectedEntities.find(entity) != selectedEntities.end();
+                bool isSelected = isDescendantSelected(entity);
                 bool isVisible = displaySettings.showAllBones || isSelected;
 
                 createOrUpdateBoneLines(entity, model, isVisible, isSelected);
