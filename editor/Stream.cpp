@@ -800,6 +800,26 @@ YAML::Node Editor::Stream::encodeProject(Project* project) {
             sceneNode["hideContainerGuides"]  = sceneProject.displaySettings.hideContainerGuides;
             sceneNode["hideGrid"]             = sceneProject.displaySettings.hideGrid;
             sceneNode["hideSelectionOutline"] = sceneProject.displaySettings.hideSelectionOutline;
+
+            if (sceneProject.sceneRender) {
+                Camera* editorCam = sceneProject.sceneRender->getCamera();
+                if (editorCam) {
+                    Entity camEntity = editorCam->getEntity();
+                    CameraComponent& camComp = sceneProject.scene->getComponent<CameraComponent>(camEntity);
+                    Transform& camTransform = sceneProject.scene->getComponent<Transform>(camEntity);
+                    YAML::Node camNode;
+                    camNode["type"] = cameraTypeToString(camComp.type);
+                    camNode["target"] = encodeVector3(camComp.target);
+                    camNode["up"] = encodeVector3(camComp.up);
+                    camNode["yfov"] = camComp.yfov;
+                    camNode["aspect"] = camComp.aspect;
+                    camNode["nearClip"] = camComp.nearClip;
+                    camNode["farClip"] = camComp.farClip;
+                    camNode["position"] = encodeVector3(camTransform.position);
+                    sceneNode["editorCamera"] = camNode;
+                }
+            }
+
             scenesNode.push_back(sceneNode);
         }
     }
@@ -859,6 +879,16 @@ void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
                         if (sceneNode["hideContainerGuides"])  ds.hideContainerGuides  = sceneNode["hideContainerGuides"].as<bool>();
                         if (sceneNode["hideGrid"])             ds.hideGrid             = sceneNode["hideGrid"].as<bool>();
                         if (sceneNode["hideSelectionOutline"]) ds.hideSelectionOutline = sceneNode["hideSelectionOutline"].as<bool>();
+                    }
+
+                    if (sceneNode["editorCamera"]) {
+                        SceneProject& loadedScene = scenes.back();
+                        if (loadedScene.sceneRender) {
+                            Camera* editorCam = loadedScene.sceneRender->getCamera();
+                            if (editorCam) {
+                                Stream::decodeEditorCamera(editorCam, sceneNode["editorCamera"]);
+                            }
+                        }
                     }
                 }
             }
@@ -1043,6 +1073,23 @@ void Editor::Stream::decodeSceneProjectEntities(Project* project, SceneProject* 
     for (const auto& entityNode : entitiesNode){
         decodeEntity(entityNode, sceneProject->scene, &sceneProject->entities, project, sceneProject);
     }
+}
+
+void Editor::Stream::decodeEditorCamera(Camera* camera, const YAML::Node& node) {
+    if (!camera || !node) return;
+    Entity camEntity = camera->getEntity();
+    Scene* scene = camera->getScene();
+    CameraComponent& camComp = scene->getComponent<CameraComponent>(camEntity);
+    Transform& camTransform = scene->getComponent<Transform>(camEntity);
+    if (node["type"]) camComp.type = stringToCameraType(node["type"].as<std::string>());
+    if (node["target"]) camComp.target = decodeVector3(node["target"]);
+    if (node["up"]) camComp.up = decodeVector3(node["up"]);
+    if (node["yfov"]) camComp.yfov = node["yfov"].as<float>();
+    if (node["aspect"]) camComp.aspect = node["aspect"].as<float>();
+    if (node["nearClip"]) camComp.nearClip = node["nearClip"].as<float>();
+    if (node["farClip"]) camComp.farClip = node["farClip"].as<float>();
+    if (node["position"]) camTransform.position = decodeVector3(node["position"]);
+    camComp.needUpdate = true;
 }
 
 YAML::Node Editor::Stream::encodeScene(Scene* scene) {

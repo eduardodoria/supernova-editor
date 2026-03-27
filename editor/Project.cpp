@@ -1211,6 +1211,7 @@ void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene)
         if (opened){
             targetScene->sceneRender = createSceneRender(targetScene->sceneType, targetScene->scene);
             targetScene->defaultCamera = createDefaultCamera(targetScene->sceneType, targetScene->scene);
+
             Stream::decodeSceneProjectEntities(this, targetScene, sceneNode);
 
             for (Entity entity : targetScene->entities) {
