@@ -464,7 +464,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     if (hasSearch && node.hasMatchingDescendant) {
         ImGui::SetNextItemOpen(true);
     } else if (!hasSearch) {
-        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+        ImGui::SetNextItemOpen(!node.isBone, ImGuiCond_Once);
     }
 
     if(!node.isScene && openParent == node.id) {
@@ -478,6 +478,9 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     // Highlight matching nodes when searching
     if (hasSearch && node.matchesSearch) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 0.5f, 1.0f)); // Yellow for search matches
+        pushedHighlightColor = true;
+    } else if (!node.isScene && !node.isChildScene && node.isLocked && node.isBundle) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.67f, 0.74f, 0.85f, 0.95f)); // Muted blue-gray for locked bundle entities
         pushedHighlightColor = true;
     } else if (!node.isScene && !node.isChildScene && node.isLocked) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]); // Use theme's disabled color
@@ -1090,6 +1093,7 @@ void Editor::Structure::show(){
             child.icon = getObjectIcon(signature, sceneProject->scene);
             child.id = entity;
             child.isMainCamera = (entity == mainCamera);
+            child.isBone = signature.test(sceneProject->scene->getComponentId<BoneComponent>());
             child.isLocked = ProjectUtils::isEntityLocked(sceneProject->scene, entity);
             child.order = order++;
             child.name = sceneProject->scene->getEntityName(entity);
@@ -1170,6 +1174,7 @@ void Editor::Structure::show(){
             child.icon = getObjectIcon(signature, sceneProject->scene);
             child.id = entity;
             child.isMainCamera = (entity == mainCamera);
+            child.isBone = signature.test(sceneProject->scene->getComponentId<BoneComponent>());
             child.hasTransform = true;
             child.isLocked = ProjectUtils::isEntityLocked(sceneProject->scene, entity);
             child.order = order++;

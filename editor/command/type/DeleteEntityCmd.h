@@ -33,6 +33,9 @@ namespace Supernova::Editor{
         Project* project;
         uint32_t sceneId;
 
+        std::vector<Entity> requestedEntities;
+        bool allowLockedRoots;
+
         std::vector<Entity> lastSelected;
 
         std::vector<DeleteEntityData> entities;
@@ -42,7 +45,8 @@ namespace Supernova::Editor{
         static void destroyEntity(EntityRegistry* registry, Entity entity, std::vector<Entity>& entities, Project* project = nullptr, uint32_t sceneId = NULL_PROJECT_SCENE);
 
     public:
-        DeleteEntityCmd(Project* project, uint32_t sceneId, Entity entity);
+        DeleteEntityCmd(Project* project, uint32_t sceneId, Entity entity, bool allowLockedRoots = false);
+        DeleteEntityCmd(Project* project, uint32_t sceneId, const std::vector<Entity>& entities, bool allowLockedRoots = false);
 
         bool execute() override;
         void undo() override;

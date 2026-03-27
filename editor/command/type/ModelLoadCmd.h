@@ -1,6 +1,7 @@
 #pragma once
 
 #include "command/Command.h"
+#include "command/type/DeleteEntityCmd.h"
 #include "Project.h"
 #include "yaml-cpp/yaml.h"
 
@@ -12,29 +13,21 @@ namespace Supernova::Editor{
         YAML::Node oldTransform;
         YAML::Node oldMesh;
         YAML::Node oldModel;
-        YAML::Node oldSkeleton;
-        std::vector<YAML::Node> oldAnimations;
-
-        bool hasSkeleton = false;
+        DeleteEntityCmd* oldSubEntitiesDeleteCmd = nullptr;
 
         Project* project;
         uint32_t sceneId;
         Entity entity;
 
         std::string modelPath;
-        std::string oldModelPath;
-
-        std::vector<Entity> addedEntities;
-        std::vector<Entity> oldAddedEntities;
 
         bool wasModified;
 
-        void collectModelEntities(Scene* scene, const ModelComponent& model, std::vector<Entity>& out);
-        void addEntitiesToScene(SceneProject* sceneProject, const std::vector<Entity>& ents);
-        void removeEntitiesFromScene(SceneProject* sceneProject, const std::vector<Entity>& ents);
+        static std::vector<Entity> collectModelDeleteRoots(const ModelComponent& model);
 
     public:
         ModelLoadCmd(Project* project, uint32_t sceneId, Entity entity, const std::string& modelPath);
+        ~ModelLoadCmd() override;
 
         bool execute() override;
         void undo() override;

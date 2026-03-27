@@ -28,7 +28,8 @@ namespace Supernova::Editor{
         UpdateFlags_Body2D              = 1 << 17,
         UpdateFlags_Body3D              = 1 << 18,
         UpdateFlags_Joint2D             = 1 << 19,
-        UpdateFlags_Joint3D             = 1 << 20
+        UpdateFlags_Joint3D             = 1 << 20,
+        UpdateFlags_Model               = 1 << 21
     };
 
     // the order of components here affects properties window

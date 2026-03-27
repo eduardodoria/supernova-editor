@@ -7,44 +7,40 @@
 
 using namespace Supernova;
 
-Editor::DeleteEntityCmd::DeleteEntityCmd(Project* project, uint32_t sceneId, Entity entity){
+Editor::DeleteEntityCmd::DeleteEntityCmd(Project* project, uint32_t sceneId, Entity entity, bool allowLockedRoots)
+    : DeleteEntityCmd(project, sceneId, std::vector<Entity>{entity}, allowLockedRoots){
+
+}
+
+Editor::DeleteEntityCmd::DeleteEntityCmd(Project* project, uint32_t sceneId, const std::vector<Entity>& entities, bool allowLockedRoots){
     this->project = project;
     this->sceneId = sceneId;
+    this->requestedEntities = entities;
+    this->allowLockedRoots = allowLockedRoots;
 
-    DeleteEntityData entityData;
-    entityData.entity = entity;
+    for (const Entity& entity : entities){
+        DeleteEntityData entityData;
+        entityData.entity = entity;
 
-    SceneProject* sceneProject = project->getScene(sceneId);
-    Scene* scene = sceneProject->scene;
+        SceneProject* sceneProject = project->getScene(sceneId);
+        Scene* scene = sceneProject->scene;
 
-    Signature signature = scene->getSignature(entity);
-    if (signature.test(scene->getComponentId<Transform>())) {
-        entityData.hasTransform = true;
-        Transform& transform = scene->getComponent<Transform>(entity);
-        auto transforms = scene->getComponentArray<Transform>();
-        entityData.entityIndex = transforms->getIndex(entity);
-        entityData.parent = transform.parent;
-    }else{
-        entityData.hasTransform = false;
-        auto it = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), entity);
-        if (it != sceneProject->entities.end()) {
-            entityData.entityIndex = std::distance(sceneProject->entities.begin(), it);
+        Signature signature = scene->getSignature(entity);
+        if (signature.test(scene->getComponentId<Transform>())) {
+            entityData.hasTransform = true;
+            Transform& transform = scene->getComponent<Transform>(entity);
+            auto transforms = scene->getComponentArray<Transform>();
+            entityData.entityIndex = transforms->getIndex(entity);
+            entityData.parent = transform.parent;
+        }else{
+            entityData.hasTransform = false;
+            auto it = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), entity);
+            if (it != sceneProject->entities.end()) {
+                entityData.entityIndex = std::distance(sceneProject->entities.begin(), it);
+            }
         }
-    }
 
-    this->entities.push_back(entityData);
-
-    // Also delete virtual children of this entity
-    std::vector<Entity> virtualChildren = ProjectUtils::getVirtualChildren(scene, {entity});
-    for (Entity vChild : virtualChildren) {
-        DeleteEntityData vData;
-        vData.entity = vChild;
-        vData.hasTransform = false;
-        auto it = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), vChild);
-        if (it != sceneProject->entities.end()) {
-            vData.entityIndex = std::distance(sceneProject->entities.begin(), it);
-        }
-        this->entities.push_back(vData);
+        this->entities.push_back(entityData);
     }
 
     this->wasModified = project->getScene(sceneId)->isModified;
@@ -75,12 +71,26 @@ void Editor::DeleteEntityCmd::destroyEntity(EntityRegistry* registry, Entity ent
 bool Editor::DeleteEntityCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
+    std::vector<Entity> entitiesToDelete;
+    auto isRequestedEntity = [&](Entity entity) {
+        return std::find(requestedEntities.begin(), requestedEntities.end(), entity) != requestedEntities.end();
+    };
+
     auto it = entities.begin();
     while (it != entities.end()) {
-        if (ProjectUtils::isEntityLocked(sceneProject->scene, it->entity)){
+        Entity lockedParent = ProjectUtils::getLockedEntityParent(sceneProject->scene, it->entity);
+        bool canDelete = true;
+        if (lockedParent != NULL_ENTITY){
+            canDelete = (allowLockedRoots && isRequestedEntity(it->entity))
+                || isRequestedEntity(lockedParent)
+                || std::find(entitiesToDelete.begin(), entitiesToDelete.end(), lockedParent) != entitiesToDelete.end();
+        }
+
+        if (!canDelete){
              Out::warning("Cannot delete entity '%u'. It is a locked child of another component.", it->entity);
              it = entities.erase(it);
         } else {
+             entitiesToDelete.push_back(it->entity);
              ++it;
         }
     }
@@ -89,9 +99,44 @@ bool Editor::DeleteEntityCmd::execute(){
         return false;
     }
 
+    // Also delete virtual children of this entity
+    std::vector<Entity> virtualChildren = ProjectUtils::getVirtualChildren(sceneProject->scene, entitiesToDelete);
+    for (Entity vChild : virtualChildren) {
+        auto existing = std::find_if(this->entities.begin(), this->entities.end(),
+            [vChild](const DeleteEntityData& data) {
+                return data.entity == vChild;
+            });
+        if (existing != this->entities.end()) {
+            continue;
+        }
+
+        // Skip bundle members whose root is already being deleted.
+        // They will be destroyed/restored by unimportEntityBundle/importEntityBundle.
+        fs::path bundlePath = project->findEntityBundlePathFor(sceneId, vChild);
+        if (!bundlePath.empty()) {
+            EntityBundle* bundle = project->getEntityBundle(bundlePath);
+            if (bundle) {
+                Entity rootEntity = bundle->getRootEntity(sceneId, vChild);
+                if (std::find(entitiesToDelete.begin(), entitiesToDelete.end(), rootEntity) != entitiesToDelete.end()) {
+                    continue;
+                }
+            }
+        }
+
+        DeleteEntityData vData;
+        vData.entity = vChild;
+        vData.hasTransform = false;
+        auto it = std::find(sceneProject->entities.begin(), sceneProject->entities.end(), vChild);
+        if (it != sceneProject->entities.end()) {
+            vData.entityIndex = std::distance(sceneProject->entities.begin(), it);
+        }
+        this->entities.push_back(vData);
+    }
+
     lastSelected = project->getSelectedEntities(sceneId);
 
-    for (DeleteEntityData& entityData : entities){
+    for (auto it = entities.rbegin(); it != entities.rend(); ++it){
+        DeleteEntityData& entityData = *it;
         // Check if entity is part of a bundle BEFORE encoding (non-root members produce empty nodes)
         fs::path bundlePath = project->findEntityBundlePathFor(sceneId, entityData.entity);
         EntityBundle* bundle = project->getEntityBundle(bundlePath);

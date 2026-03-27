@@ -35,6 +35,7 @@ private:
 
 public:
 
+    static Entity getLockedEntityParent(Scene* scene, Entity entity);
     static bool isEntityLocked(Scene* scene, Entity entity);
 
     static size_t getTransformIndex(EntityRegistry* registry, Entity entity);
@@ -54,6 +55,8 @@ public:
     // --- Lua script utilities ---
     static ScriptPropertyValue luaValueToScriptPropertyValue(lua_State* L, int idx, ScriptPropertyType type);
     static void loadLuaScriptProperties(ScriptEntry& entry, const std::string& luaPath);
+
+    static void collectModelEntities(Scene* scene, const ModelComponent& model, std::vector<Entity>& out);
 
     static void collectEntities(const YAML::Node& entityNode, std::vector<Entity>& allEntities);
 

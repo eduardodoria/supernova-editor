@@ -53,42 +53,71 @@ void Editor::ProjectUtils::setDefaultSkyTexture(Texture& outTexture) {
     outTexture.setCubeDatas("editor:resources:default_sky", skyFront, skyBack, skyLeft, skyRight, skyTop, skyBottom);
 }
 
-bool Editor::ProjectUtils::isEntityLocked(Scene* scene, Entity entity){
+void Editor::ProjectUtils::collectModelEntities(Scene* scene, const ModelComponent& model, std::vector<Entity>& out){
+    for (const auto& bone : model.bonesIdMapping){
+        out.push_back(bone.second);
+    }
+    for (const auto& anim : model.animations){
+        out.push_back(anim);
+        AnimationComponent* animComp = scene->findComponent<AnimationComponent>(anim);
+        if (animComp){
+            for (const auto& frame : animComp->actions){
+                if (frame.action != NULL_ENTITY){
+                    out.push_back(frame.action);
+                }
+            }
+        }
+    }
+}
+
+Entity Editor::ProjectUtils::getLockedEntityParent(Scene* scene, Entity entity){
     if (entity == NULL_ENTITY)
-        return false;
+        return NULL_ENTITY;
 
     Signature signature = scene->getSignature(entity);
 
     auto models = scene->getComponentArray<ModelComponent>();
     for (size_t i = 0; i < models->size(); ++i) {
+        Entity modelEntity = models->getEntity(i);
         ModelComponent& model = models->getComponentFromIndex(i);
-        for (const auto& bone : model.bonesIdMapping) {
-            if (bone.second == entity) {
-                return true;
-            }
+
+        if (model.skeleton == entity) {
+            return modelEntity;
         }
-        for (const auto& animation : model.animations) {
-            if (animation == entity) {
-                return true;
+
+        for (const auto& anim : model.animations){
+            if (anim == entity) {
+                return modelEntity;
             }
-            AnimationComponent* animComp = scene->findComponent<AnimationComponent>(animation);
+
+            AnimationComponent* animComp = scene->findComponent<AnimationComponent>(anim);
             if (animComp){
                 for (const auto& frame : animComp->actions){
                     if (frame.action == entity){
-                        return true;
+                        return anim;
                     }
                 }
+            }
+        }
+
+        for (const auto& bone : model.bonesIdMapping) {
+            if (bone.second == entity) {
+                Transform* transform = scene->findComponent<Transform>(entity);
+                if (transform && transform->parent != NULL_ENTITY) {
+                    return transform->parent;
+                }
+                return modelEntity;
             }
         }
     }
 
     if (!signature.test(scene->getComponentId<Transform>())){
-        return false;
+        return NULL_ENTITY;
     }
 
     Transform& transform = scene->getComponent<Transform>(entity);
     if (transform.parent == NULL_ENTITY){
-        return false;
+        return NULL_ENTITY;
     }
 
     Entity parent = transform.parent;
@@ -97,11 +126,15 @@ bool Editor::ProjectUtils::isEntityLocked(Scene* scene, Entity entity){
     if (parentSignature.test(scene->getComponentId<ButtonComponent>())){
         ButtonComponent& button = scene->getComponent<ButtonComponent>(parent);
         if (button.label == entity){
-            return true;
+            return parent;
         }
     }
 
-    return false;
+    return NULL_ENTITY;
+}
+
+bool Editor::ProjectUtils::isEntityLocked(Scene* scene, Entity entity){
+    return getLockedEntityParent(scene, entity) != NULL_ENTITY;
 }
 
 size_t Editor::ProjectUtils::getTransformIndex(EntityRegistry* registry, Entity entity){
@@ -622,7 +655,25 @@ std::vector<Entity> Editor::ProjectUtils::getVirtualChildren(Scene* scene, const
         return result;
     }
 
+    // Expand parent entities to include all Transform descendants
     std::vector<Entity> allEntities = parentEntities;
+    auto transforms = scene->getComponentArray<Transform>();
+    if (transforms) {
+        for (const Entity& parent : parentEntities) {
+            if (!scene->findComponent<Transform>(parent)) {
+                continue;
+            }
+            size_t parentIdx = transforms->getIndex(parent);
+            size_t branchEnd = scene->findBranchLastIndex(parent);
+            for (size_t i = parentIdx + 1; i <= branchEnd; ++i) {
+                Entity descendant = transforms->getEntity(i);
+                if (std::find(allEntities.begin(), allEntities.end(), descendant) == allEntities.end()) {
+                    allEntities.push_back(descendant);
+                }
+            }
+        }
+    }
+
     bool foundNew;
     do {
         foundNew = false;

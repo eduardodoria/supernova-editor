@@ -171,7 +171,7 @@ namespace {
     };
 
     static const FastPropertyDescriptor kButtonProperties[] = {
-        makeFastProperty<ButtonComponent, unsigned int, &ButtonComponent::label>("label", PropertyType::UInt, UpdateFlags_None),
+        makeFastProperty<ButtonComponent, Entity, &ButtonComponent::label>("label", PropertyType::Entity, UpdateFlags_None),
         makeFastProperty<ButtonComponent, Texture, &ButtonComponent::textureNormal>("textureNormal", PropertyType::Texture, UpdateFlags_None),
         makeFastProperty<ButtonComponent, Texture, &ButtonComponent::texturePressed>("texturePressed", PropertyType::Texture, UpdateFlags_None),
         makeFastProperty<ButtonComponent, Texture, &ButtonComponent::textureDisabled>("textureDisabled", PropertyType::Texture, UpdateFlags_None),
@@ -1013,6 +1013,10 @@ namespace {
 
         ModelComponent& def = getDefaultComponent<ModelComponent>();
 
+        if (propertyName == "filename") {
+            return {PropertyType::String, UpdateFlags_None, (void*)&def.filename, (void*)&comp->filename};
+        }
+
         if (propertyName == "skeleton") {
             return {PropertyType::Entity, UpdateFlags_Mesh_Reload, (void*)&def.skeleton, (void*)&comp->skeleton};
         }
@@ -1071,6 +1075,7 @@ namespace {
         ModelComponent* comp = static_cast<ModelComponent*>(compRef);
         ModelComponent& def = getDefaultComponent<ModelComponent>();
 
+        ps["filename"] = {PropertyType::String, UpdateFlags_Model, (void*)&def.filename, compRef ? (void*)&comp->filename : nullptr};
         ps["skeleton"] = {PropertyType::Entity, UpdateFlags_Mesh_Reload, (void*)&def.skeleton, compRef ? (void*)&comp->skeleton : nullptr};
         ps["animations"] = {PropertyType::Custom, UpdateFlags_None, (void*)&def.animations, compRef ? (void*)&comp->animations : nullptr};
 
@@ -1078,6 +1083,16 @@ namespace {
             std::string idx = std::to_string(i);
             static Entity defEntity = NULL_ENTITY;
             ps["animations[" + idx + "]"] = {PropertyType::Entity, UpdateFlags_None, (void*)&defEntity, (void*)&comp->animations[i]};
+        }
+
+        if (compRef) {
+            static Entity defEntity = NULL_ENTITY;
+            for (auto& [boneId, boneEntity] : comp->bonesIdMapping) {
+                ps["bonesIdMapping[" + std::to_string(boneId) + "]"] = {PropertyType::Entity, UpdateFlags_None, (void*)&defEntity, (void*)&boneEntity};
+            }
+            for (auto& [boneName, boneEntity] : comp->bonesNameMapping) {
+                ps["bonesNameMapping[" + boneName + "]"] = {PropertyType::Entity, UpdateFlags_None, (void*)&defEntity, (void*)&boneEntity};
+            }
         }
     }
 
@@ -1105,6 +1120,13 @@ namespace {
         size_t actionCount = compRef ? comp->actions.size() : 0;
         static size_t defActionCount = 0;
         ps["actionFrameCount"] = {PropertyType::UInt, UpdateFlags_None, (void*)&defActionCount, compRef ? (void*)&actionCount : nullptr};
+
+        if (compRef) {
+            static Entity defEntity = NULL_ENTITY;
+            for (size_t i = 0; i < comp->actions.size(); i++) {
+                ps["actions[" + std::to_string(i) + "].action"] = {PropertyType::Entity, UpdateFlags_None, (void*)&defEntity, (void*)&comp->actions[i].action};
+            }
+        }
     }
 
     void enumerateTransformProperties(void* comp, std::map<std::string, PropertyData>& ps) {
@@ -2135,6 +2157,11 @@ void Editor::Catalog::updateEntity(EntityRegistry* registry, Entity entity, int 
     if (updateFlags & UpdateFlags_Joint3D){
         if (Joint3DComponent* joint = registry->findComponent<Joint3DComponent>(entity)){
             joint->needUpdateJoint = true;
+        }
+    }
+    if (updateFlags & UpdateFlags_Model){
+        if (ModelComponent* model = registry->findComponent<ModelComponent>(entity)){
+            model->needUpdateModel = true;
         }
     }
 }

@@ -23,6 +23,7 @@ namespace Supernova::Editor{
         bool hasBundleParent = false;
         bool isParentBundle = false;
         bool isMainCamera = false;
+        bool isBone = false;
         bool isLocked = false;
         bool separator = false;
         bool hasTransform = false;
