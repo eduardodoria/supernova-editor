@@ -14,9 +14,18 @@
 #include "Out.h"
 
 #include "math/Vector2.h"
+#include "util/Angle.h"
 #include "yaml-cpp/yaml.h"
+#include <algorithm>
+#include <cmath>
 
 using namespace Supernova;
+
+namespace {
+
+constexpr float VIEWPORT_GIZMO_SIZE = 100.0f;
+
+}
 
 Editor::SceneWindow::SceneWindow(Project* project) {
     this->project = project;
@@ -419,7 +428,11 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
 
     size_t sceneId = sceneProject->id;
 
+    bool altHeld = ImGui::IsKeyDown(ImGuiKey_ModAlt);
+    bool suppressLeftMouse = suppressLeftMouseUntilRelease[sceneId];
+
     bool disableSelection = 
+        altHeld ||
         sceneProject->sceneRender->getCursorSelected() == CursorSelected::HAND || 
         sceneProject->sceneRender->isAnyGizmoSideSelected() ||
         sceneProject->sceneType != SceneType::SCENE_3D && ImGui::IsKeyDown(ImGuiKey_Space);
@@ -429,7 +442,7 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
         float x = mousePos.x - windowPos.x;
         float y = mousePos.y - windowPos.y;
 
-        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)){
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !altHeld && !suppressLeftMouse){
             // Selecting and dragging an unselected object at same time (just for 2D object mode)
             GizmoSelected gizmoSelected = sceneProject->sceneRender->getToolsLayer()->getGizmoSelected();
             if (!disableSelection && gizmoSelected == GizmoSelected::OBJECT2D) {
@@ -452,7 +465,7 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
             sceneProject->sceneRender->mouseHoverEvent(x, y);
         }
 
-        if (ImGui::IsMouseDown(ImGuiMouseButton_Left)){
+        if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && !altHeld && !suppressLeftMouse){
             if (!mouseLeftDown){
                 mouseLeftStartPos = Vector2(x, y);
                 mouseLeftDown = true;
@@ -466,7 +479,7 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
             }
         }
 
-        if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)){
+        if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && !altHeld && !suppressLeftMouse){
             if (!mouseLeftDraggedInside && mouseLeftDown && !disableSelection){
                 project->selectObjectByRay(sceneId, x, y, io.KeyShift);
             }
@@ -478,24 +491,33 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
         float x = mousePos.x - windowPos.x;
         float y = mousePos.y - windowPos.y;
 
-        if (mouseLeftDraggedInside && !disableSelection){
-            Vector2 clickStartPos = Vector2((2 * mouseLeftStartPos.x / width[sceneId]) - 1, -((2 * mouseLeftStartPos.y / height[sceneId]) - 1));
-            Vector2 clickEndPos = Vector2((2 * mouseLeftDragPos.x / width[sceneId]) - 1, -((2 * mouseLeftDragPos.y / height[sceneId]) - 1));
-            project->selectObjectsByRect(sceneId, clickStartPos, clickEndPos);
+        if (suppressLeftMouse){
+            suppressLeftMouseUntilRelease[sceneId] = false;
+            mouseLeftDown = false;
+            mouseLeftDraggedInside = false;
+        }else{
+
+            if (mouseLeftDraggedInside && !disableSelection){
+                Vector2 clickStartPos = Vector2((2 * mouseLeftStartPos.x / width[sceneId]) - 1, -((2 * mouseLeftStartPos.y / height[sceneId]) - 1));
+                Vector2 clickEndPos = Vector2((2 * mouseLeftDragPos.x / width[sceneId]) - 1, -((2 * mouseLeftDragPos.y / height[sceneId]) - 1));
+                project->selectObjectsByRect(sceneId, clickStartPos, clickEndPos);
+            }
+
+            sceneProject->sceneRender->mouseReleaseEvent(x, y);
+
+            mouseLeftDraggedInside = false;
         }
-
-        sceneProject->sceneRender->mouseReleaseEvent(x, y);
-
-        mouseLeftDraggedInside = false;
     }
 
-    if (isMouseInWindow && (ImGui::IsMouseClicked(ImGuiMouseButton_Middle) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))) {
+    if (isMouseInWindow && (ImGui::IsMouseClicked(ImGuiMouseButton_Middle) || ImGui::IsMouseClicked(ImGuiMouseButton_Right) ||
+            (altHeld && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !suppressLeftMouse))) {
         draggingMouse[sceneId] = true;
 
         ImGui::SetWindowFocus();
     }
 
-    if (ImGui::IsMouseReleased(ImGuiMouseButton_Middle) || ImGui::IsMouseReleased(ImGuiMouseButton_Right)){
+    if (ImGui::IsMouseReleased(ImGuiMouseButton_Middle) || ImGui::IsMouseReleased(ImGuiMouseButton_Right) ||
+            (altHeld && ImGui::IsMouseReleased(ImGuiMouseButton_Left))){
         draggingMouse[sceneId] = false;
         Backend::enableMouseCursor();
         ImGuiIO& io = ImGui::GetIO();
@@ -522,6 +544,12 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
                 camera->rotateView(-0.1 * mouseDelta.x);
                 camera->elevateView(-0.1 * mouseDelta.y);
 
+                // Restore up vector after rotation (fixes Y-snap leaving Z as up)
+                Vector3 dir = camera->getWorldDirection().normalize();
+                if (std::abs(dir.y) < 0.99f) {
+                    camera->setUp(0, 1, 0);
+                }
+
                 float minSpeed = 0.5;
                 float maxSpeed = 1000;
                 float speedOffset = 10.0;
@@ -536,6 +564,11 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
 
                 // Apply distanceScaleFactor to walking speed
                 float finalSpeed = 0.02 * (speedOffset + walkSpeed[sceneId]) * distanceScaleFactor;
+
+                // Shift multiplier for faster movement (like Unreal/Unity)
+                if (ImGui::IsKeyDown(ImGuiKey_ModShift)) {
+                    finalSpeed *= 3.0f;
+                }
 
                 if (ImGui::IsKeyDown(ImGuiKey_W)) {
                     camera->slideForward(finalSpeed);
@@ -568,11 +601,29 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
                 } else {
                     camera->rotatePosition(-0.1 * mouseDelta.x);
                     camera->elevatePosition(0.1 * mouseDelta.y);
+
+                    // Restore up vector after orbit (fixes Y-snap leaving Z as up)
+                    Vector3 dir = camera->getWorldDirection().normalize();
+                    if (std::abs(dir.y) < 0.99f && camera->getUp() != Vector3(0, 1, 0)) {
+                        camera->setUp(0, 1, 0);
+                    }
                 }
             }
         }
 
-        if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && sceneProject->sceneRender->getCursorSelected() == CursorSelected::HAND) {
+        // Alt+LMB orbit (Unity/Unreal style)
+        if (draggingMouse[sceneId] && altHeld && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+            camera->rotatePosition(-0.1 * mouseDelta.x);
+            camera->elevatePosition(0.1 * mouseDelta.y);
+
+            // Restore up vector after orbit (fixes Y-snap leaving Z as up)
+            Vector3 dir = camera->getWorldDirection().normalize();
+            if (std::abs(dir.y) < 0.99f && camera->getUp() != Vector3(0, 1, 0)) {
+                camera->setUp(0, 1, 0);
+            }
+        }
+
+        if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && !altHeld && sceneProject->sceneRender->getCursorSelected() == CursorSelected::HAND) {
             camera->slide(-0.01 * mouseDelta.x * distanceScaleFactor);
             camera->slideUp(0.01 * mouseDelta.y * distanceScaleFactor);
         }
@@ -643,10 +694,153 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
                         sceneProject->sceneRender->changeUseGlobalTransform();
                     }
                 }
+
+                // F key: Focus camera on selected entities (like Unity/Unreal)
+                if (sceneProject->sceneType == SceneType::SCENE_3D && ImGui::IsKeyPressed(ImGuiKey_F)) {
+                    std::vector<Entity> selEntities = project->getSelectedEntities(sceneId);
+                    focusOnEntities(sceneProject, selEntities);
+                }
+
+                // Home key: Frame all objects in the scene
+                if (sceneProject->sceneType == SceneType::SCENE_3D && ImGui::IsKeyPressed(ImGuiKey_Home)) {
+                    focusOnEntities(sceneProject, sceneProject->entities);
+                }
+
+                // Numpad preset views (3D only)
+                if (sceneProject->sceneType == SceneType::SCENE_3D) {
+                    Camera* cam = sceneProject->sceneRender->getCamera();
+                    if (!ImGui::IsKeyDown(ImGuiKey_ModCtrl)) {
+                        if (ImGui::IsKeyPressed(ImGuiKey_Keypad1)) {
+                            // Numpad 1: Front view (-Z looking toward +Z)
+                            snapCameraToDirection(cam, Vector3(0, 0, 1));
+                        }
+                        if (ImGui::IsKeyPressed(ImGuiKey_Keypad3)) {
+                            // Numpad 3: Right view (+X looking toward -X)
+                            snapCameraToDirection(cam, Vector3(-1, 0, 0));
+                        }
+                        if (ImGui::IsKeyPressed(ImGuiKey_Keypad7)) {
+                            // Numpad 7: Top view (+Y looking down)
+                            snapCameraToDirection(cam, Vector3(0, -1, 0));
+                        }
+                        if (ImGui::IsKeyPressed(ImGuiKey_Keypad9)) {
+                            // Numpad 9: Bottom view (-Y looking up)
+                            snapCameraToDirection(cam, Vector3(0, 1, 0));
+                        }
+                    } else {
+                        // Ctrl+Numpad for opposite directions
+                        if (ImGui::IsKeyPressed(ImGuiKey_Keypad1)) {
+                            // Ctrl+Numpad 1: Back view (+Z looking toward -Z)
+                            snapCameraToDirection(cam, Vector3(0, 0, -1));
+                        }
+                        if (ImGui::IsKeyPressed(ImGuiKey_Keypad3)) {
+                            // Ctrl+Numpad 3: Left view (-X looking toward +X)
+                            snapCameraToDirection(cam, Vector3(1, 0, 0));
+                        }
+                        if (ImGui::IsKeyPressed(ImGuiKey_Keypad7)) {
+                            // Ctrl+Numpad 7: Bottom view (-Y looking up)
+                            snapCameraToDirection(cam, Vector3(0, 1, 0));
+                        }
+                        if (ImGui::IsKeyPressed(ImGuiKey_Keypad9)) {
+                            // Ctrl+Numpad 9: Top view (+Y looking down)
+                            snapCameraToDirection(cam, Vector3(0, -1, 0));
+                        }
+                    }
+                }
             }
         }
     }
 
+}
+
+void Editor::SceneWindow::focusOnEntities(SceneProject* sceneProject, const std::vector<Entity>& entities) {
+    if (entities.empty() || !sceneProject || !sceneProject->sceneRender) return;
+    if (sceneProject->sceneType != SceneType::SCENE_3D) return;
+
+    Camera* camera = sceneProject->sceneRender->getCamera();
+    AABB aabb = sceneProject->sceneRender->getEntitiesAABB(entities);
+    if (aabb.isNull() || aabb.isInfinite()) return;
+
+    Vector3 center = aabb.getCenter();
+    Vector3 size = aabb.getSize();
+    float radius = size.length() * 0.5f;
+    radius = std::max(radius, 0.5f);
+
+    float yfovRad = Angle::defaultToRad(camera->getYFov());
+    float aspect = camera->getAspect();
+    if (aspect <= 0.0f && height[sceneProject->id] > 0) {
+        aspect = (float)width[sceneProject->id] / (float)height[sceneProject->id];
+    }
+    aspect = std::max(aspect, 0.0001f);
+
+    float halfYFov = yfovRad * 0.5f;
+    float halfXFov = std::atan(std::tan(halfYFov) * aspect);
+    float limitingHalfFov = std::min(halfYFov, halfXFov);
+    float paddedRadius = radius * 1.1f;
+    float distance = paddedRadius / std::sin(limitingHalfFov);
+    distance = std::max(distance, paddedRadius * 2.0f);
+
+    Vector3 direction = camera->getWorldDirection();
+    direction.normalize();
+    Vector3 newPos = center - direction * distance;
+
+    camera->setPosition(newPos.x, newPos.y, newPos.z);
+    camera->setTarget(center.x, center.y, center.z);
+}
+
+void Editor::SceneWindow::snapCameraToDirection(Camera* camera, const Vector3& direction) {
+    Vector3 target = camera->getWorldTarget();
+    float distance = camera->getDistanceFromTarget();
+
+    Vector3 newPos = target - direction * distance;
+    camera->setPosition(newPos.x, newPos.y, newPos.z);
+
+    // When looking along Y axis, up vector (0,1,0) is parallel to direction — use Z as up instead
+    if (std::abs(direction.y) > 0.9f) {
+        camera->setUp(0, 0, direction.y > 0 ? -1.0f : 1.0f);
+    } else {
+        camera->setUp(0, 1, 0);
+    }
+
+    camera->setTarget(target.x, target.y, target.z);
+}
+
+bool Editor::SceneWindow::handleViewportGizmoClick(SceneProject* sceneProject, float canvasX, float canvasY, int canvasWidth, int canvasHeight) {
+    if (sceneProject->sceneType != SceneType::SCENE_3D) return false;
+
+    SceneRender3D* sceneRender3D = static_cast<SceneRender3D*>(sceneProject->sceneRender);
+    ViewportGizmo* viewGizmo = sceneRender3D->getViewportGizmo();
+
+    // The gizmo Image is 100x100 anchored at TOP_RIGHT of the canvas
+    float gizmoLeft = canvasWidth - VIEWPORT_GIZMO_SIZE;
+    float gizmoTop = 0.0f;
+
+    // Check if click is within the gizmo area
+    if (canvasX < gizmoLeft || canvasX > canvasWidth || canvasY < gizmoTop || canvasY > VIEWPORT_GIZMO_SIZE) {
+        return false;
+    }
+
+    // Normalize to [-1, 1] within the gizmo area
+    float normalizedX = ((canvasX - gizmoLeft) / VIEWPORT_GIZMO_SIZE) * 2.0f - 1.0f;
+    float normalizedY = -(((canvasY - gizmoTop) / VIEWPORT_GIZMO_SIZE) * 2.0f - 1.0f); // flip Y
+
+    ViewportGizmoAxis axis = viewGizmo->hitTest(normalizedX, normalizedY);
+    if (axis == ViewportGizmoAxis::NONE) {
+        return false;
+    }
+
+    Camera* camera = sceneProject->sceneRender->getCamera();
+
+    switch (axis) {
+        case ViewportGizmoAxis::POSITIVE_X:  snapCameraToDirection(camera, Vector3(-1, 0, 0)); break; // Look from +X toward origin
+        case ViewportGizmoAxis::NEGATIVE_X:  snapCameraToDirection(camera, Vector3( 1, 0, 0)); break;
+        case ViewportGizmoAxis::POSITIVE_Y:  snapCameraToDirection(camera, Vector3( 0,-1, 0)); break; // Look from +Y (top)
+        case ViewportGizmoAxis::NEGATIVE_Y:  snapCameraToDirection(camera, Vector3( 0, 1, 0)); break;
+        case ViewportGizmoAxis::POSITIVE_Z:  snapCameraToDirection(camera, Vector3( 0, 0,-1)); break;
+        case ViewportGizmoAxis::NEGATIVE_Z:  snapCameraToDirection(camera, Vector3( 0, 0, 1)); break;
+        default: break;
+    }
+
+    return true;
 }
 
 void Editor::SceneWindow::show() {
@@ -868,6 +1062,17 @@ void Editor::SceneWindow::show() {
                     }
 
                     handleResourceFileDragDrop(&sceneProject);
+                }
+
+                // Viewport gizmo click-to-snap (3D scenes only)
+                if (sceneProject.sceneType == SceneType::SCENE_3D && sceneProject.playState == ScenePlayState::STOPPED) {
+                    if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                        ImVec2 windowPos = ImGui::GetWindowPos();
+                        ImGuiIO& io = ImGui::GetIO();
+                        float canvasX = io.MousePos.x - windowPos.x;
+                        float canvasY = io.MousePos.y - windowPos.y;
+                        suppressLeftMouseUntilRelease[sceneProject.id] = handleViewportGizmoClick(&sceneProject, canvasX, canvasY, width[sceneProject.id], height[sceneProject.id]);
+                    }
                 }
 
                 sceneEventHandler(&sceneProject);

@@ -103,6 +103,8 @@ namespace Supernova::Editor{
         CursorSelected getCursorSelected() const;
 
         bool isMultipleEntitesSelected() const;
+
+        AABB getEntitiesAABB(const std::vector<Entity>& entities);
     };
 
 }

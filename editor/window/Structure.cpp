@@ -445,7 +445,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
 
     pushNodeImGuiId(node);
 
-    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
+    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
 
     if (node.children.empty()) {
         flags |= ImGuiTreeNodeFlags_Leaf;
@@ -807,6 +807,15 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         SceneProject* childScene = project->getScene(node.childSceneId);
         if (childScene) {
             project->openScene(childScene->filepath);
+        }
+    }
+
+    // Handle double-click on entity to focus camera on it
+    if (!node.isScene && !node.isChildScene && nodeHovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+        SceneProject* sceneProject = project->getSelectedScene();
+        if (sceneProject) {
+            std::vector<Entity> entities = { static_cast<Entity>(node.id) };
+            sceneWindow->focusOnEntities(sceneProject, entities);
         }
     }
 

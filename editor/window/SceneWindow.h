@@ -7,6 +7,7 @@
 #include "command/CommandHandle.h"
 #include "command/type/ScenePropertyCmd.h"
 #include "command/type/PropertyCmd.h"
+#include "render/gizmo/ViewportGizmo.h"
 #include <unordered_map>
 
 namespace Supernova::Editor {
@@ -31,6 +32,7 @@ namespace Supernova::Editor {
         bool mouseLeftDraggedInside;
 
         std::map<uint32_t, bool> draggingMouse;
+        std::map<uint32_t, bool> suppressLeftMouseUntilRelease;
         std::map<uint32_t, float> walkSpeed;
 
         std::map<uint32_t, int> width;
@@ -42,6 +44,8 @@ namespace Supernova::Editor {
         void closeSceneInternal(uint32_t sceneId);
         void sceneEventHandler(SceneProject* sceneProject);
         void handleResourceFileDragDrop(SceneProject* sceneProject);
+        bool handleViewportGizmoClick(SceneProject* sceneProject, float canvasX, float canvasY, int canvasWidth, int canvasHeight);
+        void snapCameraToDirection(Camera* camera, const Vector3& direction);
         void focusSceneWindow(const SceneProject& sceneProject) const;
         std::string getWindowTitle(const SceneProject& sceneProject) const;
         
@@ -50,6 +54,8 @@ namespace Supernova::Editor {
 
         void show();
         bool isFocused() const;
+
+        void focusOnEntities(SceneProject* sceneProject, const std::vector<Entity>& entities);
 
         int getWidth(uint32_t sceneId) const;
         int getHeight(uint32_t sceneId) const;

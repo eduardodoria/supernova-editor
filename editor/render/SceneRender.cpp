@@ -114,6 +114,17 @@ AABB Editor::SceneRender::getFamilyAABB(Entity entity, float offset){
     return aabb;
 }
 
+AABB Editor::SceneRender::getEntitiesAABB(const std::vector<Entity>& entities){
+    AABB aabb;
+    for (Entity entity : entities) {
+        AABB entityAABB = getFamilyAABB(entity, 0.0f);
+        if (!entityAABB.isNull() && !entityAABB.isInfinite()) {
+            aabb.merge(entityAABB);
+        }
+    }
+    return aabb;
+}
+
 OBB Editor::SceneRender::getOBB(Entity entity, bool local){
     Signature signature = scene->getSignature(entity);
 
