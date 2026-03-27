@@ -1062,7 +1062,110 @@ namespace {
     }
 
     PropertyData resolveKeyframeTracksPropertyFast(void* comp, const std::string& propertyName) {
-        return resolveDirectProperties(static_cast<KeyframeTracksComponent*>(comp), propertyName, kKeyframeTracksProperties);
+        KeyframeTracksComponent* trackComp = static_cast<KeyframeTracksComponent*>(comp);
+        if (!trackComp) return PropertyData();
+
+        PropertyData result = resolveDirectProperties(trackComp, propertyName, kKeyframeTracksProperties);
+        if (result.ref) return result;
+
+        KeyframeTracksComponent& def = getDefaultComponent<KeyframeTracksComponent>();
+
+        if (propertyName == "times") {
+            return {PropertyType::Custom, UpdateFlags_None, (void*)&def.times, (void*)&trackComp->times};
+        }
+
+        if (propertyName.compare(0, 6, "times[") == 0) {
+            size_t pos = 6;
+            size_t index = 0;
+            if (!parseIndex(propertyName, pos, index) || pos >= propertyName.size() || propertyName[pos] != ']') {
+                return PropertyData();
+            }
+            if (pos + 1 != propertyName.size() || index >= trackComp->times.size()) {
+                return PropertyData();
+            }
+            static float defValue = 0.0f;
+            return {PropertyType::Float, UpdateFlags_None, (void*)&defValue, (void*)&trackComp->times[index]};
+        }
+
+        return PropertyData();
+    }
+
+    PropertyData resolveTranslateTracksPropertyFast(void* comp, const std::string& propertyName) {
+        TranslateTracksComponent* trackComp = static_cast<TranslateTracksComponent*>(comp);
+        if (!trackComp) return PropertyData();
+
+        TranslateTracksComponent& def = getDefaultComponent<TranslateTracksComponent>();
+
+        if (propertyName == "values") {
+            return {PropertyType::Custom, UpdateFlags_None, (void*)&def.values, (void*)&trackComp->values};
+        }
+
+        if (propertyName.compare(0, 7, "values[") == 0) {
+            size_t pos = 7;
+            size_t index = 0;
+            if (!parseIndex(propertyName, pos, index) || pos >= propertyName.size() || propertyName[pos] != ']') {
+                return PropertyData();
+            }
+            if (pos + 1 != propertyName.size() || index >= trackComp->values.size()) {
+                return PropertyData();
+            }
+            static Vector3 defValue = Vector3::ZERO;
+            return {PropertyType::Vector3, UpdateFlags_None, (void*)&defValue, (void*)&trackComp->values[index]};
+        }
+
+        return PropertyData();
+    }
+
+    PropertyData resolveRotateTracksPropertyFast(void* comp, const std::string& propertyName) {
+        RotateTracksComponent* trackComp = static_cast<RotateTracksComponent*>(comp);
+        if (!trackComp) return PropertyData();
+
+        RotateTracksComponent& def = getDefaultComponent<RotateTracksComponent>();
+
+        if (propertyName == "values") {
+            return {PropertyType::Custom, UpdateFlags_None, (void*)&def.values, (void*)&trackComp->values};
+        }
+
+        if (propertyName.compare(0, 7, "values[") == 0) {
+            size_t pos = 7;
+            size_t index = 0;
+            if (!parseIndex(propertyName, pos, index) || pos >= propertyName.size() || propertyName[pos] != ']') {
+                return PropertyData();
+            }
+            if (pos + 1 != propertyName.size() || index >= trackComp->values.size()) {
+                return PropertyData();
+            }
+            static Quaternion defValue = Quaternion::IDENTITY;
+            return {PropertyType::Quat, UpdateFlags_None, (void*)&defValue, (void*)&trackComp->values[index]};
+        }
+
+        return PropertyData();
+    }
+
+    PropertyData resolveScaleTracksPropertyFast(void* comp, const std::string& propertyName) {
+        ScaleTracksComponent* trackComp = static_cast<ScaleTracksComponent*>(comp);
+        if (!trackComp) return PropertyData();
+
+        ScaleTracksComponent& def = getDefaultComponent<ScaleTracksComponent>();
+
+        if (propertyName == "values") {
+            return {PropertyType::Custom, UpdateFlags_None, (void*)&def.values, (void*)&trackComp->values};
+        }
+
+        if (propertyName.compare(0, 7, "values[") == 0) {
+            size_t pos = 7;
+            size_t index = 0;
+            if (!parseIndex(propertyName, pos, index) || pos >= propertyName.size() || propertyName[pos] != ']') {
+                return PropertyData();
+            }
+            if (pos + 1 != propertyName.size() || index >= trackComp->values.size()) {
+                return PropertyData();
+            }
+            static Vector3 defValue = Vector3::ZERO;
+            return {PropertyType::Vector3, UpdateFlags_None, (void*)&defValue, (void*)&trackComp->values[index]};
+        }
+
+        return PropertyData();
     }
 
     // ── Enumerate functions (build full property map) ──
@@ -1104,8 +1207,58 @@ namespace {
         enumerateFromDescriptors(comp, ps, kBoneProperties);
     }
 
-    void enumerateKeyframeTracksProperties(void* comp, std::map<std::string, PropertyData>& ps) {
-        enumerateFromDescriptors(comp, ps, kKeyframeTracksProperties);
+    void enumerateKeyframeTracksProperties(void* compRef, std::map<std::string, PropertyData>& ps) {
+        KeyframeTracksComponent* comp = static_cast<KeyframeTracksComponent*>(compRef);
+        KeyframeTracksComponent& def = getDefaultComponent<KeyframeTracksComponent>();
+
+        enumerateFromDescriptors(compRef, ps, kKeyframeTracksProperties);
+
+        ps["times"] = {PropertyType::Custom, UpdateFlags_None, (void*)&def.times, compRef ? (void*)&comp->times : nullptr};
+
+        static float defValue = 0.0f;
+        for (size_t i = 0; i < (compRef ? comp->times.size() : 1); i++) {
+            std::string idx = compRef ? std::to_string(i) : "";
+            ps["times[" + idx + "]"] = {PropertyType::Float, UpdateFlags_None, (void*)&defValue, compRef ? (void*)&comp->times[i] : nullptr};
+        }
+    }
+
+    void enumerateTranslateTracksProperties(void* compRef, std::map<std::string, PropertyData>& ps) {
+        TranslateTracksComponent* comp = static_cast<TranslateTracksComponent*>(compRef);
+        TranslateTracksComponent& def = getDefaultComponent<TranslateTracksComponent>();
+
+        ps["values"] = {PropertyType::Custom, UpdateFlags_None, (void*)&def.values, compRef ? (void*)&comp->values : nullptr};
+
+        static Vector3 defValue = Vector3::ZERO;
+        for (size_t i = 0; i < (compRef ? comp->values.size() : 1); i++) {
+            std::string idx = compRef ? std::to_string(i) : "";
+            ps["values[" + idx + "]"] = {PropertyType::Vector3, UpdateFlags_None, (void*)&defValue, compRef ? (void*)&comp->values[i] : nullptr};
+        }
+    }
+
+    void enumerateRotateTracksProperties(void* compRef, std::map<std::string, PropertyData>& ps) {
+        RotateTracksComponent* comp = static_cast<RotateTracksComponent*>(compRef);
+        RotateTracksComponent& def = getDefaultComponent<RotateTracksComponent>();
+
+        ps["values"] = {PropertyType::Custom, UpdateFlags_None, (void*)&def.values, compRef ? (void*)&comp->values : nullptr};
+
+        static Quaternion defValue = Quaternion::IDENTITY;
+        for (size_t i = 0; i < (compRef ? comp->values.size() : 1); i++) {
+            std::string idx = compRef ? std::to_string(i) : "";
+            ps["values[" + idx + "]"] = {PropertyType::Quat, UpdateFlags_None, (void*)&defValue, compRef ? (void*)&comp->values[i] : nullptr};
+        }
+    }
+
+    void enumerateScaleTracksProperties(void* compRef, std::map<std::string, PropertyData>& ps) {
+        ScaleTracksComponent* comp = static_cast<ScaleTracksComponent*>(compRef);
+        ScaleTracksComponent& def = getDefaultComponent<ScaleTracksComponent>();
+
+        ps["values"] = {PropertyType::Custom, UpdateFlags_None, (void*)&def.values, compRef ? (void*)&comp->values : nullptr};
+
+        static Vector3 defValue = Vector3::ZERO;
+        for (size_t i = 0; i < (compRef ? comp->values.size() : 1); i++) {
+            std::string idx = compRef ? std::to_string(i) : "";
+            ps["values[" + idx + "]"] = {PropertyType::Vector3, UpdateFlags_None, (void*)&defValue, compRef ? (void*)&comp->values[i] : nullptr};
+        }
     }
 
     void enumerateSpriteAnimationProperties(void* comp, std::map<std::string, PropertyData>& ps) {
@@ -1423,6 +1576,9 @@ namespace {
         {ComponentType::BundleComponent, &findComponentPtr<BundleComponent>, &resolveBundlePropertyFast, &enumerateBundleProperties},
         {ComponentType::BoneComponent, &findComponentPtr<BoneComponent>, &resolveBonePropertyFast, &enumerateBoneProperties},
         {ComponentType::KeyframeTracksComponent, &findComponentPtr<KeyframeTracksComponent>, &resolveKeyframeTracksPropertyFast, &enumerateKeyframeTracksProperties},
+        {ComponentType::TranslateTracksComponent, &findComponentPtr<TranslateTracksComponent>, &resolveTranslateTracksPropertyFast, &enumerateTranslateTracksProperties},
+        {ComponentType::RotateTracksComponent, &findComponentPtr<RotateTracksComponent>, &resolveRotateTracksPropertyFast, &enumerateRotateTracksProperties},
+        {ComponentType::ScaleTracksComponent, &findComponentPtr<ScaleTracksComponent>, &resolveScaleTracksPropertyFast, &enumerateScaleTracksProperties},
     };
 
     PropertyData tryGetFastProperty(EntityRegistry* registry, Entity entity, ComponentType component, const std::string& propertyName) {

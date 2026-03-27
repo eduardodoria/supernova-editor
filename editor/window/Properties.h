@@ -84,6 +84,7 @@ namespace Supernova::Editor{
         bool spriteFramesExpanded = false;
         std::map<std::string, bool> spriteAnimationFramesButtonGroups;
         bool spriteAnimationFramesExpanded = false;
+        std::map<std::string, bool> trackValuesExpanded;
 
         std::map<std::string, bool> textureCubeSingleMode;
 
@@ -161,6 +162,8 @@ namespace Supernova::Editor{
         void drawBundleComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
         void drawBoneComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
         void drawKeyframeTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
+        template<typename Component, typename ValueType>
+        void drawTrackValues(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities, RowPropertyType rowType, const ValueType& defaultNewValue, const char* idPrefix, std::vector<ValueType> Component::*memberPtr, const char* propertyName);
         void drawTranslateTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
         void drawRotateTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);
         void drawScaleTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities);

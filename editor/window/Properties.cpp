@@ -6492,12 +6492,13 @@ void Editor::Properties::drawAnimationComponent(ComponentType cpType, SceneProje
     if (!anim.actions.empty()) {
         beginTable(cpType, getLabelSize("Start Time"), "animation_actions_table");
         for (size_t i = 0; i < anim.actions.size(); i++) {
+            ImGui::PushID((int)i);
+
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
             ImGui::Text("Action %zu", i);
             ImGui::TableSetColumnIndex(1);
 
-            ImGui::PushID((int)i);
             if (ImGui::Button(ICON_FA_TRASH_CAN "##remove_action")) {
                 MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
                 for (Entity entity : entities) {
@@ -6514,7 +6515,6 @@ void Editor::Properties::drawAnimationComponent(ComponentType cpType, SceneProje
                 ImGui::PopID();
                 break; // break early to reset next frame cleanly
             }
-            ImGui::PopID();
 
             std::string prefix = "actions[" + std::to_string(i) + "]";
             propertyRow(RowPropertyType::UInt, cpType, prefix + ".track", "Track", sceneProject, entities);
@@ -6529,6 +6529,8 @@ void Editor::Properties::drawAnimationComponent(ComponentType cpType, SceneProje
                 ImGui::TableSetColumnIndex(1);
                 ImGui::Separator();
             }
+
+            ImGui::PopID();
         }
         endTable();
     }
@@ -6558,22 +6560,121 @@ void Editor::Properties::drawKeyframeTracksComponent(ComponentType cpType, Scene
     propertyRow(RowPropertyType::Float, cpType, "interpolation", "Interpolation", sceneProject, entities);
     endTable();
 
-    ImGui::Text("Keyframes: %zu", comp.times.size());
+    drawTrackValues<KeyframeTracksComponent, float>(cpType, sceneProject, entities, RowPropertyType::Float, 0.0f, "keyframe", &KeyframeTracksComponent::times, "times");
+}
+
+template<typename Component, typename ValueType>
+void Editor::Properties::drawTrackValues(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities, RowPropertyType rowType, const ValueType& defaultNewValue, const char* idPrefix, std::vector<ValueType> Component::*memberPtr, const char* propertyName){
+    Component& comp = sceneProject->scene->getComponent<Component>(entities[0]);
+
+    float firstColSize = getLabelSize("Value 000");
+    beginTable(cpType, firstColSize, std::string(idPrefix) + "_values_header");
+
+    RowSettings settingsValue;
+    settingsValue.secondColSize = -1;
+
+    ImGui::TableNextRow();
+    ImGui::TableSetColumnIndex(0);
+    ImGui::TextUnformatted("Values");
+    ImGui::TableSetColumnIndex(1);
+
+    ImGui::Text("%zu", (comp.*memberPtr).size());
+    ImGui::SameLine();
+    if (ImGui::Button("Add Value")){
+        MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+        for (Entity entity : entities){
+            if (Component* trackComp = sceneProject->scene->findComponent<Component>(entity)){
+                std::vector<ValueType> newValues = trackComp->*memberPtr;
+                ValueType newValue = defaultNewValue;
+                if (!newValues.empty()){
+                    newValue = newValues.back();
+                }
+                newValues.push_back(newValue);
+                multiCmd->addPropertyCmd<std::vector<ValueType>>(project, sceneProject->id, entity, cpType, propertyName, newValues);
+            }
+        }
+
+        multiCmd->setNoMerge();
+        CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+    }
+
+    ImGui::SameLine();
+    std::string arrowId = std::string("##toggle_") + idPrefix + "_values";
+    if (ImGui::ArrowButton(arrowId.c_str(), trackValuesExpanded[idPrefix] ? ImGuiDir_Up : ImGuiDir_Down)){
+        trackValuesExpanded[idPrefix] = !trackValuesExpanded[idPrefix];
+    }
+
+    bool removedValue = false;
+
+    if (trackValuesExpanded[idPrefix]){
+    float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
+    float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_TRASH_CAN).x;
+    ImVec2 inputSize = ImVec2(ImGui::GetContentRegionAvail().x - clearButtonWidth - ImGui::GetStyle().ItemSpacing.x - clearButtonFramePadding * 2, 0);
+    if (inputSize.x < 100.0f){
+        inputSize.x = 100.0f;
+    }
+
+    for (size_t i = 0; i < (comp.*memberPtr).size(); i++){
+        std::string valueId = std::string(propertyName) + "[" + std::to_string(i) + "]";
+        std::string valueLabel = "Value " + std::to_string(i);
+
+        RowSettings settingsEntry = settingsValue;
+        settingsEntry.secondColSize = inputSize.x;
+        propertyRow(rowType, cpType, valueId, valueLabel, sceneProject, entities, settingsEntry);
+
+        ImGui::SameLine();
+
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
+        std::string removeId = std::string(ICON_FA_TRASH_CAN) + "##remove_" + idPrefix + "_value_" + std::to_string(i);
+        if (ImGui::Button(removeId.c_str())){
+            MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+            for (Entity entity : entities){
+                if (Component* trackComp = sceneProject->scene->findComponent<Component>(entity)){
+                    if (i < (trackComp->*memberPtr).size()){
+                        std::vector<ValueType> newValues = trackComp->*memberPtr;
+                        newValues.erase(newValues.begin() + (long int)i);
+                        multiCmd->addPropertyCmd<std::vector<ValueType>>(project, sceneProject->id, entity, cpType, propertyName, newValues);
+                    }
+                }
+            }
+
+            multiCmd->setNoMerge();
+            CommandHandle::get(sceneProject->id)->addCommand(multiCmd);
+
+            removedValue = true;
+            ImGui::PopStyleVar();
+            ImGui::PopStyleColor(2);
+            break;
+        }
+        ImGui::PopStyleVar();
+        ImGui::PopStyleColor(2);
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Remove value");
+        }
+    }
+
+    } // trackValuesExpanded
+
+    if (removedValue){
+        endTable();
+        return;
+    }
+
+    endTable();
 }
 
 void Editor::Properties::drawTranslateTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
-    TranslateTracksComponent& comp = sceneProject->scene->getComponent<TranslateTracksComponent>(entities[0]);
-    ImGui::Text("Values: %zu", comp.values.size());
+    drawTrackValues<TranslateTracksComponent, Vector3>(cpType, sceneProject, entities, RowPropertyType::Vector3, Vector3::ZERO, "translate", &TranslateTracksComponent::values, "values");
 }
 
 void Editor::Properties::drawRotateTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
-    RotateTracksComponent& comp = sceneProject->scene->getComponent<RotateTracksComponent>(entities[0]);
-    ImGui::Text("Values: %zu", comp.values.size());
+    drawTrackValues<RotateTracksComponent, Quaternion>(cpType, sceneProject, entities, RowPropertyType::Quat, Quaternion::IDENTITY, "rotate", &RotateTracksComponent::values, "values");
 }
 
 void Editor::Properties::drawScaleTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
-    ScaleTracksComponent& comp = sceneProject->scene->getComponent<ScaleTracksComponent>(entities[0]);
-    ImGui::Text("Values: %zu", comp.values.size());
+    drawTrackValues<ScaleTracksComponent, Vector3>(cpType, sceneProject, entities, RowPropertyType::Vector3, Vector3(1.0f, 1.0f, 1.0f), "scale", &ScaleTracksComponent::values, "values");
 }
 
 void Editor::Properties::drawMorphTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
