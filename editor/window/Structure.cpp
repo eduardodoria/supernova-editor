@@ -539,7 +539,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     }
 
     if (!node.isChildScene) {
-        if (!node.isLocked && ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+        if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
             // Add entity drag drop payload for dragging to resources
             if (!node.isScene) {
                 SceneProject* sceneProject = project->getSelectedScene();
@@ -608,6 +608,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
             if (node.isScene && (!sourceHasTransform || sourceParent == NULL_ENTITY)) {
                 allowEntityDragDrop = false;
             }
+
         }
 
         ImVec2 mousePos = ImGui::GetMousePos();
@@ -636,6 +637,23 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
             && sourceParent != node.parent
             && (sourceParent != NULL_ENTITY || node.parent != NULL_ENTITY)) {
             allowEntityDragDrop = false;
+        }
+
+        if (allowEntityDragDrop && ProjectUtils::isEntityLocked(project->getSelectedScene()->scene, sourceEntity)) {
+            if (node.isScene) {
+                allowEntityDragDrop = false;
+            } else {
+                InsertionType insertionType;
+                if (insertBefore) {
+                    insertionType = InsertionType::BEFORE;
+                } else if (insertAfter) {
+                    insertionType = InsertionType::AFTER;
+                } else {
+                    insertionType = InsertionType::INTO;
+                }
+
+                allowEntityDragDrop = ProjectUtils::canMoveLockedEntityOrder(project->getSelectedScene()->scene, sourceEntity, node.id, insertionType);
+            }
         }
 
         if (allowEntityDragDrop){

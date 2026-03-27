@@ -137,6 +137,32 @@ bool Editor::ProjectUtils::isEntityLocked(Scene* scene, Entity entity){
     return getLockedEntityParent(scene, entity) != NULL_ENTITY;
 }
 
+Entity Editor::ProjectUtils::getEffectiveParent(Scene* scene, Entity entity) {
+    Entity virtualParent = getVirtualParent(scene, entity);
+    if (virtualParent != NULL_ENTITY) {
+        return virtualParent;
+    }
+
+    Transform* transform = scene->findComponent<Transform>(entity);
+    if (transform) {
+        return transform->parent;
+    }
+
+    return getLockedEntityParent(scene, entity);
+}
+
+bool Editor::ProjectUtils::canMoveLockedEntityOrder(Scene* scene, Entity source, Entity target, InsertionType type) {
+    if (!isEntityLocked(scene, source)) {
+        return true;
+    }
+
+    if (type == InsertionType::INTO) {
+        return false;
+    }
+
+    return getEffectiveParent(scene, source) == getEffectiveParent(scene, target);
+}
+
 size_t Editor::ProjectUtils::getTransformIndex(EntityRegistry* registry, Entity entity){
     Signature signature = registry->getSignature(entity);
     if (signature.test(registry->getComponentId<Transform>())) {

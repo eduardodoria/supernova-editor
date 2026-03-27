@@ -37,6 +37,8 @@ public:
 
     static Entity getLockedEntityParent(Scene* scene, Entity entity);
     static bool isEntityLocked(Scene* scene, Entity entity);
+    static Entity getEffectiveParent(Scene* scene, Entity entity);
+    static bool canMoveLockedEntityOrder(Scene* scene, Entity source, Entity target, InsertionType type);
 
     static size_t getTransformIndex(EntityRegistry* registry, Entity entity);
     static void sortEntitiesByTransformOrder(EntityRegistry* registry, std::vector<Entity>& entities);

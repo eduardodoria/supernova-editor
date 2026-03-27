@@ -18,8 +18,8 @@ Editor::MoveEntityOrderCmd::MoveEntityOrderCmd(Project* project, uint32_t sceneI
 bool Editor::MoveEntityOrderCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
-    if (ProjectUtils::isEntityLocked(sceneProject->scene, source)){
-        Editor::Out::warning("Cannot move entity '%u'. It is a locked child of another component.", source);
+    if (!ProjectUtils::canMoveLockedEntityOrder(sceneProject->scene, source, target, type)){
+        Editor::Out::warning("Cannot move entity '%u'. Locked entities can only be reordered within the same parent or virtual parent.", source);
         return false;
     }
 
