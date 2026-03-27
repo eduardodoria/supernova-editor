@@ -135,6 +135,18 @@ void Editor::App::showMenu(){
                     project.createTempProject(projectName, true);
                 }
             }
+            if (ImGui::BeginMenu("New Scene")) {
+                if (ImGui::MenuItem(ICON_FA_CUBES "  3D Scene")) {
+                    project.createNewScene("New Scene", SceneType::SCENE_3D);
+                }
+                if (ImGui::MenuItem(ICON_FA_CUBES_STACKED "  2D Scene")) {
+                    project.createNewScene("New Scene", SceneType::SCENE_2D);
+                }
+                if (ImGui::MenuItem(ICON_FA_WINDOW_RESTORE "  UI Scene")) {
+                    project.createNewScene("New Scene", SceneType::SCENE_UI);
+                }
+                ImGui::EndMenu();
+            }
             ImGui::Separator();
             if (ImGui::MenuItem("Open Project", "Ctrl+O")) {
                 openProjectFunc();
