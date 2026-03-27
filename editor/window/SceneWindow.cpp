@@ -811,6 +811,7 @@ void Editor::SceneWindow::show() {
                 if (ImGui::BeginPopup(sceneSettingsPopupId.c_str())) {
                     ImGui::BeginDisabled(sceneProject.playState != ScenePlayState::STOPPED);
                     ImGui::Checkbox("Show all joints",  &sceneProject.displaySettings.showAllJoints);
+                    ImGui::Checkbox("Show all bones",   &sceneProject.displaySettings.showAllBones);
                     ImGui::Checkbox("Hide all bodies",  &sceneProject.displaySettings.hideAllBodies);
                     ImGui::EndDisabled();
 

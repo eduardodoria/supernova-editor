@@ -793,6 +793,7 @@ YAML::Node Editor::Stream::encodeProject(Project* project) {
             sceneNode["filepath"] = sceneProject.filepath.string();
             sceneNode["opened"] = sceneProject.opened;
             sceneNode["showAllJoints"]        = sceneProject.displaySettings.showAllJoints;
+            sceneNode["showAllBones"]         = sceneProject.displaySettings.showAllBones;
             sceneNode["hideAllBodies"]        = sceneProject.displaySettings.hideAllBodies;
             sceneNode["hideCameraView"]       = sceneProject.displaySettings.hideCameraView;
             sceneNode["hideLightIcons"]       = sceneProject.displaySettings.hideLightIcons;
@@ -851,6 +852,7 @@ void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
                     if (!scenes.empty()) {
                         SceneDisplaySettings& ds = scenes.back().displaySettings;
                         if (sceneNode["showAllJoints"])        ds.showAllJoints        = sceneNode["showAllJoints"].as<bool>();
+                        if (sceneNode["showAllBones"])         ds.showAllBones         = sceneNode["showAllBones"].as<bool>();
                         if (sceneNode["hideAllBodies"])        ds.hideAllBodies        = sceneNode["hideAllBodies"].as<bool>();
                         if (sceneNode["hideCameraView"])       ds.hideCameraView       = sceneNode["hideCameraView"].as<bool>();
                         if (sceneNode["hideLightIcons"])       ds.hideLightIcons       = sceneNode["hideLightIcons"].as<bool>();

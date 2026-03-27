@@ -11,6 +11,7 @@ namespace Supernova::Editor{
 
     struct SceneDisplaySettings {
         bool showAllJoints       = false;
+        bool showAllBones        = false;
         bool hideAllBodies       = false;
         bool hideCameraView      = false;
         bool hideLightIcons      = false;

@@ -66,6 +66,11 @@ Editor::SceneRender3D::~SceneRender3D(){
         delete pair.second;
     }
     jointLines.clear();
+
+    for (auto& pair : boneLines) {
+        delete pair.second;
+    }
+    boneLines.clear();
 }
 
 void Editor::SceneRender3D::createLines(){
@@ -149,6 +154,101 @@ bool Editor::SceneRender3D::instanciateJointObject(Entity entity){
     }
 
     return false;
+}
+
+bool Editor::SceneRender3D::instanciateBoneLines(Entity entity){
+    if (boneLines.find(entity) == boneLines.end()) {
+        ScopedDefaultEntityPool sys(*toolslayer.getScene(), EntityPool::System);
+        boneLines[entity] = new Lines(toolslayer.getScene());
+
+        return true;
+    }
+
+    return false;
+}
+
+void Editor::SceneRender3D::createOrUpdateBoneLines(Entity entity, const ModelComponent& model, bool visible, bool highlighted){
+    Lines* boneLinesObj = boneLines[entity];
+
+    boneLinesObj->clearLines();
+    boneLinesObj->setVisible(visible);
+
+    if (!visible){
+        return;
+    }
+
+    float alpha = highlighted ? 1.0f : 0.5f;
+    const Vector4 boneColor(0.9f, 0.9f, 0.2f, alpha);
+    const Vector4 tipColor(1.0f, 0.5f, 0.1f, alpha);
+
+    for (const auto& [boneId, boneEntity] : model.bonesIdMapping) {
+        Transform* boneTransform = scene->findComponent<Transform>(boneEntity);
+        if (!boneTransform || !boneTransform->visible) continue;
+
+        Vector3 bonePos = boneTransform->worldPosition;
+
+        Entity parentEntity = boneTransform->parent;
+        if (parentEntity != NULL_ENTITY) {
+            BoneComponent* parentBone = scene->findComponent<BoneComponent>(parentEntity);
+            if (parentBone) {
+                Transform* parentTransform = scene->findComponent<Transform>(parentEntity);
+                if (parentTransform) {
+                    Vector3 parentPos = parentTransform->worldPosition;
+                    Vector3 dir = bonePos - parentPos;
+                    float length = dir.length();
+
+                    if (length < 1e-6f) continue;
+
+                    dir = dir / length;
+
+                    // Build perpendicular basis
+                    Vector3 up = (std::abs(dir.y) < 0.99f) ? Vector3(0, 1, 0) : Vector3(1, 0, 0);
+                    Vector3 right = dir.crossProduct(up).normalized();
+                    up = right.crossProduct(dir).normalized();
+
+                    // Wireframe pyramid: base near parent, tip at child
+                    float baseOffset = length * 0.15f;
+                    float baseSize = length * 0.08f;
+                    Vector3 baseCenter = parentPos + dir * baseOffset;
+
+                    Vector3 b0 = baseCenter + (right + up) * baseSize;
+                    Vector3 b1 = baseCenter + (right - up) * baseSize;
+                    Vector3 b2 = baseCenter + (right * -1.0f - up) * baseSize;
+                    Vector3 b3 = baseCenter + (up - right) * baseSize;
+
+                    // Base square
+                    boneLinesObj->addLine(b0, b1, boneColor);
+                    boneLinesObj->addLine(b1, b2, boneColor);
+                    boneLinesObj->addLine(b2, b3, boneColor);
+                    boneLinesObj->addLine(b3, b0, boneColor);
+
+                    // Lines from parent to base
+                    boneLinesObj->addLine(parentPos, b0, tipColor);
+                    boneLinesObj->addLine(parentPos, b1, tipColor);
+                    boneLinesObj->addLine(parentPos, b2, tipColor);
+                    boneLinesObj->addLine(parentPos, b3, tipColor);
+
+                    // Lines from base to child tip
+                    boneLinesObj->addLine(b0, bonePos, boneColor);
+                    boneLinesObj->addLine(b1, bonePos, boneColor);
+                    boneLinesObj->addLine(b2, bonePos, boneColor);
+                    boneLinesObj->addLine(b3, bonePos, boneColor);
+                }
+            }
+        } else {
+            // Root bone: draw a small octahedron marker
+            float markSize = 0.03f;
+            boneLinesObj->addLine(bonePos + Vector3(0, markSize, 0), bonePos + Vector3(markSize, 0, 0), tipColor);
+            boneLinesObj->addLine(bonePos + Vector3(markSize, 0, 0), bonePos + Vector3(0, -markSize, 0), tipColor);
+            boneLinesObj->addLine(bonePos + Vector3(0, -markSize, 0), bonePos + Vector3(-markSize, 0, 0), tipColor);
+            boneLinesObj->addLine(bonePos + Vector3(-markSize, 0, 0), bonePos + Vector3(0, markSize, 0), tipColor);
+
+            boneLinesObj->addLine(bonePos + Vector3(0, markSize, 0), bonePos + Vector3(0, 0, markSize), tipColor);
+            boneLinesObj->addLine(bonePos + Vector3(0, 0, markSize), bonePos + Vector3(0, -markSize, 0), tipColor);
+            boneLinesObj->addLine(bonePos + Vector3(0, -markSize, 0), bonePos + Vector3(0, 0, -markSize), tipColor);
+            boneLinesObj->addLine(bonePos + Vector3(0, 0, -markSize), bonePos + Vector3(0, markSize, 0), tipColor);
+        }
+    }
 }
 
 void Editor::SceneRender3D::createOrUpdateBodyLines(Entity entity, const Transform& transform, const Body3DComponent& body) {
@@ -1059,6 +1159,9 @@ void Editor::SceneRender3D::hideAllGizmos(){
     for (auto& pair : jointLines) {
         pair.second->setVisible(false);
     }
+    for (auto& pair : boneLines) {
+        pair.second->setVisible(false);
+    }
 }
 
 void Editor::SceneRender3D::activate(){
@@ -1136,6 +1239,7 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
     std::set<Entity> currentIconCameras;
     std::set<Entity> currentBodyObjects;
     std::set<Entity> currentJointObjects;
+    std::set<Entity> currentBoneModels;
 
     for (Entity& entity: entities){
         Signature signature = scene->getSignature(entity);
@@ -1207,6 +1311,20 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
 
             createOrUpdateJointLines(entity, joint, isVisible, highlighted);
         }
+
+        if (signature.test(scene->getComponentId<ModelComponent>())) {
+            ModelComponent& model = scene->getComponent<ModelComponent>(entity);
+
+            if (!model.bonesIdMapping.empty()) {
+                currentBoneModels.insert(entity);
+                instanciateBoneLines(entity);
+
+                bool isSelected = selectedEntities.find(entity) != selectedEntities.end();
+                bool isVisible = displaySettings.showAllBones || isSelected;
+
+                createOrUpdateBoneLines(entity, model, isVisible, isSelected);
+            }
+        }
     }
 
     // Remove sun icons for entities that are no longer directional lights
@@ -1250,6 +1368,16 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
             itJoint = jointLines.erase(itJoint);
         } else {
             ++itJoint;
+        }
+    }
+
+    auto itBone = boneLines.begin();
+    while (itBone != boneLines.end()) {
+        if (currentBoneModels.find(itBone->first) == currentBoneModels.end()) {
+            delete itBone->second;
+            itBone = boneLines.erase(itBone);
+        } else {
+            ++itBone;
         }
     }
 }
