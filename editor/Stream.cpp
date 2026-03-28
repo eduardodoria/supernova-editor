@@ -2,6 +2,7 @@
 
 #include "Base64.h"
 #include "Catalog.h"
+#include "Factory.h"
 #include "Out.h"
 #include "util/ProjectUtils.h"
 
@@ -804,20 +805,10 @@ YAML::Node Editor::Stream::encodeProject(Project* project) {
             if (sceneProject.sceneRender) {
                 Camera* editorCam = sceneProject.sceneRender->getCamera();
                 if (editorCam) {
-                    Entity camEntity = editorCam->getEntity();
-                    CameraComponent& camComp = sceneProject.scene->getComponent<CameraComponent>(camEntity);
-                    Transform& camTransform = sceneProject.scene->getComponent<Transform>(camEntity);
-                    YAML::Node camNode;
-                    camNode["type"] = cameraTypeToString(camComp.type);
-                    camNode["target"] = encodeVector3(camComp.target);
-                    camNode["up"] = encodeVector3(camComp.up);
-                    camNode["yfov"] = camComp.yfov;
-                    camNode["aspect"] = camComp.aspect;
-                    camNode["nearClip"] = camComp.nearClip;
-                    camNode["farClip"] = camComp.farClip;
-                    camNode["position"] = encodeVector3(camTransform.position);
-                    sceneNode["editorCamera"] = camNode;
+                    sceneNode["editorCamera"] = encodeEditorCamera(editorCam);
                 }
+            } else if (sceneProject.editorCameraState.IsDefined()) {
+                sceneNode["editorCamera"] = sceneProject.editorCameraState;
             }
 
             scenesNode.push_back(sceneNode);
@@ -883,6 +874,7 @@ void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
 
                     if (sceneNode["editorCamera"]) {
                         SceneProject& loadedScene = scenes.back();
+                        loadedScene.editorCameraState = YAML::Clone(sceneNode["editorCamera"]);
                         if (loadedScene.sceneRender) {
                             Camera* editorCam = loadedScene.sceneRender->getCamera();
                             if (editorCam) {
@@ -1060,6 +1052,7 @@ void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::
         for (const auto& pathNode : node["bundles"]) {
             BundleSceneInfo info;
             info.bundlePath = pathNode.as<std::string>();
+            info.functionName = Factory::bundleToFunctionName(info.bundlePath);
             sceneProject->bundles.push_back(std::move(info));
         }
     }
@@ -1073,6 +1066,24 @@ void Editor::Stream::decodeSceneProjectEntities(Project* project, SceneProject* 
     for (const auto& entityNode : entitiesNode){
         decodeEntity(entityNode, sceneProject->scene, &sceneProject->entities, project, sceneProject);
     }
+}
+
+YAML::Node Editor::Stream::encodeEditorCamera(Camera* camera) {
+    if (!camera) return YAML::Node();
+    Entity camEntity = camera->getEntity();
+    Scene* scene = camera->getScene();
+    CameraComponent& camComp = scene->getComponent<CameraComponent>(camEntity);
+    Transform& camTransform = scene->getComponent<Transform>(camEntity);
+    YAML::Node camNode;
+    camNode["type"] = cameraTypeToString(camComp.type);
+    camNode["target"] = encodeVector3(camComp.target);
+    camNode["up"] = encodeVector3(camComp.up);
+    camNode["yfov"] = camComp.yfov;
+    camNode["aspect"] = camComp.aspect;
+    camNode["nearClip"] = camComp.nearClip;
+    camNode["farClip"] = camComp.farClip;
+    camNode["position"] = encodeVector3(camTransform.position);
+    return camNode;
 }
 
 void Editor::Stream::decodeEditorCamera(Camera* camera, const YAML::Node& node) {

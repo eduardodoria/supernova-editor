@@ -70,6 +70,7 @@ namespace Supernova::Editor{
         std::vector<uint32_t> childScenes;
         std::vector<SceneScriptSource> cppScripts;
         std::vector<BundleSceneInfo> bundles;
+        YAML::Node editorCameraState;
     };
 
     struct NodeRecoveryEntry {

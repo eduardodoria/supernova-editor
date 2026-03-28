@@ -1212,6 +1212,13 @@ void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene)
             targetScene->sceneRender = createSceneRender(targetScene->sceneType, targetScene->scene);
             targetScene->defaultCamera = createDefaultCamera(targetScene->sceneType, targetScene->scene);
 
+            if (targetScene->editorCameraState.IsDefined()) {
+                Camera* editorCam = targetScene->sceneRender->getCamera();
+                if (editorCam) {
+                    Stream::decodeEditorCamera(editorCam, targetScene->editorCameraState);
+                }
+            }
+
             Stream::decodeSceneProjectEntities(this, targetScene, sceneNode);
 
             for (Entity entity : targetScene->entities) {
@@ -1532,6 +1539,13 @@ bool Editor::Project::createNewComponent(uint32_t sceneId, Entity entity, Compon
 }
 
 void Editor::Project::deleteSceneProject(SceneProject* sceneProject){
+    if (sceneProject->sceneRender) {
+        Camera* editorCam = sceneProject->sceneRender->getCamera();
+        if (editorCam) {
+            sceneProject->editorCameraState = Stream::encodeEditorCamera(editorCam);
+        }
+    }
+
     if (sceneProject->sceneRender)
         delete sceneProject->sceneRender;
     if (sceneProject->scene)
