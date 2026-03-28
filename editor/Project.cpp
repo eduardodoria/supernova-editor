@@ -1210,7 +1210,6 @@ void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene)
 
         if (opened){
             targetScene->sceneRender = createSceneRender(targetScene->sceneType, targetScene->scene);
-            targetScene->defaultCamera = createDefaultCamera(targetScene->sceneType, targetScene->scene);
 
             if (targetScene->editorCameraState.IsDefined()) {
                 Camera* editorCam = targetScene->sceneRender->getCamera();
@@ -1219,27 +1218,21 @@ void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene)
                 }
             }
 
-            Stream::decodeSceneProjectEntities(this, targetScene, sceneNode);
+            loadSceneProjectData(targetScene, sceneNode);
 
+            // Sync linked materials with latest file contents on disk
             for (Entity entity : targetScene->entities) {
                 MeshComponent* mesh = targetScene->scene->findComponent<MeshComponent>(entity);
-                if (!mesh) {
-                    continue;
-                }
+                if (!mesh) continue;
 
                 for (unsigned int submeshIndex = 0; submeshIndex < mesh->numSubmeshes; submeshIndex++) {
                     Material& material = mesh->submeshes[submeshIndex].material;
-                    if (material.name.empty()) {
-                        continue;
-                    }
+                    if (material.name.empty()) continue;
 
                     std::string normalizedPath = fs::path(material.name).lexically_normal().generic_string();
-                    linkMaterialFile(targetScene->id, entity, submeshIndex, normalizedPath);
 
                     fs::path materialPath = projectPath / normalizedPath;
-                    if (!fs::exists(materialPath) || fs::is_directory(materialPath)) {
-                        continue;
-                    }
+                    if (!fs::exists(materialPath) || fs::is_directory(materialPath)) continue;
 
                     try {
                         YAML::Node materialNode = YAML::LoadFile(materialPath.string());
@@ -1281,11 +1274,6 @@ void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene)
             }
         }
 
-        if (opened) {
-            updateSceneCppScripts(targetScene);
-            updateSceneBundles(targetScene);
-        }
-
     } catch (const YAML::Exception& e) {
         if (isNewScene && !scenes.empty()) scenes.pop_back();
         Out::error("Failed to open scene: %s", e.what());
@@ -1317,6 +1305,10 @@ void Editor::Project::openScene(fs::path filepath, bool closePrevious){
 }
 
 void Editor::Project::openSceneInternal(fs::path filepath, uint32_t sceneToClose){
+    if (filepath.is_relative()) {
+        filepath = getProjectPath() / filepath;
+    }
+
     auto it = std::find_if(scenes.begin(), scenes.end(),
         [this, &filepath](const SceneProject& scene) { 
             fs::path scenePath = scene.filepath;
@@ -1333,6 +1325,10 @@ void Editor::Project::openSceneInternal(fs::path filepath, uint32_t sceneToClose
                 closeScene(sceneToClose, true);
             }
             return;
+        }
+        // If expanded inline, unload inline data first so loadScene can reload fully
+        if (it->expandedInline) {
+            unloadChildSceneInline(it->id);
         }
         // Scene exists in project but is closed
         if (sceneToClose != NULL_PROJECT_SCENE && sceneToClose != it->id) {
@@ -1433,6 +1429,104 @@ void Editor::Project::removeScene(uint32_t sceneId) {
     cleanupEntityBundlesForScene(sceneId);
 
     scenes.erase(it);
+}
+
+void Editor::Project::markParentScenesNeedUpdate(uint32_t childSceneId) {
+    for (auto& s : scenes) {
+        auto& cs = s.childScenes;
+        if (std::find(cs.begin(), cs.end(), childSceneId) != cs.end()) {
+            s.needUpdateRender = true;
+        }
+    }
+}
+
+void Editor::Project::loadSceneProjectData(SceneProject* sceneProject, const YAML::Node& sceneNode) {
+    sceneProject->defaultCamera = createDefaultCamera(sceneProject->sceneType, sceneProject->scene);
+
+    Stream::decodeSceneProjectEntities(this, sceneProject, sceneNode);
+
+    for (Entity entity : sceneProject->entities) {
+        MeshComponent* mesh = sceneProject->scene->findComponent<MeshComponent>(entity);
+        if (!mesh) continue;
+        for (unsigned int submeshIndex = 0; submeshIndex < mesh->numSubmeshes; submeshIndex++) {
+            Material& material = mesh->submeshes[submeshIndex].material;
+            if (material.name.empty()) continue;
+            std::string normalizedPath = fs::path(material.name).lexically_normal().generic_string();
+            linkMaterialFile(sceneProject->id, entity, submeshIndex, normalizedPath);
+        }
+    }
+
+    updateSceneCppScripts(sceneProject);
+    updateSceneBundles(sceneProject);
+}
+
+bool Editor::Project::loadChildSceneInline(uint32_t childSceneId) {
+    SceneProject* childScene = getScene(childSceneId);
+    if (!childScene) {
+        Out::error("Child scene with ID %u not found", childSceneId);
+        return false;
+    }
+
+    if (childScene->scene != nullptr) {
+        // Already loaded (opened as tab or already expanded inline)
+        childScene->expandedInline = true;
+        markParentScenesNeedUpdate(childSceneId);
+        return true;
+    }
+
+    if (childScene->filepath.empty()) {
+        Out::error("Child scene has no filepath");
+        return false;
+    }
+
+    try {
+        fs::path fullPath = childScene->filepath;
+        if (fullPath.is_relative()) {
+            fullPath = getProjectPath() / fullPath;
+        }
+
+        YAML::Node sceneNode = YAML::LoadFile(fullPath.string());
+
+        Stream::decodeSceneProject(childScene, sceneNode, true);
+        loadSceneProjectData(childScene, sceneNode);
+
+        childScene->expandedInline = true;
+        childScene->needUpdateRender = true;
+        childScene->isModified = false;
+
+        markParentScenesNeedUpdate(childSceneId);
+
+        Out::info("Loaded child scene '%s' inline", childScene->name.c_str());
+        return true;
+
+    } catch (const YAML::Exception& e) {
+        Out::error("Failed to load child scene inline: %s", e.what());
+        return false;
+    } catch (const std::exception& e) {
+        Out::error("Failed to load child scene inline: %s", e.what());
+        return false;
+    }
+}
+
+void Editor::Project::unloadChildSceneInline(uint32_t childSceneId) {
+    SceneProject* childScene = getScene(childSceneId);
+    if (!childScene) {
+        return;
+    }
+
+    if (childScene->opened) {
+        // Scene is open as a tab, only clear the inline flag
+        childScene->expandedInline = false;
+        markParentScenesNeedUpdate(childSceneId);
+        return;
+    }
+
+    deleteSceneProject(childScene);
+    cleanupEntityBundlesForScene(childSceneId);
+    childScene->expandedInline = false;
+    markParentScenesNeedUpdate(childSceneId);
+
+    Out::info("Unloaded child scene '%s' from inline", childScene->name.c_str());
 }
 
 void Editor::Project::addChildScene(uint32_t sceneId, uint32_t childSceneId) {
@@ -2417,6 +2511,13 @@ bool Editor::Project::isSelectedEntity(uint32_t sceneId, Entity selectedEntity){
 
 void Editor::Project::clearSelectedEntities(uint32_t sceneId){
     getScene(sceneId)->selectedEntities.clear();
+}
+
+void Editor::Project::clearAllSelections(uint32_t sceneId){
+    clearSelectedEntities(sceneId);
+    for (uint32_t cId : getChildScenes(sceneId)) {
+        clearSelectedEntities(cId);
+    }
 }
 
 std::vector<Entity> Editor::Project::getSelectedEntities(uint32_t sceneId) const{

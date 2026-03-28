@@ -3336,7 +3336,7 @@ bool Editor::Properties::propertyRowWithAutoButton(RowPropertyType propType, Com
 void Editor::Properties::drawTransform(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     // Add this code to calculate appropriate step size based on selected scene
     RowSettings settingsPos;
-    if (sceneProject) {
+    if (sceneProject && sceneProject->sceneRender) {
         Camera* camera = sceneProject->sceneRender->getCamera();
         if (sceneProject->sceneType == SceneType::SCENE_3D) {
             // For 3D scenes, scale step based on distance from target

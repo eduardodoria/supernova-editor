@@ -60,6 +60,8 @@ namespace Supernova::Editor{
         ToolsLayer toolslayer;
         UILayer uilayer;
 
+        std::vector<Scene*> childSceneLayers;
+
         bool multipleEntitiesSelected;
         bool isPlaying;
 
@@ -88,6 +90,8 @@ namespace Supernova::Editor{
         virtual void mouseDragEvent(float x, float y, float origX, float origY, Project* project, size_t sceneId, std::vector<Entity> selEntities, bool disableSelection);
 
         virtual bool isAnyGizmoSideSelected() const;
+
+        void setChildSceneLayers(const std::vector<Scene*>& layers);
 
         TextureRender& getTexture();
         Camera* getCamera();

@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <filesystem>
+#include <unordered_set>
 
 namespace Supernova::Editor{
 
@@ -34,6 +35,7 @@ namespace Supernova::Editor{
         uint32_t parent = NULL_ENTITY;
         uint32_t childSceneId = 0;          // Scene ID for child scene nodes
         uint32_t ownerSceneId = 0;          // Parent/owner scene ID (for child scene nodes)
+        uint32_t entitySceneId = 0;         // Scene ID that owns this entity (for child scene entity nodes)
         std::list<TreeNode> children;
     };
 

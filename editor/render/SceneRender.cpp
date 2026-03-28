@@ -225,8 +225,16 @@ void Editor::SceneRender::activate(){
 
     Engine::removeAllSceneLayers(false);
 
+    for (Scene* childScene : childSceneLayers) {
+        Engine::addSceneLayer(childScene);
+    }
+
     Engine::addSceneLayer(toolslayer.getScene());
     Engine::addSceneLayer(uilayer.getScene());
+}
+
+void Editor::SceneRender::setChildSceneLayers(const std::vector<Scene*>& layers){
+    childSceneLayers = layers;
 }
 
 void Editor::SceneRender::updateSize(int width, int height){

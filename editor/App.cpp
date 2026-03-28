@@ -804,14 +804,28 @@ void Editor::App::engineRender(){
 
             bool sceneChanged = false;
 
-            if (lastActivatedScene != sceneProject.id){
+            // Collect loaded child scene layers (skip if playing — runtime manages its own layers)
+            std::vector<Scene*> childLayers;
+            if (sceneProject.playState == ScenePlayState::STOPPED) {
+                for (uint32_t childId : sceneProject.childScenes) {
+                    const SceneProject* childScene = project.getScene(childId);
+                    if (childScene && childScene->expandedInline && childScene->scene) {
+                        childLayers.push_back(childScene->scene);
+                    }
+                }
+            }
+            sceneProject.sceneRender->setChildSceneLayers(childLayers);
+
+            if (lastActivatedScene != sceneProject.id || sceneProject.needUpdateRender){
                 sceneProject.sceneRender->activate();
                 project.restoreRuntimeLayers(sceneProject.id);
-                lastActivatedScene = sceneProject.id;
-                sceneChanged = true;
-                #ifdef _DEBUG
-                printf("DEBUG: Activated scene %u\n", lastActivatedScene);
-                #endif
+                if (lastActivatedScene != sceneProject.id) {
+                    lastActivatedScene = sceneProject.id;
+                    sceneChanged = true;
+                    #ifdef _DEBUG
+                    printf("DEBUG: Activated scene %u\n", lastActivatedScene);
+                    #endif
+                }
             }
 
             if (width != 0 && height != 0){
@@ -819,6 +833,17 @@ void Editor::App::engineRender(){
                     Engine::systemViewChanged();
                     sceneRender->updateSize(width, height);
                     sceneChanged = false;
+                }
+
+                // Update child scene render systems so their entities display correctly
+                for (uint32_t childId : sceneProject.childScenes) {
+                    SceneProject* childScene = project.getScene(childId);
+                    if (childScene && childScene->expandedInline && childScene->scene) {
+                        childScene->scene->getSystem<MeshSystem>()->update(0);
+                        childScene->scene->getSystem<UISystem>()->update(0);
+                        childScene->scene->getSystem<RenderSystem>()->update(0);
+                        childScene->needUpdateRender = false;
+                    }
                 }
 
                 // to avoid delay when move objects with gizmo

@@ -63,6 +63,7 @@ namespace Supernova::Editor{
         bool isModified = false;
         bool isVisible = false;
         bool opened = true;
+        bool expandedInline = false;
         SceneDisplaySettings displaySettings;
         ScenePlayState playState = ScenePlayState::STOPPED;
         YAML::Node playStateSnapshot;
@@ -199,6 +200,8 @@ namespace Supernova::Editor{
 
         uint32_t createNewSceneInternal(std::string sceneName, SceneType type, uint32_t previousSceneId);
         void openSceneInternal(fs::path filepath, uint32_t sceneToClose);
+        void loadSceneProjectData(SceneProject* sceneProject, const YAML::Node& sceneNode);
+        void markParentScenesNeedUpdate(uint32_t childSceneId);
 
     public:
         Project();
@@ -257,6 +260,9 @@ namespace Supernova::Editor{
         void closeScene(uint32_t sceneId, bool systemClose = false);
         void removeScene(uint32_t sceneId);
 
+        bool loadChildSceneInline(uint32_t childSceneId);
+        void unloadChildSceneInline(uint32_t childSceneId);
+
         void addChildScene(uint32_t sceneId, uint32_t childSceneId);
         void removeChildScene(uint32_t sceneId, uint32_t childSceneId);
         bool hasChildScene(uint32_t sceneId, uint32_t childSceneId) const;
@@ -298,6 +304,7 @@ namespace Supernova::Editor{
         void addSelectedEntity(uint32_t sceneId, Entity selectedEntity);
         bool isSelectedEntity(uint32_t sceneId, Entity selectedEntity);
         void clearSelectedEntities(uint32_t sceneId);
+        void clearAllSelections(uint32_t sceneId);
         std::vector<Entity> getSelectedEntities(uint32_t sceneId) const;
         bool hasSelectedEntities(uint32_t sceneId) const;
 

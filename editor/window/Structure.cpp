@@ -445,7 +445,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
 
     pushNodeImGuiId(node);
 
-    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
+    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowOverlap;
 
     if (node.children.empty()) {
         flags |= ImGuiTreeNodeFlags_Leaf;
@@ -456,7 +456,13 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         flags |= ImGuiTreeNodeFlags_Selected;
     }
 
-    if (!node.isScene && !node.isChildScene && project->isSelectedEntity(project->getSelectedSceneId(), node.id)) {
+    bool isChildSceneEntity = (!node.isScene && !node.isChildScene && node.entitySceneId != 0 && node.entitySceneId != project->getSelectedSceneId());
+
+    if (!node.isScene && !node.isChildScene && !isChildSceneEntity && project->isSelectedEntity(project->getSelectedSceneId(), node.id)) {
+        flags |= ImGuiTreeNodeFlags_Selected;
+    }
+
+    if (isChildSceneEntity && project->isSelectedEntity(node.entitySceneId, node.id)) {
         flags |= ImGuiTreeNodeFlags_Selected;
     }
 
@@ -538,7 +544,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         }
     }
 
-    if (!node.isChildScene) {
+    if (!node.isChildScene && !isChildSceneEntity) {
         if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
             // Add entity drag drop payload for dragging to resources
             if (!node.isScene) {
@@ -584,7 +590,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     bool insertBefore = false;
     bool insertAfter = false;
 
-    if (!node.isChildScene && ImGui::BeginDragDropTarget()) {
+    if (!node.isChildScene && !isChildSceneEntity && ImGui::BeginDragDropTarget()) {
         bool allowEntityDragDrop = false;
         const ImGuiPayload* payload = ImGui::GetDragDropPayload();
         Entity sourceEntity = 0;
@@ -794,22 +800,29 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     }
 
     // Check for selection on mouse release (not click) to allow drag without selection
-    bool wasItemActivePrevFrame = nodeActive;
     if (nodeHovered && ImGui::IsMouseReleased(ImGuiMouseButton_Left) && !ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
         if (node.isChildScene) {
-            project->clearSelectedEntities(project->getSelectedSceneId());
+            project->clearAllSelections(project->getSelectedSceneId());
             selectedScenes.clear();
             selectedScenes.push_back(node.childSceneId);
             project->setSelectedSceneForProperties(node.childSceneId);
+        } else if (isChildSceneEntity) {
+            ImGuiIO& io = ImGui::GetIO();
+            if (!io.KeyShift){
+                project->clearAllSelections(project->getSelectedSceneId());
+            }
+            selectedScenes.clear();
+            project->addSelectedEntity(node.entitySceneId, node.id);
+            project->setSelectedSceneForProperties(node.entitySceneId);
         } else if (!node.isScene){
             ImGuiIO& io = ImGui::GetIO();
             if (!io.KeyShift){
-                project->clearSelectedEntities(project->getSelectedSceneId());
+                project->clearAllSelections(project->getSelectedSceneId());
             }
             project->addSelectedEntity(project->getSelectedSceneId(), node.id);
             project->setSelectedSceneForProperties(project->getSelectedSceneId());
         }else{
-            project->clearSelectedEntities(project->getSelectedSceneId());
+            project->clearAllSelections(project->getSelectedSceneId());
             selectedScenes.clear();
             selectedScenes.push_back(node.id);
             project->setSelectedSceneForProperties(node.id);
@@ -863,6 +876,15 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
             ImGui::Separator();
             if (ImGui::MenuItem(ICON_FA_TRASH "  Remove child scene")) {
                 CommandHandle::get(node.ownerSceneId)->addCommand(new RemoveChildSceneCmd(project, node.ownerSceneId, node.childSceneId));
+            }
+            ImGui::EndPopup();
+        } else if (isChildSceneEntity) {
+            // Child scene entity context menu - view only (no structural changes)
+            ImGui::Text("Name: %s", node.name.c_str());
+            ImGui::Text("Entity: %u", node.id);
+            const SceneProject* childScene = project->getScene(node.entitySceneId);
+            if (childScene) {
+                ImGui::Text("Scene: %s", childScene->name.c_str());
             }
             ImGui::EndPopup();
         } else {
@@ -1002,9 +1024,53 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.70f, 0.70f, 0.70f, 1.0f));
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().FramePadding.y * 0.5f);
         ImGui::SetWindowFontScale(0.7f);
-        ImGui::TextUnformatted(ICON_FA_EYE);
+        ImGui::TextUnformatted(ICON_FA_VIDEO);
         ImGui::SetWindowFontScale(1.0f);
         ImGui::PopStyleColor();
+    }
+
+    // Eye icon toggle for child scene inline loading
+    if (node.isChildScene) {
+        const SceneProject* childScene = project->getScene(node.childSceneId);
+        bool isLoaded = childScene && childScene->expandedInline;
+
+        const char* icon = isLoaded ? ICON_FA_EYE : ICON_FA_EYE_SLASH;
+        float buttonWidth = ImGui::CalcTextSize(icon).x + ImGui::GetStyle().FramePadding.x * 2.0f;
+        float buttonPosX = ImGui::GetWindowContentRegionMax().x - buttonWidth;
+
+        // Ensure it doesn't overlap the text too much if the window is very narrow
+        if (buttonPosX > ImGui::GetCursorPosX() + 10.0f) {
+            ImGui::SameLine(buttonPosX);
+        } else {
+            ImGui::SameLine();
+        }
+
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1, 1, 1, 0.1f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1, 1, 1, 0.2f));
+        ImGui::PushStyleColor(ImGuiCol_Text, isLoaded ? ImVec4(0.55f, 0.80f, 0.85f, 1.0f) : ImVec4(0.5f, 0.5f, 0.5f, 0.5f));
+
+        // Remove frame padding for this button so it doesn't stretch the tree node height
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(ImGui::GetStyle().FramePadding.x, 0.0f));
+
+        ImGui::PushID("ChildSceneEye");
+        ImGui::PushID(node.childSceneId);
+
+        if (ImGui::Button(icon)) {
+            if (isLoaded) {
+                project->unloadChildSceneInline(node.childSceneId);
+            } else {
+                project->loadChildSceneInline(node.childSceneId);
+            }
+        }
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip(isLoaded ? "Unload child scene" : "Load child scene");
+        }
+
+        ImGui::PopID();
+        ImGui::PopID();
+        ImGui::PopStyleVar();
+        ImGui::PopStyleColor(4);
     }
 
     if (nodeOpen) {
@@ -1029,6 +1095,10 @@ void Editor::Structure::pushNodeImGuiId(const TreeNode& node){
         ImGui::PushID("ChildSceneNode");
         ImGui::PushID((int)node.ownerSceneId);
         ImGui::PushID((int)node.childSceneId);
+    }else if (node.entitySceneId != 0 && node.entitySceneId != project->getSelectedSceneId()){
+        ImGui::PushID("ChildSceneEntityNode");
+        ImGui::PushID((int)node.entitySceneId);
+        ImGui::PushID((int)node.id);
     }else{
         ImGui::PushID("EntityNode");
         ImGui::PushID((int)project->getSelectedSceneId());
@@ -1041,6 +1111,10 @@ void Editor::Structure::popNodeImGuiId(const TreeNode& node){
         ImGui::PopID();
         ImGui::PopID();
     }else if (node.isChildScene){
+        ImGui::PopID();
+        ImGui::PopID();
+        ImGui::PopID();
+    }else if (node.entitySceneId != 0 && node.entitySceneId != project->getSelectedSceneId()){
         ImGui::PopID();
         ImGui::PopID();
         ImGui::PopID();
@@ -1098,9 +1172,68 @@ void Editor::Structure::show(){
         }
         childSceneNode.name = childScene->name;
         childSceneNode.isChildScene = true;
+        childSceneNode.id = childSceneId;
         childSceneNode.childSceneId = childSceneId;
         childSceneNode.ownerSceneId = sceneProject->id;
         childSceneNode.order = order++;
+
+        // If child scene is expanded inline, build entity tree nodes for it
+        if (childScene->expandedInline && childScene->scene) {
+            std::unordered_set<Entity> childEntitiesSet(childScene->entities.begin(), childScene->entities.end());
+            std::unordered_map<Entity, TreeNode*> childEntityNodeMap;
+
+            // non-hierarchical entities
+            for (auto& entity : childScene->entities) {
+                Signature signature = childScene->scene->getSignature(entity);
+                if (!signature.test(childScene->scene->getComponentId<Transform>())) {
+                    TreeNode enode;
+                    enode.icon = getObjectIcon(signature, childScene->scene);
+                    enode.id = entity;
+                    enode.entitySceneId = childSceneId;
+                    enode.isMainCamera = (entity == childScene->mainCamera);
+                    enode.isBone = signature.test(childScene->scene->getComponentId<BoneComponent>());
+                    enode.order = order++;
+                    enode.name = childScene->scene->getEntityName(entity);
+                    childSceneNode.children.push_back(enode);
+                    childEntityNodeMap[entity] = &childSceneNode.children.back();
+                }
+            }
+
+            // hierarchical entities
+            auto childTransforms = childScene->scene->getComponentArray<Transform>();
+            for (int i = 0; i < childTransforms->size(); i++) {
+                Transform& transform = childTransforms->getComponentFromIndex(i);
+                Entity entity = childTransforms->getEntity(i);
+                Signature signature = childScene->scene->getSignature(entity);
+
+                if (childEntitiesSet.find(entity) != childEntitiesSet.end()) {
+                    TreeNode enode;
+                    enode.icon = getObjectIcon(signature, childScene->scene);
+                    enode.id = entity;
+                    enode.entitySceneId = childSceneId;
+                    enode.isMainCamera = (entity == childScene->mainCamera);
+                    enode.isBone = signature.test(childScene->scene->getComponentId<BoneComponent>());
+                    enode.hasTransform = true;
+                    enode.isLocked = ProjectUtils::isEntityLocked(childScene->scene, entity);
+                    enode.order = order++;
+                    enode.name = childScene->scene->getEntityName(entity);
+
+                    if (transform.parent == NULL_ENTITY) {
+                        childSceneNode.children.push_back(enode);
+                        childEntityNodeMap[entity] = &childSceneNode.children.back();
+                    } else {
+                        auto parentIt = childEntityNodeMap.find(transform.parent);
+                        TreeNode* parentNode = parentIt != childEntityNodeMap.end() ? parentIt->second : nullptr;
+                        if (parentNode) {
+                            enode.parent = parentNode->id;
+                            parentNode->children.push_back(enode);
+                            childEntityNodeMap[entity] = &parentNode->children.back();
+                        }
+                    }
+                }
+            }
+        }
+
         root.children.push_back(childSceneNode);
     }
 
