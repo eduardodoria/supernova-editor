@@ -80,7 +80,11 @@ void Editor::Project::remapEntityProperties(EntityRegistry* registry, const std:
                 if (property.type == PropertyType::Entity) {
                     value = static_cast<Entity*>(property.ref);
                 } else if (property.type == PropertyType::EntityReference) {
-                    value = &static_cast<EntityReference*>(property.ref)->entity;
+                    EntityReference* ref = static_cast<EntityReference*>(property.ref);
+                    if (ref->sceneId != 0) {
+                        continue; // Cross-scene reference, entityMap doesn't apply
+                    }
+                    value = &ref->entity;
                 }
 
                 if (!value || *value == NULL_ENTITY) {
@@ -142,7 +146,11 @@ void Editor::Project::remapEntityPropertiesInComponent(EntityRegistry* registry,
         if (property.type == PropertyType::Entity) {
             value = static_cast<Entity*>(property.ref);
         } else if (property.type == PropertyType::EntityReference) {
-            value = &static_cast<EntityReference*>(property.ref)->entity;
+            EntityReference* ref = static_cast<EntityReference*>(property.ref);
+            if (ref->sceneId != 0) {
+                continue; // Cross-scene reference, entityMap doesn't apply
+            }
+            value = &ref->entity;
         }
 
         if (!value || *value == NULL_ENTITY) {
