@@ -337,6 +337,7 @@ namespace {
             case Editor::PropertyType::UInt:
                 return std::to_string(*static_cast<unsigned int*>(prop.ref));
             case Editor::PropertyType::Entity:
+            case Editor::PropertyType::EntityReference:
                 return std::to_string(*static_cast<Entity*>(prop.ref));
             case Editor::PropertyType::String:
                 return *static_cast<std::string*>(prop.ref);
@@ -364,7 +365,7 @@ Editor::RowPropertyType Editor::Properties::scriptPropertyTypeToRowPropertyType(
         case Supernova::ScriptPropertyType::Vector4: return RowPropertyType::Vector4;
         case Supernova::ScriptPropertyType::Color3: return RowPropertyType::Color3L;
         case Supernova::ScriptPropertyType::Color4: return RowPropertyType::Color4L;
-        case Supernova::ScriptPropertyType::EntityPointer: return RowPropertyType::ExternalEntity;
+        case Supernova::ScriptPropertyType::EntityReference: return RowPropertyType::ExternalEntity;
         default: return RowPropertyType::Custom;
     }
 }

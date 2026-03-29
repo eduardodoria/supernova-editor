@@ -1480,7 +1480,7 @@ YAML::Node Editor::Stream::encodeScriptProperty(const ScriptProperty& prop) {
     node["type"] = static_cast<int>(prop.type);
 
     // Store ptrTypeName if it's a pointer type
-    if (prop.type == ScriptPropertyType::EntityPointer && !prop.ptrTypeName.empty()) {
+    if (prop.type == ScriptPropertyType::EntityReference && !prop.ptrTypeName.empty()) {
         node["ptrTypeName"] = prop.ptrTypeName;
     }
 
@@ -1515,7 +1515,7 @@ YAML::Node Editor::Stream::encodeScriptProperty(const ScriptProperty& prop) {
             node["value"] = encodeVector4(std::get<Vector4>(prop.value));
             node["defaultValue"] = encodeVector4(std::get<Vector4>(prop.defaultValue));
             break;
-        case ScriptPropertyType::EntityPointer: {
+        case ScriptPropertyType::EntityReference: {
             const auto& entRef = std::get<EntityReference>(prop.value);
             node["value"] = entRef.entity;
             node["defaultValue"] = std::get<EntityReference>(prop.defaultValue).entity;
@@ -1573,7 +1573,7 @@ ScriptProperty Editor::Stream::decodeScriptProperty(const YAML::Node& node) {
                 prop.value = decodeVector4(node["value"]);
                 prop.defaultValue = node["defaultValue"] ? decodeVector4(node["defaultValue"]) : Vector4();
                 break;
-            case ScriptPropertyType::EntityPointer: {
+            case ScriptPropertyType::EntityReference: {
                 uint32_t sid = node["sceneId"] ? node["sceneId"].as<uint32_t>(0) : 0;
                 prop.value = EntityReference{node["value"].as<Entity>(NULL_ENTITY), sid};
                 prop.defaultValue = EntityReference{node["defaultValue"] ? node["defaultValue"].as<Entity>(NULL_ENTITY) : Entity(NULL_ENTITY), 0};
@@ -1592,7 +1592,7 @@ ScriptProperty Editor::Stream::decodeScriptProperty(const YAML::Node& node) {
             case ScriptPropertyType::Color3: prop.value = Vector3(); prop.defaultValue = Vector3(); break;
             case ScriptPropertyType::Vector4:
             case ScriptPropertyType::Color4: prop.value = Vector4(); prop.defaultValue = Vector4(); break;
-            case ScriptPropertyType::EntityPointer: prop.value = EntityReference{NULL_ENTITY, 0}; prop.defaultValue = EntityReference{NULL_ENTITY, 0}; break;
+            case ScriptPropertyType::EntityReference: prop.value = EntityReference{NULL_ENTITY, 0}; prop.defaultValue = EntityReference{NULL_ENTITY, 0}; break;
         }
     }
 

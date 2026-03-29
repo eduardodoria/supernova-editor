@@ -31,7 +31,7 @@ ScriptPropertyType Editor::ScriptParser::inferTypeFromCppType(const std::string&
     // If it's a pointer type, store the type name without * and return Pointer
     if (isPointer) {
         ptrTypeName = bareType; // Store "Mesh", "Object", etc. (without *)
-        return ScriptPropertyType::EntityPointer;
+        return ScriptPropertyType::EntityReference;
     }
 
     // Map C++ types to ScriptPropertyType
@@ -388,7 +388,7 @@ std::vector<ScriptProperty> Editor::ScriptParser::parseScriptProperties(const st
                     break;
                 }
 
-                case ScriptPropertyType::EntityPointer: {
+                case ScriptPropertyType::EntityReference: {
                     // Pointers default to null entity
                     EntityReference val{NULL_ENTITY, 0};
                     if (!defaultValueStr.empty() && defaultValueStr != "nullptr" && defaultValueStr != "NULL") {
@@ -434,7 +434,7 @@ std::vector<ScriptProperty> Editor::ScriptParser::parseScriptProperties(const st
                     prop.value = Vector4();
                     prop.defaultValue = Vector4();
                     break;
-                case ScriptPropertyType::EntityPointer:
+                case ScriptPropertyType::EntityReference:
                     prop.value = EntityReference{NULL_ENTITY, 0};
                     prop.defaultValue = EntityReference{NULL_ENTITY, 0};
                     break;

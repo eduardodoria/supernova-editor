@@ -1073,7 +1073,7 @@ ScriptPropertyValue Editor::ProjectUtils::luaValueToScriptPropertyValue(lua_Stat
         return ScriptPropertyValue(v);
     }
 
-    case ScriptPropertyType::EntityPointer: {
+    case ScriptPropertyType::EntityReference: {
         // For now, leave as null entity. The editor will fill it later.
         return ScriptPropertyValue(EntityReference{NULL_ENTITY, 0});
     }
@@ -1143,9 +1143,9 @@ void Editor::ProjectUtils::loadLuaScriptProperties(ScriptEntry& entry, const std
                     }else if (typeLower == "color4"){
                         prop.type = ScriptPropertyType::Color4;
                     }else if (typeLower == "entity" || typeLower == "entitypointer" || typeLower == "pointer"){
-                        prop.type = ScriptPropertyType::EntityPointer;
+                        prop.type = ScriptPropertyType::EntityReference;
                     }else{
-                        prop.type = ScriptPropertyType::EntityPointer;
+                        prop.type = ScriptPropertyType::EntityReference;
                         prop.ptrTypeName = typeStr;
                     }
                 } else {

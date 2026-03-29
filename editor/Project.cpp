@@ -60,11 +60,7 @@ std::vector<Entity> Editor::Project::getTopLevelEntities(const EntityRegistry* r
     return topLevelEntities;
 }
 
-bool Editor::Project::isEntityReference(PropertyType propertyType) {
-    return propertyType == PropertyType::Entity;
-}
-
-void Editor::Project::remapEntityReferences(EntityRegistry* registry, const std::vector<Entity>& entities, const std::unordered_map<Entity, Entity>& entityMap) {
+void Editor::Project::remapEntityProperties(EntityRegistry* registry, const std::vector<Entity>& entities, const std::unordered_map<Entity, Entity>& entityMap) {
     if (entityMap.empty()) {
         return;
     }
@@ -76,11 +72,17 @@ void Editor::Project::remapEntityReferences(EntityRegistry* registry, const std:
             int updateFlags = 0;
 
             for (auto& [propertyName, property] : properties) {
-                if (!property.ref || !isEntityReference(property.type)) {
+                if (!property.ref || (property.type != PropertyType::Entity && property.type != PropertyType::EntityReference)) {
                     continue;
                 }
 
-                Entity* value = static_cast<Entity*>(property.ref);
+                Entity* value = nullptr;
+                if (property.type == PropertyType::Entity) {
+                    value = static_cast<Entity*>(property.ref);
+                } else if (property.type == PropertyType::EntityReference) {
+                    value = &static_cast<EntityReference*>(property.ref)->entity;
+                }
+
                 if (!value || *value == NULL_ENTITY) {
                     continue;
                 }
@@ -101,7 +103,7 @@ void Editor::Project::remapEntityReferences(EntityRegistry* registry, const std:
     }
 }
 
-void Editor::Project::remapEntityReferencesInComponent(EntityRegistry* registry, Entity entity, ComponentType componentType, const std::vector<std::string>& properties, const std::unordered_map<Entity, Entity>& entityMap) {
+void Editor::Project::remapEntityPropertiesInComponent(EntityRegistry* registry, Entity entity, ComponentType componentType, const std::vector<std::string>& properties, const std::unordered_map<Entity, Entity>& entityMap) {
     if (entityMap.empty()) return;
 
     auto allProperties = Catalog::findEntityProperties(registry, entity, componentType);
@@ -113,7 +115,7 @@ void Editor::Project::remapEntityReferencesInComponent(EntityRegistry* registry,
         if (scriptComp) {
             for (size_t i = 0; i < scriptComp->scripts.size(); i++) {
                 for (auto& prop : scriptComp->scripts[i].properties) {
-                    if (prop.type == ScriptPropertyType::EntityPointer && std::get<EntityReference>(prop.value).sceneId != 0) {
+                    if (prop.type == ScriptPropertyType::EntityReference && std::get<EntityReference>(prop.value).sceneId != 0) {
                         crossSceneProps.insert("scripts[" + std::to_string(i) + "]." + prop.name);
                     }
                 }
@@ -122,7 +124,7 @@ void Editor::Project::remapEntityReferencesInComponent(EntityRegistry* registry,
     }
 
     for (auto& [propertyName, property] : allProperties) {
-        if (!property.ref || !isEntityReference(property.type)) {
+        if (!property.ref || (property.type != PropertyType::Entity && property.type != PropertyType::EntityReference)) {
             continue;
         }
 
@@ -136,7 +138,13 @@ void Editor::Project::remapEntityReferencesInComponent(EntityRegistry* registry,
             continue;
         }
 
-        Entity* value = static_cast<Entity*>(property.ref);
+        Entity* value = nullptr;
+        if (property.type == PropertyType::Entity) {
+            value = static_cast<Entity*>(property.ref);
+        } else if (property.type == PropertyType::EntityReference) {
+            value = &static_cast<EntityReference*>(property.ref)->entity;
+        }
+
         if (!value || *value == NULL_ENTITY) {
             continue;
         }
@@ -1077,7 +1085,7 @@ void Editor::Project::updateSceneCppScripts(SceneProject* sceneProject) {
             for (const auto& prop : scriptEntry.properties) {
                 ScriptPropertyInfo propInfo;
                 propInfo.name = prop.name;
-                propInfo.isPtr = (prop.type == ScriptPropertyType::EntityPointer) || !prop.ptrTypeName.empty();
+                propInfo.isPtr = (prop.type == ScriptPropertyType::EntityReference) || !prop.ptrTypeName.empty();
                 propInfo.ptrTypeName = prop.ptrTypeName;
                 properties.push_back(std::move(propInfo));
             }
@@ -2770,7 +2778,7 @@ bool Editor::Project::createEntityBundle(uint32_t sceneId, fs::path filepath, YA
         for (size_t i = 0; i < branchEntities.size(); ++i) {
             localToRegistry[branchEntities[i]] = regEntities[i];
         }
-        remapEntityReferences(newGroup.registry.get(), regEntities, localToRegistry);
+        remapEntityProperties(newGroup.registry.get(), regEntities, localToRegistry);
     }
 
     Scene* scene = sceneProject->scene;
@@ -3304,7 +3312,7 @@ std::vector<Entity> Editor::Project::importEntityBundle(SceneProject* sceneProje
             newInstance.members.push_back({newEntities[i], regEntities[i]});
             registryToLocal[regEntities[i]] = newEntities[i];
         }
-        remapEntityReferences(scene, newEntities, registryToLocal);
+        remapEntityProperties(scene, newEntities, registryToLocal);
     } else {
         Out::error("importEntityBundle(%s): entity count mismatch: newEntities=%zu, regEntities=%zu",
             filepath.string().c_str(), newEntities.size(), regEntities.size());
@@ -4044,7 +4052,7 @@ bool Editor::Project::bundlePropertyChanged(uint32_t sceneId, Entity entity, Com
             }
         }
         // Remap entity references from scene-local IDs to registry IDs
-        remapEntityReferencesInComponent(registry, registryEntity, componentType, properties, localToRegistry);
+        remapEntityPropertiesInComponent(registry, registryEntity, componentType, properties, localToRegistry);
 
         std::vector<uint32_t> staleBundleScenes;
         for (auto& [otherSceneId, sceneInstances] : bundle->instances) {
@@ -4080,7 +4088,7 @@ bool Editor::Project::bundlePropertyChanged(uint32_t sceneId, Entity entity, Com
                         for (const auto& member : instance.members) {
                             registryToOtherLocal[member.registryEntity] = member.localEntity;
                         }
-                        remapEntityReferencesInComponent(otherScene->scene, otherEntity, componentType, properties, registryToOtherLocal);
+                        remapEntityPropertiesInComponent(otherScene->scene, otherEntity, componentType, properties, registryToOtherLocal);
                     }
                 }
             }

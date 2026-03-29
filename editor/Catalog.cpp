@@ -575,7 +575,7 @@ namespace {
                         result.ref = const_cast<Vector4*>(&std::get<Vector4>(prop.value));
                         result.def = const_cast<Vector4*>(&std::get<Vector4>(prop.defaultValue));
                         break;
-                    case ScriptPropertyType::EntityPointer:
+                    case ScriptPropertyType::EntityReference:
                         result.ref = const_cast<Entity*>(&std::get<EntityReference>(prop.value).entity);
                         result.def = const_cast<Entity*>(&std::get<EntityReference>(prop.defaultValue).entity);
                         break;
@@ -587,8 +587,8 @@ namespace {
                 return result;
             }
 
-            // Handle "propName.sceneId" for EntityPointer properties
-            if (prop.type == ScriptPropertyType::EntityPointer) {
+            // Handle "propName.sceneId" for EntityReference properties
+            if (prop.type == ScriptPropertyType::EntityReference) {
                 std::string sceneIdField = prop.name + ".sceneId";
                 if (fieldName == sceneIdField) {
                     static uint32_t defSceneId = 0;
@@ -1542,7 +1542,7 @@ namespace {
                             propData.ref = &std::get<Vector4>(prop.value);
                             propData.def = &std::get<Vector4>(prop.defaultValue);
                             break;
-                        case ScriptPropertyType::EntityPointer:
+                        case ScriptPropertyType::EntityReference:
                             propData.ref = &std::get<EntityReference>(prop.value).entity;
                             propData.def = &std::get<EntityReference>(prop.defaultValue).entity;
                             break;
@@ -1554,8 +1554,8 @@ namespace {
 
                     ps[key] = propData;
 
-                    // Also expose sceneId for EntityPointer properties
-                    if (prop.type == ScriptPropertyType::EntityPointer) {
+                    // Also expose sceneId for EntityReference properties
+                    if (prop.type == ScriptPropertyType::EntityReference) {
                         static uint32_t defSceneId = 0;
                         std::string sceneIdKey = key + ".sceneId";
                         ps[sceneIdKey] = {PropertyType::UInt, UpdateFlags_None, (void*)&defSceneId, (void*)&std::get<EntityReference>(prop.value).sceneId};
@@ -2000,7 +2000,7 @@ Editor::PropertyType Editor::Catalog::scriptPropertyTypeToPropertyType(ScriptPro
         case Supernova::ScriptPropertyType::Vector4: return Editor::PropertyType::Vector4;
         case Supernova::ScriptPropertyType::Color3: return Editor::PropertyType::Vector3;
         case Supernova::ScriptPropertyType::Color4: return Editor::PropertyType::Vector4;
-        case Supernova::ScriptPropertyType::EntityPointer: return PropertyType::Entity;
+        case Supernova::ScriptPropertyType::EntityReference: return PropertyType::EntityReference;
         default: return Editor::PropertyType::Custom;
     }
 }
@@ -2220,6 +2220,10 @@ int Editor::Catalog::getChangedUpdateFlags(ComponentType compType, void* oldComp
                 break;
             case PropertyType::Entity:
                 changed = *static_cast<Entity*>(oldProp.ref) != *static_cast<Entity*>(newProp.ref);
+                break;
+            case PropertyType::EntityReference:
+                changed = static_cast<EntityReference*>(oldProp.ref)->entity != static_cast<EntityReference*>(newProp.ref)->entity ||
+                          static_cast<EntityReference*>(oldProp.ref)->sceneId != static_cast<EntityReference*>(newProp.ref)->sceneId;
                 break;
             case PropertyType::Custom:
                 // Conservative: assume changed for complex types
@@ -2573,6 +2577,12 @@ void Editor::Catalog::copyPropertyValue(EntityRegistry* sourceRegistry, Entity s
         case PropertyType::Entity: {
             Entity* source = Catalog::getPropertyRef<Entity>(sourceRegistry, sourceEntity, compType, property);
             Entity* target = Catalog::getPropertyRef<Entity>(targetRegistry, targetEntity, compType, property);
+            if (source && target) *target = *source;
+            break;
+        }
+        case PropertyType::EntityReference: {
+            EntityReference* source = Catalog::getPropertyRef<EntityReference>(sourceRegistry, sourceEntity, compType, property);
+            EntityReference* target = Catalog::getPropertyRef<EntityReference>(targetRegistry, targetEntity, compType, property);
             if (source && target) *target = *source;
             break;
         }

@@ -410,7 +410,7 @@ std::string Editor::Factory::formatScriptPropertyType(ScriptPropertyType type) {
         case ScriptPropertyType::Vector4: return "ScriptPropertyType::Vector4";
         case ScriptPropertyType::Color3: return "ScriptPropertyType::Color3";
         case ScriptPropertyType::Color4: return "ScriptPropertyType::Color4";
-        case ScriptPropertyType::EntityPointer: return "ScriptPropertyType::EntityPointer";
+        case ScriptPropertyType::EntityReference: return "ScriptPropertyType::EntityReference";
         default: return "ScriptPropertyType::Bool";
     }
 }
@@ -510,6 +510,10 @@ std::string Editor::Factory::formatPropertyValue(const PropertyData& property, c
         case PropertyType::Entity: {
             Entity* value = static_cast<Entity*>(property.ref);
             return formatUInt(*value);
+        }
+        case PropertyType::EntityReference: {
+            EntityReference* value = static_cast<EntityReference*>(property.ref);
+            return formatUInt(value->entity);
         }
         case PropertyType::Vector2: {
             Vector2* value = static_cast<Vector2*>(property.ref);

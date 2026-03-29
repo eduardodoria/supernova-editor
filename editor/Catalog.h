@@ -97,7 +97,8 @@ namespace Supernova::Editor{
         Texture,
         Enum,
         Custom,
-        Entity
+        Entity,
+        EntityReference
     };
 
     struct PropertyData{
