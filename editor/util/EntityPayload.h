@@ -10,6 +10,7 @@ namespace Supernova {
         Entity parent;
         size_t order;
         bool hasTransform;
+        uint32_t entitySceneId = 0; // source scene ID (0 = current scene)
     }; // YAML string follows
 
     struct MaterialPayload {

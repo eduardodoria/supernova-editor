@@ -37,6 +37,7 @@ namespace Supernova::Editor{
         Enum,
         Custom,
         LocalEntity,
+        ExternalEntity,
         Font
     };
 

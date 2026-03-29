@@ -902,6 +902,9 @@ std::string Editor::Factory::createScriptComponent(int indentSpaces, EntityRegis
             if (!prop.ptrTypeName.empty()) {
                 code << ind << "script.scripts[" << idx << "].properties[" << pidx << "].ptrTypeName = " << formatString(prop.ptrTypeName) << ";\n";
             }
+            if (prop.sceneId != 0) {
+                code << ind << "script.scripts[" << idx << "].properties[" << pidx << "].sceneId = " << prop.sceneId << ";\n";
+            }
         }
     }
 

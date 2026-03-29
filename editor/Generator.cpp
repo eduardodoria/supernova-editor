@@ -468,29 +468,35 @@ std::string Editor::Generator::buildInitSceneScriptsSource(const std::vector<Sce
                     sourceContent += "                        void* instancePtr = nullptr;\n";
                     sourceContent += "\n";
                     sourceContent += "                        if (targetEntity != NULL_ENTITY) {\n";
-                    sourceContent += "                            Supernova::ScriptComponent* targetScriptComp = scene->findComponent<Supernova::ScriptComponent>(targetEntity);\n";
-                    sourceContent += "                            if (targetScriptComp) {\n";
-                    sourceContent += "                                for (auto& targetScript : targetScriptComp->scripts) {\n";
-                    sourceContent += "                                    if (targetScript.type != ScriptType::SCRIPT_LUA) {\n";
-                    sourceContent += "                                        if (targetScript.className == \"" + prop.ptrTypeName + "\" && targetScript.instance) {\n";
-                    sourceContent += "                                            instancePtr = targetScript.instance;\n";
-                    sourceContent += "                                            #ifdef SUPERNOVA_EDITOR_PLUGIN\n";
-                    sourceContent += "                                            printf(\"[DEBUG]   Found matching C++ script instance: '%s'\\n\", targetScript.className.c_str());\n";
-                    sourceContent += "                                            #endif\n";
-                    sourceContent += "                                            break;\n";
+                    sourceContent += "                            Supernova::Scene* targetScene = scene;\n";
+                    sourceContent += "                            if (prop.sceneId != 0) {\n";
+                    sourceContent += "                                targetScene = SceneManager::getScenePtr(prop.sceneId);\n";
+                    sourceContent += "                            }\n";
+                    sourceContent += "                            if (targetScene) {\n";
+                    sourceContent += "                                Supernova::ScriptComponent* targetScriptComp = targetScene->findComponent<Supernova::ScriptComponent>(targetEntity);\n";
+                    sourceContent += "                                if (targetScriptComp) {\n";
+                    sourceContent += "                                    for (auto& targetScript : targetScriptComp->scripts) {\n";
+                    sourceContent += "                                        if (targetScript.type != ScriptType::SCRIPT_LUA) {\n";
+                    sourceContent += "                                            if (targetScript.className == \"" + prop.ptrTypeName + "\" && targetScript.instance) {\n";
+                    sourceContent += "                                                instancePtr = targetScript.instance;\n";
+                    sourceContent += "                                                #ifdef SUPERNOVA_EDITOR_PLUGIN\n";
+                    sourceContent += "                                                printf(\"[DEBUG]   Found matching C++ script instance: '%s'\\n\", targetScript.className.c_str());\n";
+                    sourceContent += "                                                #endif\n";
+                    sourceContent += "                                                break;\n";
+                    sourceContent += "                                            }\n";
                     sourceContent += "                                        }\n";
                     sourceContent += "                                    }\n";
                     sourceContent += "                                }\n";
-                    sourceContent += "                            }\n";
                     sourceContent += "\n";
                     if (!prop.ptrTypeName.empty()) {
-                        sourceContent += "                            if (!instancePtr) {\n";
-                        sourceContent += "                                #ifdef SUPERNOVA_EDITOR_PLUGIN\n";
-                        sourceContent += "                                printf(\"[DEBUG]   No C++ script instance found, creating '" + prop.ptrTypeName + "' type\\n\");\n";
-                        sourceContent += "                                #endif\n";
-                        sourceContent += "                                instancePtr = new " + prop.ptrTypeName + "(scene, targetEntity);\n";
-                        sourceContent += "                            }\n";
+                        sourceContent += "                                if (!instancePtr) {\n";
+                        sourceContent += "                                    #ifdef SUPERNOVA_EDITOR_PLUGIN\n";
+                        sourceContent += "                                    printf(\"[DEBUG]   No C++ script instance found, creating '" + prop.ptrTypeName + "' type\\n\");\n";
+                        sourceContent += "                                    #endif\n";
+                        sourceContent += "                                    instancePtr = new " + prop.ptrTypeName + "(targetScene, targetEntity);\n";
+                        sourceContent += "                                }\n";
                     }
+                    sourceContent += "                            }\n";
                     sourceContent += "                        }\n";
                     sourceContent += "\n";
                     sourceContent += "                        typedScript->" + prop.name + " = nullptr;\n";
@@ -914,6 +920,7 @@ void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& sce
             mainContent += "    if (!" + sceneName + "){\n";
             mainContent += "        " + sceneName + " = new Scene();\n";
             mainContent += "        create" + sceneName + "(" + sceneName + ");\n";
+            mainContent += "        SceneManager::setScenePtr(" + std::to_string(sceneId) + ", " + sceneName + ");\n";
             mainContent += "    }\n";
         }
         mainContent += "\n";
@@ -932,6 +939,7 @@ void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& sce
             std::string sceneName = "_" + Factory::toIdentifier(sceneDataAux.name);
             mainContent += "    if (" + sceneName + ") {\n";
             mainContent += "        cleanupScripts(" + sceneName + ");\n";
+            mainContent += "        SceneManager::removeScenePtr(" + std::to_string(sceneDataAux.id) + ");\n";
             mainContent += "        delete " + sceneName + ";\n";
             mainContent += "        " + sceneName + " = nullptr;\n";
             mainContent += "    }\n";

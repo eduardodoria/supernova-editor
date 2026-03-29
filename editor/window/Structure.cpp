@@ -570,6 +570,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
                     payload->parent = node.parent;
                     payload->order = node.order;
                     payload->hasTransform = node.hasTransform;
+                    payload->entitySceneId = sceneProject->id;
                     memcpy(payloadData.data() + sizeof(EntityPayload), yamlString.data(), yamlSize);
 
                     ImGui::SetDragDropPayload("entity", payloadData.data(), payloadSize);
@@ -585,6 +586,34 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         ImGui::Text("Moving %s", node.name.c_str());
         ImGui::EndDragDropSource();
     }
+    }
+
+    // Child scene entities: allow drag for cross-scene entity reference (ExternalEntity properties)
+    if (isChildSceneEntity && !node.isScene) {
+        if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+            SceneProject* childSceneProject = project->getScene(node.entitySceneId);
+            if (childSceneProject && childSceneProject->scene) {
+                YAML::Node entityData = Stream::encodeEntity(node.id, childSceneProject->scene, project, childSceneProject);
+                std::string yamlString = YAML::Dump(entityData);
+
+                size_t yamlSize = yamlString.size();
+                size_t payloadSize = sizeof(EntityPayload) + yamlSize;
+                std::vector<char> payloadData(payloadSize);
+
+                EntityPayload* payload = reinterpret_cast<EntityPayload*>(payloadData.data());
+                payload->entity = node.id;
+                payload->parent = node.parent;
+                payload->order = node.order;
+                payload->hasTransform = node.hasTransform;
+                payload->entitySceneId = node.entitySceneId;
+                memcpy(payloadData.data() + sizeof(EntityPayload), yamlString.data(), yamlSize);
+
+                ImGui::SetDragDropPayload("entity", payloadData.data(), payloadSize);
+            }
+
+            ImGui::Text("Reference %s", node.name.c_str());
+            ImGui::EndDragDropSource();
+        }
     }
 
     bool insertBefore = false;
@@ -794,7 +823,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     }
 
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered() && ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows)) {
-        project->clearSelectedEntities(project->getSelectedSceneId());
+        project->clearAllSelections(project->getSelectedSceneId());
         selectedScenes.clear();
         project->setSelectedSceneForProperties(project->getSelectedSceneId());
     }

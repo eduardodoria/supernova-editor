@@ -106,8 +106,28 @@ void Editor::Project::remapEntityReferencesInComponent(EntityRegistry* registry,
 
     auto allProperties = Catalog::findEntityProperties(registry, entity, componentType);
 
+    // For ScriptComponent, build a set of cross-scene property names to skip
+    std::unordered_set<std::string> crossSceneProps;
+    if (componentType == ComponentType::ScriptComponent) {
+        ScriptComponent* scriptComp = registry->findComponent<ScriptComponent>(entity);
+        if (scriptComp) {
+            for (size_t i = 0; i < scriptComp->scripts.size(); i++) {
+                for (auto& prop : scriptComp->scripts[i].properties) {
+                    if (prop.type == ScriptPropertyType::EntityPointer && prop.sceneId != 0) {
+                        crossSceneProps.insert("scripts[" + std::to_string(i) + "]." + prop.name);
+                    }
+                }
+            }
+        }
+    }
+
     for (auto& [propertyName, property] : allProperties) {
         if (!property.ref || !isEntityReference(property.type)) {
+            continue;
+        }
+
+        // Skip cross-scene entity references (they belong to another scene)
+        if (!crossSceneProps.empty() && crossSceneProps.count(propertyName)) {
             continue;
         }
 
@@ -863,10 +883,10 @@ Entity Editor::Project::createDefaultCamera(SceneType type, Scene* scene) const 
 void Editor::Project::checkUnsavedAndExecute(uint32_t sceneId, std::function<void()> action) {
     SceneProject* sceneProject = getScene(sceneId);
 
-    if (sceneProject && sceneProject->isModified) {
+    if (sceneProject && hasSceneUnsavedChanges(sceneId)) {
         Backend::getApp().registerConfirmAlert(
             "Unsaved Changes",
-            "The current scene has unsaved changes. Do you want to save first?",
+            "There are unsaved changes. Do you want to save first?",
             [this, sceneId, action]() {
                 // Yes callback - save and then execute action
                 SceneProject* sceneProject = getScene(sceneId);
@@ -1161,6 +1181,8 @@ void Editor::Project::cleanupPlaySession(const std::shared_ptr<PlaySession>& ses
         if (!runtime) {
             continue;
         }
+
+        SceneManager::removeScenePtr(entry.sourceSceneId);
 
         if (entry.ownedRuntime) {
             deleteSceneProject(runtime);
@@ -2098,11 +2120,17 @@ void Editor::Project::saveScene(uint32_t sceneId) {
             fullPath = getProjectPath() / fullPath;
         }
         saveSceneToPath(sceneId, fullPath);
-        return;
+    } else {
+        // Otherwise show save dialog through the App
+        Backend::getApp().registerSaveSceneDialog(sceneId);
     }
 
-    // Otherwise show save dialog through the App
-    Backend::getApp().registerSaveSceneDialog(sceneId);
+    // Also save modified child scenes
+    for (uint32_t childId : sceneProject->childScenes) {
+        if (hasSceneUnsavedChanges(childId)) {
+            saveScene(childId);
+        }
+    }
 }
 
 void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::path& path) {
@@ -2237,13 +2265,13 @@ bool Editor::Project::selectObjectByRay(uint32_t sceneId, float x, float y, bool
     if (!scenedata->sceneRender->isAnyGizmoSideSelected()){
         if (selEntity != NULL_ENTITY){
             if (!shiftPressed){
-                clearSelectedEntities(sceneId);
+                clearAllSelections(sceneId);
             }
             addSelectedEntity(sceneId, selEntity);
             return true;
         }
 
-        clearSelectedEntities(sceneId);
+        clearAllSelections(sceneId);
     }
 
     return false;
@@ -2256,7 +2284,7 @@ bool Editor::Project::selectObjectsByRect(uint32_t sceneId, Vector2 start, Vecto
 
     Camera* camera = scenedata->sceneRender->getCamera();
 
-    clearSelectedEntities(sceneId);
+    clearAllSelections(sceneId);
 
     float distance = FLT_MAX;
     Entity selEntity = NULL_ENTITY;
@@ -2548,6 +2576,12 @@ bool Editor::Project::hasSceneUnsavedChanges(uint32_t sceneId) const{
 
     if (hasUnsavedEntityBundles(sceneId)){
         return true;
+    }
+
+    for (uint32_t childId : sceneProject->childScenes) {
+        if (hasSceneUnsavedChanges(childId)) {
+            return true;
+        }
     }
 
     return false;
@@ -4353,6 +4387,14 @@ void Editor::Project::registerSceneManager() {
                 }
             }
 
+            // Register all runtime scenes so cross-scene entity references can resolve
+            for (size_t entryIndex : currentStackIndices) {
+                PlayRuntimeScene& entry = session->runtimeScenes[entryIndex];
+                if (entry.runtime && entry.runtime->scene) {
+                    SceneManager::setScenePtr(entry.sourceSceneId, entry.runtime->scene);
+                }
+            }
+
             for (size_t entryIndex : currentStackIndices) {
                 PlayRuntimeScene& entry = session->runtimeScenes[entryIndex];
                 if (entry.initialized) return;
@@ -4536,8 +4578,9 @@ void Editor::Project::start(uint32_t sceneId) {
     std::vector<Editor::SceneBuildInfo> scenesToGenerate;
     for (SceneProject& sceneProject : scenes) {
         bool savedNow = false;
+        bool isInvolvedScene = std::find(involvedMainSceneIds.begin(), involvedMainSceneIds.end(), sceneProject.id) != involvedMainSceneIds.end();
 
-        if (sceneProject.opened){
+        if (sceneProject.opened || (isInvolvedScene && sceneProject.scene)) {
             updateAllScriptsProperties(sceneProject.id);
 
             if (sceneProject.isModified && !sceneProject.filepath.empty()) {
@@ -4547,7 +4590,7 @@ void Editor::Project::start(uint32_t sceneId) {
         }
 
         // Just create runtime for main scene and its children
-        if (std::find(involvedMainSceneIds.begin(), involvedMainSceneIds.end(), sceneProject.id) != involvedMainSceneIds.end()) {
+        if (isInvolvedScene) {
             PlayRuntimeScene entry;
             entry.sourceSceneId = sceneProject.id;
 
@@ -4635,6 +4678,13 @@ void Editor::Project::start(uint32_t sceneId) {
             }
 
             if (conector.connect(buildPath, libName)) {
+                // Register all runtime scenes so cross-scene entity references can resolve
+                for (const auto& entry : session->runtimeScenes) {
+                    if (entry.runtime && entry.runtime->scene) {
+                        SceneManager::setScenePtr(entry.sourceSceneId, entry.runtime->scene);
+                    }
+                }
+
                 for (const auto& entry : session->runtimeScenes) {
                     if (entry.runtime){
                         conector.init(entry.runtime->scene);
@@ -4662,6 +4712,13 @@ void Editor::Project::start(uint32_t sceneId) {
         connectThread.detach();
     } else {
         // No C++ scripts, just initialize Lua scripts directly
+        // Register all runtime scenes so cross-scene entity references can resolve
+        for (const auto& entry : session->runtimeScenes) {
+            if (entry.runtime && entry.runtime->scene) {
+                SceneManager::setScenePtr(entry.sourceSceneId, entry.runtime->scene);
+            }
+        }
+
         for (const auto& entry : session->runtimeScenes) {
             if (entry.runtime){
                 LuaBinding::initializeLuaScripts(entry.runtime->scene);

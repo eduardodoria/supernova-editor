@@ -586,6 +586,15 @@ namespace {
                 }
                 return result;
             }
+
+            // Handle "propName.sceneId" for EntityPointer properties
+            if (prop.type == ScriptPropertyType::EntityPointer) {
+                std::string sceneIdField = prop.name + ".sceneId";
+                if (fieldName == sceneIdField) {
+                    static uint32_t defSceneId = 0;
+                    return {PropertyType::UInt, UpdateFlags_None, (void*)&defSceneId, (void*)&prop.sceneId};
+                }
+            }
         }
 
         return PropertyData();
@@ -1544,6 +1553,13 @@ namespace {
                     }
 
                     ps[key] = propData;
+
+                    // Also expose sceneId for EntityPointer properties
+                    if (prop.type == ScriptPropertyType::EntityPointer) {
+                        static uint32_t defSceneId = 0;
+                        std::string sceneIdKey = key + ".sceneId";
+                        ps[sceneIdKey] = {PropertyType::UInt, UpdateFlags_None, (void*)&defSceneId, (void*)&prop.sceneId};
+                    }
                 }
             }
         }

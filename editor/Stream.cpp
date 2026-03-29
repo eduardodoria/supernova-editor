@@ -1518,6 +1518,9 @@ YAML::Node Editor::Stream::encodeScriptProperty(const ScriptProperty& prop) {
         case ScriptPropertyType::EntityPointer:
             node["value"] = std::get<Entity>(prop.value);
             node["defaultValue"] = std::get<Entity>(prop.defaultValue);
+            if (prop.sceneId != 0) {
+                node["sceneId"] = prop.sceneId;
+            }
             break;
     }
 
@@ -1571,6 +1574,9 @@ ScriptProperty Editor::Stream::decodeScriptProperty(const YAML::Node& node) {
             case ScriptPropertyType::EntityPointer: {
                 prop.value = node["value"].as<Entity>(NULL_ENTITY);
                 prop.defaultValue = node["defaultValue"] ? node["defaultValue"].as<Entity>(NULL_ENTITY) : Entity(NULL_ENTITY);
+                if (node["sceneId"]) {
+                    prop.sceneId = node["sceneId"].as<uint32_t>(0);
+                }
                 break;
             }
         }
