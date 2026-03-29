@@ -390,7 +390,7 @@ std::vector<ScriptProperty> Editor::ScriptParser::parseScriptProperties(const st
 
                 case ScriptPropertyType::EntityPointer: {
                     // Pointers default to null entity
-                    Entity val = NULL_ENTITY;
+                    EntityReference val{NULL_ENTITY, 0};
                     if (!defaultValueStr.empty() && defaultValueStr != "nullptr" && defaultValueStr != "NULL") {
                         Out::warning("Non-null entity pointer default values are not supported, using null entity for '%s'", varName.c_str());
                     }
@@ -435,8 +435,8 @@ std::vector<ScriptProperty> Editor::ScriptParser::parseScriptProperties(const st
                     prop.defaultValue = Vector4();
                     break;
                 case ScriptPropertyType::EntityPointer:
-                    prop.value = Entity(NULL_ENTITY);
-                    prop.defaultValue = Entity(NULL_ENTITY);
+                    prop.value = EntityReference{NULL_ENTITY, 0};
+                    prop.defaultValue = EntityReference{NULL_ENTITY, 0};
                     break;
             }
         }

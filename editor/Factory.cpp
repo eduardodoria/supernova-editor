@@ -430,9 +430,9 @@ std::string Editor::Factory::formatScriptPropertyValue(const EntityRegistry* sce
         return formatVector3(std::get<Vector3>(value));
     } else if (std::holds_alternative<Vector4>(value)) {
         return formatVector4(std::get<Vector4>(value));
-    } else if (std::holds_alternative<Entity>(value)) {
-        Entity entity = std::get<Entity>(value);
-        return "Entity(" + std::to_string(entity) + ")";
+    } else if (std::holds_alternative<EntityReference>(value)) {
+        const auto& ref = std::get<EntityReference>(value);
+        return "EntityReference{Entity(" + std::to_string(ref.entity) + "), " + std::to_string(ref.sceneId) + "}";
     }
     return "ScriptPropertyValue{}";
 }
@@ -901,9 +901,6 @@ std::string Editor::Factory::createScriptComponent(int indentSpaces, EntityRegis
             code << ind << "script.scripts[" << idx << "].properties[" << pidx << "].defaultValue = " << formatScriptPropertyValue(scene, prop.defaultValue) << ";\n";
             if (!prop.ptrTypeName.empty()) {
                 code << ind << "script.scripts[" << idx << "].properties[" << pidx << "].ptrTypeName = " << formatString(prop.ptrTypeName) << ";\n";
-            }
-            if (prop.sceneId != 0) {
-                code << ind << "script.scripts[" << idx << "].properties[" << pidx << "].sceneId = " << prop.sceneId << ";\n";
             }
         }
     }

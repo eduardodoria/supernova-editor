@@ -464,13 +464,14 @@ std::string Editor::Generator::buildInitSceneScriptsSource(const std::vector<Sce
                 sourceContent += "                    if (prop.name == \"" + prop.name + "\") {\n";
 
                 if (prop.isPtr && !prop.ptrTypeName.empty()) {
-                    sourceContent += "                        Supernova::Entity targetEntity = std::get<Supernova::Entity>(prop.value);\n";
+                    sourceContent += "                        const auto& entRef = std::get<Supernova::EntityReference>(prop.value);\n";
+                    sourceContent += "                        Supernova::Entity targetEntity = entRef.entity;\n";
                     sourceContent += "                        void* instancePtr = nullptr;\n";
                     sourceContent += "\n";
                     sourceContent += "                        if (targetEntity != NULL_ENTITY) {\n";
                     sourceContent += "                            Supernova::Scene* targetScene = scene;\n";
-                    sourceContent += "                            if (prop.sceneId != 0) {\n";
-                    sourceContent += "                                targetScene = SceneManager::getScenePtr(prop.sceneId);\n";
+                    sourceContent += "                            if (entRef.sceneId != 0) {\n";
+                    sourceContent += "                                targetScene = SceneManager::getScenePtr(entRef.sceneId);\n";
                     sourceContent += "                            }\n";
                     sourceContent += "                            if (targetScene) {\n";
                     sourceContent += "                                Supernova::ScriptComponent* targetScriptComp = targetScene->findComponent<Supernova::ScriptComponent>(targetEntity);\n";

@@ -576,8 +576,8 @@ namespace {
                         result.def = const_cast<Vector4*>(&std::get<Vector4>(prop.defaultValue));
                         break;
                     case ScriptPropertyType::EntityPointer:
-                        result.ref = const_cast<Entity*>(&std::get<Entity>(prop.value));
-                        result.def = const_cast<Entity*>(&std::get<Entity>(prop.defaultValue));
+                        result.ref = const_cast<Entity*>(&std::get<EntityReference>(prop.value).entity);
+                        result.def = const_cast<Entity*>(&std::get<EntityReference>(prop.defaultValue).entity);
                         break;
                     default:
                         result.ref = nullptr;
@@ -592,7 +592,7 @@ namespace {
                 std::string sceneIdField = prop.name + ".sceneId";
                 if (fieldName == sceneIdField) {
                     static uint32_t defSceneId = 0;
-                    return {PropertyType::UInt, UpdateFlags_None, (void*)&defSceneId, (void*)&prop.sceneId};
+                    return {PropertyType::UInt, UpdateFlags_None, (void*)&defSceneId, (void*)&std::get<EntityReference>(prop.value).sceneId};
                 }
             }
         }
@@ -1543,8 +1543,8 @@ namespace {
                             propData.def = &std::get<Vector4>(prop.defaultValue);
                             break;
                         case ScriptPropertyType::EntityPointer:
-                            propData.ref = &std::get<Entity>(prop.value);
-                            propData.def = &std::get<Entity>(prop.defaultValue);
+                            propData.ref = &std::get<EntityReference>(prop.value).entity;
+                            propData.def = &std::get<EntityReference>(prop.defaultValue).entity;
                             break;
                         default:
                             propData.ref = nullptr;
@@ -1558,7 +1558,7 @@ namespace {
                     if (prop.type == ScriptPropertyType::EntityPointer) {
                         static uint32_t defSceneId = 0;
                         std::string sceneIdKey = key + ".sceneId";
-                        ps[sceneIdKey] = {PropertyType::UInt, UpdateFlags_None, (void*)&defSceneId, (void*)&prop.sceneId};
+                        ps[sceneIdKey] = {PropertyType::UInt, UpdateFlags_None, (void*)&defSceneId, (void*)&std::get<EntityReference>(prop.value).sceneId};
                     }
                 }
             }

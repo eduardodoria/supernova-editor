@@ -113,7 +113,7 @@ void Editor::Project::remapEntityReferencesInComponent(EntityRegistry* registry,
         if (scriptComp) {
             for (size_t i = 0; i < scriptComp->scripts.size(); i++) {
                 for (auto& prop : scriptComp->scripts[i].properties) {
-                    if (prop.type == ScriptPropertyType::EntityPointer && prop.sceneId != 0) {
+                    if (prop.type == ScriptPropertyType::EntityPointer && std::get<EntityReference>(prop.value).sceneId != 0) {
                         crossSceneProps.insert("scripts[" + std::to_string(i) + "]." + prop.name);
                     }
                 }

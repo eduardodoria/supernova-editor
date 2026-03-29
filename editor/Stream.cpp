@@ -1515,13 +1515,15 @@ YAML::Node Editor::Stream::encodeScriptProperty(const ScriptProperty& prop) {
             node["value"] = encodeVector4(std::get<Vector4>(prop.value));
             node["defaultValue"] = encodeVector4(std::get<Vector4>(prop.defaultValue));
             break;
-        case ScriptPropertyType::EntityPointer:
-            node["value"] = std::get<Entity>(prop.value);
-            node["defaultValue"] = std::get<Entity>(prop.defaultValue);
-            if (prop.sceneId != 0) {
-                node["sceneId"] = prop.sceneId;
+        case ScriptPropertyType::EntityPointer: {
+            const auto& entRef = std::get<EntityReference>(prop.value);
+            node["value"] = entRef.entity;
+            node["defaultValue"] = std::get<EntityReference>(prop.defaultValue).entity;
+            if (entRef.sceneId != 0) {
+                node["sceneId"] = entRef.sceneId;
             }
             break;
+        }
     }
 
     return node;
@@ -1572,11 +1574,9 @@ ScriptProperty Editor::Stream::decodeScriptProperty(const YAML::Node& node) {
                 prop.defaultValue = node["defaultValue"] ? decodeVector4(node["defaultValue"]) : Vector4();
                 break;
             case ScriptPropertyType::EntityPointer: {
-                prop.value = node["value"].as<Entity>(NULL_ENTITY);
-                prop.defaultValue = node["defaultValue"] ? node["defaultValue"].as<Entity>(NULL_ENTITY) : Entity(NULL_ENTITY);
-                if (node["sceneId"]) {
-                    prop.sceneId = node["sceneId"].as<uint32_t>(0);
-                }
+                uint32_t sid = node["sceneId"] ? node["sceneId"].as<uint32_t>(0) : 0;
+                prop.value = EntityReference{node["value"].as<Entity>(NULL_ENTITY), sid};
+                prop.defaultValue = EntityReference{node["defaultValue"] ? node["defaultValue"].as<Entity>(NULL_ENTITY) : Entity(NULL_ENTITY), 0};
                 break;
             }
         }
@@ -1592,7 +1592,7 @@ ScriptProperty Editor::Stream::decodeScriptProperty(const YAML::Node& node) {
             case ScriptPropertyType::Color3: prop.value = Vector3(); prop.defaultValue = Vector3(); break;
             case ScriptPropertyType::Vector4:
             case ScriptPropertyType::Color4: prop.value = Vector4(); prop.defaultValue = Vector4(); break;
-            case ScriptPropertyType::EntityPointer: prop.value = Entity(NULL_ENTITY); prop.defaultValue = Entity(NULL_ENTITY); break;
+            case ScriptPropertyType::EntityPointer: prop.value = EntityReference{NULL_ENTITY, 0}; prop.defaultValue = EntityReference{NULL_ENTITY, 0}; break;
         }
     }
 

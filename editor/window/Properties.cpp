@@ -3276,7 +3276,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             if (sc && scriptIdx < sc->scripts.size()) {
                 for (auto& sp : sc->scripts[scriptIdx].properties) {
                     if (sp.name == propName) {
-                        sid = sp.sceneId;
+                        sid = std::get<EntityReference>(sp.value).sceneId;
                         break;
                     }
                 }
