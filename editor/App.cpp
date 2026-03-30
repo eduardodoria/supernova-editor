@@ -845,6 +845,9 @@ void Editor::App::engineRender(){
                 for (uint32_t childId : sceneProject.childScenes) {
                     SceneProject* childScene = project.getScene(childId);
                     if (childScene && childScene->expandedInline && childScene->scene) {
+                        if (childScene->sceneRender) {
+                            childScene->sceneRender->hideAllGizmos();
+                        }
                         childScene->scene->getSystem<MeshSystem>()->update(0);
                         childScene->scene->getSystem<UISystem>()->update(0);
                         childScene->scene->getSystem<RenderSystem>()->update(0);

@@ -1427,6 +1427,10 @@ void Editor::Project::closeScene(uint32_t sceneId, bool systemClose) {
     cleanupEntityBundlesForScene(sceneId);
 
     it->opened = false;
+    it->expandedInline = false;
+
+    // Notify parent scenes so they rebuild their layers without the deleted scene
+    markParentScenesNeedUpdate(sceneId);
 
     if (!systemClose){
         saveProject();
@@ -2141,9 +2145,10 @@ void Editor::Project::saveScene(uint32_t sceneId) {
         Backend::getApp().registerSaveSceneDialog(sceneId);
     }
 
-    // Also save modified child scenes
+    // Also save modified child scenes that are loaded inline
     for (uint32_t childId : sceneProject->childScenes) {
-        if (hasSceneUnsavedChanges(childId)) {
+        const SceneProject* childScene = getScene(childId);
+        if (childScene && childScene->expandedInline && childScene->scene && hasSceneUnsavedChanges(childId)) {
             saveScene(childId);
         }
     }
@@ -2675,7 +2680,8 @@ bool Editor::Project::hasSceneUnsavedChanges(uint32_t sceneId) const{
     }
 
     for (uint32_t childId : sceneProject->childScenes) {
-        if (hasSceneUnsavedChanges(childId)) {
+        const SceneProject* childScene = getScene(childId);
+        if (childScene && childScene->expandedInline && childScene->scene && hasSceneUnsavedChanges(childId)) {
             return true;
         }
     }

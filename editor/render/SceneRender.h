@@ -69,11 +69,12 @@ namespace Supernova::Editor{
 
         float zoom;       // current zoom level (units per pixel) for 2D
 
-        virtual void hideAllGizmos();
-
     public:
+
         SceneRender(Scene* scene, bool use2DGizmos, bool enableViewGizmo, float gizmoScale, float selectionOffset);
         virtual ~SceneRender();
+
+        virtual void hideAllGizmos();
 
         void setPlayMode(bool isPlaying);
 
