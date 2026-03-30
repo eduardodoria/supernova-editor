@@ -291,25 +291,25 @@ void Editor::App::showMenu(){
         }
         if (ImGui::BeginMenu("Scene")) {
             ImGui::BeginDisabled(!canRun);
-            if (ImGui::MenuItem("Run")) {
+            if (ImGui::MenuItem("Run", "F5")) {
                 project.start(selectedSceneId);
             }
             ImGui::EndDisabled();
 
             ImGui::BeginDisabled(!canPause);
-            if (ImGui::MenuItem("Pause")) {
+            if (ImGui::MenuItem("Pause", "F6")) {
                 project.pause(selectedSceneId);
             }
             ImGui::EndDisabled();
 
             ImGui::BeginDisabled(!canResume);
-            if (ImGui::MenuItem("Resume")) {
+            if (ImGui::MenuItem("Resume", "F5")) {
                 project.resume(selectedSceneId);
             }
             ImGui::EndDisabled();
 
             ImGui::BeginDisabled(!canStop);
-            if (ImGui::MenuItem("Stop")) {
+            if (ImGui::MenuItem("Stop", "F7")) {
                 project.stop(selectedSceneId);
             }
             ImGui::EndDisabled();
@@ -677,6 +677,33 @@ void Editor::App::show(){
     if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_O)) {
         // CTRL+O opens a project
         openProjectFunc();
+    }
+
+    // Play/Pause/Stop shortcuts
+    {
+        SceneProject* selectedScene = project.getSelectedScene();
+        uint32_t selectedSceneId = project.getSelectedSceneId();
+        bool hasSelectedScene = selectedScene != nullptr;
+        bool isPlaying = hasSelectedScene && selectedScene->playState == ScenePlayState::PLAYING;
+        bool isPaused = hasSelectedScene && selectedScene->playState == ScenePlayState::PAUSED;
+
+        if (ImGui::IsKeyPressed(ImGuiKey_F5)) {
+            if (hasSelectedScene && !project.isAnyScenePlaying()) {
+                project.start(selectedSceneId);
+            } else if (isPaused) {
+                project.resume(selectedSceneId);
+            }
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_F6)) {
+            if (isPlaying) {
+                project.pause(selectedSceneId);
+            }
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_F7)) {
+            if (isPlaying || isPaused) {
+                project.stop(selectedSceneId);
+            }
+        }
     }
 
     if (isDroppedExternalPaths) {
