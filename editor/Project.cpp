@@ -426,7 +426,14 @@ void Editor::Project::remapSceneFilePath(const std::filesystem::path& oldPath, c
 
         fs::path updatedPath;
         if (remapRelativePath(oldRelative, newRelative, sceneProject.filepath, updatedPath)) {
+            std::string oldStr = sceneProject.filepath.string();
             sceneProject.filepath = updatedPath;
+            // Update corresponding tab entry
+            for (auto& tab : tabs) {
+                if (tab.type == TabType::SCENE && tab.filepath == oldStr) {
+                    tab.filepath = updatedPath.string();
+                }
+            }
             changed = true;
         }
     }
@@ -1300,6 +1307,10 @@ void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene)
         targetScene->isModified = false;
         targetScene->opened = opened;
 
+        if (opened) {
+            addTab(TabType::SCENE, targetScene->filepath.string());
+        }
+
         // Check for ID collisions
         SceneProject* existing = getScene(targetScene->id);
         if (targetScene->id == NULL_PROJECT_SCENE || (existing && existing != targetScene)) {
@@ -1426,6 +1437,7 @@ void Editor::Project::closeScene(uint32_t sceneId, bool systemClose) {
 
     cleanupEntityBundlesForScene(sceneId);
 
+    removeTab(TabType::SCENE, it->filepath.string());
     it->opened = false;
     it->expandedInline = false;
 
@@ -1470,6 +1482,7 @@ void Editor::Project::removeScene(uint32_t sceneId) {
     // Cleanup EntityBundles
     cleanupEntityBundlesForScene(sceneId);
 
+    removeTab(TabType::SCENE, it->filepath.string());
     scenes.erase(it);
 }
 
@@ -1715,6 +1728,7 @@ void Editor::Project::resetConfigs() {
     nextSceneId = 0;
     projectPath.clear();
     materialFileLinks.clear();
+    tabs.clear();
     lastMaterialRefreshTime = std::chrono::steady_clock::time_point{};
     projectHistory.clear();
 
@@ -2186,8 +2200,18 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
     fout << YAML::Dump(root);
     fout.close();
 
+    std::string oldFilepath = sceneProject->filepath.string();
     sceneProject->filepath = relPath;
     sceneProject->isModified = false;
+
+    // Update tabs: if filepath changed, update existing tab entry
+    if (sceneProject->opened) {
+        if (!oldFilepath.empty() && oldFilepath != relPath.string()) {
+            removeTab(TabType::SCENE, oldFilepath);
+        }
+        addTab(TabType::SCENE, relPath.string());
+    }
+
     saveProject();
 
     std::vector<BundleInstanceInfo> bundleInstances = generator.writeBundleSources(entityBundles, sceneId, getProjectPath(),getProjectInternalPath());
@@ -2453,6 +2477,35 @@ std::vector<Editor::SceneProject>& Editor::Project::getScenes(){
 
 const std::vector<Editor::SceneProject>& Editor::Project::getScenes() const{
     return scenes;
+}
+
+std::vector<Editor::TabEntry>& Editor::Project::getTabs(){
+    return tabs;
+}
+
+const std::vector<Editor::TabEntry>& Editor::Project::getTabs() const{
+    return tabs;
+}
+
+void Editor::Project::addTab(TabType type, const std::string& filepath){
+    if (!hasTab(type, filepath)){
+        tabs.push_back({type, filepath});
+    }
+}
+
+void Editor::Project::removeTab(TabType type, const std::string& filepath){
+    tabs.erase(
+        std::remove_if(tabs.begin(), tabs.end(), [&](const TabEntry& t){
+            return t.type == type && t.filepath == filepath;
+        }),
+        tabs.end()
+    );
+}
+
+bool Editor::Project::hasTab(TabType type, const std::string& filepath) const{
+    return std::any_of(tabs.begin(), tabs.end(), [&](const TabEntry& t){
+        return t.type == type && t.filepath == filepath;
+    });
 }
 
 template<typename T>

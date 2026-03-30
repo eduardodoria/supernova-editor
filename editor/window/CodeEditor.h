@@ -44,6 +44,8 @@ namespace Supernova::Editor {
         void handleFileChangePopup();
         std::string getWindowTitle(const EditorInstance& instance) const;
         void updateScriptProperties(const EditorInstance& instance);
+        fs::path resolveFilepath(const fs::path& relPath) const;
+        std::string toRelativePath(const std::string& filepath) const;
 
     public:
         CodeEditor(Project* project);

@@ -40,6 +40,16 @@ namespace Supernova::Editor{
         INTO
     };
 
+    enum class TabType{
+        SCENE,
+        CODE_EDITOR
+    };
+
+    struct TabEntry{
+        TabType type;
+        std::string filepath;
+    };
+
     struct SceneMaxValues {
         unsigned int maxSubmeshes = 0;
         unsigned int maxTilemapTilesRect = 0;
@@ -111,6 +121,7 @@ namespace Supernova::Editor{
         uint32_t nextSceneId;
 
         std::vector<SceneProject> scenes;
+        std::vector<TabEntry> tabs;
 
         struct PlayRuntimeScene {
             uint32_t sourceSceneId = NULL_PROJECT_SCENE;
@@ -284,6 +295,12 @@ namespace Supernova::Editor{
         const SceneProject* getScene(uint32_t sceneId) const;
         SceneProject* getSelectedScene();
         const SceneProject* getSelectedScene() const;
+
+        std::vector<TabEntry>& getTabs();
+        const std::vector<TabEntry>& getTabs() const;
+        void addTab(TabType type, const std::string& filepath);
+        void removeTab(TabType type, const std::string& filepath);
+        bool hasTab(TabType type, const std::string& filepath) const;
 
         void setNextSceneId(uint32_t nextSceneId);
         uint32_t getNextSceneId() const;

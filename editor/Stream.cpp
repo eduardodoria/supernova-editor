@@ -6,6 +6,8 @@
 #include "Out.h"
 #include "util/ProjectUtils.h"
 
+#include <set>
+
 using namespace Supernova;
 
 std::string Editor::Stream::sceneTypeToString(Editor::SceneType type){
@@ -786,13 +788,25 @@ YAML::Node Editor::Stream::encodeProject(Project* project) {
     root["windowWidth"] = project->getWindowWidth();
     root["windowHeight"] = project->getWindowHeight();
 
+    // Add tabs array
+    YAML::Node tabsNode;
+    for (const auto& tab : project->getTabs()) {
+        YAML::Node tabNode;
+        switch (tab.type) {
+            case TabType::SCENE:       tabNode["type"] = "scene"; break;
+            case TabType::CODE_EDITOR: tabNode["type"] = "codeeditor"; break;
+        }
+        tabNode["filepath"] = tab.filepath;
+        tabsNode.push_back(tabNode);
+    }
+    root["tabs"] = tabsNode;
+
     // Add scenes array
     YAML::Node scenesNode;
     for (const auto& sceneProject : project->getScenes()) {
         YAML::Node sceneNode;
         if (!sceneProject.filepath.empty()) {
             sceneNode["filepath"] = sceneProject.filepath.string();
-            sceneNode["opened"] = sceneProject.opened;
             sceneNode["showAllJoints"]        = sceneProject.displaySettings.showAllJoints;
             sceneNode["showAllBones"]         = sceneProject.displaySettings.showAllBones;
             sceneNode["hideAllBodies"]        = sceneProject.displaySettings.hideAllBodies;
@@ -845,8 +859,25 @@ void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
         );
     }
 
+    // Build set of scene filepaths that should be opened from tabs
+    std::set<std::string> openedScenePaths;
+    bool hasTabs = node["tabs"] && node["tabs"].IsSequence();
+
+    if (hasTabs) {
+        for (const auto& tabNode : node["tabs"]) {
+            std::string type = tabNode["type"] ? tabNode["type"].as<std::string>() : "";
+            std::string filepath = tabNode["filepath"] ? tabNode["filepath"].as<std::string>() : "";
+            if (type == "scene") {
+                openedScenePaths.insert(filepath);
+                project->addTab(TabType::SCENE, filepath);
+            } else if (type == "codeeditor") {
+                project->addTab(TabType::CODE_EDITOR, filepath);
+            }
+        }
+    }
+
     // Load scenes information
-    bool anyOpened = false;
+    bool isFirstScene = true;
     if (node["scenes"]) {
         for (const auto& sceneNode : node["scenes"]) {
             if (sceneNode["filepath"]) {
@@ -854,8 +885,14 @@ void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
                 if (scenePath.is_relative()) {
                     scenePath = project->getProjectPath() / scenePath;
                 }
-                bool opened = sceneNode["opened"] ? sceneNode["opened"].as<bool>() : false;
-                if (opened) anyOpened = true;
+                bool opened;
+                if (hasTabs) {
+                    std::string relStr = sceneNode["filepath"].as<std::string>();
+                    opened = openedScenePaths.count(relStr) > 0;
+                } else {
+                    // No tabs: open first scene only
+                    opened = isFirstScene;
+                }
                 if (fs::exists(scenePath)) {
                     project->loadScene(scenePath, opened);
                     // Restore display settings into the just-loaded scene
@@ -883,11 +920,9 @@ void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
                         }
                     }
                 }
+                isFirstScene = false;
             }
         }
-    }
-    if (!anyOpened && project->getScenes().size() > 0){
-        project->getScenes()[0].opened = true;
     }
 }
 

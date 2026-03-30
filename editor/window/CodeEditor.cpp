@@ -15,9 +15,29 @@ Editor::CodeEditor::CodeEditor(Project* project) : isFileChangePopupOpen(false),
 Editor::CodeEditor::~CodeEditor() {
 }
 
+fs::path Editor::CodeEditor::resolveFilepath(const fs::path& relPath) const {
+    if (relPath.is_absolute()) return relPath;
+    return project->getProjectPath() / relPath;
+}
+
+std::string Editor::CodeEditor::toRelativePath(const std::string& filepath) const {
+    fs::path inputPath(filepath);
+    if (inputPath.is_relative()) return filepath;
+    fs::path projectPath = project->getProjectPath();
+    if (!projectPath.empty()) {
+        std::error_code ec;
+        fs::path relPath = fs::relative(inputPath, projectPath, ec);
+        if (!ec && !relPath.empty()) {
+            return relPath.string();
+        }
+    }
+    return filepath;
+}
+
 bool Editor::CodeEditor::loadFileContent(EditorInstance& instance) {
     try {
-        std::ifstream file(instance.filepath);
+        fs::path fullPath = resolveFilepath(instance.filepath);
+        std::ifstream file(fullPath);
         if (file.is_open()) {
             std::stringstream buffer;
             buffer << file.rdbuf();
@@ -25,7 +45,7 @@ bool Editor::CodeEditor::loadFileContent(EditorInstance& instance) {
 
             instance.editor->SetText(buffer.str());
             instance.savedUndoIndex = instance.editor->GetUndoIndex();
-            instance.lastWriteTime = fs::last_write_time(instance.filepath);
+            instance.lastWriteTime = fs::last_write_time(fullPath);
             instance.isModified = false;
 
             updateScriptProperties(instance);
@@ -40,7 +60,8 @@ bool Editor::CodeEditor::loadFileContent(EditorInstance& instance) {
 
 void Editor::CodeEditor::checkFileChanges(EditorInstance& instance) {
     try {
-        auto currentWriteTime = fs::last_write_time(instance.filepath);
+        fs::path fullPath = resolveFilepath(instance.filepath);
+        auto currentWriteTime = fs::last_write_time(fullPath);
         if (currentWriteTime != instance.lastWriteTime) {
             if (instance.isModified) {
                 // Check if this file is already in the queue
@@ -166,12 +187,12 @@ void Editor::CodeEditor::updateScriptProperties(const EditorInstance& instance){
                     (scriptEntry.type == ScriptType::SCRIPT_LUA);
 
                 // For C++ scripts we compare headerPath, for Lua we compare .lua path
-                fs::path relativeInternalPath = fs::relative(instance.filepath, project->getProjectPath());
+                // instance.filepath is already project-relative
                 bool matchesFile = false;
                 if (isCppScript && !scriptEntry.headerPath.empty()) {
-                    matchesFile = (scriptEntry.headerPath == relativeInternalPath.string());
+                    matchesFile = (scriptEntry.headerPath == instance.filepath.string());
                 } else if (isLuaScript && !scriptEntry.path.empty()) {
-                    matchesFile = (scriptEntry.path == relativeInternalPath.string());
+                    matchesFile = (scriptEntry.path == instance.filepath.string());
                 }
 
                 if (matchesFile) {
@@ -208,7 +229,8 @@ bool Editor::CodeEditor::isFocused() const {
 
 bool Editor::CodeEditor::save(EditorInstance& instance) {
     try {
-        std::ofstream file(instance.filepath);
+        fs::path fullPath = resolveFilepath(instance.filepath);
+        std::ofstream file(fullPath);
         if (!file.is_open()) {
             return false;
         }
@@ -219,7 +241,7 @@ bool Editor::CodeEditor::save(EditorInstance& instance) {
 
         instance.savedUndoIndex = instance.editor->GetUndoIndex();
         instance.isModified = false;
-        instance.lastWriteTime = fs::last_write_time(instance.filepath);
+        instance.lastWriteTime = fs::last_write_time(fullPath);
 
         updateScriptProperties(instance);
 
@@ -237,7 +259,8 @@ void Editor::CodeEditor::saveLastFocused(){
 }
 
 bool Editor::CodeEditor::save(const std::string& filepath) {
-    auto it = editors.find(filepath);
+    std::string key = toRelativePath(filepath);
+    auto it = editors.find(key);
     if (it == editors.end()) {
         return false;
     }
@@ -292,15 +315,17 @@ bool Editor::CodeEditor::hasLastFocusedUnsavedChanges() const {
 }
 
 void Editor::CodeEditor::openFile(const std::string& filepath) {
-    auto it = editors.find(filepath);
+    std::string key = toRelativePath(filepath);
+
+    auto it = editors.find(key);
     if (it != editors.end()) {
         // File already open - set this window as focused for the next frame
         ImGui::SetWindowFocus(getWindowTitle(it->second).c_str());
         return;
     }
 
-    auto& instance = editors[filepath];
-    instance.filepath = filepath;
+    auto& instance = editors[key];
+    instance.filepath = key;
     instance.editor = std::make_unique<CustomTextEditor>();
 
     // Detect language from extension and filename
@@ -336,32 +361,41 @@ void Editor::CodeEditor::openFile(const std::string& filepath) {
         if (lastFocused == &instance) {
             lastFocused = nullptr;
         }
-        editors.erase(filepath);
+        editors.erase(key);
+        return;
     }
+
+    project->addTab(TabType::CODE_EDITOR, key);
 
     Backend::getApp().addNewCodeWindowToDock(instance.filepath);
 }
 
 void Editor::CodeEditor::closeFile(const std::string& filepath) {
-    if (auto it = editors.find(filepath); it != editors.end()) {
+    std::string key = toRelativePath(filepath);
+    if (auto it = editors.find(key); it != editors.end()) {
         if (lastFocused == &it->second) {
             lastFocused = nullptr;
         }
+
+        project->removeTab(TabType::CODE_EDITOR, key);
+
         editors.erase(it);
     }
 }
 
 bool Editor::CodeEditor::isFileOpen(const std::string& filepath) const {
-    return editors.find(filepath) != editors.end();
+    std::string key = toRelativePath(filepath);
+    return editors.find(key) != editors.end();
 }
 
 void Editor::CodeEditor::setText(const std::string& filepath, const std::string& text) {
-    if (auto it = editors.find(filepath); it != editors.end()) {
+    std::string key = toRelativePath(filepath);
+    if (auto it = editors.find(key); it != editors.end()) {
         it->second.editor->SetText(text);
         it->second.savedUndoIndex = it->second.editor->GetUndoIndex();
         it->second.isModified = false;
         try {
-            it->second.lastWriteTime = fs::last_write_time(filepath);
+            it->second.lastWriteTime = fs::last_write_time(resolveFilepath(key));
         } catch (const std::exception& e) {
             // Handle file access errors
         }
@@ -369,14 +403,18 @@ void Editor::CodeEditor::setText(const std::string& filepath, const std::string&
 }
 
 std::string Editor::CodeEditor::getText(const std::string& filepath) const {
-    if (auto it = editors.find(filepath); it != editors.end()) {
+    std::string key = toRelativePath(filepath);
+    if (auto it = editors.find(key); it != editors.end()) {
         return it->second.editor->GetText();
     }
     return "";
 }
 
 bool Editor::CodeEditor::handleFileRename(const fs::path& oldPath, const fs::path& newPath) {
-    auto it = editors.find(oldPath.string());
+    std::string oldKey = toRelativePath(oldPath.string());
+    std::string newKey = toRelativePath(newPath.string());
+
+    auto it = editors.find(oldKey);
     if (it == editors.end()) {
         return false;
     }
@@ -385,36 +423,39 @@ bool Editor::CodeEditor::handleFileRename(const fs::path& oldPath, const fs::pat
     EditorInstance newInstance;
     newInstance.editor = std::move(it->second.editor);
     newInstance.isOpen = it->second.isOpen;
-    newInstance.filepath = newPath;
+    newInstance.filepath = newKey;
     newInstance.isModified = it->second.isModified;
     newInstance.lastCheckTime = it->second.lastCheckTime;
     newInstance.hasExternalChanges = it->second.hasExternalChanges;
     newInstance.savedUndoIndex = it->second.savedUndoIndex;
 
     try {
-        newInstance.lastWriteTime = fs::last_write_time(newPath);
+        newInstance.lastWriteTime = fs::last_write_time(resolveFilepath(newKey));
     } catch (const std::exception& e) {
         return false;
     }
 
     // Update lastFocused pointer if it was pointing to the old instance
     if (lastFocused == &it->second) {
-        editors[newPath.string()] = std::move(newInstance);
-        lastFocused = &editors[newPath.string()];
+        editors[newKey] = std::move(newInstance);
+        lastFocused = &editors[newKey];
         editors.erase(it);
     } else {
         editors.erase(it);
-        editors[newPath.string()] = std::move(newInstance);
+        editors[newKey] = std::move(newInstance);
     }
 
     // Update any pending file changes
     auto changeIt = std::remove_if(changedFilesQueue.begin(), changedFilesQueue.end(),
         [&](const PendingFileChange& change) {
-            return change.filepath == oldPath;
+            return change.filepath == fs::path(oldKey);
         });
     changedFilesQueue.erase(changeIt, changedFilesQueue.end());
 
-    Backend::getApp().addNewCodeWindowToDock(newPath);
+    project->removeTab(TabType::CODE_EDITOR, oldKey);
+    project->addTab(TabType::CODE_EDITOR, newKey);
+
+    Backend::getApp().addNewCodeWindowToDock(fs::path(newKey));
 
     return true;
 }
@@ -470,6 +511,9 @@ void Editor::CodeEditor::show() {
             if (lastFocused == &instance) {
                 lastFocused = nullptr;
             }
+
+            project->removeTab(TabType::CODE_EDITOR, instance.filepath.string());
+
             it = editors.erase(it);
         } else {
             ++it;

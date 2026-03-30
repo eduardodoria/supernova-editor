@@ -554,13 +554,30 @@ void Editor::App::buildDockspace(){
     ImGui::DockBuilderDockWindow(OutputWindow::WINDOW_NAME, dock_id_middle_bottom);
     ImGui::DockBuilderDockWindow(AnimationWindow::WINDOW_NAME, dock_id_middle_bottom);
 
-    for (auto& sceneProject : project.getScenes()) {
-        if (!sceneProject.opened) continue;
-        addNewSceneToDock(sceneProject.id);
+    // Dock tabs in their saved order
+    for (const auto& tab : project.getTabs()) {
+        if (tab.type == TabType::SCENE) {
+            // Find scene by filepath
+            for (auto& sceneProject : project.getScenes()) {
+                if (sceneProject.opened && sceneProject.filepath.string() == tab.filepath) {
+                    addNewSceneToDock(sceneProject.id);
+                    break;
+                }
+            }
+        } else if (tab.type == TabType::CODE_EDITOR) {
+            fs::path fullPath = project.getProjectPath() / tab.filepath;
+            if (fs::exists(fullPath)) {
+                codeEditor->openFile(tab.filepath);
+            }
+        }
     }
 
-    for (auto& codePath : codeEditor->getOpenPaths()) {
-        addNewCodeWindowToDock(codePath);
+    // Dock any opened scenes that weren't in tabs (fallback)
+    for (auto& sceneProject : project.getScenes()) {
+        if (!sceneProject.opened) continue;
+        if (!project.hasTab(TabType::SCENE, sceneProject.filepath.string())) {
+            addNewSceneToDock(sceneProject.id);
+        }
     }
 
     ImGui::DockBuilderFinish(dockspace_id);
