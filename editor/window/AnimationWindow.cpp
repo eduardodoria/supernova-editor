@@ -4,6 +4,7 @@
 #include "external/IconsFontAwesome6.h"
 #include "Catalog.h"
 #include "Stream.h"
+#include "App.h"
 #include "command/CommandHandle.h"
 #include "command/type/PropertyCmd.h"
 #include "command/type/MultiPropertyCmd.h"
@@ -787,8 +788,11 @@ void Editor::AnimationWindow::drawPlayhead(ImVec2 canvasPos, ImVec2 canvasSize, 
 }
 
 void Editor::AnimationWindow::show() {
-    ImGuiWindowFlags windowFlags = hasNotification ? ImGuiWindowFlags_UnsavedDocument : 0;
-    isWindowVisible = ImGui::Begin(AnimationWindow::WINDOW_NAME, nullptr, windowFlags);
+    if (hasNotification) {
+        App::pushTabNotificationStyle();
+    }
+    isWindowVisible = ImGui::Begin(AnimationWindow::WINDOW_NAME, nullptr, hasNotification ? ImGuiWindowFlags_UnsavedDocument : 0);
+    if (hasNotification) App::popTabNotificationStyle();
 
     if (isWindowVisible) {
         hasNotification = false;
@@ -861,6 +865,7 @@ void Editor::AnimationWindow::show() {
 
     if (selectedEntities != lastSceneSelectedEntities) {
         lastSceneSelectedEntities = selectedEntities;
+        bool foundAnimation = false;
         for (Entity entity : selectedEntities) {
             if (scene->findComponent<AnimationComponent>(entity)) {
                 if (selectedEntity != entity) {
@@ -869,8 +874,12 @@ void Editor::AnimationWindow::show() {
                 if (!isWindowVisible) {
                     hasNotification = true;
                 }
+                foundAnimation = true;
                 break;
             }
+        }
+        if (!foundAnimation) {
+            hasNotification = false;
         }
     }
 

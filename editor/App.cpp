@@ -1187,6 +1187,16 @@ std::filesystem::path Editor::App::getUserShaderCacheDir(){
     return App::getUserCacheBaseDir() / "supernova" / "shaders" / "v1";
 }
 
+void Editor::App::pushTabNotificationStyle(){
+    ImGui::PushStyleColor(ImGuiCol_Tab,        ImVec4(0.22f, 0.30f, 0.40f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_TabDimmed,   ImVec4(0.22f, 0.30f, 0.40f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_TabHovered,  ImVec4(0.26f, 0.35f, 0.46f, 1.00f));
+}
+
+void Editor::App::popTabNotificationStyle(){
+    ImGui::PopStyleColor(3);
+}
+
 Editor::Project* Editor::App::getProject(){
     return &project;
 }

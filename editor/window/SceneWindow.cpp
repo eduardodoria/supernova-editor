@@ -12,6 +12,7 @@
 #include "render/SceneRender3D.h"
 #include "Stream.h"
 #include "Out.h"
+#include "App.h"
 
 #include "math/Vector2.h"
 #include "util/Angle.h"
@@ -871,11 +872,18 @@ void Editor::SceneWindow::show() {
                 hasNotification[sceneProject.id] = true;
             }
         }
+        if (sceneProject.playState == ScenePlayState::STOPPED && prevState != ScenePlayState::STOPPED) {
+            hasNotification[sceneProject.id] = false;
+        }
         lastPlayState[sceneProject.id] = sceneProject.playState;
 
+        if (hasNotification[sceneProject.id]) {
+            App::pushTabNotificationStyle();
+        }
         ImGuiWindowFlags windowFlags = hasNotification[sceneProject.id] ? ImGuiWindowFlags_UnsavedDocument : 0;
         ImGui::SetNextWindowSizeConstraints(ImVec2(200, 200), ImVec2(FLT_MAX, FLT_MAX));
         if (ImGui::Begin(getWindowTitle(sceneProject).c_str(), canClose ? &isOpen : nullptr, windowFlags)) {
+            if (hasNotification[sceneProject.id]) App::popTabNotificationStyle();
             sceneProject.isVisible = true;
             hasNotification[sceneProject.id] = false;
 
@@ -1090,6 +1098,7 @@ void Editor::SceneWindow::show() {
             }
             ImGui::EndChild();
         }else{
+            if (hasNotification[sceneProject.id]) App::popTabNotificationStyle();
             sceneProject.isVisible = false;
         }
         ImGui::End();

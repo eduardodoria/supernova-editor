@@ -393,12 +393,16 @@ bool OutputWindow::passTextFilter(const char* text) const {
 }
 
 void OutputWindow::show() {
-    ImGuiWindowFlags windowFlags = hasNotification ? ImGuiWindowFlags_UnsavedDocument : 0;
-    if (!ImGui::Begin(OutputWindow::WINDOW_NAME, nullptr, windowFlags)) {
+    if (hasNotification) {
+        App::pushTabNotificationStyle();
+    }
+    if (!ImGui::Begin(OutputWindow::WINDOW_NAME, nullptr, hasNotification ? ImGuiWindowFlags_UnsavedDocument : 0)) {
+        if (hasNotification) App::popTabNotificationStyle();
         isWindowVisible = false;
         ImGui::End();
         return;
     }
+    if (hasNotification) App::popTabNotificationStyle();
 
     isWindowVisible = true;
     hasNotification = false;

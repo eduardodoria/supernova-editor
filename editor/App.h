@@ -152,6 +152,10 @@ namespace Supernova::Editor{
         static std::filesystem::path getUserCacheBaseDir();
         static std::filesystem::path getUserShaderCacheDir();
 
+        // Tab notification helpers
+        static void pushTabNotificationStyle();
+        static void popTabNotificationStyle();
+
         Project* getProject();
         const Project* getProject() const;
 
