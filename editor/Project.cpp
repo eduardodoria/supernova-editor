@@ -2242,50 +2242,70 @@ Ray Editor::Project::screenToRayFromCamera(const CameraComponent& camera, float 
     return Ray(ray_origin, ray_direction);
 }
 
-Entity Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y, uint32_t* outSceneId){
-    SceneProject* scenedata = getScene(sceneId);
-    Ray ray = scenedata->sceneRender->getCamera()->screenToRay(x, y);
+AABB Editor::Project::getEntityWorldAABB(Scene* scene, Entity entity, Scene* mainScene) const{
+    AABB aabb;
+    Signature signature = scene->getSignature(entity);
 
-    float distance = FLT_MAX;
-    size_t index = 0;
-    Entity selEntity = NULL_ENTITY;
-    for (auto& entity : scenedata->entities) {
-        AABB aabb;
-        Signature signature = scenedata->scene->getSignature(entity);
-
-        if (!signature.test(scenedata->scene->getComponentId<Transform>())){
-            continue;
-        }
-
-        if (signature.test(scenedata->scene->getComponentId<MeshComponent>())){
-            MeshComponent& mesh = scenedata->scene->getComponent<MeshComponent>(entity);
-            aabb = mesh.worldAABB;
-        }else if (signature.test(scenedata->scene->getComponentId<UIComponent>())){
-            UIComponent& ui = scenedata->scene->getComponent<UIComponent>(entity);
-            aabb = ui.worldAABB;
-            if (signature.test(scenedata->scene->getComponentId<UILayoutComponent>())){
-                UILayoutComponent& layout = scenedata->scene->getComponent<UILayoutComponent>(entity);
-                if (layout.width > 0 && layout.height > 0){
-                    Vector2 center = GraphicUtils::getUILayoutCenter(scenedata->scene, entity, layout);
-                    Transform& transform = scenedata->scene->getComponent<Transform>(entity);
-                    aabb = transform.modelMatrix * AABB(-center.x, -center.y, 0, layout.width-center.x, layout.height-center.y, 0);
-                }
+    if (signature.test(scene->getComponentId<MeshComponent>())){
+        aabb = scene->getComponent<MeshComponent>(entity).worldAABB;
+    }else if (signature.test(scene->getComponentId<UIComponent>())){
+        aabb = scene->getComponent<UIComponent>(entity).worldAABB;
+        if (signature.test(scene->getComponentId<UILayoutComponent>())){
+            UILayoutComponent& layout = scene->getComponent<UILayoutComponent>(entity);
+            if (layout.width > 0 && layout.height > 0){
+                Vector2 center = GraphicUtils::getUILayoutCenter(scene, entity, layout);
+                Transform& transform = scene->getComponent<Transform>(entity);
+                aabb = transform.modelMatrix * AABB(-center.x, -center.y, 0, layout.width-center.x, layout.height-center.y, 0);
             }
-        }else if (signature.test(scenedata->scene->getComponentId<LightComponent>()) || 
-                  signature.test(scenedata->scene->getComponentId<CameraComponent>())){
-            Transform& transform = scenedata->scene->getComponent<Transform>(entity);
-            Transform& camtransform = scenedata->scene->getComponent<Transform>(scenedata->scene->getCamera());
-            CameraComponent& camera = scenedata->scene->getComponent<CameraComponent>(scenedata->scene->getCamera());
-            float dist = (transform.worldPosition - camtransform.worldPosition).length();
-            float size = dist * tan(camera.yfov) * 0.01;
-            aabb = transform.modelMatrix * AABB(-size, -size, -size, size, size, size);
         }
+    }else if (signature.test(scene->getComponentId<LightComponent>()) || 
+              signature.test(scene->getComponentId<CameraComponent>())){
+        Transform& transform = scene->getComponent<Transform>(entity);
+        Transform& camtransform = mainScene->getComponent<Transform>(mainScene->getCamera());
+        CameraComponent& camera = mainScene->getComponent<CameraComponent>(mainScene->getCamera());
+        float dist = (transform.worldPosition - camtransform.worldPosition).length();
+        float size = dist * tan(camera.yfov) * 0.01;
+        aabb = transform.modelMatrix * AABB(-size, -size, -size, size, size, size);
+    }
+
+    return aabb;
+}
+
+AABB Editor::Project::getEntityLocalAABB(Scene* scene, Entity entity) const{
+    AABB aabb;
+    Signature signature = scene->getSignature(entity);
+
+    if (signature.test(scene->getComponentId<MeshComponent>())){
+        aabb = scene->getComponent<MeshComponent>(entity).aabb;
+    }else if (signature.test(scene->getComponentId<UIComponent>())){
+        aabb = scene->getComponent<UIComponent>(entity).aabb;
+        if (signature.test(scene->getComponentId<UILayoutComponent>())){
+            UILayoutComponent& layout = scene->getComponent<UILayoutComponent>(entity);
+            if (layout.width > 0 && layout.height > 0){
+                Vector2 center = GraphicUtils::getUILayoutCenter(scene, entity, layout);
+                aabb = AABB(-center.x, -center.y, 0, layout.width-center.x, layout.height-center.y, 0);
+            }
+        }
+    }else if (signature.test(scene->getComponentId<LightComponent>()) || 
+              signature.test(scene->getComponentId<CameraComponent>())){
+        aabb = AABB::ZERO;
+    }
+
+    return aabb;
+}
+
+Entity Editor::Project::findBestEntityByRay(const std::vector<Entity>& entities, Scene* scene, const Ray& ray, Scene* mainScene, SceneType sceneType, float& distance, size_t& index) const{
+    Entity selEntity = NULL_ENTITY;
+    for (auto& entity : entities) {
+        if (!scene->getSignature(entity).test(scene->getComponentId<Transform>())) continue;
+
+        AABB aabb = getEntityWorldAABB(scene, entity, mainScene);
 
         if (!aabb.isNull() && !aabb.isInfinite()){
             RayReturn rreturn = ray.intersects(aabb);
             if (rreturn.hit){
-                size_t nIndex = scenedata->scene->getComponentArray<Transform>()->getIndex(entity);
-                if (rreturn.distance < distance || (nIndex >= index && scenedata->sceneType != SceneType::SCENE_3D)){
+                size_t nIndex = scene->getComponentArray<Transform>()->getIndex(entity);
+                if (rreturn.distance < distance || (nIndex >= index && sceneType != SceneType::SCENE_3D)){
                     distance = rreturn.distance;
                     index = nIndex;
                     selEntity = entity;
@@ -2293,6 +2313,50 @@ Entity Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y, uint
             }
         }
     }
+    return selEntity;
+}
+
+bool Editor::Project::selectEntitiesInRect(uint32_t sceneId, const std::vector<Entity>& entities, Scene* scene, const Matrix4& vpMatrix, Vector2 start, Vector2 end){
+    Vector2 minRect = Vector2(std::min(start.x, end.x), std::min(start.y, end.y));
+    Vector2 maxRect = Vector2(std::max(start.x, end.x), std::max(start.y, end.y));
+
+    bool found = false;
+    for (auto& entity : entities) {
+        if (!scene->getSignature(entity).test(scene->getComponentId<Transform>())) continue;
+
+        AABB aabb = getEntityLocalAABB(scene, entity);
+
+        if (!aabb.isNull() && !aabb.isInfinite()){
+            Transform& transform = scene->getComponent<Transform>(entity);
+            const Vector3* corners = aabb.getCorners();
+
+            bool inside = true;
+            for (int c = 0; c < 8; c++){
+                Vector4 clipCorner = vpMatrix * transform.modelMatrix * Vector4(corners[c], 1.0);
+                Vector3 ndcCorner = Vector3(clipCorner) / clipCorner.w;
+
+                if (!(ndcCorner.x >= minRect.x && ndcCorner.x <= maxRect.x && ndcCorner.y >= minRect.y && ndcCorner.y <= maxRect.y)){
+                    inside = false;
+                    break;
+                }
+            }
+
+            if (inside){
+                addSelectedEntity(sceneId, entity);
+                found = true;
+            }
+        }
+    }
+    return found;
+}
+
+Entity Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y, uint32_t* outSceneId){
+    SceneProject* scenedata = getScene(sceneId);
+    Ray ray = scenedata->sceneRender->getCamera()->screenToRay(x, y);
+
+    float distance = FLT_MAX;
+    size_t index = 0;
+    Entity selEntity = findBestEntityByRay(scenedata->entities, scenedata->scene, ray, scenedata->scene, scenedata->sceneType, distance, index);
 
     if (selEntity != NULL_ENTITY || !outSceneId) {
         if (outSceneId) *outSceneId = sceneId;
@@ -2309,47 +2373,7 @@ Entity Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y, uint
 
         distance = FLT_MAX;
         index = 0;
-
-        for (auto& entity : childScene->entities) {
-            AABB aabb;
-            Signature signature = childScene->scene->getSignature(entity);
-
-            if (!signature.test(childScene->scene->getComponentId<Transform>())) continue;
-
-            if (signature.test(childScene->scene->getComponentId<MeshComponent>())){
-                aabb = childScene->scene->getComponent<MeshComponent>(entity).worldAABB;
-            }else if (signature.test(childScene->scene->getComponentId<UIComponent>())){
-                aabb = childScene->scene->getComponent<UIComponent>(entity).worldAABB;
-                if (signature.test(childScene->scene->getComponentId<UILayoutComponent>())){
-                    UILayoutComponent& layout = childScene->scene->getComponent<UILayoutComponent>(entity);
-                    if (layout.width > 0 && layout.height > 0){
-                        Vector2 center = GraphicUtils::getUILayoutCenter(childScene->scene, entity, layout);
-                        Transform& transform = childScene->scene->getComponent<Transform>(entity);
-                        aabb = transform.modelMatrix * AABB(-center.x, -center.y, 0, layout.width-center.x, layout.height-center.y, 0);
-                    }
-                }
-            }else if (signature.test(childScene->scene->getComponentId<LightComponent>()) || 
-                      signature.test(childScene->scene->getComponentId<CameraComponent>())){
-                Transform& transform = childScene->scene->getComponent<Transform>(entity);
-                Transform& camtransform = scenedata->scene->getComponent<Transform>(scenedata->scene->getCamera());
-                CameraComponent& camera = scenedata->scene->getComponent<CameraComponent>(scenedata->scene->getCamera());
-                float dist = (transform.worldPosition - camtransform.worldPosition).length();
-                float size = dist * tan(camera.yfov) * 0.01;
-                aabb = transform.modelMatrix * AABB(-size, -size, -size, size, size, size);
-            }
-
-            if (!aabb.isNull() && !aabb.isInfinite()){
-                RayReturn rreturn = childRay.intersects(aabb);
-                if (rreturn.hit){
-                    size_t nIndex = childScene->scene->getComponentArray<Transform>()->getIndex(entity);
-                    if (rreturn.distance < distance || (nIndex >= index && scenedata->sceneType != SceneType::SCENE_3D)){
-                        distance = rreturn.distance;
-                        index = nIndex;
-                        selEntity = entity;
-                    }
-                }
-            }
-        }
+        selEntity = findBestEntityByRay(childScene->entities, childScene->scene, childRay, scenedata->scene, scenedata->sceneType, distance, index);
 
         if (selEntity != NULL_ENTITY) {
             if (outSceneId) *outSceneId = childId;
@@ -2396,63 +2420,7 @@ bool Editor::Project::selectObjectsByRect(uint32_t sceneId, Vector2 start, Vecto
 
     clearAllSelections(sceneId);
 
-    bool mainSceneFound = false;
-    for (auto& entity : scenedata->entities) {
-
-        AABB aabb;
-        Signature signature = scenedata->scene->getSignature(entity);
-
-        if (!signature.test(scenedata->scene->getComponentId<Transform>())){
-            continue;
-        }
-
-        if (signature.test(scenedata->scene->getComponentId<MeshComponent>())){
-            MeshComponent& mesh = scenedata->scene->getComponent<MeshComponent>(entity);
-            aabb = mesh.aabb;
-        }else if (signature.test(scenedata->scene->getComponentId<UIComponent>())){
-            UIComponent& ui = scenedata->scene->getComponent<UIComponent>(entity);
-            aabb = ui.aabb;
-            if (signature.test(scenedata->scene->getComponentId<UILayoutComponent>())){
-                UILayoutComponent& layout = scenedata->scene->getComponent<UILayoutComponent>(entity);
-                if (layout.width > 0 && layout.height > 0){
-                    Vector2 center = GraphicUtils::getUILayoutCenter(scenedata->scene, entity, layout);
-                    aabb = AABB(-center.x, -center.y, 0, layout.width-center.x, layout.height-center.y, 0);
-                }
-            }
-        }else if (signature.test(scenedata->scene->getComponentId<LightComponent>()) || 
-                  signature.test(scenedata->scene->getComponentId<CameraComponent>())){
-            Transform& transform = scenedata->scene->getComponent<Transform>(entity);
-            aabb = AABB::ZERO; // just a point
-        }
-
-        if (!aabb.isNull() && !aabb.isInfinite()){
-            Transform& transform = scenedata->scene->getComponent<Transform>(entity);
-
-            const Vector3* corners = aabb.getCorners();
-
-            Vector2 minRect = Vector2(std::min(start.x, end.x), std::min(start.y, end.y));
-            Vector2 maxRect = Vector2(std::max(start.x, end.x), std::max(start.y, end.y));
-
-            bool found = true;
-
-            for (int c = 0; c < 8; c++){
-                Vector4 clipCorner = camera->getViewProjectionMatrix() * transform.modelMatrix * Vector4(corners[c], 1.0);
-                Vector3 ndcCorner = Vector3(clipCorner) / clipCorner.w;
-
-                if (!(ndcCorner.x >= minRect.x && ndcCorner.x <= maxRect.x && ndcCorner.y >= minRect.y && ndcCorner.y <= maxRect.y)){
-                    found = false;
-                    break;
-                }
-            }
-
-            if (found){
-                addSelectedEntity(sceneId, entity);
-                mainSceneFound = true;
-            }
-        }
-    }
-
-    if (mainSceneFound) {
+    if (selectEntitiesInRect(sceneId, scenedata->entities, scenedata->scene, camera->getViewProjectionMatrix(), start, end)) {
         return false;
     }
 
@@ -2465,59 +2433,8 @@ bool Editor::Project::selectObjectsByRect(uint32_t sceneId, Vector2 start, Vecto
         if (childCamEntity == NULL_ENTITY) continue;
 
         CameraComponent& childCam = childScene->scene->getComponent<CameraComponent>(childCamEntity);
-        Matrix4 childVP = childCam.viewProjectionMatrix;
 
-        bool childFound = false;
-
-        for (auto& entity : childScene->entities) {
-            AABB aabb;
-            Signature signature = childScene->scene->getSignature(entity);
-
-            if (!signature.test(childScene->scene->getComponentId<Transform>())) continue;
-
-            if (signature.test(childScene->scene->getComponentId<MeshComponent>())){
-                aabb = childScene->scene->getComponent<MeshComponent>(entity).aabb;
-            }else if (signature.test(childScene->scene->getComponentId<UIComponent>())){
-                aabb = childScene->scene->getComponent<UIComponent>(entity).aabb;
-                if (signature.test(childScene->scene->getComponentId<UILayoutComponent>())){
-                    UILayoutComponent& layout = childScene->scene->getComponent<UILayoutComponent>(entity);
-                    if (layout.width > 0 && layout.height > 0){
-                        Vector2 center = GraphicUtils::getUILayoutCenter(childScene->scene, entity, layout);
-                        aabb = AABB(-center.x, -center.y, 0, layout.width-center.x, layout.height-center.y, 0);
-                    }
-                }
-            }else if (signature.test(childScene->scene->getComponentId<LightComponent>()) || 
-                      signature.test(childScene->scene->getComponentId<CameraComponent>())){
-                aabb = AABB::ZERO;
-            }
-
-            if (!aabb.isNull() && !aabb.isInfinite()){
-                Transform& transform = childScene->scene->getComponent<Transform>(entity);
-                const Vector3* corners = aabb.getCorners();
-
-                Vector2 minRect = Vector2(std::min(start.x, end.x), std::min(start.y, end.y));
-                Vector2 maxRect = Vector2(std::max(start.x, end.x), std::max(start.y, end.y));
-
-                bool found = true;
-
-                for (int c = 0; c < 8; c++){
-                    Vector4 clipCorner = childVP * transform.modelMatrix * Vector4(corners[c], 1.0);
-                    Vector3 ndcCorner = Vector3(clipCorner) / clipCorner.w;
-
-                    if (!(ndcCorner.x >= minRect.x && ndcCorner.x <= maxRect.x && ndcCorner.y >= minRect.y && ndcCorner.y <= maxRect.y)){
-                        found = false;
-                        break;
-                    }
-                }
-
-                if (found){
-                    addSelectedEntity(childId, entity);
-                    childFound = true;
-                }
-            }
-        }
-
-        if (childFound) {
+        if (selectEntitiesInRect(childId, childScene->entities, childScene->scene, childCam.viewProjectionMatrix, start, end)) {
             setSelectedSceneForProperties(childId);
         }
     }

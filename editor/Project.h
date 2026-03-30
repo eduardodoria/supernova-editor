@@ -138,6 +138,10 @@ namespace Supernova::Editor{
         SceneRender* createSceneRender(SceneType type, Scene* scene) const;
         Entity createDefaultCamera(SceneType type, Scene* scene) const;
         Ray screenToRayFromCamera(const CameraComponent& camera, float x, float y) const;
+        AABB getEntityWorldAABB(Scene* scene, Entity entity, Scene* mainScene) const;
+        AABB getEntityLocalAABB(Scene* scene, Entity entity) const;
+        Entity findBestEntityByRay(const std::vector<Entity>& entities, Scene* scene, const Ray& ray, Scene* mainScene, SceneType sceneType, float& distance, size_t& index) const;
+        bool selectEntitiesInRect(uint32_t sceneId, const std::vector<Entity>& entities, Scene* scene, const Matrix4& vpMatrix, Vector2 start, Vector2 end);
         uint32_t selectedScene;
         uint32_t selectedSceneForProperties;
 
