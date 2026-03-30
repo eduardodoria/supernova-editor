@@ -48,7 +48,8 @@ Editor::AnimationWindow::AnimationWindow(Project* project){
     snapToGrid = true;
     snapInterval = 0.1f;
 
-    autoFocusOnSelection = true;
+    hasNotification = false;
+    isWindowVisible = false;
 
     isPreviewing = false;
 
@@ -369,19 +370,6 @@ void Editor::AnimationWindow::drawToolbar(float width, AnimationComponent& anim,
     ImGui::SameLine();
     ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
     ImGui::SameLine();
-
-    // Settings
-    if (ImGui::Button(ICON_FA_GEAR "##anim_settings")) {
-        ImGui::OpenPopup("AnimationSettingsPopup");
-    }
-    if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("Animation Settings");
-    }
-
-    if (ImGui::BeginPopup("AnimationSettingsPopup")) {
-        ImGui::Checkbox("Auto-focus on selection", &autoFocusOnSelection);
-        ImGui::EndPopup();
-    }
 }
 
 void Editor::AnimationWindow::drawTimeRuler(ImVec2 canvasPos, ImVec2 canvasSize, float timeStart, float timeEnd) {
@@ -799,7 +787,12 @@ void Editor::AnimationWindow::drawPlayhead(ImVec2 canvasPos, ImVec2 canvasSize, 
 }
 
 void Editor::AnimationWindow::show() {
-    ImGui::Begin(AnimationWindow::WINDOW_NAME);
+    ImGuiWindowFlags windowFlags = hasNotification ? ImGuiWindowFlags_UnsavedDocument : 0;
+    isWindowVisible = ImGui::Begin(AnimationWindow::WINDOW_NAME, nullptr, windowFlags);
+
+    if (isWindowVisible) {
+        hasNotification = false;
+    }
 
     auto restorePreviewScene = [&]() {
         SceneProject* previewSceneProject = project->getScene(selectedSceneId);
@@ -873,8 +866,8 @@ void Editor::AnimationWindow::show() {
                 if (selectedEntity != entity) {
                     selectEntity(entity, sceneProject->id);
                 }
-                if (autoFocusOnSelection) {
-                    ImGui::SetWindowFocus();
+                if (!isWindowVisible) {
+                    hasNotification = true;
                 }
                 break;
             }

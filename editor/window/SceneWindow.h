@@ -38,6 +38,9 @@ namespace Supernova::Editor {
         std::map<uint32_t, int> width;
         std::map<uint32_t, int> height;
 
+        std::map<uint32_t, bool> hasNotification;
+        std::map<uint32_t, ScenePlayState> lastPlayState;
+
         std::vector<uint32_t> closeSceneQueue;
 
         void handleCloseScene(uint32_t sceneId);

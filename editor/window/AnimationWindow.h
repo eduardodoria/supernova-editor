@@ -44,12 +44,13 @@ namespace Supernova::Editor{
         bool snapToGrid;
         float snapInterval;
 
-        // Settings
-        bool autoFocusOnSelection;
-
         // Cached entity
         Entity selectedEntity;
         uint32_t selectedSceneId;
+
+        // Tab notification
+        bool hasNotification;
+        bool isWindowVisible;
 
         // Animation preview
         bool isPreviewing;

@@ -39,6 +39,8 @@ OutputWindow::OutputWindow() {
         typeFilters[i] = true;
     }
     searchMatchCase = false; // default: case-insensitive
+    hasNotification = false;
+    isWindowVisible = false;
     clear();
 }
 
@@ -73,6 +75,9 @@ void OutputWindow::addLog(LogType type, const std::string& message) {
 
     // Mark that we need to rebuild
     needsRebuild = true;
+    if (!isWindowVisible) {
+        hasNotification = true;
+    }
 
     // Basic formatting for initial display (append quickly for incremental feel)
     std::string typeStr;
@@ -388,10 +393,15 @@ bool OutputWindow::passTextFilter(const char* text) const {
 }
 
 void OutputWindow::show() {
-    if (!ImGui::Begin(OutputWindow::WINDOW_NAME)) {
+    ImGuiWindowFlags windowFlags = hasNotification ? ImGuiWindowFlags_UnsavedDocument : 0;
+    if (!ImGui::Begin(OutputWindow::WINDOW_NAME, nullptr, windowFlags)) {
+        isWindowVisible = false;
         ImGui::End();
         return;
     }
+
+    isWindowVisible = true;
+    hasNotification = false;
 
     // Calculate dimensions for the vertical menu and main content
     menuWidth = ImGui::CalcTextSize(ICON_FA_LOCK).x + ImGui::GetStyle().ItemSpacing.x * 2 + ImGui::GetStyle().FramePadding.x * 2;

@@ -47,6 +47,10 @@ namespace Supernova::Editor {
         // Search options
         bool searchMatchCase;           // enable case-sensitive search
 
+        // Tab notification
+        bool hasNotification;
+        bool isWindowVisible;
+
         void rebuildBuffer(float wrapWidth); // accept wrap width
 
         // Helpers for selection

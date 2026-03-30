@@ -864,9 +864,20 @@ void Editor::SceneWindow::show() {
         bool canClose = openedScenesCount > 1;
         bool isOpen = true;
 
+        // Detect play state transition to trigger notification
+        ScenePlayState prevState = lastPlayState[sceneProject.id];
+        if (sceneProject.playState == ScenePlayState::PLAYING && prevState != ScenePlayState::PLAYING) {
+            if (!sceneProject.isVisible) {
+                hasNotification[sceneProject.id] = true;
+            }
+        }
+        lastPlayState[sceneProject.id] = sceneProject.playState;
+
+        ImGuiWindowFlags windowFlags = hasNotification[sceneProject.id] ? ImGuiWindowFlags_UnsavedDocument : 0;
         ImGui::SetNextWindowSizeConstraints(ImVec2(200, 200), ImVec2(FLT_MAX, FLT_MAX));
-        if (ImGui::Begin(getWindowTitle(sceneProject).c_str(), canClose ? &isOpen : nullptr)) {
+        if (ImGui::Begin(getWindowTitle(sceneProject).c_str(), canClose ? &isOpen : nullptr, windowFlags)) {
             sceneProject.isVisible = true;
+            hasNotification[sceneProject.id] = false;
 
             if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
                 windowFocused = true;
