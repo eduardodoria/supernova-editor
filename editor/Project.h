@@ -137,6 +137,7 @@ namespace Supernova::Editor{
 
         SceneRender* createSceneRender(SceneType type, Scene* scene) const;
         Entity createDefaultCamera(SceneType type, Scene* scene) const;
+        Ray screenToRayFromCamera(const CameraComponent& camera, float x, float y) const;
         uint32_t selectedScene;
         uint32_t selectedSceneForProperties;
 
@@ -268,7 +269,7 @@ namespace Supernova::Editor{
         bool hasChildScene(uint32_t sceneId, uint32_t childSceneId) const;
         std::vector<uint32_t> getChildScenes(uint32_t sceneId) const;
 
-        Entity findObjectByRay(uint32_t sceneId, float x, float y);
+        Entity findObjectByRay(uint32_t sceneId, float x, float y, uint32_t* outSceneId = nullptr);
 
         bool selectObjectByRay(uint32_t sceneId, float x, float y, bool shiftPressed);
         bool selectObjectsByRect(uint32_t sceneId, Vector2 start, Vector2 end);

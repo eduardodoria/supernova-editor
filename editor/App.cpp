@@ -686,16 +686,22 @@ void Editor::App::show(){
         }
 
         if (ImGui::IsKeyPressed(ImGuiKey_Delete)){
-            const std::vector<Entity>& selectedEntities = project.getSelectedEntities(sceneId);
+            uint32_t selectedSceneForProperties = project.getSelectedSceneForProperties();
+            uint32_t targetSceneId = sceneId;
+            if (selectedSceneForProperties != NULL_PROJECT_SCENE &&
+                (selectedSceneForProperties == sceneId || project.hasChildScene(sceneId, selectedSceneForProperties))) {
+                targetSceneId = selectedSceneForProperties;
+            }
+
+            const std::vector<Entity>& selectedEntities = project.getSelectedEntities(targetSceneId);
 
             Command* lastCmd = nullptr;
             if (!selectedEntities.empty()) {
                 for (const Entity& entity : selectedEntities){
-                    lastCmd = new DeleteEntityCmd(&project, sceneId, entity);
+                    lastCmd = new DeleteEntityCmd(&project, targetSceneId, entity);
                     CommandHandle::get(sceneId)->addCommand(lastCmd);
                 }
             } else {
-                uint32_t selectedSceneForProperties = project.getSelectedSceneForProperties();
                 if (selectedSceneForProperties != NULL_PROJECT_SCENE &&
                     selectedSceneForProperties != sceneId &&
                     project.hasChildScene(sceneId, selectedSceneForProperties)) {
