@@ -1053,7 +1053,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.70f, 0.70f, 0.70f, 1.0f));
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().FramePadding.y * 0.5f);
         ImGui::SetWindowFontScale(0.7f);
-        ImGui::TextUnformatted(ICON_FA_VIDEO);
+        ImGui::TextUnformatted(ICON_FA_EYE);
         ImGui::SetWindowFontScale(1.0f);
         ImGui::PopStyleColor();
     }

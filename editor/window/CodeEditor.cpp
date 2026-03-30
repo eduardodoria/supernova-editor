@@ -48,8 +48,6 @@ bool Editor::CodeEditor::loadFileContent(EditorInstance& instance) {
             instance.lastWriteTime = fs::last_write_time(fullPath);
             instance.isModified = false;
 
-            updateScriptProperties(instance);
-
             return true;
         }
     } catch (const std::exception& e) {
@@ -77,6 +75,7 @@ void Editor::CodeEditor::checkFileChanges(EditorInstance& instance) {
             } else {
                 // If no unsaved changes, silently reload the file
                 loadFileContent(instance);
+                updateScriptProperties(instance);
             }
         }
     } catch (const std::exception& e) {
@@ -135,6 +134,7 @@ void Editor::CodeEditor::handleFileChangePopup() {
                 auto it = editors.find(change.filepath.string());
                 if (it != editors.end()) {
                     loadFileContent(it->second);
+                    updateScriptProperties(it->second);
                 }
             }
             changedFilesQueue.clear();
