@@ -55,6 +55,8 @@ bool Editor::ModelLoadCmd::execute(){
     MeshComponent& mesh = scene->getComponent<MeshComponent>(entity);
     ModelComponent& model = scene->getComponent<ModelComponent>(entity);
 
+    bool isNewModel = model.filename.empty();
+
     // Save old component state
     oldTransform = Stream::encodeTransform(transform);
     oldMesh = Stream::encodeMeshComponent(mesh, false);
@@ -81,9 +83,9 @@ bool Editor::ModelLoadCmd::execute(){
     std::string ext = FileData::getFilePathExtension(modelPath);
     bool ret = false;
     if (ext == "obj"){
-        ret = meshSys->loadOBJ(entity, modelPath, false);
+        ret = meshSys->loadOBJ(entity, modelPath, true);
     }else{
-        ret = meshSys->loadGLTF(entity, modelPath, false);
+        ret = meshSys->loadGLTF(entity, modelPath, true, false, isNewModel);
     }
 
     if (!ret){
