@@ -33,6 +33,9 @@ ImVec4 Editor::App::ThemeColors::FileCardBackground;
 ImVec4 Editor::App::ThemeColors::FileCardBackgroundHovered;
 ImVec4 Editor::App::ThemeColors::SubtleText;
 ImVec4 Editor::App::ThemeColors::filenameLabel;
+ImVec4 Editor::App::ThemeColors::ExtEntityButton;
+ImVec4 Editor::App::ThemeColors::ExtEntityButtonHovered;
+ImVec4 Editor::App::ThemeColors::ExtEntityButtonActive;
 
 Editor::App::App(){
     propertiesWindow = new Properties(&project);
@@ -1010,6 +1013,9 @@ void Editor::App::kewtStyleTheme(){
     ThemeColors::FileCardBackgroundHovered = ImLerp(colors[ImGuiCol_WindowBg], colors[ImGuiCol_HeaderHovered], 0.25f);
     ThemeColors::SubtleText = ImLerp(colors[ImGuiCol_Text], colors[ImGuiCol_NavHighlight], 0.4f);
     ThemeColors::filenameLabel = ImVec4(50.0f/255.0f, 50.0f/255.0f, 50.0f/255.0f, 1.0f);
+    ThemeColors::ExtEntityButton = ImVec4(colors[ImGuiCol_Button].x * 0.85f, colors[ImGuiCol_Button].y * 0.9f, colors[ImGuiCol_Button].z * 1.15f, colors[ImGuiCol_Button].w);
+    ThemeColors::ExtEntityButtonHovered = ImVec4(colors[ImGuiCol_ButtonHovered].x * 0.85f, colors[ImGuiCol_ButtonHovered].y * 0.9f, colors[ImGuiCol_ButtonHovered].z * 1.15f, colors[ImGuiCol_ButtonHovered].w);
+    ThemeColors::ExtEntityButtonActive = ImVec4(colors[ImGuiCol_ButtonActive].x * 0.85f, colors[ImGuiCol_ButtonActive].y * 0.9f, colors[ImGuiCol_ButtonActive].z * 1.15f, colors[ImGuiCol_ButtonActive].w);
 
     // main
     style.WindowPadding = ImVec2(8, 8);

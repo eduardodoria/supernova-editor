@@ -3179,6 +3179,10 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             }
         }
 
+        if (ImGui::IsItemHovered() && !different && newValue != NULL_ENTITY) {
+            ImGui::SetTooltip("Entity: %s (ID: %u)", entityName.c_str(), static_cast<unsigned int>(newValue));
+        }
+
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("entity", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
                 const EntityPayload* entityPayload = static_cast<const EntityPayload*>(payload->Data);
@@ -3351,12 +3355,33 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_XMARK).x;
         ImVec2 inputSize = ImVec2(ImGui::GetContentRegionAvail().x - clearButtonWidth - ImGui::GetStyle().ItemSpacing.x - clearButtonFramePadding * 2, 0);
 
+        // Tint button color to differentiate ExternalEntity from LocalEntity
+        ImGui::PushStyleColor(ImGuiCol_Button, App::ThemeColors::ExtEntityButton);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, App::ThemeColors::ExtEntityButtonHovered);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, App::ThemeColors::ExtEntityButtonActive);
+
         if (ImGui::Button(buttonLabel.c_str(), inputSize)) {
             if (resolvedScene && newValue != NULL_ENTITY) {
                 uint32_t selectSceneId = (currentSceneId != 0) ? currentSceneId : sceneProject->id;
                 project->clearSelectedEntities(selectSceneId);
                 project->addSelectedEntity(selectSceneId, newValue);
             }
+        }
+        ImGui::PopStyleColor(3);
+
+        if (ImGui::IsItemHovered() && !different) {
+            std::string tipSceneName = sceneProject->name;
+            uint32_t tipSceneId = sceneProject->id;
+            if (currentSceneId != 0) {
+                SceneProject* tipScene = project->getScene(currentSceneId);
+                if (tipScene) {
+                    tipSceneName = tipScene->name;
+                    tipSceneId = currentSceneId;
+                }
+            }
+            ImGui::SetTooltip("Entity: %s (ID: %u)\nScene: %s (ID: %u)",
+                entityName.c_str(), static_cast<unsigned int>(newValue),
+                tipSceneName.c_str(), static_cast<unsigned int>(tipSceneId));
         }
 
         if (ImGui::BeginDragDropTarget()) {

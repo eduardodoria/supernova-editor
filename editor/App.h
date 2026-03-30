@@ -116,6 +116,9 @@ namespace Supernova::Editor{
             static ImVec4 FileCardBackgroundHovered;
             static ImVec4 SubtleText;
             static ImVec4 filenameLabel;
+            static ImVec4 ExtEntityButton;
+            static ImVec4 ExtEntityButtonHovered;
+            static ImVec4 ExtEntityButtonActive;
         };
 
         App();
