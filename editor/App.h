@@ -164,6 +164,7 @@ namespace Supernova::Editor{
 
         CodeEditor* getCodeEditor() const;
         ResourcesWindow* getResourcesWindow() const;
+        AnimationWindow* getAnimationWindow() const;
 
         // Window settings methods
         int getInitialWindowWidth() const;

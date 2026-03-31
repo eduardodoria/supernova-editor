@@ -9,6 +9,7 @@
 #include "window/dialog/SpriteSlicerToolDialog.h"
 
 #include "imgui.h"
+#include "yaml-cpp/yaml.h"
 
 namespace Supernova::Editor{
 
@@ -90,6 +91,21 @@ namespace Supernova::Editor{
         std::map<std::string, bool> textureCubeSingleMode;
 
         std::unordered_map<std::string, Texture> thumbnailTextures;
+
+        // Action preview state
+        bool actionPreviewPlaying = false;
+        bool actionPreviewing = false;
+        Entity actionPreviewEntity = 0;
+        uint32_t actionPreviewSceneId = 0;
+        struct ActionPreviewState {
+            Entity entity = 0;
+            Entity parent = 0;
+            YAML::Node components;
+        };
+        std::vector<ActionPreviewState> actionPreviewStates;
+
+        void startActionPreview(Entity entity, Scene* scene, SceneProject* sceneProject);
+        void stopActionPreview(Scene* scene, SceneProject* sceneProject);
 
         // For component menu
         char componentSearchBuffer[128] = "";

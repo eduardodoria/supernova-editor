@@ -1001,3 +1001,50 @@ void Editor::AnimationWindow::show() {
 
     ImGui::End();
 }
+
+bool Editor::AnimationWindow::isPreviewingEntity(Entity entity, uint32_t sceneId) const {
+    return isPreviewing && selectedEntity == entity && selectedSceneId == sceneId;
+}
+
+bool Editor::AnimationWindow::getIsPlaying() const {
+    return isPlaying;
+}
+
+bool Editor::AnimationWindow::getIsPreviewing() const {
+    return isPreviewing;
+}
+
+float Editor::AnimationWindow::getCurrentTime() const {
+    return currentTime;
+}
+
+void Editor::AnimationWindow::externalPlay(Entity entity, uint32_t sceneId) {
+    SceneProject* sceneProject = project->getScene(sceneId);
+    if (!sceneProject || !sceneProject->scene) return;
+    Scene* scene = sceneProject->scene;
+
+    if (selectedEntity != entity || selectedSceneId != sceneId) {
+        selectEntity(entity, sceneId);
+    }
+
+    if (!isPreviewing) {
+        currentTime = 0;
+        startPreview(scene, sceneProject);
+    }
+    isPlaying = true;
+}
+
+void Editor::AnimationWindow::externalStop() {
+    SceneProject* sceneProject = project->getScene(selectedSceneId);
+    if (!sceneProject || !sceneProject->scene) return;
+
+    isPlaying = false;
+    currentTime = 0;
+    if (isPreviewing) {
+        stopPreview(sceneProject->scene, sceneProject);
+    }
+}
+
+void Editor::AnimationWindow::externalPause() {
+    isPlaying = false;
+}

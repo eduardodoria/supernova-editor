@@ -24,6 +24,7 @@
 #include "App.h"
 #include "Backend.h"
 #include "component/ActionComponent.h"
+#include "component/AnimationComponent.h"
 #include "component/BoneComponent.h"
 #include "component/KeyframeTracksComponent.h"
 #include "component/TranslateTracksComponent.h"
@@ -34,6 +35,7 @@
 #include "util/ProjectUtils.h"
 #include "Stream.h"
 #include "Out.h"
+#include "subsystem/ActionSystem.h"
 #include "subsystem/PhysicsSystem.h"
 #include "yaml-cpp/yaml.h"
 
@@ -6377,16 +6379,239 @@ void Editor::Properties::drawJoint3DComponent(ComponentType cpType, SceneProject
     endTable();
 }
 
+void Editor::Properties::startActionPreview(Entity entity, Scene* scene, SceneProject* sceneProject) {
+    if (actionPreviewing) return;
+
+    actionPreviewStates.clear();
+    actionPreviewEntity = entity;
+    actionPreviewSceneId = sceneProject->id;
+
+    ActionComponent* actionComp = scene->findComponent<ActionComponent>(entity);
+    if (!actionComp) return;
+
+    // Collect all entities that will be affected by the preview
+    std::unordered_set<Entity> collected;
+
+    std::function<void(Entity)> collectEntities = [&](Entity e) {
+        if (e == NULL_ENTITY || !scene->isEntityCreated(e) || !collected.insert(e).second) return;
+
+        // Save this entity's state
+        ActionPreviewState state;
+        state.entity = e;
+        if (Transform* transform = scene->findComponent<Transform>(e)) {
+            state.parent = transform->parent;
+        }
+        state.components = Stream::encodeComponents(e, scene, scene->getSignature(e));
+        actionPreviewStates.push_back(state);
+
+        // If entity has an ActionComponent with a target, save the target too
+        if (ActionComponent* ac = scene->findComponent<ActionComponent>(e)) {
+            if (ac->target != NULL_ENTITY && scene->isEntityCreated(ac->target)) {
+                collectEntities(ac->target);
+            }
+        }
+
+        // If entity has an AnimationComponent, collect child action entities and their targets
+        if (AnimationComponent* anim = scene->findComponent<AnimationComponent>(e)) {
+            for (const ActionFrame& frame : anim->actions) {
+                if (frame.action != NULL_ENTITY && scene->isEntityCreated(frame.action)) {
+                    collectEntities(frame.action);
+                }
+            }
+        }
+    };
+
+    collectEntities(entity);
+
+    // Trigger the action start
+    actionComp->timecount = 0;
+    actionComp->stopTrigger = false;
+    actionComp->pauseTrigger = false;
+    actionComp->startTrigger = true;
+
+    actionPreviewing = true;
+}
+
+void Editor::Properties::stopActionPreview(Scene* scene, SceneProject* sceneProject) {
+    if (!actionPreviewing) return;
+
+    for (const ActionPreviewState& state : actionPreviewStates) {
+        if (state.entity == NULL_ENTITY || !scene->isEntityCreated(state.entity) || !state.components || state.components.IsNull()) {
+            continue;
+        }
+        Stream::decodeComponents(state.entity, state.parent, scene, state.components);
+    }
+
+    actionPreviewStates.clear();
+    actionPreviewing = false;
+    actionPreviewPlaying = false;
+    if (sceneProject) {
+        sceneProject->needUpdateRender = true;
+    }
+}
+
 void Editor::Properties::drawActionComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     RowSettings settingsState;
     settingsState.enumEntries = &entriesActionState;
+
+    ActionComponent* actionComp = nullptr;
+    Entity entity = NULL_ENTITY;
+    Scene* scene = sceneProject->scene;
+    bool sceneIsStopped = (sceneProject->playState == ScenePlayState::STOPPED);
+
+    if (entities.size() == 1) {
+        entity = entities[0];
+        actionComp = scene->findComponent<ActionComponent>(entity);
+
+        if (actionPreviewing && (actionPreviewEntity != entity || actionPreviewSceneId != sceneProject->id)) {
+            SceneProject* prevSceneProject = project->getScene(actionPreviewSceneId);
+            if (prevSceneProject && prevSceneProject->scene) {
+                stopActionPreview(prevSceneProject->scene, prevSceneProject);
+            } else {
+                actionPreviewStates.clear();
+                actionPreviewing = false;
+                actionPreviewPlaying = false;
+            }
+        }
+
+        if (actionPreviewing && !sceneIsStopped) {
+            stopActionPreview(scene, sceneProject);
+        }
+
+        if (actionPreviewing && actionPreviewPlaying && sceneIsStopped) {
+            float dt = ImGui::GetIO().DeltaTime;
+            scene->getSystem<ActionSystem>()->updateActionPreview(dt, entity);
+            sceneProject->needUpdateRender = true;
+
+            actionComp = scene->findComponent<ActionComponent>(entity);
+            if (actionComp && actionComp->state == ActionState::Stopped) {
+                actionPreviewPlaying = false;
+                stopActionPreview(scene, sceneProject);
+                actionComp = scene->findComponent<ActionComponent>(entity);
+            }
+        }
+    }
 
     beginTable(cpType, getLabelSize("Owned target"));
     propertyRow(RowPropertyType::Enum, cpType, "state", "State", sceneProject, entities, settingsState);
     propertyRow(RowPropertyType::Float, cpType, "speed", "Speed", sceneProject, entities);
     propertyRow(RowPropertyType::LocalEntity, cpType, "target", "Target", sceneProject, entities);
-    propertyRow(RowPropertyType::Bool, cpType, "ownedTarget", "Owned target", sceneProject, entities);
+    //propertyRow(RowPropertyType::Bool, cpType, "ownedTarget", "Owned target", sceneProject, entities);
     endTable();
+
+    if (entities.size() != 1 || !actionComp) {
+        return;
+    }
+
+    // Check if this entity also has AnimationComponent → sync with AnimationWindow
+    AnimationWindow* animWindow = Backend::getApp().getAnimationWindow();
+    bool hasAnimation = scene->findComponent<AnimationComponent>(entity) != nullptr;
+    bool syncWithAnimWindow = hasAnimation && animWindow;
+
+    ImGui::Separator();
+
+    ImGui::BeginDisabled(!sceneIsStopped);
+
+    if (syncWithAnimWindow) {
+        // Delegate playback to AnimationWindow
+        bool animIsPlaying = animWindow->getIsPlaying() && animWindow->isPreviewingEntity(entity, sceneProject->id);
+        bool animIsPreviewing = animWindow->isPreviewingEntity(entity, sceneProject->id);
+
+        if (animIsPlaying) {
+            if (ImGui::Button(ICON_FA_PAUSE "##action_pause")) {
+                animWindow->externalPause();
+            }
+        } else {
+            if (ImGui::Button(ICON_FA_PLAY "##action_play")) {
+                animWindow->externalPlay(entity, sceneProject->id);
+            }
+        }
+        ImGui::SameLine();
+
+        if (ImGui::Button(ICON_FA_STOP "##action_stop")) {
+            animWindow->externalStop();
+        }
+    } else {
+        // Standalone action preview (no AnimationComponent)
+        if (actionPreviewPlaying) {
+            if (ImGui::Button(ICON_FA_PAUSE "##action_pause")) {
+                if (actionComp) {
+                    actionComp->pauseTrigger = true;
+                }
+                actionPreviewPlaying = false;
+            }
+        } else {
+            if (ImGui::Button(ICON_FA_PLAY "##action_play")) {
+                if (!actionPreviewing) {
+                    startActionPreview(entity, scene, sceneProject);
+                    actionComp = scene->findComponent<ActionComponent>(entity);
+                } else if (actionComp) {
+                    actionComp->startTrigger = true;
+                }
+                actionPreviewPlaying = true;
+            }
+        }
+        ImGui::SameLine();
+
+        if (ImGui::Button(ICON_FA_STOP "##action_stop")) {
+            if (actionPreviewing) {
+                stopActionPreview(scene, sceneProject);
+                actionComp = scene->findComponent<ActionComponent>(entity);
+            }
+            actionPreviewPlaying = false;
+        }
+    }
+    ImGui::SameLine();
+
+    // Time display (fixed width so it doesn't jump around)
+    ImGui::AlignTextToFramePadding();
+    ImGui::Text("%.2f", actionComp->timecount);
+    ImGui::SameLine();
+
+    // Timeline progress strip
+    float duration = 0;
+    if (TimedActionComponent* timed = scene->findComponent<TimedActionComponent>(entity)) {
+        duration = timed->duration;
+    } else if (AnimationComponent* anim = scene->findComponent<AnimationComponent>(entity)) {
+        if (anim->duration > 0) {
+            duration = anim->duration;
+        } else {
+            for (const ActionFrame& frame : anim->actions) {
+                duration = std::max(duration, frame.startTime + frame.duration);
+            }
+        }
+    } else if (KeyframeTracksComponent* kf = scene->findComponent<KeyframeTracksComponent>(entity)) {
+        if (!kf->times.empty()) {
+            duration = kf->times.back();
+        }
+    }
+
+    float fraction = (duration > 0) ? std::clamp(actionComp->timecount / duration, 0.0f, 1.0f) : 0.0f;
+
+    float timelineWidth = std::max(ImGui::GetContentRegionAvail().x, 1.0f);
+    float frameHeight = ImGui::GetFrameHeight();
+    float timelineHeight = 6.0f;
+    float rounding = timelineHeight * 0.5f;
+    ImVec2 timelinePos = ImGui::GetCursorScreenPos();
+
+    ImGui::Dummy(ImVec2(timelineWidth, frameHeight));
+
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImVec4 trackColor = style.Colors[ImGuiCol_TextDisabled];
+    trackColor.w = 0.22f;
+    ImVec4 fillColor = style.Colors[ImGuiCol_PlotHistogram];
+
+    ImVec2 barMin(timelinePos.x, timelinePos.y + (frameHeight - timelineHeight) * 0.5f);
+    ImVec2 barMax(timelinePos.x + timelineWidth, barMin.y + timelineHeight);
+    drawList->AddRectFilled(barMin, barMax, ImGui::GetColorU32(trackColor), rounding);
+
+    if (fraction > 0.0f) {
+        ImVec2 fillMax(barMin.x + timelineWidth * fraction, barMax.y);
+        drawList->AddRectFilled(barMin, fillMax, ImGui::GetColorU32(fillColor), rounding);
+    }
+
+    ImGui::EndDisabled();
 }
 
 void Editor::Properties::drawSpriteAnimationComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){

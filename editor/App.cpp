@@ -1219,6 +1219,10 @@ Editor::ResourcesWindow* Editor::App::getResourcesWindow() const{
     return resourcesWindow;
 }
 
+Editor::AnimationWindow* Editor::App::getAnimationWindow() const{
+    return animationWindow;
+}
+
 void Editor::App::processNextSaveDialog() {
     // Check if there's anything to process and no dialogs are currently open
     if (saveDialogQueue.empty() || sceneSaveDialog.isOpen() || projectSaveDialog.isOpen()) {
