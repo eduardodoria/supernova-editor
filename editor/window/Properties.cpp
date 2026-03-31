@@ -7180,7 +7180,118 @@ void Editor::Properties::drawScaleTracksComponent(ComponentType cpType, ScenePro
 
 void Editor::Properties::drawMorphTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     MorphTracksComponent& comp = sceneProject->scene->getComponent<MorphTracksComponent>(entities[0]);
-    ImGui::Text("Values: %zu", comp.values.size());
+
+    float firstColSize = getLabelSize("Value 000");
+    beginTable(cpType, firstColSize, "morph_values_header");
+
+    ImGui::TableNextRow();
+    ImGui::TableSetColumnIndex(0);
+    ImGui::TextUnformatted("Values");
+    ImGui::TableSetColumnIndex(1);
+
+    ImGui::Text("%zu", comp.values.size());
+    ImGui::SameLine();
+    if (ImGui::Button("Add Value")){
+        MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+        for (Entity entity : entities){
+            if (MorphTracksComponent* trackComp = sceneProject->scene->findComponent<MorphTracksComponent>(entity)){
+                auto newValues = trackComp->values;
+                std::vector<float> newValue;
+                if (!newValues.empty()){
+                    newValue = newValues.back();
+                }
+                newValues.push_back(newValue);
+                multiCmd->addPropertyCmd<std::vector<std::vector<float>>>(project, sceneProject->id, entity, cpType, "values", newValues);
+            }
+        }
+
+        multiCmd->setNoMerge();
+        CommandHandle::get(project->getSelectedSceneId())->addCommand(multiCmd);
+    }
+
+    ImGui::SameLine();
+    if (ImGui::ArrowButton("##toggle_morph_values", trackValuesExpanded["morph"] ? ImGuiDir_Up : ImGuiDir_Down)){
+        trackValuesExpanded["morph"] = !trackValuesExpanded["morph"];
+    }
+
+    bool removedValue = false;
+
+    if (trackValuesExpanded["morph"]){
+        float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
+        float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_TRASH_CAN).x;
+
+        for (size_t i = 0; i < comp.values.size(); i++){
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("Value %zu", i);
+            ImGui::TableSetColumnIndex(1);
+
+            ImGui::Text("%zu weights", comp.values[i].size());
+
+            ImGui::SameLine();
+
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
+            std::string removeId = std::string(ICON_FA_TRASH_CAN) + "##remove_morph_value_" + std::to_string(i);
+            if (ImGui::Button(removeId.c_str())){
+                MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+                for (Entity entity : entities){
+                    if (MorphTracksComponent* trackComp = sceneProject->scene->findComponent<MorphTracksComponent>(entity)){
+                        if (i < trackComp->values.size()){
+                            auto newValues = trackComp->values;
+                            newValues.erase(newValues.begin() + (long int)i);
+                            multiCmd->addPropertyCmd<std::vector<std::vector<float>>>(project, sceneProject->id, entity, cpType, "values", newValues);
+                        }
+                    }
+                }
+
+                multiCmd->setNoMerge();
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(multiCmd);
+
+                removedValue = true;
+                ImGui::PopStyleVar();
+                ImGui::PopStyleColor(2);
+                break;
+            }
+            ImGui::PopStyleVar();
+            ImGui::PopStyleColor(2);
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Remove value");
+            }
+
+            for (size_t j = 0; j < comp.values[i].size(); j++){
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::Text("  Weight %zu", j);
+                ImGui::TableSetColumnIndex(1);
+
+                float val = comp.values[i][j];
+                std::string weightId = "##morph_w_" + std::to_string(i) + "_" + std::to_string(j);
+                ImGui::SetNextItemWidth(-FLT_MIN);
+                if (ImGui::DragFloat(weightId.c_str(), &val, 0.01f, 0.0f, 0.0f, "%.4f")){
+                    MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+                    for (Entity entity : entities){
+                        if (MorphTracksComponent* trackComp = sceneProject->scene->findComponent<MorphTracksComponent>(entity)){
+                            if (i < trackComp->values.size() && j < trackComp->values[i].size()){
+                                auto newValues = trackComp->values;
+                                newValues[i][j] = val;
+                                multiCmd->addPropertyCmd<std::vector<std::vector<float>>>(project, sceneProject->id, entity, cpType, "values", newValues);
+                            }
+                        }
+                    }
+                    CommandHandle::get(project->getSelectedSceneId())->addCommand(multiCmd);
+                }
+            }
+        }
+    }
+
+    if (removedValue){
+        endTable();
+        return;
+    }
+
+    endTable();
 }
 
 void Editor::Properties::show(){

@@ -1177,6 +1177,32 @@ namespace {
         return PropertyData();
     }
 
+    PropertyData resolveMorphTracksPropertyFast(void* comp, const std::string& propertyName) {
+        MorphTracksComponent* trackComp = static_cast<MorphTracksComponent*>(comp);
+        if (!trackComp) return PropertyData();
+
+        MorphTracksComponent& def = getDefaultComponent<MorphTracksComponent>();
+
+        if (propertyName == "values") {
+            return {PropertyType::Custom, UpdateFlags_None, (void*)&def.values, (void*)&trackComp->values};
+        }
+
+        if (propertyName.compare(0, 7, "values[") == 0) {
+            size_t pos = 7;
+            size_t index = 0;
+            if (!parseIndex(propertyName, pos, index) || pos >= propertyName.size() || propertyName[pos] != ']') {
+                return PropertyData();
+            }
+            if (pos + 1 != propertyName.size() || index >= trackComp->values.size()) {
+                return PropertyData();
+            }
+            static std::vector<float> defValue;
+            return {PropertyType::Custom, UpdateFlags_None, (void*)&defValue, (void*)&trackComp->values[index]};
+        }
+
+        return PropertyData();
+    }
+
     // ── Enumerate functions (build full property map) ──
 
     void enumerateActionProperties(void* comp, std::map<std::string, PropertyData>& ps) {
@@ -1267,6 +1293,19 @@ namespace {
         for (size_t i = 0; i < (compRef ? comp->values.size() : 1); i++) {
             std::string idx = compRef ? std::to_string(i) : "";
             ps["values[" + idx + "]"] = {PropertyType::Vector3, UpdateFlags_None, (void*)&defValue, compRef ? (void*)&comp->values[i] : nullptr};
+        }
+    }
+
+    void enumerateMorphTracksProperties(void* compRef, std::map<std::string, PropertyData>& ps) {
+        MorphTracksComponent* comp = static_cast<MorphTracksComponent*>(compRef);
+        MorphTracksComponent& def = getDefaultComponent<MorphTracksComponent>();
+
+        ps["values"] = {PropertyType::Custom, UpdateFlags_None, (void*)&def.values, compRef ? (void*)&comp->values : nullptr};
+
+        static std::vector<float> defValue;
+        for (size_t i = 0; i < (compRef ? comp->values.size() : 1); i++) {
+            std::string idx = compRef ? std::to_string(i) : "";
+            ps["values[" + idx + "]"] = {PropertyType::Custom, UpdateFlags_None, (void*)&defValue, compRef ? (void*)&comp->values[i] : nullptr};
         }
     }
 
@@ -1595,6 +1634,7 @@ namespace {
         {ComponentType::TranslateTracksComponent, &findComponentPtr<TranslateTracksComponent>, &resolveTranslateTracksPropertyFast, &enumerateTranslateTracksProperties},
         {ComponentType::RotateTracksComponent, &findComponentPtr<RotateTracksComponent>, &resolveRotateTracksPropertyFast, &enumerateRotateTracksProperties},
         {ComponentType::ScaleTracksComponent, &findComponentPtr<ScaleTracksComponent>, &resolveScaleTracksPropertyFast, &enumerateScaleTracksProperties},
+        {ComponentType::MorphTracksComponent, &findComponentPtr<MorphTracksComponent>, &resolveMorphTracksPropertyFast, &enumerateMorphTracksProperties},
     };
 
     PropertyData tryGetFastProperty(EntityRegistry* registry, Entity entity, ComponentType component, const std::string& propertyName) {
