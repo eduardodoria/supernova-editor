@@ -13,7 +13,11 @@
 #include "component/AnimationComponent.h"
 #include "component/BoneComponent.h"
 #include "component/KeyframeTracksComponent.h"
+#include "component/MorphTracksComponent.h"
 #include "component/ModelComponent.h"
+#include "component/RotateTracksComponent.h"
+#include "component/ScaleTracksComponent.h"
+#include "component/TranslateTracksComponent.h"
 #include "component/SpriteAnimationComponent.h"
 #include "component/TimedActionComponent.h"
 #include "subsystem/ActionSystem.h"
@@ -87,12 +91,28 @@ std::string Editor::AnimationWindow::getActionLabel(Entity actionEntity, Scene* 
         return "SpriteAnimation";
     }
 
-    if (sig.test(scene->getComponentId<TimedActionComponent>())) {
-        return "TimedAction";
+    if (sig.test(scene->getComponentId<TranslateTracksComponent>())) {
+        return "TranslateTracks";
+    }
+
+    if (sig.test(scene->getComponentId<RotateTracksComponent>())) {
+        return "RotateTracks";
+    }
+
+    if (sig.test(scene->getComponentId<ScaleTracksComponent>())) {
+        return "ScaleTracks";
+    }
+
+    if (sig.test(scene->getComponentId<MorphTracksComponent>())) {
+        return "MorphTracks";
     }
 
     if (sig.test(scene->getComponentId<KeyframeTracksComponent>())) {
         return "KeyframeTracks";
+    }
+
+    if (sig.test(scene->getComponentId<TimedActionComponent>())) {
+        return "TimedAction";
     }
 
     if (sig.test(scene->getComponentId<AnimationComponent>())) {
@@ -310,11 +330,16 @@ void Editor::AnimationWindow::stopPreview(Scene* scene, SceneProject* sceneProje
 }
 
 std::string Editor::AnimationWindow::getAnimationEntityLabel(Entity entity, AnimationComponent& anim, Scene* scene) const {
-    std::string entityName = scene->getEntityName(entity);
-    std::string label = entityName.empty() ? "Entity " + std::to_string(entity) : entityName;
-    if (!anim.name.empty()) {
-        label += " (" + anim.name + ")";
+    std::string label = anim.name.empty() ? "Animation" : anim.name;
+
+    ActionComponent* actionComp = scene->findComponent<ActionComponent>(entity);
+    if (actionComp && actionComp->target != NULL_ENTITY && scene->isEntityCreated(actionComp->target)) {
+        std::string targetName = scene->getEntityName(actionComp->target);
+        if (!targetName.empty()) {
+            label += " (" + targetName + ")";
+        }
     }
+
     return label;
 }
 
@@ -338,12 +363,14 @@ void Editor::AnimationWindow::drawToolbar(float width, AnimationComponent& anim,
             std::string label = getAnimationEntityLabel(entity, animItem, scene);
 
             bool isSelected = (entity == selectedEntity);
+            ImGui::PushID((int)entity);
             if (ImGui::Selectable(label.c_str(), isSelected)) {
                 selectEntity(entity, selectedSceneId);
             }
             if (isSelected) {
                 ImGui::SetItemDefaultFocus();
             }
+            ImGui::PopID();
         }
         ImGui::EndCombo();
     }
@@ -557,14 +584,32 @@ bool Editor::AnimationWindow::drawTracks(ImVec2 canvasPos, ImVec2 canvasSize, fl
     float trackPadding = 2.0f;
     float labelWidth = 120.0f;
 
-    ImU32 trackColors[] = {
-        IM_COL32(70, 130, 180, 200),  // Steel blue
-        IM_COL32(180, 100, 70, 200),  // Warm red
-        IM_COL32(70, 180, 100, 200),  // Green
-        IM_COL32(180, 170, 70, 200),  // Gold
-        IM_COL32(140, 70, 180, 200),  // Purple
+    auto getFrameColor = [&](Entity actionEntity) -> ImU32 {
+        if (actionEntity == NULL_ENTITY || !scene->isEntityCreated(actionEntity))
+            return IM_COL32(120, 120, 120, 200); // Gray: Empty/invalid
+
+        Signature sig = scene->getSignature(actionEntity);
+
+        if (sig.test(scene->getComponentId<SpriteAnimationComponent>()))
+            return IM_COL32(70, 180, 100, 200);  // Green: SpriteAnimation
+        if (sig.test(scene->getComponentId<TranslateTracksComponent>()))
+            return IM_COL32(100, 160, 220, 200); // Light blue: TranslateTracks
+        if (sig.test(scene->getComponentId<RotateTracksComponent>()))
+            return IM_COL32(220, 130, 70, 200);  // Orange: RotateTracks
+        if (sig.test(scene->getComponentId<ScaleTracksComponent>()))
+            return IM_COL32(180, 80, 180, 200);  // Magenta: ScaleTracks
+        if (sig.test(scene->getComponentId<MorphTracksComponent>()))
+            return IM_COL32(80, 190, 190, 200);  // Teal: MorphTracks
+        if (sig.test(scene->getComponentId<KeyframeTracksComponent>()))
+            return IM_COL32(70, 130, 180, 200);  // Steel blue: KeyframeTracks
+        if (sig.test(scene->getComponentId<TimedActionComponent>()))
+            return IM_COL32(180, 100, 70, 200);  // Warm red: TimedAction
+        if (sig.test(scene->getComponentId<AnimationComponent>()))
+            return IM_COL32(180, 170, 70, 200);  // Gold: Animation
+
+        return IM_COL32(140, 70, 180, 200);      // Purple: generic Action
     };
-    int numColors = sizeof(trackColors) / sizeof(trackColors[0]);
+
     bool allowEditing = !isPreviewing;
     bool mouseOverFrame = false;
 
@@ -609,7 +654,7 @@ bool Editor::AnimationWindow::drawTracks(ImVec2 canvasPos, ImVec2 canvasSize, fl
         float visEnd = std::min(blockEnd, canvasPos.x + canvasSize.x);
 
         if (visEnd > visStart) {
-            ImU32 blockColor = trackColors[frame.track % numColors];
+            ImU32 blockColor = getFrameColor(frame.action);
             drawList->AddRectFilled(ImVec2(visStart, trackY + 2), ImVec2(visEnd, trackY + trackHeight - 2),
                                     blockColor, 3.0f);
 
@@ -618,12 +663,37 @@ bool Editor::AnimationWindow::drawTracks(ImVec2 canvasPos, ImVec2 canvasSize, fl
                                   IM_COL32(255, 220, 120, 255), 3.0f, 0, 2.0f);
             }
 
-            // Block label
-            std::string blockLabel = std::to_string(i) + ": " + getActionLabel(frame.action, scene);
-            float textWidth = ImGui::CalcTextSize(blockLabel.c_str()).x;
-            if (visEnd - visStart > textWidth + 8) {
+            // Block label with progressive truncation
+            std::string indexStr = std::to_string(i);
+            std::string fullLabel = indexStr + ": " + getActionLabel(frame.action, scene);
+            std::string targetName;
+            if (frame.action != NULL_ENTITY && scene->isEntityCreated(frame.action)) {
+                ActionComponent* frameAction = scene->findComponent<ActionComponent>(frame.action);
+                if (frameAction && frameAction->target != NULL_ENTITY && scene->isEntityCreated(frameAction->target)) {
+                    targetName = scene->getEntityName(frameAction->target);
+                    if (!targetName.empty()) {
+                        fullLabel += " | " + targetName;
+                    }
+                }
+            }
+            float availWidth = visEnd - visStart - 8;
+            const char* displayLabel = nullptr;
+            bool isFullLabel = false;
+            if (ImGui::CalcTextSize(fullLabel.c_str()).x <= availWidth) {
+                displayLabel = fullLabel.c_str();
+                isFullLabel = true;
+            } else {
+                std::string mediumLabel = indexStr + ": " + targetName;
+                if (!targetName.empty() && ImGui::CalcTextSize(mediumLabel.c_str()).x <= availWidth) {
+                    fullLabel = mediumLabel;
+                    displayLabel = fullLabel.c_str();
+                } else if (ImGui::CalcTextSize(indexStr.c_str()).x <= availWidth) {
+                    displayLabel = indexStr.c_str();
+                }
+            }
+            if (displayLabel) {
                 drawList->AddText(ImVec2(visStart + 4, trackY + 4),
-                                  IM_COL32(255, 255, 255, 255), blockLabel.c_str());
+                                  IM_COL32(255, 255, 255, 255), displayLabel);
             }
 
             // Interaction: click to select, drag to move/resize
@@ -637,6 +707,14 @@ bool Editor::AnimationWindow::drawTracks(ImVec2 canvasPos, ImVec2 canvasSize, fl
             // Detect edge hover for resize cursor
             bool hovered = ImGui::IsItemHovered();
             mouseOverFrame = mouseOverFrame || hovered || ImGui::IsItemActive();
+            if (hovered && !isFullLabel) {
+                std::string actionLabel = getActionLabel(frame.action, scene);
+                std::string tooltip = std::to_string(i) + ": " + actionLabel;
+                if (!targetName.empty()) {
+                    tooltip += " | " + targetName;
+                }
+                ImGui::SetTooltip("%s", tooltip.c_str());
+            }
             if (allowEditing && hovered && !isDraggingFrame && !isResizingFrame) {
                 float mouseX = ImGui::GetIO().MousePos.x;
                 bool onLeftEdge = (mouseX - blockStart) < edgeZone && (mouseX >= blockStart);
