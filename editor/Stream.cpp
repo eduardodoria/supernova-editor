@@ -778,6 +778,42 @@ SpriteFrameData Editor::Stream::decodeSpriteFrameData(const YAML::Node& node) {
     return frameData;
 }
 
+YAML::Node Editor::Stream::encodeTileRectData(const TileRectData& tileRect) {
+    YAML::Node node;
+    node["name"] = tileRect.name;
+    node["submeshId"] = tileRect.submeshId;
+    node["rect"] = encodeRect(tileRect.rect);
+    return node;
+}
+
+TileRectData Editor::Stream::decodeTileRectData(const YAML::Node& node) {
+    TileRectData tileRect;
+    if (node["name"]) tileRect.name = node["name"].as<std::string>();
+    if (node["submeshId"]) tileRect.submeshId = node["submeshId"].as<int>();
+    if (node["rect"]) tileRect.rect = decodeRect(node["rect"]);
+    return tileRect;
+}
+
+YAML::Node Editor::Stream::encodeTileData(const TileData& tile) {
+    YAML::Node node;
+    node["name"] = tile.name;
+    node["rectId"] = tile.rectId;
+    node["position"] = encodeVector2(tile.position);
+    node["width"] = tile.width;
+    node["height"] = tile.height;
+    return node;
+}
+
+TileData Editor::Stream::decodeTileData(const YAML::Node& node) {
+    TileData tile;
+    if (node["name"]) tile.name = node["name"].as<std::string>();
+    if (node["rectId"]) tile.rectId = node["rectId"].as<int>();
+    if (node["position"]) tile.position = decodeVector2(node["position"]);
+    if (node["width"]) tile.width = node["width"].as<float>();
+    if (node["height"]) tile.height = node["height"].as<float>();
+    return tile;
+}
+
 YAML::Node Editor::Stream::encodeProject(Project* project) {
     YAML::Node root;
 
@@ -1808,6 +1844,11 @@ YAML::Node Editor::Stream::encodeComponents(const Entity entity, const EntityReg
         compNode[Catalog::getComponentName(ComponentType::SpriteComponent, true)] = encodeSpriteComponent(sprite);
     }
 
+    if (signature.test(registry->getComponentId<TilemapComponent>())) {
+        TilemapComponent tilemap = registry->getComponent<TilemapComponent>(entity);
+        compNode[Catalog::getComponentName(ComponentType::TilemapComponent, true)] = encodeTilemapComponent(tilemap);
+    }
+
     if (signature.test(registry->getComponentId<LightComponent>())) {
         LightComponent light = registry->getComponent<LightComponent>(entity);
         compNode[Catalog::getComponentName(ComponentType::LightComponent, true)] = encodeLightComponent(light);
@@ -2026,6 +2067,19 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
         }else{
             int flags = Catalog::getChangedUpdateFlags(ComponentType::SpriteComponent, existing, &sprite);
             registry->getComponent<SpriteComponent>(entity) = sprite;
+            Catalog::updateEntity(registry, entity, flags);
+        }
+    }
+
+    compName = Catalog::getComponentName(ComponentType::TilemapComponent, true);
+    if (compNode[compName]) {
+        TilemapComponent* existing = registry->findComponent<TilemapComponent>(entity);
+        TilemapComponent tilemap = decodeTilemapComponent(compNode[compName], existing);
+        if (!signature.test(registry->getComponentId<TilemapComponent>())){
+            registry->addComponent<TilemapComponent>(entity, tilemap);
+        }else{
+            int flags = Catalog::getChangedUpdateFlags(ComponentType::TilemapComponent, existing, &tilemap);
+            registry->getComponent<TilemapComponent>(entity) = tilemap;
             Catalog::updateEntity(registry, entity, flags);
         }
     }
@@ -2783,6 +2837,79 @@ SpriteComponent Editor::Stream::decodeSpriteComponent(const YAML::Node& node, co
     }
 
     return sprite;
+}
+
+YAML::Node Editor::Stream::encodeTilemapComponent(const TilemapComponent& tilemap) {
+    YAML::Node node;
+    node["width"] = tilemap.width;
+    node["height"] = tilemap.height;
+    node["automaticFlipY"] = tilemap.automaticFlipY;
+    node["flipY"] = tilemap.flipY;
+    node["textureScaleFactor"] = tilemap.textureScaleFactor;
+    node["reserveTiles"] = tilemap.reserveTiles;
+
+    YAML::Node tilesRectNode;
+    for (unsigned int i = 0; i < tilemap.numTilesRect; i++) {
+        tilesRectNode.push_back(encodeTileRectData(tilemap.tilesRect[i]));
+    }
+    if (tilesRectNode.size() > 0) {
+        node["tilesRect"] = tilesRectNode;
+    }
+
+    YAML::Node tilesNode;
+    for (unsigned int i = 0; i < tilemap.numTiles; i++) {
+        tilesNode.push_back(encodeTileData(tilemap.tiles[i]));
+    }
+    if (tilesNode.size() > 0) {
+        node["tiles"] = tilesNode;
+    }
+
+    return node;
+}
+
+TilemapComponent Editor::Stream::decodeTilemapComponent(const YAML::Node& node, const TilemapComponent* oldTilemap) {
+    TilemapComponent tilemap;
+
+    if (oldTilemap) {
+        tilemap = *oldTilemap;
+    }
+
+    if (node["width"]) tilemap.width = node["width"].as<unsigned int>();
+    if (node["height"]) tilemap.height = node["height"].as<unsigned int>();
+    if (node["automaticFlipY"]) tilemap.automaticFlipY = node["automaticFlipY"].as<bool>();
+    if (node["flipY"]) tilemap.flipY = node["flipY"].as<bool>();
+    if (node["textureScaleFactor"]) tilemap.textureScaleFactor = node["textureScaleFactor"].as<float>();
+    if (node["reserveTiles"]) tilemap.reserveTiles = node["reserveTiles"].as<unsigned int>();
+
+    if (node["tilesRect"]) {
+        const YAML::Node& tilesRectNode = node["tilesRect"];
+        if (tilesRectNode.IsSequence()) {
+            tilemap.numTilesRect = 0;
+            for (std::size_t i = 0; i < tilesRectNode.size() && i < tilemap.tilesRect.size(); i++) {
+                if (!tilesRectNode[i] || tilesRectNode[i].IsNull()) {
+                    continue;
+                }
+                tilemap.tilesRect[tilemap.numTilesRect] = decodeTileRectData(tilesRectNode[i]);
+                tilemap.numTilesRect++;
+            }
+        }
+    }
+
+    if (node["tiles"]) {
+        const YAML::Node& tilesNode = node["tiles"];
+        if (tilesNode.IsSequence()) {
+            tilemap.numTiles = 0;
+            for (std::size_t i = 0; i < tilesNode.size() && i < tilemap.tiles.size(); i++) {
+                if (!tilesNode[i] || tilesNode[i].IsNull()) {
+                    continue;
+                }
+                tilemap.tiles[tilemap.numTiles] = decodeTileData(tilesNode[i]);
+                tilemap.numTiles++;
+            }
+        }
+    }
+
+    return tilemap;
 }
 
 YAML::Node Editor::Stream::encodeModelComponent(const ModelComponent& model) {

@@ -113,6 +113,10 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addT
             CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Sprite", EntityCreationType::SPRITE, parent, addToBundle));
             openParent = parent;
         }
+        if (ImGui::MenuItem(ICON_FA_BORDER_ALL"  Tilemap")){
+            CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new CreateEntityCmd(project, project->getSelectedSceneId(), "Tilemap", EntityCreationType::TILEMAP, parent, addToBundle));
+            openParent = parent;
+        }
         ImGui::EndMenu();
     }
 

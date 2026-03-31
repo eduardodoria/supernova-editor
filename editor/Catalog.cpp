@@ -190,6 +190,15 @@ namespace {
         makeFastProperty<SpriteComponent, bool, &SpriteComponent::flipY>("flipY", PropertyType::Bool, UpdateFlags_Sprite),
     };
 
+    static const FastPropertyDescriptor kTilemapTopProperties[] = {
+        makeFastPropertyNoDefault<TilemapComponent, unsigned int, &TilemapComponent::width>("width", PropertyType::UInt, UpdateFlags_Tilemap),
+        makeFastPropertyNoDefault<TilemapComponent, unsigned int, &TilemapComponent::height>("height", PropertyType::UInt, UpdateFlags_Tilemap),
+        makeFastProperty<TilemapComponent, bool, &TilemapComponent::automaticFlipY>("automaticFlipY", PropertyType::Bool, UpdateFlags_Tilemap),
+        makeFastProperty<TilemapComponent, bool, &TilemapComponent::flipY>("flipY", PropertyType::Bool, UpdateFlags_Tilemap),
+        makeFastProperty<TilemapComponent, float, &TilemapComponent::textureScaleFactor>("textureScaleFactor", PropertyType::Float, UpdateFlags_Tilemap),
+        makeFastProperty<TilemapComponent, unsigned int, &TilemapComponent::reserveTiles>("reserveTiles", PropertyType::UInt, UpdateFlags_Tilemap),
+    };
+
     static const FastPropertyDescriptor kActionProperties[] = {
         makeFastPropertyNoDefault<ActionComponent, ActionState, &ActionComponent::state>("state", PropertyType::Enum, UpdateFlags_None),
         makeFastProperty<ActionComponent, float, &ActionComponent::speed>("speed", PropertyType::Float, UpdateFlags_None),
@@ -884,6 +893,105 @@ namespace {
         return getSpritePropertyFast(static_cast<SpriteComponent*>(comp), propertyName);
     }
 
+    PropertyData getTilemapPropertyFast(TilemapComponent* comp, const std::string& propertyName) {
+        TilemapComponent& def = getDefaultComponent<TilemapComponent>();
+
+        if (!comp) {
+            return PropertyData();
+        }
+
+        // Flat properties
+        PropertyData result = resolveDirectProperties(comp, propertyName, kTilemapTopProperties);
+        if (result.ref) return result;
+
+        // numTilesRect
+        if (propertyName == "numTilesRect") {
+            return {PropertyType::UInt, UpdateFlags_Tilemap, (void*)&def.numTilesRect, (void*)&comp->numTilesRect};
+        }
+
+        // numTiles
+        if (propertyName == "numTiles") {
+            return {PropertyType::UInt, UpdateFlags_Tilemap, (void*)&def.numTiles, (void*)&comp->numTiles};
+        }
+
+        // tilesRect[N].field
+        if (propertyName.compare(0, 10, "tilesRect[") == 0) {
+            size_t pos = 10;
+            size_t index = 0;
+            if (!parseIndex(propertyName, pos, index) || pos >= propertyName.size() || propertyName[pos] != ']') {
+                return PropertyData();
+            }
+
+            TileRectData& tileRect = comp->tilesRect[index];
+            TileRectData& defTileRect = def.tilesRect[0];
+
+            pos++;
+            if (pos == propertyName.size()) {
+                return {PropertyType::Custom, UpdateFlags_Tilemap, (void*)&defTileRect, (void*)&tileRect};
+            }
+            if (propertyName[pos] != '.') {
+                return PropertyData();
+            }
+
+            const size_t fieldPos = pos + 1;
+
+            if (propertyName.compare(fieldPos, 4, "name") == 0 && fieldPos + 4 == propertyName.size()) {
+                return {PropertyType::String, UpdateFlags_Tilemap, (void*)&defTileRect.name, (void*)&tileRect.name};
+            }
+            if (propertyName.compare(fieldPos, 4, "rect") == 0 && fieldPos + 4 == propertyName.size()) {
+                return {PropertyType::Vector4, UpdateFlags_Tilemap, (void*)&defTileRect.rect, (void*)&tileRect.rect};
+            }
+
+            return PropertyData();
+        }
+
+        // tiles[N].field
+        if (propertyName.compare(0, 6, "tiles[") == 0) {
+            size_t pos = 6;
+            size_t index = 0;
+            if (!parseIndex(propertyName, pos, index) || pos >= propertyName.size() || propertyName[pos] != ']') {
+                return PropertyData();
+            }
+
+            TileData& tile = comp->tiles[index];
+            TileData& defTile = def.tiles[0];
+
+            pos++;
+            if (pos == propertyName.size()) {
+                return {PropertyType::Custom, UpdateFlags_Tilemap, (void*)&defTile, (void*)&tile};
+            }
+            if (propertyName[pos] != '.') {
+                return PropertyData();
+            }
+
+            const size_t fieldPos = pos + 1;
+
+            if (propertyName.compare(fieldPos, 4, "name") == 0 && fieldPos + 4 == propertyName.size()) {
+                return {PropertyType::String, UpdateFlags_Tilemap, (void*)&defTile.name, (void*)&tile.name};
+            }
+            if (propertyName.compare(fieldPos, 6, "rectId") == 0 && fieldPos + 6 == propertyName.size()) {
+                return {PropertyType::Int, UpdateFlags_Tilemap, (void*)&defTile.rectId, (void*)&tile.rectId};
+            }
+            if (propertyName.compare(fieldPos, 8, "position") == 0 && fieldPos + 8 == propertyName.size()) {
+                return {PropertyType::Vector2, UpdateFlags_Tilemap, (void*)&defTile.position, (void*)&tile.position};
+            }
+            if (propertyName.compare(fieldPos, 5, "width") == 0 && fieldPos + 5 == propertyName.size()) {
+                return {PropertyType::Float, UpdateFlags_Tilemap, (void*)&defTile.width, (void*)&tile.width};
+            }
+            if (propertyName.compare(fieldPos, 6, "height") == 0 && fieldPos + 6 == propertyName.size()) {
+                return {PropertyType::Float, UpdateFlags_Tilemap, (void*)&defTile.height, (void*)&tile.height};
+            }
+
+            return PropertyData();
+        }
+
+        return PropertyData();
+    }
+
+    PropertyData resolveTilemapPropertyFast(void* comp, const std::string& propertyName) {
+        return getTilemapPropertyFast(static_cast<TilemapComponent*>(comp), propertyName);
+    }
+
     PropertyData resolveLightPropertyFast(void* comp, const std::string& propertyName) {
         return resolveDirectProperties(static_cast<LightComponent*>(comp), propertyName, kLightProperties);
     }
@@ -1369,6 +1477,39 @@ namespace {
         }
     }
 
+    void enumerateTilemapProperties(void* compRef, std::map<std::string, PropertyData>& ps) {
+        TilemapComponent* comp = static_cast<TilemapComponent*>(compRef);
+        TilemapComponent& def = getDefaultComponent<TilemapComponent>();
+
+        enumerateFromDescriptors(compRef, ps, kTilemapTopProperties);
+
+        ps["numTilesRect"] = {PropertyType::UInt, UpdateFlags_Tilemap, (void*)&def.numTilesRect, compRef ? (void*)&comp->numTilesRect : nullptr};
+        ps["numTiles"] = {PropertyType::UInt, UpdateFlags_Tilemap, (void*)&def.numTiles, compRef ? (void*)&comp->numTiles : nullptr};
+
+        for (unsigned int i = 0; i < (compRef ? comp->numTilesRect : 0); i++) {
+            std::string idx = std::to_string(i);
+
+            TileRectData& tileRect = comp->tilesRect[i];
+            TileRectData& defTileRect = def.tilesRect[0];
+
+            ps["tilesRect[" + idx + "].name"] = {PropertyType::String, UpdateFlags_Tilemap, (void*)&defTileRect.name, (void*)&tileRect.name};
+            ps["tilesRect[" + idx + "].rect"] = {PropertyType::Vector4, UpdateFlags_Tilemap, (void*)&defTileRect.rect, (void*)&tileRect.rect};
+        }
+
+        for (unsigned int i = 0; i < (compRef ? comp->numTiles : 0); i++) {
+            std::string idx = std::to_string(i);
+
+            TileData& tile = comp->tiles[i];
+            TileData& defTile = def.tiles[0];
+
+            ps["tiles[" + idx + "].name"] = {PropertyType::String, UpdateFlags_Tilemap, (void*)&defTile.name, (void*)&tile.name};
+            ps["tiles[" + idx + "].rectId"] = {PropertyType::Int, UpdateFlags_Tilemap, (void*)&defTile.rectId, (void*)&tile.rectId};
+            ps["tiles[" + idx + "].position"] = {PropertyType::Vector2, UpdateFlags_Tilemap, (void*)&defTile.position, (void*)&tile.position};
+            ps["tiles[" + idx + "].width"] = {PropertyType::Float, UpdateFlags_Tilemap, (void*)&defTile.width, (void*)&tile.width};
+            ps["tiles[" + idx + "].height"] = {PropertyType::Float, UpdateFlags_Tilemap, (void*)&defTile.height, (void*)&tile.height};
+        }
+    }
+
     void enumerateLightProperties(void* comp, std::map<std::string, PropertyData>& ps) {
         enumerateFromDescriptors(comp, ps, kLightProperties);
     }
@@ -1615,6 +1756,7 @@ namespace {
         {ComponentType::ImageComponent, &findComponentPtr<ImageComponent>, &resolveImagePropertyFast, &enumerateImageProperties},
         {ComponentType::ButtonComponent, &findComponentPtr<ButtonComponent>, &resolveButtonPropertyFast, &enumerateButtonProperties},
         {ComponentType::SpriteComponent, &findComponentPtr<SpriteComponent>, &resolveSpritePropertyFast, &enumerateSpriteProperties},
+        {ComponentType::TilemapComponent, &findComponentPtr<TilemapComponent>, &resolveTilemapPropertyFast, &enumerateTilemapProperties},
         {ComponentType::LightComponent, &findComponentPtr<LightComponent>, &resolveLightPropertyFast, &enumerateLightProperties},
         {ComponentType::CameraComponent, &findComponentPtr<CameraComponent>, &resolveCameraPropertyFast, &enumerateCameraProperties},
         {ComponentType::SkyComponent, &findComponentPtr<SkyComponent>, &resolveSkyPropertyFast, &enumerateSkyProperties},
@@ -1783,6 +1925,7 @@ std::string Editor::Catalog::getComponentName(ComponentType component, bool remo
         name = "TextEditComponent";
     }else if(component == ComponentType::TilemapComponent){
         name = "TilemapComponent";
+
     }else if(component == ComponentType::TimedActionComponent){
         name = "TimedActionComponent";
     }else if(component == ComponentType::Transform){
@@ -2380,6 +2523,11 @@ void Editor::Catalog::updateEntity(EntityRegistry* registry, Entity entity, int 
             model->needUpdateModel = true;
         }
     }
+    if (updateFlags & UpdateFlags_Tilemap){
+        if (TilemapComponent* tilemap = registry->findComponent<TilemapComponent>(entity)){
+            tilemap->needUpdateTilemap = true;
+        }
+    }
 }
 
 void Editor::Catalog::copyComponent(EntityRegistry* sourceRegistry, Entity sourceEntity,
@@ -2446,6 +2594,12 @@ void Editor::Catalog::copyComponent(EntityRegistry* sourceRegistry, Entity sourc
         case ComponentType::SpriteComponent: {
             YAML::Node encoded = Stream::encodeSpriteComponent(sourceRegistry->getComponent<SpriteComponent>(sourceEntity));
             targetRegistry->getComponent<SpriteComponent>(targetEntity) = Stream::decodeSpriteComponent(encoded);
+            break;
+        }
+
+        case ComponentType::TilemapComponent: {
+            YAML::Node encoded = Stream::encodeTilemapComponent(sourceRegistry->getComponent<TilemapComponent>(sourceEntity));
+            targetRegistry->getComponent<TilemapComponent>(targetEntity) = Stream::decodeTilemapComponent(encoded);
             break;
         }
 

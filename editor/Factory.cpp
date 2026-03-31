@@ -830,6 +830,44 @@ std::string Editor::Factory::createSpriteComponent(int indentSpaces, EntityRegis
     return code.str();
 }
 
+std::string Editor::Factory::createTilemapComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName, bool assignExisting, const std::unordered_map<Entity, std::string>* entityVarNames) {
+    if (!scene->findComponent<TilemapComponent>(entity)) return "";
+    TilemapComponent& tilemap = scene->getComponent<TilemapComponent>(entity);
+    std::ostringstream code;
+    const std::string ind = indentation(indentSpaces);
+    code << ind << "TilemapComponent tilemap;\n";
+    code << ind << "tilemap.width = " << formatUInt(tilemap.width) << ";\n";
+    code << ind << "tilemap.height = " << formatUInt(tilemap.height) << ";\n";
+    code << ind << "tilemap.automaticFlipY = " << formatBool(tilemap.automaticFlipY) << ";\n";
+    code << ind << "tilemap.flipY = " << formatBool(tilemap.flipY) << ";\n";
+    code << ind << "tilemap.textureScaleFactor = " << formatFloat(tilemap.textureScaleFactor) << ";\n";
+    code << ind << "tilemap.reserveTiles = " << formatUInt(tilemap.reserveTiles) << ";\n";
+    for (unsigned int i = 0; i < tilemap.numTilesRect; i++) {
+        if (!tilemap.tilesRect[i].name.empty()) {
+            code << ind << "tilemap.tilesRect[" << i << "].name = " << formatString(tilemap.tilesRect[i].name) << ";\n";
+        }
+        code << ind << "tilemap.tilesRect[" << i << "].submeshId = " << tilemap.tilesRect[i].submeshId << ";\n";
+        code << ind << "tilemap.tilesRect[" << i << "].rect = " << formatRect(tilemap.tilesRect[i].rect) << ";\n";
+    }
+    if (tilemap.numTilesRect > 0) {
+        code << ind << "tilemap.numTilesRect = " << tilemap.numTilesRect << ";\n";
+    }
+    for (unsigned int i = 0; i < tilemap.numTiles; i++) {
+        if (!tilemap.tiles[i].name.empty()) {
+            code << ind << "tilemap.tiles[" << i << "].name = " << formatString(tilemap.tiles[i].name) << ";\n";
+        }
+        code << ind << "tilemap.tiles[" << i << "].rectId = " << tilemap.tiles[i].rectId << ";\n";
+        code << ind << "tilemap.tiles[" << i << "].position = " << formatVector2(tilemap.tiles[i].position) << ";\n";
+        code << ind << "tilemap.tiles[" << i << "].width = " << formatFloat(tilemap.tiles[i].width) << ";\n";
+        code << ind << "tilemap.tiles[" << i << "].height = " << formatFloat(tilemap.tiles[i].height) << ";\n";
+    }
+    if (tilemap.numTiles > 0) {
+        code << ind << "tilemap.numTiles = " << tilemap.numTiles << ";\n";
+    }
+    addComponentCode(code, ind, sceneName, entityName, entity, "TilemapComponent", "tilemap", assignExisting);
+    return code.str();
+}
+
 std::string Editor::Factory::createLightComponent(int indentSpaces, EntityRegistry* scene, Entity entity, std::string sceneName, std::string entityName, bool assignExisting, const std::unordered_map<Entity, std::string>* entityVarNames) {
     if (!scene->findComponent<LightComponent>(entity)) return "";
     LightComponent& light = scene->getComponent<LightComponent>(entity);
@@ -1427,6 +1465,7 @@ std::string Editor::Factory::createComponent(int indentSpaces, EntityRegistry* s
         case ComponentType::TextComponent: return createTextComponent(indentSpaces, scene, entity, projectPath, sceneName, entityName, assignExisting, entityVarNames);
         case ComponentType::ImageComponent: return createImageComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting, entityVarNames);
         case ComponentType::SpriteComponent: return createSpriteComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting, entityVarNames);
+        case ComponentType::TilemapComponent: return createTilemapComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting, entityVarNames);
         case ComponentType::LightComponent: return createLightComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting, entityVarNames);
         case ComponentType::CameraComponent: return createCameraComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting, entityVarNames);
         case ComponentType::ScriptComponent: return createScriptComponent(indentSpaces, scene, entity, sceneName, entityName, assignExisting, entityVarNames);

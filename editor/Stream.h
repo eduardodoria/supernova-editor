@@ -110,6 +110,12 @@ namespace Supernova::Editor {
         static YAML::Node encodeSpriteFrameData(const SpriteFrameData& frameData);
         static SpriteFrameData decodeSpriteFrameData(const YAML::Node& node);
 
+        static YAML::Node encodeTileRectData(const TileRectData& tileRect);
+        static TileRectData decodeTileRectData(const YAML::Node& node);
+
+        static YAML::Node encodeTileData(const TileData& tile);
+        static TileData decodeTileData(const YAML::Node& node);
+
         static YAML::Node encodeEntityAux(const Entity entity, const EntityRegistry* registry, const Project* project = nullptr, const SceneProject* sceneProject = nullptr);
 
         static YAML::Node encodeScriptProperty(const ScriptProperty& prop);
@@ -166,6 +172,9 @@ namespace Supernova::Editor {
 
         static YAML::Node encodeSpriteComponent(const SpriteComponent& sprite);
         static SpriteComponent decodeSpriteComponent(const YAML::Node& node, const SpriteComponent* oldSprite = nullptr);
+
+        static YAML::Node encodeTilemapComponent(const TilemapComponent& tilemap);
+        static TilemapComponent decodeTilemapComponent(const YAML::Node& node, const TilemapComponent* oldTilemap = nullptr);
 
         static YAML::Node encodeLightComponent(const LightComponent& light);
         static LightComponent decodeLightComponent(const YAML::Node& node, const LightComponent* oldLight = nullptr);

@@ -630,8 +630,7 @@ void Editor::ProjectUtils::addEntityComponent(EntityRegistry* registry, Entity e
             if (!componentNode.IsDefined() || componentNode.IsNull()){
                 registry->addComponent<TilemapComponent>(entity, {});
             }else{
-                registry->addComponent<TilemapComponent>(entity, {});
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                registry->addComponent<TilemapComponent>(entity, Stream::decodeTilemapComponent(componentNode));
             }
             break;
         case ComponentType::TimedActionComponent:
@@ -984,7 +983,7 @@ YAML::Node Editor::ProjectUtils::removeEntityComponent(EntityRegistry* registry,
             break;
         case ComponentType::TilemapComponent:
             if (encodeComponent){
-                Out::error("Missing component serialization of %s", Catalog::getComponentName(componentType).c_str());
+                oldComponent = Stream::encodeTilemapComponent(registry->getComponent<TilemapComponent>(entity));
             }
             registry->removeComponent<TilemapComponent>(entity);
             break;

@@ -4597,6 +4597,206 @@ void Editor::Properties::drawCameraComponent(ComponentType cpType, SceneProject*
     endTable();
 }
 
+void Editor::Properties::drawTilemapComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+    RowSettings settingsInt;
+    settingsInt.stepSize = 1.0f;
+    settingsInt.secondColSize = 6 * ImGui::GetFontSize();
+
+    RowSettings settingsTexScale;
+    settingsTexScale.secondColSize = 6 * ImGui::GetFontSize();
+    settingsTexScale.help = "Increase or decrease texture area by a factor";
+
+    beginTable(cpType, getLabelSize("Reserve Tiles"));
+    propertyRow(RowPropertyType::UInt, cpType, "width", "Width", sceneProject, entities, settingsInt);
+    propertyRow(RowPropertyType::UInt, cpType, "height", "Height", sceneProject, entities, settingsInt);
+    propertyRow(RowPropertyType::Float, cpType, "textureScaleFactor", "Texture Scale", sceneProject, entities, settingsTexScale);
+    propertyRowWithAutoButton(RowPropertyType::Bool, cpType, "flipY", "Flip Y", "automaticFlipY", "Automatic Flip Y", sceneProject, entities);
+    propertyRow(RowPropertyType::UInt, cpType, "reserveTiles", "Reserve Tiles", sceneProject, entities, settingsInt);
+    endTable();
+
+    if (entities.size() == 1) {
+        TilemapComponent& tilemap = sceneProject->scene->getComponent<TilemapComponent>(entities[0]);
+
+        // --- Tile Rects Section ---
+        ImGui::SeparatorText("Tile Rects");
+
+        int activeTileRectCount = (int)tilemap.numTilesRect;
+
+        float buttonWidth = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
+        // Add tile rect button
+        if (ImGui::Button(ICON_FA_PLUS " Add Tile Rect", ImVec2(buttonWidth, 0))) {
+            int freeSlot = (int)tilemap.numTilesRect;
+            if (freeSlot < (int)tilemap.tilesRect.size()) {
+                Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+                std::string prefix = "tilesRect[" + std::to_string(freeSlot) + "]";
+                multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
+                    prefix + ".name", "rect_" + std::to_string(freeSlot));
+                multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entities[0], cpType,
+                    "numTilesRect", (unsigned int)(freeSlot + 1));
+                multiCmd->setNoMerge();
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(multiCmd);
+            }
+        }
+
+        beginTable(cpType, getLabelSize("Tile Rects"), "tilemap_rects_header");
+        propertyHeader("Tile Rects", -1, false, false);
+        ImGui::Text("%d", activeTileRectCount);
+        endTable();
+
+        // Draw each tile rect
+        RowSettings settingsRect;
+        settingsRect.stepSize = 1.0f;
+        settingsRect.format = "%.0f";
+        settingsRect.showColors = false;
+
+        for (unsigned int i = 0; i < tilemap.numTilesRect; i++) {
+            ImGui::PushID(i);
+
+            std::string label = "[" + std::to_string(i) + "] " + tilemap.tilesRect[i].name;
+            std::string groupStr = "tilerect_" + std::to_string(i);
+            std::string prefix = "tilesRect[" + std::to_string(i) + "]";
+
+            ImGui::SeparatorText(label.c_str());
+
+            beginTable(cpType, getLabelSize("Name"), groupStr);
+
+            propertyHeader("Rect", -1, false, false);
+            {
+                float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
+                float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_TRASH_CAN).x;
+                ImVec2 deleteButtonSize = ImVec2(clearButtonWidth + clearButtonFramePadding * 2, 0);
+
+                if (ImGui::Button(ICON_FA_TRASH_CAN, deleteButtonSize)) {
+                    Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+                    // Shift subsequent rects down
+                    for (unsigned int j = i; j < tilemap.numTilesRect - 1; j++) {
+                        std::string srcPrefix = "tilesRect[" + std::to_string(j + 1) + "]";
+                        std::string dstPrefix = "tilesRect[" + std::to_string(j) + "]";
+                        multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
+                            dstPrefix + ".name", tilemap.tilesRect[j + 1].name);
+                        multiCmd->addPropertyCmd<Vector4>(project, sceneProject->id, entities[0], cpType,
+                            dstPrefix + ".rect", Vector4(tilemap.tilesRect[j + 1].rect.getX(), tilemap.tilesRect[j + 1].rect.getY(),
+                                tilemap.tilesRect[j + 1].rect.getWidth(), tilemap.tilesRect[j + 1].rect.getHeight()));
+                    }
+                    // Clear last slot
+                    unsigned int lastIdx = tilemap.numTilesRect - 1;
+                    std::string lastPrefix = "tilesRect[" + std::to_string(lastIdx) + "]";
+                    multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
+                        lastPrefix + ".name", std::string(""));
+                    multiCmd->addPropertyCmd<Vector4>(project, sceneProject->id, entities[0], cpType,
+                        lastPrefix + ".rect", Vector4(0, 0, 0, 0));
+                    multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entities[0], cpType,
+                        "numTilesRect", (unsigned int)(tilemap.numTilesRect - 1));
+                    multiCmd->setNoMerge();
+                    CommandHandle::get(project->getSelectedSceneId())->addCommand(multiCmd);
+                    ImGui::PopID();
+                    endTable();
+                    break;
+                }
+            }
+
+            propertyRow(RowPropertyType::String, cpType, prefix + ".name", "Name", sceneProject, entities);
+            propertyRow(RowPropertyType::Vector4, cpType, prefix + ".rect", "Rect", sceneProject, entities, settingsRect);
+
+            endTable();
+            ImGui::PopID();
+        }
+
+        // --- Tiles Section ---
+        ImGui::SeparatorText("Tiles");
+
+        int activeTileCount = (int)tilemap.numTiles;
+
+        // Add tile button
+        if (ImGui::Button(ICON_FA_PLUS " Add Tile", ImVec2(buttonWidth, 0))) {
+            int freeSlot = (int)tilemap.numTiles;
+            if (freeSlot < (int)tilemap.tiles.size()) {
+                Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+                std::string prefix = "tiles[" + std::to_string(freeSlot) + "]";
+                multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
+                    prefix + ".name", "tile_" + std::to_string(freeSlot));
+                multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entities[0], cpType,
+                    "numTiles", (unsigned int)(freeSlot + 1));
+                multiCmd->setNoMerge();
+                CommandHandle::get(project->getSelectedSceneId())->addCommand(multiCmd);
+            }
+        }
+
+        beginTable(cpType, getLabelSize("Tiles"), "tilemap_tiles_header");
+        propertyHeader("Tiles", -1, false, false);
+        ImGui::Text("%d", activeTileCount);
+        endTable();
+
+        RowSettings settingsTileFloat;
+        settingsTileFloat.stepSize = 1.0f;
+
+        for (unsigned int i = 0; i < tilemap.numTiles; i++) {
+            ImGui::PushID(1000 + i);
+
+            std::string label = "[" + std::to_string(i) + "] " + tilemap.tiles[i].name;
+            std::string groupStr = "tile_" + std::to_string(i);
+            std::string prefix = "tiles[" + std::to_string(i) + "]";
+
+            ImGui::SeparatorText(label.c_str());
+
+            beginTable(cpType, getLabelSize("Position"), groupStr);
+
+            propertyHeader("Tile", -1, false, false);
+            {
+                float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
+                float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_TRASH_CAN).x;
+                ImVec2 deleteButtonSize = ImVec2(clearButtonWidth + clearButtonFramePadding * 2, 0);
+
+                if (ImGui::Button(ICON_FA_TRASH_CAN, deleteButtonSize)) {
+                    Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+                    for (unsigned int j = i; j < tilemap.numTiles - 1; j++) {
+                        std::string srcPrefix = "tiles[" + std::to_string(j + 1) + "]";
+                        std::string dstPrefix = "tiles[" + std::to_string(j) + "]";
+                        multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
+                            dstPrefix + ".name", tilemap.tiles[j + 1].name);
+                        multiCmd->addPropertyCmd<int>(project, sceneProject->id, entities[0], cpType,
+                            dstPrefix + ".rectId", tilemap.tiles[j + 1].rectId);
+                        multiCmd->addPropertyCmd<Vector2>(project, sceneProject->id, entities[0], cpType,
+                            dstPrefix + ".position", tilemap.tiles[j + 1].position);
+                        multiCmd->addPropertyCmd<float>(project, sceneProject->id, entities[0], cpType,
+                            dstPrefix + ".width", tilemap.tiles[j + 1].width);
+                        multiCmd->addPropertyCmd<float>(project, sceneProject->id, entities[0], cpType,
+                            dstPrefix + ".height", tilemap.tiles[j + 1].height);
+                    }
+                    unsigned int lastIdx = tilemap.numTiles - 1;
+                    std::string lastPrefix = "tiles[" + std::to_string(lastIdx) + "]";
+                    multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
+                        lastPrefix + ".name", std::string(""));
+                    multiCmd->addPropertyCmd<int>(project, sceneProject->id, entities[0], cpType,
+                        lastPrefix + ".rectId", 0);
+                    multiCmd->addPropertyCmd<Vector2>(project, sceneProject->id, entities[0], cpType,
+                        lastPrefix + ".position", Vector2(0, 0));
+                    multiCmd->addPropertyCmd<float>(project, sceneProject->id, entities[0], cpType,
+                        lastPrefix + ".width", 0.0f);
+                    multiCmd->addPropertyCmd<float>(project, sceneProject->id, entities[0], cpType,
+                        lastPrefix + ".height", 0.0f);
+                    multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entities[0], cpType,
+                        "numTiles", (unsigned int)(tilemap.numTiles - 1));
+                    multiCmd->setNoMerge();
+                    CommandHandle::get(project->getSelectedSceneId())->addCommand(multiCmd);
+                    ImGui::PopID();
+                    endTable();
+                    break;
+                }
+            }
+
+            propertyRow(RowPropertyType::String, cpType, prefix + ".name", "Name", sceneProject, entities);
+            propertyRow(RowPropertyType::Int, cpType, prefix + ".rectId", "Rect ID", sceneProject, entities, settingsInt);
+            propertyRow(RowPropertyType::Vector2, cpType, prefix + ".position", "Position", sceneProject, entities, settingsTileFloat);
+            propertyRow(RowPropertyType::Float, cpType, prefix + ".width", "Width", sceneProject, entities, settingsTileFloat);
+            propertyRow(RowPropertyType::Float, cpType, prefix + ".height", "Height", sceneProject, entities, settingsTileFloat);
+
+            endTable();
+            ImGui::PopID();
+        }
+    }
+}
+
 void Editor::Properties::drawLightComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     LightComponent& light = sceneProject->scene->getComponent<LightComponent>(entities[0]);
 
@@ -7575,6 +7775,8 @@ void Editor::Properties::show(){
                     drawImageComponent(cpType, sceneProject, entities);
                 }else if (cpType == ComponentType::SpriteComponent){
                     drawSpriteComponent(cpType, sceneProject, entities);
+                }else if (cpType == ComponentType::TilemapComponent){
+                    drawTilemapComponent(cpType, sceneProject, entities);
                 }else if (cpType == ComponentType::LightComponent){
                     drawLightComponent(cpType, sceneProject, entities);
                 }else if (cpType == ComponentType::CameraComponent){

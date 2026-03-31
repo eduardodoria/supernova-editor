@@ -21,6 +21,7 @@ namespace Supernova::Editor{
         TORUS,
         IMAGE,
         SPRITE,
+        TILEMAP,
         TEXT,
         BUTTON,
         CONTAINER,

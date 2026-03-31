@@ -430,6 +430,10 @@ void Editor::SceneRender::mouseClickEvent(float x, float y, std::vector<Entity> 
                 SpriteComponent& sprite = scene->getComponent<SpriteComponent>(entity);
                 objectSizeOffset[entity] = Vector2(sprite.width, sprite.height);
             }
+            if (signature.test(scene->getComponentId<TilemapComponent>())){
+                TilemapComponent& tilemap = scene->getComponent<TilemapComponent>(entity);
+                objectSizeOffset[entity] = Vector2(tilemap.width, tilemap.height);
+            }
             if (signature.test(scene->getComponentId<UILayoutComponent>())){
                 UILayoutComponent& layout = scene->getComponent<UILayoutComponent>(entity);
                 objectSizeOffset[entity] = Vector2(layout.width, layout.height);
@@ -576,6 +580,7 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
 
                 if (toolslayer.getGizmoSelected() == GizmoSelected::OBJECT2D){
                     bool isSprite = scene->getComponentArray<SpriteComponent>()->hasEntity(entity);
+                    bool isTilemap = scene->getComponentArray<TilemapComponent>()->hasEntity(entity);
                     bool isLayout = scene->getComponentArray<UILayoutComponent>()->hasEntity(entity);
                     bool isText = scene->getComponentArray<TextComponent>()->hasEntity(entity);
 
@@ -664,6 +669,9 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                         }else if (isSprite){
                             multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entity, ComponentType::SpriteComponent, "width", static_cast<unsigned int>(size.x));
                             multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entity, ComponentType::SpriteComponent, "height", static_cast<unsigned int>(size.y));
+                        }else if (isTilemap){
+                            multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entity, ComponentType::TilemapComponent, "width", static_cast<unsigned int>(size.x));
+                            multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entity, ComponentType::TilemapComponent, "height", static_cast<unsigned int>(size.y));
                         }
                         multiCmd->addPropertyCmd<Vector3>(project, sceneProject->id, entity, ComponentType::Transform, "position", pos);
                         lastCommand = multiCmd;
