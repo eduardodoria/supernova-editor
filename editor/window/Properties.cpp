@@ -6486,8 +6486,6 @@ void Editor::Properties::drawActionComponent(ComponentType cpType, SceneProject*
             actionComp = scene->findComponent<ActionComponent>(entity);
             if (actionComp && actionComp->state == ActionState::Stopped) {
                 actionPreviewPlaying = false;
-                stopActionPreview(scene, sceneProject);
-                actionComp = scene->findComponent<ActionComponent>(entity);
             }
         }
     }
@@ -6528,9 +6526,11 @@ void Editor::Properties::drawActionComponent(ComponentType cpType, SceneProject*
         }
         ImGui::SameLine();
 
+        ImGui::BeginDisabled(!animIsPlaying && !animIsPreviewing);
         if (ImGui::Button(ICON_FA_STOP "##action_stop")) {
             animWindow->externalStop();
         }
+        ImGui::EndDisabled();
     } else {
         // Standalone action preview (no AnimationComponent)
         if (actionPreviewPlaying) {
@@ -6546,13 +6546,20 @@ void Editor::Properties::drawActionComponent(ComponentType cpType, SceneProject*
                     startActionPreview(entity, scene, sceneProject);
                     actionComp = scene->findComponent<ActionComponent>(entity);
                 } else if (actionComp) {
-                    actionComp->startTrigger = true;
+                    if (actionComp->state == ActionState::Stopped) {
+                        stopActionPreview(scene, sceneProject);
+                        startActionPreview(entity, scene, sceneProject);
+                        actionComp = scene->findComponent<ActionComponent>(entity);
+                    } else {
+                        actionComp->startTrigger = true;
+                    }
                 }
                 actionPreviewPlaying = true;
             }
         }
         ImGui::SameLine();
 
+        ImGui::BeginDisabled(!actionPreviewPlaying && !actionPreviewing);
         if (ImGui::Button(ICON_FA_STOP "##action_stop")) {
             if (actionPreviewing) {
                 stopActionPreview(scene, sceneProject);
@@ -6560,6 +6567,7 @@ void Editor::Properties::drawActionComponent(ComponentType cpType, SceneProject*
             }
             actionPreviewPlaying = false;
         }
+        ImGui::EndDisabled();
     }
     ImGui::SameLine();
 
@@ -6594,7 +6602,51 @@ void Editor::Properties::drawActionComponent(ComponentType cpType, SceneProject*
     float rounding = timelineHeight * 0.5f;
     ImVec2 timelinePos = ImGui::GetCursorScreenPos();
 
-    ImGui::Dummy(ImVec2(timelineWidth, frameHeight));
+    ImGui::InvisibleButton("##action_timeline_strip", ImVec2(timelineWidth, frameHeight));
+    bool timelineHovered = ImGui::IsItemHovered();
+    bool timelineClicked = ImGui::IsItemActive() && ImGui::IsMouseDown(ImGuiMouseButton_Left);
+
+    if (sceneIsStopped && duration > 0 && timelineClicked) {
+        float mouseX = ImGui::GetIO().MousePos.x;
+        float clickFraction = std::clamp((mouseX - timelinePos.x) / timelineWidth, 0.0f, 1.0f);
+        float seekTime = clickFraction * duration;
+
+        if (syncWithAnimWindow) {
+            animWindow->externalPlay(entity, sceneProject->id);
+            animWindow->externalPause();
+            animWindow->seekPreviewExternal(scene, sceneProject, seekTime);
+            actionComp = scene->findComponent<ActionComponent>(entity);
+        } else {
+            if (!actionPreviewing) {
+                startActionPreview(entity, scene, sceneProject);
+                actionComp = scene->findComponent<ActionComponent>(entity);
+            }
+            if (actionPreviewing && actionComp) {
+                // Restore state and re-evaluate at seek time
+                for (const ActionPreviewState& state : actionPreviewStates) {
+                    if (state.entity == NULL_ENTITY || !scene->isEntityCreated(state.entity) || !state.components || state.components.IsNull()) {
+                        continue;
+                    }
+                    Stream::decodeComponents(state.entity, state.parent, scene, state.components);
+                }
+
+                actionComp->timecount = seekTime;
+                actionComp->stopTrigger = false;
+                actionComp->pauseTrigger = false;
+                actionComp->startTrigger = true;
+
+                scene->getSystem<ActionSystem>()->updateActionPreview(0.0, entity);
+                sceneProject->needUpdateRender = true;
+                actionPreviewPlaying = false;
+
+                actionComp = scene->findComponent<ActionComponent>(entity);
+            }
+        }
+    }
+
+    if (timelineHovered && duration > 0) {
+        ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+    }
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     ImGuiStyle& style = ImGui::GetStyle();

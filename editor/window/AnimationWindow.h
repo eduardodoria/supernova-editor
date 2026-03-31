@@ -64,9 +64,9 @@ namespace Supernova::Editor{
         // Helpers
         void drawToolbar(float width, AnimationComponent& anim, Scene* scene, SceneProject* sceneProject);
         void drawTimeRuler(ImVec2 canvasPos, ImVec2 canvasSize, float timeStart, float timeEnd);
-        void drawTracks(ImVec2 canvasPos, ImVec2 canvasSize, float timeStart, float timeEnd,
-                        AnimationComponent& anim, SceneProject* sceneProject);
-        void drawPlayhead(ImVec2 canvasPos, ImVec2 canvasSize, float timeStart, float timeEnd);
+        bool drawTracks(ImVec2 canvasPos, ImVec2 canvasSize, float timeStart, float timeEnd,
+                AnimationComponent& anim, SceneProject* sceneProject);
+        bool drawPlayhead(ImVec2 canvasPos, ImVec2 canvasSize, float timeStart, float timeEnd);
 
         float snapTime(float time) const;
         float timeToX(float time, float timeStart, ImVec2 canvasPos) const;
@@ -79,9 +79,13 @@ namespace Supernova::Editor{
                              std::unordered_set<Entity>& visitedAnimations,
                              std::unordered_set<Entity>& collectedEntities) const;
         PreviewEntityState buildPreviewEntityState(Scene* scene, Entity entity) const;
+        void restorePreviewState(Scene* scene) const;
+        void applyPreviewModelBindPose(Scene* scene) const;
+        float getAnimationDuration(const AnimationComponent& anim) const;
+        void seekPreview(Scene* scene, SceneProject* sceneProject, float time);
 
         void startPreview(Scene* scene, SceneProject* sceneProject);
-        void stopPreview(Scene* scene, SceneProject* sceneProject);
+        void stopPreview(Scene* scene, SceneProject* sceneProject, bool applyBindPose = false);
 
     public:
         static constexpr const char* WINDOW_NAME = "Animation";
@@ -100,6 +104,7 @@ namespace Supernova::Editor{
         void externalPlay(Entity entity, uint32_t sceneId);
         void externalStop();
         void externalPause();
+        void seekPreviewExternal(Scene* scene, SceneProject* sceneProject, float time);
     };
 
 }

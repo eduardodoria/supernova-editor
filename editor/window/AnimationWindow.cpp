@@ -11,12 +11,17 @@
 
 #include "component/ActionComponent.h"
 #include "component/AnimationComponent.h"
+#include "component/BoneComponent.h"
+#include "component/KeyframeTracksComponent.h"
+#include "component/ModelComponent.h"
 #include "component/SpriteAnimationComponent.h"
 #include "component/TimedActionComponent.h"
 #include "subsystem/ActionSystem.h"
+#include "subsystem/MeshSystem.h"
 
 #include <algorithm>
 #include <cmath>
+#include <numeric>
 #include <unordered_set>
 
 using namespace Supernova;
@@ -84,6 +89,10 @@ std::string Editor::AnimationWindow::getActionLabel(Entity actionEntity, Scene* 
 
     if (sig.test(scene->getComponentId<TimedActionComponent>())) {
         return "TimedAction";
+    }
+
+    if (sig.test(scene->getComponentId<KeyframeTracksComponent>())) {
+        return "KeyframeTracks";
     }
 
     if (sig.test(scene->getComponentId<AnimationComponent>())) {
@@ -178,6 +187,82 @@ Editor::AnimationWindow::PreviewEntityState Editor::AnimationWindow::buildPrevie
     return state;
 }
 
+void Editor::AnimationWindow::restorePreviewState(Scene* scene) const {
+    for (const PreviewEntityState& state : previewState) {
+        if (state.entity == NULL_ENTITY || !scene->isEntityCreated(state.entity) || !state.components || state.components.IsNull()) {
+            continue;
+        }
+
+        Stream::decodeComponents(state.entity, state.parent, scene, state.components);
+    }
+}
+
+void Editor::AnimationWindow::applyPreviewModelBindPose(Scene* scene) const {
+    std::unordered_set<Entity> modelEntities;
+
+    for (const PreviewEntityState& state : previewState) {
+        if (state.entity == NULL_ENTITY || !scene->isEntityCreated(state.entity)) {
+            continue;
+        }
+
+        if (BoneComponent* bone = scene->findComponent<BoneComponent>(state.entity)) {
+            if (bone->model != NULL_ENTITY) {
+                modelEntities.insert(bone->model);
+            }
+        }
+
+        if (scene->findComponent<ModelComponent>(state.entity)) {
+            modelEntities.insert(state.entity);
+        }
+    }
+
+    auto meshSystem = scene->getSystem<MeshSystem>();
+    for (Entity modelEntity : modelEntities) {
+        ModelComponent* model = scene->findComponent<ModelComponent>(modelEntity);
+        if (model) {
+            meshSystem->resetModelToBindPose(*model);
+        }
+    }
+}
+
+float Editor::AnimationWindow::getAnimationDuration(const AnimationComponent& anim) const {
+    if (anim.duration > 0) {
+        return anim.duration;
+    }
+
+    float duration = 0.0f;
+    for (const ActionFrame& frame : anim.actions) {
+        duration = std::max(duration, frame.startTime + frame.duration);
+    }
+
+    return duration;
+}
+
+void Editor::AnimationWindow::seekPreview(Scene* scene, SceneProject* sceneProject, float time) {
+    if (!scene || !sceneProject || !canPreviewEntity(selectedEntity, scene)) {
+        return;
+    }
+
+    if (!isPreviewing) {
+        startPreview(scene, sceneProject);
+    }
+
+    AnimationComponent& anim = scene->getComponent<AnimationComponent>(selectedEntity);
+    currentTime = std::max(0.0f, std::min(time, getAnimationDuration(anim)));
+
+    restorePreviewState(scene);
+    applyPreviewModelBindPose(scene);
+
+    ActionComponent& action = scene->getComponent<ActionComponent>(selectedEntity);
+    action.timecount = currentTime;
+    action.stopTrigger = false;
+    action.pauseTrigger = false;
+    action.startTrigger = true;
+
+    scene->getSystem<ActionSystem>()->updateAnimationPreview(0.0, selectedEntity);
+    sceneProject->needUpdateRender = true;
+}
+
 void Editor::AnimationWindow::startPreview(Scene* scene, SceneProject* sceneProject) {
     if (isPreviewing || !canPreviewEntity(selectedEntity, scene)) {
         return;
@@ -204,15 +289,12 @@ void Editor::AnimationWindow::startPreview(Scene* scene, SceneProject* sceneProj
     isPreviewing = true;
 }
 
-void Editor::AnimationWindow::stopPreview(Scene* scene, SceneProject* sceneProject) {
+void Editor::AnimationWindow::stopPreview(Scene* scene, SceneProject* sceneProject, bool applyBindPose) {
     if (!isPreviewing) return;
 
-    for (const PreviewEntityState& state : previewState) {
-        if (state.entity == NULL_ENTITY || !scene->isEntityCreated(state.entity) || !state.components || state.components.IsNull()) {
-            continue;
-        }
-
-        Stream::decodeComponents(state.entity, state.parent, scene, state.components);
+    restorePreviewState(scene);
+    if (applyBindPose) {
+        applyPreviewModelBindPose(scene);
     }
 
     previewState.clear();
@@ -319,6 +401,11 @@ void Editor::AnimationWindow::drawToolbar(float width, AnimationComponent& anim,
             if (sceneIsStopped && !isPreviewing) {
                 currentTime = 0;
                 startPreview(scene, sceneProject);
+            } else if (sceneIsStopped && isPreviewing) {
+                ActionComponent& action = sceneProject->scene->getComponent<ActionComponent>(selectedEntity);
+                if (action.state == ActionState::Stopped) {
+                    seekPreview(scene, sceneProject, 0.0f);
+                }
             }
         }
         ImGui::EndDisabled();
@@ -329,20 +416,27 @@ void Editor::AnimationWindow::drawToolbar(float width, AnimationComponent& anim,
     ImGui::SameLine();
 
     // Stop
+    ImGui::BeginDisabled(!isPlaying && !isPreviewing);
     if (ImGui::Button(ICON_FA_STOP "##anim_stop")) {
         isPlaying = false;
         currentTime = 0;
         if (isPreviewing) {
-            stopPreview(scene, sceneProject);
+            stopPreview(scene, sceneProject, true);
         }
     }
+    ImGui::EndDisabled();
     ImGui::SameLine();
 
     // Time display
     ImGui::SetNextItemWidth(60);
-    ImGui::BeginDisabled(isPreviewing);
-    ImGui::DragFloat("##anim_time", &currentTime, 0.01f, 0.0f, FLT_MAX, "%.2fs");
-    ImGui::EndDisabled();
+    float maxTime = getAnimationDuration(anim);
+    if (ImGui::DragFloat("##anim_time", &currentTime, 0.01f, 0.0f, maxTime, "%.2fs")) {
+        if (sceneIsStopped && canPreview) {
+            seekPreview(scene, sceneProject, currentTime);
+        } else {
+            currentTime = std::max(0.0f, std::min(currentTime, maxTime));
+        }
+    }
     ImGui::SameLine();
 
     // Speed
@@ -368,9 +462,39 @@ void Editor::AnimationWindow::drawToolbar(float width, AnimationComponent& anim,
         ImGui::DragFloat("##snap_int", &snapInterval, 0.01f, 0.01f, 1.0f, "%.2f");
     }
 
-    ImGui::SameLine();
-    ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
-    ImGui::SameLine();
+    if (selectedFrameIndex >= 0 && selectedFrameIndex < (int)anim.actions.size()) {
+        ActionFrame& frame = anim.actions[selectedFrameIndex];
+        std::string actionLabel = getActionLabel(frame.action, scene);
+
+        char infoBuf[256];
+        snprintf(infoBuf, sizeof(infoBuf), "Frame %d | Track %u | Start %.2fs | Duration %.2fs | %s",
+                 selectedFrameIndex, frame.track, frame.startTime, frame.duration, actionLabel.c_str());
+
+        float infoWidth = ImGui::CalcTextSize(infoBuf).x;
+        float cursorX = ImGui::GetCursorPosX();
+        float inlinePadding = 24.0f;
+        bool fitsInline = (width - cursorX) > (infoWidth + inlinePadding);
+
+        if (fitsInline) {
+            ImGui::SameLine();
+            ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+            ImGui::SameLine();
+
+            float minInfoX = ImGui::GetCursorPosX();
+            float alignedInfoX = width - infoWidth;
+            if (alignedInfoX > minInfoX) {
+                ImGui::SetCursorPosX(alignedInfoX);
+            }
+        } else {
+            ImGui::Spacing();
+        }
+
+        ImGui::TextDisabled("%s", infoBuf);
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Frame %d\nTrack: %u\nStart: %.2fs\nDuration: %.2fs\nAction: %s",
+                              selectedFrameIndex, frame.track, frame.startTime, frame.duration, actionLabel.c_str());
+        }
+    }
 }
 
 void Editor::AnimationWindow::drawTimeRuler(ImVec2 canvasPos, ImVec2 canvasSize, float timeStart, float timeEnd) {
@@ -424,8 +548,8 @@ void Editor::AnimationWindow::drawTimeRuler(ImVec2 canvasPos, ImVec2 canvasSize,
     }
 }
 
-void Editor::AnimationWindow::drawTracks(ImVec2 canvasPos, ImVec2 canvasSize, float timeStart, float timeEnd,
-                                          AnimationComponent& anim, SceneProject* sceneProject) {
+bool Editor::AnimationWindow::drawTracks(ImVec2 canvasPos, ImVec2 canvasSize, float timeStart, float timeEnd,
+                                         AnimationComponent& anim, SceneProject* sceneProject) {
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     Scene* scene = sceneProject->scene;
     float rulerHeight = 20.0f;
@@ -442,6 +566,7 @@ void Editor::AnimationWindow::drawTracks(ImVec2 canvasPos, ImVec2 canvasSize, fl
     };
     int numColors = sizeof(trackColors) / sizeof(trackColors[0]);
     bool allowEditing = !isPreviewing;
+    bool mouseOverFrame = false;
 
     // Find highest track
     uint32_t maxTrack = 0;
@@ -485,11 +610,13 @@ void Editor::AnimationWindow::drawTracks(ImVec2 canvasPos, ImVec2 canvasSize, fl
 
         if (visEnd > visStart) {
             ImU32 blockColor = trackColors[frame.track % numColors];
-            if ((int)i == selectedFrameIndex) {
-                blockColor = IM_COL32(255, 200, 50, 220); // Selected highlight
-            }
             drawList->AddRectFilled(ImVec2(visStart, trackY + 2), ImVec2(visEnd, trackY + trackHeight - 2),
                                     blockColor, 3.0f);
+
+            if ((int)i == selectedFrameIndex) {
+                drawList->AddRect(ImVec2(visStart, trackY + 2), ImVec2(visEnd, trackY + trackHeight - 2),
+                                  IM_COL32(255, 220, 120, 255), 3.0f, 0, 2.0f);
+            }
 
             // Block label
             std::string blockLabel = std::to_string(i) + ": " + getActionLabel(frame.action, scene);
@@ -509,6 +636,7 @@ void Editor::AnimationWindow::drawTracks(ImVec2 canvasPos, ImVec2 canvasSize, fl
 
             // Detect edge hover for resize cursor
             bool hovered = ImGui::IsItemHovered();
+            mouseOverFrame = mouseOverFrame || hovered || ImGui::IsItemActive();
             if (allowEditing && hovered && !isDraggingFrame && !isResizingFrame) {
                 float mouseX = ImGui::GetIO().MousePos.x;
                 bool onLeftEdge = (mouseX - blockStart) < edgeZone && (mouseX >= blockStart);
@@ -749,9 +877,11 @@ void Editor::AnimationWindow::drawTracks(ImVec2 canvasPos, ImVec2 canvasSize, fl
         isDraggingFrame = false;
         draggingFrameIndex = -1;
     }
+
+    return mouseOverFrame;
 }
 
-void Editor::AnimationWindow::drawPlayhead(ImVec2 canvasPos, ImVec2 canvasSize, float timeStart, float timeEnd) {
+bool Editor::AnimationWindow::drawPlayhead(ImVec2 canvasPos, ImVec2 canvasSize, float timeStart, float timeEnd) {
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     float labelWidth = 120.0f;
 
@@ -770,28 +900,39 @@ void Editor::AnimationWindow::drawPlayhead(ImVec2 canvasPos, ImVec2 canvasSize, 
             IM_COL32(255, 80, 80, 255));
     }
 
-    // Playhead drag interaction on ruler area
-    ImVec2 rulerMin(canvasPos.x + labelWidth, canvasPos.y);
-    ImVec2 rulerMax(canvasPos.x + canvasSize.x, canvasPos.y + 20);
-    ImGui::SetCursorScreenPos(rulerMin);
-    ImGui::InvisibleButton("##playhead_drag", ImVec2(rulerMax.x - rulerMin.x, rulerMax.y - rulerMin.y));
+    ImVec2 timeAreaMin(canvasPos.x + labelWidth, canvasPos.y);
+    ImVec2 timeAreaMax(canvasPos.x + canvasSize.x, canvasPos.y + canvasSize.y);
+    ImVec2 mousePos = ImGui::GetIO().MousePos;
+    bool mouseInTimeArea = mousePos.x >= timeAreaMin.x && mousePos.x <= timeAreaMax.x &&
+                           mousePos.y >= timeAreaMin.y && mousePos.y <= timeAreaMax.y;
 
-    if (!isPreviewing && (ImGui::IsItemClicked(ImGuiMouseButton_Left) || (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left)))) {
-        float mouseX = ImGui::GetIO().MousePos.x;
-        float newTime = (mouseX - canvasPos.x - labelWidth) / pixelsPerSecond + timeStart;
+    bool scrubbed = false;
+    if ((ImGui::IsMouseClicked(ImGuiMouseButton_Left) || (isDraggingPlayhead && ImGui::IsMouseDragging(ImGuiMouseButton_Left))) &&
+        ImGui::IsWindowHovered() && mouseInTimeArea && !isDraggingFrame && !isResizingFrame) {
+        float newTime = xToTime(mousePos.x, timeStart, ImVec2(canvasPos.x + labelWidth, 0));
         currentTime = snapTime(std::max(0.0f, newTime));
         isDraggingPlayhead = true;
+        scrubbed = true;
     }
+
     if (isDraggingPlayhead && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
         isDraggingPlayhead = false;
     }
+
+    return scrubbed;
 }
 
 void Editor::AnimationWindow::show() {
+    static bool preventScroll = false;
+
     if (hasNotification) {
         App::pushTabNotificationStyle();
     }
-    isWindowVisible = ImGui::Begin(AnimationWindow::WINDOW_NAME, nullptr, hasNotification ? ImGuiWindowFlags_UnsavedDocument : 0);
+
+    ImGuiWindowFlags flags = hasNotification ? ImGuiWindowFlags_UnsavedDocument : 0;
+    if (preventScroll) flags |= ImGuiWindowFlags_NoScrollWithMouse;
+
+    isWindowVisible = ImGui::Begin(AnimationWindow::WINDOW_NAME, nullptr, flags);
     if (hasNotification) App::popTabNotificationStyle();
 
     if (isWindowVisible) {
@@ -894,6 +1035,54 @@ void Editor::AnimationWindow::show() {
 
     AnimationComponent* animComp = &scene->getComponent<AnimationComponent>(selectedEntity);
 
+    // Auto-assign tracks when overlapping frames are detected on the same track
+    {
+        bool hasOverlap = false;
+        for (size_t i = 0; i < animComp->actions.size() && !hasOverlap; i++) {
+            for (size_t j = i + 1; j < animComp->actions.size() && !hasOverlap; j++) {
+                if (animComp->actions[i].track == animComp->actions[j].track) {
+                    float iEnd = animComp->actions[i].startTime + animComp->actions[i].duration;
+                    float jEnd = animComp->actions[j].startTime + animComp->actions[j].duration;
+                    if (animComp->actions[i].startTime < jEnd && animComp->actions[j].startTime < iEnd) {
+                        hasOverlap = true;
+                    }
+                }
+            }
+        }
+        if (hasOverlap) {
+            // Build sorted indices by (track, startTime, index)
+            std::vector<size_t> sorted(animComp->actions.size());
+            std::iota(sorted.begin(), sorted.end(), 0);
+            std::sort(sorted.begin(), sorted.end(), [&](size_t a, size_t b) {
+                if (animComp->actions[a].track != animComp->actions[b].track)
+                    return animComp->actions[a].track < animComp->actions[b].track;
+                if (animComp->actions[a].startTime != animComp->actions[b].startTime)
+                    return animComp->actions[a].startTime < animComp->actions[b].startTime;
+                return a < b;
+            });
+
+            // Greedy lane packing
+            std::vector<float> laneEnds;
+            for (size_t idx : sorted) {
+                ActionFrame& frame = animComp->actions[idx];
+                int lane = -1;
+                for (int l = 0; l < (int)laneEnds.size(); l++) {
+                    if (frame.startTime >= laneEnds[l]) {
+                        lane = l;
+                        laneEnds[l] = frame.startTime + frame.duration;
+                        break;
+                    }
+                }
+                if (lane == -1) {
+                    lane = (int)laneEnds.size();
+                    laneEnds.push_back(frame.startTime + frame.duration);
+                }
+                frame.track = (uint32_t)lane;
+            }
+            sceneProject->isModified = true;
+        }
+    }
+
     bool sceneIsStopped = (sceneProject->playState == ScenePlayState::STOPPED);
     if (isPreviewing && !sceneIsStopped) {
         stopPreview(scene, sceneProject);
@@ -912,22 +1101,12 @@ void Editor::AnimationWindow::show() {
 
         // Sync currentTime from engine state
         ActionComponent& action = scene->getComponent<ActionComponent>(selectedEntity);
-        currentTime = action.timecount;
 
         // Check if animation finished naturally
         if (action.state == ActionState::Stopped && isPlaying) {
-            float finishedTime = 0;
-            if (animComp->duration > 0) {
-                finishedTime = animComp->duration;
-            } else {
-                for (const ActionFrame& frame : animComp->actions) {
-                    finishedTime = std::max(finishedTime, frame.startTime + frame.duration);
-                }
-            }
-
             isPlaying = false;
-            stopPreview(scene, sceneProject);
-            currentTime = finishedTime;
+        } else {
+            currentTime = action.timecount;
         }
     } else if (isPlaying) {
         // Fallback: visual-only playback (when scene is playing or no preview)
@@ -961,7 +1140,11 @@ void Editor::AnimationWindow::show() {
     float timeEnd = timeStart + visibleTime;
 
     // Handle mouse wheel zoom
-    if (ImGui::IsWindowHovered() && ImGui::GetIO().MouseWheel != 0) {
+    bool mouseAboveTracks = ImGui::IsWindowHovered() && ImGui::GetMousePos().y <= (canvasPos.y + 20.0f);
+
+    preventScroll = mouseAboveTracks;
+
+    if (mouseAboveTracks && ImGui::GetIO().MouseWheel != 0) {
         float zoomFactor = 1.0f + ImGui::GetIO().MouseWheel * 0.1f;
         pixelsPerSecond = std::clamp(pixelsPerSecond * zoomFactor, minPixelsPerSecond, maxPixelsPerSecond);
     }
@@ -972,8 +1155,24 @@ void Editor::AnimationWindow::show() {
                             IM_COL32(30, 30, 30, 255));
 
     drawTimeRuler(canvasPos, canvasSize, timeStart, timeEnd);
-    drawTracks(canvasPos, canvasSize, timeStart, timeEnd, *animComp, sceneProject);
-    drawPlayhead(canvasPos, canvasSize, timeStart, timeEnd);
+    bool mouseOverFrame = drawTracks(canvasPos, canvasSize, timeStart, timeEnd, *animComp, sceneProject);
+    bool scrubbed = drawPlayhead(canvasPos, canvasSize, timeStart, timeEnd);
+
+    ImVec2 mousePos = ImGui::GetIO().MousePos;
+    bool mouseInCanvas = mousePos.x >= canvasPos.x && mousePos.x <= canvasPos.x + canvasSize.x &&
+                         mousePos.y >= canvasPos.y && mousePos.y <= canvasPos.y + canvasSize.y;
+    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && mouseInCanvas &&
+        !mouseOverFrame && !isDraggingFrame && !isResizingFrame) {
+        selectedFrameIndex = -1;
+    }
+
+    if (scrubbed) {
+        if (sceneIsStopped && canPreviewEntity(selectedEntity, scene)) {
+            seekPreview(scene, sceneProject, currentTime);
+        } else {
+            currentTime = std::max(0.0f, std::min(currentTime, getAnimationDuration(*animComp)));
+        }
+    }
 
     // Reserve space
     ImGui::Dummy(canvasSize);
@@ -983,21 +1182,6 @@ void Editor::AnimationWindow::show() {
     if (animComp->duration > 0) totalTime = animComp->duration * 1.5f;
     float maxScroll = std::max(0.0f, totalTime * pixelsPerSecond - canvasSize.x + labelWidth);
     if (scrollX > maxScroll) scrollX = maxScroll;
-
-    // Selected track info
-    if (selectedFrameIndex >= 0 && selectedFrameIndex < (int)animComp->actions.size()) {
-        ImGui::Separator();
-        ActionFrame& frame = animComp->actions[selectedFrameIndex];
-        ImGui::Text("Frame %d:", selectedFrameIndex);
-        ImGui::SameLine();
-        ImGui::Text("Track: %d", frame.track);
-        ImGui::SameLine();
-        ImGui::Text("Start: %.2fs", frame.startTime);
-        ImGui::SameLine();
-        ImGui::Text("Duration: %.2fs", frame.duration);
-        ImGui::SameLine();
-        ImGui::Text("Action: %s", getActionLabel(frame.action, scene).c_str());
-    }
 
     ImGui::End();
 }
@@ -1027,9 +1211,16 @@ void Editor::AnimationWindow::externalPlay(Entity entity, uint32_t sceneId) {
         selectEntity(entity, sceneId);
     }
 
-    if (!isPreviewing) {
+    bool sceneIsStopped = (sceneProject->playState == ScenePlayState::STOPPED);
+
+    if (sceneIsStopped && !isPreviewing) {
         currentTime = 0;
         startPreview(scene, sceneProject);
+    } else if (sceneIsStopped && isPreviewing) {
+        ActionComponent& action = sceneProject->scene->getComponent<ActionComponent>(selectedEntity);
+        if (action.state == ActionState::Stopped) {
+            seekPreview(scene, sceneProject, 0.0f);
+        }
     }
     isPlaying = true;
 }
@@ -1047,4 +1238,8 @@ void Editor::AnimationWindow::externalStop() {
 
 void Editor::AnimationWindow::externalPause() {
     isPlaying = false;
+}
+
+void Editor::AnimationWindow::seekPreviewExternal(Scene* scene, SceneProject* sceneProject, float time) {
+    seekPreview(scene, sceneProject, time);
 }
