@@ -210,15 +210,18 @@ void Editor::Structure::showIconMenu(){
         ImGui::Text("New scene:");
         ImVec2 buttonSize = ImVec2(ImGui::GetFontSize() * 8, ImGui::GetFontSize() * 2);
         if (ImGui::Button(ICON_FA_CUBES "  3D Scene", buttonSize)) {
-            uint32_t sceneid = project->createNewScene("New Scene", SceneType::SCENE_3D);
+            project->createNewScene("New Scene", SceneType::SCENE_3D);
+            ImGui::CloseCurrentPopup();
         }
         //ImGui::SameLine();
         if (ImGui::Button(ICON_FA_CUBES_STACKED "  2D Scene", buttonSize)) {
-            uint32_t sceneid = project->createNewScene("New Scene", SceneType::SCENE_2D);
+            project->createNewScene("New Scene", SceneType::SCENE_2D);
+            ImGui::CloseCurrentPopup();
         }
         //ImGui::SameLine();
         if (ImGui::Button(ICON_FA_WINDOW_RESTORE "  UI Scene", buttonSize)) {
-            uint32_t sceneid = project->createNewScene("New Scene", SceneType::SCENE_UI);
+            project->createNewScene("New Scene", SceneType::SCENE_UI);
+            ImGui::CloseCurrentPopup();
         }
         ImGui::Separator();
         if (ImGui::BeginMenu(ICON_FA_CIRCLE_DOT"  Create entity"))
