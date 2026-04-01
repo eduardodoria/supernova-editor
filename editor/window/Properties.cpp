@@ -4734,113 +4734,203 @@ void Editor::Properties::drawTilemapComponent(ComponentType cpType, SceneProject
         beginTable(cpType, getLabelSize("Tile Rects"), "tilemap_rects_header");
         propertyHeader("Tile Rects", -1, false, false);
         ImGui::Text("%d", activeTileRectCount);
+        ImGui::SameLine();
+        if (ImGui::ArrowButton("##toggle_all_rects", tilemapRectsExpanded ? ImGuiDir_Up : ImGuiDir_Down)) {
+            tilemapRectsExpanded = !tilemapRectsExpanded;
+        }
         endTable();
 
-        // Draw each tile rect
-        RowSettings settingsRect;
-        settingsRect.stepSize = 1.0f;
-        settingsRect.format = "%.0f";
-        settingsRect.showColors = false;
+        if (tilemapRectsExpanded) {
+            // Draw each tile rect
+            RowSettings settingsRect;
+            settingsRect.stepSize = 1.0f;
+            settingsRect.format = "%.0f";
+            settingsRect.showColors = false;
 
-        for (unsigned int i = 0; i < tilemap.numTilesRect; i++) {
-            ImGui::PushID(i);
+            for (unsigned int i = 0; i < tilemap.numTilesRect; i++) {
+                ImGui::PushID(i);
 
-            std::string label = "[" + std::to_string(i) + "] " + tilemap.tilesRect[i].name;
-            std::string groupStr = "tilerect_" + std::to_string(i);
-            std::string prefix = "tilesRect[" + std::to_string(i) + "]";
+                std::string label = "[" + std::to_string(i) + "] " + tilemap.tilesRect[i].name;
+                std::string groupStr = "tilerect_" + std::to_string(i);
+                std::string prefix = "tilesRect[" + std::to_string(i) + "]";
 
-            ImGui::SeparatorText(label.c_str());
+                ImGui::SeparatorText(label.c_str());
 
-            beginTable(cpType, getLabelSize("Name"), groupStr);
+                beginTable(cpType, getLabelSize("Name"), groupStr);
 
-            propertyHeader("Rect", -1, false, false);
-            {
-                float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
-                float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_TRASH_CAN).x;
-                ImVec2 deleteButtonSize = ImVec2(clearButtonWidth + clearButtonFramePadding * 2, 0);
+                propertyHeader("Rect", -1, false, false);
+                {
+                    float previewSize = ImGui::GetFrameHeight() * 2.2f;
+                    float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
+                    float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_TRASH_CAN).x;
+                    ImVec2 deleteButtonSize = ImVec2(clearButtonWidth + clearButtonFramePadding * 2, 0);
+                    ImVec2 arrowButtonSize = ImGui::CalcItemSize(ImVec2(0, 0), ImGui::GetFrameHeight(), ImGui::GetFrameHeight());
 
-                if (ImGui::Button(ICON_FA_TRASH_CAN, deleteButtonSize)) {
-                    Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
-                    // Shift subsequent rects down
-                    for (unsigned int j = i; j < tilemap.numTilesRect - 1; j++) {
-                        std::string dstPrefix = "tilesRect[" + std::to_string(j) + "]";
-                        multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
-                            dstPrefix + ".name", tilemap.tilesRect[j + 1].name);
-                        multiCmd->addPropertyCmd<int>(project, sceneProject->id, entities[0], cpType,
-                            dstPrefix + ".submeshId", tilemap.tilesRect[j + 1].submeshId);
-                        multiCmd->addPropertyCmd<Vector4>(project, sceneProject->id, entities[0], cpType,
-                            dstPrefix + ".rect", Vector4(tilemap.tilesRect[j + 1].rect.getX(), tilemap.tilesRect[j + 1].rect.getY(),
-                                tilemap.tilesRect[j + 1].rect.getWidth(), tilemap.tilesRect[j + 1].rect.getHeight()));
+                    int submeshId = tilemap.tilesRect[i].submeshId;
+                    Texture* rectTex = nullptr;
+                    if (meshComp && submeshId >= 0 && (unsigned int)submeshId < meshComp->numSubmeshes) {
+                        rectTex = &meshComp->submeshes[submeshId].material.baseColorTexture;
+                        if (rectTex->empty()) rectTex = nullptr;
                     }
-                    // Clear last slot
-                    unsigned int lastIdx = tilemap.numTilesRect - 1;
-                    std::string lastPrefix = "tilesRect[" + std::to_string(lastIdx) + "]";
-                    multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
-                        lastPrefix + ".name", std::string(""));
-                    multiCmd->addPropertyCmd<int>(project, sceneProject->id, entities[0], cpType,
-                        lastPrefix + ".submeshId", -1);
-                    multiCmd->addPropertyCmd<Vector4>(project, sceneProject->id, entities[0], cpType,
-                        lastPrefix + ".rect", Vector4(0, 0, 0, 0));
-                    for (unsigned int j = 0; j < tilemap.numTiles; j++) {
-                        int rectId = tilemap.tiles[j].rectId;
-                        if (rectId == (int)i) {
-                            rectId = -1;
-                        } else if (rectId > (int)i) {
-                            rectId--;
-                        }
 
-                        if (rectId != tilemap.tiles[j].rectId) {
+                    bool hasFramePreview = rectTex && tilemap.tilesRect[i].rect.getWidth() > 0.0f && tilemap.tilesRect[i].rect.getHeight() > 0.0f;
+
+                    float trailingWidth = arrowButtonSize.x
+                            + ImGui::GetStyle().ItemSpacing.x + arrowButtonSize.x
+                            + ImGui::GetStyle().ItemSpacing.x + deleteButtonSize.x;
+                    if (hasFramePreview) {
+                        trailingWidth += previewSize + ImGui::GetStyle().ItemSpacing.x;
+                    }
+
+                    float targetX = ImGui::GetCursorPosX() + std::max(0.0f, ImGui::GetContentRegionAvail().x - trailingWidth);
+                    ImGui::SetCursorPosX(targetX);
+
+                    if (hasFramePreview) {
+                        drawSpriteFramePreview(rectTex, tilemap.tilesRect[i].rect, ImVec2(previewSize, previewSize), "##rect_preview");
+                        if (ImGui::IsItemHovered()) {
+                            ImGui::BeginTooltip();
+                            ImGui::Text("%s", label.c_str());
+
+                            float tooltipMaxSize = 200.0f;
+                            float scale = std::min(tooltipMaxSize / std::max(1.0f, tilemap.tilesRect[i].rect.getWidth()),
+                                                   tooltipMaxSize / std::max(1.0f, tilemap.tilesRect[i].rect.getHeight()));
+                            scale = std::min(scale, 1.0f);
+                            ImVec2 tooltipSize(std::max(32.0f, tilemap.tilesRect[i].rect.getWidth() * scale),
+                                               std::max(32.0f, tilemap.tilesRect[i].rect.getHeight() * scale));
+
+                            drawSpriteFramePreview(rectTex, tilemap.tilesRect[i].rect, tooltipSize, "##rect_preview_tooltip");
+                            ImGui::EndTooltip();
+                        }
+                        ImGui::SameLine();
+                    }
+
+                    if (ImGui::ArrowButton("##toggle_rect", tilemapRectsButtonGroups[groupStr] ? ImGuiDir_Up : ImGuiDir_Down)) {
+                        tilemapRectsButtonGroups[groupStr] = !tilemapRectsButtonGroups[groupStr];
+                    }
+                    ImGui::SameLine();
+
+                    {
+                    ImVec2 iconSize = ImGui::CalcTextSize(ICON_FA_SQUARE_PLUS);
+                    ImVec2 centerPad((arrowButtonSize.x - iconSize.x) * 0.5f, (arrowButtonSize.y - iconSize.y) * 0.5f);
+                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, centerPad);
+                    }
+                    if (ImGui::Button(ICON_FA_SQUARE_PLUS "##add_tile_from_rect")) {
+                        int freeSlot = (int)tilemap.numTiles;
+                        if (freeSlot < (int)tilemap.tiles.size()) {
+                            Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+                            std::string tilePrefix = "tiles[" + std::to_string(freeSlot) + "]";
+                            multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
+                                tilePrefix + ".name", tilemap.tilesRect[i].name);
                             multiCmd->addPropertyCmd<int>(project, sceneProject->id, entities[0], cpType,
-                                "tiles[" + std::to_string(j) + "].rectId", rectId);
+                                tilePrefix + ".rectId", (int)i);
+                            multiCmd->addPropertyCmd<float>(project, sceneProject->id, entities[0], cpType,
+                                tilePrefix + ".width", tilemap.tilesRect[i].rect.getWidth());
+                            multiCmd->addPropertyCmd<float>(project, sceneProject->id, entities[0], cpType,
+                                tilePrefix + ".height", tilemap.tilesRect[i].rect.getHeight());
+                            multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entities[0], cpType,
+                                "numTiles", (unsigned int)(freeSlot + 1));
+                            multiCmd->setNoMerge();
+                            CommandHandle::get(project->getSelectedSceneId())->addCommand(multiCmd);
                         }
                     }
-                    multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entities[0], cpType,
-                        "numTilesRect", (unsigned int)(tilemap.numTilesRect - 1));
-                    multiCmd->setNoMerge();
-                    CommandHandle::get(project->getSelectedSceneId())->addCommand(multiCmd);
-                    endTable();
-                    ImGui::PopID();
-                    break;
-                }
-            }
+                    ImGui::PopStyleVar();
+                    if (ImGui::IsItemHovered()) {
+                        ImGui::SetTooltip("Create tile from this rect");
+                    }
+                    ImGui::SameLine();
 
-            propertyRow(RowPropertyType::String, cpType, prefix + ".name", "Name", sceneProject, entities);
-            propertyRow(RowPropertyType::Vector4, cpType, prefix + ".rect", "Rect", sceneProject, entities, settingsRect);
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
+                    if (ImGui::Button(ICON_FA_TRASH_CAN "##delete_rect", deleteButtonSize)) {
+                        Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+                        // Shift subsequent rects down
+                        for (unsigned int j = i; j < tilemap.numTilesRect - 1; j++) {
+                            std::string dstPrefix = "tilesRect[" + std::to_string(j) + "]";
+                            multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
+                                dstPrefix + ".name", tilemap.tilesRect[j + 1].name);
+                            multiCmd->addPropertyCmd<int>(project, sceneProject->id, entities[0], cpType,
+                                dstPrefix + ".submeshId", tilemap.tilesRect[j + 1].submeshId);
+                            multiCmd->addPropertyCmd<Vector4>(project, sceneProject->id, entities[0], cpType,
+                                dstPrefix + ".rect", Vector4(tilemap.tilesRect[j + 1].rect.getX(), tilemap.tilesRect[j + 1].rect.getY(),
+                                    tilemap.tilesRect[j + 1].rect.getWidth(), tilemap.tilesRect[j + 1].rect.getHeight()));
+                        }
+                        // Clear last slot
+                        unsigned int lastIdx = tilemap.numTilesRect - 1;
+                        std::string lastPrefix = "tilesRect[" + std::to_string(lastIdx) + "]";
+                        multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
+                            lastPrefix + ".name", std::string(""));
+                        multiCmd->addPropertyCmd<int>(project, sceneProject->id, entities[0], cpType,
+                            lastPrefix + ".submeshId", -1);
+                        multiCmd->addPropertyCmd<Vector4>(project, sceneProject->id, entities[0], cpType,
+                            lastPrefix + ".rect", Vector4(0, 0, 0, 0));
+                        for (unsigned int j = 0; j < tilemap.numTiles; j++) {
+                            int rectId = tilemap.tiles[j].rectId;
+                            if (rectId == (int)i) {
+                                rectId = -1;
+                            } else if (rectId > (int)i) {
+                                rectId--;
+                            }
 
-            // Submesh selector combo
-            {
-                unsigned int numSubmeshes = meshComp ? meshComp->numSubmeshes : 1;
-                int currentSubmeshId = tilemap.tilesRect[i].submeshId;
-
-                propertyHeader("Submesh");
-                ImGui::SetNextItemWidth(-1);
-
-                std::string comboLabel = "##submeshId_" + std::to_string(i);
-                std::string previewStr = (currentSubmeshId >= 0 && (unsigned int)currentSubmeshId < numSubmeshes)
-                    ? "Submesh " + std::to_string(currentSubmeshId)
-                    : "None";
-
-                if (ImGui::BeginCombo(comboLabel.c_str(), previewStr.c_str())) {
-                    for (unsigned int s = 0; s < numSubmeshes; s++) {
-                        bool isSelected = ((int)s == currentSubmeshId);
-                        std::string itemLabel = "Submesh " + std::to_string(s);
-                        if (ImGui::Selectable(itemLabel.c_str(), isSelected)) {
-                            if ((int)s != currentSubmeshId) {
-                                Editor::PropertyCmd<int>* propCmd = new Editor::PropertyCmd<int>(
-                                    project, sceneProject->id, entities[0], cpType,
-                                    prefix + ".submeshId", (int)s);
-                                propCmd->setNoMerge();
-                                CommandHandle::get(project->getSelectedSceneId())->addCommand(propCmd);
+                            if (rectId != tilemap.tiles[j].rectId) {
+                                multiCmd->addPropertyCmd<int>(project, sceneProject->id, entities[0], cpType,
+                                    "tiles[" + std::to_string(j) + "].rectId", rectId);
                             }
                         }
-                        if (isSelected) ImGui::SetItemDefaultFocus();
+                        multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entities[0], cpType,
+                            "numTilesRect", (unsigned int)(tilemap.numTilesRect - 1));
+                        multiCmd->setNoMerge();
+                        CommandHandle::get(project->getSelectedSceneId())->addCommand(multiCmd);
+                        endTable();
+                        ImGui::PopStyleVar();
+                        ImGui::PopStyleColor(2);
+                        ImGui::PopID();
+                        break;
                     }
-                    ImGui::EndCombo();
+                    ImGui::PopStyleVar();
+                    ImGui::PopStyleColor(2);
                 }
-            }
 
-            endTable();
-            ImGui::PopID();
+                if (tilemapRectsButtonGroups[groupStr]) {
+                    propertyRow(RowPropertyType::String, cpType, prefix + ".name", "Name", sceneProject, entities);
+                    propertyRow(RowPropertyType::Vector4, cpType, prefix + ".rect", "Rect", sceneProject, entities, settingsRect);
+
+                    // Submesh selector combo
+                    {
+                        unsigned int numSubmeshes = meshComp ? meshComp->numSubmeshes : 1;
+                        int currentSubmeshId = tilemap.tilesRect[i].submeshId;
+
+                        propertyHeader("Submesh");
+                        ImGui::SetNextItemWidth(-1);
+
+                        std::string comboLabel = "##submeshId_" + std::to_string(i);
+                        std::string previewStr = (currentSubmeshId >= 0 && (unsigned int)currentSubmeshId < numSubmeshes)
+                            ? "Submesh " + std::to_string(currentSubmeshId)
+                            : "None";
+
+                        if (ImGui::BeginCombo(comboLabel.c_str(), previewStr.c_str())) {
+                            for (unsigned int s = 0; s < numSubmeshes; s++) {
+                                bool isSelected = ((int)s == currentSubmeshId);
+                                std::string itemLabel = "Submesh " + std::to_string(s);
+                                if (ImGui::Selectable(itemLabel.c_str(), isSelected)) {
+                                    if ((int)s != currentSubmeshId) {
+                                        Editor::PropertyCmd<int>* propCmd = new Editor::PropertyCmd<int>(
+                                            project, sceneProject->id, entities[0], cpType,
+                                            prefix + ".submeshId", (int)s);
+                                        propCmd->setNoMerge();
+                                        CommandHandle::get(project->getSelectedSceneId())->addCommand(propCmd);
+                                    }
+                                }
+                                if (isSelected) ImGui::SetItemDefaultFocus();
+                            }
+                            ImGui::EndCombo();
+                        }
+                    }
+                }
+
+                endTable();
+                ImGui::PopID();
+            }
         }
 
         // --- Tiles Section ---
@@ -4866,74 +4956,136 @@ void Editor::Properties::drawTilemapComponent(ComponentType cpType, SceneProject
         beginTable(cpType, getLabelSize("Tiles"), "tilemap_tiles_header");
         propertyHeader("Tiles", -1, false, false);
         ImGui::Text("%d", activeTileCount);
+        ImGui::SameLine();
+        if (ImGui::ArrowButton("##toggle_all_tiles", tilemapTilesExpanded ? ImGuiDir_Up : ImGuiDir_Down)) {
+            tilemapTilesExpanded = !tilemapTilesExpanded;
+        }
         endTable();
 
-        RowSettings settingsTileFloat;
-        settingsTileFloat.stepSize = 1.0f;
+        if (tilemapTilesExpanded) {
+            RowSettings settingsTileFloat;
+            settingsTileFloat.stepSize = 1.0f;
 
-        for (unsigned int i = 0; i < tilemap.numTiles; i++) {
-            ImGui::PushID(1000 + i);
+            for (unsigned int i = 0; i < tilemap.numTiles; i++) {
+                ImGui::PushID(1000 + i);
 
-            std::string label = "[" + std::to_string(i) + "] " + tilemap.tiles[i].name;
-            std::string groupStr = "tile_" + std::to_string(i);
-            std::string prefix = "tiles[" + std::to_string(i) + "]";
+                std::string label = "[" + std::to_string(i) + "] " + tilemap.tiles[i].name;
+                std::string groupStr = "tile_" + std::to_string(i);
+                std::string prefix = "tiles[" + std::to_string(i) + "]";
 
-            ImGui::SeparatorText(label.c_str());
+                ImGui::SeparatorText(label.c_str());
 
-            beginTable(cpType, getLabelSize("Position"), groupStr);
+                beginTable(cpType, getLabelSize("Position"), groupStr);
 
-            propertyHeader("Tile", -1, false, false);
-            {
-                float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
-                float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_TRASH_CAN).x;
-                ImVec2 deleteButtonSize = ImVec2(clearButtonWidth + clearButtonFramePadding * 2, 0);
+                propertyHeader("Tile", -1, false, false);
+                {
+                    float previewSize = ImGui::GetFrameHeight() * 2.2f;
+                    float clearButtonFramePadding = ImGui::GetStyle().FramePadding.x / 4.0f;
+                    float clearButtonWidth = ImGui::CalcTextSize(ICON_FA_TRASH_CAN).x;
+                    ImVec2 deleteButtonSize = ImVec2(clearButtonWidth + clearButtonFramePadding * 2, 0);
+                    ImVec2 arrowButtonSize = ImGui::CalcItemSize(ImVec2(0, 0), ImGui::GetFrameHeight(), ImGui::GetFrameHeight());
 
-                if (ImGui::Button(ICON_FA_TRASH_CAN, deleteButtonSize)) {
-                    Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
-                    for (unsigned int j = i; j < tilemap.numTiles - 1; j++) {
-                        std::string srcPrefix = "tiles[" + std::to_string(j + 1) + "]";
-                        std::string dstPrefix = "tiles[" + std::to_string(j) + "]";
-                        multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
-                            dstPrefix + ".name", tilemap.tiles[j + 1].name);
-                        multiCmd->addPropertyCmd<int>(project, sceneProject->id, entities[0], cpType,
-                            dstPrefix + ".rectId", tilemap.tiles[j + 1].rectId);
-                        multiCmd->addPropertyCmd<Vector2>(project, sceneProject->id, entities[0], cpType,
-                            dstPrefix + ".position", tilemap.tiles[j + 1].position);
-                        multiCmd->addPropertyCmd<float>(project, sceneProject->id, entities[0], cpType,
-                            dstPrefix + ".width", tilemap.tiles[j + 1].width);
-                        multiCmd->addPropertyCmd<float>(project, sceneProject->id, entities[0], cpType,
-                            dstPrefix + ".height", tilemap.tiles[j + 1].height);
+                    Texture* tileTex = nullptr;
+                    Rect tileRect;
+                    if (tilemap.tiles[i].rectId >= 0 && tilemap.tiles[i].rectId < (int)tilemap.numTilesRect) {
+                        const auto& rectData = tilemap.tilesRect[tilemap.tiles[i].rectId];
+                        tileRect = rectData.rect;
+                        if (meshComp && rectData.submeshId >= 0 && (unsigned int)rectData.submeshId < meshComp->numSubmeshes) {
+                            tileTex = &meshComp->submeshes[rectData.submeshId].material.baseColorTexture;
+                            if (tileTex->empty()) tileTex = nullptr;
+                        }
                     }
-                    unsigned int lastIdx = tilemap.numTiles - 1;
-                    std::string lastPrefix = "tiles[" + std::to_string(lastIdx) + "]";
-                    multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
-                        lastPrefix + ".name", std::string(""));
-                    multiCmd->addPropertyCmd<int>(project, sceneProject->id, entities[0], cpType,
-                        lastPrefix + ".rectId", 0);
-                    multiCmd->addPropertyCmd<Vector2>(project, sceneProject->id, entities[0], cpType,
-                        lastPrefix + ".position", Vector2(0, 0));
-                    multiCmd->addPropertyCmd<float>(project, sceneProject->id, entities[0], cpType,
-                        lastPrefix + ".width", 0.0f);
-                    multiCmd->addPropertyCmd<float>(project, sceneProject->id, entities[0], cpType,
-                        lastPrefix + ".height", 0.0f);
-                    multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entities[0], cpType,
-                        "numTiles", (unsigned int)(tilemap.numTiles - 1));
-                    multiCmd->setNoMerge();
-                    CommandHandle::get(project->getSelectedSceneId())->addCommand(multiCmd);
-                    endTable();
-                    ImGui::PopID();
-                    break;
+
+                    bool hasFramePreview = tileTex && tileRect.getWidth() > 0.0f && tileRect.getHeight() > 0.0f;
+
+                    float trailingWidth = arrowButtonSize.x
+                            + ImGui::GetStyle().ItemSpacing.x + deleteButtonSize.x;
+                    if (hasFramePreview) {
+                        trailingWidth += previewSize + ImGui::GetStyle().ItemSpacing.x;
+                    }
+
+                    float targetX = ImGui::GetCursorPosX() + std::max(0.0f, ImGui::GetContentRegionAvail().x - trailingWidth);
+                    ImGui::SetCursorPosX(targetX);
+
+                    if (hasFramePreview) {
+                        drawSpriteFramePreview(tileTex, tileRect, ImVec2(previewSize, previewSize), "##tile_preview");
+                        if (ImGui::IsItemHovered()) {
+                            ImGui::BeginTooltip();
+                            ImGui::Text("%s", label.c_str());
+
+                            float tooltipMaxSize = 200.0f;
+                            float scale = std::min(tooltipMaxSize / std::max(1.0f, tileRect.getWidth()),
+                                                   tooltipMaxSize / std::max(1.0f, tileRect.getHeight()));
+                            scale = std::min(scale, 1.0f);
+                            ImVec2 tooltipSize(std::max(32.0f, tileRect.getWidth() * scale),
+                                               std::max(32.0f, tileRect.getHeight() * scale));
+
+                            drawSpriteFramePreview(tileTex, tileRect, tooltipSize, "##tile_preview_tooltip");
+                            ImGui::EndTooltip();
+                        }
+                        ImGui::SameLine();
+                    }
+
+                    if (ImGui::ArrowButton("##toggle_tile", tilemapTilesButtonGroups[groupStr] ? ImGuiDir_Up : ImGuiDir_Down)) {
+                        tilemapTilesButtonGroups[groupStr] = !tilemapTilesButtonGroups[groupStr];
+                    }
+                    ImGui::SameLine();
+
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
+                    if (ImGui::Button(ICON_FA_TRASH_CAN, deleteButtonSize)) {
+                        Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+                        for (unsigned int j = i; j < tilemap.numTiles - 1; j++) {
+                            std::string dstPrefix = "tiles[" + std::to_string(j) + "]";
+                            multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
+                                dstPrefix + ".name", tilemap.tiles[j + 1].name);
+                            multiCmd->addPropertyCmd<int>(project, sceneProject->id, entities[0], cpType,
+                                dstPrefix + ".rectId", tilemap.tiles[j + 1].rectId);
+                            multiCmd->addPropertyCmd<Vector2>(project, sceneProject->id, entities[0], cpType,
+                                dstPrefix + ".position", tilemap.tiles[j + 1].position);
+                            multiCmd->addPropertyCmd<float>(project, sceneProject->id, entities[0], cpType,
+                                dstPrefix + ".width", tilemap.tiles[j + 1].width);
+                            multiCmd->addPropertyCmd<float>(project, sceneProject->id, entities[0], cpType,
+                                dstPrefix + ".height", tilemap.tiles[j + 1].height);
+                        }
+                        unsigned int lastIdx = tilemap.numTiles - 1;
+                        std::string lastPrefix = "tiles[" + std::to_string(lastIdx) + "]";
+                        multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
+                            lastPrefix + ".name", std::string(""));
+                        multiCmd->addPropertyCmd<int>(project, sceneProject->id, entities[0], cpType,
+                            lastPrefix + ".rectId", 0);
+                        multiCmd->addPropertyCmd<Vector2>(project, sceneProject->id, entities[0], cpType,
+                            lastPrefix + ".position", Vector2(0, 0));
+                        multiCmd->addPropertyCmd<float>(project, sceneProject->id, entities[0], cpType,
+                            lastPrefix + ".width", 0.0f);
+                        multiCmd->addPropertyCmd<float>(project, sceneProject->id, entities[0], cpType,
+                            lastPrefix + ".height", 0.0f);
+                        multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entities[0], cpType,
+                            "numTiles", (unsigned int)(tilemap.numTiles - 1));
+                        multiCmd->setNoMerge();
+                        CommandHandle::get(project->getSelectedSceneId())->addCommand(multiCmd);
+                        endTable();
+                        ImGui::PopStyleVar();
+                        ImGui::PopStyleColor(2);
+                        ImGui::PopID();
+                        break;
+                    }
+                    ImGui::PopStyleVar();
+                    ImGui::PopStyleColor(2);
                 }
+
+                if (tilemapTilesButtonGroups[groupStr]) {
+                    propertyRow(RowPropertyType::String, cpType, prefix + ".name", "Name", sceneProject, entities);
+                    propertyRow(RowPropertyType::Int, cpType, prefix + ".rectId", "Rect ID", sceneProject, entities, settingsInt);
+                    propertyRow(RowPropertyType::Vector2, cpType, prefix + ".position", "Position", sceneProject, entities, settingsTileFloat);
+                    propertyRow(RowPropertyType::Float, cpType, prefix + ".width", "Width", sceneProject, entities, settingsTileFloat);
+                    propertyRow(RowPropertyType::Float, cpType, prefix + ".height", "Height", sceneProject, entities, settingsTileFloat);
+                }
+
+                endTable();
+                ImGui::PopID();
             }
-
-            propertyRow(RowPropertyType::String, cpType, prefix + ".name", "Name", sceneProject, entities);
-            propertyRow(RowPropertyType::Int, cpType, prefix + ".rectId", "Rect ID", sceneProject, entities, settingsInt);
-            propertyRow(RowPropertyType::Vector2, cpType, prefix + ".position", "Position", sceneProject, entities, settingsTileFloat);
-            propertyRow(RowPropertyType::Float, cpType, prefix + ".width", "Width", sceneProject, entities, settingsTileFloat);
-            propertyRow(RowPropertyType::Float, cpType, prefix + ".height", "Height", sceneProject, entities, settingsTileFloat);
-
-            endTable();
-            ImGui::PopID();
         }
     }
 }
