@@ -204,11 +204,15 @@ bool Editor::CreateEntityCmd::execute(){
         SpriteComponent& sprite = scene->getComponent<SpriteComponent>(entity);
         sprite.width = 100;
         sprite.height = 100;
+
     }else if (type == EntityCreationType::TILEMAP){
 
         scene->addComponent<Transform>(entity, {});
         scene->addComponent<MeshComponent>(entity, {});
         scene->addComponent<TilemapComponent>(entity, {});
+
+        MeshComponent& mesh = scene->getComponent<MeshComponent>(entity);
+        mesh.numSubmeshes = 1;
 
         TilemapComponent& tilemap = scene->getComponent<TilemapComponent>(entity);
         tilemap.width = 100;

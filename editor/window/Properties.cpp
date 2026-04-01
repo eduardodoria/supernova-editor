@@ -4277,16 +4277,16 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
         // Sprite slicer tool button
         float buttonWidth = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
         if (ImGui::Button(ICON_FA_GRIP " Slicer Tool", ImVec2(buttonWidth, 0))) {
-            spriteSlicerToolDialog.open(
+            textureSlicerToolDialog.open(
                 previewTexture,
                 static_cast<int>(sprite.width),
                 static_cast<int>(sprite.height),
-                [this, sceneProject, entities, cpType, previewTexture](const SpriteSlicerToolDialog::SliceResult& result) {
+                [this, sceneProject, entities, cpType, previewTexture](const TextureSlicerToolDialog::SliceResult& result) {
                     Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
 
                     // Clear existing frames beyond new count
                     SpriteComponent& sprite = sceneProject->scene->getComponent<SpriteComponent>(entities[0]);
-                    for (unsigned int i = (unsigned int)result.frames.size(); i < sprite.numFramesRect; i++) {
+                    for (unsigned int i = (unsigned int)result.rects.size(); i < sprite.numFramesRect; i++) {
                         std::string prefix = "framesRect[" + std::to_string(i) + "]";
                         multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
                             prefix + ".name", std::string(""));
@@ -4295,17 +4295,17 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
                     }
 
                     // Set new frames from slicer result
-                    for (size_t i = 0; i < result.frames.size(); i++) {
+                    for (size_t i = 0; i < result.rects.size(); i++) {
                         std::string prefix = "framesRect[" + std::to_string(i) + "]";
                         multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
-                            prefix + ".name", result.frames[i].name);
+                            prefix + ".name", result.rects[i].name);
                         multiCmd->addPropertyCmd<Vector4>(project, sceneProject->id, entities[0], cpType,
-                            prefix + ".rect", Vector4(result.frames[i].rect.getX(), result.frames[i].rect.getY(),
-                                result.frames[i].rect.getWidth(), result.frames[i].rect.getHeight()));
+                            prefix + ".rect", Vector4(result.rects[i].rect.getX(), result.rects[i].rect.getY(),
+                                result.rects[i].rect.getWidth(), result.rects[i].rect.getHeight()));
                     }
 
                     // Update numFramesRect
-                    unsigned int newCount = (unsigned int)result.frames.size();
+                    unsigned int newCount = (unsigned int)result.rects.size();
                     multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entities[0], cpType,
                         "numFramesRect", newCount);
 
@@ -4313,8 +4313,8 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
                     MeshComponent* meshComp = sceneProject->scene->findComponent<MeshComponent>(entities[0]);
                     int sheetWidth = !previewTexture.empty() ? previewTexture.getWidth() : (int)sprite.width;
                     int sheetHeight = !previewTexture.empty() ? previewTexture.getHeight() : (int)sprite.height;
-                    if (meshComp && meshComp->numSubmeshes > 0 && !result.frames.empty() && sheetWidth > 0 && sheetHeight > 0) {
-                        const Rect& firstFrameRect = result.frames[0].rect;
+                    if (meshComp && meshComp->numSubmeshes > 0 && !result.rects.empty() && sheetWidth > 0 && sheetHeight > 0) {
+                        const Rect& firstFrameRect = result.rects[0].rect;
                         multiCmd->addPropertyCmd<Vector4>(project, sceneProject->id, entities[0], ComponentType::MeshComponent,
                             "submeshes[0].textureRect", Vector4(
                                 firstFrameRect.getX() / (float)sheetWidth,
@@ -4616,6 +4616,13 @@ void Editor::Properties::drawTilemapComponent(ComponentType cpType, SceneProject
 
     if (entities.size() == 1) {
         TilemapComponent& tilemap = sceneProject->scene->getComponent<TilemapComponent>(entities[0]);
+        MeshComponent* meshComp = sceneProject->scene->findComponent<MeshComponent>(entities[0]);
+        Texture previewTexture;
+        if (meshComp) {
+            if (meshComp->numSubmeshes > 0) {
+                previewTexture = meshComp->submeshes[0].material.baseColorTexture;
+            }
+        }
 
         // --- Tile Rects Section ---
         ImGui::SeparatorText("Tile Rects");
@@ -4623,6 +4630,90 @@ void Editor::Properties::drawTilemapComponent(ComponentType cpType, SceneProject
         int activeTileRectCount = (int)tilemap.numTilesRect;
 
         float buttonWidth = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
+
+        // Slicer tool button
+        if (ImGui::Button(ICON_FA_TABLE_CELLS " Slicer Tool", ImVec2(buttonWidth, 0))) {
+            textureSlicerToolDialog.openTileset(
+                previewTexture,
+                static_cast<int>(tilemap.width),
+                static_cast<int>(tilemap.height),
+                tilemap.width,
+                tilemap.height,
+                [this, sceneProject, entities, cpType](const TextureSlicerToolDialog::SliceResult& result) {
+                    Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+
+                    TilemapComponent& tilemap = sceneProject->scene->getComponent<TilemapComponent>(entities[0]);
+
+                    // Clear existing rects beyond new count
+                    for (unsigned int i = (unsigned int)result.rects.size(); i < tilemap.numTilesRect; i++) {
+                        std::string prefix = "tilesRect[" + std::to_string(i) + "]";
+                        multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
+                            prefix + ".name", std::string(""));
+                        multiCmd->addPropertyCmd<Vector4>(project, sceneProject->id, entities[0], cpType,
+                            prefix + ".rect", Vector4(0, 0, 0, 0));
+                    }
+
+                    // Set new rects from slicer result
+                    for (size_t i = 0; i < result.rects.size(); i++) {
+                        std::string prefix = "tilesRect[" + std::to_string(i) + "]";
+                        multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
+                            prefix + ".name", result.rects[i].name);
+                        multiCmd->addPropertyCmd<int>(project, sceneProject->id, entities[0], cpType,
+                            prefix + ".submeshId", 0);
+                        multiCmd->addPropertyCmd<Vector4>(project, sceneProject->id, entities[0], cpType,
+                            prefix + ".rect", Vector4(result.rects[i].rect.getX(), result.rects[i].rect.getY(),
+                                result.rects[i].rect.getWidth(), result.rects[i].rect.getHeight()));
+                    }
+
+                    // Update numTilesRect
+                    multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entities[0], cpType,
+                        "numTilesRect", (unsigned int)result.rects.size());
+
+                    // Generate tiles if requested
+                    if (result.hasTileGrid) {
+                        // Clear existing tiles beyond new count
+                        for (unsigned int i = (unsigned int)result.tiles.size(); i < tilemap.numTiles; i++) {
+                            std::string prefix = "tiles[" + std::to_string(i) + "]";
+                            multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
+                                prefix + ".name", std::string(""));
+                            multiCmd->addPropertyCmd<int>(project, sceneProject->id, entities[0], cpType,
+                                prefix + ".rectId", 0);
+                            multiCmd->addPropertyCmd<Vector2>(project, sceneProject->id, entities[0], cpType,
+                                prefix + ".position", Vector2(0, 0));
+                            multiCmd->addPropertyCmd<float>(project, sceneProject->id, entities[0], cpType,
+                                prefix + ".width", 0.0f);
+                            multiCmd->addPropertyCmd<float>(project, sceneProject->id, entities[0], cpType,
+                                prefix + ".height", 0.0f);
+                        }
+
+                        // Set new tiles
+                        for (size_t i = 0; i < result.tiles.size(); i++) {
+                            std::string prefix = "tiles[" + std::to_string(i) + "]";
+                            multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
+                                prefix + ".name", result.tiles[i].name);
+                            multiCmd->addPropertyCmd<int>(project, sceneProject->id, entities[0], cpType,
+                                prefix + ".rectId", result.tiles[i].rectId);
+                            multiCmd->addPropertyCmd<Vector2>(project, sceneProject->id, entities[0], cpType,
+                                prefix + ".position", result.tiles[i].position);
+                            multiCmd->addPropertyCmd<float>(project, sceneProject->id, entities[0], cpType,
+                                prefix + ".width", result.tiles[i].width);
+                            multiCmd->addPropertyCmd<float>(project, sceneProject->id, entities[0], cpType,
+                                prefix + ".height", result.tiles[i].height);
+                        }
+
+                        // Update numTiles
+                        multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entities[0], cpType,
+                            "numTiles", (unsigned int)result.tiles.size());
+                    }
+
+                    multiCmd->setNoMerge();
+                    CommandHandle::get(project->getSelectedSceneId())->addCommand(multiCmd);
+                }
+            );
+        }
+
+        ImGui::SameLine();
+
         // Add tile rect button
         if (ImGui::Button(ICON_FA_PLUS " Add Tile Rect", ImVec2(buttonWidth, 0))) {
             int freeSlot = (int)tilemap.numTilesRect;
@@ -4631,6 +4722,8 @@ void Editor::Properties::drawTilemapComponent(ComponentType cpType, SceneProject
                 std::string prefix = "tilesRect[" + std::to_string(freeSlot) + "]";
                 multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
                     prefix + ".name", "rect_" + std::to_string(freeSlot));
+                multiCmd->addPropertyCmd<int>(project, sceneProject->id, entities[0], cpType,
+                    prefix + ".submeshId", 0);
                 multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entities[0], cpType,
                     "numTilesRect", (unsigned int)(freeSlot + 1));
                 multiCmd->setNoMerge();
@@ -4670,10 +4763,11 @@ void Editor::Properties::drawTilemapComponent(ComponentType cpType, SceneProject
                     Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
                     // Shift subsequent rects down
                     for (unsigned int j = i; j < tilemap.numTilesRect - 1; j++) {
-                        std::string srcPrefix = "tilesRect[" + std::to_string(j + 1) + "]";
                         std::string dstPrefix = "tilesRect[" + std::to_string(j) + "]";
                         multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
                             dstPrefix + ".name", tilemap.tilesRect[j + 1].name);
+                        multiCmd->addPropertyCmd<int>(project, sceneProject->id, entities[0], cpType,
+                            dstPrefix + ".submeshId", tilemap.tilesRect[j + 1].submeshId);
                         multiCmd->addPropertyCmd<Vector4>(project, sceneProject->id, entities[0], cpType,
                             dstPrefix + ".rect", Vector4(tilemap.tilesRect[j + 1].rect.getX(), tilemap.tilesRect[j + 1].rect.getY(),
                                 tilemap.tilesRect[j + 1].rect.getWidth(), tilemap.tilesRect[j + 1].rect.getHeight()));
@@ -4683,20 +4777,67 @@ void Editor::Properties::drawTilemapComponent(ComponentType cpType, SceneProject
                     std::string lastPrefix = "tilesRect[" + std::to_string(lastIdx) + "]";
                     multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
                         lastPrefix + ".name", std::string(""));
+                    multiCmd->addPropertyCmd<int>(project, sceneProject->id, entities[0], cpType,
+                        lastPrefix + ".submeshId", -1);
                     multiCmd->addPropertyCmd<Vector4>(project, sceneProject->id, entities[0], cpType,
                         lastPrefix + ".rect", Vector4(0, 0, 0, 0));
+                    for (unsigned int j = 0; j < tilemap.numTiles; j++) {
+                        int rectId = tilemap.tiles[j].rectId;
+                        if (rectId == (int)i) {
+                            rectId = -1;
+                        } else if (rectId > (int)i) {
+                            rectId--;
+                        }
+
+                        if (rectId != tilemap.tiles[j].rectId) {
+                            multiCmd->addPropertyCmd<int>(project, sceneProject->id, entities[0], cpType,
+                                "tiles[" + std::to_string(j) + "].rectId", rectId);
+                        }
+                    }
                     multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entities[0], cpType,
                         "numTilesRect", (unsigned int)(tilemap.numTilesRect - 1));
                     multiCmd->setNoMerge();
                     CommandHandle::get(project->getSelectedSceneId())->addCommand(multiCmd);
-                    ImGui::PopID();
                     endTable();
+                    ImGui::PopID();
                     break;
                 }
             }
 
             propertyRow(RowPropertyType::String, cpType, prefix + ".name", "Name", sceneProject, entities);
             propertyRow(RowPropertyType::Vector4, cpType, prefix + ".rect", "Rect", sceneProject, entities, settingsRect);
+
+            // Submesh selector combo
+            {
+                unsigned int numSubmeshes = meshComp ? meshComp->numSubmeshes : 1;
+                int currentSubmeshId = tilemap.tilesRect[i].submeshId;
+
+                propertyHeader("Submesh");
+                ImGui::SetNextItemWidth(-1);
+
+                std::string comboLabel = "##submeshId_" + std::to_string(i);
+                std::string previewStr = (currentSubmeshId >= 0 && (unsigned int)currentSubmeshId < numSubmeshes)
+                    ? "Submesh " + std::to_string(currentSubmeshId)
+                    : "None";
+
+                if (ImGui::BeginCombo(comboLabel.c_str(), previewStr.c_str())) {
+                    for (unsigned int s = 0; s < numSubmeshes; s++) {
+                        bool isSelected = ((int)s == currentSubmeshId);
+                        std::string itemLabel = "Submesh " + std::to_string(s);
+                        if (ImGui::Selectable(itemLabel.c_str(), isSelected)) {
+                            if ((int)s != currentSubmeshId) {
+                                Editor::PropertyCmd<int>* propCmd = new Editor::PropertyCmd<int>(
+                                    project, sceneProject->id, entities[0], cpType,
+                                    prefix + ".submeshId", (int)s);
+                                propCmd->setNoMerge();
+                                CommandHandle::get(project->getSelectedSceneId())->addCommand(propCmd);
+                            }
+                        }
+                        if (isSelected) ImGui::SetItemDefaultFocus();
+                    }
+                    ImGui::EndCombo();
+                }
+            }
 
             endTable();
             ImGui::PopID();
@@ -4779,8 +4920,8 @@ void Editor::Properties::drawTilemapComponent(ComponentType cpType, SceneProject
                         "numTiles", (unsigned int)(tilemap.numTiles - 1));
                     multiCmd->setNoMerge();
                     CommandHandle::get(project->getSelectedSceneId())->addCommand(multiCmd);
-                    ImGui::PopID();
                     endTable();
+                    ImGui::PopID();
                     break;
                 }
             }
@@ -7906,7 +8047,7 @@ void Editor::Properties::show(){
     usedPreviewIds.clear();
 
     scriptCreateDialog.show();
-    spriteSlicerToolDialog.show();
+    textureSlicerToolDialog.show();
 
     ImGui::End();
 }

@@ -6,7 +6,7 @@
 #include "util/ShapeParameters.h"
 #include "window/dialog/ScriptCreateDialog.h"
 #include "window/dialog/ComponentAddDialog.h"
-#include "window/dialog/SpriteSlicerToolDialog.h"
+#include "window/dialog/TextureSlicerToolDialog.h"
 
 #include "imgui.h"
 #include "yaml-cpp/yaml.h"
@@ -116,7 +116,7 @@ namespace Supernova::Editor{
         // Dialogs
         ScriptCreateDialog scriptCreateDialog;
         ComponentAddDialog componentAddDialog;
-        SpriteSlicerToolDialog spriteSlicerToolDialog;
+        TextureSlicerToolDialog textureSlicerToolDialog;
 
         static RowPropertyType scriptPropertyTypeToRowPropertyType(ScriptPropertyType scriptType);
 
