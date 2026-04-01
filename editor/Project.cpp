@@ -975,6 +975,15 @@ uint32_t Editor::Project::createNewScene(std::string sceneName, SceneType type){
 }
 
 uint32_t Editor::Project::createNewSceneInternal(std::string sceneName, SceneType type, uint32_t previousSceneId){
+    uint32_t reusedSceneId = NULL_PROJECT_SCENE;
+    if (previousSceneId != NULL_PROJECT_SCENE) {
+        SceneProject* previousScene = getScene(previousSceneId);
+        if (previousScene && previousScene->filepath.empty()) {
+            reusedSceneId = previousSceneId;
+            closeScene(previousSceneId, true);
+        }
+    }
+
     unsigned int nameCount = 2;
     std::string baseName = sceneName;
     bool foundName = true;
@@ -991,7 +1000,7 @@ uint32_t Editor::Project::createNewSceneInternal(std::string sceneName, SceneTyp
     }
 
     SceneProject data;
-    data.id = ++nextSceneId;
+    data.id = reusedSceneId != NULL_PROJECT_SCENE ? reusedSceneId : ++nextSceneId;
     data.name = sceneName;
     data.scene = new Scene();
     data.sceneType = type;
@@ -1025,7 +1034,7 @@ uint32_t Editor::Project::createNewSceneInternal(std::string sceneName, SceneTyp
     Backend::getApp().addNewSceneToDock(data.id);
 
     // Close the previous scene after the new one is created
-    if (previousSceneId != NULL_PROJECT_SCENE) {
+    if (previousSceneId != NULL_PROJECT_SCENE && previousSceneId != reusedSceneId) {
         closeScene(previousSceneId, true);
     }
 
@@ -1438,11 +1447,18 @@ void Editor::Project::closeScene(uint32_t sceneId, bool systemClose) {
     cleanupEntityBundlesForScene(sceneId);
 
     removeTab(TabType::SCENE, it->filepath.string());
-    it->opened = false;
-    it->expandedInline = false;
 
     // Notify parent scenes so they rebuild their layers without the deleted scene
     markParentScenesNeedUpdate(sceneId);
+
+    // If the scene was never saved, remove it entirely
+    if (it->filepath.empty()) {
+        Backend::getApp().clearSceneWindowState(sceneId);
+        scenes.erase(it);
+    } else {
+        it->opened = false;
+        it->expandedInline = false;
+    }
 
     if (!systemClose){
         saveProject();
@@ -1483,6 +1499,7 @@ void Editor::Project::removeScene(uint32_t sceneId) {
     cleanupEntityBundlesForScene(sceneId);
 
     removeTab(TabType::SCENE, it->filepath.string());
+    Backend::getApp().clearSceneWindowState(sceneId);
     scenes.erase(it);
 }
 

@@ -57,6 +57,7 @@ namespace Supernova::Editor {
 
         void show();
         bool isFocused() const;
+        void clearSceneState(uint32_t sceneId);
 
         void focusOnEntities(SceneProject* sceneProject, const std::vector<Entity>& entities);
 

@@ -65,6 +65,20 @@ bool Editor::SceneWindow::isFocused() const {
     return windowFocused;
 }
 
+void Editor::SceneWindow::clearSceneState(uint32_t sceneId) {
+    draggingMouse.erase(sceneId);
+    suppressLeftMouseUntilRelease.erase(sceneId);
+    walkSpeed.erase(sceneId);
+    width.erase(sceneId);
+    height.erase(sceneId);
+    hasNotification.erase(sceneId);
+    lastPlayState.erase(sceneId);
+
+    closeSceneQueue.erase(
+        std::remove(closeSceneQueue.begin(), closeSceneQueue.end(), sceneId),
+        closeSceneQueue.end());
+}
+
 void Editor::SceneWindow::focusSceneWindow(const SceneProject& sceneProject) const {
     const std::string windowTitle = getWindowTitle(sceneProject);
     ImGui::SetWindowFocus(windowTitle.c_str());

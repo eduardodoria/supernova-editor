@@ -991,6 +991,16 @@ void Editor::App::addNewSceneToDock(uint32_t sceneId){
     }
 }
 
+void Editor::App::clearSceneWindowState(uint32_t sceneId) {
+    if (sceneWindow) {
+        sceneWindow->clearSceneState(sceneId);
+    }
+
+    if (lastActivatedScene == sceneId) {
+        resetLastActivatedScene();
+    }
+}
+
 void Editor::App::addNewCodeWindowToDock(fs::path path){
     if (isInitialized){
         ImGui::DockBuilderDockWindow(("###" + path.string()).c_str(), dock_id_middle_top);

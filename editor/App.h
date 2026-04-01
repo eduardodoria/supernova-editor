@@ -135,6 +135,7 @@ namespace Supernova::Editor{
 
         void addNewSceneToDock(uint32_t sceneId);
         void addNewCodeWindowToDock(fs::path path);
+        void clearSceneWindowState(uint32_t sceneId);
 
         void handleExternalDrop(const std::vector<std::string>& paths);
         void handleExternalDragEnter();
