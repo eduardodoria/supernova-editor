@@ -378,6 +378,30 @@ void Editor::App::showFooter(){
         const float deltaMs = Engine::getDeltatime() * 1000.0f;
         const size_t queuedResources = Engine::getQueuedResourceCount();
         SceneProject* selectedScene = project.getSelectedScene();
+        const bool hasSelectedScene = selectedScene != nullptr;
+        const bool isPlaying = hasSelectedScene && selectedScene->playState == ScenePlayState::PLAYING;
+        const bool isPaused = hasSelectedScene && selectedScene->playState == ScenePlayState::PAUSED;
+        const bool isStopped = !hasSelectedScene || selectedScene->playState == ScenePlayState::STOPPED;
+        const bool isCancelling = hasSelectedScene && selectedScene->playState == ScenePlayState::CANCELLING;
+        const bool canPlayPause = hasSelectedScene && !isCancelling && (isPlaying || isPaused || (!isStopped || !project.isAnyScenePlaying()));
+        const bool canStop = hasSelectedScene && !isStopped && !isCancelling;
+        const ImVec4 footerButtonHovered = ImVec4(1.0f, 1.0f, 1.0f, 0.08f);
+        const ImVec4 footerButtonActive = ImVec4(1.0f, 1.0f, 1.0f, 0.14f);
+
+        auto footerActionButton = [&](const char* label) -> bool {
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, footerButtonHovered);
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, footerButtonActive);
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 1.0f));
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
+
+            bool pressed = ImGui::Button(label);
+
+            ImGui::PopStyleVar(2);
+            ImGui::PopStyleColor(3);
+
+            return pressed;
+        };
 
         // Left side: Status
         bool statusShown = false;
@@ -419,6 +443,29 @@ void Editor::App::showFooter(){
             } else {
                 ImGui::Text("Selected: %zu Entities", selectionCount);
             }
+
+            ImGui::SameLine();
+            ImGui::TextDisabled("|");
+            ImGui::SameLine();
+
+            ImGui::BeginDisabled(!canPlayPause);
+            if (footerActionButton(isPlaying ? ICON_FA_PAUSE " Pause" : (isPaused ? ICON_FA_PLAY " Resume" : ICON_FA_PLAY " Play"))) {
+                if (isPlaying) {
+                    project.pause(selectedScene->id);
+                } else if (isPaused) {
+                    project.resume(selectedScene->id);
+                } else {
+                    project.start(selectedScene->id);
+                }
+            }
+            ImGui::EndDisabled();
+
+            ImGui::SameLine();
+            ImGui::BeginDisabled(!canStop);
+            if (footerActionButton(ICON_FA_STOP " Stop")) {
+                project.stop(selectedScene->id);
+            }
+            ImGui::EndDisabled();
         }
 
         // Right side: Performance stats
@@ -428,8 +475,13 @@ void Editor::App::showFooter(){
         sprintf(msText, ICON_FA_CLOCK " %.2f ms", deltaMs);
 
         // Calculate width to position at right
-        float width = ImGui::CalcTextSize(fpsText).x + ImGui::CalcTextSize(msText).x + 30.0f; // + padding/separators
-        ImGui::SameLine(ImGui::GetWindowWidth() - width);
+        float statsWidth = ImGui::CalcTextSize(fpsText).x + ImGui::CalcTextSize(msText).x + 30.0f;
+        float statsStartX = ImGui::GetWindowContentRegionMax().x - statsWidth;
+        if (statsStartX > ImGui::GetCursorPosX()) {
+            ImGui::SameLine(statsStartX);
+        } else {
+            ImGui::SameLine();
+        }
 
         ImGui::Text("%s", fpsText);
         ImGui::SameLine();
