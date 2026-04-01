@@ -6914,7 +6914,7 @@ void Editor::Properties::drawActionComponent(ComponentType cpType, SceneProject*
 
     // Time display (fixed width so it doesn't jump around)
     ImGui::AlignTextToFramePadding();
-    ImGui::Text("%.2f", actionComp->timecount);
+    ImGui::Text("%.2fs", actionComp->timecount);
     ImGui::SameLine();
 
     // Timeline progress strip
@@ -6933,6 +6933,12 @@ void Editor::Properties::drawActionComponent(ComponentType cpType, SceneProject*
         if (!kf->times.empty()) {
             duration = kf->times.back();
         }
+    } else if (SpriteAnimationComponent* sa = scene->findComponent<SpriteAnimationComponent>(entity)) {
+        float totalMs = 0;
+        for (unsigned int i = 0; i < sa->framesTimeSize; i++) {
+            totalMs += sa->framesTime[i];
+        }
+        duration = totalMs / 1000.0f;
     }
 
     float fraction = (duration > 0) ? std::clamp(actionComp->timecount / duration, 0.0f, 1.0f) : 0.0f;
