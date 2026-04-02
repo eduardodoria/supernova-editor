@@ -1065,6 +1065,7 @@ void Editor::SceneWindow::show() {
 
                         drawSettingRow(ICON_FA_TABLE_CELLS " Hide grid", sceneProject.displaySettings.hideGrid);
                         drawSettingRow(ICON_FA_OBJECT_GROUP " Hide selection outline", sceneProject.displaySettings.hideSelectionOutline);
+                        drawSettingRow(ICON_FA_MAGNET " Snap to grid", sceneProject.displaySettings.snapToGrid);
 
                         if (sceneProject.sceneType == SceneType::SCENE_3D) {
                             ImGui::TableNextRow();

@@ -851,6 +851,10 @@ YAML::Node Editor::Stream::encodeProject(Project* project) {
             sceneNode["hideContainerGuides"]  = sceneProject.displaySettings.hideContainerGuides;
             sceneNode["hideGrid"]             = sceneProject.displaySettings.hideGrid;
             sceneNode["hideSelectionOutline"] = sceneProject.displaySettings.hideSelectionOutline;
+            sceneNode["showGridLines2D"]      = sceneProject.displaySettings.showGridLines2D;
+            sceneNode["gridSpacing2D"]        = sceneProject.displaySettings.gridSpacing2D;
+            sceneNode["gridSpacing3D"]        = sceneProject.displaySettings.gridSpacing3D;
+            sceneNode["snapToGrid"]           = sceneProject.displaySettings.snapToGrid;
 
             if (sceneProject.sceneRender) {
                 Camera* editorCam = sceneProject.sceneRender->getCamera();
@@ -943,6 +947,10 @@ void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
                         if (sceneNode["hideContainerGuides"])  ds.hideContainerGuides  = sceneNode["hideContainerGuides"].as<bool>();
                         if (sceneNode["hideGrid"])             ds.hideGrid             = sceneNode["hideGrid"].as<bool>();
                         if (sceneNode["hideSelectionOutline"]) ds.hideSelectionOutline = sceneNode["hideSelectionOutline"].as<bool>();
+                        if (sceneNode["showGridLines2D"])      ds.showGridLines2D      = sceneNode["showGridLines2D"].as<bool>();
+                        if (sceneNode["gridSpacing2D"])        ds.gridSpacing2D        = sceneNode["gridSpacing2D"].as<float>();
+                        if (sceneNode["gridSpacing3D"])        ds.gridSpacing3D        = sceneNode["gridSpacing3D"].as<float>();
+                        if (sceneNode["snapToGrid"])           ds.snapToGrid           = sceneNode["snapToGrid"].as<bool>();
                     }
 
                     if (sceneNode["editorCamera"]) {

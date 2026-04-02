@@ -479,21 +479,32 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                 Transform* transformParent = scene->findComponent<Transform>(transform->parent);
 
                 if (toolslayer.getGizmoSelected() == GizmoSelected::TRANSLATE){
-                    Vector3 newPos = gizmoRMatrix.inverse() * ((rretrun.point + cursorStartOffset) - gizmoPosition);
+                    Vector3 deltaPos = gizmoRMatrix.inverse() * ((rretrun.point + cursorStartOffset) - gizmoStartPosition);
+
+                    if (displaySettings.snapToGrid){
+                        float spacing = displaySettings.gridSpacing3D;
+                        if (spacing > 0.0f){
+                            deltaPos.x = std::round(deltaPos.x / spacing) * spacing;
+                            deltaPos.y = std::round(deltaPos.y / spacing) * spacing;
+                            deltaPos.z = std::round(deltaPos.z / spacing) * spacing;
+                        }
+                    }
+
+                    Vector3 newPos;
                     if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XYZ){
-                        newPos = gizmoPosition + (gizmoRMatrix * newPos);
+                        newPos = gizmoStartPosition + (gizmoRMatrix * deltaPos);
                     }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::X){
-                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(newPos.x, 0, 0));
+                        newPos = gizmoStartPosition + (gizmoRMatrix * Vector3(deltaPos.x, 0, 0));
                     }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Y){
-                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(0, newPos.y, 0));
+                        newPos = gizmoStartPosition + (gizmoRMatrix * Vector3(0, deltaPos.y, 0));
                     }else if(toolslayer.getGizmoSideSelected() == GizmoSideSelected::Z){
-                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(0, 0, newPos.z));
+                        newPos = gizmoStartPosition + (gizmoRMatrix * Vector3(0, 0, deltaPos.z));
                     }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XY){
-                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(newPos.x, newPos.y, 0));
+                        newPos = gizmoStartPosition + (gizmoRMatrix * Vector3(deltaPos.x, deltaPos.y, 0));
                     }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::XZ){
-                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(newPos.x, 0, newPos.z));
+                        newPos = gizmoStartPosition + (gizmoRMatrix * Vector3(deltaPos.x, 0, deltaPos.z));
                     }else if (toolslayer.getGizmoSideSelected() == GizmoSideSelected::YZ){
-                        newPos = gizmoPosition + (gizmoRMatrix * Vector3(0, newPos.y, newPos.z));
+                        newPos = gizmoStartPosition + (gizmoRMatrix * Vector3(0, deltaPos.y, deltaPos.z));
                     }
 
                     Matrix4 gizmoMatrix = Matrix4::translateMatrix(newPos) * gizmoRMatrix * Matrix4::scaleMatrix(Vector3(1,1,1));
@@ -585,6 +596,14 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                     bool isText = scene->getComponentArray<TextComponent>()->hasEntity(entity);
 
                     Vector3 newPos = gizmoRMatrix.inverse() * ((rretrun.point + cursorStartOffset) - gizmoStartPosition);
+
+                    if (displaySettings.snapToGrid && toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::CENTER) {
+                        float spacing = displaySettings.gridSpacing2D;
+                        if (spacing > 0.0f) {
+                            newPos.x = std::round(newPos.x / spacing) * spacing;
+                            newPos.y = std::round(newPos.y / spacing) * spacing;
+                        }
+                    }
 
                     Vector3 newSize = gizmoRMatrix.inverse() * -(gizmoStartPosition - rretrun.point - cursorStartOffset);
 

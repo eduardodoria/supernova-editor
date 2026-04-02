@@ -21,6 +21,7 @@ namespace Supernova::Editor{
         bool showGridLines2D     = false;
         float gridSpacing2D      = 50.0f;
         float gridSpacing3D      = 1.0f;
+        bool snapToGrid          = false;
     };
 
     class Project;
