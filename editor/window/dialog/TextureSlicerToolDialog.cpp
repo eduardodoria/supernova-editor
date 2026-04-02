@@ -62,10 +62,18 @@ void TextureSlicerToolDialog::open(const Texture& previewTexture,
     m_prefixBuffer[sizeof(m_prefixBuffer) - 1] = '\0';
 }
 
-void TextureSlicerToolDialog::openTileset(const Texture& previewTexture,
+void TextureSlicerToolDialog::openTileset(const std::vector<SubmeshInfo>& submeshes,
                                            int sheetWidth, int sheetHeight,
                                            std::function<void(const SliceResult&)> onApply,
                                            std::function<void()> onCancel) {
+    m_submeshes = submeshes;
+    m_selectedSubmesh = 0;
+
+    Texture previewTexture;
+    if (!m_submeshes.empty()) {
+        previewTexture = m_submeshes[0].texture;
+    }
+
     // Initialize shared slicing state via the base open
     open(previewTexture, sheetWidth, sheetHeight, onApply, onCancel);
 
@@ -128,6 +136,7 @@ void TextureSlicerToolDialog::generatePreview() {
 TextureSlicerToolDialog::SliceResult TextureSlicerToolDialog::buildResult() {
     SliceResult result;
     result.rects = m_previewRects;
+    result.submeshId = m_selectedSubmesh;
     return result;
 }
 
@@ -189,6 +198,41 @@ void TextureSlicerToolDialog::show() {
     }
 
     ImGui::Spacing();
+
+    // --- Submesh selector (tileset only) ---
+    if (isTileset && m_submeshes.size() > 1) {
+        if (beginInputTable("SlicerSubmeshTable")) {
+            beginInputRow("Submesh", 14.0f * ImGui::GetFontSize());
+            const char* currentName = (m_selectedSubmesh >= 0 && m_selectedSubmesh < (int)m_submeshes.size())
+                ? m_submeshes[m_selectedSubmesh].name.c_str() : "None";
+            if (ImGui::BeginCombo("##Submesh", currentName)) {
+                for (int i = 0; i < (int)m_submeshes.size(); i++) {
+                    bool isSelected = (m_selectedSubmesh == i);
+                    if (ImGui::Selectable(m_submeshes[i].name.c_str(), isSelected)) {
+                        m_selectedSubmesh = i;
+                        m_previewTexture = m_submeshes[i].texture;
+
+                        if (!m_previewTexture.empty()) {
+                            int textureWidth = static_cast<int>(m_previewTexture.getWidth());
+                            int textureHeight = static_cast<int>(m_previewTexture.getHeight());
+                            if (textureWidth <= 0 || textureHeight <= 0) {
+                                m_previewTexture.load();
+                                textureWidth = static_cast<int>(m_previewTexture.getWidth());
+                                textureHeight = static_cast<int>(m_previewTexture.getHeight());
+                            }
+                            if (textureWidth > 0) m_sheetWidth = textureWidth;
+                            if (textureHeight > 0) m_sheetHeight = textureHeight;
+                        }
+                        m_previewDirty = true;
+                    }
+                    if (isSelected) ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+            ImGui::EndTable();
+        }
+        ImGui::Spacing();
+    }
 
     // --- Slice Mode ---
     if (beginInputTable("SlicerSliceModeTable")) {

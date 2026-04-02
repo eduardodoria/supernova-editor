@@ -4730,10 +4730,15 @@ void Editor::Properties::drawTilemapComponent(ComponentType cpType, SceneProject
     if (entities.size() == 1) {
         TilemapComponent& tilemap = sceneProject->scene->getComponent<TilemapComponent>(entities[0]);
         MeshComponent* meshComp = sceneProject->scene->findComponent<MeshComponent>(entities[0]);
-        Texture previewTexture;
+
+        // Build submesh list for tileset slicer
+        std::vector<TextureSlicerToolDialog::SubmeshInfo> submeshInfos;
         if (meshComp) {
-            if (meshComp->numSubmeshes > 0) {
-                previewTexture = meshComp->submeshes[0].material.baseColorTexture;
+            for (unsigned int s = 0; s < meshComp->numSubmeshes; s++) {
+                TextureSlicerToolDialog::SubmeshInfo info;
+                info.name = "Submesh " + std::to_string(s);
+                info.texture = meshComp->submeshes[s].material.baseColorTexture;
+                submeshInfos.push_back(info);
             }
         }
 
@@ -4747,7 +4752,7 @@ void Editor::Properties::drawTilemapComponent(ComponentType cpType, SceneProject
         // Slicer tool button
         if (ImGui::Button(ICON_FA_TABLE_CELLS " Slicer Tool", ImVec2(buttonWidth, 0))) {
             textureSlicerToolDialog.openTileset(
-                previewTexture,
+                submeshInfos,
                 static_cast<int>(tilemap.width),
                 static_cast<int>(tilemap.height),
                 [this, sceneProject, entities, cpType](const TextureSlicerToolDialog::SliceResult& result) {
@@ -4770,7 +4775,7 @@ void Editor::Properties::drawTilemapComponent(ComponentType cpType, SceneProject
                         multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
                             prefix + ".name", result.rects[i].name);
                         multiCmd->addPropertyCmd<int>(project, sceneProject->id, entities[0], cpType,
-                            prefix + ".submeshId", 0);
+                            prefix + ".submeshId", result.submeshId);
                         multiCmd->addPropertyCmd<Vector4>(project, sceneProject->id, entities[0], cpType,
                             prefix + ".rect", Vector4(result.rects[i].rect.getX(), result.rects[i].rect.getY(),
                                 result.rects[i].rect.getWidth(), result.rects[i].rect.getHeight()));

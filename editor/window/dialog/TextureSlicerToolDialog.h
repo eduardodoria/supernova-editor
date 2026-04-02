@@ -29,8 +29,14 @@ public:
         Rect rect;
     };
 
+    struct SubmeshInfo {
+        std::string name;
+        Texture texture;
+    };
+
     struct SliceResult {
         std::vector<SlicedRect> rects;
+        int submeshId = 0;
     };
 
 private:
@@ -53,6 +59,9 @@ private:
 
     Texture m_previewTexture;
 
+    std::vector<SubmeshInfo> m_submeshes;
+    int m_selectedSubmesh = 0;
+
     char m_prefixBuffer[64] = "frame_";
 
     bool m_previewDirty = true;
@@ -73,7 +82,7 @@ public:
               std::function<void(const SliceResult&)> onApply,
               std::function<void()> onCancel = nullptr);
 
-    void openTileset(const Texture& previewTexture,
+    void openTileset(const std::vector<SubmeshInfo>& submeshes,
                      int sheetWidth, int sheetHeight,
                      std::function<void(const SliceResult&)> onApply,
                      std::function<void()> onCancel = nullptr);
