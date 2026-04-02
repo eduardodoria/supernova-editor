@@ -37,6 +37,7 @@
 #include "Out.h"
 #include "subsystem/ActionSystem.h"
 #include "subsystem/PhysicsSystem.h"
+#include "pool/TexturePool.h"
 #include "yaml-cpp/yaml.h"
 
 #include <map>
@@ -905,7 +906,16 @@ bool Editor::Properties::canAddComponent(SceneProject* sceneProject, Entity enti
 Texture Editor::Properties::getMaterialPreview(const Material& material, const std::string id){
     MaterialRender& materialRender = materialRenders[id];
 
-    if ((materialRender.getMaterial() != material) || !materialRender.getFramebuffer()->isCreated()){
+    auto texPending = [](const Texture& t) {
+        std::string tid = t.getId();
+        return !tid.empty() && !TexturePool::get(tid);
+    };
+
+    bool pending = texPending(material.baseColorTexture) || texPending(material.emissiveTexture) ||
+                   texPending(material.metallicRoughnessTexture) || texPending(material.occlusionTexture) ||
+                   texPending(material.normalTexture);
+
+    if ((materialRender.getMaterial() != material) || !materialRender.getFramebuffer()->isCreated() || pending){
         materialRender.applyMaterial(material);
         Engine::executeSceneOnce(materialRender.getScene());
     }
