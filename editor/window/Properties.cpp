@@ -3098,6 +3098,52 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
                             } catch (const std::exception& e) {
                                 Out::error("Error loading material file '%s': %s", droppedRelativePath.c_str(), e.what());
                             }
+                        } else if (Util::isImageFile(droppedRelativePath)) {
+                            std::string baseTexId = id + ".baseColorTexture";
+
+                            if (!payload->IsDelivery()) {
+                                // Preview: save originals and apply texture
+                                if (!matDropPreviewing) {
+                                    matDropOriginals.clear();
+                                    matDropPropertyId = id;
+                                    for (Entity& entity : entities) {
+                                        PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
+                                        matDropOriginals[entity] = *static_cast<Material*>(prop.ref);
+                                    }
+                                    matDropPreviewing = true;
+                                }
+                                for (Entity& entity : entities) {
+                                    PropertyData prop = Catalog::getProperty(sceneProject->scene, entity, cpType, id);
+                                    Material* matRef = static_cast<Material*>(prop.ref);
+                                    if (matRef->baseColorTexture != Texture(droppedRelativePath)) {
+                                        matRef->baseColorTexture = Texture(droppedRelativePath);
+                                        MeshComponent* mesh = sceneProject->scene->findComponent<MeshComponent>(entity);
+                                        if (mesh) {
+                                            auto pos = id.find('[');
+                                            auto end = id.find(']');
+                                            if (pos != std::string::npos && end != std::string::npos) {
+                                                unsigned int sIdx = std::stoul(id.substr(pos + 1, end - pos - 1));
+                                                if (sIdx < mesh->numSubmeshes) {
+                                                    mesh->submeshes[sIdx].needUpdateTexture = true;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                // Delivery: restore originals, then issue texture command
+                                restoreMatDropPreview();
+
+                                Texture texture(droppedRelativePath);
+                                for (Entity& entity : entities) {
+                                    cmd = new PropertyCmd<Texture>(project, sceneProject->id, entity, cpType, baseTexId, texture, settings.onValueChanged);
+                                    CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
+                                    finishProperty = true;
+                                }
+
+                                cachedMatDropPath.clear();
+                                ImGui::SetWindowFocus(Properties::WINDOW_NAME);
+                            }
                         }
                     }
                 }
