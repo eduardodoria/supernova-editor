@@ -3,6 +3,8 @@
 #include "Project.h"
 #include "LineDrawUtils.h"
 
+#include <cmath>
+
 
 using namespace Supernova;
 
@@ -20,6 +22,9 @@ Editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned 
 
     scene->setDefaultEntityPool(EntityPool::System);
     lines = new Lines(scene);
+    gridLines = new Lines(scene);
+    gridLines->addLine(Vector3::ZERO, Vector3::ZERO, Vector4::ZERO);
+    gridLines->setVisible(false);
     scene->setDefaultEntityPool(EntityPool::User);
 
     createLines(width, height);
@@ -51,6 +56,8 @@ Editor::SceneRender2D::~SceneRender2D(){
         delete pair.second;
     }
     jointLines.clear();
+
+    delete gridLines;
 }
 
 bool Editor::SceneRender2D::instanciateBodyLines(Entity entity){
@@ -397,10 +404,56 @@ void Editor::SceneRender2D::createLines(unsigned int width, unsigned int height)
     lines->addLine(Vector3(width, height, 0), Vector3(width, 0, 0), Vector4(0.8, 0.8, 0.8, 1.0));
 }
 
+void Editor::SceneRender2D::updateGridLines(){
+    gridLines->clearLines();
+
+    if (!displaySettings.showGridLines2D || displaySettings.gridSpacing2D <= 0.0f){
+        gridLines->setVisible(false);
+        return;
+    }
+
+    gridLines->setVisible(true);
+
+    float spacing = displaySettings.gridSpacing2D;
+
+    float left = camera->getLeftClip();
+    float right = camera->getRightClip();
+    float bottom = camera->getBottomClip();
+    float top = camera->getTopClip();
+
+    // Add margin to avoid popping at edges
+    float margin = spacing * 2.0f;
+    left -= margin;
+    right += margin;
+    bottom -= margin;
+    top += margin;
+
+    Vector4 gridColor(0.5f, 0.5f, 0.5f, 0.3f);
+    Vector4 gridColorMajor(0.5f, 0.5f, 0.5f, 0.6f);
+    int majorEvery = 5;
+
+    // Vertical lines
+    float startX = std::floor(left / spacing) * spacing;
+    for (float x = startX; x <= right; x += spacing){
+        int ix = (int)std::round(x / spacing);
+        Vector4 color = (ix % majorEvery == 0) ? gridColorMajor : gridColor;
+        gridLines->addLine(Vector3(x, bottom, 0), Vector3(x, top, 0), color);
+    }
+
+    // Horizontal lines
+    float startY = std::floor(bottom / spacing) * spacing;
+    for (float y = startY; y <= top; y += spacing){
+        int iy = (int)std::round(y / spacing);
+        Vector4 color = (iy % majorEvery == 0) ? gridColorMajor : gridColor;
+        gridLines->addLine(Vector3(left, y, 0), Vector3(right, y, 0), color);
+    }
+}
+
 void Editor::SceneRender2D::hideAllGizmos(){
     SceneRender::hideAllGizmos();
 
     lines->setVisible(false);
+    gridLines->setVisible(false);
     for (auto& pair : containerLines) {
         pair.second->setVisible(false);
     }
@@ -471,6 +524,10 @@ void Editor::SceneRender2D::update(std::vector<Entity> selEntities, std::vector<
     }
 
     lines->setVisible(!displaySettings.hideGrid);
+
+    updateGridLines();
+
+    updateGridLines();
 
     std::set<Entity> selectedEntities(selEntities.begin(), selEntities.end());
 

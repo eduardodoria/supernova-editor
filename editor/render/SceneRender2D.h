@@ -11,12 +11,14 @@ namespace Supernova::Editor{
     class SceneRender2D: public SceneRender{
     private:
         Lines* lines;
+        Lines* gridLines;
         std::map<Entity, Lines*> containerLines;
         std::map<Entity, Lines*> bodyLines;
         std::map<Entity, Lines*> jointLines;
         bool isUI;
 
         void createLines(unsigned int width, unsigned int height);
+        void updateGridLines();
         bool instanciateBodyLines(Entity entity);
         bool instanciateJointLines(Entity entity);
         void createOrUpdateBodyLines(Entity entity, const Transform& transform, const Body2DComponent& body);

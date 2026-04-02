@@ -52,6 +52,7 @@ namespace Supernova::Editor{
         ViewportGizmo viewgizmo;
 
         Vector2 linesOffset;
+        float lastGridSpacing;
 
         void createLines();
         bool instanciateLightObject(Entity entity);

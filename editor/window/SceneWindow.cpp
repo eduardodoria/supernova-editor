@@ -1027,7 +1027,9 @@ void Editor::SceneWindow::show() {
 
                 ImGui::SameLine(0, 10);
                 ImGui::Dummy(ImVec2(1, 20));
+            }
 
+            {
                 std::string sceneSettingsPopupId = "SceneSettingsPopup" + std::to_string(sceneProject.id);
                 ImGui::SameLine();
                 if (ImGui::Button(ICON_FA_GEAR)) {
@@ -1036,23 +1038,55 @@ void Editor::SceneWindow::show() {
                 ImGui::SetItemTooltip("Scene display settings");
 
                 if (ImGui::BeginPopup(sceneSettingsPopupId.c_str())) {
-                    ImGui::BeginDisabled(sceneProject.playState != ScenePlayState::STOPPED);
-                    ImGui::Checkbox("Show all joints",  &sceneProject.displaySettings.showAllJoints);
-                    ImGui::Checkbox("Show all bones",   &sceneProject.displaySettings.showAllBones);
-                    ImGui::Checkbox("Hide all bodies",  &sceneProject.displaySettings.hideAllBodies);
-                    ImGui::EndDisabled();
+                    if (ImGui::BeginTable("scene_settings_table", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV)) {
+                        ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 175.0f);
+                        ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthFixed, 80.0f);
 
-                    ImGui::BeginDisabled(sceneProject.sceneType != SceneType::SCENE_3D);
-                    ImGui::Checkbox("Hide camera view", &sceneProject.displaySettings.hideCameraView);
-                    ImGui::Checkbox("Hide light icons", &sceneProject.displaySettings.hideLightIcons);
-                    ImGui::EndDisabled();
+                        auto drawSettingRow = [](const char* name, bool& value, bool disabled = false) {
+                            ImGui::TableNextRow();
+                            ImGui::TableSetColumnIndex(0);
+                            if (disabled) ImGui::BeginDisabled();
+                            ImGui::Text("%s", name);
+                            ImGui::TableSetColumnIndex(1);
+                            ImGui::Checkbox((std::string("##") + name).c_str(), &value);
+                            if (disabled) ImGui::EndDisabled();
+                        };
 
-                    ImGui::BeginDisabled(sceneProject.sceneType == SceneType::SCENE_3D);
-                    ImGui::Checkbox("Hide container guides", &sceneProject.displaySettings.hideContainerGuides);
-                    ImGui::EndDisabled();
+                        bool notStopped = (sceneProject.playState != ScenePlayState::STOPPED);
 
-                    ImGui::Checkbox("Hide grid",               &sceneProject.displaySettings.hideGrid);
-                    ImGui::Checkbox("Hide selection outline",  &sceneProject.displaySettings.hideSelectionOutline);
+                        drawSettingRow(ICON_FA_LINK " Show all joints", sceneProject.displaySettings.showAllJoints, notStopped);
+                        drawSettingRow(ICON_FA_BONE " Show all bones", sceneProject.displaySettings.showAllBones, notStopped);
+                        drawSettingRow(ICON_FA_CUBES " Hide all bodies", sceneProject.displaySettings.hideAllBodies, notStopped);
+
+                        drawSettingRow(ICON_FA_CAMERA " Hide camera view", sceneProject.displaySettings.hideCameraView, sceneProject.sceneType != SceneType::SCENE_3D);
+                        drawSettingRow(ICON_FA_LIGHTBULB " Hide light icons", sceneProject.displaySettings.hideLightIcons, sceneProject.sceneType != SceneType::SCENE_3D);
+
+                        drawSettingRow(ICON_FA_SQUARE " Hide container guides", sceneProject.displaySettings.hideContainerGuides, sceneProject.sceneType == SceneType::SCENE_3D);
+
+                        drawSettingRow(ICON_FA_TABLE_CELLS " Hide grid", sceneProject.displaySettings.hideGrid);
+                        drawSettingRow(ICON_FA_OBJECT_GROUP " Hide selection outline", sceneProject.displaySettings.hideSelectionOutline);
+
+                        if (sceneProject.sceneType == SceneType::SCENE_3D) {
+                            ImGui::TableNextRow();
+                            ImGui::TableSetColumnIndex(0);
+                            ImGui::Text("%s", ICON_FA_TABLE_CELLS " Grid spacing");
+                            ImGui::TableSetColumnIndex(1);
+                            ImGui::SetNextItemWidth(-1);
+                            ImGui::DragFloat("##GridSpacing3D", &sceneProject.displaySettings.gridSpacing3D, 0.1f, 0.1f, 1000.0f, "%.1f");
+                        } else {
+                            drawSettingRow(ICON_FA_TABLE_CELLS " Show grid lines", sceneProject.displaySettings.showGridLines2D);
+                            if (sceneProject.displaySettings.showGridLines2D) {
+                                ImGui::TableNextRow();
+                                ImGui::TableSetColumnIndex(0);
+                                ImGui::Text("%s", ICON_FA_TABLE_CELLS " Grid spacing");
+                                ImGui::TableSetColumnIndex(1);
+                                ImGui::SetNextItemWidth(-1);
+                                ImGui::DragFloat("##GridSpacing2D", &sceneProject.displaySettings.gridSpacing2D, 1.0f, 1.0f, 10000.0f, "%.0f");
+                            }
+                        }
+
+                        ImGui::EndTable();
+                    }
 
                     ImGui::EndPopup();
                 }

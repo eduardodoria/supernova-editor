@@ -8,12 +8,15 @@
 #include "Project.h"
 #include "LineDrawUtils.h"
 
+#include <cmath>
+
 using namespace Supernova;
 
 Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, true, 40.0, 0.01){
     ScopedDefaultEntityPool sys(*scene, EntityPool::System);
 
     linesOffset = Vector2(0, 0);
+    lastGridSpacing = 1.0f;
 
     lines = new Lines(scene);
 
@@ -74,36 +77,46 @@ Editor::SceneRender3D::~SceneRender3D(){
 }
 
 void Editor::SceneRender3D::createLines(){
+    float spacing = displaySettings.gridSpacing3D;
+    if (spacing <= 0.0f) spacing = 1.0f;
+
     int gridHeight = 0;
-    int gridSize = camera->getFarClip() * 2;
+    float gridSize = camera->getFarClip() * 2;
 
-    int xGridStart = -gridSize + linesOffset.x;
-    int xGridEnd = gridSize + linesOffset.x;
+    float xGridStart = -gridSize + linesOffset.x;
+    float xGridEnd = gridSize + linesOffset.x;
 
-    int yGridStart = -gridSize + linesOffset.y;
-    int yGridEnd = gridSize + linesOffset.y;
+    float yGridStart = -gridSize + linesOffset.y;
+    float yGridEnd = gridSize + linesOffset.y;
 
     lines->clearLines();
 
-    for (int i = xGridStart; i <= xGridEnd; i++){
-        if (i == 0){
-            lines->addLine(Vector3(i, gridHeight, yGridStart), Vector3(i, gridHeight, yGridEnd), Vector4(0.5, 0.5, 1.0, 1.0));
+    int majorEvery = 10;
+
+    float startX = std::floor(xGridStart / spacing) * spacing;
+    for (float x = startX; x <= xGridEnd; x += spacing){
+        int ix = (int)std::round(x / spacing);
+        if (ix == 0){
+            lines->addLine(Vector3(x, gridHeight, yGridStart), Vector3(x, gridHeight, yGridEnd), Vector4(0.5, 0.5, 1.0, 1.0));
         }else{
-            if (i % 10 == 0){
-                lines->addLine(Vector3(i, gridHeight, yGridStart), Vector3(i, gridHeight, yGridEnd), Vector4(0.5, 0.5, 0.5, 1.0));
+            if (ix % majorEvery == 0){
+                lines->addLine(Vector3(x, gridHeight, yGridStart), Vector3(x, gridHeight, yGridEnd), Vector4(0.5, 0.5, 0.5, 1.0));
             }else{
-                lines->addLine(Vector3(i, gridHeight, yGridStart), Vector3(i, gridHeight, yGridEnd), Vector4(0.5, 0.5, 0.5, 0.5));
+                lines->addLine(Vector3(x, gridHeight, yGridStart), Vector3(x, gridHeight, yGridEnd), Vector4(0.5, 0.5, 0.5, 0.5));
             }
         }
     }
-    for (int i = yGridStart; i <= yGridEnd; i++){
-        if (i == 0){
-            lines->addLine(Vector3(xGridStart, gridHeight, i), Vector3(xGridEnd, gridHeight, i), Vector4(1.0, 0.5, 0.5, 1.0));
+
+    float startZ = std::floor(yGridStart / spacing) * spacing;
+    for (float z = startZ; z <= yGridEnd; z += spacing){
+        int iz = (int)std::round(z / spacing);
+        if (iz == 0){
+            lines->addLine(Vector3(xGridStart, gridHeight, z), Vector3(xGridEnd, gridHeight, z), Vector4(1.0, 0.5, 0.5, 1.0));
         }else{
-            if (i % 10 == 0){
-                lines->addLine(Vector3(xGridStart, gridHeight, i), Vector3(xGridEnd, gridHeight, i), Vector4(0.5, 0.5, 0.5, 1.0));
+            if (iz % majorEvery == 0){
+                lines->addLine(Vector3(xGridStart, gridHeight, z), Vector3(xGridEnd, gridHeight, z), Vector4(0.5, 0.5, 0.5, 1.0));
             }else{
-                lines->addLine(Vector3(xGridStart, gridHeight, i), Vector3(xGridEnd, gridHeight, i), Vector4(0.5, 0.5, 0.5, 0.5));
+                lines->addLine(Vector3(xGridStart, gridHeight, z), Vector3(xGridEnd, gridHeight, z), Vector4(0.5, 0.5, 0.5, 0.5));
             }
         }
     }
@@ -1222,11 +1235,16 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
 
     lines->setVisible(!displaySettings.hideGrid);
 
+    float spacing = displaySettings.gridSpacing3D;
+    if (spacing <= 0.0f) spacing = 1.0f;
+
     int linesStepChange = (int)(camera->getFarClip() / 2);
     int cameraLineStepX = (int)(camera->getWorldPosition().x / linesStepChange) * linesStepChange;
     int cameraLineStepZ = (int)(camera->getWorldPosition().z / linesStepChange) * linesStepChange;
-    if (cameraLineStepX != linesOffset.x || cameraLineStepZ != linesOffset.y){
+    bool spacingChanged = (lastGridSpacing != spacing);
+    if (cameraLineStepX != linesOffset.x || cameraLineStepZ != linesOffset.y || spacingChanged){
         linesOffset = Vector2(cameraLineStepX, cameraLineStepZ);
+        lastGridSpacing = spacing;
 
         createLines();
     }

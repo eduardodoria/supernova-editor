@@ -18,6 +18,9 @@ namespace Supernova::Editor{
         bool hideContainerGuides = false;
         bool hideGrid            = false;
         bool hideSelectionOutline = false;
+        bool showGridLines2D     = false;
+        float gridSpacing2D      = 50.0f;
+        float gridSpacing3D      = 1.0f;
     };
 
     class Project;
