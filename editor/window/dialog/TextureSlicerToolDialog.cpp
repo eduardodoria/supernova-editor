@@ -60,13 +60,10 @@ void TextureSlicerToolDialog::open(const Texture& previewTexture,
     m_paddingY = 0;
     strncpy(m_prefixBuffer, "frame_", sizeof(m_prefixBuffer) - 1);
     m_prefixBuffer[sizeof(m_prefixBuffer) - 1] = '\0';
-
-    m_autoFillGrid = false;
 }
 
 void TextureSlicerToolDialog::openTileset(const Texture& previewTexture,
                                            int sheetWidth, int sheetHeight,
-                                           unsigned int tilemapWidth, unsigned int tilemapHeight,
                                            std::function<void(const SliceResult&)> onApply,
                                            std::function<void()> onCancel) {
     // Initialize shared slicing state via the base open
@@ -76,24 +73,6 @@ void TextureSlicerToolDialog::openTileset(const Texture& previewTexture,
     m_mode = Mode::TILESET;
     strncpy(m_prefixBuffer, "tile_", sizeof(m_prefixBuffer) - 1);
     m_prefixBuffer[sizeof(m_prefixBuffer) - 1] = '\0';
-
-    // Auto-fill grid defaults based on tilemap dimensions
-    m_autoFillGrid = false;
-    m_fillPattern = FillPattern::SEQUENTIAL;
-    m_singleRectId = 0;
-    m_autoTileSize = true;
-
-    if (tilemapWidth > 0 && tilemapHeight > 0) {
-        m_tileWidth = static_cast<float>(m_cellWidth > 0 ? m_cellWidth : 32);
-        m_tileHeight = static_cast<float>(m_cellHeight > 0 ? m_cellHeight : 32);
-        m_gridColumns = std::max(1, static_cast<int>(tilemapWidth / m_tileWidth));
-        m_gridRows = std::max(1, static_cast<int>(tilemapHeight / m_tileHeight));
-    } else {
-        m_tileWidth = 32.0f;
-        m_tileHeight = 32.0f;
-        m_gridColumns = 10;
-        m_gridRows = 10;
-    }
 }
 
 void TextureSlicerToolDialog::generatePreview() {
@@ -143,49 +122,12 @@ void TextureSlicerToolDialog::generatePreview() {
         }
     }
 
-    // Update auto tile size from cell size (tileset mode)
-    if (m_mode == Mode::TILESET && m_autoTileSize) {
-        m_tileWidth = static_cast<float>(cw);
-        m_tileHeight = static_cast<float>(ch);
-    }
-
     m_previewDirty = false;
 }
 
 TextureSlicerToolDialog::SliceResult TextureSlicerToolDialog::buildResult() {
     SliceResult result;
     result.rects = m_previewRects;
-    result.hasTileGrid = m_autoFillGrid && m_mode == Mode::TILESET;
-
-    if (result.hasTileGrid && !m_previewRects.empty()) {
-        int gridCols = std::max(1, m_gridColumns);
-        int gridRows = std::max(1, m_gridRows);
-        float tw = std::max(1.0f, m_tileWidth);
-        float th = std::max(1.0f, m_tileHeight);
-        int numRects = static_cast<int>(m_previewRects.size());
-
-        int tileIndex = 0;
-        for (int r = 0; r < gridRows; r++) {
-            for (int c = 0; c < gridCols; c++) {
-                TileGridEntry tile;
-                tile.name = "tile_" + std::to_string(tileIndex);
-
-                if (m_fillPattern == FillPattern::SEQUENTIAL) {
-                    tile.rectId = tileIndex % numRects;
-                } else {
-                    tile.rectId = std::clamp(m_singleRectId, 0, numRects - 1);
-                }
-
-                tile.position = Vector2(static_cast<float>(c) * tw, static_cast<float>(r) * th);
-                tile.width = tw;
-                tile.height = th;
-
-                result.tiles.push_back(tile);
-                tileIndex++;
-            }
-        }
-    }
-
     return result;
 }
 
@@ -413,61 +355,6 @@ void TextureSlicerToolDialog::show() {
         }
         ImGui::EndChild();
         ImGui::TreePop();
-    }
-
-    // --- Auto-fill Tiles Section (tileset mode only) ---
-    if (isTileset) {
-        ImGui::Spacing();
-        ImGui::Separator();
-        ImGui::Spacing();
-
-        ImGui::SeparatorText("Auto-fill Tiles");
-
-        ImGui::Checkbox("Generate tile grid##AutoFillGrid", &m_autoFillGrid);
-
-        if (m_autoFillGrid) {
-            if (beginInputTable("SlicerFillTable")) {
-                beginInputRow("Fill Pattern", 14.0f * ImGui::GetFontSize());
-                if (ImGui::RadioButton("Sequential##FillSeq", m_fillPattern == FillPattern::SEQUENTIAL)) {
-                    m_fillPattern = FillPattern::SEQUENTIAL;
-                }
-                ImGui::SameLine();
-                if (ImGui::RadioButton("Single Rect##FillSingle", m_fillPattern == FillPattern::SINGLE_RECT)) {
-                    m_fillPattern = FillPattern::SINGLE_RECT;
-                }
-
-                if (m_fillPattern == FillPattern::SINGLE_RECT) {
-                    beginInputRow("Rect ID", 6.0f * ImGui::GetFontSize());
-                    int maxRect = std::max(0, (int)m_previewRects.size() - 1);
-                    ImGui::DragInt("##SingleRectId", &m_singleRectId, 0.1f, 0, maxRect);
-                }
-
-                beginInputRow("Grid Columns", 6.0f * ImGui::GetFontSize());
-                ImGui::DragInt("##GridCols", &m_gridColumns, 0.1f, 1, 256);
-
-                beginInputRow("Grid Rows", 6.0f * ImGui::GetFontSize());
-                ImGui::DragInt("##GridRows", &m_gridRows, 0.1f, 1, 256);
-
-                if (ImGui::Checkbox("Auto tile size from cell##AutoTileSize", &m_autoTileSize)) {
-                    if (m_autoTileSize) {
-                        m_previewDirty = true;
-                    }
-                }
-
-                if (!m_autoTileSize) {
-                    beginInputRow("Tile Width", 6.0f * ImGui::GetFontSize());
-                    ImGui::DragFloat("##TileW", &m_tileWidth, 1.0f, 1.0f, 4096.0f, "%.0f");
-
-                    beginInputRow("Tile Height", 6.0f * ImGui::GetFontSize());
-                    ImGui::DragFloat("##TileH", &m_tileHeight, 1.0f, 1.0f, 4096.0f, "%.0f");
-                }
-
-                ImGui::EndTable();
-            }
-
-            int totalTiles = m_gridColumns * m_gridRows;
-            ImGui::Text("Will generate %d tiles (%d x %d)", totalTiles, m_gridColumns, m_gridRows);
-        }
     }
 
     ImGui::Spacing();

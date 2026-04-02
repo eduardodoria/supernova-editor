@@ -24,28 +24,13 @@ public:
         CELL_SIZE   // by cell width x height
     };
 
-    enum class FillPattern {
-        SEQUENTIAL,
-        SINGLE_RECT
-    };
-
     struct SlicedRect {
         std::string name;
         Rect rect;
     };
 
-    struct TileGridEntry {
-        std::string name;
-        int rectId;
-        Vector2 position;
-        float width;
-        float height;
-    };
-
     struct SliceResult {
         std::vector<SlicedRect> rects;
-        bool hasTileGrid = false;
-        std::vector<TileGridEntry> tiles;
     };
 
 private:
@@ -70,16 +55,6 @@ private:
 
     char m_prefixBuffer[64] = "frame_";
 
-    // Tile grid options (only used in TILESET mode)
-    bool m_autoFillGrid = false;
-    FillPattern m_fillPattern = FillPattern::SEQUENTIAL;
-    int m_singleRectId = 0;
-    int m_gridColumns = 10;
-    int m_gridRows = 10;
-    float m_tileWidth = 32.0f;
-    float m_tileHeight = 32.0f;
-    bool m_autoTileSize = true;
-
     bool m_previewDirty = true;
     std::vector<SlicedRect> m_previewRects;
 
@@ -100,7 +75,6 @@ public:
 
     void openTileset(const Texture& previewTexture,
                      int sheetWidth, int sheetHeight,
-                     unsigned int tilemapWidth, unsigned int tilemapHeight,
                      std::function<void(const SliceResult&)> onApply,
                      std::function<void()> onCancel = nullptr);
 

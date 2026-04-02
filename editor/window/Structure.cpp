@@ -247,6 +247,8 @@ std::string Editor::Structure::getObjectIcon(Signature signature, Scene* scene){
         return ICON_FA_PERSON_WALKING;
     }else if (signature.test(scene->getComponentId<BoneComponent>())){
         return ICON_FA_BONE;
+    }else if (signature.test(scene->getComponentId<TilemapComponent>())){
+        return ICON_FA_BORDER_ALL;
     }else if (signature.test(scene->getComponentId<MeshComponent>())){
         return ICON_FA_DICE_D20;
     }else if (signature.test(scene->getComponentId<SkyComponent>())){
