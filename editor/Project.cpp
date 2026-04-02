@@ -3426,14 +3426,15 @@ std::vector<Entity> Editor::Project::importEntityBundle(SceneProject* sceneProje
     newInstance.instanceId = bundle.nextInstanceId++;
 
     YAML::Node node;
-    if (bundle.isModified && !bundle.registryEntities.empty()) {
-        std::vector<Entity> topLevelEntities = getTopLevelEntities(bundle.registry.get(), bundle.registryEntities);
-        // Always encode as EntityBundle with members for consistent decode
+    if (bundle.isModified) {
         YAML::Node bundleNode;
         bundleNode["type"] = "EntityBundle";
         YAML::Node membersNode(YAML::NodeType::Sequence);
-        for (Entity entity : topLevelEntities) {
-            membersNode.push_back(Stream::encodeEntity(entity, bundle.registry.get(), this));
+        if (!bundle.registryEntities.empty()) {
+            std::vector<Entity> topLevelEntities = getTopLevelEntities(bundle.registry.get(), bundle.registryEntities);
+            for (Entity entity : topLevelEntities) {
+                membersNode.push_back(Stream::encodeEntity(entity, bundle.registry.get(), this));
+            }
         }
         bundleNode["members"] = membersNode;
         node = bundleNode;
@@ -3972,7 +3973,7 @@ bool Editor::Project::addEntityToBundle(uint32_t sceneId, const NodeRecovery& re
         }
 
         for (auto& instance : sceneInstances) {
-            std::string recoveryKey = std::to_string(otherSceneId) + "_" + std::to_string(instance.instanceId);
+            std::string recoveryKey = std::to_string(otherSceneId) + "_" + std::to_string(instance.rootEntity);
             YAML::Node nodeData;
             size_t transformIndex = 0;
             bool hasRecoveryData = false;
@@ -4099,7 +4100,7 @@ Editor::NodeRecovery Editor::Project::removeEntityFromBundle(uint32_t sceneId, E
                 transformIndex = (entityIt != otherScene->entities.end()) ? std::distance(otherScene->entities.begin(), entityIt) : 0;
             }
 
-            std::string recoveryKey = std::to_string(otherSceneId) + "_" + std::to_string(instance.instanceId);
+            std::string recoveryKey = std::to_string(otherSceneId) + "_" + std::to_string(instance.rootEntity);
             recovery[recoveryKey] = {nodeExtend, transformIndex};
 
             // Remove members from this instance
