@@ -465,9 +465,33 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
                 if (hitEntity != NULL_ENTITY) {
                     bool alreadySelected = project->isSelectedEntity(sceneId, hitEntity);
                     if (!alreadySelected || io.KeyShift) {
+                        sceneProject->sceneRender->clearTileSelection();
                         bool changed = project->selectObjectByRay(sceneId, x, y, io.KeyShift);
                         if (changed) {
                             sceneProject->sceneRender->update(project->getSelectedEntities(sceneId), project->getEntities(sceneId), sceneProject->mainCamera, sceneProject->displaySettings);
+                            sceneProject->sceneRender->mouseHoverEvent(x, y);
+                        }
+                    }
+                }
+            }
+
+            // Tile sub-selection within a selected tilemap (outside disableSelection guard
+            // so clicking a tile works even when the tilemap gizmo body is hovered)
+            if (gizmoSelected == GizmoSelected::OBJECT2D) {
+                std::vector<Entity> selEntities = project->getSelectedEntities(sceneId);
+                if (selEntities.size() == 1 && !io.KeyShift) {
+                    Entity selEntity = selEntities[0];
+                    Gizmo2DSideSelected gizmo2DSide = sceneProject->sceneRender->getToolsLayer()->getGizmo2DSideSelected();
+                    if (gizmo2DSide == Gizmo2DSideSelected::NONE || gizmo2DSide == Gizmo2DSideSelected::CENTER) {
+                        int tileHit = sceneProject->sceneRender->hitTestTile(selEntity, x, y);
+                        if (tileHit >= 0) {
+                            sceneProject->sceneRender->selectTile(selEntity, tileHit);
+                            // Re-update so gizmo wraps the tile
+                            sceneProject->sceneRender->update(selEntities, project->getEntities(sceneId), sceneProject->mainCamera, sceneProject->displaySettings);
+                            sceneProject->sceneRender->mouseHoverEvent(x, y);
+                        } else if (sceneProject->sceneRender->getSelectedTileIndex() >= 0 && gizmo2DSide == Gizmo2DSideSelected::NONE) {
+                            sceneProject->sceneRender->clearTileSelection();
+                            sceneProject->sceneRender->update(selEntities, project->getEntities(sceneId), sceneProject->mainCamera, sceneProject->displaySettings);
                             sceneProject->sceneRender->mouseHoverEvent(x, y);
                         }
                     }
@@ -496,7 +520,10 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
 
         if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && !altHeld && !suppressLeftMouse){
             if (!mouseLeftDraggedInside && mouseLeftDown && !disableSelection){
-                project->selectObjectByRay(sceneId, x, y, io.KeyShift);
+                bool changed = project->selectObjectByRay(sceneId, x, y, io.KeyShift);
+                if (changed) {
+                    sceneProject->sceneRender->clearTileSelection();
+                }
             }
             mouseLeftDown = false;
         }
@@ -515,6 +542,7 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
             if (mouseLeftDraggedInside && !disableSelection){
                 Vector2 clickStartPos = Vector2((2 * mouseLeftStartPos.x / width[sceneId]) - 1, -((2 * mouseLeftStartPos.y / height[sceneId]) - 1));
                 Vector2 clickEndPos = Vector2((2 * mouseLeftDragPos.x / width[sceneId]) - 1, -((2 * mouseLeftDragPos.y / height[sceneId]) - 1));
+                sceneProject->sceneRender->clearTileSelection();
                 project->selectObjectsByRect(sceneId, clickStartPos, clickEndPos);
             }
 

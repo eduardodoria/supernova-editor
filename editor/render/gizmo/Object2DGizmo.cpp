@@ -8,6 +8,7 @@ const float Editor::Object2DGizmo::sizeOffset = 0.1;
 Editor::Object2DGizmo::Object2DGizmo(Scene* scene): Object(scene){
     width = 0.0;
     height = 0.0;
+    showRects = true;
 
     center = new Object(scene);
     lines = new Lines(scene);
@@ -40,6 +41,17 @@ void Editor::Object2DGizmo::updateRects(){
     float halfRect = rectSize / 2.0;
     float halfWidth = width / 2.0;
     float halfHeight = height / 2.0;
+
+    if (!showRects) {
+        for (int i = 0; i < 8; i++){
+            rects[i]->setScale(Vector3(0.0f, 0.0f, 0.0f));
+        }
+        return;
+    }
+
+    for (int i = 0; i < 8; i++){
+        rects[i]->setScale(Vector3(1.0f, 1.0f, 1.0f));
+    }
 
     rects[0]->setPosition(-halfWidth-halfRect-sizeOffset, -halfHeight-halfRect-sizeOffset, 0);
     rects[1]->setPosition(-halfWidth-halfRect-sizeOffset, -halfRect, 0);
@@ -87,6 +99,11 @@ void Editor::Object2DGizmo::setSize(float width, float height){
     }
 }
 
+void Editor::Object2DGizmo::setShowRects(bool showRects){
+    this->showRects = showRects;
+    updateRects();
+}
+
 Editor::Gizmo2DSideSelected Editor::Object2DGizmo::checkHover(const Ray& ray, const OBB& obb){
     Editor::Gizmo2DSideSelected gizmoSideSelected = Gizmo2DSideSelected::NONE;
 
@@ -94,7 +111,7 @@ Editor::Gizmo2DSideSelected Editor::Object2DGizmo::checkHover(const Ray& ray, co
         gizmoSideSelected = Gizmo2DSideSelected::CENTER;
     }
 
-    if (isVisible()){
+    if (isVisible() && showRects){
         for (int i = 0; i < 8; i++){
             if (RayReturn rreturn = ray.intersects(rects[i]->getWorldAABB())){
                 if (i == 0){

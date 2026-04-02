@@ -15,6 +15,7 @@ namespace Supernova::Editor{
         std::map<Entity, Lines*> containerLines;
         std::map<Entity, Lines*> bodyLines;
         std::map<Entity, Lines*> jointLines;
+        Lines* tileLines = nullptr;
         bool isUI;
 
         void createLines(unsigned int width, unsigned int height);

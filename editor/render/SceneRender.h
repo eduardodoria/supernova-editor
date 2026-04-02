@@ -48,6 +48,13 @@ namespace Supernova::Editor{
 
         CursorSelected cursorSelected;
 
+        // Tile sub-selection within a tilemap entity
+        Entity selectedTileEntity = 0;  // NULL_ENTITY
+        int selectedTileIndex = -1;
+        Vector2 tileStartPosition;
+        float tileStartWidth = 0;
+        float tileStartHeight = 0;
+
         AABB getAABB(Entity entity, bool local);
         AABB getFamilyAABB(Entity entity, float offset);
 
@@ -114,6 +121,14 @@ namespace Supernova::Editor{
         bool isMultipleEntitesSelected() const;
 
         AABB getEntitiesAABB(const std::vector<Entity>& entities);
+
+        // Tile sub-selection
+        int getSelectedTileIndex() const { return selectedTileIndex; }
+        Entity getSelectedTileEntity() const { return selectedTileEntity; }
+        void selectTile(Entity entity, int tileIndex);
+        void clearTileSelection();
+        int hitTestTile(Entity entity, float x, float y);
+        OBB getTileOBB(Entity entity, int tileIndex);
     };
 
 }

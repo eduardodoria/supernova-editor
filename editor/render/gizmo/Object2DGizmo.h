@@ -17,6 +17,7 @@ namespace Supernova::Editor{
 
         float width;
         float height;
+        bool showRects;
 
         static const float rectSize;
         static const float sizeOffset;
@@ -31,7 +32,7 @@ namespace Supernova::Editor{
         void setCenter(Vector3 point);
         void setSize(float width, float height);
 
-        void setUseLines(bool useLines);
+        void setShowRects(bool showRects);
 
         Gizmo2DSideSelected checkHover(const Ray& ray, const OBB& obb);
     };

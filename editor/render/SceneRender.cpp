@@ -337,6 +337,16 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities, std::vector<En
 
         toolslayer.updateGizmo(camera, gizmoPosition, gizmoRotation, scale, totalSelBB, mouseRay, mouseClicked, anchorData, anchorArea);
 
+        // Override gizmo for selected tile within tilemap
+        if (selectedTileIndex >= 0 && selEntities.size() == 1 && selEntities[0] == selectedTileEntity
+            && toolslayer.getGizmoSelected() == GizmoSelected::OBJECT2D){
+            OBB tileOBB = getTileOBB(selectedTileEntity, selectedTileIndex);
+            if (!tileOBB.isNull()){
+                Vector3 tileCenter = tileOBB.getCenter();
+                toolslayer.updateGizmo(camera, tileCenter, gizmoRotation, scale, tileOBB, mouseRay, mouseClicked, anchorData, anchorArea);
+            }
+        }
+
         if (selBB.size() > 0) {
             updateSelLines(selBB);
         }
@@ -346,7 +356,9 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities, std::vector<En
     // Determine selLines visibility: hide for single entity with OBJECT2D gizmo or empty selBB
     bool showSelLines = selectionVisibility;
     if (!multipleEntitiesSelected && (toolslayer.getGizmoSelected() == GizmoSelected::OBJECT2D || selBB.size() == 0)) {
-        showSelLines = false;
+        if (selectedTileIndex < 0) {
+            showSelLines = false;
+        }
     }
     selLines->setVisible(showSelLines && !displaySettings.hideSelectionOutline);
 
@@ -355,6 +367,13 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities, std::vector<En
     }else{
         toolslayer.setGizmoVisible(selectionVisibility);
     }
+
+    // Hide resize rects for tilemaps (must be after setGizmoVisible which propagates visibility to children)
+    if (toolslayer.getGizmoSelected() == GizmoSelected::OBJECT2D && selEntities.size() == 1){
+        bool isTilemap = scene->getSignature(selEntities[0]).test(scene->getComponentId<TilemapComponent>());
+        toolslayer.setShowObject2DRects(!isTilemap || selectedTileIndex >= 0);
+    }
+
     uilayer.setViewGizmoImageVisible(true);
 }
 
@@ -437,6 +456,23 @@ void Editor::SceneRender::mouseClickEvent(float x, float y, std::vector<Entity> 
             if (signature.test(scene->getComponentId<UILayoutComponent>())){
                 UILayoutComponent& layout = scene->getComponent<UILayoutComponent>(entity);
                 objectSizeOffset[entity] = Vector2(layout.width, layout.height);
+            }
+        }
+
+        // Store tile start state for tile sub-selection drag
+        if (selectedTileIndex >= 0 && selEntities.size() == 1 && selEntities[0] == selectedTileEntity){
+            TilemapComponent* tilemap = scene->findComponent<TilemapComponent>(selectedTileEntity);
+            if (tilemap && selectedTileIndex < (int)tilemap->numTiles){
+                tileStartPosition = tilemap->tiles[selectedTileIndex].position;
+                tileStartWidth = tilemap->tiles[selectedTileIndex].width;
+                tileStartHeight = tilemap->tiles[selectedTileIndex].height;
+
+                // Override gizmo start position to tile center in world space
+                OBB tileOBB = getTileOBB(selectedTileEntity, selectedTileIndex);
+                if (!tileOBB.isNull()){
+                    gizmoStartPosition = tileOBB.getCenter();
+                    cursorStartOffset = gizmoStartPosition - rretrun.point;
+                }
             }
         }
     }
@@ -590,6 +626,131 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                 }
 
                 if (toolslayer.getGizmoSelected() == GizmoSelected::OBJECT2D){
+                    // Handle tile sub-selection drag
+                    if (selectedTileIndex >= 0 && entity == selectedTileEntity){
+                        TilemapComponent* tilemap = scene->findComponent<TilemapComponent>(entity);
+                        Transform* tileTransform = scene->findComponent<Transform>(entity);
+                        if (tilemap && tileTransform && selectedTileIndex < (int)tilemap->numTiles){
+                            Vector3 delta = gizmoRMatrix.inverse() * ((rretrun.point + cursorStartOffset) - gizmoStartPosition);
+                            Vector3 sizeDelta = gizmoRMatrix.inverse() * -(gizmoStartPosition - rretrun.point - cursorStartOffset);
+
+                            // Transform delta to tilemap local space
+                            Vector3 oScale = Vector3(1.0f, 1.0f, 1.0f);
+                            oScale.x = Vector3(tileTransform->modelMatrix[0][0], tileTransform->modelMatrix[0][1], tileTransform->modelMatrix[0][2]).length();
+                            oScale.y = Vector3(tileTransform->modelMatrix[1][0], tileTransform->modelMatrix[1][1], tileTransform->modelMatrix[1][2]).length();
+
+                            Vector2 localDelta(delta.x / oScale.x, delta.y / oScale.y);
+                            Vector2 localSizeDelta(sizeDelta.x / oScale.x, sizeDelta.y / oScale.y);
+
+                            Vector2 newTilePos = tileStartPosition;
+                            float newTileW = tileStartWidth;
+                            float newTileH = tileStartHeight;
+                            const float tileMaxX = tileStartPosition.x + tileStartWidth;
+                            const float tileMaxY = tileStartPosition.y + tileStartHeight;
+
+                            Gizmo2DSideSelected side = toolslayer.getGizmo2DSideSelected();
+                            if (side == Gizmo2DSideSelected::CENTER){
+                                newTilePos = tileStartPosition + localDelta;
+                            }else if (side == Gizmo2DSideSelected::NX){
+                                newTilePos.x = tileStartPosition.x + localDelta.x;
+                                newTileW = tileStartWidth - localSizeDelta.x;
+                            }else if (side == Gizmo2DSideSelected::NY){
+                                newTilePos.y = tileStartPosition.y + localDelta.y;
+                                newTileH = tileStartHeight - localSizeDelta.y;
+                            }else if (side == Gizmo2DSideSelected::PX){
+                                newTileW = tileStartWidth + localSizeDelta.x;
+                            }else if (side == Gizmo2DSideSelected::PY){
+                                newTileH = tileStartHeight + localSizeDelta.y;
+                            }else if (side == Gizmo2DSideSelected::NX_NY){
+                                newTilePos.x = tileStartPosition.x + localDelta.x;
+                                newTilePos.y = tileStartPosition.y + localDelta.y;
+                                newTileW = tileStartWidth - localSizeDelta.x;
+                                newTileH = tileStartHeight - localSizeDelta.y;
+                            }else if (side == Gizmo2DSideSelected::NX_PY){
+                                newTilePos.x = tileStartPosition.x + localDelta.x;
+                                newTileW = tileStartWidth - localSizeDelta.x;
+                                newTileH = tileStartHeight + localSizeDelta.y;
+                            }else if (side == Gizmo2DSideSelected::PX_NY){
+                                newTilePos.y = tileStartPosition.y + localDelta.y;
+                                newTileW = tileStartWidth + localSizeDelta.x;
+                                newTileH = tileStartHeight - localSizeDelta.y;
+                            }else if (side == Gizmo2DSideSelected::PX_PY){
+                                newTileW = tileStartWidth + localSizeDelta.x;
+                                newTileH = tileStartHeight + localSizeDelta.y;
+                            }
+
+                            if (displaySettings.snapToGrid) {
+                                float spacing = displaySettings.gridSpacing2D;
+                                if (spacing > 0.0f) {
+                                    // Snap in world space so tiles align to the global grid
+                                    // regardless of the tilemap entity's own world position/scale.
+                                    // modelMatrix is [col][row]; column 3 holds world translation.
+                                    float wX = tileTransform->modelMatrix[3][0];
+                                    float wY = tileTransform->modelMatrix[3][1];
+                                    float sX = (oScale.x > 0.0f) ? oScale.x : 1.0f;
+                                    float sY = (oScale.y > 0.0f) ? oScale.y : 1.0f;
+
+                                    // Convert a local X/Y value to/from world space and snap.
+                                    auto snapX = [&](float lx) {
+                                        return (std::round((lx * sX + wX) / spacing) * spacing - wX) / sX;
+                                    };
+                                    auto snapY = [&](float ly) {
+                                        return (std::round((ly * sY + wY) / spacing) * spacing - wY) / sY;
+                                    };
+
+                                    if (side == Gizmo2DSideSelected::CENTER ||
+                                        side == Gizmo2DSideSelected::NX ||
+                                        side == Gizmo2DSideSelected::NX_NY ||
+                                        side == Gizmo2DSideSelected::NX_PY) {
+                                        newTilePos.x = snapX(newTilePos.x);
+                                    } else {
+                                        float snappedFarX = snapX(newTilePos.x + newTileW);
+                                        newTileW = snappedFarX - newTilePos.x;
+                                    }
+                                    if (side == Gizmo2DSideSelected::CENTER ||
+                                        side == Gizmo2DSideSelected::NY ||
+                                        side == Gizmo2DSideSelected::NX_NY ||
+                                        side == Gizmo2DSideSelected::PX_NY) {
+                                        newTilePos.y = snapY(newTilePos.y);
+                                    } else {
+                                        float snappedFarY = snapY(newTilePos.y + newTileH);
+                                        newTileH = snappedFarY - newTilePos.y;
+                                    }
+                                }
+                            }
+
+                            if (side == Gizmo2DSideSelected::CENTER){
+                                if (newTilePos.x < 0) newTilePos.x = 0;
+                                if (newTilePos.y < 0) newTilePos.y = 0;
+                            }
+
+                            if (side == Gizmo2DSideSelected::NX || side == Gizmo2DSideSelected::NX_NY || side == Gizmo2DSideSelected::NX_PY){
+                                newTilePos.x = std::max(0.0f, std::min(newTilePos.x, tileMaxX - 1.0f));
+                                newTileW = tileMaxX - newTilePos.x;
+                            }
+
+                            if (side == Gizmo2DSideSelected::NY || side == Gizmo2DSideSelected::NX_NY || side == Gizmo2DSideSelected::PX_NY){
+                                newTilePos.y = std::max(0.0f, std::min(newTilePos.y, tileMaxY - 1.0f));
+                                newTileH = tileMaxY - newTilePos.y;
+                            }
+
+                            if (newTileW < 1) newTileW = 1;
+                            if (newTileH < 1) newTileH = 1;
+
+                            if (side != Gizmo2DSideSelected::NONE){
+                                std::string prefix = "tiles[" + std::to_string(selectedTileIndex) + "]";
+                                MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+                                multiCmd->addPropertyCmd<Vector2>(project, sceneProject->id, entity, ComponentType::TilemapComponent,
+                                    prefix + ".position", newTilePos);
+                                multiCmd->addPropertyCmd<float>(project, sceneProject->id, entity, ComponentType::TilemapComponent,
+                                    prefix + ".width", newTileW);
+                                multiCmd->addPropertyCmd<float>(project, sceneProject->id, entity, ComponentType::TilemapComponent,
+                                    prefix + ".height", newTileH);
+                                lastCommand = multiCmd;
+                            }
+                        }
+                    }else{
+                    // Original entity-level OBJECT2D handling
                     bool isSprite = scene->getComponentArray<SpriteComponent>()->hasEntity(entity);
                     bool isTilemap = scene->getComponentArray<TilemapComponent>()->hasEntity(entity);
                     bool isLayout = scene->getComponentArray<UILayoutComponent>()->hasEntity(entity);
@@ -597,18 +758,18 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
 
                     Vector3 newPos = gizmoRMatrix.inverse() * ((rretrun.point + cursorStartOffset) - gizmoStartPosition);
 
-                    if (displaySettings.snapToGrid && toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::CENTER) {
-                        float spacing = displaySettings.gridSpacing2D;
-                        if (spacing > 0.0f) {
-                            newPos.x = std::round(newPos.x / spacing) * spacing;
-                            newPos.y = std::round(newPos.y / spacing) * spacing;
-                        }
-                    }
-
                     Vector3 newSize = gizmoRMatrix.inverse() * -(gizmoStartPosition - rretrun.point - cursorStartOffset);
 
                     if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::CENTER){
                         newPos = gizmoStartPosition + (gizmoRMatrix * newPos);
+                        // Snap absolute world position to grid (must be done after newPos becomes world-space)
+                        if (displaySettings.snapToGrid) {
+                            float spacing = displaySettings.gridSpacing2D;
+                            if (spacing > 0.0f) {
+                                newPos.x = std::round(newPos.x / spacing) * spacing;
+                                newPos.y = std::round(newPos.y / spacing) * spacing;
+                            }
+                        }
                         newSize = Vector3(0, 0, 0);
                     }else if (toolslayer.getGizmo2DSideSelected() == Gizmo2DSideSelected::NX){
                         newPos = gizmoStartPosition + (gizmoRMatrix * Vector3(newPos.x, 0, 0));
@@ -695,6 +856,7 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
                         multiCmd->addPropertyCmd<Vector3>(project, sceneProject->id, entity, ComponentType::Transform, "position", pos);
                         lastCommand = multiCmd;
                     }
+                    } // end else (entity-level OBJECT2D)
                 }
 
                 if (lastCommand){
@@ -752,4 +914,58 @@ Editor::CursorSelected Editor::SceneRender::getCursorSelected() const{
 
 bool Editor::SceneRender::isMultipleEntitesSelected() const{
     return multipleEntitiesSelected;
+}
+
+void Editor::SceneRender::selectTile(Entity entity, int tileIndex){
+    selectedTileEntity = entity;
+    selectedTileIndex = tileIndex;
+}
+
+void Editor::SceneRender::clearTileSelection(){
+    selectedTileEntity = 0;
+    selectedTileIndex = -1;
+}
+
+int Editor::SceneRender::hitTestTile(Entity entity, float x, float y){
+    if (!scene->getComponentArray<TilemapComponent>()->hasEntity(entity)) return -1;
+    if (!scene->getComponentArray<Transform>()->hasEntity(entity)) return -1;
+
+    TilemapComponent& tilemap = scene->getComponent<TilemapComponent>(entity);
+    Transform& transform = scene->getComponent<Transform>(entity);
+
+    Ray ray = camera->screenToRay(x, y);
+    Plane tilePlane(Vector3(0, 0, 1), transform.worldPosition);
+    RayReturn rr = ray.intersects(tilePlane);
+    if (!rr) return -1;
+
+    // Transform hit point to tilemap local space
+    Matrix4 invModel = transform.modelMatrix.inverse();
+    Vector3 localHit = invModel * rr.point;
+
+    // Test tiles in reverse order (last drawn = on top)
+    for (int i = (int)tilemap.numTiles - 1; i >= 0; i--){
+        const TileData& tile = tilemap.tiles[i];
+        if (localHit.x >= tile.position.x && localHit.x <= tile.position.x + tile.width &&
+            localHit.y >= tile.position.y && localHit.y <= tile.position.y + tile.height){
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+OBB Editor::SceneRender::getTileOBB(Entity entity, int tileIndex){
+    if (!scene->getComponentArray<TilemapComponent>()->hasEntity(entity)) return OBB();
+    if (!scene->getComponentArray<Transform>()->hasEntity(entity)) return OBB();
+
+    TilemapComponent& tilemap = scene->getComponent<TilemapComponent>(entity);
+    Transform& transform = scene->getComponent<Transform>(entity);
+
+    if (tileIndex < 0 || tileIndex >= (int)tilemap.numTiles) return OBB();
+
+    const TileData& tile = tilemap.tiles[tileIndex];
+    AABB tileAABB(tile.position.x, tile.position.y, 0,
+                  tile.position.x + tile.width, tile.position.y + tile.height, 0);
+
+    return transform.modelMatrix * tileAABB.getOBB();
 }

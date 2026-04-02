@@ -50,6 +50,7 @@ namespace Supernova::Editor{
         void enableObject2DGizmo();
 
         void setShowAnchorGizmo(bool enabled);
+        void setShowObject2DRects(bool show);
 
         void setGizmoVisible(bool visible);
 

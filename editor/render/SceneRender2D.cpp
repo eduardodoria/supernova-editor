@@ -25,6 +25,9 @@ Editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned 
     gridLines = new Lines(scene);
     gridLines->addLine(Vector3::ZERO, Vector3::ZERO, Vector4::ZERO);
     gridLines->setVisible(false);
+    tileLines = new Lines(scene);
+    tileLines->addLine(Vector3::ZERO, Vector3::ZERO, Vector4::ZERO);
+    tileLines->setVisible(false);
     scene->setDefaultEntityPool(EntityPool::User);
 
     createLines(width, height);
@@ -58,6 +61,7 @@ Editor::SceneRender2D::~SceneRender2D(){
     jointLines.clear();
 
     delete gridLines;
+    delete tileLines;
 }
 
 bool Editor::SceneRender2D::instanciateBodyLines(Entity entity){
@@ -454,6 +458,7 @@ void Editor::SceneRender2D::hideAllGizmos(){
 
     lines->setVisible(false);
     gridLines->setVisible(false);
+    tileLines->setVisible(false);
     for (auto& pair : containerLines) {
         pair.second->setVisible(false);
     }
@@ -626,6 +631,42 @@ void Editor::SceneRender2D::update(std::vector<Entity> selEntities, std::vector<
             bool isVisible = displaySettings.showAllJoints || highlighted;
 
             createOrUpdateJointLines(entity, joint, isVisible, highlighted);
+        }
+    }
+
+    // --- Tile outlines for selected tilemap ---
+    tileLines->clearLines();
+    tileLines->setVisible(false);
+    if (selEntities.size() == 1){
+        Entity selEntity = selEntities[0];
+        Signature selSig = scene->getSignature(selEntity);
+        if (selSig.test(scene->getComponentId<TilemapComponent>()) && selSig.test(scene->getComponentId<Transform>())){
+            TilemapComponent& tilemap = scene->getComponent<TilemapComponent>(selEntity);
+            Transform& transform = scene->getComponent<Transform>(selEntity);
+            const Matrix4& modelMatrix = transform.modelMatrix;
+
+            if (transform.visible && tilemap.numTiles > 0){
+                tileLines->setVisible(true);
+
+                const Vector4 normalColor(0.4f, 0.7f, 0.9f, 0.5f);
+                const Vector4 selectedColor(1.0f, 0.8f, 0.2f, 1.0f);
+
+                for (unsigned int i = 0; i < tilemap.numTiles; i++){
+                    const TileData& tile = tilemap.tiles[i];
+                    bool isSelected = ((int)i == getSelectedTileIndex() && selEntity == getSelectedTileEntity());
+                    const Vector4& color = isSelected ? selectedColor : normalColor;
+
+                    Vector3 p1 = modelMatrix * Vector3(tile.position.x, tile.position.y, 0);
+                    Vector3 p2 = modelMatrix * Vector3(tile.position.x + tile.width, tile.position.y, 0);
+                    Vector3 p3 = modelMatrix * Vector3(tile.position.x + tile.width, tile.position.y + tile.height, 0);
+                    Vector3 p4 = modelMatrix * Vector3(tile.position.x, tile.position.y + tile.height, 0);
+
+                    tileLines->addLine(p1, p2, color);
+                    tileLines->addLine(p2, p3, color);
+                    tileLines->addLine(p3, p4, color);
+                    tileLines->addLine(p4, p1, color);
+                }
+            }
         }
     }
 

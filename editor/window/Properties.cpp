@@ -1200,6 +1200,10 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         }
 
         Vector2 newValue = *value;
+    bool clampNonNegativeTilePosition = cpType == ComponentType::TilemapComponent
+        && id.rfind("tiles[", 0) == 0
+        && id.size() >= 9
+        && id.compare(id.size() - 9, 9, ".position") == 0;
 
         bool defChanged = false;
         if (defArr){
@@ -1234,7 +1238,12 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
         if (ImGui::DragFloat(("##input_x_"+id).c_str(), &(newValue.x), settings.stepSize, 0.0f, 0.0f, settings.format)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Vector2>(project, sceneProject->id, entity, cpType, id, Vector2(newValue.x, eValue[entity].y), settings.onValueChanged);
+                Vector2 nextValue(newValue.x, eValue[entity].y);
+                if (clampNonNegativeTilePosition){
+                    nextValue.x = std::max(0.0f, nextValue.x);
+                    nextValue.y = std::max(0.0f, nextValue.y);
+                }
+                cmd = new PropertyCmd<Vector2>(project, sceneProject->id, entity, cpType, id, nextValue, settings.onValueChanged);
                 CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
             }
         }
@@ -1265,7 +1274,12 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
         if (ImGui::DragFloat(("##input_y_"+id).c_str(), &(newValue.y), settings.stepSize, 0.0f, 0.0f, settings.format)){
             for (Entity& entity : entities){
-                cmd = new PropertyCmd<Vector2>(project, sceneProject->id, entity, cpType, id, Vector2(eValue[entity].x, newValue.y), settings.onValueChanged);
+                Vector2 nextValue(eValue[entity].x, newValue.y);
+                if (clampNonNegativeTilePosition){
+                    nextValue.x = std::max(0.0f, nextValue.x);
+                    nextValue.y = std::max(0.0f, nextValue.y);
+                }
+                cmd = new PropertyCmd<Vector2>(project, sceneProject->id, entity, cpType, id, nextValue, settings.onValueChanged);
                 CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
             }
         }

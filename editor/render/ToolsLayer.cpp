@@ -151,6 +151,10 @@ void Editor::ToolsLayer::setShowAnchorGizmo(bool enabled){
     anchorGizmoEnabled = enabled;
 }
 
+void Editor::ToolsLayer::setShowObject2DRects(bool show){
+    oGizmo->setShowRects(show);
+}
+
 void Editor::ToolsLayer::setGizmoVisible(bool visible){
     tGizmo->setVisible(false);
     rGizmo->setVisible(false);
