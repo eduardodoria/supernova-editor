@@ -5,6 +5,7 @@
 #include "Factory.h"
 #include "Out.h"
 #include "util/ProjectUtils.h"
+#include "render/SceneRender2D.h"
 
 #include <set>
 
@@ -862,8 +863,12 @@ YAML::Node Editor::Stream::encodeProject(Project* project) {
                 if (editorCam) {
                     sceneNode["editorCamera"] = encodeEditorCamera(editorCam);
                 }
+                if (sceneProject.sceneType == SceneType::SCENE_2D || sceneProject.sceneType == SceneType::SCENE_UI) {
+                    sceneNode["editorZoom"] = static_cast<SceneRender2D*>(sceneProject.sceneRender)->getZoom();
+                }
             } else if (sceneProject.editorCameraState.IsDefined()) {
                 sceneNode["editorCamera"] = sceneProject.editorCameraState;
+                sceneNode["editorZoom"] = sceneProject.editorZoom;
             }
 
             scenesNode.push_back(sceneNode);
@@ -960,10 +965,16 @@ void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
                     if (sceneNode["editorCamera"]) {
                         SceneProject& loadedScene = scenes.back();
                         loadedScene.editorCameraState = YAML::Clone(sceneNode["editorCamera"]);
+                        if (sceneNode["editorZoom"]) {
+                            loadedScene.editorZoom = sceneNode["editorZoom"].as<float>();
+                        }
                         if (loadedScene.sceneRender) {
                             Camera* editorCam = loadedScene.sceneRender->getCamera();
                             if (editorCam) {
                                 Stream::decodeEditorCamera(editorCam, sceneNode["editorCamera"]);
+                            }
+                            if (loadedScene.sceneType == SceneType::SCENE_2D || loadedScene.sceneType == SceneType::SCENE_UI) {
+                                static_cast<SceneRender2D*>(loadedScene.sceneRender)->setZoom(loadedScene.editorZoom);
                             }
                         }
                     }
@@ -1165,6 +1176,10 @@ YAML::Node Editor::Stream::encodeEditorCamera(Camera* camera) {
     camNode["aspect"] = camComp.aspect;
     camNode["nearClip"] = camComp.nearClip;
     camNode["farClip"] = camComp.farClip;
+    camNode["leftClip"] = camComp.leftClip;
+    camNode["rightClip"] = camComp.rightClip;
+    camNode["bottomClip"] = camComp.bottomClip;
+    camNode["topClip"] = camComp.topClip;
     camNode["position"] = encodeVector3(camTransform.position);
     return camNode;
 }
@@ -1182,7 +1197,12 @@ void Editor::Stream::decodeEditorCamera(Camera* camera, const YAML::Node& node) 
     if (node["aspect"]) camComp.aspect = node["aspect"].as<float>();
     if (node["nearClip"]) camComp.nearClip = node["nearClip"].as<float>();
     if (node["farClip"]) camComp.farClip = node["farClip"].as<float>();
+    if (node["leftClip"]) camComp.leftClip = node["leftClip"].as<float>();
+    if (node["rightClip"]) camComp.rightClip = node["rightClip"].as<float>();
+    if (node["bottomClip"]) camComp.bottomClip = node["bottomClip"].as<float>();
+    if (node["topClip"]) camComp.topClip = node["topClip"].as<float>();
     if (node["position"]) camTransform.position = decodeVector3(node["position"]);
+    camComp.autoResize = false;
     camComp.needUpdate = true;
 }
 

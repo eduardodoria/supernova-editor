@@ -45,6 +45,7 @@ namespace Supernova::Editor{
         void zoomAtPosition(float width, float height, Vector2 pos, float zoomFactor);
 
         float getZoom() const;
+        void setZoom(float zoom);
     };
 
 }

@@ -761,3 +761,7 @@ void Editor::SceneRender2D::zoomAtPosition(float width, float height, Vector2 po
 float Editor::SceneRender2D::getZoom() const {
     return zoom;
 }
+
+void Editor::SceneRender2D::setZoom(float zoom) {
+    this->zoom = zoom;
+}

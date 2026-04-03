@@ -1270,6 +1270,9 @@ void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene)
                 if (editorCam) {
                     Stream::decodeEditorCamera(editorCam, targetScene->editorCameraState);
                 }
+                if (targetScene->sceneType == SceneType::SCENE_2D || targetScene->sceneType == SceneType::SCENE_UI) {
+                    static_cast<SceneRender2D*>(targetScene->sceneRender)->setZoom(targetScene->editorZoom);
+                }
             }
 
             loadSceneProjectData(targetScene, sceneNode);

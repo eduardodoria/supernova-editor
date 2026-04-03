@@ -82,6 +82,7 @@ namespace Supernova::Editor{
         std::vector<SceneScriptSource> cppScripts;
         std::vector<BundleSceneInfo> bundles;
         YAML::Node editorCameraState;
+        float editorZoom = 1.0f;
     };
 
     struct NodeRecoveryEntry {

@@ -86,7 +86,7 @@ namespace Supernova::Editor{
         bool spriteFramesExpanded = false;
 
         std::map<std::string, bool> tilemapRectsButtonGroups;
-        bool tilemapRectsExpanded = false;
+        bool tilemapRectsExpanded = true;
 
         std::map<std::string, bool> tilemapTilesButtonGroups;
         bool tilemapTilesExpanded = false;
