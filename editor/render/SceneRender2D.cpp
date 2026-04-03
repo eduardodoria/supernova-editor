@@ -16,6 +16,7 @@ Editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned 
     }else{
         camera->setType(CameraType::CAMERA_ORTHO);
     }
+    camera->setTransparentSort(false);
 
     camera->slide(-50);
     camera->slideUp(-50);
