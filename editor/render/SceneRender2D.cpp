@@ -411,7 +411,7 @@ void Editor::SceneRender2D::createLines(unsigned int width, unsigned int height)
 void Editor::SceneRender2D::updateGridLines(){
     gridLines->clearLines();
 
-    if (!displaySettings.showGridLines2D || displaySettings.gridSpacing2D <= 0.0f){
+    if (!displaySettings.showGrid2D || displaySettings.gridSpacing2D <= 0.0f){
         gridLines->setVisible(false);
         return;
     }
@@ -420,10 +420,12 @@ void Editor::SceneRender2D::updateGridLines(){
 
     float spacing = displaySettings.gridSpacing2D;
 
-    float left = camera->getLeftClip();
-    float right = camera->getRightClip();
-    float bottom = camera->getBottomClip();
-    float top = camera->getTopClip();
+    Vector3 camPos = camera->getWorldPosition();
+
+    float left = camera->getLeftClip() + camPos.x;
+    float right = camera->getRightClip() + camPos.x;
+    float bottom = camera->getBottomClip() + camPos.y;
+    float top = camera->getTopClip() + camPos.y;
 
     // Add margin to avoid popping at edges
     float margin = spacing * 2.0f;
@@ -528,9 +530,7 @@ void Editor::SceneRender2D::update(std::vector<Entity> selEntities, std::vector<
         return;
     }
 
-    lines->setVisible(!displaySettings.hideGrid);
-
-    updateGridLines();
+    lines->setVisible(displaySettings.showOrigin);
 
     updateGridLines();
 

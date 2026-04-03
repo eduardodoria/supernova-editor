@@ -16,9 +16,10 @@ namespace Supernova::Editor{
         bool hideCameraView      = false;
         bool hideLightIcons      = false;
         bool hideContainerGuides = false;
-        bool hideGrid            = false;
+        bool showOrigin          = true;
+        bool showGrid3D          = true;
         bool hideSelectionOutline = false;
-        bool showGridLines2D     = false;
+        bool showGrid2D          = false;
         float gridSpacing2D      = 50.0f;
         float gridSpacing3D      = 1.0f;
         bool snapToGrid          = false;

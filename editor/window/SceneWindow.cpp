@@ -1091,7 +1091,12 @@ void Editor::SceneWindow::show() {
 
                         drawSettingRow(ICON_FA_SQUARE " Hide container guides", sceneProject.displaySettings.hideContainerGuides, sceneProject.sceneType == SceneType::SCENE_3D);
 
-                        drawSettingRow(ICON_FA_TABLE_CELLS " Hide grid", sceneProject.displaySettings.hideGrid);
+                        if (sceneProject.sceneType == SceneType::SCENE_3D) {
+                            drawSettingRow(ICON_FA_TABLE_CELLS " Show grid", sceneProject.displaySettings.showGrid3D);
+                        } else {
+                            drawSettingRow(ICON_FA_ARROWS_UP_DOWN_LEFT_RIGHT " Show origin axis", sceneProject.displaySettings.showOrigin);
+                        }
+
                         drawSettingRow(ICON_FA_OBJECT_GROUP " Hide selection outline", sceneProject.displaySettings.hideSelectionOutline);
                         drawSettingRow(ICON_FA_MAGNET " Snap to grid", sceneProject.displaySettings.snapToGrid);
 
@@ -1103,8 +1108,8 @@ void Editor::SceneWindow::show() {
                             ImGui::SetNextItemWidth(-1);
                             ImGui::DragFloat("##GridSpacing3D", &sceneProject.displaySettings.gridSpacing3D, 0.1f, 0.1f, 1000.0f, "%.1f");
                         } else {
-                            drawSettingRow(ICON_FA_TABLE_CELLS " Show grid lines", sceneProject.displaySettings.showGridLines2D);
-                            if (sceneProject.displaySettings.showGridLines2D) {
+                            drawSettingRow(ICON_FA_TABLE_CELLS " Show grid", sceneProject.displaySettings.showGrid2D);
+                            if (sceneProject.displaySettings.showGrid2D) {
                                 ImGui::TableNextRow();
                                 ImGui::TableSetColumnIndex(0);
                                 ImGui::Text("%s", ICON_FA_TABLE_CELLS " Grid spacing");

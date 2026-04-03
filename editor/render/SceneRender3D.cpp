@@ -1233,7 +1233,7 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
         return;
     }
 
-    lines->setVisible(!displaySettings.hideGrid);
+    lines->setVisible(displaySettings.showGrid3D);
 
     float spacing = displaySettings.gridSpacing3D;
     if (spacing <= 0.0f) spacing = 1.0f;
