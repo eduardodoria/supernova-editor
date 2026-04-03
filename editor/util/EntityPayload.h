@@ -20,4 +20,10 @@ namespace Supernova {
         unsigned int submeshIndex;
     }; // YAML string follows
 
+    struct TileRectPayload {
+        uint32_t sceneId;
+        Entity entity;
+        int rectIndex;
+    };
+
 }

@@ -47,6 +47,7 @@ namespace Supernova::Editor {
         void closeSceneInternal(uint32_t sceneId);
         void sceneEventHandler(SceneProject* sceneProject);
         void handleResourceFileDragDrop(SceneProject* sceneProject);
+        void handleTileRectDragDrop(SceneProject* sceneProject);
         bool handleViewportGizmoClick(SceneProject* sceneProject, float canvasX, float canvasY, int canvasWidth, int canvasHeight);
         void snapCameraToDirection(Camera* camera, const Vector3& direction);
         void focusSceneWindow(const SceneProject& sceneProject) const;

@@ -10,6 +10,8 @@
 #include "command/type/DeleteEntityCmd.h"
 #include "command/type/RemoveChildSceneCmd.h"
 
+#include "util/ProjectUtils.h"
+
 #include "Out.h"
 #include "AppSettings.h"
 #include "resources/fonts/fa-solid-900_ttf.h"
@@ -792,6 +794,23 @@ void Editor::App::show(){
                 targetSceneId = selectedSceneForProperties;
             }
 
+            // Check if a tile is selected — delete it instead of the entity
+            SceneProject* sp = project.getScene(targetSceneId);
+            bool tileDeleted = false;
+            if (sp && sp->sceneRender) {
+                int tileIdx = sp->sceneRender->getSelectedTileIndex();
+                Entity tileEntity = sp->sceneRender->getSelectedTileEntity();
+                if (tileIdx >= 0) {
+                    Command* deleteCmd = ProjectUtils::buildDeleteTileCmd(&project, targetSceneId, tileEntity, (unsigned int)tileIdx);
+                    if (deleteCmd) {
+                        CommandHandle::get(sceneId)->addCommand(deleteCmd);
+                        sp->sceneRender->clearTileSelection();
+                        tileDeleted = true;
+                    }
+                }
+            }
+
+            if (!tileDeleted) {
             const std::vector<Entity>& selectedEntities = project.getSelectedEntities(targetSceneId);
 
             Command* lastCmd = nullptr;
@@ -810,6 +829,7 @@ void Editor::App::show(){
             }
             if (lastCmd) {
                 lastCmd->setNoMerge();
+            }
             }
         }
     }

@@ -11,6 +11,9 @@
 #include "component/ModelComponent.h"
 #include "component/Transform.h"
 
+#include "component/TilemapComponent.h"
+#include "command/type/MultiPropertyCmd.h"
+
 #include <algorithm>
 #include <cctype>
 
@@ -1187,4 +1190,44 @@ void Editor::ProjectUtils::collectEntities(const YAML::Node& entityNode, std::ve
             collectEntities(child, allEntities);
         }
     }
+}
+
+Editor::Command* Editor::ProjectUtils::buildDeleteTileCmd(Project* project, uint32_t sceneId, Entity entity, unsigned int tileIndex) {
+    SceneProject* sceneProject = project->getScene(sceneId);
+    if (!sceneProject || !sceneProject->scene) {
+        return nullptr;
+    }
+
+    TilemapComponent* tilemap = sceneProject->scene->findComponent<TilemapComponent>(entity);
+    if (!tilemap || tileIndex >= tilemap->numTiles) {
+        return nullptr;
+    }
+
+    ComponentType cpType = ComponentType::TilemapComponent;
+    MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+
+    // Shift tiles down
+    for (unsigned int j = tileIndex; j < tilemap->numTiles - 1; j++) {
+        std::string dstPrefix = "tiles[" + std::to_string(j) + "]";
+        multiCmd->addPropertyCmd<std::string>(project, sceneId, entity, cpType, dstPrefix + ".name", tilemap->tiles[j + 1].name);
+        multiCmd->addPropertyCmd<int>(project, sceneId, entity, cpType, dstPrefix + ".rectId", tilemap->tiles[j + 1].rectId);
+        multiCmd->addPropertyCmd<Vector2>(project, sceneId, entity, cpType, dstPrefix + ".position", tilemap->tiles[j + 1].position);
+        multiCmd->addPropertyCmd<float>(project, sceneId, entity, cpType, dstPrefix + ".width", tilemap->tiles[j + 1].width);
+        multiCmd->addPropertyCmd<float>(project, sceneId, entity, cpType, dstPrefix + ".height", tilemap->tiles[j + 1].height);
+    }
+
+    // Clear last slot
+    unsigned int lastIdx = tilemap->numTiles - 1;
+    std::string lastPrefix = "tiles[" + std::to_string(lastIdx) + "]";
+    multiCmd->addPropertyCmd<std::string>(project, sceneId, entity, cpType, lastPrefix + ".name", std::string(""));
+    multiCmd->addPropertyCmd<int>(project, sceneId, entity, cpType, lastPrefix + ".rectId", 0);
+    multiCmd->addPropertyCmd<Vector2>(project, sceneId, entity, cpType, lastPrefix + ".position", Vector2(0, 0));
+    multiCmd->addPropertyCmd<float>(project, sceneId, entity, cpType, lastPrefix + ".width", 0.0f);
+    multiCmd->addPropertyCmd<float>(project, sceneId, entity, cpType, lastPrefix + ".height", 0.0f);
+
+    // Decrement count
+    multiCmd->addPropertyCmd<unsigned int>(project, sceneId, entity, cpType, "numTiles", (unsigned int)(tilemap->numTiles - 1));
+
+    multiCmd->setNoMerge();
+    return multiCmd;
 }

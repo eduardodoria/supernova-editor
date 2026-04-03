@@ -4,6 +4,7 @@
 #include "external/IconsFontAwesome6.h"
 #include "Backend.h"
 #include "util/Util.h"
+#include "util/EntityPayload.h"
 #include "command/CommandHandle.h"
 #include "command/type/MultiPropertyCmd.h"
 #include "command/type/LinkMaterialCmd.h"
@@ -397,6 +398,73 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
             delete tempImage;
             tempImage = nullptr;
         }
+    }
+}
+
+void Editor::SceneWindow::handleTileRectDragDrop(SceneProject* sceneProject) {
+    if (ImGui::BeginDragDropTarget()) {
+        const ImGuiPayload* peekPayload = ImGui::GetDragDropPayload();
+        if (peekPayload && peekPayload->IsDataType("tile_rect")) {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("tile_rect")) {
+                const TileRectPayload* tileRectPayload = static_cast<const TileRectPayload*>(payload->Data);
+
+                if (tileRectPayload->sceneId == sceneProject->id) {
+                    Entity entity = tileRectPayload->entity;
+                    int rectIndex = tileRectPayload->rectIndex;
+
+                    TilemapComponent* tilemap = sceneProject->scene->findComponent<TilemapComponent>(entity);
+                    Transform* transform = sceneProject->scene->findComponent<Transform>(entity);
+
+                    if (tilemap && transform && rectIndex >= 0 && rectIndex < (int)tilemap->numTilesRect) {
+                        // Compute drop position in tilemap local space
+                        ImVec2 windowPos = ImGui::GetWindowPos();
+                        ImGuiIO& io = ImGui::GetIO();
+                        float x = io.MousePos.x - windowPos.x;
+                        float y = io.MousePos.y - windowPos.y;
+
+                        Ray ray = sceneProject->sceneRender->getCamera()->screenToRay(x, y);
+                        Plane tilePlane(Vector3(0, 0, 1), transform->worldPosition);
+                        RayReturn rr = ray.intersects(tilePlane);
+
+                        if (rr) {
+                            Matrix4 invModel = transform->modelMatrix.inverse();
+                            Vector3 localHit = invModel * rr.point;
+
+                            const TileRectData& rectData = tilemap->tilesRect[rectIndex];
+                            float tileW = rectData.rect.getWidth();
+                            float tileH = rectData.rect.getHeight();
+
+                            // Center tile on drop point and clamp to non-negative
+                            float posX = std::max(0.0f, localHit.x - tileW * 0.5f);
+                            float posY = std::max(0.0f, localHit.y - tileH * 0.5f);
+
+                            int freeSlot = (int)tilemap->numTiles;
+                            if (freeSlot < (int)tilemap->tiles.size()) {
+                                std::string tilePrefix = "tiles[" + std::to_string(freeSlot) + "]";
+                                MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+                                multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entity, ComponentType::TilemapComponent,
+                                    tilePrefix + ".name", rectData.name);
+                                multiCmd->addPropertyCmd<int>(project, sceneProject->id, entity, ComponentType::TilemapComponent,
+                                    tilePrefix + ".rectId", rectIndex);
+                                multiCmd->addPropertyCmd<Vector2>(project, sceneProject->id, entity, ComponentType::TilemapComponent,
+                                    tilePrefix + ".position", Vector2(posX, posY));
+                                multiCmd->addPropertyCmd<float>(project, sceneProject->id, entity, ComponentType::TilemapComponent,
+                                    tilePrefix + ".width", tileW);
+                                multiCmd->addPropertyCmd<float>(project, sceneProject->id, entity, ComponentType::TilemapComponent,
+                                    tilePrefix + ".height", tileH);
+                                multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entity, ComponentType::TilemapComponent,
+                                    "numTiles", (unsigned int)(freeSlot + 1));
+                                multiCmd->setNoMerge();
+                                CommandHandle::get(project->getSelectedSceneId())->addCommand(multiCmd);
+
+                                focusSceneWindow(*sceneProject);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        ImGui::EndDragDropTarget();
     }
 }
 
@@ -1163,6 +1231,7 @@ void Editor::SceneWindow::show() {
                     }
 
                     handleResourceFileDragDrop(&sceneProject);
+                    handleTileRectDragDrop(&sceneProject);
                 }
 
                 // Viewport gizmo click-to-snap (3D scenes only)

@@ -14,6 +14,8 @@
 
 #include "texture/Texture.h"
 
+#include "command/Command.h"
+
 namespace Supernova::Editor {
 
 class ProjectUtils {
@@ -64,6 +66,10 @@ public:
 
     // Fills a Texture with the editor built-in default skybox cubemap.
     static void setDefaultSkyTexture(Texture& outTexture);
+
+    // Builds a MultiPropertyCmd that removes tile at tileIndex from a TilemapComponent.
+    // Returns the command (caller must add it to CommandHandle) or nullptr if invalid.
+    static Command* buildDeleteTileCmd(Project* project, uint32_t sceneId, Entity entity, unsigned int tileIndex);
 };
 
 } // namespace Supernova::Editor
