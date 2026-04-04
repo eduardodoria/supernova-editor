@@ -1863,10 +1863,10 @@ void Editor::Project::copyEngineApiToProject() {
         #else
             exePath = std::filesystem::canonical("/proc/self/exe").parent_path();
         #endif
-        std::filesystem::path engineApiSource = exePath / "engine-api";
+        std::filesystem::path engineApiSource = exePath / "engine";
 
         if (!std::filesystem::exists(engineApiSource)) {
-            Out::warning("engine-api folder not found at: %s", engineApiSource.string().c_str());
+            Out::warning("engine folder not found at: %s", engineApiSource.string().c_str());
             return;
         }
 
@@ -1877,15 +1877,23 @@ void Editor::Project::copyEngineApiToProject() {
             std::filesystem::create_directories(getProjectInternalPath());
         }
 
-        // Copy with update_existing - only copies files that are newer
-        std::filesystem::copy(engineApiSource, engineApiDest, 
-                            std::filesystem::copy_options::recursive | 
-                            std::filesystem::copy_options::update_existing);
+        // Copy only headers with update_existing - only copies files that are newer
+        for (const auto& dirEntry : std::filesystem::recursive_directory_iterator(engineApiSource)) {
+            if (dirEntry.is_regular_file()) {
+                auto ext = dirEntry.path().extension().string();
+                if (ext == ".h" || ext == ".hpp" || ext == ".inl" || ext == ".glsl" || ext == ".frag" || ext == ".vert") {
+                    auto relPath = std::filesystem::relative(dirEntry.path(), engineApiSource);
+                    auto destPath = engineApiDest / relPath;
+                    std::filesystem::create_directories(destPath.parent_path());
+                    std::filesystem::copy_file(dirEntry.path(), destPath, std::filesystem::copy_options::update_existing);
+                }
+            }
+        }
 
-        Out::info("Updated engine-api in project: %s", engineApiDest.string().c_str());
+        Out::info("Updated engine API in project: %s", engineApiDest.string().c_str());
 
     } catch (const std::exception& e) {
-        Out::error("Failed to copy engine-api: %s", e.what());
+        Out::error("Failed to copy engine API: %s", e.what());
     }
 }
 
