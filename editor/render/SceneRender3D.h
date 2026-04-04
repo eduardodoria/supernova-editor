@@ -18,22 +18,6 @@ namespace Supernova::Editor{
         float range = 0.0f;
     };
 
-    struct CameraObjects{
-        Sprite* icon = nullptr;
-        Lines* lines = nullptr;
-
-        CameraType type;
-        bool isMainCamera = false;
-        float yfov = 0;
-        float aspect = 0;
-        float nearClip = 0;
-        float farClip = 0;
-        float leftClip = 0;
-        float rightClip = 0;
-        float bottomClip = 0;
-        float topClip = 0;
-    };
-
     struct BodyObjects{
         Lines* lines = nullptr;
     };

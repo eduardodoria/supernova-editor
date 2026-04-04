@@ -16,6 +16,8 @@ Editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned 
     }else{
         camera->setType(CameraType::CAMERA_ORTHO);
     }
+    camera->setNearClip(-10000.0f);
+    camera->setFarClip(10000.0f);
     camera->setTransparentSort(false);
 
     camera->slide(-50);
@@ -60,6 +62,12 @@ Editor::SceneRender2D::~SceneRender2D(){
         delete pair.second;
     }
     jointLines.clear();
+
+    for (auto& pair : cameraObjects) {
+        delete pair.second.icon;
+        delete pair.second.lines;
+    }
+    cameraObjects.clear();
 
     delete gridLines;
     delete tileLines;
@@ -471,6 +479,10 @@ void Editor::SceneRender2D::hideAllGizmos(){
     for (auto& pair : jointLines) {
         pair.second->setVisible(false);
     }
+    for (auto& pair : cameraObjects) {
+        pair.second.icon->setVisible(false);
+        pair.second.lines->setVisible(false);
+    }
 }
 
 void Editor::SceneRender2D::activate(){
@@ -547,6 +559,7 @@ void Editor::SceneRender2D::update(std::vector<Entity> selEntities, std::vector<
     std::set<Entity> currentContainers;
     std::set<Entity> currentBodies;
     std::set<Entity> currentJoints;
+    std::set<Entity> currentCameras;
     for (Entity& entity: entities){
         Signature signature = scene->getSignature(entity);
         if (signature.test(scene->getComponentId<UIContainerComponent>()) && 
@@ -633,6 +646,55 @@ void Editor::SceneRender2D::update(std::vector<Entity> selEntities, std::vector<
 
             createOrUpdateJointLines(entity, joint, isVisible, highlighted);
         }
+
+        if (signature.test(scene->getComponentId<CameraComponent>()) && signature.test(scene->getComponentId<Transform>())){
+            if (entity != camera->getEntity()){
+                Transform& transform = scene->getComponent<Transform>(entity);
+                CameraComponent& cameraComp = scene->getComponent<CameraComponent>(entity);
+
+                currentCameras.insert(entity);
+
+                bool newCamera = false;
+                if (cameraObjects.find(entity) == cameraObjects.end()){
+                    ScopedDefaultEntityPool sys(*toolslayer.getScene(), EntityPool::System);
+                    cameraObjects[entity].icon = new Sprite(toolslayer.getScene());
+                    cameraObjects[entity].lines = new Lines(toolslayer.getScene());
+                    newCamera = true;
+                }
+
+                CameraObjects& co = cameraObjects[entity];
+
+                if (newCamera){
+                    setupCameraIcon(co);
+                }
+
+                // Update icon position and scale
+                co.icon->setPosition(transform.worldPosition);
+                float iconScale = 0.25f * zoom;
+                co.icon->setScale(iconScale);
+
+                // Update frustum lines
+                co.lines->setPosition(transform.worldPosition);
+
+                Quaternion rotation;
+                rotation.fromRotationMatrix(cameraComp.viewMatrix.inverse());
+                co.lines->setRotation(rotation);
+
+                if (transform.visible && !displaySettings.hideCameraView){
+                    co.icon->setVisible(true);
+                    co.lines->setVisible(true);
+
+                    bool isMainCam = (mainCamera == entity);
+                    updateCameraFrustum(co, cameraComp, isMainCam);
+                }else{
+                    co.icon->setVisible(false);
+                    co.lines->clearLines();
+                    co.lines->setVisible(false);
+                    // Reset cache so lines are redrawn when visible again
+                    co.type = CameraType::CAMERA_UI;
+                }
+            }
+        }
     }
 
     // --- Tile outlines for selected tilemap ---
@@ -700,6 +762,17 @@ void Editor::SceneRender2D::update(std::vector<Entity> selEntities, std::vector<
             ++itJoint;
         }
     }
+
+    auto itCam = cameraObjects.begin();
+    while (itCam != cameraObjects.end()) {
+        if (currentCameras.find(itCam->first) == currentCameras.end()) {
+            delete itCam->second.icon;
+            delete itCam->second.lines;
+            itCam = cameraObjects.erase(itCam);
+        } else {
+            ++itCam;
+        }
+    }
 }
 
 void Editor::SceneRender2D::mouseHoverEvent(float x, float y){
@@ -744,9 +817,6 @@ void Editor::SceneRender2D::zoomAtPosition(float width, float height, Vector2 po
     camera->setRightClip(newRight);
     camera->setBottomClip(newBottom);
     camera->setTopClip(newTop);
-
-    camera->setNearClip(-10 * newZoom);
-    camera->setFarClip(10 * newZoom);
 
     if (zoom != newZoom) {
         Entity cameraEntity = camera->getEntity();

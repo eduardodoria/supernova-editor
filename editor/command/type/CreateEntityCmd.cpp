@@ -287,18 +287,40 @@ bool Editor::CreateEntityCmd::execute(){
         scene->addComponent<CameraComponent>(entity, {});
 
         CameraComponent& camera = scene->getComponent<CameraComponent>(entity);
-        camera.type = CameraType::CAMERA_PERSPECTIVE;
         camera.useTarget = false;
-        camera.yfov = 0.75f;
 
-        if (Engine::getCanvasWidth() != 0 && Engine::getCanvasHeight() != 0) {
-            camera.aspect = (float) Engine::getCanvasWidth() / (float) Engine::getCanvasHeight();
+        if (sceneProject->sceneType == SceneType::SCENE_2D || sceneProject->sceneType == SceneType::SCENE_UI){
+            camera.type = CameraType::CAMERA_ORTHO;
+
+            float width = static_cast<float>(Engine::getCanvasWidth());
+            float height = static_cast<float>(Engine::getCanvasHeight());
+            if (width <= 0) width = 800;
+            if (height <= 0) height = 600;
+
+            camera.leftClip = 0;
+            camera.rightClip = width;
+            camera.bottomClip = 0;
+            camera.topClip = height;
+            camera.nearClip = DEFAULT_ORTHO_NEAR;
+            camera.farClip = DEFAULT_ORTHO_FAR;
+            camera.autoResize = false;
+            camera.transparentSort = false;
+
+            Transform& cameratransform = scene->getComponent<Transform>(entity);
+            cameratransform.position = Vector3(0.0f, 0.0f, 1.0f);
         }else{
-            camera.aspect = 1.0;
-        }
+            camera.type = CameraType::CAMERA_PERSPECTIVE;
+            camera.yfov = 0.75f;
 
-        camera.nearClip = DEFAULT_PERSPECTIVE_NEAR;
-        camera.farClip = DEFAULT_PERSPECTIVE_FAR;
+            if (Engine::getCanvasWidth() != 0 && Engine::getCanvasHeight() != 0) {
+                camera.aspect = (float) Engine::getCanvasWidth() / (float) Engine::getCanvasHeight();
+            }else{
+                camera.aspect = 1.0;
+            }
+
+            camera.nearClip = DEFAULT_PERSPECTIVE_NEAR;
+            camera.farClip = DEFAULT_PERSPECTIVE_FAR;
+        }
 
         if (sceneProject->mainCamera == NULL_ENTITY){
             sceneProject->mainCamera = entity;

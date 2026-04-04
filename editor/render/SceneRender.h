@@ -25,6 +25,22 @@ namespace Supernova::Editor{
         bool snapToGrid          = false;
     };
 
+    struct CameraObjects{
+        Sprite* icon = nullptr;
+        Lines* lines = nullptr;
+
+        CameraType type = CameraType::CAMERA_UI;
+        bool isMainCamera = false;
+        float yfov = 0;
+        float aspect = 0;
+        float nearClip = 0;
+        float farClip = 0;
+        float leftClip = 0;
+        float rightClip = 0;
+        float bottomClip = 0;
+        float topClip = 0;
+    };
+
     class Project;
 
     class SceneRender{
@@ -63,6 +79,10 @@ namespace Supernova::Editor{
         OBB getFamilyOBB(Entity entity, float offset);
 
     protected:
+        void updateCameraFrustum(CameraObjects& co, const CameraComponent& cameraComponent, bool isMainCamera, bool fixedSizeFrustum = true);
+        void drawCameraFrustumLines(Lines* lines, const CameraComponent& cameraComponent, bool isMainCamera, bool fixedSizeFrustum = true);
+        void setupCameraIcon(CameraObjects& co);
+
         Scene* scene;
         Camera* camera;
         Framebuffer framebuffer;

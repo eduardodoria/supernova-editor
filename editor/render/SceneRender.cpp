@@ -1,11 +1,15 @@
 #include "SceneRender.h"
 
+#include "resources/icons/camera-icon_png.h"
+
 #include "Project.h"
 #include "command/CommandHandle.h"
 #include "command/type/ObjectTransformCmd.h"
 #include "command/type/PropertyCmd.h"
 #include "command/type/MultiPropertyCmd.h"
 #include "util/GraphicUtils.h"
+
+#include <cmath>
 
 using namespace Supernova;
 
@@ -75,6 +79,20 @@ AABB Editor::SceneRender::getAABB(Entity entity, bool local){
             return ui.aabb;
         }else{
             return ui.worldAABB;
+        }
+    }else if (signature.test(scene->getComponentId<CameraComponent>()) && signature.test(scene->getComponentId<Transform>())){
+        CameraComponent& sceneCamera = scene->getComponent<CameraComponent>(camera->getEntity());
+
+        if (sceneCamera.type == CameraType::CAMERA_ORTHO) {
+            float halfSize = 16.0f * zoom;
+            AABB aabb(-halfSize, -halfSize, -1, halfSize, halfSize, 1);
+
+            if (local){
+                return aabb;
+            }else{
+                Transform& transform = scene->getComponent<Transform>(entity);
+                return transform.modelMatrix * aabb;
+            }
         }
     }
 
@@ -159,6 +177,18 @@ OBB Editor::SceneRender::getOBB(Entity entity, bool local){
                 return ui.aabb.getOBB();
             }else{
                 return modelMatrix * ui.aabb.getOBB();
+            }
+        }else if (signature.test(scene->getComponentId<CameraComponent>())){
+            CameraComponent& sceneCamera = scene->getComponent<CameraComponent>(camera->getEntity());
+
+            if (sceneCamera.type == CameraType::CAMERA_ORTHO) {
+                float halfSize = 16.0f * zoom;
+                AABB aabb(-halfSize, -halfSize, -1, halfSize, halfSize, 1);
+                if (local){
+                    return aabb.getOBB();
+                }else{
+                    return modelMatrix * aabb.getOBB();
+                }
             }
         }
 
@@ -368,10 +398,11 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities, std::vector<En
         toolslayer.setGizmoVisible(selectionVisibility);
     }
 
-    // Hide resize rects for tilemaps (must be after setGizmoVisible which propagates visibility to children)
+    // Hide resize rects for tilemaps and cameras (must be after setGizmoVisible which propagates visibility to children)
     if (toolslayer.getGizmoSelected() == GizmoSelected::OBJECT2D && selEntities.size() == 1){
         bool isTilemap = scene->getSignature(selEntities[0]).test(scene->getComponentId<TilemapComponent>());
-        toolslayer.setShowObject2DRects(!isTilemap || selectedTileIndex >= 0);
+        bool isCamera = scene->getSignature(selEntities[0]).test(scene->getComponentId<CameraComponent>());
+        toolslayer.setShowObject2DRects((!isTilemap || selectedTileIndex >= 0) && !isCamera);
     }
 
     uilayer.setViewGizmoImageVisible(true);
@@ -968,4 +999,173 @@ OBB Editor::SceneRender::getTileOBB(Entity entity, int tileIndex){
                   tile.position.x + tile.width, tile.position.y + tile.height, 0);
 
     return transform.modelMatrix * tileAABB.getOBB();
+}
+
+void Editor::SceneRender::setupCameraIcon(CameraObjects& co){
+    TextureData iconData;
+    iconData.loadTextureFromMemory(camera_icon_png, camera_icon_png_len);
+    co.icon->setTexture("editor:resources:camera_icon", iconData);
+    co.icon->setSize(128, 128);
+    co.icon->setReceiveLights(false);
+    co.icon->setCastShadows(false);
+    co.icon->setReceiveShadows(false);
+    co.icon->setPivotPreset(PivotPreset::CENTER);
+}
+
+void Editor::SceneRender::updateCameraFrustum(CameraObjects& co, const CameraComponent& cameraComponent, bool isMainCamera, bool fixedSizeFrustum){
+    if (cameraComponent.type == CameraType::CAMERA_UI){
+        co.lines->clearLines();
+        co.type = CameraType::CAMERA_UI;
+        return;
+    }
+
+    bool changed = false;
+    if (co.type != cameraComponent.type) changed = true;
+    if (co.isMainCamera != isMainCamera) changed = true;
+    if (cameraComponent.type == CameraType::CAMERA_PERSPECTIVE){
+        if (co.yfov != cameraComponent.yfov || co.aspect != cameraComponent.aspect ||
+            co.nearClip != cameraComponent.nearClip || co.farClip != cameraComponent.farClip){
+            changed = true;
+        }
+    }else if (cameraComponent.type == CameraType::CAMERA_ORTHO){
+        if (co.leftClip != cameraComponent.leftClip || co.rightClip != cameraComponent.rightClip ||
+            co.bottomClip != cameraComponent.bottomClip || co.topClip != cameraComponent.topClip ||
+            co.nearClip != cameraComponent.nearClip || co.farClip != cameraComponent.farClip){
+            changed = true;
+        }
+    }
+
+    if (!changed) return;
+
+    co.type = cameraComponent.type;
+    co.isMainCamera = isMainCamera;
+    co.yfov = cameraComponent.yfov;
+    co.aspect = cameraComponent.aspect;
+    co.nearClip = cameraComponent.nearClip;
+    co.farClip = cameraComponent.farClip;
+    co.leftClip = cameraComponent.leftClip;
+    co.rightClip = cameraComponent.rightClip;
+    co.bottomClip = cameraComponent.bottomClip;
+    co.topClip = cameraComponent.topClip;
+
+    drawCameraFrustumLines(co.lines, cameraComponent, isMainCamera, fixedSizeFrustum);
+}
+
+void Editor::SceneRender::drawCameraFrustumLines(Lines* lines, const CameraComponent& cameraComponent, bool isMainCamera, bool fixedSizeFrustum){
+    lines->clearLines();
+
+    if (cameraComponent.type == CameraType::CAMERA_UI){
+        return;
+    }
+
+    Vector4 color(0.8f, 0.8f, 0.8f, 1.0f);
+    if (isMainCamera){
+        color = Vector4(0.5f, 1.0f, 0.5f, 1.0f);
+    }
+
+    float nearClip = cameraComponent.nearClip;
+    float farClip = cameraComponent.farClip;
+
+    if (fixedSizeFrustum){
+        farClip = nearClip + 2.0f;
+    }
+
+    if (nearClip > farClip) {
+        std::swap(nearClip, farClip);
+    }
+
+    if (cameraComponent.type == CameraType::CAMERA_PERSPECTIVE){
+        float tanHalfFov = std::tan(cameraComponent.yfov / 2.0f);
+        float nearHeight = 2.0f * std::abs(nearClip) * tanHalfFov;
+        float nearWidth = nearHeight * cameraComponent.aspect;
+        float farHeight = 2.0f * std::abs(farClip) * tanHalfFov;
+        float farWidth = farHeight * cameraComponent.aspect;
+
+        float hNear = nearHeight / 2.0f;
+        float wNear = nearWidth / 2.0f;
+        float hFar = farHeight / 2.0f;
+        float wFar = farWidth / 2.0f;
+
+        Vector3 ntl(-wNear, hNear, -std::abs(nearClip));
+        Vector3 ntr(wNear, hNear, -std::abs(nearClip));
+        Vector3 nbl(-wNear, -hNear, -std::abs(nearClip));
+        Vector3 nbr(wNear, -hNear, -std::abs(nearClip));
+
+        Vector3 ftl(-wFar, hFar, -std::abs(farClip));
+        Vector3 ftr(wFar, hFar, -std::abs(farClip));
+        Vector3 fbl(-wFar, -hFar, -std::abs(farClip));
+        Vector3 fbr(wFar, -hFar, -std::abs(farClip));
+
+        lines->addLine(ntl, ntr, color);
+        lines->addLine(ntr, nbr, color);
+        lines->addLine(nbr, nbl, color);
+        lines->addLine(nbl, ntl, color);
+
+        lines->addLine(ftl, ftr, color);
+        lines->addLine(ftr, fbr, color);
+        lines->addLine(fbr, fbl, color);
+        lines->addLine(fbl, ftl, color);
+
+        lines->addLine(ntl, ftl, color);
+        lines->addLine(ntr, ftr, color);
+        lines->addLine(nbl, fbl, color);
+        lines->addLine(nbr, fbr, color);
+
+        lines->addLine(Vector3(0,0,0), ntl, color);
+        lines->addLine(Vector3(0,0,0), ntr, color);
+        lines->addLine(Vector3(0,0,0), nbl, color);
+        lines->addLine(Vector3(0,0,0), nbr, color);
+
+        // Up marker
+        float markerSize = hFar * 0.5f;
+        Vector3 up1(0.0f, hFar + markerSize, -std::abs(farClip));
+        Vector3 up2(-markerSize / 2.0f, hFar, -std::abs(farClip));
+        Vector3 up3(markerSize / 2.0f, hFar, -std::abs(farClip));
+        lines->addLine(up1, up2, color);
+        lines->addLine(up2, up3, color);
+        lines->addLine(up3, up1, color);
+
+    }else if (cameraComponent.type == CameraType::CAMERA_ORTHO){
+        float l = cameraComponent.leftClip;
+        float r = cameraComponent.rightClip;
+        float b = cameraComponent.bottomClip;
+        float t = cameraComponent.topClip;
+        float n = -nearClip;
+        float f = -farClip;
+
+        Vector3 ntl(l, t, n);
+        Vector3 ntr(r, t, n);
+        Vector3 nbl(l, b, n);
+        Vector3 nbr(r, b, n);
+
+        Vector3 ftl(l, t, f);
+        Vector3 ftr(r, t, f);
+        Vector3 fbl(l, b, f);
+        Vector3 fbr(r, b, f);
+
+        lines->addLine(ntl, ntr, color);
+        lines->addLine(ntr, nbr, color);
+        lines->addLine(nbr, nbl, color);
+        lines->addLine(nbl, ntl, color);
+
+        lines->addLine(ftl, ftr, color);
+        lines->addLine(ftr, fbr, color);
+        lines->addLine(fbr, fbl, color);
+        lines->addLine(fbl, ftl, color);
+
+        lines->addLine(ntl, ftl, color);
+        lines->addLine(ntr, ftr, color);
+        lines->addLine(nbl, fbl, color);
+        lines->addLine(nbr, fbr, color);
+
+        // Up marker
+        float markerSize = std::abs(t - b) * 0.05f;
+        float cx = (l + r) / 2.0f;
+        Vector3 up1(cx, t + markerSize, f);
+        Vector3 up2(cx - markerSize / 2.0f, t, f);
+        Vector3 up3(cx + markerSize / 2.0f, t, f);
+        lines->addLine(up1, up2, color);
+        lines->addLine(up2, up3, color);
+        lines->addLine(up3, up1, color);
+    }
 }

@@ -3,7 +3,6 @@
 #include "resources/icons/sun-icon_png.h"
 #include "resources/icons/bulb-icon_png.h"
 #include "resources/icons/spot-icon_png.h"
-#include "resources/icons/camera-icon_png.h"
 
 #include "Project.h"
 #include "LineDrawUtils.h"
@@ -751,16 +750,8 @@ void Editor::SceneRender3D::createOrUpdateCameraIcon(Entity entity, const Transf
     CameraObjects& co = cameraObjects[entity];
 
     if (newCamera) {
-        TextureData iconData;
-        iconData.loadTextureFromMemory(camera_icon_png, camera_icon_png_len);
-        co.icon->setTexture("editor:resources:camera_icon", iconData);
-
+        setupCameraIcon(co);
         co.icon->setBillboard(true);
-        co.icon->setSize(128, 128);
-        co.icon->setReceiveLights(false);
-        co.icon->setCastShadows(false);
-        co.icon->setReceiveShadows(false);
-        co.icon->setPivotPreset(PivotPreset::CENTER);
     }
 
     // Update camera icon position
@@ -793,147 +784,7 @@ void Editor::SceneRender3D::createCameraFrustum(Entity entity, const Transform& 
     rotation.fromRotationMatrix(cameraComponent.viewMatrix.inverse());
     co.lines->setRotation(rotation);
 
-    // Don't draw frustum for 2D cameras
-    if (cameraComponent.type == CameraType::CAMERA_UI) {
-        co.lines->clearLines();
-        return;
-    }
-
-    bool changed = false;
-    if (co.type != cameraComponent.type) changed = true;
-    if (co.isMainCamera != isMainCamera) changed = true;
-    if (cameraComponent.type == CameraType::CAMERA_PERSPECTIVE) {
-        if (co.yfov != cameraComponent.yfov || co.aspect != cameraComponent.aspect || 
-            co.nearClip != cameraComponent.nearClip || co.farClip != cameraComponent.farClip) {
-            changed = true;
-        }
-    } else if (cameraComponent.type == CameraType::CAMERA_ORTHO) {
-        if (co.leftClip != cameraComponent.leftClip || co.rightClip != cameraComponent.rightClip ||
-            co.bottomClip != cameraComponent.bottomClip || co.topClip != cameraComponent.topClip ||
-            co.nearClip != cameraComponent.nearClip || co.farClip != cameraComponent.farClip) {
-            changed = true;
-        }
-    }
-
-    if (!changed) return;
-
-    co.type = cameraComponent.type;
-    co.isMainCamera = isMainCamera;
-    co.yfov = cameraComponent.yfov;
-    co.aspect = cameraComponent.aspect;
-    co.nearClip = cameraComponent.nearClip;
-    co.farClip = cameraComponent.farClip;
-    co.leftClip = cameraComponent.leftClip;
-    co.rightClip = cameraComponent.rightClip;
-    co.bottomClip = cameraComponent.bottomClip;
-    co.topClip = cameraComponent.topClip;
-
-    co.lines->clearLines();
-    Vector4 color(0.8f, 0.8f, 0.8f, 1.0f);
-    if (isMainCamera){
-        color = Vector4(0.5f, 1.0f, 0.5f, 1.0f); // Soft green for main camera
-    }
-
-    float farClip = 2.0f;
-    if (!fixedSizeFrustum) {
-        farClip = cameraComponent.farClip;
-    }
-
-    if (cameraComponent.type == CameraType::CAMERA_PERSPECTIVE) {
-        float tanHalfFov = std::tan(cameraComponent.yfov / 2.0f);
-        float nearHeight = 2.0f * std::abs(cameraComponent.nearClip) * tanHalfFov;
-        float nearWidth = nearHeight * cameraComponent.aspect;
-        float farHeight = 2.0f * std::abs(farClip) * tanHalfFov;
-        float farWidth = farHeight * cameraComponent.aspect;
-
-        float hNear = nearHeight / 2.0f;
-        float wNear = nearWidth / 2.0f;
-        float hFar = farHeight / 2.0f;
-        float wFar = farWidth / 2.0f;
-
-        Vector3 ntl(-wNear, hNear, -std::abs(cameraComponent.nearClip));
-        Vector3 ntr(wNear, hNear, -std::abs(cameraComponent.nearClip));
-        Vector3 nbl(-wNear, -hNear, -std::abs(cameraComponent.nearClip));
-        Vector3 nbr(wNear, -hNear, -std::abs(cameraComponent.nearClip));
-
-        // Use debugFarClip for Z coordinate
-        Vector3 ftl(-wFar, hFar, -std::abs(farClip));
-        Vector3 ftr(wFar, hFar, -std::abs(farClip));
-        Vector3 fbl(-wFar, -hFar, -std::abs(farClip));
-        Vector3 fbr(wFar, -hFar, -std::abs(farClip));
-
-        co.lines->addLine(ntl, ntr, color);
-        co.lines->addLine(ntr, nbr, color);
-        co.lines->addLine(nbr, nbl, color);
-        co.lines->addLine(nbl, ntl, color);
-
-        co.lines->addLine(ftl, ftr, color);
-        co.lines->addLine(ftr, fbr, color);
-        co.lines->addLine(fbr, fbl, color);
-        co.lines->addLine(fbl, ftl, color);
-
-        co.lines->addLine(ntl, ftl, color);
-        co.lines->addLine(ntr, ftr, color);
-        co.lines->addLine(nbl, fbl, color);
-        co.lines->addLine(nbr, fbr, color);
-
-        co.lines->addLine(Vector3(0,0,0), ntl, color);
-        co.lines->addLine(Vector3(0,0,0), ntr, color);
-        co.lines->addLine(Vector3(0,0,0), nbl, color);
-        co.lines->addLine(Vector3(0,0,0), nbr, color);
-
-        // Up marker
-        float markerSize = 0.4f;
-        Vector3 up1(0, hFar + markerSize, -std::abs(farClip));
-        Vector3 up2(-markerSize/2.0f, hFar, -std::abs(farClip));
-        Vector3 up3(markerSize/2.0f, hFar, -std::abs(farClip));
-        co.lines->addLine(up1, up2, color);
-        co.lines->addLine(up2, up3, color);
-        co.lines->addLine(up3, up1, color);
-
-
-    } else if (cameraComponent.type == CameraType::CAMERA_ORTHO) {
-        float l = cameraComponent.leftClip;
-        float r = cameraComponent.rightClip;
-        float b = cameraComponent.bottomClip;
-        float t = cameraComponent.topClip;
-        float n = -std::abs(cameraComponent.nearClip);
-        float f = -std::abs(farClip);
-
-        Vector3 ntl(l, t, n);
-        Vector3 ntr(r, t, n);
-        Vector3 nbl(l, b, n);
-        Vector3 nbr(r, b, n);
-
-        Vector3 ftl(l, t, f);
-        Vector3 ftr(r, t, f);
-        Vector3 fbl(l, b, f);
-        Vector3 fbr(r, b, f);
-
-        co.lines->addLine(ntl, ntr, color);
-        co.lines->addLine(ntr, nbr, color);
-        co.lines->addLine(nbr, nbl, color);
-        co.lines->addLine(nbl, ntl, color);
-
-        co.lines->addLine(ftl, ftr, color);
-        co.lines->addLine(ftr, fbr, color);
-        co.lines->addLine(fbr, fbl, color);
-        co.lines->addLine(fbl, ftl, color);
-
-        co.lines->addLine(ntl, ftl, color);
-        co.lines->addLine(ntr, ftr, color);
-        co.lines->addLine(nbl, fbl, color);
-        co.lines->addLine(nbr, fbr, color);
-
-        // Up marker
-        float markerSize = 0.4f;
-        Vector3 up1(0, t + markerSize, f);
-        Vector3 up2(-markerSize/2.0f, t, f);
-        Vector3 up3(markerSize/2.0f, t, f);
-        co.lines->addLine(up1, up2, color);
-        co.lines->addLine(up2, up3, color);
-        co.lines->addLine(up3, up1, color);
-    }
+    updateCameraFrustum(co, cameraComponent, isMainCamera, fixedSizeFrustum);
 }
 
 
