@@ -17,6 +17,7 @@
 #include <filesystem>
 #include <chrono>
 #include <map>
+#include <set>
 #include <tuple>
 
 namespace Supernova::Editor{
@@ -78,6 +79,7 @@ namespace Supernova::Editor{
         ScenePlayState playState = ScenePlayState::STOPPED;
         YAML::Node playStateSnapshot;
         SceneMaxValues maxValues;
+        std::set<ShaderKey> shaderKeys;
         std::vector<uint32_t> childScenes;
         std::vector<SceneScriptSource> cppScripts;
         std::vector<BundleSceneInfo> bundles;
@@ -180,6 +182,7 @@ namespace Supernova::Editor{
         bool createNewComponent(uint32_t sceneId, Entity entity, ComponentType component);
         void deleteSceneProject(SceneProject* sceneProject);
         SceneMaxValues calculateSceneMaxValues(const SceneProject* sceneProject) const;
+        std::set<ShaderKey> collectSceneShaderKeys(const SceneProject* sceneProject) const;
         void resetConfigs();
 
         void updateSceneCppScripts(SceneProject* sceneProject);

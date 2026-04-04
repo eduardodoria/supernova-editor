@@ -1001,6 +1001,14 @@ YAML::Node Editor::Stream::encodeSceneProject(const Project* project, const Scen
     maxValuesNode["maxSpriteFrames"] = sceneProject->maxValues.maxSpriteFrames;
     root["maxValues"] = maxValuesNode;
 
+    if (!sceneProject->shaderKeys.empty()) {
+        YAML::Node shaderKeysNode;
+        for (const auto& key : sceneProject->shaderKeys) {
+            shaderKeysNode.push_back(key);
+        }
+        root["shaderKeys"] = shaderKeysNode;
+    }
+
     if (!sceneProject->childScenes.empty()) {
         YAML::Node childScenesNode;
         for (const auto& childSceneId : sceneProject->childScenes) {
@@ -1092,6 +1100,13 @@ void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::
         if (maxValuesNode["maxTilemapTiles"]) sceneProject->maxValues.maxTilemapTiles = maxValuesNode["maxTilemapTiles"].as<unsigned int>();
         if (maxValuesNode["maxExternalBuffers"]) sceneProject->maxValues.maxExternalBuffers = maxValuesNode["maxExternalBuffers"].as<unsigned int>();
         if (maxValuesNode["maxSpriteFrames"]) sceneProject->maxValues.maxSpriteFrames = maxValuesNode["maxSpriteFrames"].as<unsigned int>();
+    }
+
+    sceneProject->shaderKeys.clear();
+    if (node["shaderKeys"]) {
+        for (const auto& keyNode : node["shaderKeys"]) {
+            sceneProject->shaderKeys.insert(keyNode.as<uint64_t>());
+        }
     }
 
     sceneProject->childScenes.clear();

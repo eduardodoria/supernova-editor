@@ -37,6 +37,7 @@
 #include "util/ProjectUtils.h"
 
 #include "texture/Texture.h"
+#include "pool/ShaderPool.h"
 #include "SceneManager.h"
 #include "BundleManager.h"
 
@@ -1177,6 +1178,60 @@ Editor::SceneMaxValues Editor::Project::calculateSceneMaxValues(const SceneProje
     return maxValues;
 }
 
+std::set<ShaderKey> Editor::Project::collectSceneShaderKeys(const SceneProject* sceneProject) const {
+    std::set<ShaderKey> keys;
+
+    if (!sceneProject || !sceneProject->scene) {
+        return keys;
+    }
+
+    Scene* scene = sceneProject->scene;
+
+    for (Entity entity : sceneProject->entities) {
+        Signature signature = scene->getSignature(entity);
+
+        if (signature.test(scene->getComponentId<MeshComponent>())) {
+            const MeshComponent& mesh = scene->getComponent<MeshComponent>(entity);
+            if (mesh.loaded) {
+                for (unsigned int s = 0; s < mesh.numSubmeshes; ++s) {
+                    keys.insert(ShaderPool::getShaderKey(ShaderType::MESH, mesh.submeshes[s].shaderProperties));
+                    keys.insert(ShaderPool::getShaderKey(ShaderType::DEPTH, mesh.submeshes[s].depthShaderProperties));
+                }
+            }
+        }
+
+        if (signature.test(scene->getComponentId<UIComponent>())) {
+            const UIComponent& ui = scene->getComponent<UIComponent>(entity);
+            if (ui.loaded) {
+                keys.insert(ShaderPool::getShaderKey(ShaderType::UI, ui.shaderProperties));
+            }
+        }
+
+        if (signature.test(scene->getComponentId<PointsComponent>())) {
+            const PointsComponent& pts = scene->getComponent<PointsComponent>(entity);
+            if (pts.loaded) {
+                keys.insert(ShaderPool::getShaderKey(ShaderType::POINTS, pts.shaderProperties));
+            }
+        }
+
+        if (signature.test(scene->getComponentId<LinesComponent>())) {
+            const LinesComponent& ln = scene->getComponent<LinesComponent>(entity);
+            if (ln.loaded) {
+                keys.insert(ShaderPool::getShaderKey(ShaderType::LINES, ln.shaderProperties));
+            }
+        }
+
+        if (signature.test(scene->getComponentId<SkyComponent>())) {
+            const SkyComponent& sky = scene->getComponent<SkyComponent>(entity);
+            if (sky.loaded) {
+                keys.insert(ShaderPool::getShaderKey(ShaderType::SKYBOX, 0));
+            }
+        }
+    }
+
+    return keys;
+}
+
 Entity Editor::Project::getSceneCamera(const SceneProject* sceneProject) const {
     if (sceneProject->mainCamera != NULL_ENTITY && sceneProject->scene->isEntityCreated(sceneProject->mainCamera)) {
         return sceneProject->mainCamera;
@@ -2211,6 +2266,7 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
     }
 
     sceneProject->maxValues = calculateSceneMaxValues(sceneProject);
+    sceneProject->shaderKeys = collectSceneShaderKeys(sceneProject);
 
     updateSceneCppScripts(sceneProject);
     updateSceneBundles(sceneProject);
