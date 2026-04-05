@@ -47,9 +47,9 @@ namespace Supernova::Editor{
         }
 
     public:
-        inline static void pathDisplay(fs::path path, const Vector2& size = Vector2::ZERO, fs::path basePath = fs::path()){
+        inline static void pathDisplay(const char* id, fs::path path, const Vector2& size = Vector2::ZERO, fs::path basePath = fs::path()){
             ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(50, 50, 50, 255));
-            ImGui::BeginChild("PathFrame", ImVec2(size.x, size.y), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+            ImGui::BeginChild(id, ImVec2(size.x, size.y), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
             
             std::string subPath = path.string();
             if (!basePath.empty()){

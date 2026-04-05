@@ -182,6 +182,7 @@ add_executable(
     ${EDITOR_DIR}/Conector.cpp
     ${EDITOR_DIR}/Generator.cpp
     ${EDITOR_DIR}/Stream.cpp
+    ${EDITOR_DIR}/Exporter.cpp
 
     ${EDITOR_DIR}/util/GraphicUtils.cpp
     ${EDITOR_DIR}/util/EntityBundle.cpp
@@ -204,6 +205,7 @@ add_executable(
     ${EDITOR_DIR}/window/dialog/ProjectSaveDialog.cpp
     ${EDITOR_DIR}/window/dialog/ScriptCreateDialog.cpp
     ${EDITOR_DIR}/window/dialog/TextureSlicerToolDialog.cpp
+    ${EDITOR_DIR}/window/dialog/ExportWindow.cpp
     ${EDITOR_DIR}/window/widget/CustomTextEditor.cpp
     ${EDITOR_DIR}/window/widget/SemanticSuggestions.cpp
 

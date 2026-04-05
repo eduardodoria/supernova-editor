@@ -221,6 +221,10 @@ void Editor::App::showMenu(){
             }
             ImGui::EndDisabled();
             ImGui::Separator();
+            if (ImGui::MenuItem("Export Project...")) {
+                exportWindow.open(&project);
+            }
+            ImGui::Separator();
             if (ImGui::MenuItem("Exit")) {
                 exit();
             }
@@ -866,6 +870,7 @@ void Editor::App::show(){
 
     sceneSaveDialog.show();
     projectSaveDialog.show();
+    exportWindow.show();
 
     if (!sceneSaveDialog.isOpen() && !projectSaveDialog.isOpen() && !saveDialogQueue.empty()) {
         processNextSaveDialog();

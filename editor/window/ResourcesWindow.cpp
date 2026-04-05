@@ -224,7 +224,7 @@ void Editor::ResourcesWindow::renderHeader() {
     ImGui::EndDisabled();
     ImGui::SameLine();
     Vector2 pathDisplaySize = Vector2(-ImGui::CalcTextSize(ICON_FA_GEAR).x - ImGui::GetStyle().ItemSpacing.x - ImGui::GetStyle().FramePadding.x * 2, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2);
-    Widgets::pathDisplay(currentPath, pathDisplaySize, project->getProjectPath());
+    Widgets::pathDisplay("##ResourcesPath", currentPath, pathDisplaySize, project->getProjectPath());
     ImGui::SameLine();
     if (ImGui::Button(ICON_FA_GEAR)) {
         ImGui::OpenPopup("SettingsPopup");

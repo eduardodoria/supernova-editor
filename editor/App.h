@@ -17,6 +17,7 @@
 
 #include "window/dialog/ProjectSaveDialog.h"
 #include "window/dialog/SceneSaveDialog.h"
+#include "window/dialog/ExportWindow.h"
 
 #include "render/SceneRender.h"
 
@@ -77,6 +78,7 @@ namespace Supernova::Editor{
         AlertData alert;
         ProjectSaveDialog projectSaveDialog;
         SceneSaveDialog sceneSaveDialog;
+        ExportWindow exportWindow;
 
         std::queue<SaveDialogQueueItem> saveDialogQueue;
 

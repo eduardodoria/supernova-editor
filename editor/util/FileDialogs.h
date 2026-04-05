@@ -43,15 +43,21 @@ namespace Supernova::Editor{
                 nfdu8char_t* path;
                 nfdopendialogu8args_t args = {0};
 
+                std::string imageExtensions;
+                std::string fontExtensions;
+                std::string modelExtensions;
                 std::vector<nfdfilteritem_t> filterItems;
                 if (filterFlags & FILE_DIALOG_IMAGE) {
-                    filterItems.push_back({ "Image files", Util::getImageExtensions().c_str() });
+                    imageExtensions = Util::getImageExtensions();
+                    filterItems.push_back({ "Image files", imageExtensions.c_str() });
                 }
                 if (filterFlags & FILE_DIALOG_FONT) {
-                    filterItems.push_back({ "Font files", Util::getFontExtensions().c_str() });
+                    fontExtensions = Util::getFontExtensions();
+                    filterItems.push_back({ "Font files", fontExtensions.c_str() });
                 }
                 if (filterFlags & FILE_DIALOG_MODEL) {
-                    filterItems.push_back({ "Model files", Util::getModelExtensions().c_str() });
+                    modelExtensions = Util::getModelExtensions();
+                    filterItems.push_back({ "Model files", modelExtensions.c_str() });
                 }
 
                 if (!filterItems.empty()) {

@@ -53,7 +53,7 @@ void ProjectSaveDialog::show() {
         ImGui::Text("Path:");
 
         Vector2 pathDisplaySize = Vector2(popupWidth - ImGui::CalcTextSize("Browse").x - ImGui::GetStyle().ItemSpacing.x - ImGui::GetStyle().FramePadding.x * 2, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2);
-        Widgets::pathDisplay(m_projectPath, pathDisplaySize);
+        Widgets::pathDisplay("##ProjectPath", m_projectPath, pathDisplaySize);
 
         ImGui::SameLine();
         if (ImGui::Button("Browse")) {
