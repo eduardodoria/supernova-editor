@@ -181,8 +181,8 @@ namespace Supernova::Editor{
         Entity createNewEntity(uint32_t sceneId, std::string entityName);
         bool createNewComponent(uint32_t sceneId, Entity entity, ComponentType component);
         void deleteSceneProject(SceneProject* sceneProject);
-        SceneMaxValues calculateSceneMaxValues(const SceneProject* sceneProject) const;
-        std::set<ShaderKey> collectSceneShaderKeys(const SceneProject* sceneProject) const;
+        void calculateSceneMaxValues(const SceneProject* sceneProject, SceneMaxValues& maxValues) const;
+        void collectSceneShaderKeys(const SceneProject* sceneProject, std::set<ShaderKey>& shaderKeys) const;
         void resetConfigs();
 
         void updateSceneCppScripts(SceneProject* sceneProject);

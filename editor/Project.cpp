@@ -1142,11 +1142,9 @@ void Editor::Project::updateSceneBundles(SceneProject* sceneProject) {
     }
 }
 
-Editor::SceneMaxValues Editor::Project::calculateSceneMaxValues(const SceneProject* sceneProject) const {
-    SceneMaxValues maxValues;
-
+void Editor::Project::calculateSceneMaxValues(const SceneProject* sceneProject, SceneMaxValues& maxValues) const {
     if (!sceneProject || !sceneProject->scene) {
-        return maxValues;
+        return;
     }
 
     auto meshes = sceneProject->scene->getComponentArray<MeshComponent>();
@@ -1174,15 +1172,11 @@ Editor::SceneMaxValues Editor::Project::calculateSceneMaxValues(const SceneProje
         maxValues.maxTilemapTilesRect = std::max(maxValues.maxTilemapTilesRect, tilemap.numTilesRect);
         maxValues.maxTilemapTiles = std::max(maxValues.maxTilemapTiles, tilemap.numTiles);
     }
-
-    return maxValues;
 }
 
-std::set<ShaderKey> Editor::Project::collectSceneShaderKeys(const SceneProject* sceneProject) const {
-    std::set<ShaderKey> keys;
-
+void Editor::Project::collectSceneShaderKeys(const SceneProject* sceneProject, std::set<ShaderKey>& keys) const {
     if (!sceneProject || !sceneProject->scene) {
-        return keys;
+        return;
     }
 
     Scene* scene = sceneProject->scene;
@@ -1229,7 +1223,6 @@ std::set<ShaderKey> Editor::Project::collectSceneShaderKeys(const SceneProject* 
         }
     }
 
-    return keys;
 }
 
 Entity Editor::Project::getSceneCamera(const SceneProject* sceneProject) const {
@@ -2273,8 +2266,8 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
         }
     }
 
-    sceneProject->maxValues = calculateSceneMaxValues(sceneProject);
-    sceneProject->shaderKeys = collectSceneShaderKeys(sceneProject);
+    calculateSceneMaxValues(sceneProject, sceneProject->maxValues);
+    collectSceneShaderKeys(sceneProject, sceneProject->shaderKeys);
 
     updateSceneCppScripts(sceneProject);
     updateSceneBundles(sceneProject);
