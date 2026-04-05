@@ -676,7 +676,7 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
                 // Apply distanceScaleFactor to walking speed
                 float finalSpeed = 0.02 * (speedOffset + walkSpeed[sceneId]) * distanceScaleFactor;
 
-                // Shift multiplier for faster movement (like Unreal/Unity)
+                // Shift multiplier for faster movement
                 if (ImGui::IsKeyDown(ImGuiKey_ModShift)) {
                     finalSpeed *= 3.0f;
                 }
@@ -708,7 +708,11 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
                     camera->slide(-0.01 * mouseDelta.x * distanceScaleFactor);
                     camera->slideUp(0.01 * mouseDelta.y * distanceScaleFactor);
                 } else if (ImGui::IsKeyDown(ImGuiKey_ModCtrl)) {
-                    camera->zoom(-0.1 * mouseDelta.y);
+                    float ctrlZoomAmount = -0.1f * mouseDelta.y * distanceScaleFactor;
+                    if (ctrlZoomAmount > distanceFromTarget - 0.1f) {
+                        ctrlZoomAmount = distanceFromTarget - 0.1f;
+                    }
+                    camera->zoom(ctrlZoomAmount);
                 } else {
                     camera->rotatePosition(-0.1 * mouseDelta.x);
                     camera->elevatePosition(0.1 * mouseDelta.y);
@@ -722,7 +726,7 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
             }
         }
 
-        // Alt+LMB orbit (Unity/Unreal style)
+        // Alt+LMB orbit
         if (draggingMouse[sceneId] && altHeld && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
             camera->rotatePosition(-0.1 * mouseDelta.x);
             camera->elevatePosition(0.1 * mouseDelta.y);
@@ -742,7 +746,11 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
         // The zoom speed itself can remain constant
         if (!ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
             if (isMouseInWindow && mouseWheel != 0.0f) {
-                camera->zoom(2.0 * mouseWheel);
+                float zoomAmount = 2.0 * mouseWheel * distanceScaleFactor;
+                if (zoomAmount > distanceFromTarget - 0.1f) {
+                     zoomAmount = distanceFromTarget - 0.1f;
+                }
+                camera->zoom(zoomAmount);
             }
         }
 
@@ -806,7 +814,7 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
                     }
                 }
 
-                // F key: Focus camera on selected entities (like Unity/Unreal)
+                // F key: Focus camera on selected entities
                 if (sceneProject->sceneType == SceneType::SCENE_3D && ImGui::IsKeyPressed(ImGuiKey_F)) {
                     std::vector<Entity> selEntities = project->getSelectedEntities(sceneId);
                     focusOnEntities(sceneProject, selEntities);

@@ -8,7 +8,10 @@
 #include "nfd.hpp"
 #include "nfd_glfw3.h"
 
+#include <array>
+
 static GLFWwindow* window = nullptr;
+static GLFWcursor* invisibleCursor = nullptr;
 static nfdwindowhandle_t nativeWindow;
 
 using namespace Supernova;
@@ -55,6 +58,13 @@ int Editor::Backend::init(int argc, char* argv[]) {
     if (app.getInitialWindowMaximized()) {
         glfwMaximizeWindow(window);
     }
+
+    std::array<unsigned char, 16 * 16 * 4> cursorPixels = {};
+    GLFWimage cursorImage;
+    cursorImage.width = 16;
+    cursorImage.height = 16;
+    cursorImage.pixels = cursorPixels.data();
+    invisibleCursor = glfwCreateCursor(&cursorImage, 0, 0);
 
     NFD_GetNativeWindowFromGLFWWindow(window, &nativeWindow);
 
@@ -139,6 +149,11 @@ int Editor::Backend::init(int argc, char* argv[]) {
 
     app.engineViewDestroyed();
 
+    if (invisibleCursor) {
+        glfwDestroyCursor(invisibleCursor);
+        invisibleCursor = nullptr;
+    }
+
     glfwDestroyWindow(window);
     NFD_Quit();
     glfwTerminate();
@@ -153,11 +168,23 @@ Editor::App& Editor::Backend::getApp() {
 }
 
 void Editor::Backend::disableMouseCursor() {
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+    io.MouseDrawCursor = false;
+
+    if (invisibleCursor) {
+        glfwSetCursor(window, invisibleCursor);
+    }
+
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
 void Editor::Backend::enableMouseCursor() {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    glfwSetCursor(window, nullptr);
+
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags &= ~ImGuiConfigFlags_NoMouseCursorChange;
 }
 
 void Editor::Backend::closeWindow() {

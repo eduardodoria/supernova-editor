@@ -13,6 +13,7 @@ static SDL_Window* window = nullptr;
 static std::vector<std::string> droppedPaths;
 static nfdwindowhandle_t nativeWindow;
 static bool shouldClose = false;
+static SDL_Cursor* invisibleCursor = nullptr;
 
 using namespace Supernova;
 
@@ -77,6 +78,13 @@ int Editor::Backend::init(int argc, char* argv[]) {
     // Apply saved window state
     if (app.getInitialWindowMaximized()) {
         SDL_MaximizeWindow(window);
+    }
+
+    SDL_Surface* cursorSurface = SDL_CreateRGBSurfaceWithFormat(0, 16, 16, 32, SDL_PIXELFORMAT_RGBA32);
+    if (cursorSurface) {
+        SDL_memset(cursorSurface->pixels, 0, cursorSurface->pitch * cursorSurface->h);
+        invisibleCursor = SDL_CreateColorCursor(cursorSurface, 0, 0);
+        SDL_FreeSurface(cursorSurface);
     }
 
     NFD_GetNativeWindowFromSDLWindow(window, &nativeWindow);
@@ -180,6 +188,11 @@ int Editor::Backend::init(int argc, char* argv[]) {
 
     app.engineViewDestroyed();
 
+    if (invisibleCursor) {
+        SDL_FreeCursor(invisibleCursor);
+        invisibleCursor = nullptr;
+    }
+
     SDL_GL_DeleteContext(glContext);
     SDL_DestroyWindow(window);
     NFD_Quit();
@@ -195,6 +208,14 @@ Editor::App& Editor::Backend::getApp() {
 }
 
 void Editor::Backend::disableMouseCursor() {
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+    io.MouseDrawCursor = false;
+
+    if (invisibleCursor) {
+        SDL_SetCursor(invisibleCursor);
+    }
+
     // TODO: cursor is not leaving the window
     SDL_ShowCursor(SDL_DISABLE);
     SDL_SetRelativeMouseMode(SDL_TRUE);
@@ -204,6 +225,10 @@ void Editor::Backend::enableMouseCursor() {
     // TODO: cursor is not leaving the window
     SDL_ShowCursor(SDL_ENABLE);
     SDL_SetRelativeMouseMode(SDL_FALSE);
+    SDL_SetCursor(SDL_GetDefaultCursor());
+
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags &= ~ImGuiConfigFlags_NoMouseCursorChange;
 }
 
 void Editor::Backend::closeWindow() {
