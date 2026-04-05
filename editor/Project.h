@@ -180,7 +180,6 @@ namespace Supernova::Editor{
 
         Entity createNewEntity(uint32_t sceneId, std::string entityName);
         bool createNewComponent(uint32_t sceneId, Entity entity, ComponentType component);
-        void deleteSceneProject(SceneProject* sceneProject);
         void calculateSceneMaxValues(const SceneProject* sceneProject, SceneMaxValues& maxValues) const;
         void collectSceneShaderKeys(const SceneProject* sceneProject, std::set<ShaderKey>& shaderKeys) const;
         void resetConfigs();
@@ -237,6 +236,7 @@ namespace Supernova::Editor{
         bool createTempProject(std::string projectName, bool deleteIfExists = false);
         bool saveProjectToPath(const std::filesystem::path& path);
         void clearTrash();
+        void deleteSceneProject(SceneProject* sceneProject);
         bool saveProject(bool userCalled = false, std::function<void()> callback = nullptr);
         bool openProject();
 

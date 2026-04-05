@@ -159,14 +159,11 @@ bool Editor::Exporter::loadAndSaveAllScenes() {
     auto saveFuture = savePromise.get_future();
 
     Backend::getApp().enqueueMainThreadTask([this, &savePromise]() {
-        uint32_t savedSelectedScene = project->getSelectedSceneId();
-        uint32_t savedSelectedForProps = project->getSelectedSceneForProperties();
-
         try {
             std::vector<uint32_t> temporarilyLoaded;
             auto& scenes = project->getScenes();
 
-            // Load all unloaded scenes
+            // Load all unloaded scenes (opened=false to avoid UI side-effects)
             for (size_t i = 0; i < scenes.size(); i++) {
                 auto& sceneProject = scenes[i];
                 if (sceneProject.filepath.empty() || sceneProject.scene) {
@@ -176,7 +173,7 @@ bool Editor::Exporter::loadAndSaveAllScenes() {
                 if (fullPath.is_relative()) {
                     fullPath = project->getProjectPath() / fullPath;
                 }
-                project->loadScene(fullPath, true, false);
+                project->loadScene(fullPath, false, false);
                 temporarilyLoaded.push_back(sceneProject.id);
             }
 
@@ -195,19 +192,14 @@ bool Editor::Exporter::loadAndSaveAllScenes() {
 
             // Unload all scenes that were not loaded before export
             for (uint32_t sceneId : temporarilyLoaded) {
-                project->closeScene(sceneId, true);
+                SceneProject* sp = project->getScene(sceneId);
+                if (sp) {
+                    project->deleteSceneProject(sp);
+                }
             }
-
-            project->setSelectedSceneId(savedSelectedScene);
-            project->setSelectedSceneForProperties(savedSelectedForProps);
-
-            // Re-save project so project.yaml reflects the original tab state
-            project->saveProject();
 
             savePromise.set_value(true);
         } catch (...) {
-            project->setSelectedSceneId(savedSelectedScene);
-            project->setSelectedSceneForProperties(savedSelectedForProps);
             savePromise.set_exception(std::current_exception());
         }
     });
