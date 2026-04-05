@@ -416,7 +416,7 @@ void ExportWindow::drawAddShaderDialog() {
 }
 
 void ExportWindow::drawProgress() {
-    const ExportProgress& progress = m_exporter.getProgress();
+    ExportProgress progress = m_exporter.getProgress();
 
     ImGui::Dummy(ImVec2(0.0f, 6.0f));
     ImGui::Text("Exporting project...");

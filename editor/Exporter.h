@@ -11,6 +11,8 @@
 #include <string>
 #include <functional>
 #include <atomic>
+#include <mutex>
+#include <thread>
 
 namespace Supernova::Editor {
 
@@ -33,14 +35,18 @@ namespace Supernova::Editor {
 
     class Exporter {
     private:
-        Project* project;
+        Project* project = nullptr;
         ExportConfig config;
         ExportProgress progress;
+        mutable std::mutex progressMutex;
+
+        std::thread exportThread;
 
         ShaderBuilder shaderBuilder;
 
         void setProgress(const std::string& step, float value);
         void setError(const std::string& message);
+        void runExport();
 
         bool checkTargetDir();
         bool cleanGenerated();
@@ -54,9 +60,11 @@ namespace Supernova::Editor {
 
     public:
         Exporter();
+        ~Exporter();
 
         void startExport(Project* project, const ExportConfig& config);
-        const ExportProgress& getProgress() const;
+        ExportProgress getProgress() const;
+        bool isRunning() const;
 
         static std::string getShaderDisplayName(ShaderType type, uint32_t properties);
         static std::string getPlatformName(Platform platform);

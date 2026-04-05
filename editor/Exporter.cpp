@@ -11,25 +11,51 @@ using namespace Supernova;
 Editor::Exporter::Exporter() {
 }
 
+Editor::Exporter::~Exporter() {
+    if (exportThread.joinable()) {
+        exportThread.join();
+    }
+}
+
 void Editor::Exporter::setProgress(const std::string& step, float value) {
+    std::lock_guard<std::mutex> lock(progressMutex);
     progress.currentStep = step;
     progress.overallProgress = value;
 }
 
 void Editor::Exporter::setError(const std::string& message) {
+    std::lock_guard<std::mutex> lock(progressMutex);
     progress.failed = true;
     progress.errorMessage = message;
     Out::error("Export failed: %s", message.c_str());
 }
 
-const Editor::ExportProgress& Editor::Exporter::getProgress() const {
+Editor::ExportProgress Editor::Exporter::getProgress() const {
+    std::lock_guard<std::mutex> lock(progressMutex);
     return progress;
 }
 
+bool Editor::Exporter::isRunning() const {
+    std::lock_guard<std::mutex> lock(progressMutex);
+    return !progress.finished && !progress.failed;
+}
+
 void Editor::Exporter::startExport(Project* proj, const ExportConfig& cfg) {
+    if (exportThread.joinable()) {
+        exportThread.join();
+    }
+
     this->project = proj;
     this->config = cfg;
-    this->progress = ExportProgress();
+    {
+        std::lock_guard<std::mutex> lock(progressMutex);
+        this->progress = ExportProgress();
+    }
+
+    exportThread = std::thread(&Exporter::runExport, this);
+}
+
+void Editor::Exporter::runExport() {
 
     if (!checkTargetDir()) return;
     if (!cleanGenerated()) return;
@@ -42,7 +68,10 @@ void Editor::Exporter::startExport(Project* proj, const ExportConfig& cfg) {
     if (!generateCMakeLists()) return;
 
     setProgress("Export complete", 1.0f);
-    progress.finished = true;
+    {
+        std::lock_guard<std::mutex> lock(progressMutex);
+        progress.finished = true;
+    }
     Out::info("Project exported successfully to: %s", config.targetDir.string().c_str());
 }
 
@@ -153,7 +182,24 @@ bool Editor::Exporter::copyAssets() {
 
     fs::create_directories(assetsDst, ec);
 
-    // Copy assets, excluding .supernova directory
+    // Collect C++ script paths to exclude from asset copy
+    std::set<fs::path> scriptPaths;
+    for (const auto& sceneProject : project->getScenes()) {
+        for (const auto& script : sceneProject.cppScripts) {
+            if (!script.path.empty()) {
+                fs::path p = script.path;
+                if (p.is_relative()) p = project->getProjectPath() / p;
+                scriptPaths.insert(fs::weakly_canonical(p, ec));
+            }
+            if (!script.headerPath.empty()) {
+                fs::path p = script.headerPath;
+                if (p.is_relative()) p = project->getProjectPath() / p;
+                scriptPaths.insert(fs::weakly_canonical(p, ec));
+            }
+        }
+    }
+
+    // Copy assets, excluding .supernova directory and C++ scripts
     for (auto& entry : fs::recursive_directory_iterator(assetsSrc, fs::directory_options::skip_permission_denied, ec)) {
         fs::path relativePath = fs::relative(entry.path(), assetsSrc, ec);
 
@@ -164,6 +210,10 @@ bool Editor::Exporter::copyAssets() {
         }
         // Skip CMakeLists.txt at root
         if (relativePath == "CMakeLists.txt") {
+            continue;
+        }
+        // Skip C++ script files (already handled by copyCppScripts)
+        if (entry.is_regular_file() && scriptPaths.count(fs::weakly_canonical(entry.path(), ec))) {
             continue;
         }
 
@@ -260,7 +310,7 @@ bool Editor::Exporter::copyEngine() {
 bool Editor::Exporter::buildAndSaveShaders() {
     setProgress("Building shaders...", 0.6f);
 
-    fs::path shadersDst = config.targetDir / "shaders";
+    fs::path shadersDst = config.targetDir / "assets" / "shaders";
 
     std::error_code ec;
     fs::create_directories(shadersDst, ec);
@@ -269,41 +319,64 @@ bool Editor::Exporter::buildAndSaveShaders() {
         return false;
     }
 
-    int total = (int)config.selectedShaderKeys.size();
+    struct ShaderFormat {
+        supershader::lang_type_t lang;
+        int version;
+        bool es;
+        supershader::platform_t platform;
+        std::string suffix;
+    };
+
+    std::vector<ShaderFormat> requiredFormats;
+    // Collect formats based on selected platforms
+    if (config.selectedPlatforms.count(Platform::Linux) || config.selectedPlatforms.count(Platform::Windows)) {
+        requiredFormats.push_back({supershader::LANG_GLSL, 410, false, supershader::PLATFORM_DEFAULT, "glsl410"});
+    }
+    if (config.selectedPlatforms.count(Platform::Android) || config.selectedPlatforms.count(Platform::Web)) {
+        requiredFormats.push_back({supershader::LANG_GLSL, 300, true, supershader::PLATFORM_DEFAULT, "glsl300es"});
+    }
+    if (config.selectedPlatforms.count(Platform::MacOS)) {
+        requiredFormats.push_back({supershader::LANG_MSL, 21, false, supershader::PLATFORM_MACOS, "msl21macos"});
+    }
+    if (config.selectedPlatforms.count(Platform::iOS)) {
+        requiredFormats.push_back({supershader::LANG_MSL, 21, false, supershader::PLATFORM_IOS, "msl21ios"});
+    }
+
+    // Default to glsl410 if no platforms require anything
+    if (requiredFormats.empty()) {
+        requiredFormats.push_back({supershader::LANG_GLSL, 410, false, supershader::PLATFORM_DEFAULT, "glsl410"});
+    }
+
+    int total = (int)config.selectedShaderKeys.size() * requiredFormats.size();
     int current = 0;
 
     for (const ShaderKey& shaderKey : config.selectedShaderKeys) {
-        float shaderProgress = 0.6f + (0.3f * (float)current / (float)std::max(total, 1));
         ShaderType type = ShaderPool::getShaderTypeFromKey(shaderKey);
         uint32_t props = ShaderPool::getPropertiesFromKey(shaderKey);
         std::string shaderStr = ShaderPool::getShaderStr(type, props);
 
-        setProgress("Building shader: " + shaderStr, shaderProgress);
+        for (const auto& fmt : requiredFormats) {
+            float shaderProgress = 0.6f + (0.3f * (float)current / (float)std::max(total, 1));
+            std::string fmtStr = fmt.suffix;
+            setProgress("Building shader: " + shaderStr + " (" + fmtStr + ")", shaderProgress);
 
-        // Build shader synchronously
-        ShaderBuildResult result = shaderBuilder.buildShader(shaderKey, project);
+            try {
+                // Synchronous build without cache
+                ShaderData resultData = shaderBuilder.buildShaderForExport(shaderKey, fmt.lang, fmt.version, fmt.es, fmt.platform);
 
-        // If loading asynchronously, poll until done
-        while (result.state == ResourceLoadState::Loading) {
-            result = shaderBuilder.buildShader(shaderKey, project);
-        }
+                std::string filename = shaderStr + "_" + fmtStr + ".sdat";
+                fs::path outputPath = shadersDst / filename;
 
-        if (result.state != ResourceLoadState::Finished) {
-            Out::warning("Failed to build shader: %s, skipping", shaderStr.c_str());
+                std::string err;
+                if (!ShaderDataSerializer::writeToFile(outputPath.string(), shaderKey, resultData, &err)) {
+                    Out::warning("Failed to save shader %s: %s", filename.c_str(), err.c_str());
+                }
+            } catch (const std::exception& e) {
+                Out::warning("Failed to build shader %s (%s): %s", shaderStr.c_str(), fmtStr.c_str(), e.what());
+            }
+
             current++;
-            continue;
         }
-
-        // Save as .sdat in target shaders directory
-        std::string filename = shaderStr + "_glsl410.sdat";
-        fs::path outputPath = shadersDst / filename;
-
-        std::string err;
-        if (!ShaderDataSerializer::writeToFile(outputPath.string(), shaderKey, result.data, &err)) {
-            Out::warning("Failed to save shader %s: %s", shaderStr.c_str(), err.c_str());
-        }
-
-        current++;
     }
 
     return true;
@@ -404,7 +477,7 @@ bool Editor::Exporter::generateCMakeLists() {
     cmakeContent += "endif()\n\n";
 
     // Include directories
-    std::string engineApiPath = "${CMAKE_CURRENT_SOURCE_DIR}/engine-api";
+    std::string engineApiPath = "${CMAKE_CURRENT_SOURCE_DIR}/engine";
     cmakeContent += "target_include_directories(" + libName + " ${SUPERNOVA_LIB_SYSTEM} PRIVATE\n";
     cmakeContent += scriptDirs;
     cmakeContent += "    " + engineApiPath + "\n";

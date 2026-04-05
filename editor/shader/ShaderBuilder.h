@@ -50,6 +50,9 @@ namespace Supernova::Editor {
         void addPointsPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop);
         void addLinesPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop);
 
+        bool setupShaderArgs(supershader::args_t& args, ShaderType shaderType, uint32_t properties);
+        std::string getLangSuffix(supershader::lang_type_t lang, int version, bool es, supershader::platform_t platform);
+
         ShaderData buildShaderInternal(ShaderKey shaderKey, Project* project);
         std::string getShaderDisplayName(ShaderKey key);
 
@@ -60,6 +63,7 @@ namespace Supernova::Editor {
         virtual ~ShaderBuilder();
 
         ShaderBuildResult buildShader(ShaderKey shaderKey, Project* project);
+        ShaderData buildShaderForExport(ShaderKey shaderKey, supershader::lang_type_t lang, int version, bool es, supershader::platform_t platform = supershader::PLATFORM_DEFAULT);
 
         static void requestShutdown();
 

@@ -350,23 +350,7 @@ void Editor::ShaderBuilder::requestShutdown() {
     pendingBuilds.clear();
 }
 
-ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey, Project* project){
-    if (shutdownRequested) {
-        throw std::runtime_error("Shutdown requested");
-    }
-    ResourceProgress::updateProgress(shaderKey, 0.1f); // Starting
-
-    ShaderType shaderType = ShaderPool::getShaderTypeFromKey(shaderKey);
-    uint32_t properties = ShaderPool::getPropertiesFromKey(shaderKey);
-
-    std::vector<supershader::input_t> inputs;
-    supershader::args_t args = supershader::initialize_args();
-    args.isValid = true;
-    args.useBuffers = true;
-    args.fileBuffers = Editor::shaderMap;
-    args.lang = supershader::LANG_GLSL;
-    args.version = 410;
-
+bool Editor::ShaderBuilder::setupShaderArgs(supershader::args_t& args, ShaderType shaderType, uint32_t properties) {
     if (shaderType == ShaderType::MESH){
         args.vert_file = "mesh.vert";
         args.frag_file = "mesh.frag";
@@ -390,6 +374,8 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey, Proje
     }else if (shaderType == ShaderType::SKYBOX){
         args.vert_file = "sky.vert";
         args.frag_file = "sky.frag";
+    }else{
+        return false;
     }
 
     if (shaderType == ShaderType::MESH){
@@ -401,6 +387,42 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey, Proje
     }
     if (shaderType == ShaderType::DEPTH){
         args.defines.push_back({"MAX_BONES", "70"});
+    }
+
+    return true;
+}
+
+std::string Editor::ShaderBuilder::getLangSuffix(supershader::lang_type_t lang, int version, bool es, supershader::platform_t platform) {
+    if (lang == supershader::LANG_GLSL) {
+        return es ? "_glsl" + std::to_string(version) + "es" : "_glsl" + std::to_string(version);
+    } else if (lang == supershader::LANG_HLSL) {
+        return "_hlsl" + std::to_string(version);
+    } else if (lang == supershader::LANG_MSL) {
+        return (platform == supershader::PLATFORM_IOS) ? "_msl" + std::to_string(version) + "ios" : "_msl" + std::to_string(version) + "macos";
+    }
+    return "";
+}
+
+ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey, Project* project){
+    if (shutdownRequested) {
+        throw std::runtime_error("Shutdown requested");
+    }
+    ResourceProgress::updateProgress(shaderKey, 0.1f); // Starting
+
+    ShaderType shaderType = ShaderPool::getShaderTypeFromKey(shaderKey);
+    uint32_t properties = ShaderPool::getPropertiesFromKey(shaderKey);
+
+    std::vector<supershader::input_t> inputs;
+    supershader::args_t args = supershader::initialize_args();
+    args.isValid = true;
+    args.useBuffers = true;
+    args.fileBuffers = Editor::shaderMap;
+    args.lang = supershader::LANG_GLSL;
+    args.version = 410;
+
+    if (!setupShaderArgs(args, shaderType, properties)) {
+        ResourceProgress::failBuild(shaderKey);
+        throw std::runtime_error("Unknown shader type");
     }
 
     if (shutdownRequested) {
@@ -446,7 +468,7 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey, Proje
     ResourceProgress::updateProgress(shaderKey, 0.9f); // Cross-compilation done
 
     // Use a deterministic basename for stage naming and disk cache
-    args.output_basename = ShaderPool::getShaderStr(shaderType, properties) + "_glsl410";
+    args.output_basename = ShaderPool::getShaderStr(shaderType, properties) + getLangSuffix(args.lang, args.version, args.es, args.platform);
     ShaderData shaderData = convertToShaderData(spirvcrossvec, inputs, args);
 
     if (shutdownRequested) {
@@ -527,4 +549,44 @@ std::string Editor::ShaderBuilder::getShaderDisplayName(ShaderKey key) {
 ShaderData& Editor::ShaderBuilder::getShaderData(ShaderKey shaderKey) { 
     std::lock_guard<std::mutex> lock(cacheMutex);
     return shaderDataCache[shaderKey]; 
+}
+
+ShaderData Editor::ShaderBuilder::buildShaderForExport(ShaderKey shaderKey, supershader::lang_type_t lang, int version, bool es, supershader::platform_t platform) {
+    ShaderType shaderType = ShaderPool::getShaderTypeFromKey(shaderKey);
+    uint32_t properties = ShaderPool::getPropertiesFromKey(shaderKey);
+
+    std::vector<supershader::input_t> inputs;
+    supershader::args_t args = supershader::initialize_args();
+    args.isValid = true;
+    args.useBuffers = true;
+    args.fileBuffers = Editor::shaderMap;
+    args.lang = lang;
+    args.version = version;
+    args.es = es;
+    args.platform = platform;
+
+    if (!setupShaderArgs(args, shaderType, properties)) {
+        throw std::runtime_error("Unknown shader type");
+    }
+
+    if (!supershader::load_input(inputs, args)) {
+        throw std::runtime_error("Error loading shader input");
+    }
+
+    std::vector<supershader::spirv_t> spirvvec;
+    spirvvec.resize(inputs.size());
+    if (!supershader::compile_to_spirv(spirvvec, inputs, args)) {
+        throw std::runtime_error("Error compiling to SPIRV");
+    }
+
+    std::vector<supershader::spirvcross_t> spirvcrossvec;
+    spirvcrossvec.resize(inputs.size());
+    if (!supershader::compile_to_lang(spirvcrossvec, spirvvec, inputs, args)) {
+        throw std::runtime_error("Error cross-compiling");
+    }
+
+    args.output_basename = ShaderPool::getShaderStr(shaderType, properties) + getLangSuffix(lang, version, es, platform);
+    ShaderData shaderData = convertToShaderData(spirvcrossvec, inputs, args);
+
+    return shaderData;
 }
