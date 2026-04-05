@@ -1,10 +1,15 @@
 #include "Exporter.h"
 #include "App.h"
+#include "Backend.h"
 #include "Out.h"
 #include "util/FileUtils.h"
 #include "pool/ShaderPool.h"
 
 #include <fstream>
+
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
 
 using namespace Supernova;
 
@@ -12,6 +17,7 @@ Editor::Exporter::Exporter() {
 }
 
 Editor::Exporter::~Exporter() {
+    cancelRequested.store(true);
     if (exportThread.joinable()) {
         exportThread.join();
     }
@@ -37,7 +43,15 @@ Editor::ExportProgress Editor::Exporter::getProgress() const {
 
 bool Editor::Exporter::isRunning() const {
     std::lock_guard<std::mutex> lock(progressMutex);
-    return !progress.finished && !progress.failed;
+    return progress.started && !progress.finished && !progress.failed;
+}
+
+void Editor::Exporter::cancelExport() {
+    cancelRequested.store(true);
+}
+
+bool Editor::Exporter::isCancelled() const {
+    return cancelRequested.load();
 }
 
 void Editor::Exporter::startExport(Project* proj, const ExportConfig& cfg) {
@@ -47,24 +61,36 @@ void Editor::Exporter::startExport(Project* proj, const ExportConfig& cfg) {
 
     this->project = proj;
     this->config = cfg;
+    cancelRequested.store(false);
     {
         std::lock_guard<std::mutex> lock(progressMutex);
         this->progress = ExportProgress();
+        this->progress.started = true;
     }
 
+    // Launch export process in a separate thread so UI does not block
     exportThread = std::thread(&Exporter::runExport, this);
 }
 
 void Editor::Exporter::runExport() {
-
     if (!checkTargetDir()) return;
-    if (!cleanGenerated()) return;
-    if (!saveAllScenes()) return;
+    if (isCancelled()) { setError("Export cancelled"); return; }
+    if (!clearGenerated()) return;
+    if (isCancelled()) { setError("Export cancelled"); return; }
+    if (!loadAndSaveAllScenes()) return;
+    if (isCancelled()) { setError("Export cancelled"); return; }
     if (!copyGenerated()) return;
+    if (isCancelled()) { setError("Export cancelled"); return; }
     if (!copyAssets()) return;
+    if (isCancelled()) { setError("Export cancelled"); return; }
+    if (!copyLua()) return;
+    if (isCancelled()) { setError("Export cancelled"); return; }
     if (!copyCppScripts()) return;
+    if (isCancelled()) { setError("Export cancelled"); return; }
     if (!copyEngine()) return;
+    if (isCancelled()) { setError("Export cancelled"); return; }
     if (!buildAndSaveShaders()) return;
+    if (isCancelled()) { setError("Export cancelled"); return; }
     if (!generateCMakeLists()) return;
 
     setProgress("Export complete", 1.0f);
@@ -73,6 +99,10 @@ void Editor::Exporter::runExport() {
         progress.finished = true;
     }
     Out::info("Project exported successfully to: %s", config.targetDir.string().c_str());
+}
+
+fs::path Editor::Exporter::getExportProjectRoot() const {
+    return config.targetDir / "project";
 }
 
 bool Editor::Exporter::checkTargetDir() {
@@ -100,8 +130,8 @@ bool Editor::Exporter::checkTargetDir() {
     return true;
 }
 
-bool Editor::Exporter::cleanGenerated() {
-    setProgress("Cleaning generated directory...", 0.05f);
+bool Editor::Exporter::clearGenerated() {
+    setProgress("Clearing generated directory...", 0.05f);
 
     fs::path generatedDir = project->getProjectInternalPath() / "generated";
 
@@ -109,7 +139,7 @@ bool Editor::Exporter::cleanGenerated() {
     if (fs::exists(generatedDir, ec)) {
         fs::remove_all(generatedDir, ec);
         if (ec) {
-            setError("Failed to clean generated directory: " + ec.message());
+            setError("Failed to clear generated directory: " + ec.message());
             return false;
         }
     }
@@ -122,18 +152,71 @@ bool Editor::Exporter::cleanGenerated() {
     return true;
 }
 
-bool Editor::Exporter::saveAllScenes() {
-    setProgress("Saving all scenes...", 0.1f);
+bool Editor::Exporter::loadAndSaveAllScenes() {
+    setProgress("Saving scene sources...", 0.1f);
 
-    for (auto& sceneProject : project->getScenes()) {
-        if (!sceneProject.scene) {
-            continue; // scene not loaded, already saved on disk
+    std::promise<bool> savePromise;
+    auto saveFuture = savePromise.get_future();
+
+    Backend::getApp().enqueueMainThreadTask([this, &savePromise]() {
+        uint32_t savedSelectedScene = project->getSelectedSceneId();
+        uint32_t savedSelectedForProps = project->getSelectedSceneForProperties();
+
+        try {
+            std::vector<uint32_t> temporarilyLoaded;
+            auto& scenes = project->getScenes();
+
+            // Load all unloaded scenes
+            for (size_t i = 0; i < scenes.size(); i++) {
+                auto& sceneProject = scenes[i];
+                if (sceneProject.filepath.empty() || sceneProject.scene) {
+                    continue;
+                }
+                fs::path fullPath = sceneProject.filepath;
+                if (fullPath.is_relative()) {
+                    fullPath = project->getProjectPath() / fullPath;
+                }
+                project->loadScene(fullPath, true, false);
+                temporarilyLoaded.push_back(sceneProject.id);
+            }
+
+            // Save all scenes to regenerate their .cpp sources
+            for (size_t i = 0; i < scenes.size(); i++) {
+                auto& sceneProject = scenes[i];
+                if (sceneProject.filepath.empty() || !sceneProject.scene) {
+                    continue;
+                }
+                fs::path fullPath = sceneProject.filepath;
+                if (fullPath.is_relative()) {
+                    fullPath = project->getProjectPath() / fullPath;
+                }
+                project->saveSceneToPath(sceneProject.id, fullPath);
+            }
+
+            // Unload all scenes that were not loaded before export
+            for (uint32_t sceneId : temporarilyLoaded) {
+                project->closeScene(sceneId, true);
+            }
+
+            project->setSelectedSceneId(savedSelectedScene);
+            project->setSelectedSceneForProperties(savedSelectedForProps);
+
+            // Re-save project so project.yaml reflects the original tab state
+            project->saveProject();
+
+            savePromise.set_value(true);
+        } catch (...) {
+            project->setSelectedSceneId(savedSelectedScene);
+            project->setSelectedSceneForProperties(savedSelectedForProps);
+            savePromise.set_exception(std::current_exception());
         }
-        fs::path fullPath = sceneProject.filepath;
-        if (fullPath.is_relative()) {
-            fullPath = project->getProjectPath() / fullPath;
-        }
-        project->saveSceneToPath(sceneProject.id, fullPath);
+    });
+
+    try {
+        saveFuture.get();
+    } catch (const std::exception& e) {
+        setError(std::string("Scene save failed: ") + e.what());
+        return false;
     }
 
     return true;
@@ -143,22 +226,97 @@ bool Editor::Exporter::copyGenerated() {
     setProgress("Copying generated files...", 0.2f);
 
     fs::path generatedSrc = project->getProjectInternalPath() / "generated";
-    fs::path generatedDst = config.targetDir / "generated";
+    fs::path generatedDst = getExportProjectRoot();
 
     std::error_code ec;
+    fs::create_directories(generatedDst, ec);
+
+    // Exclude editor-specific platform files; main.cpp is handled separately below
+    static const std::set<std::string> excludedFiles = {
+        "main.cpp", "PlatformEditor.h", "PlatformEditor.cpp"
+    };
+
     if (fs::exists(generatedSrc, ec)) {
-        fs::copy(generatedSrc, generatedDst, fs::copy_options::recursive | fs::copy_options::overwrite_existing, ec);
-        if (ec) {
-            setError("Failed to copy generated directory: " + ec.message());
+        for (auto& entry : fs::recursive_directory_iterator(generatedSrc, fs::directory_options::skip_permission_denied, ec)) {
+            fs::path relativePath = fs::relative(entry.path(), generatedSrc, ec);
+
+            if (entry.is_regular_file() && excludedFiles.count(relativePath.filename().string())) {
+                continue;
+            }
+
+            fs::path destPath = generatedDst / relativePath;
+            if (entry.is_directory()) {
+                fs::create_directories(destPath, ec);
+            } else if (entry.is_regular_file()) {
+                fs::create_directories(destPath.parent_path(), ec);
+                fs::copy_file(entry.path(), destPath, fs::copy_options::overwrite_existing, ec);
+            }
+        }
+    }
+
+    // Process main.cpp: copy from Generator output but strip editor-specific parts
+    fs::path mainSrc = generatedSrc / "main.cpp";
+    if (fs::exists(mainSrc, ec)) {
+        std::ifstream ifs(mainSrc, std::ios::in | std::ios::binary);
+        if (!ifs) {
+            setError("Failed to read generated main.cpp");
             return false;
         }
+        std::string content((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+        ifs.close();
+
+        // Remove #include "PlatformEditor.h"
+        std::string platformInclude = "#include \"PlatformEditor.h\"\n";
+        size_t pos = content.find(platformInclude);
+        if (pos != std::string::npos) {
+            content.erase(pos, platformInclude.size());
+        }
+
+        // Remove int main(...) { ... } function (platform provides its own entry point)
+        pos = content.find("int main(");
+        if (pos != std::string::npos) {
+            size_t endPos = content.find("\n}\n", pos);
+            if (endPos != std::string::npos) {
+                endPos += 3; // include "}\n"
+                while (endPos < content.size() && content[endPos] == '\n') endPos++;
+                content.erase(pos, endPos - pos);
+            }
+        }
+
+        // Update start scene if user selected one
+        if (config.startSceneId != 0) {
+            std::string startSceneName;
+            for (const auto& sceneProject : project->getScenes()) {
+                if (sceneProject.id == config.startSceneId) {
+                    startSceneName = sceneProject.name;
+                    break;
+                }
+            }
+            if (!startSceneName.empty()) {
+                std::string loadPrefix = "SceneManager::loadScene(\"";
+                pos = content.find(loadPrefix);
+                if (pos != std::string::npos) {
+                    size_t nameStart = pos + loadPrefix.size();
+                    size_t nameEnd = content.find("\")", nameStart);
+                    if (nameEnd != std::string::npos) {
+                        content.replace(nameStart, nameEnd - nameStart, startSceneName);
+                    }
+                }
+            }
+        }
+
+        FileUtils::writeIfChanged(generatedDst / "main.cpp", content);
     }
 
     // Also copy scene_scripts.cpp
     fs::path sceneScriptsSrc = project->getProjectInternalPath() / "scene_scripts.cpp";
     if (fs::exists(sceneScriptsSrc, ec)) {
-        fs::copy_file(sceneScriptsSrc, config.targetDir / "generated" / "scene_scripts.cpp",
+        fs::copy_file(sceneScriptsSrc, generatedDst / "scene_scripts.cpp",
                       fs::copy_options::overwrite_existing, ec);
+        if (ec) {
+            setError("Failed to copy scene_scripts.cpp: " + ec.message());
+            return false;
+        }
     }
 
     return true;
@@ -168,7 +326,7 @@ bool Editor::Exporter::copyAssets() {
     setProgress("Copying assets...", 0.3f);
 
     fs::path assetsSrc = config.assetsDir;
-    fs::path assetsDst = config.targetDir / "assets";
+    fs::path assetsDst = getExportProjectRoot() / "assets";
 
     if (assetsSrc.empty()) {
         assetsSrc = project->getProjectPath();
@@ -203,9 +361,9 @@ bool Editor::Exporter::copyAssets() {
     for (auto& entry : fs::recursive_directory_iterator(assetsSrc, fs::directory_options::skip_permission_denied, ec)) {
         fs::path relativePath = fs::relative(entry.path(), assetsSrc, ec);
 
-        // Skip .supernova internal directory and hidden dirs
+        // Skip hidden directories (starting with '.')
         std::string firstComponent = relativePath.begin()->string();
-        if (firstComponent == ".supernova" || firstComponent == ".vscode" || firstComponent == ".git") {
+        if (!firstComponent.empty() && firstComponent[0] == '.') {
             continue;
         }
         // Skip CMakeLists.txt at root
@@ -229,10 +387,35 @@ bool Editor::Exporter::copyAssets() {
     return true;
 }
 
+bool Editor::Exporter::copyLua() {
+    setProgress("Copying Lua scripts...", 0.35f);
+
+    fs::path luaSrc = config.luaDir;
+    if (luaSrc.empty()) {
+        return true; // No Lua directory configured, skip
+    }
+
+    std::error_code ec;
+    if (!fs::exists(luaSrc, ec)) {
+        return true; // Lua directory doesn't exist, not an error
+    }
+
+    fs::path luaDst = getExportProjectRoot() / "lua";
+    fs::create_directories(luaDst, ec);
+
+    fs::copy(luaSrc, luaDst, fs::copy_options::recursive | fs::copy_options::overwrite_existing, ec);
+    if (ec) {
+        setError("Failed to copy Lua directory: " + ec.message());
+        return false;
+    }
+
+    return true;
+}
+
 bool Editor::Exporter::copyCppScripts() {
     setProgress("Copying C++ scripts...", 0.4f);
 
-    fs::path scriptsDst = config.targetDir / "scripts";
+    fs::path scriptsDst = getExportProjectRoot() / "scripts";
 
     std::error_code ec;
     std::set<std::string> copiedPaths;
@@ -286,13 +469,44 @@ bool Editor::Exporter::copyEngine() {
 #ifdef _WIN32
     char exePath[MAX_PATH];
     GetModuleFileNameA(nullptr, exePath, MAX_PATH);
-    fs::path engineSrc = fs::path(exePath).parent_path() / "engine";
+    fs::path exeDir = fs::path(exePath).parent_path();
+#elif defined(__APPLE__)
+    char exePath[PATH_MAX];
+    uint32_t size = sizeof(exePath);
+    _NSGetExecutablePath(exePath, &size);
+    fs::path exeDir = fs::canonical(exePath).parent_path();
 #else
-    fs::path engineSrc = fs::canonical("/proc/self/exe").parent_path() / "engine";
+    fs::path exeDir = fs::canonical("/proc/self/exe").parent_path();
 #endif
-    fs::path engineDst = config.targetDir / "engine";
+
+    fs::path sdkRoot;
+    const std::vector<fs::path> sdkCandidates = {
+        exeDir / "supernova",
+        exeDir.parent_path() / "supernova",
+        exeDir
+    };
 
     std::error_code ec;
+    for (const auto& candidate : sdkCandidates) {
+        if (fs::exists(candidate / "engine" / "CMakeLists.txt", ec)) {
+            sdkRoot = candidate;
+            break;
+        }
+    }
+
+    if (sdkRoot.empty()) {
+        setError("Supernova SDK root not found near executable");
+        return false;
+    }
+
+    fs::path engineSrc = sdkRoot / "engine";
+    fs::path platformSrc = sdkRoot / "platform";
+    fs::path workspacesSrc = sdkRoot / "workspaces";
+
+    fs::path engineDst = config.targetDir / "engine";
+    fs::path platformDst = config.targetDir / "platform";
+    fs::path workspacesDst = config.targetDir / "workspaces";
+
     if (fs::exists(engineSrc, ec)) {
         fs::copy(engineSrc, engineDst, fs::copy_options::recursive | fs::copy_options::overwrite_existing, ec);
         if (ec) {
@@ -304,13 +518,31 @@ bool Editor::Exporter::copyEngine() {
         return false;
     }
 
+    if (fs::exists(platformSrc, ec)) {
+        ec.clear();
+        fs::copy(platformSrc, platformDst, fs::copy_options::recursive | fs::copy_options::overwrite_existing, ec);
+        if (ec) {
+            setError("Failed to copy platform directory: " + ec.message());
+            return false;
+        }
+    }
+
+    if (fs::exists(workspacesSrc, ec)) {
+        ec.clear();
+        fs::copy(workspacesSrc, workspacesDst, fs::copy_options::recursive | fs::copy_options::overwrite_existing, ec);
+        if (ec) {
+            setError("Failed to copy workspaces directory: " + ec.message());
+            return false;
+        }
+    }
+
     return true;
 }
 
 bool Editor::Exporter::buildAndSaveShaders() {
     setProgress("Building shaders...", 0.6f);
 
-    fs::path shadersDst = config.targetDir / "assets" / "shaders";
+    fs::path shadersDst = getExportProjectRoot() / "assets" / "shaders";
 
     std::error_code ec;
     fs::create_directories(shadersDst, ec);
@@ -385,153 +617,498 @@ bool Editor::Exporter::buildAndSaveShaders() {
 bool Editor::Exporter::generateCMakeLists() {
     setProgress("Generating CMakeLists.txt...", 0.9f);
 
-    std::string libName = "supernovaproject";
+    std::string cmakeContent = R"CMAKE(# This file is auto-generated by Supernova Editor Export. Do not edit manually.
 
-    // Collect script sources
-    std::string scriptSources = "set(SCRIPT_SOURCES\n";
-    std::set<std::string> scriptIncludeDirs;
+cmake_minimum_required(VERSION 3.15)
 
-    for (const auto& sceneProject : project->getScenes()) {
-        for (const auto& script : sceneProject.cppScripts) {
-            if (!script.path.empty()) {
-                fs::path relPath = script.path;
-                scriptSources += "    ${CMAKE_CURRENT_SOURCE_DIR}/scripts/" + relPath.generic_string() + "\n";
-            }
-            if (!script.headerPath.empty()) {
-                scriptIncludeDirs.insert("    ${CMAKE_CURRENT_SOURCE_DIR}/scripts\n");
-            }
-        }
-    }
-    scriptSources += ")\n";
+if(NOT DEFINED APP_NAME)
+   set(APP_NAME supernova-project)
+endif()
 
-    // Collect factory sources from generated directory
-    std::string factorySources = "set(FACTORY_SOURCES\n";
-    std::error_code ec;
-    fs::path generatedDst = config.targetDir / "generated";
-    if (fs::exists(generatedDst, ec)) {
-        for (auto& entry : fs::directory_iterator(generatedDst, ec)) {
-            if (entry.is_regular_file() && entry.path().extension() == ".cpp") {
-                std::string filename = entry.path().filename().string();
-                if (filename != "scene_scripts.cpp" && filename != "PlatformEditor.cpp" && filename != "main.cpp") {
-                    factorySources += "    ${CMAKE_CURRENT_SOURCE_DIR}/generated/" + filename + "\n";
-                }
-            }
-        }
-    }
-    factorySources += ")\n";
+project(${APP_NAME})
 
-    std::string scriptDirs;
-    for (const auto& dir : scriptIncludeDirs) {
-        scriptDirs += dir;
-    }
+set(SUPERNOVA_SHARED OFF)
 
-    std::string cmakeContent;
-    cmakeContent += "# This file is auto-generated by Supernova Editor Export. Do not edit manually.\n\n";
-    cmakeContent += "cmake_minimum_required(VERSION 3.15)\n";
-    cmakeContent += "project(" + libName + ")\n\n";
-    cmakeContent += "# Specify C++ standard\n";
-    cmakeContent += "set(CMAKE_CXX_STANDARD 17)\n";
-    cmakeContent += "set(CMAKE_CXX_STANDARD_REQUIRED ON)\n\n";
+if(NOT SUPERNOVA_ROOT)
+    set(SUPERNOVA_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
+endif()
+if (NOT EXISTS "${SUPERNOVA_ROOT}")
+    message(FATAL_ERROR "Can't find Supernova root directory: ${SUPERNOVA_ROOT}")
+endif()
+file(TO_CMAKE_PATH ${SUPERNOVA_ROOT} SUPERNOVA_ROOT)
 
-    // Platform configuration
-    cmakeContent += "add_definitions(\"-DDEFAULT_WINDOW_WIDTH=960\")\n";
-    cmakeContent += "add_definitions(\"-DDEFAULT_WINDOW_HEIGHT=540\")\n\n";
-    cmakeContent += "set(COMPILE_ZLIB OFF)\n";
-    cmakeContent += "set(IS_ARM OFF)\n\n";
-    cmakeContent += "add_definitions(\"-DSOKOL_GLCORE\")\n";
-    cmakeContent += "add_definitions(\"-DWITH_MINIAUDIO\")\n\n";
+if(NOT PROJECT_ROOT)
+    set(PROJECT_ROOT ${SUPERNOVA_ROOT}/project)
+endif()
+if (NOT EXISTS "${PROJECT_ROOT}")
+    message(FATAL_ERROR "Can't find project root directory: ${PROJECT_ROOT}")
+endif()
+file(TO_CMAKE_PATH ${PROJECT_ROOT} PROJECT_ROOT)
 
-    cmakeContent += "list(APPEND PLATFORM_SOURCE\n";
-    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/generated/PlatformEditor.cpp\n";
-    cmakeContent += "    ${CMAKE_CURRENT_SOURCE_DIR}/generated/main.cpp\n";
-    cmakeContent += ")\n\n";
+add_definitions("-DDEFAULT_WINDOW_WIDTH=960")
+add_definitions("-DDEFAULT_WINDOW_HEIGHT=540")
 
-    cmakeContent += "list(APPEND PLATFORM_LIBS\n";
-    cmakeContent += "    GL dl m glfw\n";
-    cmakeContent += ")\n\n";
+if(NOT GRAPHIC_BACKEND)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+        set(GRAPHIC_BACKEND "gles3")
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
+        set(GRAPHIC_BACKEND "gles3")
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+        set(GRAPHIC_BACKEND "d3d11")
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        set(GRAPHIC_BACKEND "glcore")
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+        set(GRAPHIC_BACKEND "glcore")
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+        set(GRAPHIC_BACKEND "metal")
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+        set(GRAPHIC_BACKEND "metal")
+    else()
+        message(FATAL_ERROR "GRAPHIC_BACKEND is not set")
+    endif()
+endif()
+message(STATUS "Graphic backend is set to ${GRAPHIC_BACKEND}")
 
-    cmakeContent += scriptSources + "\n";
-    cmakeContent += factorySources + "\n";
-    cmakeContent += "set(PROJECT_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/generated/scene_scripts.cpp)\n\n";
+if(NOT APP_BACKEND)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+        set(APP_BACKEND "emscripten")
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
+        set(APP_BACKEND "android")
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+        set(APP_BACKEND "sokol")
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        set(APP_BACKEND "glfw")
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+        set(APP_BACKEND "glfw")
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+        if (CMAKE_GENERATOR STREQUAL "Xcode")
+            set(APP_BACKEND "apple")
+        else()
+            set(APP_BACKEND "sokol")
+        endif()
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+        set(APP_BACKEND "apple")
+    else()
+        message(FATAL_ERROR "APP_BACKEND is not set")
+    endif()
+endif()
+message(STATUS "Application backend is set to ${APP_BACKEND}")
 
-    // Executable target
-    cmakeContent += "if(NOT CMAKE_SYSTEM_NAME STREQUAL \"Android\")\n";
-    cmakeContent += "    add_executable(" + libName + "\n";
-    cmakeContent += "        ${PROJECT_SOURCE}\n";
-    cmakeContent += "        ${SCRIPT_SOURCES}\n";
-    cmakeContent += "        ${FACTORY_SOURCES}\n";
-    cmakeContent += "        ${PLATFORM_SOURCE}\n";
-    cmakeContent += "    )\n";
-    cmakeContent += "else()\n";
-    cmakeContent += "    add_library(" + libName + " SHARED\n";
-    cmakeContent += "        ${PROJECT_SOURCE}\n";
-    cmakeContent += "        ${SCRIPT_SOURCES}\n";
-    cmakeContent += "        ${FACTORY_SOURCES}\n";
-    cmakeContent += "        ${PLATFORM_SOURCE}\n";
-    cmakeContent += "    )\n";
-    cmakeContent += "endif()\n\n";
+set(COMPILE_ZLIB OFF)
+set(IS_ARM OFF)
 
-    // Suppress warnings in release
-    cmakeContent += "if(NOT CMAKE_BUILD_TYPE STREQUAL \"Debug\")\n";
-    cmakeContent += "    set(SUPERNOVA_LIB_SYSTEM SYSTEM)\n";
-    cmakeContent += "endif()\n\n";
+set(PLATFORM_EXEC_FLAGS)
+set(PLATFORM_ROOT)
+set(PLATFORM_SOURCE)
+set(PLATFORM_LIBS)
+set(PLATFORM_RESOURCES)
+set(PLATFORM_PROPERTIES)
+set(PLATFORM_OPTIONS)
 
-    // Include directories
-    std::string engineApiPath = "${CMAKE_CURRENT_SOURCE_DIR}/engine";
-    cmakeContent += "target_include_directories(" + libName + " ${SUPERNOVA_LIB_SYSTEM} PRIVATE\n";
-    cmakeContent += scriptDirs;
-    cmakeContent += "    " + engineApiPath + "\n";
-    cmakeContent += "    " + engineApiPath + "/libs/sokol\n";
-    cmakeContent += "    " + engineApiPath + "/libs/box2d/include\n";
-    cmakeContent += "    " + engineApiPath + "/libs/joltphysics\n";
-    cmakeContent += "    " + engineApiPath + "/renders\n";
-    cmakeContent += "    " + engineApiPath + "/core\n";
-    cmakeContent += "    " + engineApiPath + "/core/action\n";
-    cmakeContent += "    " + engineApiPath + "/core/buffer\n";
-    cmakeContent += "    " + engineApiPath + "/core/component\n";
-    cmakeContent += "    " + engineApiPath + "/core/ecs\n";
-    cmakeContent += "    " + engineApiPath + "/core/io\n";
-    cmakeContent += "    " + engineApiPath + "/core/manager\n";
-    cmakeContent += "    " + engineApiPath + "/core/math\n";
-    cmakeContent += "    " + engineApiPath + "/core/object\n";
-    cmakeContent += "    " + engineApiPath + "/core/object/audio\n";
-    cmakeContent += "    " + engineApiPath + "/core/object/ui\n";
-    cmakeContent += "    " + engineApiPath + "/core/object/environment\n";
-    cmakeContent += "    " + engineApiPath + "/core/object/physics\n";
-    cmakeContent += "    " + engineApiPath + "/core/pool\n";
-    cmakeContent += "    " + engineApiPath + "/core/registry\n";
-    cmakeContent += "    " + engineApiPath + "/core/render\n";
-    cmakeContent += "    " + engineApiPath + "/core/script\n";
-    cmakeContent += "    " + engineApiPath + "/core/shader\n";
-    cmakeContent += "    " + engineApiPath + "/core/subsystem\n";
-    cmakeContent += "    " + engineApiPath + "/core/texture\n";
-    cmakeContent += "    " + engineApiPath + "/core/util\n";
-    cmakeContent += ")\n\n";
+find_package(Threads REQUIRED)
 
-    // Supernova library
-    cmakeContent += "# Set SUPERNOVA_LIB_DIR to the directory containing the Supernova library\n";
-    cmakeContent += "if(NOT DEFINED SUPERNOVA_LIB_DIR OR SUPERNOVA_LIB_DIR STREQUAL \"\")\n";
-    cmakeContent += "    message(FATAL_ERROR \"SUPERNOVA_LIB_DIR must be set to the directory containing the Supernova library\")\n";
-    cmakeContent += "endif()\n\n";
-    cmakeContent += "find_library(SUPERNOVA_LIB supernova PATHS ${SUPERNOVA_LIB_DIR} NO_DEFAULT_PATH)\n";
-    cmakeContent += "if(NOT SUPERNOVA_LIB)\n";
-    cmakeContent += "    message(FATAL_ERROR \"Supernova library not found in ${SUPERNOVA_LIB_DIR}\")\n";
-    cmakeContent += "endif()\n\n";
-    cmakeContent += "target_link_libraries(" + libName + " PRIVATE ${SUPERNOVA_LIB} ${PLATFORM_LIBS})\n\n";
+if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+    add_definitions("-DSUPERNOVA_WEB")
 
-    // Compile options
-    cmakeContent += "if(MSVC)\n";
-    cmakeContent += "    target_compile_options(" + libName + " PRIVATE /W4 /EHsc)\n";
-    cmakeContent += "else()\n";
-    cmakeContent += "    target_compile_options(" + libName + " PRIVATE -Wall -Wextra -fPIC)\n";
-    cmakeContent += "endif()\n\n";
+    if(GRAPHIC_BACKEND STREQUAL "gles3")
+        add_definitions("-DSOKOL_GLES3")
+        set(USE_WEBGL2 "-s USE_WEBGL2=1")
+    endif()
 
-    // Output properties
-    cmakeContent += "set_target_properties(" + libName + " PROPERTIES\n";
-    cmakeContent += "    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}\n";
-    cmakeContent += "    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}\n";
-    cmakeContent += "    OUTPUT_NAME \"" + libName + "\"\n";
-    cmakeContent += ")\n";
+    add_definitions("-DWITH_MINIAUDIO")
+
+    set(CMAKE_EXECUTABLE_SUFFIX ".html")
+    set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/emscripten)
+
+    set(EM_PRELOAD_FILES)
+    if (EXISTS "${PROJECT_ROOT}/assets")
+        set(EM_PRELOAD_FILES "${EM_PRELOAD_FILES} --preload-file ${PROJECT_ROOT}/assets@/")
+    endif()
+    if (EXISTS "${PROJECT_ROOT}/lua")
+        set(EM_PRELOAD_FILES "${EM_PRELOAD_FILES} --preload-file ${PROJECT_ROOT}/lua@/")
+    endif()
+
+    list(APPEND PLATFORM_SOURCE
+        ${PLATFORM_ROOT}/SupernovaWeb.cpp
+        ${PLATFORM_ROOT}/main.cpp
+    )
+
+    list(APPEND PLATFORM_LIBS
+        idbfs.js
+    )
+
+    option(EMSCRIPTEN_THREAD_SUPPORT "Enable pthreads for Emscripten builds" OFF)
+
+    if(EMSCRIPTEN_THREAD_SUPPORT)
+        set(USE_PTHREADS "-s USE_PTHREADS=1 -s PTHREAD_POOL_SIZE=4")
+        list(APPEND PLATFORM_OPTIONS -pthread)
+    endif()
+
+    set(ALLOW_MEMORY_GROWTH "-s ALLOW_MEMORY_GROWTH=1")
+
+    list(APPEND PLATFORM_PROPERTIES
+        LINK_FLAGS
+            "-g \
+            -s INITIAL_MEMORY=256MB \
+            -s STACK_SIZE=4MB \
+            -s EXPORTED_FUNCTIONS=\"['_getScreenWidth','_getScreenHeight','_changeCanvasSize','_main']\" \
+            -s EXPORTED_RUNTIME_METHODS=\"['ccall', 'cwrap']\" \
+            ${EM_PRELOAD_FILES} \
+            ${EM_ADDITIONAL_LINK_FLAGS} \
+            ${USE_PTHREADS} \
+            ${ALLOW_MEMORY_GROWTH} \
+            ${USE_WEBGL2}"
+    )
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Android")
+    add_definitions("-DSUPERNOVA_ANDROID")
+
+    if(GRAPHIC_BACKEND STREQUAL "gles3")
+        add_definitions("-DSOKOL_GLES3")
+        set(OPENGL_LIB GLESv3)
+    endif()
+
+    add_definitions("-D\"lua_getlocaledecpoint()='.'\"")
+    add_definitions("-DLUA_ANSI")
+    add_definitions("-DLUA_USE_C89")
+    add_definitions("-DWITH_MINIAUDIO")
+
+    set(APP_NAME supernova-android)
+
+    if(ANDROID_ABI MATCHES "^arm(eabi)?(-v7a)?(64-v8a)?$")
+        if(ANDROID_ABI MATCHES "^arm(eabi)?(-v7a)?$")
+            add_compile_options("-mfpu=fp-armv8")
+        endif()
+        set(IS_ARM ON)
+    endif()
+
+    set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/android)
+
+    list(APPEND PLATFORM_SOURCE
+        ${PLATFORM_ROOT}/SupernovaAndroid.cpp
+        ${PLATFORM_ROOT}/AndroidMain.cpp
+        ${PLATFORM_ROOT}/NativeEngine.cpp
+    )
+
+    set(CMAKE_SHARED_LINKER_FLAGS
+            "${CMAKE_SHARED_LINKER_FLAGS} -u Java_com_google_androidgamesdk_GameActivity_initializeNativeCode")
+
+    find_package(game-activity REQUIRED CONFIG)
+    find_package(games-frame-pacing REQUIRED CONFIG)
+
+    list(APPEND PLATFORM_LIBS
+        ${OPENGL_LIB}
+        log
+        android
+        EGL
+        OpenSLES
+        game-activity::game-activity_static
+        games-frame-pacing::swappy_static
+    )
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    add_definitions("-DSUPERNOVA_SOKOL")
+
+    if(GRAPHIC_BACKEND STREQUAL "glcore")
+        add_definitions("-DSOKOL_GLCORE")
+    elseif(GRAPHIC_BACKEND STREQUAL "d3d11")
+        add_definitions("-DSOKOL_D3D11")
+    endif()
+
+    add_definitions("-DWITH_MINIAUDIO")
+
+    if (EXISTS "${PROJECT_ROOT}/assets")
+        set(ASSETS_DEST_DIR ${CMAKE_BINARY_DIR}/$<CONFIG>/assets)
+    endif()
+    if (EXISTS "${PROJECT_ROOT}/lua")
+        set(LUA_DEST_DIR ${CMAKE_BINARY_DIR}/$<CONFIG>/lua)
+    endif()
+
+    set(PLATFORM_EXEC_FLAGS WIN32)
+    set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/sokol)
+
+    list(APPEND PLATFORM_SOURCE
+        ${PLATFORM_ROOT}/SupernovaSokol.cpp
+        ${PLATFORM_ROOT}/main.cpp
+    )
+
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        list(APPEND PLATFORM_LIBS
+            -static -static-libgcc -static-libstdc++
+        )
+    endif()
+    if(MSVC)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    endif()
+endif()
+
+if((CMAKE_SYSTEM_NAME STREQUAL "Linux") OR (CMAKE_SYSTEM_NAME STREQUAL "FreeBSD"))
+    if(GRAPHIC_BACKEND STREQUAL "glcore")
+        add_definitions("-DSOKOL_GLCORE")
+    endif()
+
+    add_definitions("-DWITH_MINIAUDIO")
+
+    if (EXISTS "${PROJECT_ROOT}/assets")
+        set(ASSETS_DEST_DIR ${CMAKE_BINARY_DIR}/assets)
+    endif()
+    if (EXISTS "${PROJECT_ROOT}/lua")
+        set(LUA_DEST_DIR ${CMAKE_BINARY_DIR}/lua)
+    endif()
+
+    if (APP_BACKEND STREQUAL "glfw")
+        add_definitions("-DSUPERNOVA_GLFW")
+
+        set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/glfw)
+
+        list(APPEND PLATFORM_SOURCE
+            ${PLATFORM_ROOT}/SupernovaGLFW.cpp
+            ${PLATFORM_ROOT}/main.cpp
+        )
+
+        list(APPEND PLATFORM_LIBS
+            GL dl m glfw
+        )
+    else()
+        add_definitions("-DSUPERNOVA_SOKOL")
+
+        set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/sokol)
+
+        list(APPEND PLATFORM_SOURCE
+            ${PLATFORM_ROOT}/SupernovaSokol.cpp
+            ${PLATFORM_ROOT}/main.cpp
+        )
+    endif()
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    if(GRAPHIC_BACKEND STREQUAL "glcore")
+        add_definitions("-DSOKOL_GLCORE")
+    elseif(GRAPHIC_BACKEND STREQUAL "metal")
+        add_definitions("-DSOKOL_METAL")
+    endif()
+
+    add_definitions("-DWITH_MINIAUDIO")
+
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fobjc-arc")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fobjc-arc")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15")
+
+    if (APP_BACKEND STREQUAL "apple")
+        add_definitions("-DSUPERNOVA_APPLE")
+        set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/apple)
+        set(APP_BUNDLE_IDENTIFIER "org.supernovaengine.supernova")
+        set(PLATFORM_EXEC_FLAGS MACOSX_BUNDLE)
+
+        include_directories(/System/Library/Frameworks)
+
+        list(APPEND PLATFORM_SOURCE
+            ${PLATFORM_ROOT}/macos/main.m
+            ${PLATFORM_ROOT}/macos/AppDelegate.h
+            ${PLATFORM_ROOT}/macos/AppDelegate.m
+            ${PLATFORM_ROOT}/macos/EngineView.h
+            ${PLATFORM_ROOT}/macos/EngineView.mm
+            ${PLATFORM_ROOT}/macos/ViewController.h
+            ${PLATFORM_ROOT}/macos/ViewController.m
+            ${PLATFORM_ROOT}/Renderer.h
+            ${PLATFORM_ROOT}/Renderer.mm
+            ${PLATFORM_ROOT}/SupernovaApple.h
+            ${PLATFORM_ROOT}/SupernovaApple.mm
+        )
+
+        list(APPEND PLATFORM_RESOURCES
+            ${PLATFORM_ROOT}/macos/Main.storyboard
+        )
+
+        list(APPEND PLATFORM_PROPERTIES
+            MACOSX_BUNDLE_INFO_PLIST "${SUPERNOVA_ROOT}/workspaces/xcode/macos/Info.plist"
+            XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC "YES"
+        )
+    else()
+        if (EXISTS "${PROJECT_ROOT}/assets")
+            set(ASSETS_DEST_DIR ${CMAKE_BINARY_DIR}/assets)
+        endif()
+        if (EXISTS "${PROJECT_ROOT}/lua")
+            set(LUA_DEST_DIR ${CMAKE_BINARY_DIR}/lua)
+        endif()
+
+        if (APP_BACKEND STREQUAL "glfw")
+            add_definitions("-DSUPERNOVA_GLFW")
+            set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/glfw)
+
+            list(APPEND PLATFORM_SOURCE
+                ${PLATFORM_ROOT}/SupernovaGLFW.cpp
+                ${PLATFORM_ROOT}/main.cpp
+            )
+
+            list(APPEND PLATFORM_LIBS
+                glfw
+            )
+        else()
+            add_definitions("-DSUPERNOVA_SOKOL")
+            set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/sokol)
+
+            list(APPEND PLATFORM_SOURCE
+                ${PLATFORM_ROOT}/SupernovaSokol.cpp
+                ${PLATFORM_ROOT}/main.cpp
+            )
+        endif()
+    endif()
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    add_definitions("-DSUPERNOVA_APPLE")
+
+    if(GRAPHIC_BACKEND STREQUAL "metal")
+        add_definitions("-DSOKOL_METAL")
+    endif()
+
+    add_definitions("-DWITH_MINIAUDIO")
+
+    set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/apple)
+    set(APP_BUNDLE_IDENTIFIER "org.supernovaengine.supernova")
+
+    include_directories(/System/Library/Frameworks)
+
+    list(APPEND PLATFORM_SOURCE
+        ${PLATFORM_ROOT}/ios/main.m
+        ${PLATFORM_ROOT}/ios/AppDelegate.h
+        ${PLATFORM_ROOT}/ios/AppDelegate.m
+        ${PLATFORM_ROOT}/ios/EngineView.h
+        ${PLATFORM_ROOT}/ios/EngineView.mm
+        ${PLATFORM_ROOT}/ios/ViewController.h
+        ${PLATFORM_ROOT}/ios/ViewController.m
+        ${PLATFORM_ROOT}/ios/AdMobAdapter.h
+        ${PLATFORM_ROOT}/ios/AdMobAdapter.m
+        ${PLATFORM_ROOT}/Renderer.h
+        ${PLATFORM_ROOT}/Renderer.mm
+        ${PLATFORM_ROOT}/SupernovaApple.h
+        ${PLATFORM_ROOT}/SupernovaApple.mm
+    )
+
+    list(APPEND PLATFORM_RESOURCES
+        ${PLATFORM_ROOT}/ios/LaunchScreen.storyboard
+        ${PLATFORM_ROOT}/ios/Main.storyboard
+    )
+
+    list(APPEND PLATFORM_LIBS
+        -ObjC
+        ${PLATFORM_ROOT}/GoogleMobileAdsSdkiOS-10.14.0/FBLPromises.xcframework/ios-arm64_x86_64-simulator/FBLPromises.framework
+        ${PLATFORM_ROOT}/GoogleMobileAdsSdkiOS-10.14.0/GoogleAppMeasurement.xcframework/ios-arm64_x86_64-simulator/GoogleAppMeasurement.framework
+        ${PLATFORM_ROOT}/GoogleMobileAdsSdkiOS-10.14.0/GoogleAppMeasurementIdentitySupport.xcframework/ios-arm64_x86_64-simulator/GoogleAppMeasurementIdentitySupport.framework
+        ${PLATFORM_ROOT}/GoogleMobileAdsSdkiOS-10.14.0/GoogleMobileAds.xcframework/ios-arm64_x86_64-simulator/GoogleMobileAds.framework
+        ${PLATFORM_ROOT}/GoogleMobileAdsSdkiOS-10.14.0/GoogleUtilities.xcframework/ios-arm64_x86_64-simulator/GoogleUtilities.framework
+        ${PLATFORM_ROOT}/GoogleMobileAdsSdkiOS-10.14.0/UserMessagingPlatform.xcframework/ios-arm64_x86_64-simulator/UserMessagingPlatform.framework
+        ${PLATFORM_ROOT}/GoogleMobileAdsSdkiOS-10.14.0/nanopb.xcframework/ios-arm64_x86_64-simulator/nanopb.framework
+    )
+
+    add_compile_options(-fmodules)
+
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fobjc-arc")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fobjc-arc")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "13.0")
+
+    list(APPEND PLATFORM_PROPERTIES
+        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER ${APP_BUNDLE_IDENTIFIER}
+        MACOSX_BUNDLE_INFO_PLIST "${SUPERNOVA_ROOT}/workspaces/xcode/ios/Info.plist"
+        XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC "YES"
+    )
+endif()
+
+include_directories(${PLATFORM_ROOT})
+
+include_directories(${SUPERNOVA_ROOT}/engine/libs/sokol)
+include_directories(${SUPERNOVA_ROOT}/engine/libs/lua)
+include_directories(${SUPERNOVA_ROOT}/engine/libs/box2d/include)
+include_directories(${SUPERNOVA_ROOT}/engine/libs/joltphysics)
+
+include_directories(${SUPERNOVA_ROOT}/engine/core)
+include_directories(${SUPERNOVA_ROOT}/engine/core/action)
+include_directories(${SUPERNOVA_ROOT}/engine/core/buffer)
+include_directories(${SUPERNOVA_ROOT}/engine/core/component)
+include_directories(${SUPERNOVA_ROOT}/engine/core/ecs)
+include_directories(${SUPERNOVA_ROOT}/engine/core/io)
+include_directories(${SUPERNOVA_ROOT}/engine/core/manager)
+include_directories(${SUPERNOVA_ROOT}/engine/core/math)
+include_directories(${SUPERNOVA_ROOT}/engine/core/object)
+include_directories(${SUPERNOVA_ROOT}/engine/core/object/audio)
+include_directories(${SUPERNOVA_ROOT}/engine/core/object/ui)
+include_directories(${SUPERNOVA_ROOT}/engine/core/object/environment)
+include_directories(${SUPERNOVA_ROOT}/engine/core/object/physics)
+include_directories(${SUPERNOVA_ROOT}/engine/core/pool)
+include_directories(${SUPERNOVA_ROOT}/engine/core/registry)
+include_directories(${SUPERNOVA_ROOT}/engine/core/render)
+include_directories(${SUPERNOVA_ROOT}/engine/core/script)
+include_directories(${SUPERNOVA_ROOT}/engine/core/shader)
+include_directories(${SUPERNOVA_ROOT}/engine/core/subsystem)
+include_directories(${SUPERNOVA_ROOT}/engine/core/texture)
+include_directories(${SUPERNOVA_ROOT}/engine/core/util)
+include_directories(${SUPERNOVA_ROOT}/engine/renders)
+
+add_subdirectory(${SUPERNOVA_ROOT}/engine)
+
+include_directories(${PROJECT_ROOT})
+file(GLOB_RECURSE PROJECT_SOURCE ${PROJECT_ROOT}/*.cpp)
+
+set(all_code_files
+    ${PROJECT_SOURCE}
+    ${PLATFORM_SOURCE}
+    ${PLATFORM_RESOURCES}
+)
+
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "Android")
+    add_executable(
+        ${APP_NAME}
+        ${PLATFORM_EXEC_FLAGS}
+        ${all_code_files}
+    )
+else()
+    add_library(
+        ${APP_NAME}
+        SHARED
+        ${all_code_files}
+    )
+endif()
+
+if(DEFINED ASSETS_DEST_DIR)
+    add_custom_command(
+        TARGET ${APP_NAME} POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E remove_directory ${ASSETS_DEST_DIR}
+        COMMAND "${CMAKE_COMMAND}" -E copy_directory ${PROJECT_ROOT}/assets ${ASSETS_DEST_DIR}
+    )
+endif()
+
+if(DEFINED LUA_DEST_DIR)
+    add_custom_command(
+        TARGET ${APP_NAME} POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E remove_directory ${LUA_DEST_DIR}
+        COMMAND "${CMAKE_COMMAND}" -E copy_directory ${PROJECT_ROOT}/lua ${LUA_DEST_DIR}
+    )
+endif()
+
+set_target_properties(
+    ${APP_NAME}
+    PROPERTIES
+    ${PLATFORM_PROPERTIES}
+    RESOURCE "${PLATFORM_RESOURCES}"
+    CXX_STANDARD 17
+)
+
+target_compile_options(
+    ${APP_NAME}
+    PUBLIC
+    ${PLATFORM_OPTIONS}
+)
+
+target_link_libraries(
+    ${APP_NAME}
+    supernova
+    Threads::Threads
+    ${PLATFORM_LIBS}
+)
+)CMAKE";
 
     fs::path cmakeFile = config.targetDir / "CMakeLists.txt";
     FileUtils::writeIfChanged(cmakeFile, cmakeContent);

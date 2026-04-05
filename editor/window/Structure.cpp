@@ -1165,6 +1165,10 @@ void Editor::Structure::popNodeImGuiId(const TreeNode& node){
 
 void Editor::Structure::show(){
     SceneProject* sceneProject = project->getSelectedScene();
+    if (!sceneProject || !sceneProject->scene) {
+        return;
+    }
+
     Entity mainCamera = sceneProject->mainCamera;
     size_t order = 0;
     std::unordered_set<Entity> sceneEntitiesSet(sceneProject->entities.begin(), sceneProject->entities.end());

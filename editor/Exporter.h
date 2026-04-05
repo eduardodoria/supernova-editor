@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Project.h"
-#include "Generator.h"
 #include "shader/ShaderBuilder.h"
 #include "ShaderDataSerializer.h"
 
@@ -21,6 +20,8 @@ namespace Supernova::Editor {
     struct ExportConfig {
         fs::path targetDir;
         fs::path assetsDir;
+        fs::path luaDir;
+        uint32_t startSceneId = 0;
         std::set<ShaderKey> selectedShaderKeys;
         std::set<Platform> selectedPlatforms;
     };
@@ -28,6 +29,7 @@ namespace Supernova::Editor {
     struct ExportProgress {
         std::string currentStep;
         float overallProgress = 0.0f;
+        bool started = false;
         bool finished = false;
         bool failed = false;
         std::string errorMessage;
@@ -39,6 +41,7 @@ namespace Supernova::Editor {
         ExportConfig config;
         ExportProgress progress;
         mutable std::mutex progressMutex;
+        std::atomic<bool> cancelRequested{false};
 
         std::thread exportThread;
 
@@ -48,11 +51,16 @@ namespace Supernova::Editor {
         void setError(const std::string& message);
         void runExport();
 
+        bool isCancelled() const;
+
+        fs::path getExportProjectRoot() const;
+
         bool checkTargetDir();
-        bool cleanGenerated();
-        bool saveAllScenes();
+        bool clearGenerated();
+        bool loadAndSaveAllScenes();
         bool copyGenerated();
         bool copyAssets();
+        bool copyLua();
         bool copyCppScripts();
         bool copyEngine();
         bool buildAndSaveShaders();
@@ -63,6 +71,7 @@ namespace Supernova::Editor {
         ~Exporter();
 
         void startExport(Project* project, const ExportConfig& config);
+        void cancelExport();
         ExportProgress getProgress() const;
         bool isRunning() const;
 

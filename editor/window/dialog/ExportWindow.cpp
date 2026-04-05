@@ -13,9 +13,12 @@ void ExportWindow::open(Project* project) {
     m_project = project;
     m_targetDir.clear();
     m_assetsDir = ".";
+    m_luaDir.clear();
     m_targetDirBuffer[0] = '\0';
     strncpy(m_assetsDirBuffer, m_assetsDir.string().c_str(), sizeof(m_assetsDirBuffer) - 1);
     m_assetsDirBuffer[sizeof(m_assetsDirBuffer) - 1] = '\0';
+    m_luaDirBuffer[0] = '\0';
+    m_startSceneIndex = 0;
     m_selectedShaderIndex = -1;
     m_addShaderOpen = false;
 
@@ -156,7 +159,8 @@ void ExportWindow::drawSettings() {
         float inputWidth = ImGui::GetContentRegionAvail().x - browseWidth - ImGui::GetStyle().ItemSpacing.x;
 
         Vector2 pathSize = Vector2(inputWidth, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2);
-        Widgets::pathDisplay("##AssetsPath", m_assetsDir, pathSize);
+        fs::path assetsDisplay = (m_assetsDir.empty() || m_assetsDir == ".") ? fs::path("<Project root>") : m_assetsDir;
+        Widgets::pathDisplay("##AssetsPath", assetsDisplay, pathSize);
 
         ImGui::SameLine();
         if (ImGui::Button("Browse##assets")) {
@@ -168,6 +172,60 @@ void ExportWindow::drawSettings() {
                 m_assetsDir = (ec || relPath.empty()) ? fs::path(".") : relPath;
                 strncpy(m_assetsDirBuffer, m_assetsDir.string().c_str(), sizeof(m_assetsDirBuffer) - 1);
                 m_assetsDirBuffer[sizeof(m_assetsDirBuffer) - 1] = '\0';
+            }
+        }
+    }
+
+    // Lua directory row
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGui::Text("Lua Directory");
+    ImGui::TableNextColumn();
+    {
+        float browseWidth = ImGui::CalcTextSize("Browse").x + ImGui::GetStyle().FramePadding.x * 2;
+        float inputWidth = ImGui::GetContentRegionAvail().x - browseWidth - ImGui::GetStyle().ItemSpacing.x;
+
+        Vector2 pathSize = Vector2(inputWidth, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2);
+        fs::path luaDisplay = m_luaDir.empty() ? fs::path("<Project root>") : m_luaDir;
+        Widgets::pathDisplay("##LuaPath", luaDisplay, pathSize);
+
+        ImGui::SameLine();
+        if (ImGui::Button("Browse##lua")) {
+            std::string defaultPath = m_project ? m_project->getProjectPath().string() : "";
+            std::string selectedPath = FileDialogs::openFileDialog(defaultPath, FILE_DIALOG_ALL, true);
+            if (!selectedPath.empty()) {
+                std::error_code ec;
+                fs::path relPath = fs::relative(fs::path(selectedPath), m_project->getProjectPath(), ec);
+                m_luaDir = (ec || relPath.empty()) ? fs::path(selectedPath) : relPath;
+                strncpy(m_luaDirBuffer, m_luaDir.string().c_str(), sizeof(m_luaDirBuffer) - 1);
+                m_luaDirBuffer[sizeof(m_luaDirBuffer) - 1] = '\0';
+            }
+        }
+    }
+
+    // Start scene row
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGui::Text("Start Scene");
+    ImGui::TableNextColumn();
+    {
+        const auto& scenes = m_project->getScenes();
+        if (!scenes.empty()) {
+            if (m_startSceneIndex < 0 || m_startSceneIndex >= (int)scenes.size()) {
+                m_startSceneIndex = 0;
+            }
+            ImGui::SetNextItemWidth(-1);
+            if (ImGui::BeginCombo("##StartScene", scenes[m_startSceneIndex].name.c_str())) {
+                for (int i = 0; i < (int)scenes.size(); i++) {
+                    bool isSelected = (m_startSceneIndex == i);
+                    if (ImGui::Selectable(scenes[i].name.c_str(), isSelected)) {
+                        m_startSceneIndex = i;
+                    }
+                    if (isSelected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
             }
         }
     }
@@ -277,6 +335,15 @@ void ExportWindow::drawSettings() {
         ExportConfig exportConfig;
         exportConfig.targetDir = m_targetDir;
         exportConfig.assetsDir = m_project->getProjectPath() / m_assetsDir;
+        if (!m_luaDir.empty()) {
+            exportConfig.luaDir = m_project->getProjectPath() / m_luaDir;
+        }
+
+        // Set start scene
+        const auto& scenes = m_project->getScenes();
+        if (m_startSceneIndex >= 0 && m_startSceneIndex < (int)scenes.size()) {
+            exportConfig.startSceneId = scenes[m_startSceneIndex].id;
+        }
 
         for (const auto& entry : m_shaderEntries) {
             exportConfig.selectedShaderKeys.insert(entry.key);

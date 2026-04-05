@@ -22,8 +22,13 @@ namespace Supernova::Editor {
         // UI state
         char m_targetDirBuffer[512] = "";
         char m_assetsDirBuffer[512] = "";
+        char m_luaDirBuffer[512] = "";
         fs::path m_targetDir;
         fs::path m_assetsDir;
+        fs::path m_luaDir;
+
+        // Start scene
+        int m_startSceneIndex = 0;
 
         // Shader list: each entry is a shader to export
         struct ShaderEntry {
