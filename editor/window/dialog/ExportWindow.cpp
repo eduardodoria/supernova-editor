@@ -83,10 +83,15 @@ void ExportWindow::show() {
     ImGui::OpenPopup("Export Project##ExportModal");
 
     ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-    ImGui::SetNextWindowSize(ImVec2(550, 0), ImGuiCond_Appearing);
+    ImGui::SetNextWindowPos(center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSizeConstraints(
+        ImVec2(550, 0),
+        ImVec2(550, ImGui::GetMainViewport()->WorkSize.y * 0.9f)
+    );
 
-    ImGuiWindowFlags flags = ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_Modal;
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoSavedSettings |
+                             ImGuiWindowFlags_Modal |
+                             ImGuiWindowFlags_AlwaysAutoResize;
 
     bool popupOpen = ImGui::BeginPopupModal("Export Project##ExportModal", &m_isOpen, flags);
 
@@ -107,9 +112,9 @@ void ExportWindow::drawSettings() {
 
     // --- Target Directory ---
     ImGui::PushItemWidth(-1);
-    ImGui::BeginTable("export_settings", 2, ImGuiTableFlags_BordersInnerV);
+    ImGui::BeginTable("export_settings", 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp);
     ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, 120);
-    ImGui::TableSetupColumn("Value");
+    ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
     // Target directory row
     ImGui::TableNextRow();
@@ -221,7 +226,10 @@ void ExportWindow::drawSettings() {
     ImGui::Text(ICON_FA_DESKTOP "  Platforms");
     ImGui::Spacing();
 
-    if (ImGui::BeginTable("platforms_table", 3)) {
+    if (ImGui::BeginTable("platforms_table", 3, ImGuiTableFlags_SizingStretchSame)) {
+        ImGui::TableSetupColumn("PlatformCol1", ImGuiTableColumnFlags_WidthStretch);
+        ImGui::TableSetupColumn("PlatformCol2", ImGuiTableColumnFlags_WidthStretch);
+        ImGui::TableSetupColumn("PlatformCol3", ImGuiTableColumnFlags_WidthStretch);
         for (auto& entry : m_platformEntries) {
             ImGui::TableNextColumn();
             std::string checkboxId = "##platform_" + entry.name;
@@ -410,6 +418,7 @@ void ExportWindow::drawAddShaderDialog() {
 void ExportWindow::drawProgress() {
     const ExportProgress& progress = m_exporter.getProgress();
 
+    ImGui::Dummy(ImVec2(0.0f, 6.0f));
     ImGui::Text("Exporting project...");
     ImGui::Spacing();
 
@@ -417,6 +426,7 @@ void ExportWindow::drawProgress() {
 
     ImGui::Spacing();
     ImGui::Text("%s", progress.currentStep.c_str());
+    ImGui::Dummy(ImVec2(0.0f, 6.0f));
 
     if (progress.failed) {
         ImGui::Spacing();
