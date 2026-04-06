@@ -1271,7 +1271,7 @@ void Editor::Project::cleanupPlaySession(const std::shared_ptr<PlaySession>& ses
     }
 }
 
-void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene){
+void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene, bool loadSceneData){
     try {
         fs::path fullPath = filepath;
         if (fullPath.is_relative()) {
@@ -1308,9 +1308,9 @@ void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene)
             }
         }
 
-        Stream::decodeSceneProject(targetScene, sceneNode, opened);
+        Stream::decodeSceneProject(targetScene, sceneNode, loadSceneData);
 
-        if (opened){
+        if (loadSceneData){
             targetScene->sceneRender = createSceneRender(targetScene->sceneType, targetScene->scene);
 
             if (targetScene->editorCameraState.IsDefined()) {
@@ -1324,7 +1324,9 @@ void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene)
             }
 
             loadSceneProjectData(targetScene, sceneNode);
+        }
 
+        if (opened){
             // Sync linked materials with latest file contents on disk
             for (Entity entity : targetScene->entities) {
                 MeshComponent* mesh = targetScene->scene->findComponent<MeshComponent>(entity);
@@ -1443,7 +1445,7 @@ void Editor::Project::openSceneInternal(fs::path filepath, uint32_t sceneToClose
         if (sceneToClose != NULL_PROJECT_SCENE && sceneToClose != it->id) {
             closeScene(sceneToClose, true);
         }
-        loadScene(filepath, true, false);
+        loadScene(filepath, true, false, true);
         saveProject();
         return;
     }
@@ -1456,7 +1458,7 @@ void Editor::Project::openSceneInternal(fs::path filepath, uint32_t sceneToClose
             if (sceneToClose != NULL_PROJECT_SCENE) {
                 closeScene(sceneToClose, true);
             }
-            loadScene(filepath, true, true);
+            loadScene(filepath, true, true, true);
             saveProject();
         },
         []() {

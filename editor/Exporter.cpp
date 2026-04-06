@@ -170,14 +170,7 @@ bool Editor::Exporter::loadAndSaveAllScenes() {
                 if (sceneProject.filepath.empty() || sceneProject.scene) {
                     continue;
                 }
-                fs::path fullPath = sceneProject.filepath;
-                if (fullPath.is_relative()) {
-                    fullPath = project->getProjectPath() / fullPath;
-                }
-
-                YAML::Node sceneNode = YAML::LoadFile(fullPath.string());
-                Stream::decodeSceneProject(&sceneProject, sceneNode, true);
-                project->loadSceneProjectData(&sceneProject, sceneNode);
+                project->loadScene(sceneProject.filepath, false, false, true);
 
                 temporarilyLoaded.push_back(sceneProject.id);
             }

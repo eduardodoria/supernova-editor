@@ -275,7 +275,7 @@ namespace Supernova::Editor{
         void saveLastSelectedScene();
 
         uint32_t createNewScene(std::string sceneName, SceneType type);
-        void loadScene(fs::path filepath, bool opened, bool isNewScene = true);
+        void loadScene(fs::path filepath, bool opened, bool isNewScene = true, bool loadSceneData = true);
         void openScene(fs::path filepath, bool closePrevious = true);
         void closeScene(uint32_t sceneId, bool systemClose = false);
         void removeScene(uint32_t sceneId);

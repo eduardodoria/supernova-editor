@@ -940,7 +940,7 @@ void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
                     opened = isFirstScene;
                 }
                 if (fs::exists(scenePath)) {
-                    project->loadScene(scenePath, opened);
+                    project->loadScene(scenePath, opened, true, opened);
                     // Restore display settings into the just-loaded scene
                     auto& scenes = project->getScenes();
                     if (!scenes.empty()) {
