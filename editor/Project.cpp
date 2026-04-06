@@ -614,6 +614,7 @@ void Editor::Project::cleanupSceneFilePath(const std::filesystem::path& deletedP
     }
 
     bool changed = false;
+    std::vector<uint32_t> scenesToRemove;
 
     for (auto& sceneProject : scenes) {
         if (sceneProject.filepath.empty()) {
@@ -621,9 +622,26 @@ void Editor::Project::cleanupSceneFilePath(const std::filesystem::path& deletedP
         }
 
         if (matchesRelativePath(deletedRelative, sceneProject.filepath)) {
-            sceneProject.filepath.clear();
-            sceneProject.isModified = true;
+            if (sceneProject.opened) {
+                sceneProject.filepath.clear();
+                sceneProject.isModified = true;
+            } else {
+                scenesToRemove.push_back(sceneProject.id);
+            }
             changed = true;
+        }
+    }
+
+    for (uint32_t sceneId : scenesToRemove) {
+        auto it = std::find_if(scenes.begin(), scenes.end(),
+            [sceneId](const SceneProject& s) { return s.id == sceneId; });
+        if (it != scenes.end()) {
+            deleteSceneProject(&(*it));
+            cleanupEntityBundlesForScene(sceneId);
+            removeTab(TabType::SCENE, it->filepath.string());
+            markParentScenesNeedUpdate(sceneId);
+            Backend::getApp().clearSceneWindowState(sceneId);
+            scenes.erase(it);
         }
     }
 
