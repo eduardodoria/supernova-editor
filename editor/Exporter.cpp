@@ -1036,6 +1036,7 @@ include_directories(${SUPERNOVA_ROOT}/engine/renders)
 add_subdirectory(${SUPERNOVA_ROOT}/engine)
 
 include_directories(${PROJECT_ROOT})
+include_directories(${PROJECT_ROOT}/scripts)
 file(GLOB_RECURSE PROJECT_SOURCE ${PROJECT_ROOT}/*.cpp)
 
 set(all_code_files
