@@ -188,11 +188,7 @@ bool Editor::Exporter::loadAndSaveAllScenes() {
                 if (sceneProject.filepath.empty() || !sceneProject.scene) {
                     continue;
                 }
-                fs::path fullPath = sceneProject.filepath;
-                if (fullPath.is_relative()) {
-                    fullPath = project->getProjectPath() / fullPath;
-                }
-                project->saveSceneToPath(sceneProject.id, fullPath);
+                project->saveSceneToPath(sceneProject.id, sceneProject.filepath);
             }
 
             // Unload all scenes that were not loaded before export

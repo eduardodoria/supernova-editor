@@ -2225,11 +2225,7 @@ void Editor::Project::saveScene(uint32_t sceneId) {
 
     // If filepath is already set, just save to that path
     if (!sceneProject->filepath.empty()) {
-        fs::path fullPath = sceneProject->filepath;
-        if (fullPath.is_relative()) {
-            fullPath = getProjectPath() / fullPath;
-        }
-        saveSceneToPath(sceneId, fullPath);
+        saveSceneToPath(sceneId, sceneProject->filepath);
     } else {
         // Otherwise show save dialog through the App
         Backend::getApp().registerSaveSceneDialog(sceneId);
@@ -2250,8 +2246,13 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
         return;
     }
 
+    fs::path fullPath = path;
+    if (fullPath.is_relative()) {
+        fullPath = getProjectPath() / fullPath;
+    }
+
     std::error_code ec;
-    fs::path relPath = fs::relative(path, getProjectPath(), ec);
+    fs::path relPath = fs::relative(fullPath, getProjectPath(), ec);
     if (ec || relPath.empty()) {
         Out::error("Scene filepath must be relative to project path: %s", path.string().c_str());
         return;
@@ -2273,7 +2274,7 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
     updateSceneBundles(sceneProject);
 
     YAML::Node root = Stream::encodeSceneProject(this, sceneProject);
-    std::ofstream fout(path.string());
+    std::ofstream fout(fullPath.string());
     fout << YAML::Dump(root);
     fout.close();
 
@@ -2307,7 +2308,7 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
     std::vector<BundleSceneInfo> bundleBuildInfos = collectAllBundles();
     generator.configure(scenesToConfig, libName, mergedCppScripts, bundleBuildInfos, getProjectPath(), getProjectInternalPath());
 
-    Out::info("Scene saved to: \"%s\"", path.string().c_str());
+    Out::info("Scene saved to: \"%s\"", fullPath.string().c_str());
 }
 
 void Editor::Project::saveAllScenes() {
