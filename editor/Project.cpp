@@ -1363,7 +1363,7 @@ void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene)
             Backend::getApp().addNewSceneToDock(targetScene->id);
         }
 
-        targetScene->needUpdateRender = true;
+        targetScene->needUpdateRender = opened;
         targetScene->isModified = false;
         targetScene->opened = opened;
 

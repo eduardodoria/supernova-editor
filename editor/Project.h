@@ -219,7 +219,6 @@ namespace Supernova::Editor{
 
         uint32_t createNewSceneInternal(std::string sceneName, SceneType type, uint32_t previousSceneId);
         void openSceneInternal(fs::path filepath, uint32_t sceneToClose);
-        void loadSceneProjectData(SceneProject* sceneProject, const YAML::Node& sceneNode);
         void markParentScenesNeedUpdate(uint32_t childSceneId);
 
     public:
@@ -237,6 +236,7 @@ namespace Supernova::Editor{
         bool saveProjectToPath(const std::filesystem::path& path);
         void clearTrash();
         void deleteSceneProject(SceneProject* sceneProject);
+        void loadSceneProjectData(SceneProject* sceneProject, const YAML::Node& sceneNode);
         bool saveProject(bool userCalled = false, std::function<void()> callback = nullptr);
         bool openProject();
 

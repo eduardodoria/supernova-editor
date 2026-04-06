@@ -2,6 +2,7 @@
 #include "App.h"
 #include "Backend.h"
 #include "Out.h"
+#include "Stream.h"
 #include "util/FileUtils.h"
 #include "pool/ShaderPool.h"
 
@@ -173,7 +174,11 @@ bool Editor::Exporter::loadAndSaveAllScenes() {
                 if (fullPath.is_relative()) {
                     fullPath = project->getProjectPath() / fullPath;
                 }
-                project->loadScene(fullPath, false, false);
+
+                YAML::Node sceneNode = YAML::LoadFile(fullPath.string());
+                Stream::decodeSceneProject(&sceneProject, sceneNode, true);
+                project->loadSceneProjectData(&sceneProject, sceneNode);
+
                 temporarilyLoaded.push_back(sceneProject.id);
             }
 
