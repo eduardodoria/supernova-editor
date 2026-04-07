@@ -66,6 +66,12 @@ namespace Supernova::Editor {
         static std::string containerTypeToString(ContainerType type);
         static ContainerType stringToContainerType(const std::string& str);
 
+        static std::string scalingModeToString(Scaling mode);
+        static Scaling stringToScalingMode(const std::string& str);
+
+        static std::string textureStrategyToString(TextureStrategy strategy);
+        static TextureStrategy stringToTextureStrategy(const std::string& str);
+
         // ==============================
 
         static YAML::Node encodeVector2(const Vector2& vec);

@@ -118,6 +118,10 @@ namespace Supernova::Editor{
 
         unsigned int windowWidth;
         unsigned int windowHeight;
+        Scaling scalingMode;
+        TextureStrategy textureStrategy;
+        std::filesystem::path assetsDir;
+        std::filesystem::path luaDir;
         CommandHistory projectHistory;
 
         uint32_t nextSceneId;
@@ -229,6 +233,19 @@ namespace Supernova::Editor{
         void setWindowSize(unsigned int width, unsigned int height);
         unsigned int getWindowWidth() const;
         unsigned int getWindowHeight() const;
+
+        void setScalingMode(Scaling scalingMode);
+        Scaling getScalingMode() const;
+
+        void setTextureStrategy(TextureStrategy textureStrategy);
+        TextureStrategy getTextureStrategy() const;
+
+        void setAssetsDir(const std::filesystem::path& assetsDir);
+        std::filesystem::path getAssetsDir() const;
+
+        void setLuaDir(const std::filesystem::path& luaDir);
+        std::filesystem::path getLuaDir() const;
+
         CommandHistory* getProjectCommandHistory();
 
         bool createTempProject(std::string projectName, bool deleteIfExists = false);

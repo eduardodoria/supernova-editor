@@ -293,6 +293,10 @@ void Editor::App::showMenu(){
              ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Project")) {
+            if (ImGui::MenuItem("Project Settings...")) {
+                projectSettingsWindow.open(&project);
+            }
+            ImGui::Separator();
             if (ImGui::MenuItem("Clear Trash")) {
                 project.clearTrash();
             }
@@ -871,6 +875,7 @@ void Editor::App::show(){
     sceneSaveDialog.show();
     projectSaveDialog.show();
     exportWindow.show();
+    projectSettingsWindow.show();
 
     if (!sceneSaveDialog.isOpen() && !projectSaveDialog.isOpen() && !saveDialogQueue.empty()) {
         processNextSaveDialog();

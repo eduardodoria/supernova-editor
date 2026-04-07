@@ -12,12 +12,13 @@ void ExportWindow::open(Project* project) {
     m_exporting = false;
     m_project = project;
     m_targetDir.clear();
-    m_assetsDir = ".";
-    m_luaDir.clear();
+    m_assetsDir = project->getAssetsDir();
+    m_luaDir = project->getLuaDir();
     m_targetDirBuffer[0] = '\0';
     strncpy(m_assetsDirBuffer, m_assetsDir.string().c_str(), sizeof(m_assetsDirBuffer) - 1);
     m_assetsDirBuffer[sizeof(m_assetsDirBuffer) - 1] = '\0';
-    m_luaDirBuffer[0] = '\0';
+    strncpy(m_luaDirBuffer, m_luaDir.string().c_str(), sizeof(m_luaDirBuffer) - 1);
+    m_luaDirBuffer[sizeof(m_luaDirBuffer) - 1] = '\0';
     m_startSceneIndex = 0;
     m_selectedShaderIndex = -1;
     m_addShaderOpen = false;
@@ -186,7 +187,7 @@ void ExportWindow::drawSettings() {
         float inputWidth = ImGui::GetContentRegionAvail().x - browseWidth - ImGui::GetStyle().ItemSpacing.x;
 
         Vector2 pathSize = Vector2(inputWidth, ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2);
-        fs::path luaDisplay = m_luaDir.empty() ? fs::path("<Project root>") : m_luaDir;
+        fs::path luaDisplay = (m_luaDir.empty() || m_luaDir == ".") ? fs::path("<Project root>") : m_luaDir;
         Widgets::pathDisplay("##LuaPath", luaDisplay, pathSize);
 
         ImGui::SameLine();

@@ -206,6 +206,7 @@ add_executable(
     ${EDITOR_DIR}/window/dialog/ScriptCreateDialog.cpp
     ${EDITOR_DIR}/window/dialog/TextureSlicerToolDialog.cpp
     ${EDITOR_DIR}/window/dialog/ExportWindow.cpp
+    ${EDITOR_DIR}/window/dialog/ProjectSettingsWindow.cpp
     ${EDITOR_DIR}/window/widget/CustomTextEditor.cpp
     ${EDITOR_DIR}/window/widget/SemanticSuggestions.cpp
 

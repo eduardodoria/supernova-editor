@@ -974,6 +974,38 @@ unsigned int Editor::Project::getWindowHeight() const{
     return windowHeight;
 }
 
+void Editor::Project::setScalingMode(Scaling scalingMode){
+    this->scalingMode = scalingMode;
+}
+
+Scaling Editor::Project::getScalingMode() const{
+    return scalingMode;
+}
+
+void Editor::Project::setTextureStrategy(TextureStrategy textureStrategy){
+    this->textureStrategy = textureStrategy;
+}
+
+TextureStrategy Editor::Project::getTextureStrategy() const{
+    return textureStrategy;
+}
+
+void Editor::Project::setAssetsDir(const std::filesystem::path& assetsDir){
+    this->assetsDir = assetsDir;
+}
+
+std::filesystem::path Editor::Project::getAssetsDir() const{
+    return assetsDir;
+}
+
+void Editor::Project::setLuaDir(const std::filesystem::path& luaDir){
+    this->luaDir = luaDir;
+}
+
+std::filesystem::path Editor::Project::getLuaDir() const{
+    return luaDir;
+}
+
 Editor::CommandHistory* Editor::Project::getProjectCommandHistory(){
     return &projectHistory;
 }
@@ -1812,6 +1844,10 @@ void Editor::Project::resetConfigs() {
     name = "";
     windowWidth = 1280;
     windowHeight = 720;
+    scalingMode = Scaling::FITWIDTH;
+    textureStrategy = TextureStrategy::RESIZE;
+    assetsDir = ".";
+    luaDir = ".";
     selectedScene = NULL_PROJECT_SCENE;
     selectedSceneForProperties = NULL_PROJECT_SCENE;
     nextSceneId = 0;

@@ -274,6 +274,44 @@ ContainerType Editor::Stream::stringToContainerType(const std::string& str) {
     return ContainerType::VERTICAL;
 }
 
+std::string Editor::Stream::scalingModeToString(Scaling mode) {
+    switch (mode) {
+        case Scaling::FITWIDTH: return "fitwidth";
+        case Scaling::FITHEIGHT: return "fitheight";
+        case Scaling::LETTERBOX: return "letterbox";
+        case Scaling::CROP: return "crop";
+        case Scaling::STRETCH: return "stretch";
+        case Scaling::NATIVE: return "native";
+        default: return "fitwidth";
+    }
+}
+
+Scaling Editor::Stream::stringToScalingMode(const std::string& str) {
+    if (str == "fitwidth") return Scaling::FITWIDTH;
+    if (str == "fitheight") return Scaling::FITHEIGHT;
+    if (str == "letterbox") return Scaling::LETTERBOX;
+    if (str == "crop") return Scaling::CROP;
+    if (str == "stretch") return Scaling::STRETCH;
+    if (str == "native") return Scaling::NATIVE;
+    return Scaling::FITWIDTH;
+}
+
+std::string Editor::Stream::textureStrategyToString(TextureStrategy strategy) {
+    switch (strategy) {
+        case TextureStrategy::FIT: return "fit";
+        case TextureStrategy::RESIZE: return "resize";
+        case TextureStrategy::NONE: return "none";
+        default: return "resize";
+    }
+}
+
+TextureStrategy Editor::Stream::stringToTextureStrategy(const std::string& str) {
+    if (str == "fit") return TextureStrategy::FIT;
+    if (str == "resize") return TextureStrategy::RESIZE;
+    if (str == "none") return TextureStrategy::NONE;
+    return TextureStrategy::RESIZE;
+}
+
 std::string Editor::Stream::lightTypeToString(LightType type) {
     switch (type) {
         case LightType::DIRECTIONAL: return "directional";
@@ -825,6 +863,16 @@ YAML::Node Editor::Stream::encodeProject(Project* project) {
     root["windowWidth"] = project->getWindowWidth();
     root["windowHeight"] = project->getWindowHeight();
 
+    root["scalingMode"] = scalingModeToString(project->getScalingMode());
+    root["textureStrategy"] = textureStrategyToString(project->getTextureStrategy());
+
+    if (!project->getAssetsDir().empty() && project->getAssetsDir() != ".") {
+        root["assetsDir"] = project->getAssetsDir().string();
+    }
+    if (!project->getLuaDir().empty()) {
+        root["luaDir"] = project->getLuaDir().string();
+    }
+
     // Add tabs array
     YAML::Node tabsNode;
     for (const auto& tab : project->getTabs()) {
@@ -903,6 +951,22 @@ void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
             node["windowWidth"].as<unsigned int>(),
             node["windowHeight"].as<unsigned int>()
         );
+    }
+
+    if (node["scalingMode"]) {
+        project->setScalingMode(stringToScalingMode(node["scalingMode"].as<std::string>()));
+    }
+
+    if (node["textureStrategy"]) {
+        project->setTextureStrategy(stringToTextureStrategy(node["textureStrategy"].as<std::string>()));
+    }
+
+    if (node["assetsDir"]) {
+        project->setAssetsDir(node["assetsDir"].as<std::string>());
+    }
+
+    if (node["luaDir"]) {
+        project->setLuaDir(node["luaDir"].as<std::string>());
     }
 
     // Build set of scene filepaths that should be opened from tabs
