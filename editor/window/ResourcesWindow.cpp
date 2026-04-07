@@ -404,9 +404,15 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories){
             ImVec2 itemMin = ImGui::GetItemRectMin();
             ImVec2 itemMax = ImGui::GetItemRectMax();
 
+            const bool doubleClickedItem = hovered && ImGui::IsMouseDoubleClicked(0);
+
             // --- Double-click: open directory or file ----------------------
-            if (hovered && ImGui::IsMouseDoubleClicked(0)){
+            if (doubleClickedItem){
                 clickedInFile = true;
+
+                selectedFiles.clear();
+                selectedFiles.insert(file.name);
+                lastSelectedFile = file.name;
 
                 if (file.isDirectory){
                     deferredDirectoryChange = true;
@@ -658,7 +664,7 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories){
             }
 
             // --- Selection behavior (unified) ------------------------------
-            if (itemPressed){
+            if (itemPressed && !doubleClickedItem){
                 clickedInFile = true;
 
                 if (ctrlPressed){
