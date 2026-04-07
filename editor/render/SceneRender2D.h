@@ -37,6 +37,7 @@ namespace Supernova::Editor{
         virtual ~SceneRender2D();
 
         void activate() override;
+        void setCanvasFrameSize(unsigned int width, unsigned int height);
         void updateSize(int width, int height) override;
         void updateSelLines(std::vector<OBB> obbs) override;
 

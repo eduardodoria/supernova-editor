@@ -964,6 +964,20 @@ void Editor::Project::setName(std::string name){
 void Editor::Project::setWindowSize(unsigned int width, unsigned int height){
     this->windowWidth = width;
     this->windowHeight = height;
+
+    for (auto& sceneProject : scenes) {
+        if (!sceneProject.scene) {
+            continue;
+        }
+
+        sceneProject.scene->getSystem<UISystem>()->setAnchorReferenceSize(width, height);
+
+        if (sceneProject.sceneRender && sceneProject.sceneType != SceneType::SCENE_3D) {
+            static_cast<SceneRender2D*>(sceneProject.sceneRender)->setCanvasFrameSize(width, height);
+        }
+
+        sceneProject.needUpdateRender = true;
+    }
 }
 
 unsigned int Editor::Project::getWindowWidth() const{

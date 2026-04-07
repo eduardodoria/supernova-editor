@@ -511,6 +511,10 @@ void Editor::SceneRender2D::applyZoomProjection(){
     toolslayer.updateCamera(cameracomp, cameratransform);
 }
 
+void Editor::SceneRender2D::setCanvasFrameSize(unsigned int width, unsigned int height){
+    createLines(width, height);
+}
+
 void Editor::SceneRender2D::updateSize(int width, int height){
     SceneRender::updateSize(width, height);
 
