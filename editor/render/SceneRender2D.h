@@ -18,8 +18,11 @@ namespace Supernova::Editor{
         std::map<Entity, CameraObjects> cameraObjects;
         Lines* tileLines = nullptr;
         bool isUI;
+        int viewportWidth;
+        int viewportHeight;
 
         void createLines(unsigned int width, unsigned int height);
+        void applyZoomProjection();
         void updateGridLines();
         bool instanciateBodyLines(Entity entity);
         bool instanciateJointLines(Entity entity);

@@ -1334,10 +1334,11 @@ void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene,
             if (targetScene->editorCameraState.IsDefined()) {
                 Camera* editorCam = targetScene->sceneRender->getCamera();
                 if (editorCam) {
-                    Stream::decodeEditorCamera(editorCam, targetScene->editorCameraState);
-                }
-                if (targetScene->sceneType == SceneType::SCENE_2D || targetScene->sceneType == SceneType::SCENE_UI) {
-                    static_cast<SceneRender2D*>(targetScene->sceneRender)->setZoom(targetScene->editorZoom);
+                    float zoom = 0.0f;
+                    Stream::decodeEditorCamera(editorCam, targetScene->editorCameraState, zoom);
+                    if ((targetScene->sceneType == SceneType::SCENE_2D || targetScene->sceneType == SceneType::SCENE_UI) && zoom > 0.0f) {
+                        static_cast<SceneRender2D*>(targetScene->sceneRender)->setZoom(zoom);
+                    }
                 }
             }
 

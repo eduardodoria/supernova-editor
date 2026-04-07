@@ -861,14 +861,14 @@ YAML::Node Editor::Stream::encodeProject(Project* project) {
             if (sceneProject.sceneRender) {
                 Camera* editorCam = sceneProject.sceneRender->getCamera();
                 if (editorCam) {
-                    sceneNode["editorCamera"] = encodeEditorCamera(editorCam);
-                }
-                if (sceneProject.sceneType == SceneType::SCENE_2D || sceneProject.sceneType == SceneType::SCENE_UI) {
-                    sceneNode["editorZoom"] = static_cast<SceneRender2D*>(sceneProject.sceneRender)->getZoom();
+                    float zoom = 0.0f;
+                    if (sceneProject.sceneType == SceneType::SCENE_2D || sceneProject.sceneType == SceneType::SCENE_UI) {
+                        zoom = static_cast<SceneRender2D*>(sceneProject.sceneRender)->getZoom();
+                    }
+                    sceneNode["editorCamera"] = encodeEditorCamera(editorCam, zoom);
                 }
             } else if (sceneProject.editorCameraState.IsDefined()) {
                 sceneNode["editorCamera"] = sceneProject.editorCameraState;
-                sceneNode["editorZoom"] = sceneProject.editorZoom;
             }
 
             scenesNode.push_back(sceneNode);
@@ -965,16 +965,14 @@ void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
                     if (sceneNode["editorCamera"]) {
                         SceneProject& loadedScene = scenes.back();
                         loadedScene.editorCameraState = YAML::Clone(sceneNode["editorCamera"]);
-                        if (sceneNode["editorZoom"]) {
-                            loadedScene.editorZoom = sceneNode["editorZoom"].as<float>();
-                        }
                         if (loadedScene.sceneRender) {
                             Camera* editorCam = loadedScene.sceneRender->getCamera();
                             if (editorCam) {
-                                Stream::decodeEditorCamera(editorCam, sceneNode["editorCamera"]);
-                            }
-                            if (loadedScene.sceneType == SceneType::SCENE_2D || loadedScene.sceneType == SceneType::SCENE_UI) {
-                                static_cast<SceneRender2D*>(loadedScene.sceneRender)->setZoom(loadedScene.editorZoom);
+                                float zoom = 0.0f;
+                                Stream::decodeEditorCamera(editorCam, sceneNode["editorCamera"], zoom);
+                                if ((loadedScene.sceneType == SceneType::SCENE_2D || loadedScene.sceneType == SceneType::SCENE_UI) && zoom > 0.0f) {
+                                    static_cast<SceneRender2D*>(loadedScene.sceneRender)->setZoom(zoom);
+                                }
                             }
                         }
                     }
@@ -1177,7 +1175,7 @@ void Editor::Stream::decodeSceneProjectEntities(Project* project, SceneProject* 
     }
 }
 
-YAML::Node Editor::Stream::encodeEditorCamera(Camera* camera) {
+YAML::Node Editor::Stream::encodeEditorCamera(Camera* camera, float zoom) {
     if (!camera) return YAML::Node();
     Entity camEntity = camera->getEntity();
     Scene* scene = camera->getScene();
@@ -1191,15 +1189,12 @@ YAML::Node Editor::Stream::encodeEditorCamera(Camera* camera) {
     camNode["aspect"] = camComp.aspect;
     camNode["nearClip"] = camComp.nearClip;
     camNode["farClip"] = camComp.farClip;
-    camNode["leftClip"] = camComp.leftClip;
-    camNode["rightClip"] = camComp.rightClip;
-    camNode["bottomClip"] = camComp.bottomClip;
-    camNode["topClip"] = camComp.topClip;
     camNode["position"] = encodeVector3(camTransform.position);
+    if (zoom > 0.0f) camNode["zoom"] = zoom;
     return camNode;
 }
 
-void Editor::Stream::decodeEditorCamera(Camera* camera, const YAML::Node& node) {
+void Editor::Stream::decodeEditorCamera(Camera* camera, const YAML::Node& node, float& zoom) {
     if (!camera || !node) return;
     Entity camEntity = camera->getEntity();
     Scene* scene = camera->getScene();
@@ -1212,13 +1207,9 @@ void Editor::Stream::decodeEditorCamera(Camera* camera, const YAML::Node& node) 
     if (node["aspect"]) camComp.aspect = node["aspect"].as<float>();
     if (node["nearClip"]) camComp.nearClip = node["nearClip"].as<float>();
     if (node["farClip"]) camComp.farClip = node["farClip"].as<float>();
-    if (node["leftClip"]) camComp.leftClip = node["leftClip"].as<float>();
-    if (node["rightClip"]) camComp.rightClip = node["rightClip"].as<float>();
-    if (node["bottomClip"]) camComp.bottomClip = node["bottomClip"].as<float>();
-    if (node["topClip"]) camComp.topClip = node["topClip"].as<float>();
     if (node["position"]) camTransform.position = decodeVector3(node["position"]);
-    camComp.autoResize = false;
     camComp.needUpdate = true;
+    zoom = node["zoom"] ? node["zoom"].as<float>() : 0.0f;
 }
 
 YAML::Node Editor::Stream::encodeScene(Scene* scene) {

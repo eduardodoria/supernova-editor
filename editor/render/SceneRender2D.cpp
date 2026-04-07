@@ -45,6 +45,10 @@ Editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned 
 
     Engine::setScalingMode(Scaling::NATIVE);
     Engine::setFixedTimeSceneUpdate(false);
+
+    viewportWidth = width;
+    viewportHeight = height;
+    applyZoomProjection();
 }
 
 Editor::SceneRender2D::~SceneRender2D(){
@@ -489,28 +493,33 @@ void Editor::SceneRender2D::activate(){
     SceneRender::activate();
 }
 
-void Editor::SceneRender2D::updateSize(int width, int height){
-    SceneRender::updateSize(width, height);
-
-    float newWidth = width * zoom;
-    float newHeight = height * zoom;
-
-    float left = camera->getLeftClip();
-    float bottom = camera->getBottomClip();
-
-    float right = left + newWidth;
-    float top = bottom + newHeight;
-
-    camera->setLeftClip(left);
-    camera->setRightClip(right);
-    camera->setBottomClip(bottom);
-    camera->setTopClip(top);
-
+void Editor::SceneRender2D::applyZoomProjection(){
     Entity cameraEntity = camera->getEntity();
     CameraComponent& cameracomp = scene->getComponent<CameraComponent>(cameraEntity);
     Transform& cameratransform = scene->getComponent<Transform>(cameraEntity);
 
+    float newWidth = viewportWidth * zoom;
+    float newHeight = viewportHeight * zoom;
+
+    if (cameracomp.leftClip != 0.0f || cameracomp.bottomClip != 0.0f || cameracomp.rightClip != newWidth || cameracomp.topClip != newHeight){
+        cameracomp.leftClip = 0.0f;
+        cameracomp.bottomClip = 0.0f;
+        cameracomp.rightClip = newWidth;
+        cameracomp.topClip = newHeight;
+        cameracomp.needUpdate = true;
+    }
+
+    cameracomp.autoResize = false;
+
     toolslayer.updateCamera(cameracomp, cameratransform);
+}
+
+void Editor::SceneRender2D::updateSize(int width, int height){
+    SceneRender::updateSize(width, height);
+
+    viewportWidth = width;
+    viewportHeight = height;
+    applyZoomProjection();
 }
 
 void Editor::SceneRender2D::updateSelLines(std::vector<OBB> obbs){
@@ -792,41 +801,15 @@ void Editor::SceneRender2D::mouseDragEvent(float x, float y, float origX, float 
 }
 
 void Editor::SceneRender2D::zoomAtPosition(float width, float height, Vector2 pos, float zoomFactor){
-    float left = camera->getLeftClip();
-    float right = camera->getRightClip();
-    float bottom = camera->getBottomClip();
-    float top = camera->getTopClip();
+    float shiftX = pos.x * zoom * (1.0f - zoomFactor);
+    float shiftY = pos.y * zoom * (1.0f - zoomFactor);
 
-    float worldX = left + (pos.x / width) * (right - left);
-    float worldY = bottom + (pos.y / height) * (top - bottom);
+    camera->slide(shiftX);
+    camera->slideUp(shiftY);
 
-    float currentWidth = right - left;
-    float currentZoom = currentWidth / width; // units per pixel
+    zoom *= zoomFactor;
 
-    float newZoom = currentZoom * zoomFactor;
-
-    float newWidth = width * newZoom;
-    float newHeight = height * newZoom;
-
-    float newLeft = worldX - (pos.x / width) * newWidth;
-    float newRight = newLeft + newWidth;
-    float newBottom = worldY - (pos.y / height) * newHeight;
-    float newTop = newBottom + newHeight;
-
-    camera->setLeftClip(newLeft);
-    camera->setRightClip(newRight);
-    camera->setBottomClip(newBottom);
-    camera->setTopClip(newTop);
-
-    if (zoom != newZoom) {
-        Entity cameraEntity = camera->getEntity();
-        CameraComponent& cameracomp = scene->getComponent<CameraComponent>(cameraEntity);
-        Transform& cameratransform = scene->getComponent<Transform>(cameraEntity);
-
-        toolslayer.updateCamera(cameracomp, cameratransform);
-
-        zoom = newZoom;
-    }
+    applyZoomProjection();
 }
 
 float Editor::SceneRender2D::getZoom() const {
@@ -835,4 +818,8 @@ float Editor::SceneRender2D::getZoom() const {
 
 void Editor::SceneRender2D::setZoom(float zoom) {
     this->zoom = zoom;
+
+    if (viewportWidth > 0 && viewportHeight > 0) {
+        applyZoomProjection();
+    }
 }
