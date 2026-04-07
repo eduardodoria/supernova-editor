@@ -860,8 +860,8 @@ YAML::Node Editor::Stream::encodeProject(Project* project) {
     root["nextSceneId"] = project->getNextSceneId();
     root["selectedScene"] = project->getSelectedSceneId();
 
-    root["windowWidth"] = project->getWindowWidth();
-    root["windowHeight"] = project->getWindowHeight();
+    root["canvasWidth"] = project->getCanvasWidth();
+    root["canvasHeight"] = project->getCanvasHeight();
 
     root["scalingMode"] = scalingModeToString(project->getScalingMode());
     root["textureStrategy"] = textureStrategyToString(project->getTextureStrategy());
@@ -946,10 +946,10 @@ void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
         project->setSelectedSceneId(node["selectedScene"].as<uint32_t>());
     }
 
-    if (node["windowWidth"] && node["windowHeight"]) {
-        project->setWindowSize(
-            node["windowWidth"].as<unsigned int>(),
-            node["windowHeight"].as<unsigned int>()
+    if (node["canvasWidth"] && node["canvasHeight"]) {
+        project->setCanvasSize(
+            node["canvasWidth"].as<unsigned int>(),
+            node["canvasHeight"].as<unsigned int>()
         );
     }
 

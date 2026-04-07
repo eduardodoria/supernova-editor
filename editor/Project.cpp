@@ -878,15 +878,15 @@ Editor::SceneRender* Editor::Project::createSceneRender(SceneType type, Scene* s
     }
 
     pauseEngineScene(scene, true);
-    scene->getSystem<UISystem>()->setAnchorReferenceSize(windowWidth, windowHeight);
+    scene->getSystem<UISystem>()->setAnchorReferenceSize(canvasWidth, canvasHeight);
 
     switch (type) {
         case SceneType::SCENE_3D:
             return new SceneRender3D(scene);
         case SceneType::SCENE_2D:
-            return new SceneRender2D(scene, windowWidth, windowHeight, false);
+            return new SceneRender2D(scene, canvasWidth, canvasHeight, false);
         case SceneType::SCENE_UI:
-            return new SceneRender2D(scene, windowWidth, windowHeight, true);
+            return new SceneRender2D(scene, canvasWidth, canvasHeight, true);
         default:
             return new SceneRender3D(scene);
     }
@@ -961,9 +961,9 @@ void Editor::Project::setName(std::string name){
     Backend::updateWindowTitle(name);
 }
 
-void Editor::Project::setWindowSize(unsigned int width, unsigned int height){
-    this->windowWidth = width;
-    this->windowHeight = height;
+void Editor::Project::setCanvasSize(unsigned int width, unsigned int height){
+    this->canvasWidth = width;
+    this->canvasHeight = height;
 
     for (auto& sceneProject : scenes) {
         if (!sceneProject.scene) {
@@ -980,12 +980,12 @@ void Editor::Project::setWindowSize(unsigned int width, unsigned int height){
     }
 }
 
-unsigned int Editor::Project::getWindowWidth() const{
-    return windowWidth;
+unsigned int Editor::Project::getCanvasWidth() const{
+    return canvasWidth;
 }
 
-unsigned int Editor::Project::getWindowHeight() const{
-    return windowHeight;
+unsigned int Editor::Project::getCanvasHeight() const{
+    return canvasHeight;
 }
 
 void Editor::Project::setScalingMode(Scaling scalingMode){
@@ -1866,8 +1866,8 @@ void Editor::Project::resetConfigs() {
 
     // Reset state
     name = "";
-    windowWidth = 1280;
-    windowHeight = 720;
+    canvasWidth = 1280;
+    canvasHeight = 720;
     scalingMode = Scaling::FITWIDTH;
     textureStrategy = TextureStrategy::RESIZE;
     assetsDir = ".";
@@ -1990,7 +1990,7 @@ void Editor::Project::finalizeStart(SceneProject* mainSceneProject, std::vector<
     }
 
     Engine::pauseGameEvents(false);
-    Engine::setCanvasSize(windowWidth, windowHeight);
+    Engine::setCanvasSize(canvasWidth, canvasHeight);
     Engine::setScalingMode(scalingMode);
     Engine::setTextureStrategy(textureStrategy);
     Engine::onViewLoaded.call();
@@ -2009,7 +2009,7 @@ void Editor::Project::finalizeStop(SceneProject* mainSceneProject, std::vector<P
         }
 
         pauseEngineScene(sceneProject->scene, true);
-        sceneProject->scene->getSystem<UISystem>()->setAnchorReferenceSize(windowWidth, windowHeight);
+        sceneProject->scene->getSystem<UISystem>()->setAnchorReferenceSize(canvasWidth, canvasHeight);
 
         // Destroy all bundle instances created during play before restoring snapshot
         BundleManager::destroyAllInstances(sceneProject->scene);
@@ -2394,7 +2394,7 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
 
     std::vector<SceneScriptSource> mergedCppScripts = collectAllSceneCppScripts();
     std::vector<BundleSceneInfo> bundleBuildInfos = collectAllBundles();
-    generator.configure(scenesToConfig, libName, mergedCppScripts, bundleBuildInfos, getProjectPath(), getProjectInternalPath(), scalingMode, textureStrategy, windowWidth, windowHeight);
+    generator.configure(scenesToConfig, libName, mergedCppScripts, bundleBuildInfos, getProjectPath(), getProjectInternalPath(), scalingMode, textureStrategy, canvasWidth, canvasHeight);
 
     Out::info("Scene saved to: \"%s\"", fullPath.string().c_str());
 }
@@ -4963,7 +4963,7 @@ void Editor::Project::start(uint32_t sceneId) {
 
     std::vector<SceneScriptSource> mergedCppScripts = collectAllSceneCppScripts();
     std::vector<BundleSceneInfo> bundleBuildInfos = collectAllBundles();
-    generator.configure(scenesToGenerate, libName, mergedCppScripts, bundleBuildInfos, getProjectPath(), getProjectInternalPath(), scalingMode, textureStrategy, windowWidth, windowHeight);
+    generator.configure(scenesToGenerate, libName, mergedCppScripts, bundleBuildInfos, getProjectPath(), getProjectInternalPath(), scalingMode, textureStrategy, canvasWidth, canvasHeight);
 
     // Check if we have C++ scripts that need building
     bool hasCppScripts = !mergedCppScripts.empty();

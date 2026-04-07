@@ -116,8 +116,8 @@ namespace Supernova::Editor{
 
         std::string name;
 
-        unsigned int windowWidth;
-        unsigned int windowHeight;
+        unsigned int canvasWidth;
+        unsigned int canvasHeight;
         Scaling scalingMode;
         TextureStrategy textureStrategy;
         std::filesystem::path assetsDir;
@@ -231,9 +231,9 @@ namespace Supernova::Editor{
         std::string getName() const;
         void setName(std::string name);
 
-        void setWindowSize(unsigned int width, unsigned int height);
-        unsigned int getWindowWidth() const;
-        unsigned int getWindowHeight() const;
+        void setCanvasSize(unsigned int width, unsigned int height);
+        unsigned int getCanvasWidth() const;
+        unsigned int getCanvasHeight() const;
 
         void setScalingMode(Scaling scalingMode);
         Scaling getScalingMode() const;

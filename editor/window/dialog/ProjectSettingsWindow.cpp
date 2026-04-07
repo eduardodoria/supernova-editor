@@ -31,8 +31,8 @@ static int findTextureStrategyIndex(TextureStrategy strategy) {
 void ProjectSettingsWindow::open(Project* project) {
     m_isOpen = true;
     m_project = project;
-    m_canvasWidth = project->getWindowWidth();
-    m_canvasHeight = project->getWindowHeight();
+    m_canvasWidth = project->getCanvasWidth();
+    m_canvasHeight = project->getCanvasHeight();
     m_scalingModeIndex = findScalingIndex(project->getScalingMode());
     m_textureStrategyIndex = findTextureStrategyIndex(project->getTextureStrategy());
     m_assetsDir = project->getAssetsDir();
@@ -200,7 +200,7 @@ void ProjectSettingsWindow::drawSettings() {
     ImGui::SetCursorPosX((windowWidth - buttonsWidth) * 0.5f);
 
     if (ImGui::Button("OK", ImVec2(120, 0))) {
-        m_project->setWindowSize(m_canvasWidth, m_canvasHeight);
+        m_project->setCanvasSize(m_canvasWidth, m_canvasHeight);
         m_project->setScalingMode(scalingModeValues[m_scalingModeIndex]);
         m_project->setTextureStrategy(textureStrategyValues[m_textureStrategyIndex]);
         m_project->setAssetsDir(m_assetsDir);
