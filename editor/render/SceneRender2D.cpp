@@ -43,9 +43,6 @@ Editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned 
         scene->setBackgroundColor(Vector4(0.231, 0.298, 0.475, 1.0));
     }
 
-    Engine::setScalingMode(Scaling::NATIVE);
-    Engine::setFixedTimeSceneUpdate(false);
-
     viewportWidth = width;
     viewportHeight = height;
     applyZoomProjection();

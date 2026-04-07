@@ -16,6 +16,8 @@ namespace Supernova::Editor {
         Project* m_project = nullptr;
 
         // UI state
+        int m_canvasWidth = 0;
+        int m_canvasHeight = 0;
         int m_scalingModeIndex = 0;
         int m_textureStrategyIndex = 0;
         fs::path m_assetsDir;

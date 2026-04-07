@@ -303,7 +303,6 @@ bool Editor::CreateEntityCmd::execute(){
             camera.topClip = height;
             camera.nearClip = DEFAULT_ORTHO_NEAR;
             camera.farClip = DEFAULT_ORTHO_FAR;
-            camera.autoResize = false;
             camera.transparentSort = false;
 
             Transform& cameratransform = scene->getComponent<Transform>(entity);

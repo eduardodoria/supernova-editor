@@ -1831,6 +1831,16 @@ void Editor::Project::deleteSceneProject(SceneProject* sceneProject){
     sceneProject->selectedEntities.clear();
 }
 
+void Editor::Project::resetEngineConfigs(bool executeViewChanged) {
+    Engine::setScalingMode(Scaling::NATIVE);
+    Engine::setTextureStrategy(TextureStrategy::RESIZE);
+    Engine::setFixedTimeSceneUpdate(false);
+
+    if (executeViewChanged) {
+        Engine::systemViewChanged();
+    }
+}
+
 void Editor::Project::resetConfigs() {
     // Clear existing scenes
     for (auto& sceneProject : scenes) {
@@ -1858,6 +1868,8 @@ void Editor::Project::resetConfigs() {
     projectHistory.clear();
 
     Backend::updateWindowTitle(name);
+
+    resetEngineConfigs(false);
 
     //createNewScene("New Scene");
 }
@@ -1964,8 +1976,11 @@ void Editor::Project::finalizeStart(SceneProject* mainSceneProject, std::vector<
     }
 
     Engine::pauseGameEvents(false);
+    Engine::setCanvasSize(windowWidth, windowHeight);
+    Engine::setScalingMode(scalingMode);
+    Engine::setTextureStrategy(textureStrategy);
     Engine::onViewLoaded.call();
-    Engine::onViewChanged.call();
+    Engine::systemViewChanged();
 
     if (mainSceneProject) {
         Out::success("Scene '%s' started", mainSceneProject->name.c_str());
@@ -2029,6 +2044,8 @@ void Editor::Project::finalizeStop(SceneProject* mainSceneProject, std::vector<P
         BundleManager::clearAll();
         Backend::getApp().resetLastActivatedScene();
     });
+
+    resetEngineConfigs(true);
 
     if (mainSceneProject) {
         Out::success("Scene '%s' stopped", mainSceneProject->name.c_str());
@@ -2363,7 +2380,7 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
 
     std::vector<SceneScriptSource> mergedCppScripts = collectAllSceneCppScripts();
     std::vector<BundleSceneInfo> bundleBuildInfos = collectAllBundles();
-    generator.configure(scenesToConfig, libName, mergedCppScripts, bundleBuildInfos, getProjectPath(), getProjectInternalPath());
+    generator.configure(scenesToConfig, libName, mergedCppScripts, bundleBuildInfos, getProjectPath(), getProjectInternalPath(), scalingMode, textureStrategy, windowWidth, windowHeight);
 
     Out::info("Scene saved to: \"%s\"", fullPath.string().c_str());
 }
@@ -4932,7 +4949,7 @@ void Editor::Project::start(uint32_t sceneId) {
 
     std::vector<SceneScriptSource> mergedCppScripts = collectAllSceneCppScripts();
     std::vector<BundleSceneInfo> bundleBuildInfos = collectAllBundles();
-    generator.configure(scenesToGenerate, libName, mergedCppScripts, bundleBuildInfos, getProjectPath(), getProjectInternalPath());
+    generator.configure(scenesToGenerate, libName, mergedCppScripts, bundleBuildInfos, getProjectPath(), getProjectInternalPath(), scalingMode, textureStrategy, windowWidth, windowHeight);
 
     // Check if we have C++ scripts that need building
     bool hasCppScripts = !mergedCppScripts.empty();
@@ -4987,8 +5004,14 @@ void Editor::Project::start(uint32_t sceneId) {
                     return;
                 }
 
-                finalizeStart(mainSceneProject, session->runtimeScenes);
-                session->startupSucceeded.store(true, std::memory_order_release);
+                // Enqueue scene finalization to the main/GL thread so that
+                // engine, scene, and render state is accessed with a valid GL context.
+                Backend::getApp().enqueueMainThreadTask([this, session, sceneId]() {
+                    SceneProject* msp = getScene(sceneId);
+                    finalizeStart(msp, session->runtimeScenes);
+                    session->startupSucceeded.store(true, std::memory_order_release);
+                    session->startupThreadDone.store(true, std::memory_order_release);
+                });
             } else {
                 Out::error("Failed to connect to library");
                 cleanupPlaySession(session);
@@ -4997,8 +5020,8 @@ void Editor::Project::start(uint32_t sceneId) {
                     if (activePlaySession == session) activePlaySession.reset();
                 }
                 mainSceneProject->playState = ScenePlayState::STOPPED;
+                session->startupThreadDone.store(true, std::memory_order_release);
             }
-            session->startupThreadDone.store(true, std::memory_order_release);
         });
         connectThread.detach();
     } else {
@@ -5166,6 +5189,34 @@ void Editor::Project::stop(uint32_t sceneId) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
 
+            // Enqueue scene restoration to the main/GL thread so that
+            // texture and image creation happens with a valid GL context.
+            Backend::getApp().enqueueMainThreadTask([this, session, sceneId, runtimeScenesCopy]() {
+                SceneProject* mainSceneProject = getScene(sceneId);
+                if (session->startupSucceeded.load(std::memory_order_acquire)) {
+                    finalizeStop(mainSceneProject, runtimeScenesCopy);
+                } else {
+                    // Build was cancelled before startup succeeded, reset playState manually
+                    if (mainSceneProject) {
+                        mainSceneProject->playState = ScenePlayState::STOPPED;
+                    }
+                }
+                {
+                    std::scoped_lock lock(playSessionMutex);
+                    if (activePlaySession == session) activePlaySession.reset();
+                }
+            });
+        });
+        finalizeStopThread.detach();
+    } else {
+        Backend::getApp().enqueueMainThreadTask([this, session, sceneId, runtimeScenesCopy]() {
+            for (const auto& entry : runtimeScenesCopy) {
+                if (entry.runtime) {
+                    LuaBinding::cleanupLuaScripts(entry.runtime->scene);
+                }
+            }
+
+            // No C++ library connected, just finalize directly
             SceneProject* mainSceneProject = getScene(sceneId);
             if (session->startupSucceeded.load(std::memory_order_acquire)) {
                 finalizeStop(mainSceneProject, runtimeScenesCopy);
@@ -5180,26 +5231,24 @@ void Editor::Project::stop(uint32_t sceneId) {
                 if (activePlaySession == session) activePlaySession.reset();
             }
         });
-        finalizeStopThread.detach();
-    } else {
-        for (const auto& entry : runtimeScenesCopy) {
-            if (entry.runtime) {
-                LuaBinding::cleanupLuaScripts(entry.runtime->scene);
-            }
-        }
+    }
+}
 
-        // No C++ library connected, just finalize directly
-        if (session->startupSucceeded.load(std::memory_order_acquire)) {
-            SceneProject* mainSceneProject = getScene(sceneId);
-            finalizeStop(mainSceneProject, runtimeScenesCopy);
-        } else {
-            // Build was cancelled before startup succeeded, reset playState manually
-            sceneProject->playState = ScenePlayState::STOPPED;
-        }
+void Editor::Project::waitForPlaySessionToFinish() {
+    // Wait for the detached finalizeStop thread to complete
+    // so that all cleanup finishes before the app tears down.
+    // Also pump the main-thread task queue, because finalizeStop
+    // is now enqueued there and the caller (closeWindow) is on
+    // the main thread — without pumping we would deadlock.
+    while (true) {
         {
             std::scoped_lock lock(playSessionMutex);
-            if (activePlaySession == session) activePlaySession.reset();
+            if (!activePlaySession) {
+                return;
+            }
         }
+        Backend::getApp().processMainThreadTasks();
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
 

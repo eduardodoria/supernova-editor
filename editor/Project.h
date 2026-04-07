@@ -185,6 +185,7 @@ namespace Supernova::Editor{
         bool createNewComponent(uint32_t sceneId, Entity entity, ComponentType component);
         void calculateSceneMaxValues(const SceneProject* sceneProject, SceneMaxValues& maxValues) const;
         void collectSceneShaderKeys(const SceneProject* sceneProject, std::set<ShaderKey>& shaderKeys) const;
+        void resetEngineConfigs(bool executeViewChanged);
         void resetConfigs();
 
         void updateSceneCppScripts(SceneProject* sceneProject);
@@ -409,6 +410,7 @@ namespace Supernova::Editor{
         void pause(uint32_t sceneId);
         void resume(uint32_t sceneId);
         void stop(uint32_t sceneId);
+        void waitForPlaySessionToFinish();
 
         void restoreRuntimeLayers(uint32_t sceneId);
 

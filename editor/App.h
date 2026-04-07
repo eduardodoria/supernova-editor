@@ -108,9 +108,10 @@ namespace Supernova::Editor{
         void kewtStyleTheme();
         void processNextSaveDialog();
 
-        void processMainThreadTasks();
-
         void closeWindow();
+
+    public:
+        void processMainThreadTasks();
 
     public:
 

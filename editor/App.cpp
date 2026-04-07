@@ -1513,6 +1513,8 @@ void Editor::App::closeWindow(){
         }
     }
 
+    project.waitForPlaySessionToFinish();
+
     project.clearTrash();
 
     Editor::ShaderBuilder::requestShutdown();

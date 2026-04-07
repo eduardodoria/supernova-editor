@@ -8,8 +8,15 @@
 #include <cmath>
 #include <algorithm>
 #include <cstring>
+#include <chrono>
 
 #include "imgui_internal.h"
+
+static float getElapsedSeconds() {
+    static auto startTime = std::chrono::steady_clock::now();
+    auto now = std::chrono::steady_clock::now();
+    return std::chrono::duration<float>(now - startTime).count();
+}
 
 using namespace Supernova::Editor;
 
@@ -70,7 +77,7 @@ void OutputWindow::addLog(LogType type, const char* fmt, ...) {
 
 void OutputWindow::addLog(LogType type, const std::string& message) {
     // Store the raw log entry
-    LogData logEntry{type, message, static_cast<float>(ImGui::GetTime())};
+    LogData logEntry{type, message, getElapsedSeconds()};
     logs.push_back(logEntry);
 
     // Mark that we need to rebuild

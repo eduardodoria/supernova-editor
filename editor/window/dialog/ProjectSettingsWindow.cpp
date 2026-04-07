@@ -31,6 +31,8 @@ static int findTextureStrategyIndex(TextureStrategy strategy) {
 void ProjectSettingsWindow::open(Project* project) {
     m_isOpen = true;
     m_project = project;
+    m_canvasWidth = project->getWindowWidth();
+    m_canvasHeight = project->getWindowHeight();
     m_scalingModeIndex = findScalingIndex(project->getScalingMode());
     m_textureStrategyIndex = findTextureStrategyIndex(project->getTextureStrategy());
     m_assetsDir = project->getAssetsDir();
@@ -70,6 +72,28 @@ void ProjectSettingsWindow::drawSettings() {
     ImGui::BeginTable("project_settings", 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp);
     ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, 120);
     ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+    // Canvas width row
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGui::Text("Canvas Width");
+    ImGui::TableNextColumn();
+    {
+        ImGui::SetNextItemWidth(-1);
+        ImGui::InputInt("##CanvasWidth", &m_canvasWidth);
+        if (m_canvasWidth < 1) m_canvasWidth = 1;
+    }
+
+    // Canvas height row
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGui::Text("Canvas Height");
+    ImGui::TableNextColumn();
+    {
+        ImGui::SetNextItemWidth(-1);
+        ImGui::InputInt("##CanvasHeight", &m_canvasHeight);
+        if (m_canvasHeight < 1) m_canvasHeight = 1;
+    }
 
     // Scaling mode row
     ImGui::TableNextRow();
@@ -176,6 +200,7 @@ void ProjectSettingsWindow::drawSettings() {
     ImGui::SetCursorPosX((windowWidth - buttonsWidth) * 0.5f);
 
     if (ImGui::Button("OK", ImVec2(120, 0))) {
+        m_project->setWindowSize(m_canvasWidth, m_canvasHeight);
         m_project->setScalingMode(scalingModeValues[m_scalingModeIndex]);
         m_project->setTextureStrategy(textureStrategyValues[m_textureStrategyIndex]);
         m_project->setAssetsDir(m_assetsDir);

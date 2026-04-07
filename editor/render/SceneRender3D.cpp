@@ -39,8 +39,6 @@ Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, tr
 
     uilayer.setViewportGizmoTexture(viewgizmo.getFramebuffer());
 
-    Engine::setScalingMode(Scaling::NATIVE);
-    Engine::setFixedTimeSceneUpdate(false);
 }
 
 Editor::SceneRender3D::~SceneRender3D(){
