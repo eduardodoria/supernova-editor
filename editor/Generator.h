@@ -50,6 +50,13 @@ namespace Supernova::Editor {
         std::string functionName;         // generated C++ function name (e.g. create_bundle_X)
     };
 
+    struct CMakeKit {
+        std::string displayName;  // e.g. "GCC 15.2.0 x86_64-linux-gnu"
+        std::string cCompiler;    // e.g. "/usr/bin/gcc"
+        std::string cxxCompiler;  // e.g. "/usr/bin/g++"
+        std::string generator;    // e.g. "MinGW Makefiles" (Windows only, empty = CMake default)
+    };
+
     class Generator {
     private:
         std::future<void> buildFuture;
@@ -67,7 +74,7 @@ namespace Supernova::Editor {
         std::mutex processPidMutex;
     #endif
 
-        bool configureCMake(const fs::path& projectPath, const fs::path& buildPath, const std::string& configType);
+        bool configureCMake(const fs::path& projectPath, const fs::path& buildPath, const std::string& configType, const std::string& cCompiler, const std::string& cxxCompiler, const std::string& generator);
         bool buildProject(const fs::path& projectPath, const fs::path& buildPath, const std::string& configType);
         bool runCommand(const std::string& command, const fs::path& workingDir);
         void clearStaleCMakeCache(const fs::path& projectPath, const fs::path& buildPath);
@@ -83,11 +90,13 @@ namespace Supernova::Editor {
     public:
         Generator();
         ~Generator();
+        static std::string checkBuildTools();
+        static std::vector<CMakeKit> detectAvailableKits();
         std::vector<BundleInstanceInfo> writeBundleSources(const std::map<fs::path, EntityBundle>& entityBundles, uint32_t sceneId, const fs::path& projectPath, const fs::path& projectInternalPath);
         void writeSceneSource(Scene* scene, const std::string& sceneName, const std::vector<Entity>& entities, const Entity camera, const fs::path& projectPath, const fs::path& projectInternalPath, std::vector<BundleInstanceInfo>& bundleInstances);
         void clearSceneSource(const std::string& sceneName, const fs::path& projectInternalPath);
         void configure(const std::vector<SceneBuildInfo>& scenes, std::string libName, const std::vector<SceneScriptSource>& scriptFiles, const std::vector<BundleSceneInfo>& bundles, const fs::path& projectPath, const fs::path& projectInternalPath, Scaling scalingMode = Scaling::FITWIDTH, TextureStrategy textureStrategy = TextureStrategy::RESIZE, unsigned int canvasWidth = 1280, unsigned int canvasHeight = 720);
-        void build(const fs::path projectPath, const fs::path projectInternalPath, const fs::path buildPath);
+        void build(const fs::path projectPath, const fs::path projectInternalPath, const fs::path buildPath, const std::string& cCompiler = "", const std::string& cxxCompiler = "", const std::string& generator = "");
         bool isBuildInProgress() const;
         void waitForBuildToComplete();
         bool didLastBuildSucceed() const;

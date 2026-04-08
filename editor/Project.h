@@ -122,6 +122,9 @@ namespace Supernova::Editor{
         TextureStrategy textureStrategy;
         std::filesystem::path assetsDir;
         std::filesystem::path luaDir;
+        std::string cmakeCCompiler;
+        std::string cmakeCxxCompiler;
+        std::string cmakeGenerator;
         CommandHistory projectHistory;
 
         uint32_t nextSceneId;
@@ -246,6 +249,11 @@ namespace Supernova::Editor{
 
         void setLuaDir(const std::filesystem::path& luaDir);
         std::filesystem::path getLuaDir() const;
+
+        void setCMakeKit(const std::string& cCompiler, const std::string& cxxCompiler, const std::string& generator = "");
+        std::string getCMakeCCompiler() const;
+        std::string getCMakeCxxCompiler() const;
+        std::string getCMakeGenerator() const;
 
         CommandHistory* getProjectCommandHistory();
 

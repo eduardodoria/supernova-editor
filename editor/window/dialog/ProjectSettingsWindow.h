@@ -22,6 +22,8 @@ namespace Supernova::Editor {
         int m_textureStrategyIndex = 0;
         fs::path m_assetsDir;
         fs::path m_luaDir;
+        std::vector<CMakeKit> m_availableKits;
+        int m_cmakeKitIndex = 0;
 
         void drawSettings();
 

@@ -32,6 +32,38 @@ using namespace Supernova;
 namespace {
     constexpr std::chrono::milliseconds kReadSleepMs{10};
     constexpr std::chrono::milliseconds kKillGracePeriod{100};
+
+#ifdef _WIN32
+    std::string findVswherePath() {
+        auto tryEnv = [](const char* envVar) -> std::string {
+            const char* pf = std::getenv(envVar);
+            if (!pf) return "";
+            fs::path p = fs::path(pf) / "Microsoft Visual Studio" / "Installer" / "vswhere.exe";
+            if (fs::exists(p)) return p.string();
+            return "";
+        };
+        std::string result = tryEnv("ProgramFiles(x86)");
+        if (result.empty()) result = tryEnv("ProgramFiles");
+        return result;
+    }
+
+    bool hasVSWithCppTools() {
+        std::string vswhere = findVswherePath();
+        if (vswhere.empty()) return false;
+        FILE* pipe = _popen(("\"" + vswhere + "\" -latest -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath 2>nul").c_str(), "r");
+        if (!pipe) return false;
+        std::string result;
+        char buffer[256];
+        while (fgets(buffer, sizeof(buffer), pipe)) {
+            result += buffer;
+        }
+        _pclose(pipe);
+        while (!result.empty() && (result.back() == '\n' || result.back() == '\r' || result.back() == ' ')) {
+            result.pop_back();
+        }
+        return !result.empty();
+    }
+#endif
 }
 
 fs::path Editor::Generator::getExecutableDir() {
@@ -117,15 +149,84 @@ void Editor::Generator::clearStaleCMakeCache(const fs::path& projectPath, const 
     }
 }
 
-bool Editor::Generator::configureCMake(const fs::path& projectPath, const fs::path& buildPath, const std::string& configType) {
+bool Editor::Generator::configureCMake(const fs::path& projectPath, const fs::path& buildPath, const std::string& configType, const std::string& cCompiler, const std::string& cxxCompiler, const std::string& generator) {
     clearStaleCMakeCache(projectPath, buildPath);
+
+    // Detect kit change: if the compiler/generator selection changed since the
+    // last configure, the build tree must be wiped (CMake does not support
+    // switching generators or compilers in-place).
+    {
+        fs::path kitMarker = buildPath / ".supernova_kit";
+        fs::path cacheFile = buildPath / "CMakeCache.txt";
+        std::string currentKit = generator + "\n" + cCompiler + "\n" + cxxCompiler;
+        if (fs::exists(kitMarker)) {
+            std::ifstream f(kitMarker);
+            std::string prevKit((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+            f.close();
+            if (prevKit != currentKit) {
+                Out::warning("Compiler kit changed. Cleaning build directory...");
+                std::error_code ec;
+                fs::remove_all(buildPath, ec);
+                fs::create_directories(buildPath, ec);
+            }
+        } else if (fs::exists(cacheFile)) {
+            std::ifstream cache(cacheFile);
+            std::string line;
+            std::string cachedGenerator;
+            std::string cachedCCompiler;
+            std::string cachedCxxCompiler;
+
+            while (std::getline(cache, line)) {
+                const std::string genPrefix = "CMAKE_GENERATOR:INTERNAL=";
+                const std::string cPrefix = "CMAKE_C_COMPILER:FILEPATH=";
+                const std::string cxxPrefix = "CMAKE_CXX_COMPILER:FILEPATH=";
+
+                if (line.compare(0, genPrefix.size(), genPrefix) == 0) {
+                    cachedGenerator = line.substr(genPrefix.size());
+                } else if (line.compare(0, cPrefix.size(), cPrefix) == 0) {
+                    cachedCCompiler = line.substr(cPrefix.size());
+                } else if (line.compare(0, cxxPrefix.size(), cxxPrefix) == 0) {
+                    cachedCxxCompiler = line.substr(cxxPrefix.size());
+                }
+            }
+
+            bool kitChanged = false;
+            if (!generator.empty()) {
+                kitChanged = cachedGenerator != generator;
+            } else if (!cachedGenerator.empty() && !cCompiler.empty()) {
+                kitChanged = true;
+            }
+            if (!kitChanged && !cCompiler.empty()) {
+                kitChanged = cachedCCompiler != cCompiler;
+            }
+            if (!kitChanged && !cxxCompiler.empty()) {
+                kitChanged = cachedCxxCompiler != cxxCompiler;
+            }
+            if (!kitChanged && cCompiler.empty() && cxxCompiler.empty()) {
+                kitChanged = !cachedCCompiler.empty() || !cachedCxxCompiler.empty();
+            }
+
+            if (kitChanged) {
+                Out::warning("Compiler kit changed. Cleaning build directory...");
+                std::error_code ec;
+                fs::remove_all(buildPath, ec);
+                fs::create_directories(buildPath, ec);
+            }
+        }
+    }
 
     const fs::path exePath = getExecutableDir();
 
     std::string cmakeCommand = "cmake ";
-    #ifdef _WIN32
-        cmakeCommand += "-G \"Visual Studio 17 2022\" ";
-    #endif
+    if (!generator.empty()) {
+        cmakeCommand += "-G \"" + generator + "\" ";
+    }
+    if (!cCompiler.empty()) {
+        cmakeCommand += "-DCMAKE_C_COMPILER=\"" + cCompiler + "\" ";
+    }
+    if (!cxxCompiler.empty()) {
+        cmakeCommand += "-DCMAKE_CXX_COMPILER=\"" + cxxCompiler + "\" ";
+    }
     cmakeCommand += "-DCMAKE_BUILD_TYPE=" + configType + " ";
     // When configuring from inside the editor, ensure the generated project builds
     // in "plugin" mode (no Factory main.cpp/scene sources added).
@@ -135,7 +236,19 @@ bool Editor::Generator::configureCMake(const fs::path& projectPath, const fs::pa
     cmakeCommand += "-DSUPERNOVA_LIB_DIR=\"" + exePath.string() + "\"";
 
     Out::info("Configuring CMake project with command: %s", cmakeCommand.c_str());
-    return runCommand(cmakeCommand, projectPath);
+    bool result = runCommand(cmakeCommand, projectPath);
+
+    // Record which kit was used so we can detect changes next time.
+    if (result) {
+        std::error_code ec;
+        fs::create_directories(buildPath, ec);
+        std::ofstream f(buildPath / ".supernova_kit");
+        if (f.is_open()) {
+            f << generator << "\n" << cCompiler << "\n" << cxxCompiler;
+        }
+    }
+
+    return result;
 }
 
 bool Editor::Generator::buildProject(const fs::path& projectPath, const fs::path& buildPath, const std::string& configType) {
@@ -398,9 +511,13 @@ std::string Editor::Generator::getPlatformCMakeConfig() {
     content += "        ${INTERNAL_DIR}/generated/main.cpp\n";
     content += "    )\n";
     content += "\n";
-    content += "    list(APPEND PLATFORM_LIBS\n";
-    content += "        GL dl m glfw\n";
-    content += "    )\n";
+    content += "    if(WIN32)\n";
+    content += "        list(APPEND PLATFORM_LIBS opengl32 gdi32 user32 shell32 glfw)\n";
+    content += "    elseif(APPLE)\n";
+    content += "        list(APPEND PLATFORM_LIBS glfw \"-framework OpenGL\" \"-framework Cocoa\" \"-framework IOKit\" \"-framework CoreVideo\" \"-framework CoreFoundation\")\n";
+    content += "    else()\n";
+    content += "        list(APPEND PLATFORM_LIBS GL dl m glfw)\n";
+    content += "    endif()\n";
     content += "endif() \n";
     return content;
 }
@@ -1254,20 +1371,195 @@ std::string Editor::Generator::getPlatformEditorSource(const fs::path& projectPa
     return content;
 }
 
-void Editor::Generator::build(const fs::path projectPath, const fs::path projectInternalPath, const fs::path buildPath) {
+std::vector<Editor::CMakeKit> Editor::Generator::detectAvailableKits() {
+    std::vector<CMakeKit> kits;
+
+    auto runCmd = [](const std::string& cmd) -> std::string {
+#ifdef _WIN32
+        FILE* pipe = _popen((cmd + " 2>nul").c_str(), "r");
+#else
+        FILE* pipe = popen((cmd + " 2>/dev/null").c_str(), "r");
+#endif
+        if (!pipe) return "";
+        std::string result;
+        char buffer[256];
+        while (fgets(buffer, sizeof(buffer), pipe)) {
+            result += buffer;
+        }
+#ifdef _WIN32
+        _pclose(pipe);
+#else
+        pclose(pipe);
+#endif
+        while (!result.empty() && (result.back() == '\n' || result.back() == '\r' || result.back() == ' '))
+            result.pop_back();
+        return result;
+    };
+
+    auto findCompiler = [&runCmd](const std::string& compiler) -> std::string {
+#ifdef _WIN32
+        std::string result = runCmd("where " + compiler);
+#else
+        std::string result = runCmd("which " + compiler);
+#endif
+        size_t nl = result.find('\n');
+        if (nl != std::string::npos) result = result.substr(0, nl);
+        while (!result.empty() && (result.back() == '\r' || result.back() == ' '))
+            result.pop_back();
+        return result;
+    };
+
+    // --- GCC ---
+    {
+        std::string cxxPath = findCompiler("g++");
+        if (!cxxPath.empty()) {
+            std::string ccPath = findCompiler("gcc");
+            std::string version = runCmd("\"" + cxxPath + "\" -dumpfullversion -dumpversion");
+            std::string machine = runCmd("\"" + cxxPath + "\" -dumpmachine");
+
+            CMakeKit kit;
+            kit.cxxCompiler = cxxPath;
+            kit.cCompiler = ccPath;
+            kit.displayName = "GCC " + version;
+            if (!machine.empty()) kit.displayName += " " + machine;
+#ifdef _WIN32
+            kit.generator = "MinGW Makefiles";
+#endif
+            kits.push_back(kit);
+        }
+    }
+
+    // --- Clang ---
+    {
+        std::string cxxPath = findCompiler("clang++");
+        if (!cxxPath.empty()) {
+            std::string ccPath = findCompiler("clang");
+            std::string versionOutput = runCmd("\"" + cxxPath + "\" --version");
+            std::string version;
+            size_t nl = versionOutput.find('\n');
+            std::string firstLine = (nl != std::string::npos) ? versionOutput.substr(0, nl) : versionOutput;
+            size_t vpos = firstLine.find("version ");
+            if (vpos != std::string::npos) {
+                vpos += 8;
+                size_t vend = firstLine.find_first_of(" (", vpos);
+                version = (vend != std::string::npos) ? firstLine.substr(vpos, vend - vpos) : firstLine.substr(vpos);
+            }
+            std::string machine = runCmd("\"" + cxxPath + "\" -dumpmachine");
+
+            CMakeKit kit;
+            kit.cxxCompiler = cxxPath;
+            kit.cCompiler = ccPath;
+            kit.displayName = "Clang " + version;
+            if (!machine.empty()) kit.displayName += " " + machine;
+#ifdef _WIN32
+            // Determine generator from the target triple.
+            // MinGW-targeting Clang uses MinGW Makefiles;
+            // MSVC-targeting Clang works best with Ninja (or VS generator as fallback).
+            if (machine.find("mingw") != std::string::npos) {
+                kit.generator = "MinGW Makefiles";
+            } else {
+                if (!findCompiler("ninja").empty()) {
+                    kit.generator = "Ninja";
+                }
+                // Otherwise leave empty; CMake will pick the VS generator.
+            }
+#endif
+            kits.push_back(kit);
+        }
+    }
+
+#ifdef _WIN32
+    // --- MSVC ---
+    {
+        std::string clPath = findCompiler("cl");
+        if (!clPath.empty()) {
+            // cl.exe is on PATH (e.g. launched from Developer Command Prompt)
+            CMakeKit kit;
+            kit.cxxCompiler = clPath;
+            kit.cCompiler = clPath;
+            kit.displayName = "MSVC";
+            kits.push_back(kit);
+        } else {
+            // cl.exe not on PATH; detect Visual Studio via vswhere
+            std::string vswhere = findVswherePath();
+            if (!vswhere.empty()) {
+                std::string vsName = runCmd("\"" + vswhere + "\" -latest -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property displayName");
+                if (!vsName.empty()) {
+                    CMakeKit kit;
+                    kit.displayName = vsName;
+                    // Empty compiler/generator: CMake auto-detects the VS
+                    // generator and locates cl.exe internally.
+                    kits.push_back(kit);
+                }
+            }
+        }
+    }
+#endif
+
+    return kits;
+}
+
+std::string Editor::Generator::checkBuildTools() {
+    std::string missing;
+
+#ifdef _WIN32
+    auto commandExists = [](const char* cmd) -> bool {
+        std::string check = std::string("where ") + cmd + " >nul 2>nul";
+        return system(check.c_str()) == 0;
+    };
+#else
+    auto commandExists = [](const char* cmd) -> bool {
+        std::string check = std::string("command -v ") + cmd + " >/dev/null 2>&1";
+        return system(check.c_str()) == 0;
+    };
+#endif
+
+    if (!commandExists("cmake")) {
+#ifdef _WIN32
+        missing += "- CMake: not found. Download from https://cmake.org/download/ and ensure it is added to PATH during installation.\n";
+#elif defined(__APPLE__)
+        missing += "- CMake: not found. Install with: brew install cmake\n";
+#else
+        missing += "- CMake: not found. Install with: sudo apt install cmake (Debian/Ubuntu) or sudo dnf install cmake (Fedora).\n";
+#endif
+    }
+
+    bool hasCompiler = false;
+#ifdef _WIN32
+    hasCompiler = commandExists("cl") || commandExists("g++") || commandExists("clang++") || hasVSWithCppTools();
+#elif defined(__APPLE__)
+    hasCompiler = commandExists("clang++") || commandExists("g++");
+#else
+    hasCompiler = commandExists("g++") || commandExists("clang++");
+#endif
+
+    if (!hasCompiler) {
+#ifdef _WIN32
+        missing += "- C++ compiler: not found. Install Visual Studio (https://visualstudio.microsoft.com/) and select the \"Desktop development with C++\" workload.\n";
+#elif defined(__APPLE__)
+        missing += "- C++ compiler: not found. Install Xcode Command Line Tools by running: xcode-select --install\n";
+#else
+        missing += "- C++ compiler (g++ or clang++): not found. Install with: sudo apt install build-essential (Debian/Ubuntu) or sudo dnf install gcc-c++ (Fedora).\n";
+#endif
+    }
+
+    return missing;
+}
+
+void Editor::Generator::build(const fs::path projectPath, const fs::path projectInternalPath, const fs::path buildPath, const std::string& cCompiler, const std::string& cxxCompiler, const std::string& generator) {
     cancelBuild();
     waitForBuildToComplete();
 
     lastBuildSucceeded.store(false, std::memory_order_relaxed);
     cancelRequested.store(false, std::memory_order_relaxed);
 
-    buildFuture = std::async(std::launch::async, [this, projectPath, buildPath]() {
+    buildFuture = std::async(std::launch::async, [this, projectPath, buildPath, cCompiler, cxxCompiler, generator]() {
         try {
             auto startTime = std::chrono::steady_clock::now();
 
             std::string configType = "Debug";
 
-            if (!configureCMake(projectPath, buildPath, configType)) {
+            if (!configureCMake(projectPath, buildPath, configType, cCompiler, cxxCompiler, generator)) {
                 if (cancelRequested.load(std::memory_order_relaxed)) {
                     Out::warning("Build configuration cancelled.");
                 } else {

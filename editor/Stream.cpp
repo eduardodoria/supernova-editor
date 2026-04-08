@@ -873,6 +873,16 @@ YAML::Node Editor::Stream::encodeProject(Project* project) {
         root["luaDir"] = project->getLuaDir().string();
     }
 
+    if (!project->getCMakeCCompiler().empty()) {
+        root["cmakeCCompiler"] = project->getCMakeCCompiler();
+    }
+    if (!project->getCMakeCxxCompiler().empty()) {
+        root["cmakeCxxCompiler"] = project->getCMakeCxxCompiler();
+    }
+    if (!project->getCMakeGenerator().empty()) {
+        root["cmakeGenerator"] = project->getCMakeGenerator();
+    }
+
     // Add tabs array
     YAML::Node tabsNode;
     for (const auto& tab : project->getTabs()) {
@@ -967,6 +977,13 @@ void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
 
     if (node["luaDir"]) {
         project->setLuaDir(node["luaDir"].as<std::string>());
+    }
+
+    if (node["cmakeCCompiler"] || node["cmakeCxxCompiler"] || node["cmakeGenerator"]) {
+        std::string cc = node["cmakeCCompiler"] ? node["cmakeCCompiler"].as<std::string>() : "";
+        std::string cxx = node["cmakeCxxCompiler"] ? node["cmakeCxxCompiler"].as<std::string>() : "";
+        std::string gen = node["cmakeGenerator"] ? node["cmakeGenerator"].as<std::string>() : "";
+        project->setCMakeKit(cc, cxx, gen);
     }
 
     // Build set of scene filepaths that should be opened from tabs

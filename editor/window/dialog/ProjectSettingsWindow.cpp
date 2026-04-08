@@ -165,6 +165,19 @@ void ProjectSettingsWindow::open(Project* project) {
     m_textureStrategyIndex = findTextureStrategyIndex(project->getTextureStrategy());
     m_assetsDir = project->getAssetsDir();
     m_luaDir = project->getLuaDir();
+
+    m_availableKits = Generator::detectAvailableKits();
+    m_cmakeKitIndex = 0; // 0 = "Default"
+    std::string currentCxx = project->getCMakeCxxCompiler();
+    std::string currentGen = project->getCMakeGenerator();
+    if (!currentCxx.empty() || !currentGen.empty()) {
+        for (size_t i = 0; i < m_availableKits.size(); i++) {
+            if (m_availableKits[i].cxxCompiler == currentCxx && m_availableKits[i].generator == currentGen) {
+                m_cmakeKitIndex = static_cast<int>(i + 1);
+                break;
+            }
+        }
+    }
 }
 
 void ProjectSettingsWindow::show() {
@@ -317,6 +330,39 @@ void ProjectSettingsWindow::drawSettings() {
         }
     }
 
+    // CMake Kit row
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGui::Text("Compiler");
+    ImGui::TableNextColumn();
+    {
+        ImGui::SetNextItemWidth(-1);
+        const char* currentLabel = (m_cmakeKitIndex == 0) ? "Default" : m_availableKits[m_cmakeKitIndex - 1].displayName.c_str();
+        if (ImGui::BeginCombo("##CMakeKit", currentLabel)) {
+            bool isSelected = (m_cmakeKitIndex == 0);
+            if (ImGui::Selectable("Default", isSelected)) {
+                m_cmakeKitIndex = 0;
+            }
+            if (isSelected) {
+                ImGui::SetItemDefaultFocus();
+            }
+            for (size_t i = 0; i < m_availableKits.size(); i++) {
+                isSelected = (m_cmakeKitIndex == static_cast<int>(i + 1));
+                if (ImGui::Selectable(m_availableKits[i].displayName.c_str(), isSelected)) {
+                    m_cmakeKitIndex = static_cast<int>(i + 1);
+                }
+                if (isSelected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
+        if (m_cmakeKitIndex > 0) {
+            const auto& kit = m_availableKits[m_cmakeKitIndex - 1];
+            ImGui::TextDisabled("C: %s  CXX: %s", kit.cCompiler.c_str(), kit.cxxCompiler.c_str());
+        }
+    }
+
     ImGui::EndTable();
     ImGui::PopItemWidth();
 
@@ -335,6 +381,12 @@ void ProjectSettingsWindow::drawSettings() {
         m_project->setTextureStrategy(textureStrategyValues[m_textureStrategyIndex]);
         m_project->setAssetsDir(m_assetsDir);
         m_project->setLuaDir(m_luaDir);
+        if (m_cmakeKitIndex > 0) {
+            const auto& kit = m_availableKits[m_cmakeKitIndex - 1];
+            m_project->setCMakeKit(kit.cCompiler, kit.cxxCompiler, kit.generator);
+        } else {
+            m_project->setCMakeKit("", "", "");
+        }
         m_isOpen = false;
         ImGui::CloseCurrentPopup();
     }

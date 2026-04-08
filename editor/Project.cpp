@@ -1020,6 +1020,24 @@ std::filesystem::path Editor::Project::getLuaDir() const{
     return luaDir;
 }
 
+void Editor::Project::setCMakeKit(const std::string& cCompiler, const std::string& cxxCompiler, const std::string& generator){
+    this->cmakeCCompiler = cCompiler;
+    this->cmakeCxxCompiler = cxxCompiler;
+    this->cmakeGenerator = generator;
+}
+
+std::string Editor::Project::getCMakeCCompiler() const{
+    return cmakeCCompiler;
+}
+
+std::string Editor::Project::getCMakeCxxCompiler() const{
+    return cmakeCxxCompiler;
+}
+
+std::string Editor::Project::getCMakeGenerator() const{
+    return cmakeGenerator;
+}
+
 Editor::CommandHistory* Editor::Project::getProjectCommandHistory(){
     return &projectHistory;
 }
@@ -1872,6 +1890,9 @@ void Editor::Project::resetConfigs() {
     textureStrategy = TextureStrategy::RESIZE;
     assetsDir = ".";
     luaDir = ".";
+    cmakeCCompiler = "";
+    cmakeCxxCompiler = "";
+    cmakeGenerator = "";
     selectedScene = NULL_PROJECT_SCENE;
     selectedSceneForProperties = NULL_PROJECT_SCENE;
     nextSceneId = 0;
@@ -4969,9 +4990,24 @@ void Editor::Project::start(uint32_t sceneId) {
     bool hasCppScripts = !mergedCppScripts.empty();
 
     if (hasCppScripts) {
+        std::string missingTools = Generator::checkBuildTools();
+        if (!missingTools.empty()) {
+            Out::error("Cannot build C++ scripts: missing build tools");
+            Backend::getApp().registerAlert("Missing Build Tools",
+                "C++ scripts require build tools that were not found on your system:\n\n" + missingTools +
+                "\nPlease install the missing tools and try again.");
+            cleanupPlaySession(session);
+            {
+                std::scoped_lock lock(playSessionMutex);
+                if (activePlaySession == session) activePlaySession.reset();
+            }
+            sceneProject->playState = ScenePlayState::STOPPED;
+            return;
+        }
+
         fs::path buildPath = getProjectInternalPath() / "build";
 
-        generator.build(getProjectPath(), getProjectInternalPath(), buildPath);
+        generator.build(getProjectPath(), getProjectInternalPath(), buildPath, cmakeCCompiler, cmakeCxxCompiler, cmakeGenerator);
 
         std::thread connectThread([this, session, sceneId, buildPath]() {
             generator.waitForBuildToComplete();
