@@ -4929,6 +4929,9 @@ void Editor::Project::start(uint32_t sceneId) {
             if (sceneProject.isModified && !sceneProject.filepath.empty()) {
                 saveScene(sceneProject.id);
                 savedNow = true;
+            } else {
+                updateSceneCppScripts(&sceneProject);
+                updateSceneBundles(&sceneProject);
             }
         }
 
