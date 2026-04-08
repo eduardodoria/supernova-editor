@@ -70,6 +70,10 @@ public:
     // Builds a MultiPropertyCmd that removes tile at tileIndex from a TilemapComponent.
     // Returns the command (caller must add it to CommandHandle) or nullptr if invalid.
     static Command* buildDeleteTileCmd(Project* project, uint32_t sceneId, Entity entity, unsigned int tileIndex);
+
+    // Builds a MultiPropertyCmd that duplicates tile at tileIndex in a TilemapComponent.
+    // The new tile is placed with a small offset. Returns nullptr if invalid or array is full.
+    static Command* buildDuplicateTileCmd(Project* project, uint32_t sceneId, Entity entity, unsigned int tileIndex);
 };
 
 } // namespace Supernova::Editor

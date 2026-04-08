@@ -9,6 +9,8 @@
 #include "command/type/MultiPropertyCmd.h"
 #include "command/type/LinkMaterialCmd.h"
 #include "command/type/CreateEntityCmd.h"
+#include "command/type/DuplicateEntityCmd.h"
+#include "util/ProjectUtils.h"
 #include "render/SceneRender2D.h"
 #include "render/SceneRender3D.h"
 #include "Stream.h"
@@ -528,11 +530,12 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !altHeld && !suppressLeftMouse){
             // Selecting and dragging an unselected object at same time (just for 2D object mode)
             GizmoSelected gizmoSelected = sceneProject->sceneRender->getToolsLayer()->getGizmoSelected();
+            bool gizmoSideActive = sceneProject->sceneRender->isAnyGizmoSideSelected();
             if (!disableSelection && gizmoSelected == GizmoSelected::OBJECT2D) {
                 Entity hitEntity = project->findObjectByRay(sceneId, x, y);
                 if (hitEntity != NULL_ENTITY) {
                     bool alreadySelected = project->isSelectedEntity(sceneId, hitEntity);
-                    if (!alreadySelected || io.KeyShift) {
+                    if (!alreadySelected || (io.KeyShift && !gizmoSideActive)) {
                         sceneProject->sceneRender->clearTileSelection();
                         bool changed = project->selectObjectByRay(sceneId, x, y, io.KeyShift);
                         if (changed) {
@@ -562,6 +565,33 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
                             sceneProject->sceneRender->update(selEntities, project->getEntities(sceneId), sceneProject->mainCamera, sceneProject->displaySettings);
                             sceneProject->sceneRender->mouseHoverEvent(x, y);
                         }
+                    }
+                }
+            }
+            // Shift+click on gizmo: duplicate before starting drag
+            if (io.KeyShift && sceneProject->sceneRender->isAnyGizmoSideSelected()){
+                int tileIdx = sceneProject->sceneRender->getSelectedTileIndex();
+                Entity tileEntity = sceneProject->sceneRender->getSelectedTileEntity();
+                if (tileIdx >= 0) {
+                    // Duplicate tile
+                    Command* dupCmd = ProjectUtils::buildDuplicateTileCmd(project, sceneId, tileEntity, (unsigned int)tileIdx);
+                    if (dupCmd) {
+                        CommandHandle::get(sceneId)->addCommand(dupCmd);
+                        TilemapComponent* tilemap = sceneProject->scene->findComponent<TilemapComponent>(tileEntity);
+                        if (tilemap) {
+                            sceneProject->sceneRender->selectTile(tileEntity, (int)tilemap->numTiles - 1);
+                        }
+                        sceneProject->sceneRender->update(project->getSelectedEntities(sceneId), project->getEntities(sceneId), sceneProject->mainCamera, sceneProject->displaySettings);
+                        sceneProject->sceneRender->mouseHoverEvent(x, y);
+                    }
+                } else {
+                    // Duplicate entities
+                    std::vector<Entity> selectedEntities = project->getSelectedEntities(sceneId);
+                    if (!selectedEntities.empty()){
+                        auto* dupCmd = new DuplicateEntityCmd(project, sceneId, selectedEntities);
+                        CommandHandle::get(sceneId)->addCommandNoMerge(dupCmd);
+                        sceneProject->sceneRender->update(project->getSelectedEntities(sceneId), project->getEntities(sceneId), sceneProject->mainCamera, sceneProject->displaySettings);
+                        sceneProject->sceneRender->mouseHoverEvent(x, y);
                     }
                 }
             }

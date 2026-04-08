@@ -1192,6 +1192,41 @@ void Editor::ProjectUtils::collectEntities(const YAML::Node& entityNode, std::ve
     }
 }
 
+Editor::Command* Editor::ProjectUtils::buildDuplicateTileCmd(Project* project, uint32_t sceneId, Entity entity, unsigned int tileIndex) {
+    SceneProject* sceneProject = project->getScene(sceneId);
+    if (!sceneProject || !sceneProject->scene) {
+        return nullptr;
+    }
+
+    TilemapComponent* tilemap = sceneProject->scene->findComponent<TilemapComponent>(entity);
+    if (!tilemap || tileIndex >= tilemap->numTiles) {
+        return nullptr;
+    }
+
+    unsigned int newSlot = tilemap->numTiles;
+    if (newSlot >= tilemap->tiles.size()) {
+        return nullptr;
+    }
+
+    ComponentType cpType = ComponentType::TilemapComponent;
+    MultiPropertyCmd* multiCmd = new MultiPropertyCmd();
+
+    const TileData& src = tilemap->tiles[tileIndex];
+    std::string dstPrefix = "tiles[" + std::to_string(newSlot) + "]";
+
+    // Copy tile data with a small position offset
+    multiCmd->addPropertyCmd<std::string>(project, sceneId, entity, cpType, dstPrefix + ".name", src.name);
+    multiCmd->addPropertyCmd<int>(project, sceneId, entity, cpType, dstPrefix + ".rectId", src.rectId);
+    multiCmd->addPropertyCmd<Vector2>(project, sceneId, entity, cpType, dstPrefix + ".position", src.position + Vector2(10.0f, 10.0f));
+    multiCmd->addPropertyCmd<float>(project, sceneId, entity, cpType, dstPrefix + ".width", src.width);
+    multiCmd->addPropertyCmd<float>(project, sceneId, entity, cpType, dstPrefix + ".height", src.height);
+
+    multiCmd->addPropertyCmd<unsigned int>(project, sceneId, entity, cpType, "numTiles", (unsigned int)(newSlot + 1));
+
+    multiCmd->setNoMerge();
+    return multiCmd;
+}
+
 Editor::Command* Editor::ProjectUtils::buildDeleteTileCmd(Project* project, uint32_t sceneId, Entity entity, unsigned int tileIndex) {
     SceneProject* sceneProject = project->getScene(sceneId);
     if (!sceneProject || !sceneProject->scene) {

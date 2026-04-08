@@ -28,6 +28,7 @@ namespace Supernova::Editor{
 
     friend class Project;
     friend class CreateEntityCmd;
+    friend class DuplicateEntityCmd;
 
     private:
         Project* project;

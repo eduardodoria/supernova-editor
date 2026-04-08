@@ -2428,10 +2428,14 @@ int Editor::Catalog::getChangedUpdateFlags(ComponentType compType, void* oldComp
 
 void Editor::Catalog::updateEntity(EntityRegistry* registry, Entity entity, int updateFlags){
     if (updateFlags & UpdateFlags_Transform){
-        registry->getComponent<Transform>(entity).needUpdate = true;
+        if (Transform* transform = registry->findComponent<Transform>(entity)){
+            transform->needUpdate = true;
+        }
     }
     if (updateFlags & UpdateFlags_Camera){
-        registry->getComponent<CameraComponent>(entity).needUpdate = true;
+        if (CameraComponent* camera = registry->findComponent<CameraComponent>(entity)){
+            camera->needUpdate = true;
+        }
     }
     if (updateFlags & UpdateFlags_Scene_Mesh_Reload){
         auto meshes = registry->getComponentArray<MeshComponent>();
@@ -2440,49 +2444,55 @@ void Editor::Catalog::updateEntity(EntityRegistry* registry, Entity entity, int 
             mesh.needReload = true;
         }
     }
-    if (updateFlags & UpdateFlags_Mesh_Reload){
-        registry->getComponent<MeshComponent>(entity).needReload = true;
-    }
-    if (updateFlags & UpdateFlags_Mesh_Texture){
-        unsigned int numSubmeshes = registry->getComponent<MeshComponent>(entity).numSubmeshes;
-        for (unsigned int i = 0; i < numSubmeshes; i++){
-            registry->getComponent<MeshComponent>(entity).submeshes[i].needUpdateTexture = true;
+    if (updateFlags & (UpdateFlags_Mesh_Reload | UpdateFlags_Mesh_Texture)){
+        if (MeshComponent* mesh = registry->findComponent<MeshComponent>(entity)){
+            if (updateFlags & UpdateFlags_Mesh_Reload)
+                mesh->needReload = true;
+            if (updateFlags & UpdateFlags_Mesh_Texture){
+                for (unsigned int i = 0; i < mesh->numSubmeshes; i++)
+                    mesh->submeshes[i].needUpdateTexture = true;
+            }
         }
     }
-    if (updateFlags & UpdateFlags_LightShadowMap){
-        registry->getComponent<LightComponent>(entity).needUpdateShadowMap = true;
+    if (updateFlags & (UpdateFlags_LightShadowMap | UpdateFlags_LightShadowCamera)){
+        if (LightComponent* light = registry->findComponent<LightComponent>(entity)){
+            if (updateFlags & UpdateFlags_LightShadowMap)
+                light->needUpdateShadowMap = true;
+            if (updateFlags & UpdateFlags_LightShadowCamera)
+                light->needUpdateShadowCamera = true;
+        }
     }
-    if (updateFlags & UpdateFlags_LightShadowCamera){
-        registry->getComponent<LightComponent>(entity).needUpdateShadowCamera = true;
-    }
-    if (updateFlags & UpdateFlags_UI_Reload){
-        registry->getComponent<UIComponent>(entity).needReload = true;
-    }
-    if (updateFlags & UpdateFlags_UI_Texture){
-        registry->getComponent<UIComponent>(entity).needUpdateTexture = true;
+    if (updateFlags & (UpdateFlags_UI_Reload | UpdateFlags_UI_Texture)){
+        if (UIComponent* ui = registry->findComponent<UIComponent>(entity)){
+            if (updateFlags & UpdateFlags_UI_Reload)
+                ui->needReload = true;
+            if (updateFlags & UpdateFlags_UI_Texture)
+                ui->needUpdateTexture = true;
+        }
     }
     if (updateFlags & UpdateFlags_Image_Patches){
-        registry->getComponent<ImageComponent>(entity).needUpdatePatches = true;
-    }
-    if (updateFlags & UpdateFlags_Layout_Sizes){
-        registry->getComponent<UILayoutComponent>(entity).needUpdateSizes = true;
-    }
-    if (updateFlags & UpdateFlags_Layout_Anchors){
-        // Only to move and resize objects when AnchorPreset is NONE
-        // May be requested even if not have UILayoutComponent
-        UILayoutComponent* layout = registry->findComponent<UILayoutComponent>(entity);
-        if (layout && layout->usingAnchors) {
-            layout->needUpdateAnchorOffsets = true;
+        if (ImageComponent* image = registry->findComponent<ImageComponent>(entity)){
+            image->needUpdatePatches = true;
         }
     }
-    if (updateFlags & UpdateFlags_Sky_Texture){
-        registry->getComponent<SkyComponent>(entity).needUpdateTexture = true;
+    if (updateFlags & (UpdateFlags_Layout_Sizes | UpdateFlags_Layout_Anchors)){
+        // May be requested even if not have UILayoutComponent
+        if (UILayoutComponent* layout = registry->findComponent<UILayoutComponent>(entity)){
+            if (updateFlags & UpdateFlags_Layout_Sizes)
+                layout->needUpdateSizes = true;
+            if ((updateFlags & UpdateFlags_Layout_Anchors) && layout->usingAnchors)
+                layout->needUpdateAnchorOffsets = true;
+        }
     }
-    if (updateFlags & UpdateFlags_Sky){
-        registry->getComponent<SkyComponent>(entity).needUpdateSky = true;
+    if (updateFlags & (UpdateFlags_Sky | UpdateFlags_Sky_Texture)){
+        if (SkyComponent* sky = registry->findComponent<SkyComponent>(entity)){
+            if (updateFlags & UpdateFlags_Sky_Texture)
+                sky->needUpdateTexture = true;
+            if (updateFlags & UpdateFlags_Sky)
+                sky->needUpdateSky = true;
+        }
     }
     if (updateFlags & UpdateFlags_Sprite){
-        // May be requested by ActionComponent or SpriteAnimationComponent even if not have SpriteComponent
         if (SpriteComponent* sprite = registry->findComponent<SpriteComponent>(entity)){
             sprite->needUpdateSprite = true;
         }
@@ -2494,11 +2504,13 @@ void Editor::Catalog::updateEntity(EntityRegistry* registry, Entity entity, int 
             }
         }
     }
-    if (updateFlags & UpdateFlags_Text){
-        registry->getComponent<TextComponent>(entity).needUpdateText = true;
-    }
-    if (updateFlags & UpdateFlags_Text_Atlas){
-        registry->getComponent<TextComponent>(entity).needReloadAtlas = true;
+    if (updateFlags & (UpdateFlags_Text | UpdateFlags_Text_Atlas)){
+        if (TextComponent* text = registry->findComponent<TextComponent>(entity)){
+            if (updateFlags & UpdateFlags_Text)
+                text->needUpdateText = true;
+            if (updateFlags & UpdateFlags_Text_Atlas)
+                text->needReloadAtlas = true;
+        }
     }
     if (updateFlags & UpdateFlags_Body2D){
         if (Body2DComponent* body = registry->findComponent<Body2DComponent>(entity)){

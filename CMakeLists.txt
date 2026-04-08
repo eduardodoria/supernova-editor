@@ -233,6 +233,7 @@ add_executable(
     ${EDITOR_DIR}/command/type/RemoveComponentCmd.cpp
     ${EDITOR_DIR}/command/type/CreateEntityCmd.cpp
     ${EDITOR_DIR}/command/type/DeleteEntityCmd.cpp
+    ${EDITOR_DIR}/command/type/DuplicateEntityCmd.cpp
     ${EDITOR_DIR}/command/type/MoveEntityOrderCmd.cpp
     ${EDITOR_DIR}/command/type/ObjectTransformCmd.cpp
     ${EDITOR_DIR}/command/type/RemoveChildSceneCmd.cpp

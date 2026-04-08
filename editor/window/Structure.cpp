@@ -9,6 +9,7 @@
 #include "command/type/EntityNameCmd.h"
 #include "command/type/SceneNameCmd.h"
 #include "command/type/DeleteEntityCmd.h"
+#include "command/type/DuplicateEntityCmd.h"
 #include "command/type/AddComponentCmd.h"
 #include "command/type/ImportEntityBundleCmd.h"
 #include "command/type/RemoveEntityFromBundleCmd.h"
@@ -945,8 +946,14 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
 
             ImGui::Separator();
             bool entityDeleted = false;
-            if (ImGui::MenuItem(ICON_FA_COPY"  Duplicate")){
-                // Action for SubItem 1
+            if (ImGui::MenuItem(ICON_FA_COPY"  Duplicate", "Ctrl+D", false, !node.isScene && !node.isLocked)){
+                if (!node.isScene){
+                    std::vector<Entity> entitiesToDuplicate = project->getSelectedEntities(project->getSelectedSceneId());
+                    if (entitiesToDuplicate.empty() || !project->isSelectedEntity(project->getSelectedSceneId(), node.id)){
+                        entitiesToDuplicate = {node.id};
+                    }
+                    CommandHandle::get(project->getSelectedSceneId())->addCommandNoMerge(new DuplicateEntityCmd(project, project->getSelectedSceneId(), entitiesToDuplicate));
+                }
             }
             if (ImGui::MenuItem(ICON_FA_TRASH"  Delete", nullptr, false, !node.isLocked)){
                 if (!node.isScene){

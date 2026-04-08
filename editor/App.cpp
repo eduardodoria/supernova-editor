@@ -8,6 +8,7 @@
 #include "external/IconsFontAwesome6.h"
 #include "command/CommandHandle.h"
 #include "command/type/DeleteEntityCmd.h"
+#include "command/type/DuplicateEntityCmd.h"
 #include "command/type/RemoveChildSceneCmd.h"
 
 #include "util/ProjectUtils.h"
@@ -838,6 +839,33 @@ void Editor::App::show(){
             if (lastCmd) {
                 lastCmd->setNoMerge();
             }
+            }
+        }
+
+        if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_D)){
+            uint32_t targetSceneId = sceneId;
+            SceneProject* sp = project.getScene(targetSceneId);
+            bool tileDuplicated = false;
+            if (sp && sp->sceneRender) {
+                int tileIdx = sp->sceneRender->getSelectedTileIndex();
+                Entity tileEntity = sp->sceneRender->getSelectedTileEntity();
+                if (tileIdx >= 0) {
+                    Command* dupCmd = ProjectUtils::buildDuplicateTileCmd(&project, targetSceneId, tileEntity, (unsigned int)tileIdx);
+                    if (dupCmd) {
+                        CommandHandle::get(sceneId)->addCommand(dupCmd);
+                        TilemapComponent* tilemap = sp->scene->findComponent<TilemapComponent>(tileEntity);
+                        if (tilemap) {
+                            sp->sceneRender->selectTile(tileEntity, (int)tilemap->numTiles - 1);
+                        }
+                        tileDuplicated = true;
+                    }
+                }
+            }
+            if (!tileDuplicated) {
+                const std::vector<Entity>& selectedEntities = project.getSelectedEntities(targetSceneId);
+                if (!selectedEntities.empty()){
+                    CommandHandle::get(sceneId)->addCommandNoMerge(new DuplicateEntityCmd(&project, targetSceneId, selectedEntities));
+                }
             }
         }
     }
