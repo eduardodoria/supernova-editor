@@ -3,6 +3,7 @@
 
 #include "System.h"
 #include "Project.h"
+#include <cstdarg>
 
 namespace Supernova::Editor{
 
@@ -22,6 +23,8 @@ namespace Supernova::Editor{
         int getScreenHeight() override;
 
         std::string getAssetPath() override;
+
+        void platformLog(const int type, const char *fmt, va_list args) override;
     };
 
 }

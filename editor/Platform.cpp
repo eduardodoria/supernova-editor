@@ -1,4 +1,5 @@
 #include "Platform.h"
+#include "Out.h"
 
 using namespace Supernova;
 
@@ -30,4 +31,21 @@ int Editor::Platform::getScreenHeight(){
 
 std::string Editor::Platform::getAssetPath(){
     return project->getProjectPath().string();
+}
+
+void Editor::Platform::platformLog(const int type, const char *fmt, va_list args){
+    char buf[4096];
+    vsnprintf(buf, sizeof(buf), fmt, args);
+
+    switch (type) {
+        case S_LOG_WARN:
+            Editor::Out::warning(buf);
+            break;
+        case S_LOG_ERROR:
+            Editor::Out::error(buf);
+            break;
+        default:
+            Editor::Out::info(buf);
+            break;
+    }
 }
