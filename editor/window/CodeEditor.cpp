@@ -61,6 +61,18 @@ void Editor::CodeEditor::checkFileChanges(EditorInstance& instance) {
         fs::path fullPath = resolveFilepath(instance.filepath);
         auto currentWriteTime = fs::last_write_time(fullPath);
         if (currentWriteTime != instance.lastWriteTime) {
+            // Read the file to check if content actually changed
+            std::ifstream file(fullPath);
+            if (file.is_open()) {
+                std::stringstream buffer;
+                buffer << file.rdbuf();
+                file.close();
+                if (buffer.str() == instance.editor->GetText()) {
+                    // Content is the same (e.g. we just saved), update timestamp only
+                    instance.lastWriteTime = currentWriteTime;
+                    return;
+                }
+            }
             if (instance.isModified) {
                 // Check if this file is already in the queue
                 auto it = std::find_if(changedFilesQueue.begin(), changedFilesQueue.end(),
@@ -214,7 +226,7 @@ void Editor::CodeEditor::updateScriptProperties(const EditorInstance& instance){
 
 std::vector<fs::path> Editor::CodeEditor::getOpenPaths() const{
     std::vector<fs::path> openPaths;
-    for (auto it = editors.begin(); it != editors.end();) {
+    for (auto it = editors.begin(); it != editors.end(); ++it) {
         const auto& instance = it->second;
 
         openPaths.push_back(instance.filepath);

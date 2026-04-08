@@ -2718,10 +2718,9 @@ void CustomTextEditor::renderFindDialog(const ImVec2& editorPos, const ImVec2& e
         bool focusInput = ImGui::IsWindowAppearing();
         
         // Track if we need to refocus after find
-        static bool refocusInput = false;
-        if (refocusInput) {
+        if (findRefocusInput) {
             ImGui::SetKeyboardFocusHere();
-            refocusInput = false;
+            findRefocusInput = false;
         } else if (focusInput) {
             ImGui::SetKeyboardFocusHere();
         }
@@ -2744,19 +2743,18 @@ void CustomTextEditor::renderFindDialog(const ImVec2& editorPos, const ImVec2& e
         ImGui::EndGroup();
         
         // Check if case sensitivity changed via the search input popup
-        static bool lastCaseSensitive = false;
-        if (lastCaseSensitive != findCaseSensitive) {
+        if (findLastCaseSensitive != findCaseSensitive) {
             updateSearchResults();
-            lastCaseSensitive = findCaseSensitive;
+            findLastCaseSensitive = findCaseSensitive;
         }
         
         // Handle Enter key for find next/previous
         if (shiftEnterPressed) {
             FindPrevious(findCaseSensitive, findWholeWord);
-            refocusInput = true;
+            findRefocusInput = true;
         } else if (enterPressed) {
             FindNext(findCaseSensitive, findWholeWord);
-            refocusInput = true;
+            findRefocusInput = true;
         }
         
         ImGui::SameLine();

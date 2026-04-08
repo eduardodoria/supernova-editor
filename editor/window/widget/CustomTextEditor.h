@@ -274,6 +274,8 @@ namespace Supernova::Editor {
         bool findCaseSensitive;
         bool findWholeWord;
         bool pendingScrollToCursor = false;
+        bool findRefocusInput = false;
+        bool findLastCaseSensitive = false;
 
         // Visual settings
         ImVec4 palette[static_cast<int>(TokenType::Count)];
