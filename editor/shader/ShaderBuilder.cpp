@@ -398,7 +398,7 @@ std::string Editor::ShaderBuilder::getLangSuffix(supershader::lang_type_t lang, 
     } else if (lang == supershader::LANG_HLSL) {
         return "_hlsl" + std::to_string(version);
     } else if (lang == supershader::LANG_MSL) {
-        return (platform == supershader::PLATFORM_IOS) ? "_msl" + std::to_string(version) + "ios" : "_msl" + std::to_string(version) + "macos";
+        return (platform == supershader::SHADER_IOS) ? "_msl" + std::to_string(version) + "ios" : "_msl" + std::to_string(version) + "macos";
     }
     return "";
 }

@@ -548,21 +548,21 @@ bool Editor::Exporter::buildAndSaveShaders() {
     std::vector<ShaderFormat> requiredFormats;
     // Collect formats based on selected platforms
     if (config.selectedPlatforms.count(Platform::Linux) || config.selectedPlatforms.count(Platform::Windows)) {
-        requiredFormats.push_back({supershader::LANG_GLSL, 410, false, supershader::PLATFORM_DEFAULT, "glsl410"});
+        requiredFormats.push_back({supershader::LANG_GLSL, 410, false, supershader::SHADER_DEFAULT, "glsl410"});
     }
     if (config.selectedPlatforms.count(Platform::Android) || config.selectedPlatforms.count(Platform::Web)) {
-        requiredFormats.push_back({supershader::LANG_GLSL, 300, true, supershader::PLATFORM_DEFAULT, "glsl300es"});
+        requiredFormats.push_back({supershader::LANG_GLSL, 300, true, supershader::SHADER_DEFAULT, "glsl300es"});
     }
     if (config.selectedPlatforms.count(Platform::MacOS)) {
-        requiredFormats.push_back({supershader::LANG_MSL, 21, false, supershader::PLATFORM_MACOS, "msl21macos"});
+        requiredFormats.push_back({supershader::LANG_MSL, 21, false, supershader::SHADER_MACOS, "msl21macos"});
     }
     if (config.selectedPlatforms.count(Platform::iOS)) {
-        requiredFormats.push_back({supershader::LANG_MSL, 21, false, supershader::PLATFORM_IOS, "msl21ios"});
+        requiredFormats.push_back({supershader::LANG_MSL, 21, false, supershader::SHADER_IOS, "msl21ios"});
     }
 
     // Default to glsl410 if no platforms require anything
     if (requiredFormats.empty()) {
-        requiredFormats.push_back({supershader::LANG_GLSL, 410, false, supershader::PLATFORM_DEFAULT, "glsl410"});
+        requiredFormats.push_back({supershader::LANG_GLSL, 410, false, supershader::SHADER_DEFAULT, "glsl410"});
     }
 
     int total = (int)config.selectedShaderKeys.size() * requiredFormats.size();

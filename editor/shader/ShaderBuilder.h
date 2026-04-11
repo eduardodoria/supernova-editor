@@ -63,7 +63,7 @@ namespace Supernova::Editor {
         virtual ~ShaderBuilder();
 
         ShaderBuildResult buildShader(ShaderKey shaderKey, Project* project);
-        ShaderData buildShaderForExport(ShaderKey shaderKey, supershader::lang_type_t lang, int version, bool es, supershader::platform_t platform = supershader::PLATFORM_DEFAULT);
+        ShaderData buildShaderForExport(ShaderKey shaderKey, supershader::lang_type_t lang, int version, bool es, supershader::platform_t platform = supershader::SHADER_DEFAULT);
 
         static void requestShutdown();
 
