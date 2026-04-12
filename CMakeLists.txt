@@ -310,3 +310,8 @@ install(TARGETS supernova-editor supernova
         LIBRARY DESTINATION bin
         ARCHIVE DESTINATION bin
 )
+
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/supernova/engine
+        DESTINATION bin
+        CONFIGURATIONS Release MinSizeRel
+)
