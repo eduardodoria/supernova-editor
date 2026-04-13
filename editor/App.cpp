@@ -1308,7 +1308,7 @@ std::filesystem::path Editor::App::getUserCacheBaseDir() {
 }
 
 std::filesystem::path Editor::App::getUserShaderCacheDir(){
-    return App::getUserCacheBaseDir() / "supernova" / "shaders" / "v1";
+    return App::getUserCacheBaseDir() / "supernova" / "shaders" / "v2";
 }
 
 void Editor::App::pushTabNotificationStyle(){
