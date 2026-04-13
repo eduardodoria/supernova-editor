@@ -29,7 +29,7 @@ if(WIN32)
     endif()
 
     if(MINGW)
-        set(MINGW_GCC_LIBS "-static -static-libgcc -static-libstdc++")
+        set(MINGW_STATIC_FLAGS -static -static-libgcc -static-libstdc++)
     endif()
 
     set(CMAKE_PREFIX_PATH "$ENV{ProgramFiles}/GLFW" ${CMAKE_PREFIX_PATH})
@@ -278,7 +278,7 @@ target_link_libraries(
     
     ${BACKEND_LIBS}
     ${OPENGL_LIBRARIES}
-    ${MINGW_GCC_LIBS}
+    ${MINGW_STATIC_FLAGS}
     Threads::Threads
     supernova
     supershader
