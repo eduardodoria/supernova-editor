@@ -1,5 +1,6 @@
 #include "ResourcesWindow.h"
 
+#include "AppSettings.h"
 #include "external/IconsFontAwesome6.h"
 #include "resources/icons/folder-icon_png.h"
 #include "resources/icons/file-icon_png.h"
@@ -41,7 +42,7 @@ Editor::ResourcesWindow::ResourcesWindow(Project* project, CodeEditor* codeEdito
     this->codeEditor = codeEditor;
     this->firstOpen = true;
     this->requestSort = true;
-    this->iconSize = 32.0f;
+    this->iconSize = 32;
     this->iconPadding = 1.5 * this->iconSize;
     this->isExternalDragHovering = false;
     this->clipboardCut = false;
@@ -232,23 +233,57 @@ void Editor::ResourcesWindow::renderHeader() {
 
     if (ImGui::BeginPopup("SettingsPopup")) {
         ImGui::Text("Settings");
+        ImGui::SameLine();
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, ImGui::GetStyle().FramePadding.y));
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        if (ImGui::Button(ICON_FA_ROTATE_LEFT "##ResetSettings")) {
+            iconSize = 32;
+            iconPadding = 1.5f * iconSize;
+            currentLayout = LayoutType::AUTO;
+            itemViewStyle = ItemViewStyle::CLASSIC;
+            leftPanelWidth = 200.0f;
+            AppSettings::setResourcesIconSize(iconSize);
+            AppSettings::setResourcesLayout(static_cast<int>(currentLayout));
+            AppSettings::setResourcesItemViewStyle(static_cast<int>(itemViewStyle));
+            AppSettings::setResourcesLeftPanelWidth(leftPanelWidth);
+            AppSettings::saveSettings();
+        }
+        ImGui::PopStyleColor(2);
+        ImGui::PopStyleVar(2);
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Reset to defaults");
+        }
         ImGui::Separator();
         if (ImGui::SliderInt("Icon Size", &iconSize, 16.0f, THUMBNAIL_SIZE)) {
             iconPadding = 1.5f * iconSize;
+            AppSettings::setResourcesIconSize(iconSize);
+            AppSettings::saveSettings();
         }
         ImGui::Separator();
         ImGui::Text("Layout");
+        LayoutType prevLayout = currentLayout;
         if (ImGui::RadioButton("Auto", currentLayout == LayoutType::AUTO)) currentLayout = LayoutType::AUTO;
         ImGui::SameLine();
         if (ImGui::RadioButton("Grid", currentLayout == LayoutType::GRID)) currentLayout = LayoutType::GRID;
         ImGui::SameLine();
         if (ImGui::RadioButton("Split view", currentLayout == LayoutType::SPLIT)) currentLayout = LayoutType::SPLIT;
+        if (currentLayout != prevLayout) {
+            AppSettings::setResourcesLayout(static_cast<int>(currentLayout));
+            AppSettings::saveSettings();
+        }
 
         ImGui::Separator();
         ImGui::Text("Item view");
+        ItemViewStyle prevStyle = itemViewStyle;
         if (ImGui::RadioButton("Classic", itemViewStyle == ItemViewStyle::CLASSIC)) itemViewStyle = ItemViewStyle::CLASSIC;
         ImGui::SameLine();
         if (ImGui::RadioButton("Card", itemViewStyle == ItemViewStyle::CARD)) itemViewStyle = ItemViewStyle::CARD;
+        if (itemViewStyle != prevStyle) {
+            AppSettings::setResourcesItemViewStyle(static_cast<int>(itemViewStyle));
+            AppSettings::saveSettings();
+        }
 
         ImGui::EndPopup();
     }
@@ -1618,6 +1653,13 @@ void Editor::ResourcesWindow::refreshCurrentDirectory() {
 
 void Editor::ResourcesWindow::show() {
     if (firstOpen) {
+        // Load saved settings (AppSettings is initialized by now)
+        iconSize = AppSettings::getResourcesIconSize();
+        iconPadding = 1.5f * iconSize;
+        currentLayout = static_cast<LayoutType>(AppSettings::getResourcesLayout());
+        itemViewStyle = static_cast<ItemViewStyle>(AppSettings::getResourcesItemViewStyle());
+        leftPanelWidth = AppSettings::getResourcesLeftPanelWidth();
+
         int iconWidth, iconHeight;
 
         TextureData data;
@@ -1747,6 +1789,10 @@ void Editor::ResourcesWindow::show() {
         if (ImGui::IsItemActive()) {
             leftPanelWidth += ImGui::GetIO().MouseDelta.x;
             leftPanelWidth = ImClamp(leftPanelWidth, 100.0f, ImGui::GetWindowWidth() - 100.0f);
+        }
+        if (ImGui::IsItemDeactivated()) {
+            AppSettings::setResourcesLeftPanelWidth(leftPanelWidth);
+            AppSettings::saveSettings();
         }
         ImGui::SameLine();
         ImGui::BeginChild("RightPanel", ImVec2(0, 0), true);

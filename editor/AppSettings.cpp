@@ -13,6 +13,10 @@ std::filesystem::path AppSettings::lastProjectPath;
 int AppSettings::windowWidth = 1280;
 int AppSettings::windowHeight = 720;
 bool AppSettings::isMaximized = false;
+int AppSettings::resourcesIconSize = 32;
+int AppSettings::resourcesLayout = 0;
+int AppSettings::resourcesItemViewStyle = 1;
+float AppSettings::resourcesLeftPanelWidth = 200.0f;
 
 bool AppSettings::initialize() {
     // Get config file path in the application directory
@@ -75,6 +79,23 @@ bool AppSettings::loadSettings() {
             }
         }
         
+        // Load resources window settings
+        if (settingsData["resources_window"]) {
+            auto resNode = settingsData["resources_window"];
+            if (resNode["icon_size"]) {
+                resourcesIconSize = resNode["icon_size"].as<int>();
+            }
+            if (resNode["layout"]) {
+                resourcesLayout = resNode["layout"].as<int>();
+            }
+            if (resNode["item_view_style"]) {
+                resourcesItemViewStyle = resNode["item_view_style"].as<int>();
+            }
+            if (resNode["left_panel_width"]) {
+                resourcesLeftPanelWidth = resNode["left_panel_width"].as<float>();
+            }
+        }
+
         return true;
     } catch (const std::exception& e) {
         Out::error("Failed to load settings: %s", e.what());
@@ -106,6 +127,14 @@ bool AppSettings::saveSettings() {
         windowNode["maximized"] = isMaximized;
         settingsData["window"] = windowNode;
         
+        // Resources window settings
+        YAML::Node resNode;
+        resNode["icon_size"] = resourcesIconSize;
+        resNode["layout"] = resourcesLayout;
+        resNode["item_view_style"] = resourcesItemViewStyle;
+        resNode["left_panel_width"] = resourcesLeftPanelWidth;
+        settingsData["resources_window"] = resNode;
+
         // Save to file
         std::ofstream fout(configFilePath.string());
         fout << YAML::Dump(settingsData);
@@ -190,6 +219,38 @@ void AppSettings::setWindowHeight(int height) {
 
 void AppSettings::setIsMaximized(bool maximized) {
     isMaximized = maximized;
+}
+
+int AppSettings::getResourcesIconSize() {
+    return resourcesIconSize;
+}
+
+int AppSettings::getResourcesLayout() {
+    return resourcesLayout;
+}
+
+int AppSettings::getResourcesItemViewStyle() {
+    return resourcesItemViewStyle;
+}
+
+float AppSettings::getResourcesLeftPanelWidth() {
+    return resourcesLeftPanelWidth;
+}
+
+void AppSettings::setResourcesIconSize(int size) {
+    resourcesIconSize = size;
+}
+
+void AppSettings::setResourcesLayout(int layout) {
+    resourcesLayout = layout;
+}
+
+void AppSettings::setResourcesItemViewStyle(int style) {
+    resourcesItemViewStyle = style;
+}
+
+void AppSettings::setResourcesLeftPanelWidth(float width) {
+    resourcesLeftPanelWidth = width;
 }
 
 } // namespace Supernova::Editor
