@@ -2192,14 +2192,9 @@ bool Editor::Project::saveProjectToPath(const std::filesystem::path& path) {
                                      std::filesystem::copy_options::recursive);
             }
 
-            // Update all scene filepaths to the new location
-            for (auto& sceneProject : scenes) {
-                if (!sceneProject.filepath.empty()) {
-                    std::filesystem::path relativePath = std::filesystem::relative(
-                        sceneProject.filepath, oldPath);
-                    sceneProject.filepath = relativePath;
-                }
-            }
+            // Scene filepaths are stored as relative paths within the project,
+            // and the directory structure is preserved by the copy, so they
+            // remain valid without modification.
 
             // Delete the temp directory after moving all files
             std::filesystem::remove_all(oldPath);

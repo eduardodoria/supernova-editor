@@ -65,14 +65,8 @@ void ProjectSaveDialog::show() {
             homeDirPath = std::filesystem::path(getenv("HOME")).string();
             #endif
             
-            // Get project name from buffer for the dialog
-            std::string projectName = m_projectNameBuffer;
-            if (projectName.empty()) {
-                projectName = "NewProject";
-            }
-            
-            // Open folder dialog
-            std::string selectedPath = FileDialogs::saveFileDialog(homeDirPath, projectName, false);
+            // Open folder picker dialog
+            std::string selectedPath = FileDialogs::openFileDialog(homeDirPath, 0, true);
             
             if (!selectedPath.empty()) {
                 m_projectPath = selectedPath;
@@ -84,12 +78,11 @@ void ProjectSaveDialog::show() {
         bool canSave = !projectName.empty() && !m_projectPath.empty();
         
         // Check if the selected directory is empty if it exists
-        bool directoryWarning = false;
         if (!m_projectPath.empty() && std::filesystem::exists(m_projectPath)) {
             if (!std::filesystem::is_empty(m_projectPath)) {
-                directoryWarning = true;
-                ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), 
-                                  "Warning: Selected directory is not empty!");
+                canSave = false;
+                ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 
+                                  "Selected directory is not empty.");
             }
         }
 
