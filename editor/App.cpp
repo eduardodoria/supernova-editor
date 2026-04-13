@@ -75,6 +75,11 @@ void Editor::App::saveAllFunc(){
 }
 
 void Editor::App::openProjectFunc(){
+    if (project.isAnyScenePlaying()) {
+        registerAlert("Scene Running", "A scene is currently running or stopping. Stop it before opening another project.");
+        return;
+    }
+
     if (project.hasScenesUnsavedChanges() || codeEditor->hasUnsavedChanges() || project.isTempUnsavedProject()) {
         Backend::getApp().registerConfirmAlert(
             "Unsaved Changes",
@@ -102,13 +107,14 @@ void Editor::App::showMenu(){
     SceneProject* selectedScene = project.getSelectedScene();
     uint32_t selectedSceneId = project.getSelectedSceneId();
     bool hasSelectedScene = selectedScene != nullptr;
+    bool isProjectBusy = project.isAnyScenePlaying();
     bool isPlaying = hasSelectedScene && selectedScene->playState == ScenePlayState::PLAYING;
     bool isPaused = hasSelectedScene && selectedScene->playState == ScenePlayState::PAUSED;
-    bool canRun = hasSelectedScene && !project.isAnyScenePlaying();
+    bool canRun = hasSelectedScene && !isProjectBusy;
     bool canPause = hasSelectedScene && isPlaying;
     bool canResume = hasSelectedScene && isPaused;
     bool canStop = hasSelectedScene && (isPlaying || isPaused);
-    bool canRemove = hasSelectedScene && !project.isAnyScenePlaying();
+    bool canRemove = hasSelectedScene && !isProjectBusy && project.getScenes().size() > 1;
 
     // Remove menu bar border
     //ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
@@ -117,6 +123,7 @@ void Editor::App::showMenu(){
     // Create the main menu bar
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
+            ImGui::BeginDisabled(isProjectBusy);
             if (ImGui::MenuItem("New Project")) {
                 std::string projectName = "MySupernovaProject";
                 if (project.hasScenesUnsavedChanges() || codeEditor->hasUnsavedChanges() || project.isTempUnsavedProject()) {
@@ -141,6 +148,9 @@ void Editor::App::showMenu(){
                     project.createTempProject(projectName, true);
                 }
             }
+            ImGui::EndDisabled();
+
+            ImGui::BeginDisabled(isProjectBusy);
             if (ImGui::BeginMenu("New Scene")) {
                 if (ImGui::MenuItem(ICON_FA_CUBES "  3D Scene")) {
                     project.createNewScene("New Scene", SceneType::SCENE_3D);
@@ -153,7 +163,11 @@ void Editor::App::showMenu(){
                 }
                 ImGui::EndMenu();
             }
+            ImGui::EndDisabled();
+
             ImGui::Separator();
+
+            ImGui::BeginDisabled(isProjectBusy);
             if (ImGui::MenuItem("Open Project", "Ctrl+O")) {
                 openProjectFunc();
             }
@@ -194,11 +208,11 @@ void Editor::App::showMenu(){
                 }
                 ImGui::EndMenu();
             }
-            ImGui::BeginDisabled(!project.isTempProject());
+            ImGui::EndDisabled();
+
             if (ImGui::MenuItem("Save Project")) {
                 project.saveProject(true);
             }
-            ImGui::EndDisabled();
             if (ImGui::MenuItem("Save Project As...")) {
                 registerProjectSaveDialog([](){});
             }
@@ -269,28 +283,12 @@ void Editor::App::showMenu(){
                 }
             }
             ImGui::EndDisabled();
-            if (ImGui::MenuItem("Reset layout")) {
-                buildDockspace();
-            }
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("View")) {
             if (ImGui::MenuItem("Reset Layout")) {
                  buildDockspace();
             }
-             ImGui::EndMenu();
-        }
-        if (ImGui::BeginMenu("Create")) {
-             if (ImGui::MenuItem("New Scene")) {
-                 project.createNewScene("New Scene", SceneType::SCENE_3D);
-             }
-             ImGui::BeginDisabled(!hasSelectedScene);
-             if (ImGui::BeginMenu("Entity")) {
-                 if (ImGui::MenuItem("Create Empty")) {
-                 }
-                 ImGui::EndMenu();
-             }
-             ImGui::EndDisabled();
              ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Project")) {

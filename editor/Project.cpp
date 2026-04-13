@@ -2088,6 +2088,11 @@ void Editor::Project::finalizeStop(SceneProject* mainSceneProject, std::vector<P
 }
 
 bool Editor::Project::createTempProject(std::string projectName, bool deleteIfExists) {
+    if (isAnyScenePlaying()) {
+        Out::warning("Cannot create a new project while a scene is running or stopping.");
+        return false;
+    }
+
     try {
         resetConfigs();
 
@@ -2235,6 +2240,11 @@ bool Editor::Project::saveProjectToPath(const std::filesystem::path& path) {
 }
 
 bool Editor::Project::loadProject(const std::filesystem::path path) {
+    if (isAnyScenePlaying()) {
+        Out::warning("Cannot load a project while a scene is running or stopping.");
+        return false;
+    }
+
     resetConfigs();
 
     projectPath = path;
@@ -2287,6 +2297,11 @@ bool Editor::Project::loadProject(const std::filesystem::path path) {
 }
 
 bool Editor::Project::openProject() {
+    if (isAnyScenePlaying()) {
+        Out::warning("Cannot open a project while a scene is running or stopping.");
+        return false;
+    }
+
     // Get user's home directory as default path
     std::string homeDirPath;
     #ifdef _WIN32
@@ -4669,8 +4684,15 @@ void Editor::Project::collectInvolvedScenes(uint32_t sceneId, std::vector<uint32
 }
 
 bool Editor::Project::isAnyScenePlaying() const{
+    {
+        std::scoped_lock lock(playSessionMutex);
+        if (activePlaySession) {
+            return true;
+        }
+    }
+
     for (const auto& sceneProject : scenes) {
-        if (sceneProject.playState == ScenePlayState::PLAYING || sceneProject.playState == ScenePlayState::PAUSED) {
+        if (sceneProject.playState != ScenePlayState::STOPPED) {
             return true;
         }
     }
