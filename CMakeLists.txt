@@ -4,7 +4,6 @@ project(supernova-editor)
 set(SUPERNOVA_SHARED ON)
 set(GRAPHIC_BACKEND "glcore")
 
-set(SUPERSHADER_LIBRARY ON CACHE BOOL "Build supershader as a library" FORCE)
 set(ENABLE_OPT OFF CACHE BOOL "Enables spirv-opt capability if present" FORCE)
 
 if(NOT API_BACKEND)
@@ -77,7 +76,7 @@ if(API_BACKEND STREQUAL "sdl")
 endif()
 
 set(SUPERNOVA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/supernova)
-set(SUPERSHADER_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/supershader)
+set(SHADERCOMPILER_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/shadercompiler)
 
 add_definitions("-DSUPERNOVA_EDITOR")
 add_definitions("-DSUPERNOVA_CRASH_GUARD")
@@ -139,10 +138,10 @@ include_directories (${SUPERNOVA_ROOT}/engine/core/texture)
 include_directories (${SUPERNOVA_ROOT}/engine/core/util)
 include_directories (${SUPERNOVA_ROOT}/engine/renders)
 
-include_directories (${SUPERSHADER_ROOT}/src)
+include_directories (${SHADERCOMPILER_ROOT}/src)
 
 add_subdirectory(${SUPERNOVA_ROOT}/engine)
-add_subdirectory(${SUPERSHADER_ROOT} EXCLUDE_FROM_ALL)
+add_subdirectory(${SHADERCOMPILER_ROOT} EXCLUDE_FROM_ALL)
 
 add_subdirectory(libs/nfd)
 add_subdirectory(libs/yaml-cpp)
@@ -281,7 +280,7 @@ target_link_libraries(
     ${MINGW_STATIC_FLAGS}
     Threads::Threads
     supernova
-    supershader
+    shadercompiler
     nfd
     yaml-cpp
 )

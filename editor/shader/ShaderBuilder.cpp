@@ -28,8 +28,8 @@ Editor::ShaderBuilder::~ShaderBuilder(){
 }
 
 // Mapping functions implementation with camelCase
-ShaderVertexType Editor::ShaderBuilder::mapVertexType(supershader::attribute_type_t type) {
-    using namespace supershader;
+ShaderVertexType Editor::ShaderBuilder::mapVertexType(shadercompiler::attribute_type_t type) {
+    using namespace shadercompiler;
     switch(type) {
         case attribute_type_t::FLOAT:  return ShaderVertexType::FLOAT;
         case attribute_type_t::FLOAT2: return ShaderVertexType::FLOAT2;
@@ -43,8 +43,8 @@ ShaderVertexType Editor::ShaderBuilder::mapVertexType(supershader::attribute_typ
     }
 }
 
-ShaderUniformType Editor::ShaderBuilder::mapUniformType(supershader::uniform_type_t type) {
-    using namespace supershader;
+ShaderUniformType Editor::ShaderBuilder::mapUniformType(shadercompiler::uniform_type_t type) {
+    using namespace shadercompiler;
     switch(type) {
         case uniform_type_t::FLOAT:  return ShaderUniformType::FLOAT;
         case uniform_type_t::FLOAT2: return ShaderUniformType::FLOAT2;
@@ -60,8 +60,8 @@ ShaderUniformType Editor::ShaderBuilder::mapUniformType(supershader::uniform_typ
     }
 }
 
-TextureType Editor::ShaderBuilder::mapTextureType(supershader::texture_type_t type) {
-    using namespace supershader;
+TextureType Editor::ShaderBuilder::mapTextureType(shadercompiler::texture_type_t type) {
+    using namespace shadercompiler;
     switch(type) {
         case texture_type_t::TEXTURE_2D:    return TextureType::TEXTURE_2D;
         case texture_type_t::TEXTURE_3D:    return TextureType::TEXTURE_3D;
@@ -71,8 +71,8 @@ TextureType Editor::ShaderBuilder::mapTextureType(supershader::texture_type_t ty
     }
 }
 
-TextureSamplerType Editor::ShaderBuilder::mapSamplerType(supershader::texture_samplertype_t type) {
-    using namespace supershader;
+TextureSamplerType Editor::ShaderBuilder::mapSamplerType(shadercompiler::texture_samplertype_t type) {
+    using namespace shadercompiler;
     switch(type) {
         case texture_samplertype_t::FLOAT: return TextureSamplerType::FLOAT;
         case texture_samplertype_t::SINT:  return TextureSamplerType::SINT;
@@ -82,8 +82,8 @@ TextureSamplerType Editor::ShaderBuilder::mapSamplerType(supershader::texture_sa
     }
 }
 
-SamplerType Editor::ShaderBuilder::mapSamplerFilterType(supershader::sampler_type_t type) {
-    using namespace supershader;
+SamplerType Editor::ShaderBuilder::mapSamplerFilterType(shadercompiler::sampler_type_t type) {
+    using namespace shadercompiler;
     switch(type) {
         case sampler_type_t::FILTERING:   return SamplerType::FILTERING;
         case sampler_type_t::COMPARISON:  return SamplerType::COMPARISON;
@@ -91,16 +91,16 @@ SamplerType Editor::ShaderBuilder::mapSamplerFilterType(supershader::sampler_typ
     }
 }
 
-ShaderStorageBufferType Editor::ShaderBuilder::mapStorageType(supershader::storage_buffer_type_t type) {
-    using namespace supershader;
+ShaderStorageBufferType Editor::ShaderBuilder::mapStorageType(shadercompiler::storage_buffer_type_t type) {
+    using namespace shadercompiler;
     switch(type) {
         case storage_buffer_type_t::STRUCT: return ShaderStorageBufferType::STRUCT;
         default:                            return ShaderStorageBufferType::STRUCT;
     }
 }
 
-ShaderStageType Editor::ShaderBuilder::mapStageType(supershader::stage_type_t type) {
-    using namespace supershader;
+ShaderStageType Editor::ShaderBuilder::mapStageType(shadercompiler::stage_type_t type) {
+    using namespace shadercompiler;
     switch(type) {
         case STAGE_VERTEX:   return ShaderStageType::VERTEX;
         case STAGE_FRAGMENT: return ShaderStageType::FRAGMENT;
@@ -108,8 +108,8 @@ ShaderStageType Editor::ShaderBuilder::mapStageType(supershader::stage_type_t ty
     }
 }
 
-ShaderLang Editor::ShaderBuilder::mapLang(supershader::lang_type_t lang) {
-    using namespace supershader;
+ShaderLang Editor::ShaderBuilder::mapLang(shadercompiler::lang_type_t lang) {
+    using namespace shadercompiler;
     switch(lang) {
         case LANG_GLSL: return ShaderLang::GLSL;
         case LANG_HLSL: return ShaderLang::HLSL;
@@ -120,9 +120,9 @@ ShaderLang Editor::ShaderBuilder::mapLang(supershader::lang_type_t lang) {
 
 // Implementation of convertToShaderData
 ShaderData Editor::ShaderBuilder::convertToShaderData(
-    const std::vector<supershader::spirvcross_t>& spirvcrossvec,
-    const std::vector<supershader::input_t>& inputs,
-    const supershader::args_t& args) {
+    const std::vector<shadercompiler::spirvcross_t>& spirvcrossvec,
+    const std::vector<shadercompiler::input_t>& inputs,
+    const shadercompiler::args_t& args) {
 
     ShaderData shaderData;
 
@@ -224,7 +224,7 @@ ShaderData Editor::ShaderBuilder::convertToShaderData(
     return shaderData;
 }
 
-void Editor::ShaderBuilder::addMeshPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop) {
+void Editor::ShaderBuilder::addMeshPropertyDefinitions(std::vector<shadercompiler::define_t>& defs, const uint32_t prop) {
     if (prop & (1 << 0))  defs.push_back({"MATERIAL_UNLIT", "1"});            // 'Ult'
     if (prop & (1 << 1))  defs.push_back({"HAS_UV_SET1", "1"});               // 'Uv1'
     if (prop & (1 << 2))  defs.push_back({"HAS_UV_SET2", "1"});               // 'Uv2'
@@ -246,7 +246,7 @@ void Editor::ShaderBuilder::addMeshPropertyDefinitions(std::vector<supershader::
     if (prop & (1 << 18)) defs.push_back({"HAS_INSTANCING", "1"});            // 'Ist'
 }
 
-void Editor::ShaderBuilder::addDepthMeshPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop) {
+void Editor::ShaderBuilder::addDepthMeshPropertyDefinitions(std::vector<shadercompiler::define_t>& defs, const uint32_t prop) {
     if (prop & (1 << 0))  defs.push_back({"HAS_TEXTURE", "1"});       // 'Tex'
     if (prop & (1 << 1))  defs.push_back({"HAS_SKINNING", "1"});      // 'Ski'
     if (prop & (1 << 2))  defs.push_back({"HAS_MORPHTARGET", "1"});   // 'Mta'
@@ -256,21 +256,21 @@ void Editor::ShaderBuilder::addDepthMeshPropertyDefinitions(std::vector<supersha
     if (prop & (1 << 6))  defs.push_back({"HAS_INSTANCING", "1"});    // 'Ist'
 }
 
-void Editor::ShaderBuilder::addUIPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop) {
+void Editor::ShaderBuilder::addUIPropertyDefinitions(std::vector<shadercompiler::define_t>& defs, const uint32_t prop) {
     if (prop & (1 << 0))  defs.push_back({"HAS_TEXTURE", "1"});              // 'Tex'
     if (prop & (1 << 1))  defs.push_back({"HAS_FONTATLAS_TEXTURE", "1"});    // 'Ftx'
     if (prop & (1 << 2))  defs.push_back({"HAS_VERTEX_COLOR_VEC3", "1"});    // 'Vc3'
     if (prop & (1 << 3))  defs.push_back({"HAS_VERTEX_COLOR_VEC4", "1"});    // 'Vc4'
 }
 
-void Editor::ShaderBuilder::addPointsPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop) {
+void Editor::ShaderBuilder::addPointsPropertyDefinitions(std::vector<shadercompiler::define_t>& defs, const uint32_t prop) {
     if (prop & (1 << 0))  defs.push_back({"HAS_TEXTURE", "1"});              // 'Tex'
     if (prop & (1 << 1))  defs.push_back({"HAS_VERTEX_COLOR_VEC3", "1"});    // 'Vc3'
     if (prop & (1 << 2))  defs.push_back({"HAS_VERTEX_COLOR_VEC4", "1"});    // 'Vc4'
     if (prop & (1 << 3))  defs.push_back({"HAS_TEXTURERECT", "1"});          // 'Txr'
 }
 
-void Editor::ShaderBuilder::addLinesPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop) {
+void Editor::ShaderBuilder::addLinesPropertyDefinitions(std::vector<shadercompiler::define_t>& defs, const uint32_t prop) {
     if (prop & (1 << 0))  defs.push_back({"HAS_VERTEX_COLOR_VEC3", "1"});    // 'Vc3'
     if (prop & (1 << 1))  defs.push_back({"HAS_VERTEX_COLOR_VEC4", "1"});    // 'Vc4'
 }
@@ -350,7 +350,7 @@ void Editor::ShaderBuilder::requestShutdown() {
     pendingBuilds.clear();
 }
 
-bool Editor::ShaderBuilder::setupShaderArgs(supershader::args_t& args, ShaderType shaderType, uint32_t properties) {
+bool Editor::ShaderBuilder::setupShaderArgs(shadercompiler::args_t& args, ShaderType shaderType, uint32_t properties) {
     if (shaderType == ShaderType::MESH){
         args.vert_file = "mesh.vert";
         args.frag_file = "mesh.frag";
@@ -392,13 +392,13 @@ bool Editor::ShaderBuilder::setupShaderArgs(supershader::args_t& args, ShaderTyp
     return true;
 }
 
-std::string Editor::ShaderBuilder::getLangSuffix(supershader::lang_type_t lang, int version, bool es, supershader::platform_t platform) {
-    if (lang == supershader::LANG_GLSL) {
+std::string Editor::ShaderBuilder::getLangSuffix(shadercompiler::lang_type_t lang, int version, bool es, shadercompiler::platform_t platform) {
+    if (lang == shadercompiler::LANG_GLSL) {
         return es ? "_glsl" + std::to_string(version) + "es" : "_glsl" + std::to_string(version);
-    } else if (lang == supershader::LANG_HLSL) {
+    } else if (lang == shadercompiler::LANG_HLSL) {
         return "_hlsl" + std::to_string(version);
-    } else if (lang == supershader::LANG_MSL) {
-        return (platform == supershader::SHADER_IOS) ? "_msl" + std::to_string(version) + "ios" : "_msl" + std::to_string(version) + "macos";
+    } else if (lang == shadercompiler::LANG_MSL) {
+        return (platform == shadercompiler::SHADER_IOS) ? "_msl" + std::to_string(version) + "ios" : "_msl" + std::to_string(version) + "macos";
     }
     return "";
 }
@@ -412,12 +412,12 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey, Proje
     ShaderType shaderType = ShaderPool::getShaderTypeFromKey(shaderKey);
     uint32_t properties = ShaderPool::getPropertiesFromKey(shaderKey);
 
-    std::vector<supershader::input_t> inputs;
-    supershader::args_t args = supershader::initialize_args();
+    std::vector<shadercompiler::input_t> inputs;
+    shadercompiler::args_t args = shadercompiler::initialize_args();
     args.isValid = true;
     args.useBuffers = true;
     args.fileBuffers = Editor::shaderMap;
-    args.lang = supershader::LANG_GLSL;
+    args.lang = shadercompiler::LANG_GLSL;
     args.version = 410;
 
     if (!setupShaderArgs(args, shaderType, properties)) {
@@ -430,7 +430,7 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey, Proje
     }
     ResourceProgress::updateProgress(shaderKey, 0.3f); // Setup complete
 
-    if (!supershader::load_input(inputs, args)) {
+    if (!shadercompiler::load_input(inputs, args)) {
         //printf("Error loading shader input\n");
         ResourceProgress::failBuild(shaderKey);
         throw std::runtime_error("Error loading shader input");
@@ -441,9 +441,9 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey, Proje
     }
     ResourceProgress::updateProgress(shaderKey, 0.5f); // Input loaded
 
-    std::vector<supershader::spirv_t> spirvvec;
+    std::vector<shadercompiler::spirv_t> spirvvec;
     spirvvec.resize(inputs.size());
-    if (!supershader::compile_to_spirv(spirvvec, inputs, args)) {
+    if (!shadercompiler::compile_to_spirv(spirvvec, inputs, args)) {
         //printf("Error compiling to SPIRV\n");
         ResourceProgress::failBuild(shaderKey);
         throw std::runtime_error("Error compiling to SPIRV");
@@ -454,9 +454,9 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey, Proje
     }
     ResourceProgress::updateProgress(shaderKey, 0.8f); // SPIRV compiled
 
-    std::vector<supershader::spirvcross_t> spirvcrossvec;
+    std::vector<shadercompiler::spirvcross_t> spirvcrossvec;
     spirvcrossvec.resize(inputs.size());
-    if (!supershader::compile_to_lang(spirvcrossvec, spirvvec, inputs, args)) {
+    if (!shadercompiler::compile_to_lang(spirvcrossvec, spirvvec, inputs, args)) {
         //printf("Error cross-compiling\n");
         ResourceProgress::failBuild(shaderKey);
         throw std::runtime_error("Error cross-compiling");
@@ -551,12 +551,12 @@ ShaderData& Editor::ShaderBuilder::getShaderData(ShaderKey shaderKey) {
     return shaderDataCache[shaderKey]; 
 }
 
-ShaderData Editor::ShaderBuilder::buildShaderForExport(ShaderKey shaderKey, supershader::lang_type_t lang, int version, bool es, supershader::platform_t platform) {
+ShaderData Editor::ShaderBuilder::buildShaderForExport(ShaderKey shaderKey, shadercompiler::lang_type_t lang, int version, bool es, shadercompiler::platform_t platform) {
     ShaderType shaderType = ShaderPool::getShaderTypeFromKey(shaderKey);
     uint32_t properties = ShaderPool::getPropertiesFromKey(shaderKey);
 
-    std::vector<supershader::input_t> inputs;
-    supershader::args_t args = supershader::initialize_args();
+    std::vector<shadercompiler::input_t> inputs;
+    shadercompiler::args_t args = shadercompiler::initialize_args();
     args.isValid = true;
     args.useBuffers = true;
     args.fileBuffers = Editor::shaderMap;
@@ -569,19 +569,19 @@ ShaderData Editor::ShaderBuilder::buildShaderForExport(ShaderKey shaderKey, supe
         throw std::runtime_error("Unknown shader type");
     }
 
-    if (!supershader::load_input(inputs, args)) {
+    if (!shadercompiler::load_input(inputs, args)) {
         throw std::runtime_error("Error loading shader input");
     }
 
-    std::vector<supershader::spirv_t> spirvvec;
+    std::vector<shadercompiler::spirv_t> spirvvec;
     spirvvec.resize(inputs.size());
-    if (!supershader::compile_to_spirv(spirvvec, inputs, args)) {
+    if (!shadercompiler::compile_to_spirv(spirvvec, inputs, args)) {
         throw std::runtime_error("Error compiling to SPIRV");
     }
 
-    std::vector<supershader::spirvcross_t> spirvcrossvec;
+    std::vector<shadercompiler::spirvcross_t> spirvcrossvec;
     spirvcrossvec.resize(inputs.size());
-    if (!supershader::compile_to_lang(spirvcrossvec, spirvvec, inputs, args)) {
+    if (!shadercompiler::compile_to_lang(spirvcrossvec, spirvvec, inputs, args)) {
         throw std::runtime_error("Error cross-compiling");
     }
 

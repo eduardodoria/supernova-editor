@@ -10,10 +10,10 @@
 #include <future>
 #include <filesystem>
 
-#include "supershader.h"
+#include "shadercompiler.h"
 #include "shaders.h"
 
-namespace supershader {
+namespace shadercompiler {
     struct spirvcross_t;
     struct input_t;
     struct args_t;
@@ -30,28 +30,28 @@ namespace Supernova::Editor {
         static std::atomic<bool> shutdownRequested;
 
         // Mapping functions declarations with camelCase
-        ShaderVertexType mapVertexType(supershader::attribute_type_t type);
-        ShaderUniformType mapUniformType(supershader::uniform_type_t type);
-        TextureType mapTextureType(supershader::texture_type_t type);
-        TextureSamplerType mapSamplerType(supershader::texture_samplertype_t type);
-        SamplerType mapSamplerFilterType(supershader::sampler_type_t type);
-        ShaderStorageBufferType mapStorageType(supershader::storage_buffer_type_t type);
-        ShaderStageType mapStageType(supershader::stage_type_t type);
-        ShaderLang mapLang(supershader::lang_type_t lang);
+        ShaderVertexType mapVertexType(shadercompiler::attribute_type_t type);
+        ShaderUniformType mapUniformType(shadercompiler::uniform_type_t type);
+        TextureType mapTextureType(shadercompiler::texture_type_t type);
+        TextureSamplerType mapSamplerType(shadercompiler::texture_samplertype_t type);
+        SamplerType mapSamplerFilterType(shadercompiler::sampler_type_t type);
+        ShaderStorageBufferType mapStorageType(shadercompiler::storage_buffer_type_t type);
+        ShaderStageType mapStageType(shadercompiler::stage_type_t type);
+        ShaderLang mapLang(shadercompiler::lang_type_t lang);
 
         ShaderData convertToShaderData(
-            const std::vector<supershader::spirvcross_t>& spirvcrossvec,
-            const std::vector<supershader::input_t>& inputs,
-            const supershader::args_t& args);
+            const std::vector<shadercompiler::spirvcross_t>& spirvcrossvec,
+            const std::vector<shadercompiler::input_t>& inputs,
+            const shadercompiler::args_t& args);
 
-        void addMeshPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop);
-        void addDepthMeshPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop);
-        void addUIPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop);
-        void addPointsPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop);
-        void addLinesPropertyDefinitions(std::vector<supershader::define_t>& defs, const uint32_t prop);
+        void addMeshPropertyDefinitions(std::vector<shadercompiler::define_t>& defs, const uint32_t prop);
+        void addDepthMeshPropertyDefinitions(std::vector<shadercompiler::define_t>& defs, const uint32_t prop);
+        void addUIPropertyDefinitions(std::vector<shadercompiler::define_t>& defs, const uint32_t prop);
+        void addPointsPropertyDefinitions(std::vector<shadercompiler::define_t>& defs, const uint32_t prop);
+        void addLinesPropertyDefinitions(std::vector<shadercompiler::define_t>& defs, const uint32_t prop);
 
-        bool setupShaderArgs(supershader::args_t& args, ShaderType shaderType, uint32_t properties);
-        std::string getLangSuffix(supershader::lang_type_t lang, int version, bool es, supershader::platform_t platform);
+        bool setupShaderArgs(shadercompiler::args_t& args, ShaderType shaderType, uint32_t properties);
+        std::string getLangSuffix(shadercompiler::lang_type_t lang, int version, bool es, shadercompiler::platform_t platform);
 
         ShaderData buildShaderInternal(ShaderKey shaderKey, Project* project);
         std::string getShaderDisplayName(ShaderKey key);
@@ -63,7 +63,7 @@ namespace Supernova::Editor {
         virtual ~ShaderBuilder();
 
         ShaderBuildResult buildShader(ShaderKey shaderKey, Project* project);
-        ShaderData buildShaderForExport(ShaderKey shaderKey, supershader::lang_type_t lang, int version, bool es, supershader::platform_t platform = supershader::SHADER_DEFAULT);
+        ShaderData buildShaderForExport(ShaderKey shaderKey, shadercompiler::lang_type_t lang, int version, bool es, shadercompiler::platform_t platform = shadercompiler::SHADER_DEFAULT);
 
         static void requestShutdown();
 
