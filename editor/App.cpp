@@ -299,6 +299,12 @@ void Editor::App::showMenu(){
             if (ImGui::MenuItem("Clear Trash")) {
                 project.clearTrash();
             }
+            if (ImGui::MenuItem("Clear Shader Cache")) {
+                std::filesystem::path cacheDir = getUserShaderCacheDir();
+                if (std::filesystem::exists(cacheDir)) {
+                    std::filesystem::remove_all(cacheDir);
+                }
+            }
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Scene")) {
@@ -1308,7 +1314,7 @@ std::filesystem::path Editor::App::getUserCacheBaseDir() {
 }
 
 std::filesystem::path Editor::App::getUserShaderCacheDir(){
-    return App::getUserCacheBaseDir() / "supernova" / "shaders" / "v2";
+    return App::getUserCacheBaseDir() / "supernova" / "shaders" / "v1";
 }
 
 void Editor::App::pushTabNotificationStyle(){
