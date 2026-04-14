@@ -3,9 +3,9 @@
 #include <filesystem>
 #include <string>
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::DeleteFileCmd::DeleteFileCmd(Project* project, std::vector<fs::path> filePaths, fs::path rootPath){
+editor::DeleteFileCmd::DeleteFileCmd(Project* project, std::vector<fs::path> filePaths, fs::path rootPath){
     this->project = project;
     for (fs::path& file : filePaths){
         this->files.push_back({file, fs::path()});
@@ -13,7 +13,7 @@ Editor::DeleteFileCmd::DeleteFileCmd(Project* project, std::vector<fs::path> fil
     this->trash = rootPath / ".trash";
 }
 
-fs::path Editor::DeleteFileCmd::generateUniqueTrashPath(const fs::path& trashDir, const fs::path& originalFile) {
+fs::path editor::DeleteFileCmd::generateUniqueTrashPath(const fs::path& trashDir, const fs::path& originalFile) {
     fs::path basePath = trashDir / originalFile.filename();
     fs::path extension = originalFile.extension();
     fs::path stemPath = basePath.stem();
@@ -32,7 +32,7 @@ fs::path Editor::DeleteFileCmd::generateUniqueTrashPath(const fs::path& trashDir
     return newPath;
 }
 
-bool Editor::DeleteFileCmd::execute(){
+bool editor::DeleteFileCmd::execute(){
     if (!fs::exists(trash)) {
         fs::create_directory(trash);
     }
@@ -79,7 +79,7 @@ bool Editor::DeleteFileCmd::execute(){
     return true;
 }
 
-void Editor::DeleteFileCmd::undo(){
+void editor::DeleteFileCmd::undo(){
     for (DeleteFilesData& file : files){
         try {
             // Only attempt to restore if the file was moved to trash (not permanently deleted)
@@ -92,6 +92,6 @@ void Editor::DeleteFileCmd::undo(){
     }
 }
 
-bool Editor::DeleteFileCmd::mergeWith(Editor::Command* otherCommand){
+bool editor::DeleteFileCmd::mergeWith(editor::Command* otherCommand){
     return false;
 }

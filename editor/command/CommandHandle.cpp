@@ -1,18 +1,18 @@
 #include "CommandHandle.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-std::map<size_t, Editor::CommandHistory*>  Editor::CommandHandle::historys;
+std::map<size_t, editor::CommandHistory*>  editor::CommandHandle::historys;
 
 
-Editor::CommandHistory* Editor::CommandHandle::get(size_t sceneId){
+editor::CommandHistory* editor::CommandHandle::get(size_t sceneId){
     if (!historys.count(sceneId)){
         historys[sceneId] = new CommandHistory();
     }
     return historys[sceneId];
 }
 
-void Editor::CommandHandle::remove(size_t sceneId){
+void editor::CommandHandle::remove(size_t sceneId){
     if (historys.count(sceneId)){
         delete historys[sceneId];
         historys.erase(sceneId);

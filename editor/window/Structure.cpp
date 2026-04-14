@@ -27,9 +27,9 @@
 #include <unordered_map>
 #include <unordered_set>
 
-using namespace Supernova;
+using namespace doriax;
 
-std::vector<Entity> Editor::Structure::getTopLevelSelectedEntities(Entity draggedEntity) {
+std::vector<Entity> editor::Structure::getTopLevelSelectedEntities(Entity draggedEntity) {
     SceneProject* sceneProject = project->getSelectedScene();
     if (!sceneProject) {
         return {draggedEntity};
@@ -49,13 +49,13 @@ std::vector<Entity> Editor::Structure::getTopLevelSelectedEntities(Entity dragge
     return result;
 }
 
-Editor::Structure::Structure(Project* project, SceneWindow* sceneWindow){
+editor::Structure::Structure(Project* project, SceneWindow* sceneWindow){
     this->project = project;
     this->sceneWindow = sceneWindow;
     this->openParent = NULL_ENTITY;
 }
 
-void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addToBundle){
+void editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addToBundle){
     if (isScene){
         parent = NULL_ENTITY;
 
@@ -197,7 +197,7 @@ void Editor::Structure::showNewEntityMenu(bool isScene, Entity parent, bool addT
     ImGui::EndMenu();
 }
 
-void Editor::Structure::showIconMenu(){
+void editor::Structure::showIconMenu(){
     if (ImGui::Button(ICON_FA_PLUS)) {
         ImGui::OpenPopup("NewObjectMenu");
     }
@@ -234,14 +234,14 @@ void Editor::Structure::showIconMenu(){
     }
 }
 
-void Editor::Structure::drawInsertionMarker(const ImVec2& p1, const ImVec2& p2) {
+void editor::Structure::drawInsertionMarker(const ImVec2& p1, const ImVec2& p2) {
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     ImU32 col = ImGui::GetColorU32(ImGuiCol_DragDropTarget);
     float thickness = 2.0f;
     draw_list->AddLine(p1, p2, col, thickness);
 }
 
-std::string Editor::Structure::getObjectIcon(Signature signature, Scene* scene){
+std::string editor::Structure::getObjectIcon(Signature signature, Scene* scene){
     if (signature.test(scene->getComponentId<BundleComponent>())){
         return ICON_FA_CUBE;
     }else if (signature.test(scene->getComponentId<ModelComponent>())){
@@ -285,7 +285,7 @@ std::string Editor::Structure::getObjectIcon(Signature signature, Scene* scene){
     return ICON_FA_CIRCLE_DOT;
 }
 
-void Editor::Structure::moveEntityToRootLevel(Entity sourceEntity, const std::unordered_set<Entity>& entitiesSet) {
+void editor::Structure::moveEntityToRootLevel(Entity sourceEntity, const std::unordered_set<Entity>& entitiesSet) {
     SceneProject* sceneProject = project->getSelectedScene();
     auto transforms = sceneProject->scene->getComponentArray<Transform>();
     Entity lastRootEntity = NULL_ENTITY;
@@ -306,7 +306,7 @@ void Editor::Structure::moveEntityToRootLevel(Entity sourceEntity, const std::un
     }
 }
 
-void Editor::Structure::handleEntityFilesDrop(const std::vector<std::string>& filePaths, Entity parent) {
+void editor::Structure::handleEntityFilesDrop(const std::vector<std::string>& filePaths, Entity parent) {
     for (const std::string& filePath : filePaths) {
         std::filesystem::path path(filePath);
 
@@ -328,7 +328,7 @@ void Editor::Structure::handleEntityFilesDrop(const std::vector<std::string>& fi
     }
 }
 
-void Editor::Structure::handleSceneFilesDropAsChildScenes(const std::vector<std::string>& filePaths, uint32_t ownerSceneId) {
+void editor::Structure::handleSceneFilesDropAsChildScenes(const std::vector<std::string>& filePaths, uint32_t ownerSceneId) {
     if (ownerSceneId == NULL_PROJECT_SCENE) {
         return;
     }
@@ -376,7 +376,7 @@ void Editor::Structure::handleSceneFilesDropAsChildScenes(const std::vector<std:
     }
 }
 
-void Editor::Structure::showAddChildSceneMenu() {
+void editor::Structure::showAddChildSceneMenu() {
     if (ImGui::BeginMenu(ICON_FA_FOLDER_TREE "  Add child scene")) {
         uint32_t currentSceneId = project->getSelectedSceneId();
         const auto& scenes = project->getScenes();
@@ -406,7 +406,7 @@ void Editor::Structure::showAddChildSceneMenu() {
     }
 }
 
-bool Editor::Structure::nodeMatchesSearch(const TreeNode& node, const std::string& searchLower) {
+bool editor::Structure::nodeMatchesSearch(const TreeNode& node, const std::string& searchLower) {
     std::string nodeName = node.name;
     std::string searchStr = searchLower;
 
@@ -420,7 +420,7 @@ bool Editor::Structure::nodeMatchesSearch(const TreeNode& node, const std::strin
     return nodeName.find(searchStr) != std::string::npos;
 }
 
-bool Editor::Structure::hasMatchingDescendant(const TreeNode& node, const std::string& searchLower) {
+bool editor::Structure::hasMatchingDescendant(const TreeNode& node, const std::string& searchLower) {
     // Check if any child matches
     for (const auto& child : node.children) {
         if (nodeMatchesSearch(child, searchLower)) {
@@ -434,7 +434,7 @@ bool Editor::Structure::hasMatchingDescendant(const TreeNode& node, const std::s
     return false;
 }
 
-void Editor::Structure::markMatchingNodes(TreeNode& node, const std::string& searchLower) {
+void editor::Structure::markMatchingNodes(TreeNode& node, const std::string& searchLower) {
     node.matchesSearch = nodeMatchesSearch(node, searchLower);
     node.hasMatchingDescendant = false;
 
@@ -446,7 +446,7 @@ void Editor::Structure::markMatchingNodes(TreeNode& node, const std::string& sea
     }
 }
 
-void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
+void editor::Structure::showTreeNode(editor::TreeNode& node) {
     // Skip nodes that don't match search and don't have matching descendants
     bool hasSearch = strlen(searchBuffer) > 0;
     if (hasSearch && !node.matchesSearch && !node.hasMatchingDescendant) {
@@ -1132,7 +1132,7 @@ void Editor::Structure::showTreeNode(Editor::TreeNode& node) {
     popNodeImGuiId(node);
 }
 
-void Editor::Structure::pushNodeImGuiId(const TreeNode& node){
+void editor::Structure::pushNodeImGuiId(const TreeNode& node){
     if (node.isScene){
         ImGui::PushID("SceneNode");
         ImGui::PushID((int)node.id);
@@ -1151,7 +1151,7 @@ void Editor::Structure::pushNodeImGuiId(const TreeNode& node){
     }
 }
 
-void Editor::Structure::popNodeImGuiId(const TreeNode& node){
+void editor::Structure::popNodeImGuiId(const TreeNode& node){
     if (node.isScene){
         ImGui::PopID();
         ImGui::PopID();
@@ -1170,7 +1170,7 @@ void Editor::Structure::popNodeImGuiId(const TreeNode& node){
     }
 }
 
-void Editor::Structure::show(){
+void editor::Structure::show(){
     SceneProject* sceneProject = project->getSelectedScene();
     if (!sceneProject || !sceneProject->scene) {
         return;

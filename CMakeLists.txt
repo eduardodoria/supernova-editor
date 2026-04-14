@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
-project(supernova-editor)
+project(doriax-editor)
 
-set(SUPERNOVA_SHARED ON)
+set(DORIAX_SHARED ON)
 set(GRAPHIC_BACKEND "glcore")
 
 set(ENABLE_OPT OFF CACHE BOOL "Enables spirv-opt capability if present" FORCE)
@@ -20,7 +20,7 @@ if(WIN32)
  
     if(MSVC)
         set(PLATFORM_PROPERTIES_FLAGS LINK_FLAGS "/ENTRY:mainCRTStartup")
-        if(SUPERNOVA_SHARED)
+        if(DORIAX_SHARED)
             set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
         else()
             set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -75,11 +75,11 @@ if(API_BACKEND STREQUAL "sdl")
     )
 endif()
 
-set(SUPERNOVA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/engine)
+set(DORIAX_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/engine)
 set(SHADERCOMPILER_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/shadercompiler)
 
-add_definitions("-DSUPERNOVA_EDITOR")
-add_definitions("-DSUPERNOVA_CRASH_GUARD")
+add_definitions("-DDORIAX_EDITOR")
+add_definitions("-DDORIAX_CRASH_GUARD")
 
 add_definitions("-DNO_LUA_INIT")
 #add_definitions("-DNO_CPP_INIT")
@@ -108,39 +108,39 @@ add_custom_command(
 
 include_directories (${CMAKE_CURRENT_SOURCE_DIR})
 
-include_directories (${SUPERNOVA_ROOT}/libs/sokol)
-include_directories (${SUPERNOVA_ROOT}/libs/lua)
-include_directories (${SUPERNOVA_ROOT}/libs/luabridge3)
-include_directories (${SUPERNOVA_ROOT}/libs/box2d/include)
-include_directories (${SUPERNOVA_ROOT}/libs/joltphysics)
-include_directories (${SUPERNOVA_ROOT}/libs/stb)
+include_directories (${DORIAX_ROOT}/libs/sokol)
+include_directories (${DORIAX_ROOT}/libs/lua)
+include_directories (${DORIAX_ROOT}/libs/luabridge3)
+include_directories (${DORIAX_ROOT}/libs/box2d/include)
+include_directories (${DORIAX_ROOT}/libs/joltphysics)
+include_directories (${DORIAX_ROOT}/libs/stb)
 
-include_directories (${SUPERNOVA_ROOT}/core)
-include_directories (${SUPERNOVA_ROOT}/core/action)
-include_directories (${SUPERNOVA_ROOT}/core/buffer)
-include_directories (${SUPERNOVA_ROOT}/core/component)
-include_directories (${SUPERNOVA_ROOT}/core/ecs)
-include_directories (${SUPERNOVA_ROOT}/core/io)
-include_directories (${SUPERNOVA_ROOT}/core/manager)
-include_directories (${SUPERNOVA_ROOT}/core/math)
-include_directories (${SUPERNOVA_ROOT}/core/object)
-include_directories (${SUPERNOVA_ROOT}/core/object/audio)
-include_directories (${SUPERNOVA_ROOT}/core/object/ui)
-include_directories (${SUPERNOVA_ROOT}/core/object/environment)
-include_directories (${SUPERNOVA_ROOT}/core/object/physics)
-include_directories (${SUPERNOVA_ROOT}/core/pool)
-include_directories (${SUPERNOVA_ROOT}/core/registry)
-include_directories (${SUPERNOVA_ROOT}/core/render)
-include_directories (${SUPERNOVA_ROOT}/core/script)
-include_directories (${SUPERNOVA_ROOT}/core/shader)
-include_directories (${SUPERNOVA_ROOT}/core/subsystem)
-include_directories (${SUPERNOVA_ROOT}/core/texture)
-include_directories (${SUPERNOVA_ROOT}/core/util)
-include_directories (${SUPERNOVA_ROOT}/renders)
+include_directories (${DORIAX_ROOT}/core)
+include_directories (${DORIAX_ROOT}/core/action)
+include_directories (${DORIAX_ROOT}/core/buffer)
+include_directories (${DORIAX_ROOT}/core/component)
+include_directories (${DORIAX_ROOT}/core/ecs)
+include_directories (${DORIAX_ROOT}/core/io)
+include_directories (${DORIAX_ROOT}/core/manager)
+include_directories (${DORIAX_ROOT}/core/math)
+include_directories (${DORIAX_ROOT}/core/object)
+include_directories (${DORIAX_ROOT}/core/object/audio)
+include_directories (${DORIAX_ROOT}/core/object/ui)
+include_directories (${DORIAX_ROOT}/core/object/environment)
+include_directories (${DORIAX_ROOT}/core/object/physics)
+include_directories (${DORIAX_ROOT}/core/pool)
+include_directories (${DORIAX_ROOT}/core/registry)
+include_directories (${DORIAX_ROOT}/core/render)
+include_directories (${DORIAX_ROOT}/core/script)
+include_directories (${DORIAX_ROOT}/core/shader)
+include_directories (${DORIAX_ROOT}/core/subsystem)
+include_directories (${DORIAX_ROOT}/core/texture)
+include_directories (${DORIAX_ROOT}/core/util)
+include_directories (${DORIAX_ROOT}/renders)
 
 include_directories (${SHADERCOMPILER_ROOT}/src)
 
-add_subdirectory(${SUPERNOVA_ROOT})
+add_subdirectory(${DORIAX_ROOT})
 add_subdirectory(${SHADERCOMPILER_ROOT} EXCLUDE_FROM_ALL)
 
 add_subdirectory(libs/nfd)
@@ -166,7 +166,7 @@ endif()
 add_custom_target(generate_shaders DEPENDS ${SHADERS_HEADER})
 
 add_executable(
-    supernova-editor
+    doriax-editor
 
     ${PLATFORM_EXEC_FLAGS}
 
@@ -259,10 +259,10 @@ add_executable(
     ${BACKEND_SOURCES}
 )
 
-add_dependencies(supernova-editor generate_shaders)
+add_dependencies(doriax-editor generate_shaders)
 
 # Include directories
-target_include_directories(supernova-editor PRIVATE
+target_include_directories(doriax-editor PRIVATE
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
     ${OPENGL_INCLUDE_DIR}
@@ -271,7 +271,7 @@ target_include_directories(supernova-editor PRIVATE
 
 # Link libraries
 target_link_libraries(
-    supernova-editor
+    doriax-editor
     
     PRIVATE
     
@@ -279,14 +279,14 @@ target_link_libraries(
     ${OPENGL_LIBRARIES}
     ${MINGW_STATIC_FLAGS}
     Threads::Threads
-    supernova
+    doriax
     shadercompiler
     nfd
     yaml-cpp
 )
 
 set_target_properties(
-    supernova-editor
+    doriax-editor
 
     PROPERTIES
 
@@ -295,15 +295,15 @@ set_target_properties(
     CXX_STANDARD_REQUIRED ON
 )
 
-# Copy supernova engine directory to executable output directory for supernova-editor
-add_custom_command(TARGET supernova-editor POST_BUILD
+# Copy doriax engine directory to executable output directory for doriax-editor
+add_custom_command(TARGET doriax-editor POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/engine
-        $<TARGET_FILE_DIR:supernova-editor>/engine
+        $<TARGET_FILE_DIR:doriax-editor>/engine
     COMMENT "Copying engine to executable directory"
 )
 
-install(TARGETS supernova-editor supernova
+install(TARGETS doriax-editor doriax
         CONFIGURATIONS Release MinSizeRel 
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION bin

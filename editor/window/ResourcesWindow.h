@@ -21,7 +21,7 @@
 
 namespace fs = std::filesystem;
 
-namespace Supernova::Editor {
+namespace doriax::editor {
 
     enum class FileType {
         NONE,
@@ -71,7 +71,7 @@ namespace Supernova::Editor {
         bool firstOpen;
         bool requestSort;
         fs::path currentPath;
-        std::vector<Editor::FileEntry> files;
+        std::vector<editor::FileEntry> files;
 
         Texture folderIcon;
         Texture fileIcon;

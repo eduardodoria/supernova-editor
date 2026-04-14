@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 def projectSourceRoot = "../../../project"
-def supernovaRoot = "../../.."
+def doriaxRoot = "../../.."
 
 def projectSourceRootAbs = file(projectSourceRoot).toString()
-def supernovaRootAbs = file(supernovaRoot).toString()
+def doriaxRootAbs = file(doriaxRoot).toString()
 
 // def platformVersion = 24    //openGLES 3.2 min api level
 // def platformVersion = 18    //openGLES 3 min api level
@@ -45,7 +45,7 @@ android {
     externalNativeBuild {
         cmake {
             //version '3.18.1'
-            path supernovaRootAbs+"/CMakeLists.txt"
+            path doriaxRootAbs+"/CMakeLists.txt"
         }
     }
 
@@ -56,12 +56,12 @@ android {
 
     sourceSets {
         main {
-            java.srcDirs = [supernovaRootAbs+'/platform/android/java']
+            java.srcDirs = [doriaxRootAbs+'/platform/android/java']
             assets.srcDirs = [projectSourceRootAbs+'/assets',projectSourceRootAbs+'/lua']
         }
     }
 
-    namespace 'org.supernovaengine.supernova'
+    namespace 'org.doriaxengine.doriax'
 }
 
 dependencies {

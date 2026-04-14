@@ -89,8 +89,8 @@ private:
     bool initGLObjects();
     void killGLObjects();
 
-    int getSupernovaKey(int32_t key);
-    int getSupernovaModifiers(int32_t mods);
+    int getDoriaxKey(int32_t key);
+    int getDoriaxModifiers(int32_t mods);
     bool handleEglError(EGLint error);
 
     bool prepareToRender();

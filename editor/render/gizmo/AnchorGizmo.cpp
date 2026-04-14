@@ -1,8 +1,8 @@
 #include "AnchorGizmo.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::AnchorGizmo::AnchorGizmo(Scene* scene): Object(scene){
+editor::AnchorGizmo::AnchorGizmo(Scene* scene): Object(scene){
     area = Rect(0.0f, 0.0f, 0.0f, 0.0f);
 
     anchorLeft = 0.0f;
@@ -53,13 +53,13 @@ Editor::AnchorGizmo::AnchorGizmo(Scene* scene): Object(scene){
     this->addChild(center);
 }
 
-Editor::AnchorGizmo::~AnchorGizmo(){
+editor::AnchorGizmo::~AnchorGizmo(){
     for (int i = 0; i < 4; i++){
         delete points[i];
     }
 }
 
-void Editor::AnchorGizmo::updateVisual(){
+void editor::AnchorGizmo::updateVisual(){
     float clampedLeft = std::fmax(0.0f, std::fmin(1.0f, anchorLeft));
     float clampedTop = std::fmax(0.0f, std::fmin(1.0f, anchorTop));
     float clampedRight = std::fmax(0.0f, std::fmin(1.0f, anchorRight));
@@ -86,14 +86,14 @@ void Editor::AnchorGizmo::updateVisual(){
     points[3]->setPosition(p3);
 }
 
-void Editor::AnchorGizmo::setArea(Rect area){
+void editor::AnchorGizmo::setArea(Rect area){
     if (this->area != area){
         this->area = area;
         updateVisual();
     }
 }
 
-void Editor::AnchorGizmo::setAnchors(float left, float top, float right, float bottom){
+void editor::AnchorGizmo::setAnchors(float left, float top, float right, float bottom){
     if (anchorLeft != left || anchorTop != top || anchorRight != right || anchorBottom != bottom){
         anchorLeft = left;
         anchorTop = top;

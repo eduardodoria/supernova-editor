@@ -6,21 +6,21 @@
 #include <sstream>
 #include <algorithm>
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::CodeEditor::CodeEditor(Project* project) : isFileChangePopupOpen(false), windowFocused(false), lastFocused(nullptr) {
+editor::CodeEditor::CodeEditor(Project* project) : isFileChangePopupOpen(false), windowFocused(false), lastFocused(nullptr) {
     this->project = project;
 }
 
-Editor::CodeEditor::~CodeEditor() {
+editor::CodeEditor::~CodeEditor() {
 }
 
-fs::path Editor::CodeEditor::resolveFilepath(const fs::path& relPath) const {
+fs::path editor::CodeEditor::resolveFilepath(const fs::path& relPath) const {
     if (relPath.is_absolute()) return relPath;
     return project->getProjectPath() / relPath;
 }
 
-std::string Editor::CodeEditor::toRelativePath(const std::string& filepath) const {
+std::string editor::CodeEditor::toRelativePath(const std::string& filepath) const {
     fs::path inputPath(filepath);
     if (inputPath.is_relative()) return filepath;
     fs::path projectPath = project->getProjectPath();
@@ -34,7 +34,7 @@ std::string Editor::CodeEditor::toRelativePath(const std::string& filepath) cons
     return filepath;
 }
 
-bool Editor::CodeEditor::loadFileContent(EditorInstance& instance) {
+bool editor::CodeEditor::loadFileContent(EditorInstance& instance) {
     try {
         fs::path fullPath = resolveFilepath(instance.filepath);
         std::ifstream file(fullPath);
@@ -56,7 +56,7 @@ bool Editor::CodeEditor::loadFileContent(EditorInstance& instance) {
     return false;
 }
 
-void Editor::CodeEditor::checkFileChanges(EditorInstance& instance) {
+void editor::CodeEditor::checkFileChanges(EditorInstance& instance) {
     try {
         fs::path fullPath = resolveFilepath(instance.filepath);
         auto currentWriteTime = fs::last_write_time(fullPath);
@@ -95,7 +95,7 @@ void Editor::CodeEditor::checkFileChanges(EditorInstance& instance) {
     }
 }
 
-void Editor::CodeEditor::handleFileChangePopup() {
+void editor::CodeEditor::handleFileChangePopup() {
     if (changedFilesQueue.empty()) {
         return;
     }
@@ -172,12 +172,12 @@ void Editor::CodeEditor::handleFileChangePopup() {
     }
 }
 
-std::string Editor::CodeEditor::getWindowTitle(const EditorInstance& instance) const {
+std::string editor::CodeEditor::getWindowTitle(const EditorInstance& instance) const {
     std::string filename = instance.filepath.filename().string();
     return filename + (instance.isModified ? " *" : "") + "###" + instance.filepath.string();
 }
 
-void Editor::CodeEditor::updateScriptProperties(const EditorInstance& instance){
+void editor::CodeEditor::updateScriptProperties(const EditorInstance& instance){
     // Update script properties if this is a script file
     for (auto& sceneProject : project->getScenes()) {
         if (!sceneProject.scene)
@@ -224,7 +224,7 @@ void Editor::CodeEditor::updateScriptProperties(const EditorInstance& instance){
     }
 }
 
-std::vector<fs::path> Editor::CodeEditor::getOpenPaths() const{
+std::vector<fs::path> editor::CodeEditor::getOpenPaths() const{
     std::vector<fs::path> openPaths;
     for (auto it = editors.begin(); it != editors.end(); ++it) {
         const auto& instance = it->second;
@@ -235,11 +235,11 @@ std::vector<fs::path> Editor::CodeEditor::getOpenPaths() const{
     return openPaths;
 }
 
-bool Editor::CodeEditor::isFocused() const {
+bool editor::CodeEditor::isFocused() const {
     return windowFocused;
 }
 
-bool Editor::CodeEditor::save(EditorInstance& instance) {
+bool editor::CodeEditor::save(EditorInstance& instance) {
     try {
         fs::path fullPath = resolveFilepath(instance.filepath);
         std::ofstream file(fullPath);
@@ -264,13 +264,13 @@ bool Editor::CodeEditor::save(EditorInstance& instance) {
     }
 }
 
-void Editor::CodeEditor::saveLastFocused(){
+void editor::CodeEditor::saveLastFocused(){
     if (lastFocused){
         save(*lastFocused);
     }
 }
 
-bool Editor::CodeEditor::save(const std::string& filepath) {
+bool editor::CodeEditor::save(const std::string& filepath) {
     std::string key = toRelativePath(filepath);
     auto it = editors.find(key);
     if (it == editors.end()) {
@@ -280,7 +280,7 @@ bool Editor::CodeEditor::save(const std::string& filepath) {
     return save(it->second);
 }
 
-void Editor::CodeEditor::saveAll() {
+void editor::CodeEditor::saveAll() {
     for (auto& [filepath, instance] : editors) {
         if (instance.isModified) {
             save(instance);
@@ -288,29 +288,29 @@ void Editor::CodeEditor::saveAll() {
     }
 }
 
-void Editor::CodeEditor::undoLastFocused() {
+void editor::CodeEditor::undoLastFocused() {
     if (lastFocused && lastFocused->editor) {
         lastFocused->editor->Undo();
         lastFocused->isModified = lastFocused->editor->GetUndoIndex() != lastFocused->savedUndoIndex;
     }
 }
 
-void Editor::CodeEditor::redoLastFocused() {
+void editor::CodeEditor::redoLastFocused() {
     if (lastFocused && lastFocused->editor) {
         lastFocused->editor->Redo();
         lastFocused->isModified = lastFocused->editor->GetUndoIndex() != lastFocused->savedUndoIndex;
     }
 }
 
-bool Editor::CodeEditor::canUndoLastFocused() const {
+bool editor::CodeEditor::canUndoLastFocused() const {
     return lastFocused && lastFocused->editor && lastFocused->editor->CanUndo();
 }
 
-bool Editor::CodeEditor::canRedoLastFocused() const {
+bool editor::CodeEditor::canRedoLastFocused() const {
     return lastFocused && lastFocused->editor && lastFocused->editor->CanRedo();
 }
 
-bool Editor::CodeEditor::hasUnsavedChanges() const {
+bool editor::CodeEditor::hasUnsavedChanges() const {
     for (const auto& [filepath, instance] : editors) {
         if (instance.isModified) {
             return true;
@@ -319,14 +319,14 @@ bool Editor::CodeEditor::hasUnsavedChanges() const {
     return false;
 }
 
-bool Editor::CodeEditor::hasLastFocusedUnsavedChanges() const {
+bool editor::CodeEditor::hasLastFocusedUnsavedChanges() const {
     if (lastFocused){
         return lastFocused->isModified;
     }
     return false;
 }
 
-void Editor::CodeEditor::openFile(const std::string& filepath) {
+void editor::CodeEditor::openFile(const std::string& filepath) {
     std::string key = toRelativePath(filepath);
 
     auto it = editors.find(key);
@@ -382,7 +382,7 @@ void Editor::CodeEditor::openFile(const std::string& filepath) {
     Backend::getApp().addNewCodeWindowToDock(instance.filepath);
 }
 
-void Editor::CodeEditor::closeFile(const std::string& filepath) {
+void editor::CodeEditor::closeFile(const std::string& filepath) {
     std::string key = toRelativePath(filepath);
     if (auto it = editors.find(key); it != editors.end()) {
         if (lastFocused == &it->second) {
@@ -395,12 +395,12 @@ void Editor::CodeEditor::closeFile(const std::string& filepath) {
     }
 }
 
-bool Editor::CodeEditor::isFileOpen(const std::string& filepath) const {
+bool editor::CodeEditor::isFileOpen(const std::string& filepath) const {
     std::string key = toRelativePath(filepath);
     return editors.find(key) != editors.end();
 }
 
-void Editor::CodeEditor::setText(const std::string& filepath, const std::string& text) {
+void editor::CodeEditor::setText(const std::string& filepath, const std::string& text) {
     std::string key = toRelativePath(filepath);
     if (auto it = editors.find(key); it != editors.end()) {
         it->second.editor->SetText(text);
@@ -414,7 +414,7 @@ void Editor::CodeEditor::setText(const std::string& filepath, const std::string&
     }
 }
 
-std::string Editor::CodeEditor::getText(const std::string& filepath) const {
+std::string editor::CodeEditor::getText(const std::string& filepath) const {
     std::string key = toRelativePath(filepath);
     if (auto it = editors.find(key); it != editors.end()) {
         return it->second.editor->GetText();
@@ -422,7 +422,7 @@ std::string Editor::CodeEditor::getText(const std::string& filepath) const {
     return "";
 }
 
-bool Editor::CodeEditor::handleFileRename(const fs::path& oldPath, const fs::path& newPath) {
+bool editor::CodeEditor::handleFileRename(const fs::path& oldPath, const fs::path& newPath) {
     std::string oldKey = toRelativePath(oldPath.string());
     std::string newKey = toRelativePath(newPath.string());
 
@@ -472,7 +472,7 @@ bool Editor::CodeEditor::handleFileRename(const fs::path& oldPath, const fs::pat
     return true;
 }
 
-void Editor::CodeEditor::show() {
+void editor::CodeEditor::show() {
     // Get current time
     double currentTime = ImGui::GetTime();
 

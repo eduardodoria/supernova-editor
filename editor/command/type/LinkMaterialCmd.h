@@ -6,7 +6,7 @@
 #include <string>
 #include <functional>
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     class LinkMaterialCmd: public Command{
 

@@ -3,9 +3,9 @@
 #include "editor/Out.h"
 #include "Stream.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::ImportEntityBundleCmd::ImportEntityBundleCmd(Project* project, uint32_t sceneId, const fs::path& filepath, Entity parent, bool needSaveScene){
+editor::ImportEntityBundleCmd::ImportEntityBundleCmd(Project* project, uint32_t sceneId, const fs::path& filepath, Entity parent, bool needSaveScene){
     this->project = project;
     this->sceneId = sceneId;
     this->filepath = filepath;
@@ -16,7 +16,7 @@ Editor::ImportEntityBundleCmd::ImportEntityBundleCmd(Project* project, uint32_t 
     this->addedToParentBundle = false;
 }
 
-bool Editor::ImportEntityBundleCmd::execute(){
+bool editor::ImportEntityBundleCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     if (!sceneProject){
@@ -121,12 +121,12 @@ bool Editor::ImportEntityBundleCmd::execute(){
 
     ImGui::SetWindowFocus(("###Scene" + std::to_string(sceneId)).c_str());
 
-    Editor::Out::info("Imported entity bundle from '%s' to scene '%s'", filepath.string().c_str(), sceneProject->name.c_str());
+    editor::Out::info("Imported entity bundle from '%s' to scene '%s'", filepath.string().c_str(), sceneProject->name.c_str());
 
     return true;
 }
 
-void Editor::ImportEntityBundleCmd::undo(){
+void editor::ImportEntityBundleCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
     if (!sceneProject) {
         return;
@@ -150,10 +150,10 @@ void Editor::ImportEntityBundleCmd::undo(){
     sceneProject->isModified = wasModified;
 }
 
-bool Editor::ImportEntityBundleCmd::mergeWith(Editor::Command* otherCommand){
+bool editor::ImportEntityBundleCmd::mergeWith(editor::Command* otherCommand){
     return false;
 }
 
-std::vector<Entity> Editor::ImportEntityBundleCmd::getImportedEntities() const{
+std::vector<Entity> editor::ImportEntityBundleCmd::getImportedEntities() const{
     return importedEntities;
 }

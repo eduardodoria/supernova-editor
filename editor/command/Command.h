@@ -1,7 +1,7 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     class Command{
     protected:

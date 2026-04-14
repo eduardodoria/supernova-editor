@@ -8,7 +8,7 @@
 #include <any>
 #include <functional>
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     enum class EntityCreationType{
         EMPTY,

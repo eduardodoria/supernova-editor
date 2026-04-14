@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <cctype>
 
-namespace Supernova::Editor {
+namespace doriax::editor {
 
     enum class SuggestionKind {
         Keyword,
@@ -116,4 +116,4 @@ namespace Supernova::Editor {
                           const std::string& query);
     };
 
-} // namespace Supernova::Editor
+} // namespace doriax::editor

@@ -6,7 +6,7 @@
 
 namespace fs = std::filesystem;
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     class Conector{
     private:

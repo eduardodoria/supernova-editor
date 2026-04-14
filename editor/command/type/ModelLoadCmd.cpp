@@ -5,9 +5,9 @@
 #include "subsystem/MeshSystem.h"
 #include "io/FileData.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::ModelLoadCmd::ModelLoadCmd(Project* project, uint32_t sceneId, Entity entity, const std::string& modelPath){
+editor::ModelLoadCmd::ModelLoadCmd(Project* project, uint32_t sceneId, Entity entity, const std::string& modelPath){
     this->project = project;
     this->sceneId = sceneId;
     this->entity = entity;
@@ -16,14 +16,14 @@ Editor::ModelLoadCmd::ModelLoadCmd(Project* project, uint32_t sceneId, Entity en
     this->wasModified = project->getScene(sceneId)->isModified;
 }
 
-Editor::ModelLoadCmd::~ModelLoadCmd(){
+editor::ModelLoadCmd::~ModelLoadCmd(){
     if (oldSubEntitiesDeleteCmd) {
         delete oldSubEntitiesDeleteCmd;
         oldSubEntitiesDeleteCmd = nullptr;
     }
 }
 
-std::vector<Entity> Editor::ModelLoadCmd::collectModelDeleteRoots(const ModelComponent& model) {
+std::vector<Entity> editor::ModelLoadCmd::collectModelDeleteRoots(const ModelComponent& model) {
     std::vector<Entity> roots;
     if (model.skeleton != NULL_ENTITY) {
         roots.push_back(model.skeleton);
@@ -33,7 +33,7 @@ std::vector<Entity> Editor::ModelLoadCmd::collectModelDeleteRoots(const ModelCom
     return roots;
 }
 
-bool Editor::ModelLoadCmd::execute(){
+bool editor::ModelLoadCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
     Scene* scene = sceneProject->scene;
 
@@ -121,7 +121,7 @@ bool Editor::ModelLoadCmd::execute(){
     return true;
 }
 
-void Editor::ModelLoadCmd::undo(){
+void editor::ModelLoadCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
     Scene* scene = sceneProject->scene;
 
@@ -151,6 +151,6 @@ void Editor::ModelLoadCmd::undo(){
     }
 }
 
-bool Editor::ModelLoadCmd::mergeWith(Editor::Command* otherCommand){
+bool editor::ModelLoadCmd::mergeWith(editor::Command* otherCommand){
     return false;
 }

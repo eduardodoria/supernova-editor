@@ -333,7 +333,7 @@ def create_c_header(engine_root, temp_dir):
 @click.command()
 @click.option('--shaders', '-s', default=get_default_shaders(), help="Target shader type, seperated by ';'")
 @click.option('--langs', '-l', default=get_default_langs(), required=True, help="Target shader language, seperated by ';'")
-@click.option('--engine-root', '-r', default='', type=click.Path(), help="Source root path of Supernova")
+@click.option('--engine-root', '-r', default='', type=click.Path(), help="Source root path of Doriax")
 @click.option('--verbose/--no-verbose', '-v', default=False, help="Output more information")
 @click.option('--max-lights', '-ml', default=6, type=int, help="Value of MAX_LIGHTS macro")
 @click.option('--max-shadowsmap', default=6, type=int, help="Value of MAX_SHADOWSMAP macro")

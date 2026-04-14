@@ -7,7 +7,7 @@
 
 #include "yaml-cpp/yaml.h"
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     struct DeleteEntityData{
         Entity entity;

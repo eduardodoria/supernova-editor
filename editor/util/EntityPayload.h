@@ -3,7 +3,7 @@
 #include <cstdint>
 #include "ecs/Entity.h"
 
-namespace Supernova {
+namespace doriax {
 
     struct EntityPayload {
         Entity entity;

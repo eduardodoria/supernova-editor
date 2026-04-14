@@ -5,7 +5,7 @@
 #include "object/Model.h"
 #include "object/Light.h"
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     class ModelRender{
     private:

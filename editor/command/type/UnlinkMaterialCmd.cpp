@@ -1,8 +1,8 @@
 #include "UnlinkMaterialCmd.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::UnlinkMaterialCmd::UnlinkMaterialCmd(Project* project, uint32_t sceneId, ComponentType componentType,
+editor::UnlinkMaterialCmd::UnlinkMaterialCmd(Project* project, uint32_t sceneId, ComponentType componentType,
                                               std::string propertyName, unsigned int submeshIndex,
                                               const std::vector<Entity>& entityList,
                                               std::function<void()> onValueChanged){
@@ -27,7 +27,7 @@ Editor::UnlinkMaterialCmd::UnlinkMaterialCmd(Project* project, uint32_t sceneId,
     }
 }
 
-bool Editor::UnlinkMaterialCmd::execute(){
+bool editor::UnlinkMaterialCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
     if (!sceneProject) {
         return false;
@@ -59,7 +59,7 @@ bool Editor::UnlinkMaterialCmd::execute(){
     return true;
 }
 
-void Editor::UnlinkMaterialCmd::undo(){
+void editor::UnlinkMaterialCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
     if (!sceneProject) {
         return;
@@ -91,6 +91,6 @@ void Editor::UnlinkMaterialCmd::undo(){
     }
 }
 
-bool Editor::UnlinkMaterialCmd::mergeWith(Editor::Command* otherCommand){
+bool editor::UnlinkMaterialCmd::mergeWith(editor::Command* otherCommand){
     return false;
 }

@@ -2,9 +2,9 @@
 
 #include "Stream.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::ComponentToBundleSharedCmd::ComponentToBundleSharedCmd(Project* project, uint32_t sceneId, Entity entity, ComponentType componentType){
+editor::ComponentToBundleSharedCmd::ComponentToBundleSharedCmd(Project* project, uint32_t sceneId, Entity entity, ComponentType componentType){
     this->project = project;
     this->sceneId = sceneId;
     this->componentType = componentType;
@@ -16,7 +16,7 @@ Editor::ComponentToBundleSharedCmd::ComponentToBundleSharedCmd(Project* project,
     this->wasModified = project->getScene(sceneId)->isModified;
 }
 
-bool Editor::ComponentToBundleSharedCmd::execute() {
+bool editor::ComponentToBundleSharedCmd::execute() {
     SceneProject* sceneProject = project->getScene(sceneId);
 
     for (ComponentToBundleSharedData& entityData : entities){
@@ -46,7 +46,7 @@ bool Editor::ComponentToBundleSharedCmd::execute() {
     return true;
 }
 
-void Editor::ComponentToBundleSharedCmd::undo() {
+void editor::ComponentToBundleSharedCmd::undo() {
     SceneProject* sceneProject = project->getScene(sceneId);
 
     for (ComponentToBundleSharedData& entityData : entities){
@@ -70,7 +70,7 @@ void Editor::ComponentToBundleSharedCmd::undo() {
     sceneProject->isModified = wasModified;
 }
 
-bool Editor::ComponentToBundleSharedCmd::mergeWith(Command* otherCommand){
+bool editor::ComponentToBundleSharedCmd::mergeWith(Command* otherCommand){
     ComponentToBundleSharedCmd* otherCmd = dynamic_cast<ComponentToBundleSharedCmd*>(otherCommand);
     if (otherCmd != nullptr){
         if (sceneId == otherCmd->sceneId){

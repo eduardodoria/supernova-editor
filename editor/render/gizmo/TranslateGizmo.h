@@ -8,7 +8,7 @@
 
 #include "render/RenderUtil.h"
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     class TranslateGizmo: public Object{
     private:

@@ -3,8 +3,8 @@
 #include "util/UIUtils.h"
 #include <cctype>
 
-namespace Supernova {
-namespace Editor {
+namespace doriax {
+namespace editor {
 
 ComponentAddDialog::ComponentAddDialog() {
     initializeCategories();
@@ -273,5 +273,5 @@ void ComponentAddDialog::show() {
     ImGui::EndPopup();
 }
 
-} // namespace Editor
-} // namespace Supernova
+} // namespace editor
+} // namespace doriax

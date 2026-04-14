@@ -6,7 +6,7 @@
 #include "object/Shape.h"
 #include "object/Light.h"
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     class DirectionRender{
     private:

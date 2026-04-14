@@ -2,10 +2,10 @@
 
 #include "SceneRender.h"
 
-#include "Supernova.h"
+#include "Doriax.h"
 #include "gizmo/ViewportGizmo.h"
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     struct LightObjects{
         Sprite* icon = nullptr;

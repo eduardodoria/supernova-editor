@@ -11,7 +11,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-namespace Supernova::Editor {
+namespace doriax::editor {
     class Stream {
     private:
 

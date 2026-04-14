@@ -14,12 +14,12 @@ static GLFWwindow* window = nullptr;
 static GLFWcursor* invisibleCursor = nullptr;
 static nfdwindowhandle_t nativeWindow;
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::App Editor::Backend::app;
-std::string Editor::Backend::title;
+editor::App editor::Backend::app;
+std::string editor::Backend::title;
 
-int Editor::Backend::init(int argc, char* argv[]) {
+int editor::Backend::init(int argc, char* argv[]) {
     // Initialize GLFW
     if (!glfwInit())
         return -1;
@@ -47,7 +47,7 @@ int Editor::Backend::init(int argc, char* argv[]) {
     int windowHeight = app.getInitialWindowHeight();
 
     // Create a windowed mode window and its OpenGL context
-    window = glfwCreateWindow(windowWidth, windowHeight, "Supernova Engine", NULL, NULL);
+    window = glfwCreateWindow(windowWidth, windowHeight, "Doriax Engine", NULL, NULL);
     if (!window) {
         NFD_Quit();
         glfwTerminate();
@@ -163,11 +163,11 @@ int Editor::Backend::init(int argc, char* argv[]) {
     return 0;
 }
 
-Editor::App& Editor::Backend::getApp() {
+editor::App& editor::Backend::getApp() {
     return app;
 }
 
-void Editor::Backend::disableMouseCursor() {
+void editor::Backend::disableMouseCursor() {
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
     io.MouseDrawCursor = false;
@@ -179,7 +179,7 @@ void Editor::Backend::disableMouseCursor() {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
-void Editor::Backend::enableMouseCursor() {
+void editor::Backend::enableMouseCursor() {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     glfwSetCursor(window, nullptr);
 
@@ -187,21 +187,21 @@ void Editor::Backend::enableMouseCursor() {
     io.ConfigFlags &= ~ImGuiConfigFlags_NoMouseCursorChange;
 }
 
-void Editor::Backend::closeWindow() {
+void editor::Backend::closeWindow() {
     glfwSetWindowShouldClose(window, GLFW_TRUE);
 }
 
-void Editor::Backend::updateWindowTitle(const std::string& projectName) {
+void editor::Backend::updateWindowTitle(const std::string& projectName) {
     if (projectName.empty()) {
-        title = "Empty project - Supernova Engine";
+        title = "Empty project - Doriax Engine";
     } else {
-        title = projectName + " - Supernova Engine";
+        title = projectName + " - Doriax Engine";
     }
     if (window){
         glfwSetWindowTitle(window, title.c_str());
     }
 }
 
-void* Editor::Backend::getNFDWindowHandle() {
+void* editor::Backend::getNFDWindowHandle() {
     return &nativeWindow;
 }

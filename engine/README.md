@@ -1,19 +1,19 @@
-![Logo](http://www.supernovaengine.org/img/logo_blue.png)
+![Logo](http://www.doriaxengine.org/img/logo_blue.png)
 
-![](https://github.com/supernovaengine/supernova/actions/workflows/android.yml/badge.svg)
-![](https://github.com/supernovaengine/supernova/actions/workflows/build-tool.yml/badge.svg)
-![](https://github.com/supernovaengine/supernova/actions/workflows/cmake-desktop.yml/badge.svg)
+![](https://github.com/doriaxengine/doriax/actions/workflows/android.yml/badge.svg)
+![](https://github.com/doriaxengine/doriax/actions/workflows/build-tool.yml/badge.svg)
+![](https://github.com/doriaxengine/doriax/actions/workflows/cmake-desktop.yml/badge.svg)
 
 [![Join our Discord](https://img.shields.io/discord/1356958061880934480?label=Discord&logo=discord&style=flat&color=5865F2)](https://discord.gg/yXXDyJf3gT)
 
 **Entity component system (ECS)** and **data-oriented design** engine using object oriented for API.
 
 
-Supernova is a **free** and open-source, cross-platform game engine for creating 2D and 3D projects with Lua or C++. It is lightweight and promotes the simplest way to use the best performance of a data-oriented design.
+Doriax is a **free** and open-source, cross-platform game engine for creating 2D and 3D projects with Lua or C++. It is lightweight and promotes the simplest way to use the best performance of a data-oriented design.
 
-![Screenshot1](https://supernovaengine.org/img/gh_screen.png)
+![Screenshot1](https://doriaxengine.org/img/gh_screen.png)
 
-Live samples: https://samples.supernovaengine.org/
+Live samples: https://samples.doriaxengine.org/
 
 
 ## Supports
@@ -57,7 +57,7 @@ Live samples: https://samples.supernovaengine.org/
 
 For all samples source code:
 
-https://github.com/supernovaengine/supernova-samples
+https://github.com/doriaxengine/doriax-samples
 
 ## Documentation
 
@@ -65,16 +65,16 @@ https://github.com/supernovaengine/supernova-samples
 
 For tutorials and all engine information:
 
-https://docs.supernovaengine.org/
+https://docs.doriaxengine.org/
 
 ### Building
 
-  - Building for Windows: https://docs.supernovaengine.org/getting-started/building/building-for-windows
-  - Building for Linux: https://docs.supernovaengine.org/getting-started/building/building-for-linux
-  - Building for macOS: https://docs.supernovaengine.org/getting-started/building/building-for-macos
-  - Building for iOS: https://docs.supernovaengine.org/getting-started/building/building-for-ios
-  - Building for Android: https://docs.supernovaengine.org/getting-started/building/building-for-android
-  - Building for HTML5: https://docs.supernovaengine.org/getting-started/building/building-for-html5
+  - Building for Windows: https://docs.doriaxengine.org/getting-started/building/building-for-windows
+  - Building for Linux: https://docs.doriaxengine.org/getting-started/building/building-for-linux
+  - Building for macOS: https://docs.doriaxengine.org/getting-started/building/building-for-macos
+  - Building for iOS: https://docs.doriaxengine.org/getting-started/building/building-for-ios
+  - Building for Android: https://docs.doriaxengine.org/getting-started/building/building-for-android
+  - Building for HTML5: https://docs.doriaxengine.org/getting-started/building/building-for-html5
 
 ## Third party libraries
 

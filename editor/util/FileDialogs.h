@@ -7,7 +7,7 @@
 #include "nfd.hpp"
 #include "util/Util.h"
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     enum FileDialogType {
         FILE_DIALOG_ALL = 0,

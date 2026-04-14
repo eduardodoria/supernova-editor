@@ -1,13 +1,13 @@
 #pragma once
 
-#include "Supernova.h"
+#include "Doriax.h"
 
 #include "ToolsLayer.h"
 #include "UILayer.h"
 #include "RenderUtil.h"
 #include "command/Command.h"
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     struct SceneDisplaySettings {
         bool showAllJoints       = false;

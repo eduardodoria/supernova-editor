@@ -1,14 +1,14 @@
-#include "Supernova.h"
-using namespace Supernova;
+#include "Doriax.h"
+using namespace doriax;
 
 #include "Image.h"
 
 Scene scene;
 Image image(&scene);
 
-SUPERNOVA_INIT void init(){
+DORIAX_INIT void init(){
     image.setAnchorPreset(AnchorPreset::CENTER);
-    image.setTexture("supernova.png");
+    image.setTexture("doriax.png");
 
     Engine::setScalingMode(Scaling::FITWIDTH);
     Engine::setCanvasSize(1000,480);

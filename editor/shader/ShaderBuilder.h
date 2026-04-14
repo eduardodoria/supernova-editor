@@ -19,7 +19,7 @@ namespace shadercompiler {
     struct args_t;
 }
 
-namespace Supernova::Editor {
+namespace doriax::editor {
 
     class ShaderBuilder {
     private:

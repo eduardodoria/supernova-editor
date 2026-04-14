@@ -14,7 +14,7 @@
 #include <Windows.h>
 #endif
 
-namespace Supernova::Editor {
+namespace doriax::editor {
 
 CustomTextEditor::CustomTextEditor()
     : primaryCursor(0)
@@ -2973,4 +2973,4 @@ void CustomTextEditor::Render(const char* title, const ImVec2& size, bool border
     renderTooltip();
 }
 
-} // namespace Supernova::Editor
+} // namespace doriax::editor

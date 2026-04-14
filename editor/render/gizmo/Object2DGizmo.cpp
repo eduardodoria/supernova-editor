@@ -1,11 +1,11 @@
 #include "Object2DGizmo.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-const float Editor::Object2DGizmo::rectSize = 0.20;
-const float Editor::Object2DGizmo::sizeOffset = 0.1;
+const float editor::Object2DGizmo::rectSize = 0.20;
+const float editor::Object2DGizmo::sizeOffset = 0.1;
 
-Editor::Object2DGizmo::Object2DGizmo(Scene* scene): Object(scene){
+editor::Object2DGizmo::Object2DGizmo(Scene* scene): Object(scene){
     width = 0.0;
     height = 0.0;
     showRects = true;
@@ -30,14 +30,14 @@ Editor::Object2DGizmo::Object2DGizmo(Scene* scene): Object(scene){
     this->addChild(center);
 }
 
-Editor::Object2DGizmo::~Object2DGizmo(){
+editor::Object2DGizmo::~Object2DGizmo(){
     for (int i = 0; i < 8; i++){
         delete rects[i];
     }
     delete lines;
 }
 
-void Editor::Object2DGizmo::updateRects(){
+void editor::Object2DGizmo::updateRects(){
     float halfRect = rectSize / 2.0;
     float halfWidth = width / 2.0;
     float halfHeight = height / 2.0;
@@ -63,7 +63,7 @@ void Editor::Object2DGizmo::updateRects(){
     rects[7]->setPosition(-halfRect, -halfHeight-halfRect-sizeOffset, 0);
 }
 
-void Editor::Object2DGizmo::updateLines(){
+void editor::Object2DGizmo::updateLines(){
     if (!lines){
         return;
     }
@@ -85,11 +85,11 @@ void Editor::Object2DGizmo::updateLines(){
     lines->addLine(tl, bl, color);
 }
 
-void Editor::Object2DGizmo::setCenter(Vector3 point){
+void editor::Object2DGizmo::setCenter(Vector3 point){
     center->setPosition(point);
 }
 
-void Editor::Object2DGizmo::setSize(float width, float height){
+void editor::Object2DGizmo::setSize(float width, float height){
     if (this->width != width || this->height != height){
         this->width = width;
         this->height = height;
@@ -99,13 +99,13 @@ void Editor::Object2DGizmo::setSize(float width, float height){
     }
 }
 
-void Editor::Object2DGizmo::setShowRects(bool showRects){
+void editor::Object2DGizmo::setShowRects(bool showRects){
     this->showRects = showRects;
     updateRects();
 }
 
-Editor::Gizmo2DSideSelected Editor::Object2DGizmo::checkHover(const Ray& ray, const OBB& obb){
-    Editor::Gizmo2DSideSelected gizmoSideSelected = Gizmo2DSideSelected::NONE;
+editor::Gizmo2DSideSelected editor::Object2DGizmo::checkHover(const Ray& ray, const OBB& obb){
+    editor::Gizmo2DSideSelected gizmoSideSelected = Gizmo2DSideSelected::NONE;
 
     if (RayReturn rreturn = ray.intersects(obb)){
         gizmoSideSelected = Gizmo2DSideSelected::CENTER;

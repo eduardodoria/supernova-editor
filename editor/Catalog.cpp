@@ -8,8 +8,8 @@
 
 namespace {
 
-    using namespace Supernova;
-    using namespace Supernova::Editor;
+    using namespace doriax;
+    using namespace doriax::editor;
 
     using FastDefGetter = void* (*)();
     using FastRefGetter = void* (*)(void*);
@@ -702,7 +702,7 @@ namespace {
         return PropertyData();
     }
 
-    Supernova::Editor::PropertyData getBody3DPropertyFast(Supernova::Body3DComponent* comp, const std::string& propertyName) {
+    doriax::editor::PropertyData getBody3DPropertyFast(doriax::Body3DComponent* comp, const std::string& propertyName) {
         Body3DComponent& defaultBody3D = getDefaultComponent<Body3DComponent>();
 
         if (!comp) {
@@ -1824,12 +1824,12 @@ namespace {
 
 }
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::Catalog::Catalog(){
+editor::Catalog::Catalog(){
 }
 
-std::string Editor::Catalog::removeComponentSuffix(std::string str) {
+std::string editor::Catalog::removeComponentSuffix(std::string str) {
     // Convert to lowercase first
     std::transform(str.begin(), str.end(), str.begin(), 
                    [](unsigned char c) { return std::tolower(c); });
@@ -1844,7 +1844,7 @@ std::string Editor::Catalog::removeComponentSuffix(std::string str) {
     return str;
 }
 
-std::string Editor::Catalog::getComponentName(ComponentType component, bool removeSuffix){
+std::string editor::Catalog::getComponentName(ComponentType component, bool removeSuffix){
     std::string name;
 
     if(component == ComponentType::ActionComponent){
@@ -1953,8 +1953,8 @@ std::string Editor::Catalog::getComponentName(ComponentType component, bool remo
     return name;
 }
 
-ComponentId Editor::Catalog::getComponentId(const EntityRegistry* registry, ComponentType compType) {
-    using namespace Supernova;
+ComponentId editor::Catalog::getComponentId(const EntityRegistry* registry, ComponentType compType) {
+    using namespace doriax;
     switch (compType) {
         case ComponentType::Transform:
             return registry->getComponentId<Transform>();
@@ -2055,7 +2055,7 @@ ComponentId Editor::Catalog::getComponentId(const EntityRegistry* registry, Comp
     }
 }
 
-Editor::ComponentType Editor::Catalog::getComponentType(const std::string& componentName) {
+editor::ComponentType editor::Catalog::getComponentType(const std::string& componentName) {
     std::string normalizedName = removeComponentSuffix(componentName);
 
     if(normalizedName == "action"){
@@ -2157,14 +2157,14 @@ Editor::ComponentType Editor::Catalog::getComponentType(const std::string& compo
     throw std::invalid_argument("Unknown component type: " + componentName);
 }
 
-Signature Editor::Catalog::componentTypeToSignature(const EntityRegistry* registry, ComponentType compType) {
+Signature editor::Catalog::componentTypeToSignature(const EntityRegistry* registry, ComponentType compType) {
     Signature signature;
     ComponentId cid = getComponentId(registry, compType);
     signature.set(cid, true);
     return signature;
 }
 
-Signature Editor::Catalog::componentMaskToSignature(const EntityRegistry* registry, uint64_t mask) {
+Signature editor::Catalog::componentMaskToSignature(const EntityRegistry* registry, uint64_t mask) {
     Signature signature;
     for (int i = 0; i < 64; ++i) {
         if ((mask >> i) & 1) {
@@ -2176,30 +2176,30 @@ Signature Editor::Catalog::componentMaskToSignature(const EntityRegistry* regist
     return signature;
 }
 
-Editor::PropertyType Editor::Catalog::scriptPropertyTypeToPropertyType(ScriptPropertyType scriptType) {
+editor::PropertyType editor::Catalog::scriptPropertyTypeToPropertyType(ScriptPropertyType scriptType) {
     switch (scriptType) {
-        case Supernova::ScriptPropertyType::Bool: return Editor::PropertyType::Bool;
-        case Supernova::ScriptPropertyType::Int: return Editor::PropertyType::Int;
-        case Supernova::ScriptPropertyType::Float: return Editor::PropertyType::Float;
-        case Supernova::ScriptPropertyType::String: return Editor::PropertyType::String;
-        case Supernova::ScriptPropertyType::Vector2: return Editor::PropertyType::Vector2;
-        case Supernova::ScriptPropertyType::Vector3: return Editor::PropertyType::Vector3;
-        case Supernova::ScriptPropertyType::Vector4: return Editor::PropertyType::Vector4;
-        case Supernova::ScriptPropertyType::Color3: return Editor::PropertyType::Vector3;
-        case Supernova::ScriptPropertyType::Color4: return Editor::PropertyType::Vector4;
-        case Supernova::ScriptPropertyType::EntityReference: return PropertyType::EntityReference;
-        default: return Editor::PropertyType::Custom;
+        case doriax::ScriptPropertyType::Bool: return editor::PropertyType::Bool;
+        case doriax::ScriptPropertyType::Int: return editor::PropertyType::Int;
+        case doriax::ScriptPropertyType::Float: return editor::PropertyType::Float;
+        case doriax::ScriptPropertyType::String: return editor::PropertyType::String;
+        case doriax::ScriptPropertyType::Vector2: return editor::PropertyType::Vector2;
+        case doriax::ScriptPropertyType::Vector3: return editor::PropertyType::Vector3;
+        case doriax::ScriptPropertyType::Vector4: return editor::PropertyType::Vector4;
+        case doriax::ScriptPropertyType::Color3: return editor::PropertyType::Vector3;
+        case doriax::ScriptPropertyType::Color4: return editor::PropertyType::Vector4;
+        case doriax::ScriptPropertyType::EntityReference: return PropertyType::EntityReference;
+        default: return editor::PropertyType::Custom;
     }
 }
 
-std::map<std::string, Editor::PropertyData> Editor::Catalog::getProperties(ComponentType component, void* compRef){
-    std::map<std::string, Editor::PropertyData> ps;
+std::map<std::string, editor::PropertyData> editor::Catalog::getProperties(ComponentType component, void* compRef){
+    std::map<std::string, editor::PropertyData> ps;
     tryEnumerateProperties(component, compRef, ps);
     return ps;
 }
 
-std::vector<Editor::ComponentType> Editor::Catalog::findComponents(EntityRegistry* registry, Entity entity){
-    std::vector<Editor::ComponentType> ret;
+std::vector<editor::ComponentType> editor::Catalog::findComponents(EntityRegistry* registry, Entity entity){
+    std::vector<editor::ComponentType> ret;
 
     if (registry->findComponent<ActionComponent>(entity)){
         ret.push_back(ComponentType::ActionComponent);
@@ -2346,13 +2346,13 @@ std::vector<Editor::ComponentType> Editor::Catalog::findComponents(EntityRegistr
     return ret;
 }
 
-std::map<std::string, Editor::PropertyData> Editor::Catalog::findEntityProperties(EntityRegistry* registry, Entity entity, ComponentType component){
+std::map<std::string, editor::PropertyData> editor::Catalog::findEntityProperties(EntityRegistry* registry, Entity entity, ComponentType component){
     std::map<std::string, PropertyData> ps;
     tryEnumerateEntityProperties(registry, entity, component, ps);
     return ps;
 }
 
-int Editor::Catalog::getChangedUpdateFlags(ComponentType compType, void* oldComp, void* newComp) {
+int editor::Catalog::getChangedUpdateFlags(ComponentType compType, void* oldComp, void* newComp) {
     if (!oldComp || !newComp) return 0;
 
     int flags = 0;
@@ -2426,7 +2426,7 @@ int Editor::Catalog::getChangedUpdateFlags(ComponentType compType, void* oldComp
     return flags;
 }
 
-void Editor::Catalog::updateEntity(EntityRegistry* registry, Entity entity, int updateFlags){
+void editor::Catalog::updateEntity(EntityRegistry* registry, Entity entity, int updateFlags){
     if (updateFlags & UpdateFlags_Transform){
         if (Transform* transform = registry->findComponent<Transform>(entity)){
             transform->needUpdate = true;
@@ -2546,7 +2546,7 @@ void Editor::Catalog::updateEntity(EntityRegistry* registry, Entity entity, int 
     }
 }
 
-void Editor::Catalog::copyComponent(EntityRegistry* sourceRegistry, Entity sourceEntity,
+void editor::Catalog::copyComponent(EntityRegistry* sourceRegistry, Entity sourceEntity,
                                    EntityRegistry* targetRegistry, Entity targetEntity,
                                    ComponentType compType) {
 
@@ -2697,7 +2697,7 @@ void Editor::Catalog::copyComponent(EntityRegistry* sourceRegistry, Entity sourc
     }
 }
 
-void Editor::Catalog::copyPropertyValue(EntityRegistry* sourceRegistry, Entity sourceEntity, 
+void editor::Catalog::copyPropertyValue(EntityRegistry* sourceRegistry, Entity sourceEntity, 
                                        EntityRegistry* targetRegistry, Entity targetEntity, 
                                        ComponentType compType, const std::string& property) {
 
@@ -2810,7 +2810,7 @@ void Editor::Catalog::copyPropertyValue(EntityRegistry* sourceRegistry, Entity s
     updateEntity(targetRegistry, targetEntity, propIt->second.updateFlags);
 }
 
-Editor::PropertyData Editor::Catalog::getProperty(EntityRegistry* registry, Entity entity, ComponentType component, std::string propertyName){
+editor::PropertyData editor::Catalog::getProperty(EntityRegistry* registry, Entity entity, ComponentType component, std::string propertyName){
     PropertyData fastProperty = tryGetFastProperty(registry, entity, component, propertyName);
     if (fastProperty.ref || fastProperty.def){
         return fastProperty;

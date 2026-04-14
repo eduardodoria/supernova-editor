@@ -1,7 +1,7 @@
 #ifndef RENDERUTIL_H
 #define RENDERUTIL_H
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     enum class CursorSelected{
         POINTER,

@@ -35,9 +35,9 @@
 #include "stb_image_write.h"
 #include "stb_image_resize2.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::ResourcesWindow::ResourcesWindow(Project* project, CodeEditor* codeEditor) {
+editor::ResourcesWindow::ResourcesWindow(Project* project, CodeEditor* codeEditor) {
     this->project = project;
     this->codeEditor = codeEditor;
     this->firstOpen = true;
@@ -57,7 +57,7 @@ Editor::ResourcesWindow::ResourcesWindow(Project* project, CodeEditor* codeEdito
     thumbnailThread = std::thread(&ResourcesWindow::thumbnailWorker, this);
 }
 
-Editor::ResourcesWindow::~ResourcesWindow() {
+editor::ResourcesWindow::~ResourcesWindow() {
     stopThumbnailThread = true;
     thumbnailCondition.notify_one(); // Wake the worker thread to check stop condition
     if (thumbnailThread.joinable()) {
@@ -65,11 +65,11 @@ Editor::ResourcesWindow::~ResourcesWindow() {
     }
 }
 
-bool Editor::ResourcesWindow::isFocused() const{
+bool editor::ResourcesWindow::isFocused() const{
     return windowFocused;
 }
 
-void Editor::ResourcesWindow::notifyProjectPathChange(){
+void editor::ResourcesWindow::notifyProjectPathChange(){
     // Clear thumbnail textures when changing projects
     thumbnailTextures.clear();
 
@@ -82,15 +82,15 @@ void Editor::ResourcesWindow::notifyProjectPathChange(){
     scanDirectory(project->getProjectPath());
 }
 
-void Editor::ResourcesWindow::handleExternalDragEnter() {
+void editor::ResourcesWindow::handleExternalDragEnter() {
     isExternalDragHovering = true;
 }
 
-void Editor::ResourcesWindow::handleExternalDragLeave() {
+void editor::ResourcesWindow::handleExternalDragLeave() {
     isExternalDragHovering = false;
 }
 
-void Editor::ResourcesWindow::notifyResourceFileChanged(const fs::path& filePath) {
+void editor::ResourcesWindow::notifyResourceFileChanged(const fs::path& filePath) {
     if (!fs::exists(filePath) || fs::is_directory(filePath)) {
         return;
     }
@@ -124,7 +124,7 @@ void Editor::ResourcesWindow::notifyResourceFileChanged(const fs::path& filePath
     queueThumbnailGeneration(filePath, type, true);
 }
 
-void Editor::ResourcesWindow::processMaterialThumbnails() {
+void editor::ResourcesWindow::processMaterialThumbnails() {
     // Check if we have a pending material render that needs post-processing
     if (hasPendingMaterialRender && !Engine::isSceneRunning(materialRender.getScene())) {
         std::lock_guard<std::mutex> lock(materialRenderMutex);
@@ -152,7 +152,7 @@ void Editor::ResourcesWindow::processMaterialThumbnails() {
     }
 }
 
-void Editor::ResourcesWindow::processModelThumbnails() {
+void editor::ResourcesWindow::processModelThumbnails() {
     if (hasPendingModelRender && !Engine::isSceneRunning(modelRender.getScene())) {
         std::lock_guard<std::mutex> lock(modelRenderMutex);
 
@@ -174,7 +174,7 @@ void Editor::ResourcesWindow::processModelThumbnails() {
     }
 }
 
-ImU32 Editor::ResourcesWindow::fileSeparatorColor(const FileEntry& fe) const{
+ImU32 editor::ResourcesWindow::fileSeparatorColor(const FileEntry& fe) const{
     if (fe.isDirectory)
         return ImGui::GetColorU32(ImVec4(0.60f, 0.60f, 0.60f, 1.0f));
 
@@ -195,7 +195,7 @@ ImU32 Editor::ResourcesWindow::fileSeparatorColor(const FileEntry& fe) const{
     }
 }
 
-void Editor::ResourcesWindow::renderHeader() {
+void editor::ResourcesWindow::renderHeader() {
     ImGui::BeginDisabled(currentPath == project->getProjectPath());
     if (ImGui::Button(ICON_FA_HOUSE)) {
         scanDirectory(project->getProjectPath().string());
@@ -289,7 +289,7 @@ void Editor::ResourcesWindow::renderHeader() {
     }
 }
 
-void Editor::ResourcesWindow::renderFileListing(bool showDirectories){
+void editor::ResourcesWindow::renderFileListing(bool showDirectories){
     // --- Common grid sizing -------------------------------------------------
     float columnWidth = iconSize + iconPadding;
     float availableWidth = ImGui::GetContentRegionAvail().x;
@@ -792,7 +792,7 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories){
 
     if (ImGui::BeginPopup("ResourcesContextMenu")){
         if (ImGui::MenuItem(ICON_FA_FILE_IMPORT " Import Files")){
-            std::vector<std::string> filePaths = Editor::FileDialogs::openFileDialogMultiple();
+            std::vector<std::string> filePaths = editor::FileDialogs::openFileDialogMultiple();
             if (!filePaths.empty()){
                 project->getProjectCommandHistory()->addCommand(new CopyFileCmd(project, filePaths, currentPath.string(), true));
                 scanDirectory(currentPath);
@@ -894,7 +894,7 @@ void Editor::ResourcesWindow::renderFileListing(bool showDirectories){
 }
 
 
-void Editor::ResourcesWindow::renderDirectoryTree(const fs::path& rootPath) {
+void editor::ResourcesWindow::renderDirectoryTree(const fs::path& rootPath) {
     std::string rootFullPath = rootPath.string();
     std::string rootDisplayName = rootPath.filename().string();
     if (rootDisplayName.empty()) rootDisplayName = rootPath.string(); // Handle root paths like C:/ or /
@@ -980,7 +980,7 @@ void Editor::ResourcesWindow::renderDirectoryTree(const fs::path& rootPath) {
     ImGui::PopID();
 }
 
-void Editor::ResourcesWindow::scanDirectory(const fs::path& path) {
+void editor::ResourcesWindow::scanDirectory(const fs::path& path) {
     currentPath = path;
 
     if (!std::filesystem::is_directory(path)) {
@@ -1043,7 +1043,7 @@ void Editor::ResourcesWindow::scanDirectory(const fs::path& path) {
     }
 }
 
-void Editor::ResourcesWindow::sortWithSortSpecs(ImGuiTableSortSpecs* sortSpecs, std::vector<FileEntry>& files) {
+void editor::ResourcesWindow::sortWithSortSpecs(ImGuiTableSortSpecs* sortSpecs, std::vector<FileEntry>& files) {
     if (!sortSpecs || sortSpecs->SpecsCount == 0) {
         // Default behavior: Sort directories first, then by name
         std::sort(files.begin(), files.end(), [](const FileEntry& a, const FileEntry& b) {
@@ -1089,7 +1089,7 @@ void Editor::ResourcesWindow::sortWithSortSpecs(ImGuiTableSortSpecs* sortSpecs, 
     std::sort(files.begin(), files.end(), comparator);
 }
 
-void Editor::ResourcesWindow::highlightDragAndDrop(){
+void editor::ResourcesWindow::highlightDragAndDrop(){
     ImVec2 windowPos = ImGui::GetWindowPos();
     ImVec2 windowSize = ImGui::GetWindowSize();
     ImVec2 maxPos = ImVec2(windowPos.x + windowSize.x, windowPos.y + windowSize.y);
@@ -1101,7 +1101,7 @@ void Editor::ResourcesWindow::highlightDragAndDrop(){
         0.0f, 0, 2.0f);
 }
 
-void Editor::ResourcesWindow::handleInternalDragAndDrop(const fs::path& targetDirectory) {
+void editor::ResourcesWindow::handleInternalDragAndDrop(const fs::path& targetDirectory) {
     std::vector<std::string> filesVector(selectedFiles.begin(), selectedFiles.end());
     project->getProjectCommandHistory()->addCommand(new CopyFileCmd(project, filesVector, currentPath.string(), targetDirectory.string(), false));
 
@@ -1109,7 +1109,7 @@ void Editor::ResourcesWindow::handleInternalDragAndDrop(const fs::path& targetDi
     scanDirectory(currentPath);
 }
 
-void Editor::ResourcesWindow::handleNewDirectory(){
+void editor::ResourcesWindow::handleNewDirectory(){
     // Handle new directory creation popup
     if (isCreatingNewDirectory) {
         ImGui::OpenPopup("Create New Directory");
@@ -1217,7 +1217,7 @@ void Editor::ResourcesWindow::handleNewDirectory(){
     }
 }
 
-void Editor::ResourcesWindow::handleRename(){
+void editor::ResourcesWindow::handleRename(){
     // Handle rename popup
     if (isRenaming) {
         ImGui::OpenPopup("Rename File");
@@ -1329,7 +1329,7 @@ void Editor::ResourcesWindow::handleRename(){
     }
 }
 
-void Editor::ResourcesWindow::copySelectedFiles(bool cut) {
+void editor::ResourcesWindow::copySelectedFiles(bool cut) {
     clipboardFiles.clear();
     clipboardCut = cut;
 
@@ -1338,7 +1338,7 @@ void Editor::ResourcesWindow::copySelectedFiles(bool cut) {
     }
 }
 
-void Editor::ResourcesWindow::pasteFiles(const fs::path& targetDirectory) {
+void editor::ResourcesWindow::pasteFiles(const fs::path& targetDirectory) {
     project->getProjectCommandHistory()->addCommand(new CopyFileCmd(project, clipboardFiles, targetDirectory.string(), !clipboardCut));
 
     // Clear clipboard if it was a cut operation
@@ -1349,7 +1349,7 @@ void Editor::ResourcesWindow::pasteFiles(const fs::path& targetDirectory) {
     scanDirectory(currentPath);
 }
 
-void Editor::ResourcesWindow::queueThumbnailGeneration(const fs::path& filePath, FileType type, bool forceRegenerate) {
+void editor::ResourcesWindow::queueThumbnailGeneration(const fs::path& filePath, FileType type, bool forceRegenerate) {
     fs::path thumbnailPath = project->getThumbnailPath(filePath);
 
     ThumbnailRequest thumbFile = {filePath, type};
@@ -1370,7 +1370,7 @@ void Editor::ResourcesWindow::queueThumbnailGeneration(const fs::path& filePath,
     thumbnailCondition.notify_one();
 }
 
-void Editor::ResourcesWindow::thumbnailWorker() {
+void editor::ResourcesWindow::thumbnailWorker() {
     while (!stopThumbnailThread) {
         ThumbnailRequest thumbFile;
         {
@@ -1503,7 +1503,7 @@ void Editor::ResourcesWindow::thumbnailWorker() {
 }
 
 // Load a thumbnail texture for a file entry
-bool Editor::ResourcesWindow::loadThumbnail(FileEntry& entry) {
+bool editor::ResourcesWindow::loadThumbnail(FileEntry& entry) {
     fs::path filePath = currentPath / entry.name;
     fs::path thumbnailPath = project->getThumbnailPath(filePath);
 
@@ -1532,7 +1532,7 @@ bool Editor::ResourcesWindow::loadThumbnail(FileEntry& entry) {
     return true;
 }
 
-fs::path Editor::ResourcesWindow::uniqueRelativePath(const fs::path& directory, const std::string& baseName, const std::string& extension) {
+fs::path editor::ResourcesWindow::uniqueRelativePath(const fs::path& directory, const std::string& baseName, const std::string& extension) {
     std::string sanitized = baseName;
     for (char& c : sanitized) {
         if (c == '/' || c == '\\' || c == ':' || c == '*' || c == '?' || c == '"' || c == '<' || c == '>' || c == '|') {
@@ -1550,12 +1550,12 @@ fs::path Editor::ResourcesWindow::uniqueRelativePath(const fs::path& directory, 
     return fs::relative(targetFile, project->getProjectPath());
 }
 
-void Editor::ResourcesWindow::saveMaterialFile(const fs::path& directory, const char* materialContent, size_t contentLen, const MaterialPayload* sourceMaterial) {
+void editor::ResourcesWindow::saveMaterialFile(const fs::path& directory, const char* materialContent, size_t contentLen, const MaterialPayload* sourceMaterial) {
     project->getProjectCommandHistory()->addCommandNoMerge(new CreateMaterialFileCmd(project, directory, materialContent, contentLen, sourceMaterial));
     scanDirectory(currentPath);
 }
 
-void Editor::ResourcesWindow::saveEntityFile(const fs::path& directory, const char* entityContent, size_t contentLen) {
+void editor::ResourcesWindow::saveEntityFile(const fs::path& directory, const char* entityContent, size_t contentLen) {
     std::string yamlString;
     if (contentLen >= sizeof(EntityPayload)) {
         yamlString = std::string(entityContent + sizeof(EntityPayload), contentLen - sizeof(EntityPayload));
@@ -1577,7 +1577,7 @@ void Editor::ResourcesWindow::saveEntityFile(const fs::path& directory, const ch
     scanDirectory(currentPath);
 }
 
-void Editor::ResourcesWindow::saveBundleFile(const fs::path& directory, const char* bundleContent, size_t contentLen) {
+void editor::ResourcesWindow::saveBundleFile(const fs::path& directory, const char* bundleContent, size_t contentLen) {
     if (!bundleContent || contentLen == 0) {
         return;
     }
@@ -1603,7 +1603,7 @@ void Editor::ResourcesWindow::saveBundleFile(const fs::path& directory, const ch
     scanDirectory(currentPath);
 }
 
-void Editor::ResourcesWindow::cleanupThumbnails() {
+void editor::ResourcesWindow::cleanupThumbnails() {
     // 1. Collect all valid thumbnail paths of existing files
     std::unordered_set<std::string> validThumbPaths;
 
@@ -1619,7 +1619,7 @@ void Editor::ResourcesWindow::cleanupThumbnails() {
         }
     }
 
-    // 2. Walk .supernova/thumbs/ and remove any orphaned thumbnails
+    // 2. Walk .doriax/thumbs/ and remove any orphaned thumbnails
     fs::path thumbsDir = project->getThumbsDir();
     if (!fs::exists(thumbsDir)) return;
 
@@ -1647,11 +1647,11 @@ void Editor::ResourcesWindow::cleanupThumbnails() {
     }
 }
 
-void Editor::ResourcesWindow::refreshCurrentDirectory() {
+void editor::ResourcesWindow::refreshCurrentDirectory() {
     scanDirectory(currentPath);
 }
 
-void Editor::ResourcesWindow::show() {
+void editor::ResourcesWindow::show() {
     if (firstOpen) {
         // Load saved settings (AppSettings is initialized by now)
         iconSize = AppSettings::getResourcesIconSize();

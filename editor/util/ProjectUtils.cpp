@@ -35,9 +35,9 @@
 #include "resources/sky/Daylight_Box_Right_png.h"
 #include "resources/sky/Daylight_Box_Top_png.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-void Editor::ProjectUtils::setDefaultSkyTexture(Texture& outTexture) {
+void editor::ProjectUtils::setDefaultSkyTexture(Texture& outTexture) {
     TextureData skyBack;
     TextureData skyBottom;
     TextureData skyFront;
@@ -56,7 +56,7 @@ void Editor::ProjectUtils::setDefaultSkyTexture(Texture& outTexture) {
     outTexture.setCubeDatas("editor:resources:default_sky", skyFront, skyBack, skyLeft, skyRight, skyTop, skyBottom);
 }
 
-void Editor::ProjectUtils::collectModelEntities(Scene* scene, const ModelComponent& model, std::vector<Entity>& out){
+void editor::ProjectUtils::collectModelEntities(Scene* scene, const ModelComponent& model, std::vector<Entity>& out){
     for (const auto& bone : model.bonesIdMapping){
         out.push_back(bone.second);
     }
@@ -73,7 +73,7 @@ void Editor::ProjectUtils::collectModelEntities(Scene* scene, const ModelCompone
     }
 }
 
-Entity Editor::ProjectUtils::getLockedEntityParent(Scene* scene, Entity entity){
+Entity editor::ProjectUtils::getLockedEntityParent(Scene* scene, Entity entity){
     if (entity == NULL_ENTITY)
         return NULL_ENTITY;
 
@@ -136,11 +136,11 @@ Entity Editor::ProjectUtils::getLockedEntityParent(Scene* scene, Entity entity){
     return NULL_ENTITY;
 }
 
-bool Editor::ProjectUtils::isEntityLocked(Scene* scene, Entity entity){
+bool editor::ProjectUtils::isEntityLocked(Scene* scene, Entity entity){
     return getLockedEntityParent(scene, entity) != NULL_ENTITY;
 }
 
-Entity Editor::ProjectUtils::getEffectiveParent(Scene* scene, Entity entity) {
+Entity editor::ProjectUtils::getEffectiveParent(Scene* scene, Entity entity) {
     Entity virtualParent = getVirtualParent(scene, entity);
     if (virtualParent != NULL_ENTITY) {
         return virtualParent;
@@ -154,7 +154,7 @@ Entity Editor::ProjectUtils::getEffectiveParent(Scene* scene, Entity entity) {
     return getLockedEntityParent(scene, entity);
 }
 
-bool Editor::ProjectUtils::canMoveLockedEntityOrder(Scene* scene, Entity source, Entity target, InsertionType type) {
+bool editor::ProjectUtils::canMoveLockedEntityOrder(Scene* scene, Entity source, Entity target, InsertionType type) {
     if (!isEntityLocked(scene, source)) {
         return true;
     }
@@ -166,7 +166,7 @@ bool Editor::ProjectUtils::canMoveLockedEntityOrder(Scene* scene, Entity source,
     return getEffectiveParent(scene, source) == getEffectiveParent(scene, target);
 }
 
-size_t Editor::ProjectUtils::getTransformIndex(EntityRegistry* registry, Entity entity){
+size_t editor::ProjectUtils::getTransformIndex(EntityRegistry* registry, Entity entity){
     Signature signature = registry->getSignature(entity);
     if (signature.test(registry->getComponentId<Transform>())) {
         Transform& transform = registry->getComponent<Transform>(entity);
@@ -177,7 +177,7 @@ size_t Editor::ProjectUtils::getTransformIndex(EntityRegistry* registry, Entity 
     return 0;
 }
 
-void Editor::ProjectUtils::sortEntitiesByTransformOrder(EntityRegistry* registry, std::vector<Entity>& entities) {
+void editor::ProjectUtils::sortEntitiesByTransformOrder(EntityRegistry* registry, std::vector<Entity>& entities) {
     auto transforms = registry->getComponentArray<Transform>();
     std::unordered_map<Entity, size_t> transformOrder;
     for (size_t i = 0; i < transforms->size(); ++i) {
@@ -191,7 +191,7 @@ void Editor::ProjectUtils::sortEntitiesByTransformOrder(EntityRegistry* registry
     );
 }
 
-bool Editor::ProjectUtils::moveEntityOrderByTarget(EntityRegistry* registry, std::vector<Entity>& entities, Entity source, Entity target, InsertionType type, Entity& oldParent, size_t& oldIndex, bool& hasTransform) {
+bool editor::ProjectUtils::moveEntityOrderByTarget(EntityRegistry* registry, std::vector<Entity>& entities, Entity source, Entity target, InsertionType type, Entity& oldParent, size_t& oldIndex, bool& hasTransform) {
     Transform* transformSource = registry->findComponent<Transform>(source);
     Transform* transformTarget = registry->findComponent<Transform>(target);
 
@@ -261,7 +261,7 @@ bool Editor::ProjectUtils::moveEntityOrderByTarget(EntityRegistry* registry, std
     return true;
 }
 
-void Editor::ProjectUtils::moveEntityOrderByIndex(EntityRegistry* registry, std::vector<Entity>& entities, Entity source, Entity parent, size_t index, bool hasTransform){
+void editor::ProjectUtils::moveEntityOrderByIndex(EntityRegistry* registry, std::vector<Entity>& entities, Entity source, Entity parent, size_t index, bool hasTransform){
     if (hasTransform){
 
         auto transforms = registry->getComponentArray<Transform>();
@@ -295,7 +295,7 @@ void Editor::ProjectUtils::moveEntityOrderByIndex(EntityRegistry* registry, std:
     }
 }
 
-void Editor::ProjectUtils::moveEntityOrderByTransform(EntityRegistry* registry, std::vector<Entity>& entities, Entity source, Entity parent, size_t transformIndex, bool enableMove){
+void editor::ProjectUtils::moveEntityOrderByTransform(EntityRegistry* registry, std::vector<Entity>& entities, Entity source, Entity parent, size_t transformIndex, bool enableMove){
     registry->addEntityChild(parent, source, true);
 
     if (enableMove){
@@ -305,7 +305,7 @@ void Editor::ProjectUtils::moveEntityOrderByTransform(EntityRegistry* registry, 
     ProjectUtils::sortEntitiesByTransformOrder(registry, entities);
 }
 
-void Editor::ProjectUtils::addEntityComponent(EntityRegistry* registry, Entity entity, ComponentType componentType, std::vector<Entity>& entities, YAML::Node componentNode){
+void editor::ProjectUtils::addEntityComponent(EntityRegistry* registry, Entity entity, ComponentType componentType, std::vector<Entity>& entities, YAML::Node componentNode){
     switch (componentType) {
         case ComponentType::Transform:
             if (!componentNode.IsDefined() || componentNode.IsNull()){
@@ -663,7 +663,7 @@ void Editor::ProjectUtils::addEntityComponent(EntityRegistry* registry, Entity e
     }
 }
 
-Entity Editor::ProjectUtils::getVirtualParent(Scene* scene, Entity entity) {
+Entity editor::ProjectUtils::getVirtualParent(Scene* scene, Entity entity) {
     Signature signature = scene->getSignature(entity);
     if (!signature.test(scene->getComponentId<ActionComponent>())) return NULL_ENTITY;
     if (signature.test(scene->getComponentId<Transform>())) return NULL_ENTITY;
@@ -676,7 +676,7 @@ Entity Editor::ProjectUtils::getVirtualParent(Scene* scene, Entity entity) {
     return NULL_ENTITY;
 }
 
-std::vector<Entity> Editor::ProjectUtils::getVirtualChildren(Scene* scene, const std::vector<Entity>& parentEntities) {
+std::vector<Entity> editor::ProjectUtils::getVirtualChildren(Scene* scene, const std::vector<Entity>& parentEntities) {
     std::vector<Entity> result;
     auto actionArr = scene->getComponentArray<ActionComponent>();
     if (!actionArr) {
@@ -721,7 +721,7 @@ std::vector<Entity> Editor::ProjectUtils::getVirtualChildren(Scene* scene, const
     return result;
 }
 
-YAML::Node Editor::ProjectUtils::removeEntityComponent(EntityRegistry* registry, Entity entity, ComponentType componentType, std::vector<Entity>& entities, bool encodeComponent){
+YAML::Node editor::ProjectUtils::removeEntityComponent(EntityRegistry* registry, Entity entity, ComponentType componentType, std::vector<Entity>& entities, bool encodeComponent){
     YAML::Node oldComponent;
 
     switch (componentType) {
@@ -1015,7 +1015,7 @@ YAML::Node Editor::ProjectUtils::removeEntityComponent(EntityRegistry* registry,
     return oldComponent;
 }
 
-ScriptPropertyValue Editor::ProjectUtils::luaValueToScriptPropertyValue(lua_State* L, int idx, ScriptPropertyType type) {
+ScriptPropertyValue editor::ProjectUtils::luaValueToScriptPropertyValue(lua_State* L, int idx, ScriptPropertyType type) {
     switch (type) {
     case ScriptPropertyType::Bool:
         return ScriptPropertyValue(lua_toboolean(L, idx) != 0);
@@ -1084,7 +1084,7 @@ ScriptPropertyValue Editor::ProjectUtils::luaValueToScriptPropertyValue(lua_Stat
     return ScriptPropertyValue{};
 }
 
-void Editor::ProjectUtils::loadLuaScriptProperties(ScriptEntry& entry, const std::string& luaPath) {
+void editor::ProjectUtils::loadLuaScriptProperties(ScriptEntry& entry, const std::string& luaPath) {
     lua_State* L = LuaBinding::getLuaState();
     if (!L) return;
 
@@ -1169,7 +1169,7 @@ void Editor::ProjectUtils::loadLuaScriptProperties(ScriptEntry& entry, const std
     lua_pop(L, 2);  // pop properties_table and script_table
 }
 
-void Editor::ProjectUtils::collectEntities(const YAML::Node& entityNode, std::vector<Entity>& allEntities) {
+void editor::ProjectUtils::collectEntities(const YAML::Node& entityNode, std::vector<Entity>& allEntities) {
     if (!entityNode || !entityNode.IsMap())
         return;
 
@@ -1192,7 +1192,7 @@ void Editor::ProjectUtils::collectEntities(const YAML::Node& entityNode, std::ve
     }
 }
 
-Editor::Command* Editor::ProjectUtils::buildDuplicateTileCmd(Project* project, uint32_t sceneId, Entity entity, unsigned int tileIndex) {
+editor::Command* editor::ProjectUtils::buildDuplicateTileCmd(Project* project, uint32_t sceneId, Entity entity, unsigned int tileIndex) {
     SceneProject* sceneProject = project->getScene(sceneId);
     if (!sceneProject || !sceneProject->scene) {
         return nullptr;
@@ -1227,7 +1227,7 @@ Editor::Command* Editor::ProjectUtils::buildDuplicateTileCmd(Project* project, u
     return multiCmd;
 }
 
-Editor::Command* Editor::ProjectUtils::buildDeleteTileCmd(Project* project, uint32_t sceneId, Entity entity, unsigned int tileIndex) {
+editor::Command* editor::ProjectUtils::buildDeleteTileCmd(Project* project, uint32_t sceneId, Entity entity, unsigned int tileIndex) {
     SceneProject* sceneProject = project->getScene(sceneId);
     if (!sceneProject || !sceneProject->scene) {
         return nullptr;

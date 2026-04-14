@@ -2,7 +2,7 @@
 
 #include "registry/EntityRegistry.h"
 
-namespace Supernova::Editor {
+namespace doriax::editor {
 
     class ScopedDefaultEntityPool {
     public:

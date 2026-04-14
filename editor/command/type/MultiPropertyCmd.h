@@ -6,7 +6,7 @@
 #include <memory>
 #include <functional>
 
-namespace Supernova::Editor {
+namespace doriax::editor {
 
     class MultiPropertyCmd : public Command {
     private:

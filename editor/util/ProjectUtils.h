@@ -16,7 +16,7 @@
 
 #include "command/Command.h"
 
-namespace Supernova::Editor {
+namespace doriax::editor {
 
 class ProjectUtils {
 private:
@@ -76,4 +76,4 @@ public:
     static Command* buildDuplicateTileCmd(Project* project, uint32_t sceneId, Entity entity, unsigned int tileIndex);
 };
 
-} // namespace Supernova::Editor
+} // namespace doriax::editor

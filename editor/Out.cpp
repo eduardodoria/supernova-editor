@@ -2,7 +2,7 @@
 #include <cstdarg>
 #include <iostream>
 
-using namespace Supernova::Editor;
+using namespace doriax::editor;
 
 OutputWindow* Out::outputWindow = nullptr;
 

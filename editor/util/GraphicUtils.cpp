@@ -45,9 +45,9 @@
     #endif
 #endif
 
-using namespace Supernova;
+using namespace doriax;
 
-Vector2 Editor::GraphicUtils::getUILayoutCenter(Scene* scene, Entity entity, const UILayoutComponent& layout) {
+Vector2 editor::GraphicUtils::getUILayoutCenter(Scene* scene, Entity entity, const UILayoutComponent& layout) {
     Vector2 center = Vector2(0, 0);
     Signature signature = scene->getSignature(entity);
     if (signature.test(scene->getComponentId<TextComponent>())) {
@@ -62,7 +62,7 @@ Vector2 Editor::GraphicUtils::getUILayoutCenter(Scene* scene, Entity entity, con
     return center;
 }
 
-void Editor::GraphicUtils::saveFramebufferImage(Framebuffer* framebuffer, fs::path path, bool flipY, std::function<void()> onComplete) {
+void editor::GraphicUtils::saveFramebufferImage(Framebuffer* framebuffer, fs::path path, bool flipY, std::function<void()> onComplete) {
     uint8_t* pixels = nullptr;
     bool needDelete = false;
 

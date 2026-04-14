@@ -9,7 +9,7 @@
 #include "Scene.h"     // Entity, EntityRegistry, NULL_ENTITY
 #include "Catalog.h"   // ComponentType
 
-namespace Supernova::Editor {
+namespace doriax::editor {
 
 class EntityBundle {
 public:
@@ -55,5 +55,5 @@ public:
 
 };
 
-} // namespace Supernova::Editor
+} // namespace doriax::editor
 

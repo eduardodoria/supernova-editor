@@ -5,7 +5,7 @@
 #include "external/IconsFontAwesome6.h"
 #include "Out.h"
 
-namespace Supernova::Editor {
+namespace doriax::editor {
 
 void ExportWindow::open(Project* project) {
     m_isOpen = true;
@@ -523,4 +523,4 @@ void ExportWindow::drawProgress() {
     }
 }
 
-} // namespace Supernova::Editor
+} // namespace doriax::editor

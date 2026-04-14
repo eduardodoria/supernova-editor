@@ -1,11 +1,11 @@
-#ifndef SupernovaAndroid_H_
-#define SupernovaAndroid_H_
+#ifndef DoriaxAndroid_H_
+#define DoriaxAndroid_H_
 
 #include <stdio.h>
 #include <string>
 #include "System.h"
 
-class SupernovaAndroid: public Supernova::System {
+class DoriaxAndroid: public doriax::System {
 
 private:
 
@@ -13,7 +13,7 @@ private:
 
 public:
 
-    SupernovaAndroid();
+    DoriaxAndroid();
 
     virtual int getScreenWidth();
     virtual int getScreenHeight();
@@ -43,10 +43,10 @@ public:
 	virtual void removeKey(const char* key);
 
 	virtual void initializeAdMob(bool tagForChildDirectedTreatment, bool tagForUnderAgeOfConsent);
-    virtual void setMaxAdContentRating(Supernova::AdMobRating rating);
+    virtual void setMaxAdContentRating(doriax::AdMobRating rating);
 	virtual void loadInterstitialAd(const std::string& adUnitID);
 	virtual bool isInterstitialAdLoaded();
 	virtual void showInterstitialAd();
 };
 
-#endif /* SupernovaAndroid_H_ */
+#endif /* DoriaxAndroid_H_ */

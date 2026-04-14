@@ -2,20 +2,20 @@
 
 #include "Configs.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::ModelRender::ModelRender(){
+editor::ModelRender::ModelRender(){
     scene = nullptr;
     camera = nullptr;
     light = nullptr;
     model = nullptr;
 }
 
-Editor::ModelRender::~ModelRender(){
+editor::ModelRender::~ModelRender(){
     clearScene();
 }
 
-void Editor::ModelRender::clearScene(){
+void editor::ModelRender::clearScene(){
     delete camera;
     delete light;
     delete model;
@@ -27,7 +27,7 @@ void Editor::ModelRender::clearScene(){
     scene = nullptr;
 }
 
-void Editor::ModelRender::clearAndInitScene(){
+void editor::ModelRender::clearAndInitScene(){
     clearScene();
 
     scene = new Scene(EntityPool::System);
@@ -48,14 +48,14 @@ void Editor::ModelRender::clearAndInitScene(){
     camera->setRenderToTexture(true);
 }
 
-bool Editor::ModelRender::loadModel(const std::string& filename){
+bool editor::ModelRender::loadModel(const std::string& filename){
     // Completely recreate the scene to wipe out any child entities from previously loaded models
     clearAndInitScene();
 
     return model->loadModel(filename);
 }
 
-void Editor::ModelRender::positionCameraForModel(){
+void editor::ModelRender::positionCameraForModel(){
     // Merge local aabb from the model and all its child mesh entities
     AABB aabb;
     size_t lastIndex = scene->findBranchLastIndex(model->getEntity());
@@ -104,7 +104,7 @@ void Editor::ModelRender::positionCameraForModel(){
     camera->setTarget(center.x, center.y, center.z);
 }
 
-void Editor::ModelRender::fixDarkMaterials(){
+void editor::ModelRender::fixDarkMaterials(){
     size_t lastIndex = scene->findBranchLastIndex(model->getEntity());
     auto transforms = scene->getComponentArray<Transform>();
     size_t startIndex = transforms->getIndex(model->getEntity());
@@ -129,18 +129,18 @@ void Editor::ModelRender::fixDarkMaterials(){
     }
 }
 
-Framebuffer* Editor::ModelRender::getFramebuffer(){
+Framebuffer* editor::ModelRender::getFramebuffer(){
     return camera->getFramebuffer();
 }
 
-Texture Editor::ModelRender::getTexture(){
+Texture editor::ModelRender::getTexture(){
     return Texture(getFramebuffer());
 }
 
-Scene* Editor::ModelRender::getScene(){
+Scene* editor::ModelRender::getScene(){
     return scene;
 }
 
-Object* Editor::ModelRender::getObject(){
+Object* editor::ModelRender::getObject(){
     return model;
 }

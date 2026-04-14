@@ -6,9 +6,9 @@
 #include <cmath>
 
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned int height, bool isUI): SceneRender(scene, true, false, 40, 2){
+editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned int height, bool isUI): SceneRender(scene, true, false, 40, 2){
     this->isUI = isUI;
 
     if (isUI){
@@ -48,7 +48,7 @@ Editor::SceneRender2D::SceneRender2D(Scene* scene, unsigned int width, unsigned 
     applyZoomProjection();
 }
 
-Editor::SceneRender2D::~SceneRender2D(){
+editor::SceneRender2D::~SceneRender2D(){
     for (auto& pair : containerLines) {
         delete pair.second;
     }
@@ -74,7 +74,7 @@ Editor::SceneRender2D::~SceneRender2D(){
     delete tileLines;
 }
 
-bool Editor::SceneRender2D::instanciateBodyLines(Entity entity){
+bool editor::SceneRender2D::instanciateBodyLines(Entity entity){
     if (bodyLines.find(entity) == bodyLines.end()){
         ScopedDefaultEntityPool sys(*scene, EntityPool::System);
         bodyLines[entity] = new Lines(scene);
@@ -85,7 +85,7 @@ bool Editor::SceneRender2D::instanciateBodyLines(Entity entity){
     return false;
 }
 
-bool Editor::SceneRender2D::instanciateJointLines(Entity entity){
+bool editor::SceneRender2D::instanciateJointLines(Entity entity){
     if (jointLines.find(entity) == jointLines.end()){
         ScopedDefaultEntityPool sys(*scene, EntityPool::System);
         jointLines[entity] = new Lines(scene);
@@ -96,7 +96,7 @@ bool Editor::SceneRender2D::instanciateJointLines(Entity entity){
     return false;
 }
 
-void Editor::SceneRender2D::createOrUpdateBodyLines(Entity entity, const Transform& transform, const Body2DComponent& body){
+void editor::SceneRender2D::createOrUpdateBodyLines(Entity entity, const Transform& transform, const Body2DComponent& body){
     Lines* bodyLinesObj = bodyLines[entity];
 
     bodyLinesObj->clearLines();
@@ -263,7 +263,7 @@ void Editor::SceneRender2D::createOrUpdateBodyLines(Entity entity, const Transfo
     }
 }
 
-void Editor::SceneRender2D::createOrUpdateJointLines(Entity entity, const Joint2DComponent& joint, bool visible, bool highlighted){
+void editor::SceneRender2D::createOrUpdateJointLines(Entity entity, const Joint2DComponent& joint, bool visible, bool highlighted){
     Lines* jointLinesObj = jointLines[entity];
 
     jointLinesObj->clearLines();
@@ -408,7 +408,7 @@ void Editor::SceneRender2D::createOrUpdateJointLines(Entity entity, const Joint2
 
 }
 
-void Editor::SceneRender2D::createLines(unsigned int width, unsigned int height){
+void editor::SceneRender2D::createLines(unsigned int width, unsigned int height){
     lines->clearLines();
 
     lines->addLine(Vector3(0, -1000000, 0), Vector3(0, 1000000, 0), Vector4(0.2, 0.8, 0.4, 1.0));
@@ -418,7 +418,7 @@ void Editor::SceneRender2D::createLines(unsigned int width, unsigned int height)
     lines->addLine(Vector3(width, height, 0), Vector3(width, 0, 0), Vector4(0.8, 0.8, 0.8, 1.0));
 }
 
-void Editor::SceneRender2D::updateGridLines(){
+void editor::SceneRender2D::updateGridLines(){
     gridLines->clearLines();
 
     if (!displaySettings.showGrid2D || displaySettings.gridSpacing2D <= 0.0f){
@@ -465,7 +465,7 @@ void Editor::SceneRender2D::updateGridLines(){
     }
 }
 
-void Editor::SceneRender2D::hideAllGizmos(){
+void editor::SceneRender2D::hideAllGizmos(){
     SceneRender::hideAllGizmos();
 
     lines->setVisible(false);
@@ -486,11 +486,11 @@ void Editor::SceneRender2D::hideAllGizmos(){
     }
 }
 
-void Editor::SceneRender2D::activate(){
+void editor::SceneRender2D::activate(){
     SceneRender::activate();
 }
 
-void Editor::SceneRender2D::applyZoomProjection(){
+void editor::SceneRender2D::applyZoomProjection(){
     Entity cameraEntity = camera->getEntity();
     CameraComponent& cameracomp = scene->getComponent<CameraComponent>(cameraEntity);
     Transform& cameratransform = scene->getComponent<Transform>(cameraEntity);
@@ -511,11 +511,11 @@ void Editor::SceneRender2D::applyZoomProjection(){
     toolslayer.updateCamera(cameracomp, cameratransform);
 }
 
-void Editor::SceneRender2D::setCanvasFrameSize(unsigned int width, unsigned int height){
+void editor::SceneRender2D::setCanvasFrameSize(unsigned int width, unsigned int height){
     createLines(width, height);
 }
 
-void Editor::SceneRender2D::updateSize(int width, int height){
+void editor::SceneRender2D::updateSize(int width, int height){
     SceneRender::updateSize(width, height);
 
     viewportWidth = width;
@@ -523,7 +523,7 @@ void Editor::SceneRender2D::updateSize(int width, int height){
     applyZoomProjection();
 }
 
-void Editor::SceneRender2D::updateSelLines(std::vector<OBB> obbs){
+void editor::SceneRender2D::updateSelLines(std::vector<OBB> obbs){
     Vector4 color = Vector4(1.0, 0.6, 0.0, 1.0);
 
     if (selLines->getNumLines() != obbs.size() * 4){
@@ -546,7 +546,7 @@ void Editor::SceneRender2D::updateSelLines(std::vector<OBB> obbs){
     }
 }
 
-void Editor::SceneRender2D::update(std::vector<Entity> selEntities, std::vector<Entity> entities, Entity mainCamera, const SceneDisplaySettings& settings){
+void editor::SceneRender2D::update(std::vector<Entity> selEntities, std::vector<Entity> entities, Entity mainCamera, const SceneDisplaySettings& settings){
     SceneRender::update(selEntities, entities, mainCamera, settings);
 
     if (isPlaying){
@@ -785,23 +785,23 @@ void Editor::SceneRender2D::update(std::vector<Entity> selEntities, std::vector<
     }
 }
 
-void Editor::SceneRender2D::mouseHoverEvent(float x, float y){
+void editor::SceneRender2D::mouseHoverEvent(float x, float y){
     SceneRender::mouseHoverEvent(x, y);
 }
 
-void Editor::SceneRender2D::mouseClickEvent(float x, float y, std::vector<Entity> selEntities){
+void editor::SceneRender2D::mouseClickEvent(float x, float y, std::vector<Entity> selEntities){
     SceneRender::mouseClickEvent(x, y, selEntities);
 }
 
-void Editor::SceneRender2D::mouseReleaseEvent(float x, float y){
+void editor::SceneRender2D::mouseReleaseEvent(float x, float y){
     SceneRender::mouseReleaseEvent(x, y);
 }
 
-void Editor::SceneRender2D::mouseDragEvent(float x, float y, float origX, float origY, Project* project, size_t sceneId, std::vector<Entity> selEntities, bool disableSelection){
+void editor::SceneRender2D::mouseDragEvent(float x, float y, float origX, float origY, Project* project, size_t sceneId, std::vector<Entity> selEntities, bool disableSelection){
     SceneRender::mouseDragEvent(x, y, origX, origY, project, sceneId, selEntities, disableSelection);
 }
 
-void Editor::SceneRender2D::zoomAtPosition(float width, float height, Vector2 pos, float zoomFactor){
+void editor::SceneRender2D::zoomAtPosition(float width, float height, Vector2 pos, float zoomFactor){
     float shiftX = pos.x * zoom * (1.0f - zoomFactor);
     float shiftY = pos.y * zoom * (1.0f - zoomFactor);
 
@@ -813,11 +813,11 @@ void Editor::SceneRender2D::zoomAtPosition(float width, float height, Vector2 po
     applyZoomProjection();
 }
 
-float Editor::SceneRender2D::getZoom() const {
+float editor::SceneRender2D::getZoom() const {
     return zoom;
 }
 
-void Editor::SceneRender2D::setZoom(float zoom) {
+void editor::SceneRender2D::setZoom(float zoom) {
     this->zoom = zoom;
 
     if (viewportWidth > 0 && viewportHeight > 0) {

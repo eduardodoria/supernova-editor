@@ -7,7 +7,7 @@
 #include <map>
 #include <functional>
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     class UnlinkMaterialCmd: public Command{
 

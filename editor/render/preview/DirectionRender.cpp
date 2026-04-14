@@ -2,9 +2,9 @@
 
 #include "Configs.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::DirectionRender::DirectionRender(){
+editor::DirectionRender::DirectionRender(){
     scene = new Scene(EntityPool::System);
     camera = new Camera(scene);
     light = new Light(scene);
@@ -49,7 +49,7 @@ Editor::DirectionRender::DirectionRender(){
     setDirection(0, 1, 0);
 }
 
-Editor::DirectionRender::~DirectionRender(){
+editor::DirectionRender::~DirectionRender(){
     delete camera;
     delete light;
     delete arrowObject;
@@ -58,7 +58,7 @@ Editor::DirectionRender::~DirectionRender(){
     delete scene;
 }
 
-void Editor::DirectionRender::setDirection(Vector3 direction){
+void editor::DirectionRender::setDirection(Vector3 direction){
     this->direction = direction;
 
     if (direction.length() == 0.0f) {
@@ -98,40 +98,40 @@ void Editor::DirectionRender::setDirection(Vector3 direction){
     }
 }
 
-void Editor::DirectionRender::setDirection(float x, float y, float z){
+void editor::DirectionRender::setDirection(float x, float y, float z){
     setDirection(Vector3(x, y, z));
 }
 
-void Editor::DirectionRender::setColor(Vector4 color){
+void editor::DirectionRender::setColor(Vector4 color){
     arrowShaft->setColor(color.x, color.y, color.z, color.w);
     arrowHead->setColor(color.x, color.y, color.z, color.w);
 }
 
-void Editor::DirectionRender::setColor(float r, float g, float b, float a){
+void editor::DirectionRender::setColor(float r, float g, float b, float a){
     arrowShaft->setColor(r, g, b, a);
     arrowHead->setColor(r, g, b, a);
 }
 
-Vector3 Editor::DirectionRender::getDirection(){
+Vector3 editor::DirectionRender::getDirection(){
     return direction;
 }
 
-void Editor::DirectionRender::setBackground(Vector4 color){
+void editor::DirectionRender::setBackground(Vector4 color){
     scene->setBackgroundColor(color);
 }
 
-Framebuffer* Editor::DirectionRender::getFramebuffer(){
+Framebuffer* editor::DirectionRender::getFramebuffer(){
     return camera->getFramebuffer();
 }
 
-Texture Editor::DirectionRender::getTexture(){
+Texture editor::DirectionRender::getTexture(){
     return Texture(getFramebuffer());
 }
 
-Scene* Editor::DirectionRender::getScene(){
+Scene* editor::DirectionRender::getScene(){
     return scene;
 }
 
-Object* Editor::DirectionRender::getObject(){
+Object* editor::DirectionRender::getObject(){
     return arrowObject;
 }

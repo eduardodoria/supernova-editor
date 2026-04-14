@@ -3,9 +3,9 @@
 #include "Configs.h"
 #include "Stream.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::MeshPreviewRender::MeshPreviewRender(){
+editor::MeshPreviewRender::MeshPreviewRender(){
     scene = new Scene(EntityPool::System);
     camera = new Camera(scene);
     light = new Light(scene);
@@ -24,14 +24,14 @@ Editor::MeshPreviewRender::MeshPreviewRender(){
     camera->setRenderToTexture(true);
 }
 
-Editor::MeshPreviewRender::~MeshPreviewRender(){
+editor::MeshPreviewRender::~MeshPreviewRender(){
     delete camera;
     delete light;
     delete mesh;
     delete scene;
 }
 
-void Editor::MeshPreviewRender::applyMesh(YAML::Node meshData, bool updateCamera, bool removeMaterial){
+void editor::MeshPreviewRender::applyMesh(YAML::Node meshData, bool updateCamera, bool removeMaterial){
     mesh->getComponent<MeshComponent>() = Stream::decodeMeshComponent(meshData);
 
     if (removeMaterial){
@@ -43,11 +43,11 @@ void Editor::MeshPreviewRender::applyMesh(YAML::Node meshData, bool updateCamera
     }
 }
 
-void Editor::MeshPreviewRender::setBackground(Vector4 color){
+void editor::MeshPreviewRender::setBackground(Vector4 color){
     scene->setBackgroundColor(color);
 }
 
-void Editor::MeshPreviewRender::positionCameraForMesh(){
+void editor::MeshPreviewRender::positionCameraForMesh(){
     AABB aabb = mesh->getAABB();
     Vector3 center = aabb.getCenter();
     Vector3 size = aabb.getSize();
@@ -73,26 +73,26 @@ void Editor::MeshPreviewRender::positionCameraForMesh(){
     camera->setTarget(center.x, center.y, center.z);
 }
 
-Framebuffer* Editor::MeshPreviewRender::getFramebuffer(){
+Framebuffer* editor::MeshPreviewRender::getFramebuffer(){
     return camera->getFramebuffer();
 }
 
-Texture Editor::MeshPreviewRender::getTexture(){
+Texture editor::MeshPreviewRender::getTexture(){
     return Texture(getFramebuffer());
 }
 
-Entity Editor::MeshPreviewRender::getMeshEntity(){
+Entity editor::MeshPreviewRender::getMeshEntity(){
     return mesh->getEntity();
 }
 
-MeshComponent& Editor::MeshPreviewRender::getMeshComponent(){
+MeshComponent& editor::MeshPreviewRender::getMeshComponent(){
     return mesh->getComponent<MeshComponent>();
 }
 
-Scene* Editor::MeshPreviewRender::getScene(){
+Scene* editor::MeshPreviewRender::getScene(){
     return scene;
 }
 
-Object* Editor::MeshPreviewRender::getObject(){
+Object* editor::MeshPreviewRender::getObject(){
     return mesh;
 }

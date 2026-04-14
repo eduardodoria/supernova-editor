@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace Supernova::Editor {
+namespace doriax::editor {
 
 SemanticSuggestions::SemanticSuggestions()
     : minPrefixLength(1)
@@ -421,4 +421,4 @@ const char* SemanticSuggestions::GetKindName(SuggestionKind kind) {
     }
 }
 
-} // namespace Supernova::Editor
+} // namespace doriax::editor

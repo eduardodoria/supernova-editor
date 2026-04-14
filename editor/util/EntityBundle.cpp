@@ -1,6 +1,6 @@
 #include "EntityBundle.h"
 
-namespace Supernova::Editor {
+namespace doriax::editor {
 
 uint32_t EntityBundle::getInstanceId(uint32_t sceneId, Entity entity) const {
 	auto it = instances.find(sceneId);
@@ -202,4 +202,4 @@ bool EntityBundle::hasComponentOverride(uint32_t sceneId, Entity entity, Compone
 	return false;
 }
 
-} // namespace Supernova::Editor
+} // namespace doriax::editor

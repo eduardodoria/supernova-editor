@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     struct TransformCmdValue{
         Vector3 newPosition;

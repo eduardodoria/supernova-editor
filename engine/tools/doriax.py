@@ -104,8 +104,8 @@ def create_build_dir(name):
 @click.command()
 @click.option('--platform', '-p', required=True, type=click.Choice(['web', 'linux', 'windows', 'macos', 'macos-xcode', 'ios-xcode'], case_sensitive=False), help="Plataform build type")
 @click.option('--project', '-s', default='../project', type=click.Path(), help="Source root path of project files")
-@click.option('--supernova', '-r', default='..', type=click.Path(), help="Supernova root directory")
-@click.option('--appname', '-a', default='supernova-project', help="Project target name")
+@click.option('--doriax', '-r', default='..', type=click.Path(), help="Doriax root directory")
+@click.option('--appname', '-a', default='doriax-project', help="Project target name")
 @click.option('--output', '-o', type=click.Path(), help="Output directory")
 @click.option('--build/--no-build', '-b', default=False, help="Build or no build generated Xcode project")
 @click.option('--debug/--no-debug', '-d', default=False, help="Build type Debug or Release")
@@ -114,13 +114,13 @@ def create_build_dir(name):
 @click.option('--no-cpp-init', is_flag=True, help="No call C++ init on project start")
 @click.option('--no-lua-init', is_flag=True, help="No call Lua on project start")
 @click.option('--em-shell-file', type=click.Path(), help="Emscripten shell file")
-def build(platform, project, supernova, appname, output, build, debug, graphic_backend, app_backend, no_lua_init, no_cpp_init, em_shell_file):
+def build(platform, project, doriax, appname, output, build, debug, graphic_backend, app_backend, no_lua_init, no_cpp_init, em_shell_file):
 
     projectRoot = os.path.abspath(project)
-    supernovaRoot = os.path.abspath(supernova)
+    doriaxRoot = os.path.abspath(doriax)
 
     cmake_generator = ""
-    source_path = supernovaRoot
+    source_path = doriaxRoot
     cmake_definitions = []
 
     build_config = []

@@ -1,15 +1,15 @@
 #include "CommandHistory.h"
 #include <stdio.h>
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::CommandHistory::~CommandHistory(){
+editor::CommandHistory::~CommandHistory(){
     for (int i = 0; i < list.size(); i++){
         delete list[i];
     }
 }
 
-void Editor::CommandHistory::addCommand(Editor::Command* cmd){
+void editor::CommandHistory::addCommand(editor::Command* cmd){
     if (cmd->execute()){
         if (index < list.size()){
             for (auto it = list.begin() + index; it != list.end(); ++it) {
@@ -32,12 +32,12 @@ void Editor::CommandHistory::addCommand(Editor::Command* cmd){
     }
 }
 
-void Editor::CommandHistory::addCommandNoMerge(Command* cmd){
+void editor::CommandHistory::addCommandNoMerge(Command* cmd){
     cmd->setNoMerge();
     addCommand(cmd);
 }
 
-void Editor::CommandHistory::undo(){
+void editor::CommandHistory::undo(){
     if (index > 0){
         list[index-1]->undo();
         index--;
@@ -48,7 +48,7 @@ void Editor::CommandHistory::undo(){
     }
 }
 
-void Editor::CommandHistory::redo(){
+void editor::CommandHistory::redo(){
     if (index < list.size()){
         index++;
         list[index-1]->execute();
@@ -59,15 +59,15 @@ void Editor::CommandHistory::redo(){
     }
 }
 
-bool Editor::CommandHistory::canUndo() const{
+bool editor::CommandHistory::canUndo() const{
     return index > 0;
 }
 
-bool Editor::CommandHistory::canRedo() const{
+bool editor::CommandHistory::canRedo() const{
     return index < list.size();
 }
 
-void Editor::CommandHistory::clear(){
+void editor::CommandHistory::clear(){
     for (int i = 0; i < list.size(); i++){
         delete list[i];
     }

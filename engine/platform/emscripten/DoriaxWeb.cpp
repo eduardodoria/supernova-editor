@@ -1,4 +1,4 @@
-#include "SupernovaWeb.h"
+#include "DoriaxWeb.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,91 +18,91 @@
 #pragma clang diagnostic ignored "-Wmissing-braces"
 #endif
 
-std::string SupernovaWeb::canvas;
+std::string DoriaxWeb::canvas;
 
-int SupernovaWeb::syncWaitTime;
-bool SupernovaWeb::enabledIDB;
+int DoriaxWeb::syncWaitTime;
+bool DoriaxWeb::enabledIDB;
 
-int SupernovaWeb::screenWidth;
-int SupernovaWeb::screenHeight;
+int DoriaxWeb::screenWidth;
+int DoriaxWeb::screenHeight;
 
-int SupernovaWeb::sampleCount = 0;
+int DoriaxWeb::sampleCount = 0;
 
 extern "C" {
     EMSCRIPTEN_KEEPALIVE 
     int getScreenWidth() {
-        return Supernova::System::instance().getScreenWidth();
+        return doriax::System::instance().getScreenWidth();
     }
 
     EMSCRIPTEN_KEEPALIVE 
     int getScreenHeight() {
-        return Supernova::System::instance().getScreenHeight();
+        return doriax::System::instance().getScreenHeight();
     }
 
     EMSCRIPTEN_KEEPALIVE 
     void changeCanvasSize(int nWidth, int nHeight){
-        SupernovaWeb::changeCanvasSize(nWidth, nHeight);
+        DoriaxWeb::changeCanvasSize(nWidth, nHeight);
     }
 
     EMSCRIPTEN_KEEPALIVE 
     void syncfs_enable_callback(const char* err) {
 	    if (!err || err[0]) {
-		    Supernova::Log::error("Failed to enable IndexedDB: %s", err);
-            SupernovaWeb::setEnabledIDB(false);
+		    doriax::Log::error("Failed to enable IndexedDB: %s", err);
+            DoriaxWeb::setEnabledIDB(false);
 	    }else{
-            SupernovaWeb::setEnabledIDB(true);
+            DoriaxWeb::setEnabledIDB(true);
         }
     }
 
     EMSCRIPTEN_KEEPALIVE 
     void syncfs_callback(const char* err) {
 	    if (!err || err[0]) {
-		    Supernova::Log::error("Failed to save in iDB file system: %s", err);
+		    doriax::Log::error("Failed to save in iDB file system: %s", err);
 	    }
     }
 
     EMSCRIPTEN_KEEPALIVE 
     void crazygamesad_started_callback() {
-        Supernova::Engine::systemPause();
+        doriax::Engine::systemPause();
     }
 
     EMSCRIPTEN_KEEPALIVE 
     void crazygamesad_finished_callback() {
-        Supernova::Engine::systemResume();
+        doriax::Engine::systemResume();
     }
 
     EMSCRIPTEN_KEEPALIVE 
     void crazygamesad_error_callback(const char* err) {
 	    if (!err || err[0]) {
-		    Supernova::Log::error("Failed to load CrazyGames ad: %s", err);
+		    doriax::Log::error("Failed to load CrazyGames ad: %s", err);
 	    }
-        Supernova::Engine::systemResume();
+        doriax::Engine::systemResume();
     }
 }
 
 
 
-SupernovaWeb::SupernovaWeb(){
+DoriaxWeb::DoriaxWeb(){
 
 }
 
-void SupernovaWeb::setEnabledIDB(bool enabledIDB){
-    SupernovaWeb::enabledIDB = enabledIDB;
+void DoriaxWeb::setEnabledIDB(bool enabledIDB){
+    DoriaxWeb::enabledIDB = enabledIDB;
 }
 
-int SupernovaWeb::getScreenWidth(){
+int DoriaxWeb::getScreenWidth(){
     return screenWidth;
 }
 
-int SupernovaWeb::getScreenHeight(){
+int DoriaxWeb::getScreenHeight(){
     return screenHeight;
 }
 
-int SupernovaWeb::getSampleCount(){
+int DoriaxWeb::getSampleCount(){
     return sampleCount;
 }
 
-int SupernovaWeb::init(int argc, char **argv){
+int DoriaxWeb::init(int argc, char **argv){
 
     canvas = "#canvas";
 
@@ -147,7 +147,7 @@ int SupernovaWeb::init(int argc, char **argv){
 		});
 	);
 
-    Supernova::Engine::systemInit(argc, argv, new SupernovaWeb());
+    doriax::Engine::systemInit(argc, argv, new DoriaxWeb());
 
     sampleCount = (antiAlias) ? 4 : 1;
 
@@ -168,9 +168,9 @@ int SupernovaWeb::init(int argc, char **argv){
     
     emscripten_webgl_make_context_current(ctx);
 
-    SupernovaWeb::screenWidth = sWidth;
-    SupernovaWeb::screenHeight = sHeight;
-    Supernova::Engine::systemViewLoaded();
+    DoriaxWeb::screenWidth = sWidth;
+    DoriaxWeb::screenHeight = sHeight;
+    doriax::Engine::systemViewLoaded();
     changeCanvasSize(sWidth, sHeight);
 
     emscripten_request_animation_frame_loop(renderLoop, 0);
@@ -178,22 +178,22 @@ int SupernovaWeb::init(int argc, char **argv){
     return 0;
 }
 
-void SupernovaWeb::changeCanvasSize(int width, int height){
+void DoriaxWeb::changeCanvasSize(int width, int height){
     emscripten_set_canvas_element_size(canvas.c_str(), width, height);
 
-    SupernovaWeb::screenWidth = width;
-    SupernovaWeb::screenHeight = height;
-    Supernova::Engine::systemViewChanged();
+    DoriaxWeb::screenWidth = width;
+    DoriaxWeb::screenHeight = height;
+    doriax::Engine::systemViewChanged();
 }
 
-bool SupernovaWeb::isFullscreen(){
+bool DoriaxWeb::isFullscreen(){
     EmscriptenFullscreenChangeEvent fsce;
     EMSCRIPTEN_RESULT ret = emscripten_get_fullscreen_status(&fsce);
 
     return fsce.isFullscreen;
 }
 
-void SupernovaWeb::requestFullscreen(){
+void DoriaxWeb::requestFullscreen(){
     EmscriptenFullscreenStrategy strategy;
     strategy.scaleMode = EMSCRIPTEN_FULLSCREEN_SCALE_STRETCH;
     strategy.canvasResolutionScaleMode = EMSCRIPTEN_FULLSCREEN_CANVAS_SCALE_STDDEF;
@@ -204,32 +204,32 @@ void SupernovaWeb::requestFullscreen(){
     EMSCRIPTEN_RESULT ret = emscripten_request_fullscreen_strategy(canvas.c_str(), 1, &strategy);
 }
 
-void SupernovaWeb::exitFullscreen(){
+void DoriaxWeb::exitFullscreen(){
     EMSCRIPTEN_RESULT ret = emscripten_exit_fullscreen();
 }
 
-void SupernovaWeb::setMouseCursor(Supernova::CursorType type){
+void DoriaxWeb::setMouseCursor(doriax::CursorType type){
     std::string cursor;
 
-    if (type == Supernova::CursorType::ARROW){
+    if (type == doriax::CursorType::ARROW){
         cursor = "default";
-    }else if (type == Supernova::CursorType::IBEAM){
+    }else if (type == doriax::CursorType::IBEAM){
         cursor = "text";
-    }else if (type == Supernova::CursorType::CROSSHAIR){
+    }else if (type == doriax::CursorType::CROSSHAIR){
         cursor = "crosshair";
-    }else if (type == Supernova::CursorType::POINTING_HAND){
+    }else if (type == doriax::CursorType::POINTING_HAND){
         cursor = "pointer";
-    }else if (type == Supernova::CursorType::RESIZE_EW){
+    }else if (type == doriax::CursorType::RESIZE_EW){
         cursor = "ew-resize";
-    }else if (type == Supernova::CursorType::RESIZE_NS){
+    }else if (type == doriax::CursorType::RESIZE_NS){
         cursor = "ns-resize";
-    }else if (type == Supernova::CursorType::RESIZE_NWSE){
+    }else if (type == doriax::CursorType::RESIZE_NWSE){
         cursor = "nwse-resize";
-    }else if (type == Supernova::CursorType::RESIZE_NESW){
+    }else if (type == doriax::CursorType::RESIZE_NESW){
         cursor = "nesw-resize";
-    }else if (type == Supernova::CursorType::RESIZE_ALL){
+    }else if (type == doriax::CursorType::RESIZE_ALL){
         cursor = "all-scroll";
-    }else if (type == Supernova::CursorType::NOT_ALLOWED){
+    }else if (type == doriax::CursorType::NOT_ALLOWED){
         cursor = "not-allowed";
     }else{
         cursor = "auto";
@@ -239,30 +239,30 @@ void SupernovaWeb::setMouseCursor(Supernova::CursorType type){
 
 }
 
-void SupernovaWeb::setShowCursor(bool showCursor){
+void DoriaxWeb::setShowCursor(bool showCursor){
     if (!showCursor){
         EM_ASM({Module.canvas.style.cursor = UTF8ToString($0);}, "none");
     }else{
-        setMouseCursor(Supernova::Engine::getMouseCursor());
+        setMouseCursor(doriax::Engine::getMouseCursor());
     }
 }
 
-std::string SupernovaWeb::getUserDataPath(){
+std::string DoriaxWeb::getUserDataPath(){
     return "/datafs";
 }
 
-bool SupernovaWeb::syncFileSystem(){
+bool DoriaxWeb::syncFileSystem(){
     if (enabledIDB)
         syncWaitTime = 500;
 
     return true;
 }
 
-EM_BOOL SupernovaWeb::renderLoop(double time, void* userdata){
-    Supernova::Engine::systemDraw();
+EM_BOOL DoriaxWeb::renderLoop(double time, void* userdata){
+    doriax::Engine::systemDraw();
 
     if (syncWaitTime > 0) {
-		syncWaitTime -= (int)(Supernova::Engine::getDeltatime()*1000);
+		syncWaitTime -= (int)(doriax::Engine::getDeltatime()*1000);
 
         if (syncWaitTime <= 0){
             EM_ASM(
@@ -276,7 +276,7 @@ EM_BOOL SupernovaWeb::renderLoop(double time, void* userdata){
     return EM_TRUE;
 }
 
-EM_BOOL SupernovaWeb::resize_callback(int event_type, const EmscriptenUiEvent* ui_event, void* user_data){
+EM_BOOL DoriaxWeb::resize_callback(int event_type, const EmscriptenUiEvent* ui_event, void* user_data){
     int w, h;
     emscripten_get_canvas_element_size(canvas.c_str(), &w, &h);
     changeCanvasSize(w, h);
@@ -284,18 +284,18 @@ EM_BOOL SupernovaWeb::resize_callback(int event_type, const EmscriptenUiEvent* u
     return 0;
 }
 
-EM_BOOL SupernovaWeb::canvas_resize(int eventType, const void *reserved, void *userData){
+EM_BOOL DoriaxWeb::canvas_resize(int eventType, const void *reserved, void *userData){
     int w, h;
     emscripten_get_canvas_element_size(canvas.c_str(), &w, &h);
 
-    SupernovaWeb::screenWidth = w;
-    SupernovaWeb::screenHeight = h;
-    Supernova::Engine::systemViewChanged();
+    DoriaxWeb::screenWidth = w;
+    DoriaxWeb::screenHeight = h;
+    doriax::Engine::systemViewChanged();
 
     return 0;
 }
 
-wchar_t SupernovaWeb::toCodepoint(const std::string &u){
+wchar_t DoriaxWeb::toCodepoint(const std::string &u){
     int l = u.length();
     if (l<1) return -1; unsigned char u0 = u[0]; if (u0>=0   && u0<=127) return u0;
     if (l<2) return -1; unsigned char u1 = u[1]; if (u0>=192 && u0<=223) return (u0-192)*64 + (u1-128);
@@ -305,7 +305,7 @@ wchar_t SupernovaWeb::toCodepoint(const std::string &u){
     return -1;
 }
 
-std::string SupernovaWeb::toUTF8(wchar_t cp) {
+std::string DoriaxWeb::toUTF8(wchar_t cp) {
     char ch[5] = {0x00};
     if(cp <= 0x7F) { 
         ch[0] = cp; 
@@ -329,7 +329,7 @@ std::string SupernovaWeb::toUTF8(wchar_t cp) {
     return std::string(ch);
 }
 
-EM_BOOL SupernovaWeb::key_callback(int eventType, const EmscriptenKeyboardEvent *e, void *userData){
+EM_BOOL DoriaxWeb::key_callback(int eventType, const EmscriptenKeyboardEvent *e, void *userData){
     std::string keyStorage;
     const char* key = e->key;
     if ((!key) || (!(*key))) {
@@ -347,12 +347,12 @@ EM_BOOL SupernovaWeb::key_callback(int eventType, const EmscriptenKeyboardEvent 
     if (e->altKey)  modifiers |= S_MODIFIER_ALT;
     if (e->metaKey) modifiers |= S_MODIFIER_SUPER;
 
-    int code = supernova_input(e->code);
+    int code = doriax_input(e->code);
     if (code==0){
-        code = supernova_legacy_input(e->which);
+        code = doriax_legacy_input(e->which);
     }
     if (code==0){
-        code = supernova_legacy_input(e->keyCode);
+        code = doriax_legacy_input(e->keyCode);
     }
 
     int skey=0;
@@ -362,14 +362,14 @@ EM_BOOL SupernovaWeb::key_callback(int eventType, const EmscriptenKeyboardEvent 
     if ((!strcmp(key,"Escape"))||(*key=='\e')) skey=8;
 
     if (eventType == EMSCRIPTEN_EVENT_KEYDOWN){
-        Supernova::Engine::systemKeyDown(code, e->repeat, modifiers);
-        if (skey==1) Supernova::Engine::systemCharInput('\t');
-        if (skey==2) Supernova::Engine::systemCharInput('\b');
-        if (skey==4) Supernova::Engine::systemCharInput('\r');
-        if (skey==8) Supernova::Engine::systemCharInput('\e');
+        doriax::Engine::systemKeyDown(code, e->repeat, modifiers);
+        if (skey==1) doriax::Engine::systemCharInput('\t');
+        if (skey==2) doriax::Engine::systemCharInput('\b');
+        if (skey==4) doriax::Engine::systemCharInput('\r');
+        if (skey==8) doriax::Engine::systemCharInput('\e');
 
     }else if (eventType == EMSCRIPTEN_EVENT_KEYUP){
-        Supernova::Engine::systemKeyUp(code, e->repeat, modifiers);
+        doriax::Engine::systemKeyUp(code, e->repeat, modifiers);
 
     }else if (eventType == EMSCRIPTEN_EVENT_KEYPRESS){
         wchar_t cp = toCodepoint(std::string(e->key));
@@ -377,17 +377,17 @@ EM_BOOL SupernovaWeb::key_callback(int eventType, const EmscriptenKeyboardEvent 
         if (cp == 0) cp = e->keyCode;
 
         if (skey == 0 && cp != 0){
-            Supernova::Engine::systemCharInput(cp);
+            doriax::Engine::systemCharInput(cp);
         }
     }
 
     return 0;
 }
 
-EM_BOOL SupernovaWeb::mouse_callback(int eventType, const EmscriptenMouseEvent *e, void *userData) {
+EM_BOOL DoriaxWeb::mouse_callback(int eventType, const EmscriptenMouseEvent *e, void *userData) {
 
-    int width = SupernovaWeb::screenWidth;
-    int height = SupernovaWeb::screenHeight;
+    int width = DoriaxWeb::screenWidth;
+    int height = DoriaxWeb::screenHeight;
 
     if (e->targetX < 0) return 0;
     if (e->targetY < 0) return 0;
@@ -400,24 +400,24 @@ EM_BOOL SupernovaWeb::mouse_callback(int eventType, const EmscriptenMouseEvent *
     if (e->altKey) modifiers |= S_MODIFIER_ALT;
     if (e->metaKey) modifiers |= S_MODIFIER_SUPER;
 
-    Supernova::Engine::systemMouseMove(e->targetX, e->targetY, modifiers);
+    doriax::Engine::systemMouseMove(e->targetX, e->targetY, modifiers);
     if (eventType == EMSCRIPTEN_EVENT_MOUSEDOWN && e->buttons != 0){
-        Supernova::Engine::systemMouseDown(supernova_mouse_button(e->button), e->targetX, e->targetY, modifiers);
+        doriax::Engine::systemMouseDown(doriax_mouse_button(e->button), e->targetX, e->targetY, modifiers);
     }
     if (eventType == EMSCRIPTEN_EVENT_MOUSEUP){
-        Supernova::Engine::systemMouseUp(supernova_mouse_button(e->button), e->targetX, e->targetY, modifiers);
+        doriax::Engine::systemMouseUp(doriax_mouse_button(e->button), e->targetX, e->targetY, modifiers);
     }
     if (eventType == EMSCRIPTEN_EVENT_MOUSEENTER){
-        Supernova::Engine::systemMouseEnter();
+        doriax::Engine::systemMouseEnter();
     }
     if (eventType == EMSCRIPTEN_EVENT_MOUSELEAVE){
-        Supernova::Engine::systemMouseLeave();
+        doriax::Engine::systemMouseLeave();
     }
 
     return 0;
 }
 
-EM_BOOL SupernovaWeb::wheel_callback(int eventType, const EmscriptenWheelEvent *e, void *userData) {
+EM_BOOL DoriaxWeb::wheel_callback(int eventType, const EmscriptenWheelEvent *e, void *userData) {
     float scale;
     switch (e->deltaMode) {
         case DOM_DELTA_PIXEL: scale = -0.04f; break;
@@ -432,35 +432,35 @@ EM_BOOL SupernovaWeb::wheel_callback(int eventType, const EmscriptenWheelEvent *
     if (e->mouse.altKey) modifiers |= S_MODIFIER_ALT;
     if (e->mouse.metaKey) modifiers |= S_MODIFIER_SUPER;
 
-    Supernova::Engine::systemMouseScroll(scale * (float)e->deltaX, scale * (float)e->deltaY, modifiers);
+    doriax::Engine::systemMouseScroll(scale * (float)e->deltaX, scale * (float)e->deltaY, modifiers);
 
   return 0;
 }
 
-EM_BOOL SupernovaWeb::touch_callback(int emsc_type, const EmscriptenTouchEvent* emsc_event, void* user_data) {
+EM_BOOL DoriaxWeb::touch_callback(int emsc_type, const EmscriptenTouchEvent* emsc_event, void* user_data) {
     bool retval = true;
 
     switch (emsc_type) {
         case EMSCRIPTEN_EVENT_TOUCHSTART:
             for (int i = 0; i < emsc_event->numTouches; i++) {
                 const EmscriptenTouchPoint* src = &emsc_event->touches[i];
-                Supernova::Engine::systemTouchStart((int)src->identifier, src->targetX, src->targetY);
+                doriax::Engine::systemTouchStart((int)src->identifier, src->targetX, src->targetY);
             }
             break;
         case EMSCRIPTEN_EVENT_TOUCHMOVE:
             for (int i = 0; i < emsc_event->numTouches; i++) {
                 const EmscriptenTouchPoint* src = &emsc_event->touches[i];
-                Supernova::Engine::systemTouchMove((int)src->identifier, src->targetX, src->targetY);
+                doriax::Engine::systemTouchMove((int)src->identifier, src->targetX, src->targetY);
             }
             break;
         case EMSCRIPTEN_EVENT_TOUCHEND:
             for (int i = 0; i < emsc_event->numTouches; i++) {
                 const EmscriptenTouchPoint* src = &emsc_event->touches[i];
-                Supernova::Engine::systemTouchEnd((int)src->identifier, src->targetX, src->targetY);
+                doriax::Engine::systemTouchEnd((int)src->identifier, src->targetX, src->targetY);
             }
             break;
         case EMSCRIPTEN_EVENT_TOUCHCANCEL:
-            Supernova::Engine::systemTouchCancel();
+            doriax::Engine::systemTouchCancel();
             break;
         default:
             retval = false;
@@ -470,17 +470,17 @@ EM_BOOL SupernovaWeb::touch_callback(int emsc_type, const EmscriptenTouchEvent* 
   return retval;
 }
 
-EM_BOOL SupernovaWeb::webgl_context_callback(int emsc_type, const void* reserved, void* user_data) {
+EM_BOOL DoriaxWeb::webgl_context_callback(int emsc_type, const void* reserved, void* user_data) {
     switch (emsc_type) {
-        case EMSCRIPTEN_EVENT_WEBGLCONTEXTLOST:     Supernova::Engine::systemPause(); break;
-        case EMSCRIPTEN_EVENT_WEBGLCONTEXTRESTORED: Supernova::Engine::systemResume(); break;
+        case EMSCRIPTEN_EVENT_WEBGLCONTEXTLOST:     doriax::Engine::systemPause(); break;
+        case EMSCRIPTEN_EVENT_WEBGLCONTEXTRESTORED: doriax::Engine::systemResume(); break;
         default:                                    break;
     }
 
     return 0;
 }
 
-int SupernovaWeb::supernova_mouse_button(int button){
+int DoriaxWeb::doriax_mouse_button(int button){
     if (button == 0) return S_MOUSE_BUTTON_1;
     if (button == 2) return S_MOUSE_BUTTON_2;
     if (button == 1) return S_MOUSE_BUTTON_3;
@@ -493,7 +493,7 @@ int SupernovaWeb::supernova_mouse_button(int button){
     return -1;
 }
 
-int SupernovaWeb::supernova_input(const char code[32]){
+int DoriaxWeb::doriax_input(const char code[32]){
     if (!strcmp(code,"Space")) return S_KEY_SPACE;
     if (!strcmp(code,"Quote")) return S_KEY_APOSTROPHE;  /* ' */
     if (!strcmp(code,"Comma")) return S_KEY_COMMA;  /* , */
@@ -605,7 +605,7 @@ int SupernovaWeb::supernova_input(const char code[32]){
     return 0;
 }
 
-int SupernovaWeb::supernova_legacy_input(int code){
+int DoriaxWeb::doriax_legacy_input(int code){
     if (code==8) return S_KEY_DELETE;
     if (code==9) return S_KEY_TAB;
     if (code==13) return S_KEY_ENTER;
@@ -710,7 +710,7 @@ int SupernovaWeb::supernova_legacy_input(int code){
     return 0;
 }
 
-std::string SupernovaWeb::getStringForKey(const char *key, const std::string& defaultValue){
+std::string DoriaxWeb::getStringForKey(const char *key, const std::string& defaultValue){
     char* value = (char*)EM_ASM_INT({
         var key = UTF8ToString($0);
         var val = localStorage.getItem(key);
@@ -732,7 +732,7 @@ std::string SupernovaWeb::getStringForKey(const char *key, const std::string& de
     return defaultValue;
 }
 
-void SupernovaWeb::setStringForKey(const char* key, const std::string& value){
+void DoriaxWeb::setStringForKey(const char* key, const std::string& value){
     EM_ASM_ARGS({
         var key = UTF8ToString($0);
         var value = UTF8ToString($1);
@@ -740,14 +740,14 @@ void SupernovaWeb::setStringForKey(const char* key, const std::string& value){
     }, key, value.c_str());
 }
 
-void SupernovaWeb::removeKey(const char *key){
+void DoriaxWeb::removeKey(const char *key){
     EM_ASM_ARGS({
         var key = UTF8ToString($0);
         localStorage.removeItem(key);
     }, key);
 }
 
-void SupernovaWeb::initializeCrazyGamesSDK(){
+void DoriaxWeb::initializeCrazyGamesSDK(){
     EM_ASM(
         function loadJS(FILE_URL, async = true) {
             let scriptEle = document.createElement("script");
@@ -772,7 +772,7 @@ void SupernovaWeb::initializeCrazyGamesSDK(){
     );
 }
 
-void SupernovaWeb::showCrazyGamesAd(const std::string& type){
+void DoriaxWeb::showCrazyGamesAd(const std::string& type){
     EM_ASM({
         var adtype = UTF8ToString($0);
         const callbacks = ({
@@ -784,31 +784,31 @@ void SupernovaWeb::showCrazyGamesAd(const std::string& type){
     }, type.c_str());
 }
 
-void SupernovaWeb::happytimeCrazyGames(){
+void DoriaxWeb::happytimeCrazyGames(){
     EM_ASM(
         window.CrazyGames.SDK.game.happytime();
     );
 }
 
-void SupernovaWeb::gameplayStartCrazyGames(){
+void DoriaxWeb::gameplayStartCrazyGames(){
     EM_ASM(
         window.CrazyGames.SDK.game.gameplayStart();
     );
 }
 
-void SupernovaWeb::gameplayStopCrazyGames(){
+void DoriaxWeb::gameplayStopCrazyGames(){
     EM_ASM(
         window.CrazyGames.SDK.game.gameplayStop();
     );
 }
 
-void SupernovaWeb::loadingStartCrazyGames(){
+void DoriaxWeb::loadingStartCrazyGames(){
     EM_ASM(
         window.CrazyGames.SDK.game.sdkGameLoadingStart();
     );
 }
 
-void SupernovaWeb::loadingStopCrazyGames(){
+void DoriaxWeb::loadingStopCrazyGames(){
     EM_ASM(
         window.CrazyGames.SDK.game.sdkGameLoadingStop();
     );

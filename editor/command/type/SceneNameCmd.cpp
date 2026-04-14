@@ -1,8 +1,8 @@
 #include "SceneNameCmd.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::SceneNameCmd::SceneNameCmd(Project* project, uint32_t sceneId, std::string name){
+editor::SceneNameCmd::SceneNameCmd(Project* project, uint32_t sceneId, std::string name){
     this->project = project;
     this->sceneId = sceneId;
     this->newName = name;
@@ -10,7 +10,7 @@ Editor::SceneNameCmd::SceneNameCmd(Project* project, uint32_t sceneId, std::stri
     this->wasModified = project->getScene(sceneId)->isModified;
 }
 
-bool Editor::SceneNameCmd::execute(){
+bool editor::SceneNameCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     oldName = sceneProject->name;
@@ -21,7 +21,7 @@ bool Editor::SceneNameCmd::execute(){
     return true;
 }
 
-void Editor::SceneNameCmd::undo(){
+void editor::SceneNameCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     sceneProject->name = oldName;
@@ -29,7 +29,7 @@ void Editor::SceneNameCmd::undo(){
     sceneProject->isModified = wasModified;
 }
 
-bool Editor::SceneNameCmd::mergeWith(Editor::Command* otherCommand){
+bool editor::SceneNameCmd::mergeWith(editor::Command* otherCommand){
     SceneNameCmd* otherCmd = dynamic_cast<SceneNameCmd*>(otherCommand);
     if (otherCmd != nullptr){
         if (sceneId == otherCmd->sceneId){

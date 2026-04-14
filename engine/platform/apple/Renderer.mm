@@ -10,7 +10,7 @@
 #import "Renderer.h"
 
 #include "Engine.h"
-#include "SupernovaApple.h"
+#include "DoriaxApple.h"
 
 @implementation Renderer
 {
@@ -43,7 +43,7 @@ static CGSize _screenSize;
 
 - (nonnull instancetype)initWithMetalKitView:(nonnull MTKView *)view withArgs:(NSArray*)args;
 {
-    Supernova::Engine::systemInit((int)[args count], [self getArray:args], new SupernovaApple());
+    doriax::Engine::systemInit((int)[args count], [self getArray:args], new DoriaxApple());
     
     self = [super init];
     if(self)
@@ -58,7 +58,7 @@ static CGSize _screenSize;
         
         _screenSize.width = (float) view.drawableSize.width;
         _screenSize.height = (float) view.drawableSize.height;
-        Supernova::Engine::systemViewLoaded();
+        doriax::Engine::systemViewLoaded();
     }
 
     return self;
@@ -66,13 +66,13 @@ static CGSize _screenSize;
 
 - (void)destroyView
 {
-    Supernova::Engine::systemViewDestroyed();
-    Supernova::Engine::systemShutdown();
+    doriax::Engine::systemViewDestroyed();
+    doriax::Engine::systemShutdown();
 }
 
 - (void)drawInMTKView:(nonnull MTKView *)view
 {
-    Supernova::Engine::systemDraw();
+    doriax::Engine::systemDraw();
 }
 
 - (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size
@@ -80,15 +80,15 @@ static CGSize _screenSize;
     /// Respond to drawable size or orientation changes here
     _screenSize.width = (float) size.width;
     _screenSize.height = (float) size.height;
-    Supernova::Engine::systemViewChanged();
+    doriax::Engine::systemViewChanged();
 }
 
 + (void)pauseGame {
-    Supernova::Engine::systemPause();
+    doriax::Engine::systemPause();
 }
 
 + (void)resumeGame {
-    Supernova::Engine::systemResume();
+    doriax::Engine::systemResume();
 }
 
 @end

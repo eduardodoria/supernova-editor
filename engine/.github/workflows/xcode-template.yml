@@ -13,12 +13,12 @@ jobs:
         config: 
         - {
             name: "iOS",
-            scheme: "Supernova iOS",
+            scheme: "Doriax iOS",
             sdk: iphonesimulator
           }
         - {
             name: "MacOS",
-            scheme: "Supernova macOS",
+            scheme: "Doriax macOS",
             sdk: macosx
           }
 
@@ -34,4 +34,4 @@ jobs:
       - name: Build with Xcode
         run: |
           cd workspaces/xcode/
-          xcodebuild build -sdk ${{ matrix.config.sdk }} -project Supernova.xcodeproj -configuration Debug -scheme "${{ matrix.config.scheme }}"
+          xcodebuild build -sdk ${{ matrix.config.sdk }} -project Doriax.xcodeproj -configuration Debug -scheme "${{ matrix.config.scheme }}"

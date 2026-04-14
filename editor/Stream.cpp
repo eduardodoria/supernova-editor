@@ -9,9 +9,9 @@
 
 #include <set>
 
-using namespace Supernova;
+using namespace doriax;
 
-std::string Editor::Stream::sceneTypeToString(Editor::SceneType type){
+std::string editor::Stream::sceneTypeToString(editor::SceneType type){
     switch (type) {
         case SceneType::SCENE_3D: return "scene_3d";
         case SceneType::SCENE_2D: return "scene_2d";
@@ -20,14 +20,14 @@ std::string Editor::Stream::sceneTypeToString(Editor::SceneType type){
     }
 }
 
-Editor::SceneType Editor::Stream::stringToSceneType(const std::string& str){
+editor::SceneType editor::Stream::stringToSceneType(const std::string& str){
     if (str == "scene_3d") return SceneType::SCENE_3D;
     if (str == "scene_2d") return SceneType::SCENE_2D;
     if (str == "scene_ui") return SceneType::SCENE_UI;
     return SceneType::SCENE_3D; // Default
 }
 
-std::string Editor::Stream::primitiveTypeToString(PrimitiveType type) {
+std::string editor::Stream::primitiveTypeToString(PrimitiveType type) {
     switch (type) {
         case PrimitiveType::TRIANGLES: return "triangles";
         case PrimitiveType::TRIANGLE_STRIP: return "triangle_strip";
@@ -37,7 +37,7 @@ std::string Editor::Stream::primitiveTypeToString(PrimitiveType type) {
     }
 }
 
-PrimitiveType Editor::Stream::stringToPrimitiveType(const std::string& str) {
+PrimitiveType editor::Stream::stringToPrimitiveType(const std::string& str) {
     if (str == "triangles") return PrimitiveType::TRIANGLES;
     if (str == "triangle_strip") return PrimitiveType::TRIANGLE_STRIP;
     if (str == "points") return PrimitiveType::POINTS;
@@ -45,7 +45,7 @@ PrimitiveType Editor::Stream::stringToPrimitiveType(const std::string& str) {
     return PrimitiveType::TRIANGLES; // Default
 }
 
-std::string Editor::Stream::bufferTypeToString(BufferType type) {
+std::string editor::Stream::bufferTypeToString(BufferType type) {
     switch (type) {
         case BufferType::VERTEX_BUFFER: return "vertex_buffer";
         case BufferType::INDEX_BUFFER: return "index_buffer";
@@ -54,7 +54,7 @@ std::string Editor::Stream::bufferTypeToString(BufferType type) {
     }
 }
 
-BufferType Editor::Stream::stringToBufferType(const std::string& str) {
+BufferType editor::Stream::stringToBufferType(const std::string& str) {
     if (str == "vertex_buffer") return BufferType::VERTEX_BUFFER;
     if (str == "index_buffer") return BufferType::INDEX_BUFFER;
     if (str == "storage_buffer") return BufferType::STORAGE_BUFFER;
@@ -62,7 +62,7 @@ BufferType Editor::Stream::stringToBufferType(const std::string& str) {
 }
 
 // BufferUsage enum conversion
-std::string Editor::Stream::bufferUsageToString(BufferUsage usage) {
+std::string editor::Stream::bufferUsageToString(BufferUsage usage) {
     switch (usage) {
         case BufferUsage::IMMUTABLE: return "immutable";
         case BufferUsage::DYNAMIC: return "dynamic";
@@ -71,7 +71,7 @@ std::string Editor::Stream::bufferUsageToString(BufferUsage usage) {
     }
 }
 
-BufferUsage Editor::Stream::stringToBufferUsage(const std::string& str) {
+BufferUsage editor::Stream::stringToBufferUsage(const std::string& str) {
     if (str == "immutable") return BufferUsage::IMMUTABLE;
     if (str == "dynamic") return BufferUsage::DYNAMIC;
     if (str == "stream") return BufferUsage::STREAM;
@@ -79,7 +79,7 @@ BufferUsage Editor::Stream::stringToBufferUsage(const std::string& str) {
 }
 
 // AttributeType enum conversion
-std::string Editor::Stream::attributeTypeToString(AttributeType type) {
+std::string editor::Stream::attributeTypeToString(AttributeType type) {
     switch (type) {
         case AttributeType::INDEX: return "index";
         case AttributeType::POSITION: return "position";
@@ -120,7 +120,7 @@ std::string Editor::Stream::attributeTypeToString(AttributeType type) {
     }
 }
 
-AttributeType Editor::Stream::stringToAttributeType(const std::string& str) {
+AttributeType editor::Stream::stringToAttributeType(const std::string& str) {
     if (str == "index") return AttributeType::INDEX;
     if (str == "position") return AttributeType::POSITION;
     if (str == "texcoord1") return AttributeType::TEXCOORD1;
@@ -160,7 +160,7 @@ AttributeType Editor::Stream::stringToAttributeType(const std::string& str) {
 }
 
 // AttributeDataType enum conversion
-std::string Editor::Stream::attributeDataTypeToString(AttributeDataType type) {
+std::string editor::Stream::attributeDataTypeToString(AttributeDataType type) {
     switch (type) {
         case AttributeDataType::BYTE: return "byte";
         case AttributeDataType::UNSIGNED_BYTE: return "unsigned_byte";
@@ -173,7 +173,7 @@ std::string Editor::Stream::attributeDataTypeToString(AttributeDataType type) {
     }
 }
 
-AttributeDataType Editor::Stream::stringToAttributeDataType(const std::string& str) {
+AttributeDataType editor::Stream::stringToAttributeDataType(const std::string& str) {
     if (str == "byte") return AttributeDataType::BYTE;
     if (str == "unsigned_byte") return AttributeDataType::UNSIGNED_BYTE;
     if (str == "short") return AttributeDataType::SHORT;
@@ -185,7 +185,7 @@ AttributeDataType Editor::Stream::stringToAttributeDataType(const std::string& s
 }
 
 // CullingMode enum conversion
-std::string Editor::Stream::cullingModeToString(CullingMode mode) {
+std::string editor::Stream::cullingModeToString(CullingMode mode) {
     switch (mode) {
         case CullingMode::BACK: return "back";
         case CullingMode::FRONT: return "front";
@@ -193,14 +193,14 @@ std::string Editor::Stream::cullingModeToString(CullingMode mode) {
     }
 }
 
-CullingMode Editor::Stream::stringToCullingMode(const std::string& str) {
+CullingMode editor::Stream::stringToCullingMode(const std::string& str) {
     if (str == "back") return CullingMode::BACK;
     if (str == "front") return CullingMode::FRONT;
     return CullingMode::BACK;
 }
 
 // WindingOrder enum conversion
-std::string Editor::Stream::windingOrderToString(WindingOrder order) {
+std::string editor::Stream::windingOrderToString(WindingOrder order) {
     switch (order) {
         case WindingOrder::CCW: return "ccw";
         case WindingOrder::CW: return "cw";
@@ -208,14 +208,14 @@ std::string Editor::Stream::windingOrderToString(WindingOrder order) {
     }
 }
 
-WindingOrder Editor::Stream::stringToWindingOrder(const std::string& str) {
+WindingOrder editor::Stream::stringToWindingOrder(const std::string& str) {
     if (str == "ccw") return WindingOrder::CCW;
     if (str == "cw") return WindingOrder::CW;
     return WindingOrder::CCW;
 }
 
 // TextureFilter enum conversion
-std::string Editor::Stream::textureFilterToString(TextureFilter filter) {
+std::string editor::Stream::textureFilterToString(TextureFilter filter) {
     switch (filter) {
         case TextureFilter::NEAREST: return "nearest";
         case TextureFilter::LINEAR: return "linear";
@@ -227,7 +227,7 @@ std::string Editor::Stream::textureFilterToString(TextureFilter filter) {
     }
 }
 
-TextureFilter Editor::Stream::stringToTextureFilter(const std::string& str) {
+TextureFilter editor::Stream::stringToTextureFilter(const std::string& str) {
     if (str == "nearest") return TextureFilter::NEAREST;
     if (str == "linear") return TextureFilter::LINEAR;
     if (str == "nearest_mipmap_nearest") return TextureFilter::NEAREST_MIPMAP_NEAREST;
@@ -238,7 +238,7 @@ TextureFilter Editor::Stream::stringToTextureFilter(const std::string& str) {
 }
 
 // TextureWrap enum conversion
-std::string Editor::Stream::textureWrapToString(TextureWrap wrap) {
+std::string editor::Stream::textureWrapToString(TextureWrap wrap) {
     switch (wrap) {
         case TextureWrap::REPEAT: return "repeat";
         case TextureWrap::MIRRORED_REPEAT: return "mirrored_repeat";
@@ -248,7 +248,7 @@ std::string Editor::Stream::textureWrapToString(TextureWrap wrap) {
     }
 }
 
-TextureWrap Editor::Stream::stringToTextureWrap(const std::string& str) {
+TextureWrap editor::Stream::stringToTextureWrap(const std::string& str) {
     if (str == "repeat") return TextureWrap::REPEAT;
     if (str == "mirrored_repeat") return TextureWrap::MIRRORED_REPEAT;
     if (str == "clamp_to_edge") return TextureWrap::CLAMP_TO_EDGE;
@@ -256,7 +256,7 @@ TextureWrap Editor::Stream::stringToTextureWrap(const std::string& str) {
     return TextureWrap::REPEAT;
 }
 
-std::string Editor::Stream::containerTypeToString(ContainerType type) {
+std::string editor::Stream::containerTypeToString(ContainerType type) {
     switch (type) {
         case ContainerType::VERTICAL: return "vertical";
         case ContainerType::HORIZONTAL: return "horizontal";
@@ -266,7 +266,7 @@ std::string Editor::Stream::containerTypeToString(ContainerType type) {
     }
 }
 
-ContainerType Editor::Stream::stringToContainerType(const std::string& str) {
+ContainerType editor::Stream::stringToContainerType(const std::string& str) {
     if (str == "vertical") return ContainerType::VERTICAL;
     if (str == "horizontal") return ContainerType::HORIZONTAL;
     if (str == "vertical_wrap") return ContainerType::VERTICAL_WRAP;
@@ -274,7 +274,7 @@ ContainerType Editor::Stream::stringToContainerType(const std::string& str) {
     return ContainerType::VERTICAL;
 }
 
-std::string Editor::Stream::scalingModeToString(Scaling mode) {
+std::string editor::Stream::scalingModeToString(Scaling mode) {
     switch (mode) {
         case Scaling::FITWIDTH: return "fitwidth";
         case Scaling::FITHEIGHT: return "fitheight";
@@ -286,7 +286,7 @@ std::string Editor::Stream::scalingModeToString(Scaling mode) {
     }
 }
 
-Scaling Editor::Stream::stringToScalingMode(const std::string& str) {
+Scaling editor::Stream::stringToScalingMode(const std::string& str) {
     if (str == "fitwidth") return Scaling::FITWIDTH;
     if (str == "fitheight") return Scaling::FITHEIGHT;
     if (str == "letterbox") return Scaling::LETTERBOX;
@@ -296,7 +296,7 @@ Scaling Editor::Stream::stringToScalingMode(const std::string& str) {
     return Scaling::FITWIDTH;
 }
 
-std::string Editor::Stream::textureStrategyToString(TextureStrategy strategy) {
+std::string editor::Stream::textureStrategyToString(TextureStrategy strategy) {
     switch (strategy) {
         case TextureStrategy::FIT: return "fit";
         case TextureStrategy::RESIZE: return "resize";
@@ -305,14 +305,14 @@ std::string Editor::Stream::textureStrategyToString(TextureStrategy strategy) {
     }
 }
 
-TextureStrategy Editor::Stream::stringToTextureStrategy(const std::string& str) {
+TextureStrategy editor::Stream::stringToTextureStrategy(const std::string& str) {
     if (str == "fit") return TextureStrategy::FIT;
     if (str == "resize") return TextureStrategy::RESIZE;
     if (str == "none") return TextureStrategy::NONE;
     return TextureStrategy::RESIZE;
 }
 
-std::string Editor::Stream::lightTypeToString(LightType type) {
+std::string editor::Stream::lightTypeToString(LightType type) {
     switch (type) {
         case LightType::DIRECTIONAL: return "directional";
         case LightType::POINT: return "point";
@@ -321,14 +321,14 @@ std::string Editor::Stream::lightTypeToString(LightType type) {
     }
 }
 
-LightType Editor::Stream::stringToLightType(const std::string& str) {
+LightType editor::Stream::stringToLightType(const std::string& str) {
     if (str == "directional") return LightType::DIRECTIONAL;
     if (str == "point") return LightType::POINT;
     if (str == "spot") return LightType::SPOT;
     return LightType::DIRECTIONAL; // Default
 }
 
-std::string Editor::Stream::lightStateToString(LightState state) {
+std::string editor::Stream::lightStateToString(LightState state) {
     switch (state) {
         case LightState::OFF: return "off";
         case LightState::ON: return "on";
@@ -337,14 +337,14 @@ std::string Editor::Stream::lightStateToString(LightState state) {
     }
 }
 
-LightState Editor::Stream::stringToLightState(const std::string& str) {
+LightState editor::Stream::stringToLightState(const std::string& str) {
     if (str == "off") return LightState::OFF;
     if (str == "on") return LightState::ON;
     if (str == "auto") return LightState::AUTO;
     return LightState::AUTO; // Default
 }
 
-std::string Editor::Stream::uiEventStateToString(UIEventState state) {
+std::string editor::Stream::uiEventStateToString(UIEventState state) {
     switch (state) {
         case UIEventState::NOT_SET: return "not_set";
         case UIEventState::ENABLED: return "true";
@@ -353,14 +353,14 @@ std::string Editor::Stream::uiEventStateToString(UIEventState state) {
     }
 }
 
-UIEventState Editor::Stream::stringToUIEventState(const std::string& str) {
+UIEventState editor::Stream::stringToUIEventState(const std::string& str) {
     if (str == "not_set") return UIEventState::NOT_SET;
     if (str == "true") return UIEventState::ENABLED;
     if (str == "false") return UIEventState::DISABLED;
     return UIEventState::NOT_SET; // Default
 }
 
-std::string Editor::Stream::cameraTypeToString(CameraType type) {
+std::string editor::Stream::cameraTypeToString(CameraType type) {
     switch (type) {
         case CameraType::CAMERA_UI: return "camera_ui";
         case CameraType::CAMERA_ORTHO: return "camera_ortho";
@@ -369,14 +369,14 @@ std::string Editor::Stream::cameraTypeToString(CameraType type) {
     }
 }
 
-CameraType Editor::Stream::stringToCameraType(const std::string& str) {
+CameraType editor::Stream::stringToCameraType(const std::string& str) {
     if (str == "camera_ui") return CameraType::CAMERA_UI;
     if (str == "camera_ortho") return CameraType::CAMERA_ORTHO;
     if (str == "camera_perspective") return CameraType::CAMERA_PERSPECTIVE;
     return CameraType::CAMERA_PERSPECTIVE;
 }
 
-std::string Editor::Stream::pivotPresetToString(PivotPreset preset) {
+std::string editor::Stream::pivotPresetToString(PivotPreset preset) {
     switch (preset) {
         case PivotPreset::CENTER:
             return "center";
@@ -401,7 +401,7 @@ std::string Editor::Stream::pivotPresetToString(PivotPreset preset) {
     }
 }
 
-PivotPreset Editor::Stream::stringToPivotPreset(const std::string& str) {
+PivotPreset editor::Stream::stringToPivotPreset(const std::string& str) {
     if (str == "center") return PivotPreset::CENTER;
     if (str == "top_center") return PivotPreset::TOP_CENTER;
     if (str == "bottom_center") return PivotPreset::BOTTOM_CENTER;
@@ -414,7 +414,7 @@ PivotPreset Editor::Stream::stringToPivotPreset(const std::string& str) {
     return PivotPreset::BOTTOM_LEFT;
 }
 
-std::string Editor::Stream::scriptTypeToString(ScriptType type) {
+std::string editor::Stream::scriptTypeToString(ScriptType type) {
     switch (type) {
         case ScriptType::SUBCLASS:     return "subclass";
         case ScriptType::SCRIPT_CLASS: return "script_class";
@@ -423,7 +423,7 @@ std::string Editor::Stream::scriptTypeToString(ScriptType type) {
     }
 }
 
-ScriptType Editor::Stream::stringToScriptType(const std::string& str) {
+ScriptType editor::Stream::stringToScriptType(const std::string& str) {
     if (str == "subclass")     return ScriptType::SUBCLASS;
     if (str == "script_class") return ScriptType::SCRIPT_CLASS;
     if (str == "script_lua")   return ScriptType::SCRIPT_LUA;
@@ -431,7 +431,7 @@ ScriptType Editor::Stream::stringToScriptType(const std::string& str) {
     return ScriptType::SUBCLASS;
 }
 
-YAML::Node Editor::Stream::encodeVector2(const Vector2& vec){
+YAML::Node editor::Stream::encodeVector2(const Vector2& vec){
     YAML::Node node;
     node.SetStyle(YAML::EmitterStyle::Flow);
     node.push_back(vec.x);
@@ -439,11 +439,11 @@ YAML::Node Editor::Stream::encodeVector2(const Vector2& vec){
     return node;
 }
 
-Vector2 Editor::Stream::decodeVector2(const YAML::Node& node) {
+Vector2 editor::Stream::decodeVector2(const YAML::Node& node) {
     return Vector2(node[0].as<float>(), node[1].as<float>());
 }
 
-YAML::Node Editor::Stream::encodeVector3(const Vector3& vec) {
+YAML::Node editor::Stream::encodeVector3(const Vector3& vec) {
     YAML::Node node;
     node.SetStyle(YAML::EmitterStyle::Flow);
     node.push_back(vec.x);
@@ -452,11 +452,11 @@ YAML::Node Editor::Stream::encodeVector3(const Vector3& vec) {
     return node;
 }
 
-Vector3 Editor::Stream::decodeVector3(const YAML::Node& node) {
+Vector3 editor::Stream::decodeVector3(const YAML::Node& node) {
     return Vector3(node[0].as<float>(), node[1].as<float>(), node[2].as<float>());
 }
 
-YAML::Node Editor::Stream::encodeVector4(const Vector4& vec){
+YAML::Node editor::Stream::encodeVector4(const Vector4& vec){
     YAML::Node node;
     node.SetStyle(YAML::EmitterStyle::Flow);
     node.push_back(vec.x);
@@ -466,11 +466,11 @@ YAML::Node Editor::Stream::encodeVector4(const Vector4& vec){
     return node;
 }
 
-Vector4 Editor::Stream::decodeVector4(const YAML::Node& node) {
+Vector4 editor::Stream::decodeVector4(const YAML::Node& node) {
     return Vector4(node[0].as<float>(), node[1].as<float>(), node[2].as<float>(), node[3].as<float>());
 }
 
-YAML::Node Editor::Stream::encodeQuaternion(const Quaternion& quat) {
+YAML::Node editor::Stream::encodeQuaternion(const Quaternion& quat) {
     YAML::Node node;
     node.SetStyle(YAML::EmitterStyle::Flow);
     node.push_back(quat.w);
@@ -480,11 +480,11 @@ YAML::Node Editor::Stream::encodeQuaternion(const Quaternion& quat) {
     return node;
 }
 
-Quaternion Editor::Stream::decodeQuaternion(const YAML::Node& node) {
+Quaternion editor::Stream::decodeQuaternion(const YAML::Node& node) {
     return Quaternion(node[0].as<float>(), node[1].as<float>(), node[2].as<float>(), node[3].as<float>());
 }
 
-YAML::Node Editor::Stream::encodeRect(const Rect& rect) {
+YAML::Node editor::Stream::encodeRect(const Rect& rect) {
     YAML::Node node;
     node.SetStyle(YAML::EmitterStyle::Flow);
     node.push_back(rect.getX());
@@ -494,11 +494,11 @@ YAML::Node Editor::Stream::encodeRect(const Rect& rect) {
     return node;
 }
 
-Rect Editor::Stream::decodeRect(const YAML::Node& node) {
+Rect editor::Stream::decodeRect(const YAML::Node& node) {
     return Rect(node[0].as<float>(), node[1].as<float>(), node[2].as<float>(), node[3].as<float>());
 }
 
-YAML::Node Editor::Stream::encodeMatrix4(const Matrix4& mat) {
+YAML::Node editor::Stream::encodeMatrix4(const Matrix4& mat) {
     YAML::Node node;
     node.SetStyle(YAML::EmitterStyle::Flow);
     for (int i = 0; i < 4; i++) {
@@ -512,7 +512,7 @@ YAML::Node Editor::Stream::encodeMatrix4(const Matrix4& mat) {
     return node;
 }
 
-Matrix4 Editor::Stream::decodeMatrix4(const YAML::Node& node) {
+Matrix4 editor::Stream::decodeMatrix4(const YAML::Node& node) {
     Matrix4 mat;
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
@@ -522,7 +522,7 @@ Matrix4 Editor::Stream::decodeMatrix4(const YAML::Node& node) {
     return mat;
 }
 
-YAML::Node Editor::Stream::encodeTexture(const Texture& texture) {
+YAML::Node editor::Stream::encodeTexture(const Texture& texture) {
     YAML::Node node;
     if (texture.empty() || texture.isFramebuffer())
         return node;
@@ -574,7 +574,7 @@ YAML::Node Editor::Stream::encodeTexture(const Texture& texture) {
     return node;
 }
 
-Texture Editor::Stream::decodeTexture(const YAML::Node& node) {
+Texture editor::Stream::decodeTexture(const YAML::Node& node) {
     Texture texture;
     if (node.IsMap()) { // Check if node has data
         const std::string textureType = node["textureType"] ? node["textureType"].as<std::string>() : std::string();
@@ -630,7 +630,7 @@ Texture Editor::Stream::decodeTexture(const YAML::Node& node) {
     return texture;
 }
 
-YAML::Node Editor::Stream::encodeBuffer(const Buffer& buffer) {
+YAML::Node editor::Stream::encodeBuffer(const Buffer& buffer) {
     YAML::Node node;
 
     // Encode buffer properties
@@ -667,7 +667,7 @@ YAML::Node Editor::Stream::encodeBuffer(const Buffer& buffer) {
     return node;
 }
 
-void Editor::Stream::decodeBuffer(Buffer& buffer, const YAML::Node& node) {
+void editor::Stream::decodeBuffer(Buffer& buffer, const YAML::Node& node) {
     if (!node.IsMap()) return;
 
     // Decode buffer properties
@@ -705,13 +705,13 @@ void Editor::Stream::decodeBuffer(Buffer& buffer, const YAML::Node& node) {
     }
 }
 
-YAML::Node Editor::Stream::encodeInterleavedBuffer(const InterleavedBuffer& buffer) {
+YAML::Node editor::Stream::encodeInterleavedBuffer(const InterleavedBuffer& buffer) {
     YAML::Node node = encodeBuffer(buffer);
     node["vertexSize"] = buffer.getVertexSize();
     return node;
 }
 
-void Editor::Stream::decodeInterleavedBuffer(InterleavedBuffer& buffer, const YAML::Node& node) {
+void editor::Stream::decodeInterleavedBuffer(InterleavedBuffer& buffer, const YAML::Node& node) {
     decodeBuffer(buffer, node);
 
     if (node["vertexSize"]) {
@@ -719,27 +719,27 @@ void Editor::Stream::decodeInterleavedBuffer(InterleavedBuffer& buffer, const YA
     }
 }
 
-YAML::Node Editor::Stream::encodeIndexBuffer(const IndexBuffer& buffer) {
+YAML::Node editor::Stream::encodeIndexBuffer(const IndexBuffer& buffer) {
     YAML::Node node = encodeBuffer(buffer);
     return node;
 }
 
-void Editor::Stream::decodeIndexBuffer(IndexBuffer& buffer, const YAML::Node& node) {
+void editor::Stream::decodeIndexBuffer(IndexBuffer& buffer, const YAML::Node& node) {
     decodeBuffer(buffer, node);
 }
 
-YAML::Node Editor::Stream::encodeExternalBuffer(const ExternalBuffer& buffer) {
+YAML::Node editor::Stream::encodeExternalBuffer(const ExternalBuffer& buffer) {
     YAML::Node node = encodeBuffer(buffer); // Use base Buffer encoding
     node["name"] = buffer.getName(); // Add ExternalBuffer specific property
     return node;
 }
 
-void Editor::Stream::decodeExternalBuffer(ExternalBuffer& buffer, const YAML::Node& node) {
+void editor::Stream::decodeExternalBuffer(ExternalBuffer& buffer, const YAML::Node& node) {
     decodeBuffer(buffer, node); // Use base Buffer decoding
     buffer.setName(node["name"].as<std::string>()); // Set ExternalBuffer specific property
 }
 
-YAML::Node Editor::Stream::encodeSubmesh(const Submesh& submesh) {
+YAML::Node editor::Stream::encodeSubmesh(const Submesh& submesh) {
     YAML::Node node;
 
     node["material"] = encodeMaterial(submesh.material);
@@ -763,7 +763,7 @@ YAML::Node Editor::Stream::encodeSubmesh(const Submesh& submesh) {
     return node;
 }
 
-Submesh Editor::Stream::decodeSubmesh(const YAML::Node& node, const Submesh* oldSubmesh) {
+Submesh editor::Stream::decodeSubmesh(const YAML::Node& node, const Submesh* oldSubmesh) {
     Submesh submesh;
     if (oldSubmesh) {
         submesh = *oldSubmesh;
@@ -790,34 +790,34 @@ Submesh Editor::Stream::decodeSubmesh(const YAML::Node& node, const Submesh* old
     return submesh;
 }
 
-YAML::Node Editor::Stream::encodeAABB(const AABB& aabb) {
+YAML::Node editor::Stream::encodeAABB(const AABB& aabb) {
     YAML::Node node;
     node["min"] = encodeVector3(aabb.getMinimum());
     node["max"] = encodeVector3(aabb.getMaximum());
     return node;
 }
 
-AABB Editor::Stream::decodeAABB(const YAML::Node& node) {
+AABB editor::Stream::decodeAABB(const YAML::Node& node) {
     Vector3 min = decodeVector3(node["min"]);
     Vector3 max = decodeVector3(node["max"]);
     return AABB(min, max);
 }
 
-YAML::Node Editor::Stream::encodeSpriteFrameData(const SpriteFrameData& frameData) {
+YAML::Node editor::Stream::encodeSpriteFrameData(const SpriteFrameData& frameData) {
     YAML::Node node;
     node["name"] = frameData.name;
     node["rect"] = encodeRect(frameData.rect);
     return node;
 }
 
-SpriteFrameData Editor::Stream::decodeSpriteFrameData(const YAML::Node& node) {
+SpriteFrameData editor::Stream::decodeSpriteFrameData(const YAML::Node& node) {
     SpriteFrameData frameData;
     if (node["name"]) frameData.name = node["name"].as<std::string>();
     if (node["rect"]) frameData.rect = decodeRect(node["rect"]);
     return frameData;
 }
 
-YAML::Node Editor::Stream::encodeTileRectData(const TileRectData& tileRect) {
+YAML::Node editor::Stream::encodeTileRectData(const TileRectData& tileRect) {
     YAML::Node node;
     node["name"] = tileRect.name;
     node["submeshId"] = tileRect.submeshId;
@@ -825,7 +825,7 @@ YAML::Node Editor::Stream::encodeTileRectData(const TileRectData& tileRect) {
     return node;
 }
 
-TileRectData Editor::Stream::decodeTileRectData(const YAML::Node& node) {
+TileRectData editor::Stream::decodeTileRectData(const YAML::Node& node) {
     TileRectData tileRect;
     if (node["name"]) tileRect.name = node["name"].as<std::string>();
     if (node["submeshId"]) tileRect.submeshId = node["submeshId"].as<int>();
@@ -833,7 +833,7 @@ TileRectData Editor::Stream::decodeTileRectData(const YAML::Node& node) {
     return tileRect;
 }
 
-YAML::Node Editor::Stream::encodeTileData(const TileData& tile) {
+YAML::Node editor::Stream::encodeTileData(const TileData& tile) {
     YAML::Node node;
     node["name"] = tile.name;
     node["rectId"] = tile.rectId;
@@ -843,7 +843,7 @@ YAML::Node Editor::Stream::encodeTileData(const TileData& tile) {
     return node;
 }
 
-TileData Editor::Stream::decodeTileData(const YAML::Node& node) {
+TileData editor::Stream::decodeTileData(const YAML::Node& node) {
     TileData tile;
     if (node["name"]) tile.name = node["name"].as<std::string>();
     if (node["rectId"]) tile.rectId = node["rectId"].as<int>();
@@ -853,7 +853,7 @@ TileData Editor::Stream::decodeTileData(const YAML::Node& node) {
     return tile;
 }
 
-YAML::Node Editor::Stream::encodeProject(Project* project) {
+YAML::Node editor::Stream::encodeProject(Project* project) {
     YAML::Node root;
 
     root["name"] = project->getName();
@@ -937,7 +937,7 @@ YAML::Node Editor::Stream::encodeProject(Project* project) {
     return root;
 }
 
-void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
+void editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
     if (!node.IsMap()) return;
 
     if (node["name"]) {
@@ -1064,7 +1064,7 @@ void Editor::Stream::decodeProject(Project* project, const YAML::Node& node) {
     }
 }
 
-YAML::Node Editor::Stream::encodeSceneProject(const Project* project, const SceneProject* sceneProject) {
+YAML::Node editor::Stream::encodeSceneProject(const Project* project, const SceneProject* sceneProject) {
     YAML::Node root;
     root["id"] = sceneProject->id;
     root["name"] = sceneProject->name;
@@ -1162,7 +1162,7 @@ YAML::Node Editor::Stream::encodeSceneProject(const Project* project, const Scen
     return root;
 }
 
-void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::Node& node, bool loadScene) {
+void editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::Node& node, bool loadScene) {
     if (node["id"]) sceneProject->id = node["id"].as<uint32_t>();
     if (node["name"]) sceneProject->name = node["name"].as<std::string>();
     if (loadScene){
@@ -1246,7 +1246,7 @@ void Editor::Stream::decodeSceneProject(SceneProject* sceneProject, const YAML::
     }
 }
 
-void Editor::Stream::decodeSceneProjectEntities(Project* project, SceneProject* sceneProject, const YAML::Node& node){
+void editor::Stream::decodeSceneProjectEntities(Project* project, SceneProject* sceneProject, const YAML::Node& node){
     sceneProject->entities.clear();
     sceneProject->selectedEntities.clear();
 
@@ -1256,7 +1256,7 @@ void Editor::Stream::decodeSceneProjectEntities(Project* project, SceneProject* 
     }
 }
 
-YAML::Node Editor::Stream::encodeEditorCamera(Camera* camera, float zoom) {
+YAML::Node editor::Stream::encodeEditorCamera(Camera* camera, float zoom) {
     if (!camera) return YAML::Node();
     Entity camEntity = camera->getEntity();
     Scene* scene = camera->getScene();
@@ -1275,7 +1275,7 @@ YAML::Node Editor::Stream::encodeEditorCamera(Camera* camera, float zoom) {
     return camNode;
 }
 
-void Editor::Stream::decodeEditorCamera(Camera* camera, const YAML::Node& node, float& zoom) {
+void editor::Stream::decodeEditorCamera(Camera* camera, const YAML::Node& node, float& zoom) {
     if (!camera || !node) return;
     Entity camEntity = camera->getEntity();
     Scene* scene = camera->getScene();
@@ -1293,7 +1293,7 @@ void Editor::Stream::decodeEditorCamera(Camera* camera, const YAML::Node& node, 
     zoom = node["zoom"] ? node["zoom"].as<float>() : 0.0f;
 }
 
-YAML::Node Editor::Stream::encodeScene(Scene* scene) {
+YAML::Node editor::Stream::encodeScene(Scene* scene) {
     YAML::Node sceneNode;
 
     sceneNode["backgroundColor"] = encodeVector4(scene->getBackgroundColor());
@@ -1306,7 +1306,7 @@ YAML::Node Editor::Stream::encodeScene(Scene* scene) {
     return sceneNode;
 }
 
-Scene* Editor::Stream::decodeScene(Scene* scene, const YAML::Node& node) {
+Scene* editor::Stream::decodeScene(Scene* scene, const YAML::Node& node) {
     if (!scene){
         scene = new Scene();
     }
@@ -1341,7 +1341,7 @@ Scene* Editor::Stream::decodeScene(Scene* scene, const YAML::Node& node) {
     return scene;
 }
 
-YAML::Node Editor::Stream::encodeEntitySelection(const std::vector<Entity>& entities, const EntityRegistry* registry, const Project* project, const SceneProject* sceneProject) {
+YAML::Node editor::Stream::encodeEntitySelection(const std::vector<Entity>& entities, const EntityRegistry* registry, const Project* project, const SceneProject* sceneProject) {
     if (entities.empty()) {
         return YAML::Node();
     }
@@ -1361,7 +1361,7 @@ YAML::Node Editor::Stream::encodeEntitySelection(const std::vector<Entity>& enti
     return bundleNode;
 }
 
-std::vector<Entity> Editor::Stream::decodeEntitySelection(const YAML::Node& entityNode, EntityRegistry* registry, std::vector<Entity>* entities, Project* project, SceneProject* sceneProject, Entity parent, bool createNewIfExists) {
+std::vector<Entity> editor::Stream::decodeEntitySelection(const YAML::Node& entityNode, EntityRegistry* registry, std::vector<Entity>* entities, Project* project, SceneProject* sceneProject, Entity parent, bool createNewIfExists) {
     if (!entityNode || !entityNode.IsMap()) {
         return {};
     }
@@ -1378,7 +1378,7 @@ std::vector<Entity> Editor::Stream::decodeEntitySelection(const YAML::Node& enti
     return decodeEntity(entityNode, registry, entities, project, sceneProject, parent, createNewIfExists);
 }
 
-YAML::Node Editor::Stream::encodeEntity(const Entity entity, const EntityRegistry* registry, const Project* project, const SceneProject* sceneProject) {
+YAML::Node editor::Stream::encodeEntity(const Entity entity, const EntityRegistry* registry, const Project* project, const SceneProject* sceneProject) {
     std::map<Entity, YAML::Node> entityNodes;
 
     bool hasCurrentEntity = true;
@@ -1434,7 +1434,7 @@ YAML::Node Editor::Stream::encodeEntity(const Entity entity, const EntityRegistr
     return entityNodes[entity];
 }
 
-YAML::Node Editor::Stream::encodeEntityAux(const Entity entity, const EntityRegistry* registry, const Project* project, const SceneProject* sceneProject) {
+YAML::Node editor::Stream::encodeEntityAux(const Entity entity, const EntityRegistry* registry, const Project* project, const SceneProject* sceneProject) {
     YAML::Node entityNode;
 
     fs::path bundlePath = "";
@@ -1663,7 +1663,7 @@ YAML::Node Editor::Stream::encodeEntityAux(const Entity entity, const EntityRegi
     return entityNode;
 }
 
-YAML::Node Editor::Stream::encodeScriptProperty(const ScriptProperty& prop) {
+YAML::Node editor::Stream::encodeScriptProperty(const ScriptProperty& prop) {
     YAML::Node node;
     node["name"] = prop.name;
     node["displayName"] = prop.displayName;
@@ -1719,7 +1719,7 @@ YAML::Node Editor::Stream::encodeScriptProperty(const ScriptProperty& prop) {
     return node;
 }
 
-ScriptProperty Editor::Stream::decodeScriptProperty(const YAML::Node& node) {
+ScriptProperty editor::Stream::decodeScriptProperty(const YAML::Node& node) {
     ScriptProperty prop;
 
     if (node["name"]) prop.name = node["name"].as<std::string>();
@@ -1789,7 +1789,7 @@ ScriptProperty Editor::Stream::decodeScriptProperty(const YAML::Node& node) {
     return prop;
 }
 
-std::vector<Entity> Editor::Stream::decodeEntity(const YAML::Node& entityNode, EntityRegistry* registry, std::vector<Entity>* entities, Project* project, SceneProject* sceneProject, Entity parent, bool createNewIfExists) {
+std::vector<Entity> editor::Stream::decodeEntity(const YAML::Node& entityNode, EntityRegistry* registry, std::vector<Entity>* entities, Project* project, SceneProject* sceneProject, Entity parent, bool createNewIfExists) {
     std::vector<Entity> allEntities;
 
     std::string entityType = entityNode["type"].as<std::string>();
@@ -1845,7 +1845,7 @@ std::vector<Entity> Editor::Stream::decodeEntity(const YAML::Node& entityNode, E
     return allEntities;
 }
 
-YAML::Node Editor::Stream::encodeMaterial(const Material& material) {
+YAML::Node editor::Stream::encodeMaterial(const Material& material) {
     YAML::Node node;
 
     // Encode shader part properties
@@ -1881,7 +1881,7 @@ YAML::Node Editor::Stream::encodeMaterial(const Material& material) {
     return node;
 }
 
-Material Editor::Stream::decodeMaterial(const YAML::Node& node) {
+Material editor::Stream::decodeMaterial(const YAML::Node& node) {
     Material material;
 
     material.baseColorFactor = decodeVector4(node["baseColorFactor"]);
@@ -1914,7 +1914,7 @@ Material Editor::Stream::decodeMaterial(const YAML::Node& node) {
     return material;
 }
 
-YAML::Node Editor::Stream::encodeComponents(const Entity entity, const EntityRegistry* registry, Signature signature) {
+YAML::Node editor::Stream::encodeComponents(const Entity entity, const EntityRegistry* registry, Signature signature) {
     YAML::Node compNode;
 
     if (signature.test(registry->getComponentId<Transform>())) {
@@ -2066,7 +2066,7 @@ YAML::Node Editor::Stream::encodeComponents(const Entity entity, const EntityReg
     return compNode;
 }
 
-void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegistry* registry, const YAML::Node& compNode){
+void editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegistry* registry, const YAML::Node& compNode){
     std::string compName;
 
     Signature signature = registry->getSignature(entity);
@@ -2437,7 +2437,7 @@ void Editor::Stream::decodeComponents(Entity entity, Entity parent, EntityRegist
     }
 }
 
-YAML::Node Editor::Stream::encodeTransform(const Transform& transform) {
+YAML::Node editor::Stream::encodeTransform(const Transform& transform) {
     YAML::Node transformNode;
 
     transformNode["position"] = encodeVector3(transform.position);
@@ -2463,7 +2463,7 @@ YAML::Node Editor::Stream::encodeTransform(const Transform& transform) {
     return transformNode;
 }
 
-Transform Editor::Stream::decodeTransform(const YAML::Node& node, const Transform* oldTransform) {
+Transform editor::Stream::decodeTransform(const YAML::Node& node, const Transform* oldTransform) {
     Transform transform;
 
     // Use old values as defaults if provided
@@ -2494,7 +2494,7 @@ Transform Editor::Stream::decodeTransform(const YAML::Node& node, const Transfor
     return transform;
 }
 
-YAML::Node Editor::Stream::encodeMeshComponent(const MeshComponent& mesh, bool encodeBuffers) {
+YAML::Node editor::Stream::encodeMeshComponent(const MeshComponent& mesh, bool encodeBuffers) {
     YAML::Node node;
 
     //node["loaded"] = mesh.loaded;
@@ -2560,7 +2560,7 @@ YAML::Node Editor::Stream::encodeMeshComponent(const MeshComponent& mesh, bool e
     return node;
 }
 
-MeshComponent Editor::Stream::decodeMeshComponent(const YAML::Node& node, const MeshComponent* oldMesh) {
+MeshComponent editor::Stream::decodeMeshComponent(const YAML::Node& node, const MeshComponent* oldMesh) {
     MeshComponent mesh;
 
     // Use old values as defaults if provided
@@ -2638,7 +2638,7 @@ MeshComponent Editor::Stream::decodeMeshComponent(const YAML::Node& node, const 
     return mesh;
 }
 
-YAML::Node Editor::Stream::encodeUIComponent(const UIComponent& ui) {
+YAML::Node editor::Stream::encodeUIComponent(const UIComponent& ui) {
     YAML::Node node;
     //node["loaded"] = ui.loaded;
     //node["loadCalled"] = ui.loadCalled;
@@ -2677,7 +2677,7 @@ YAML::Node Editor::Stream::encodeUIComponent(const UIComponent& ui) {
     return node;
 }
 
-UIComponent Editor::Stream::decodeUIComponent(const YAML::Node& node, const UIComponent* oldUI) {
+UIComponent editor::Stream::decodeUIComponent(const YAML::Node& node, const UIComponent* oldUI) {
     UIComponent ui;
 
     // Use old values as defaults if provided
@@ -2721,7 +2721,7 @@ UIComponent Editor::Stream::decodeUIComponent(const YAML::Node& node, const UICo
     return ui;
 }
 
-YAML::Node Editor::Stream::encodeButtonComponent(const ButtonComponent& button) {
+YAML::Node editor::Stream::encodeButtonComponent(const ButtonComponent& button) {
     YAML::Node node;
     node["label"] = button.label;
     node["textureNormal"] = encodeTexture(button.textureNormal);
@@ -2734,7 +2734,7 @@ YAML::Node Editor::Stream::encodeButtonComponent(const ButtonComponent& button) 
     return node;
 }
 
-ButtonComponent Editor::Stream::decodeButtonComponent(const YAML::Node& node, const ButtonComponent* oldButton) {
+ButtonComponent editor::Stream::decodeButtonComponent(const YAML::Node& node, const ButtonComponent* oldButton) {
     ButtonComponent button;
 
     if (oldButton) {
@@ -2753,7 +2753,7 @@ ButtonComponent Editor::Stream::decodeButtonComponent(const YAML::Node& node, co
     return button;
 }
 
-YAML::Node Editor::Stream::encodeUILayoutComponent(const UILayoutComponent& layout) {
+YAML::Node editor::Stream::encodeUILayoutComponent(const UILayoutComponent& layout) {
     YAML::Node node;
     node["width"] = layout.width;
     node["height"] = layout.height;
@@ -2779,7 +2779,7 @@ YAML::Node Editor::Stream::encodeUILayoutComponent(const UILayoutComponent& layo
     return node;
 }
 
-UILayoutComponent Editor::Stream::decodeUILayoutComponent(const YAML::Node& node, const UILayoutComponent* oldLayout) {
+UILayoutComponent editor::Stream::decodeUILayoutComponent(const YAML::Node& node, const UILayoutComponent* oldLayout) {
     UILayoutComponent layout;
 
     // Use old values as defaults if provided
@@ -2811,7 +2811,7 @@ UILayoutComponent Editor::Stream::decodeUILayoutComponent(const YAML::Node& node
     return layout;
 }
 
-YAML::Node Editor::Stream::encodeUIContainerComponent(const UIContainerComponent& container) {
+YAML::Node editor::Stream::encodeUIContainerComponent(const UIContainerComponent& container) {
     YAML::Node node;
     node["type"] = containerTypeToString(container.type);
     node["useAllWrapSpace"] = container.useAllWrapSpace;
@@ -2820,7 +2820,7 @@ YAML::Node Editor::Stream::encodeUIContainerComponent(const UIContainerComponent
     return node;
 }
 
-UIContainerComponent Editor::Stream::decodeUIContainerComponent(const YAML::Node& node, const UIContainerComponent* oldContainer) {
+UIContainerComponent editor::Stream::decodeUIContainerComponent(const YAML::Node& node, const UIContainerComponent* oldContainer) {
     UIContainerComponent container;
 
     if (oldContainer) {
@@ -2836,7 +2836,7 @@ UIContainerComponent Editor::Stream::decodeUIContainerComponent(const YAML::Node
     return container;
 }
 
-YAML::Node Editor::Stream::encodeTextComponent(const TextComponent& text) {
+YAML::Node editor::Stream::encodeTextComponent(const TextComponent& text) {
     YAML::Node node;
 
     node["font"] = text.font;
@@ -2852,7 +2852,7 @@ YAML::Node Editor::Stream::encodeTextComponent(const TextComponent& text) {
     return node;
 }
 
-TextComponent Editor::Stream::decodeTextComponent(const YAML::Node& node, const TextComponent* oldText) {
+TextComponent editor::Stream::decodeTextComponent(const YAML::Node& node, const TextComponent* oldText) {
     TextComponent text;
 
     if (oldText) {
@@ -2872,7 +2872,7 @@ TextComponent Editor::Stream::decodeTextComponent(const YAML::Node& node, const 
     return text;
 }
 
-YAML::Node Editor::Stream::encodeImageComponent(const ImageComponent& image) {
+YAML::Node editor::Stream::encodeImageComponent(const ImageComponent& image) {
     YAML::Node node;
     node["patchMarginLeft"] = image.patchMarginLeft;
     node["patchMarginRight"] = image.patchMarginRight;
@@ -2884,7 +2884,7 @@ YAML::Node Editor::Stream::encodeImageComponent(const ImageComponent& image) {
     return node;
 }
 
-ImageComponent Editor::Stream::decodeImageComponent(const YAML::Node& node, const ImageComponent* oldImage) {
+ImageComponent editor::Stream::decodeImageComponent(const YAML::Node& node, const ImageComponent* oldImage) {
     ImageComponent image;
 
     // Use old values as defaults if provided
@@ -2902,7 +2902,7 @@ ImageComponent Editor::Stream::decodeImageComponent(const YAML::Node& node, cons
     return image;
 }
 
-YAML::Node Editor::Stream::encodeSpriteComponent(const SpriteComponent& sprite) {
+YAML::Node editor::Stream::encodeSpriteComponent(const SpriteComponent& sprite) {
     YAML::Node node;
     node["width"] = sprite.width;
     node["height"] = sprite.height;
@@ -2923,7 +2923,7 @@ YAML::Node Editor::Stream::encodeSpriteComponent(const SpriteComponent& sprite) 
     return node;
 }
 
-SpriteComponent Editor::Stream::decodeSpriteComponent(const YAML::Node& node, const SpriteComponent* oldSprite) {
+SpriteComponent editor::Stream::decodeSpriteComponent(const YAML::Node& node, const SpriteComponent* oldSprite) {
     SpriteComponent sprite;
 
     // Use old values as defaults if provided
@@ -2958,7 +2958,7 @@ SpriteComponent Editor::Stream::decodeSpriteComponent(const YAML::Node& node, co
     return sprite;
 }
 
-YAML::Node Editor::Stream::encodeTilemapComponent(const TilemapComponent& tilemap) {
+YAML::Node editor::Stream::encodeTilemapComponent(const TilemapComponent& tilemap) {
     YAML::Node node;
     node["width"] = tilemap.width;
     node["height"] = tilemap.height;
@@ -2986,7 +2986,7 @@ YAML::Node Editor::Stream::encodeTilemapComponent(const TilemapComponent& tilema
     return node;
 }
 
-TilemapComponent Editor::Stream::decodeTilemapComponent(const YAML::Node& node, const TilemapComponent* oldTilemap) {
+TilemapComponent editor::Stream::decodeTilemapComponent(const YAML::Node& node, const TilemapComponent* oldTilemap) {
     TilemapComponent tilemap;
 
     if (oldTilemap) {
@@ -3031,7 +3031,7 @@ TilemapComponent Editor::Stream::decodeTilemapComponent(const YAML::Node& node, 
     return tilemap;
 }
 
-YAML::Node Editor::Stream::encodeModelComponent(const ModelComponent& model) {
+YAML::Node editor::Stream::encodeModelComponent(const ModelComponent& model) {
     YAML::Node node;
 
     if (!model.filename.empty()) {
@@ -3073,7 +3073,7 @@ YAML::Node Editor::Stream::encodeModelComponent(const ModelComponent& model) {
     return node;
 }
 
-ModelComponent Editor::Stream::decodeModelComponent(const YAML::Node& node, const ModelComponent* oldModel) {
+ModelComponent editor::Stream::decodeModelComponent(const YAML::Node& node, const ModelComponent* oldModel) {
     ModelComponent model;
 
     if (oldModel) {
@@ -3112,7 +3112,7 @@ ModelComponent Editor::Stream::decodeModelComponent(const YAML::Node& node, cons
     return model;
 }
 
-YAML::Node Editor::Stream::encodeLightComponent(const LightComponent& light) {
+YAML::Node editor::Stream::encodeLightComponent(const LightComponent& light) {
     YAML::Node node;
 
     node["type"] = lightTypeToString(light.type);
@@ -3133,7 +3133,7 @@ YAML::Node Editor::Stream::encodeLightComponent(const LightComponent& light) {
     return node;
 }
 
-LightComponent Editor::Stream::decodeLightComponent(const YAML::Node& node, const LightComponent* oldLight) {
+LightComponent editor::Stream::decodeLightComponent(const YAML::Node& node, const LightComponent* oldLight) {
     LightComponent light;
 
     // Use old values as defaults if provided
@@ -3159,7 +3159,7 @@ LightComponent Editor::Stream::decodeLightComponent(const YAML::Node& node, cons
     return light;
 }
 
-YAML::Node Editor::Stream::encodeCameraComponent(const CameraComponent& camera) {
+YAML::Node editor::Stream::encodeCameraComponent(const CameraComponent& camera) {
     YAML::Node node;
 
     node["type"] = cameraTypeToString(camera.type);
@@ -3181,7 +3181,7 @@ YAML::Node Editor::Stream::encodeCameraComponent(const CameraComponent& camera) 
     return node;
 }
 
-CameraComponent Editor::Stream::decodeCameraComponent(const YAML::Node& node, const CameraComponent* oldCamera) {
+CameraComponent editor::Stream::decodeCameraComponent(const YAML::Node& node, const CameraComponent* oldCamera) {
     CameraComponent camera;
 
     // Use old values as defaults if provided
@@ -3208,7 +3208,7 @@ CameraComponent Editor::Stream::decodeCameraComponent(const YAML::Node& node, co
     return camera;
 }
 
-YAML::Node Editor::Stream::encodeScriptComponent(const ScriptComponent& script) {
+YAML::Node editor::Stream::encodeScriptComponent(const ScriptComponent& script) {
     YAML::Node node;
 
     if (!script.scripts.empty()) {
@@ -3245,7 +3245,7 @@ YAML::Node Editor::Stream::encodeScriptComponent(const ScriptComponent& script) 
     return node;
 }
 
-ScriptComponent Editor::Stream::decodeScriptComponent(const YAML::Node& node, const ScriptComponent* oldScript) {
+ScriptComponent editor::Stream::decodeScriptComponent(const YAML::Node& node, const ScriptComponent* oldScript) {
     ScriptComponent script;
 
     // Use old values as defaults if provided
@@ -3290,7 +3290,7 @@ ScriptComponent Editor::Stream::decodeScriptComponent(const YAML::Node& node, co
     return script;
 }
 
-YAML::Node Editor::Stream::encodeSkyComponent(const SkyComponent& sky) {
+YAML::Node editor::Stream::encodeSkyComponent(const SkyComponent& sky) {
     YAML::Node node;
 
     const bool useDefaultTexture = (sky.texture.getId() == "editor:resources:default_sky");
@@ -3302,7 +3302,7 @@ YAML::Node Editor::Stream::encodeSkyComponent(const SkyComponent& sky) {
     return node;
 }
 
-SkyComponent Editor::Stream::decodeSkyComponent(const YAML::Node& node, const SkyComponent* oldSky) {
+SkyComponent editor::Stream::decodeSkyComponent(const YAML::Node& node, const SkyComponent* oldSky) {
     SkyComponent sky;
 
     if (oldSky) {
@@ -3336,14 +3336,14 @@ SkyComponent Editor::Stream::decodeSkyComponent(const YAML::Node& node, const Sk
 // BundleComponent
 // ==============================
 
-YAML::Node Editor::Stream::encodeBundleComponent(const BundleComponent& bundle) {
+YAML::Node editor::Stream::encodeBundleComponent(const BundleComponent& bundle) {
     YAML::Node node;
     node["name"] = bundle.name;
     node["path"] = bundle.path;
     return node;
 }
 
-BundleComponent Editor::Stream::decodeBundleComponent(const YAML::Node& node, const BundleComponent* oldBundle) {
+BundleComponent editor::Stream::decodeBundleComponent(const YAML::Node& node, const BundleComponent* oldBundle) {
     BundleComponent bundle;
 
     if (oldBundle) {
@@ -3360,7 +3360,7 @@ BundleComponent Editor::Stream::decodeBundleComponent(const YAML::Node& node, co
 // Body/Joint type string converters
 // ==============================
 
-std::string Editor::Stream::bodyTypeToString(BodyType type) {
+std::string editor::Stream::bodyTypeToString(BodyType type) {
     switch (type) {
         case BodyType::STATIC: return "static";
         case BodyType::KINEMATIC: return "kinematic";
@@ -3369,13 +3369,13 @@ std::string Editor::Stream::bodyTypeToString(BodyType type) {
     }
 }
 
-BodyType Editor::Stream::stringToBodyType(const std::string& str) {
+BodyType editor::Stream::stringToBodyType(const std::string& str) {
     if (str == "kinematic") return BodyType::KINEMATIC;
     if (str == "dynamic") return BodyType::DYNAMIC;
     return BodyType::STATIC;
 }
 
-std::string Editor::Stream::shape2DTypeToString(Shape2DType type) {
+std::string editor::Stream::shape2DTypeToString(Shape2DType type) {
     switch (type) {
         case Shape2DType::POLYGON: return "polygon";
         case Shape2DType::CIRCLE: return "circle";
@@ -3386,7 +3386,7 @@ std::string Editor::Stream::shape2DTypeToString(Shape2DType type) {
     }
 }
 
-Shape2DType Editor::Stream::stringToShape2DType(const std::string& str) {
+Shape2DType editor::Stream::stringToShape2DType(const std::string& str) {
     if (str == "circle") return Shape2DType::CIRCLE;
     if (str == "capsule") return Shape2DType::CAPSULE;
     if (str == "segment") return Shape2DType::SEGMENT;
@@ -3394,7 +3394,7 @@ Shape2DType Editor::Stream::stringToShape2DType(const std::string& str) {
     return Shape2DType::POLYGON;
 }
 
-std::string Editor::Stream::shape3DTypeToString(Shape3DType type) {
+std::string editor::Stream::shape3DTypeToString(Shape3DType type) {
     switch (type) {
         case Shape3DType::SPHERE: return "sphere";
         case Shape3DType::BOX: return "box";
@@ -3408,7 +3408,7 @@ std::string Editor::Stream::shape3DTypeToString(Shape3DType type) {
     }
 }
 
-Shape3DType Editor::Stream::stringToShape3DType(const std::string& str) {
+Shape3DType editor::Stream::stringToShape3DType(const std::string& str) {
     if (str == "box") return Shape3DType::BOX;
     if (str == "capsule") return Shape3DType::CAPSULE;
     if (str == "tapered_capsule") return Shape3DType::TAPERED_CAPSULE;
@@ -3419,7 +3419,7 @@ Shape3DType Editor::Stream::stringToShape3DType(const std::string& str) {
     return Shape3DType::SPHERE;
 }
 
-std::string Editor::Stream::joint2DTypeToString(Joint2DType type) {
+std::string editor::Stream::joint2DTypeToString(Joint2DType type) {
     switch (type) {
         case Joint2DType::DISTANCE: return "distance";
         case Joint2DType::REVOLUTE: return "revolute";
@@ -3432,7 +3432,7 @@ std::string Editor::Stream::joint2DTypeToString(Joint2DType type) {
     }
 }
 
-Joint2DType Editor::Stream::stringToJoint2DType(const std::string& str) {
+Joint2DType editor::Stream::stringToJoint2DType(const std::string& str) {
     if (str == "revolute") return Joint2DType::REVOLUTE;
     if (str == "prismatic") return Joint2DType::PRISMATIC;
     if (str == "mouse") return Joint2DType::MOUSE;
@@ -3442,7 +3442,7 @@ Joint2DType Editor::Stream::stringToJoint2DType(const std::string& str) {
     return Joint2DType::DISTANCE;
 }
 
-std::string Editor::Stream::joint3DTypeToString(Joint3DType type) {
+std::string editor::Stream::joint3DTypeToString(Joint3DType type) {
     switch (type) {
         case Joint3DType::FIXED: return "fixed";
         case Joint3DType::DISTANCE: return "distance";
@@ -3460,7 +3460,7 @@ std::string Editor::Stream::joint3DTypeToString(Joint3DType type) {
     }
 }
 
-Joint3DType Editor::Stream::stringToJoint3DType(const std::string& str) {
+Joint3DType editor::Stream::stringToJoint3DType(const std::string& str) {
     if (str == "distance") return Joint3DType::DISTANCE;
     if (str == "point") return Joint3DType::POINT;
     if (str == "hinge") return Joint3DType::HINGE;
@@ -3479,7 +3479,7 @@ Joint3DType Editor::Stream::stringToJoint3DType(const std::string& str) {
 // Body2DComponent encode/decode
 // ==============================
 
-YAML::Node Editor::Stream::encodeBody2DComponent(const Body2DComponent& body) {
+YAML::Node editor::Stream::encodeBody2DComponent(const Body2DComponent& body) {
     YAML::Node node;
 
     node["type"] = bodyTypeToString(body.type);
@@ -3518,7 +3518,7 @@ YAML::Node Editor::Stream::encodeBody2DComponent(const Body2DComponent& body) {
     return node;
 }
 
-Body2DComponent Editor::Stream::decodeBody2DComponent(const YAML::Node& node, const Body2DComponent* oldBody) {
+Body2DComponent editor::Stream::decodeBody2DComponent(const YAML::Node& node, const Body2DComponent* oldBody) {
     Body2DComponent body;
 
     if (oldBody) {
@@ -3579,7 +3579,7 @@ Body2DComponent Editor::Stream::decodeBody2DComponent(const YAML::Node& node, co
 // Body3DComponent encode/decode
 // ==============================
 
-YAML::Node Editor::Stream::encodeBody3DComponent(const Body3DComponent& body) {
+YAML::Node editor::Stream::encodeBody3DComponent(const Body3DComponent& body) {
     YAML::Node node;
 
     node["type"] = bodyTypeToString(body.type);
@@ -3630,7 +3630,7 @@ YAML::Node Editor::Stream::encodeBody3DComponent(const Body3DComponent& body) {
     return node;
 }
 
-Body3DComponent Editor::Stream::decodeBody3DComponent(const YAML::Node& node, const Body3DComponent* oldBody) {
+Body3DComponent editor::Stream::decodeBody3DComponent(const YAML::Node& node, const Body3DComponent* oldBody) {
     Body3DComponent body;
     constexpr float kMaxSingleShapeLocalOffset = 50.0f;
 
@@ -3722,7 +3722,7 @@ Body3DComponent Editor::Stream::decodeBody3DComponent(const YAML::Node& node, co
 // Joint2DComponent encode/decode
 // ==============================
 
-YAML::Node Editor::Stream::encodeJoint2DComponent(const Joint2DComponent& joint) {
+YAML::Node editor::Stream::encodeJoint2DComponent(const Joint2DComponent& joint) {
     YAML::Node node;
 
     node["type"] = joint2DTypeToString(joint.type);
@@ -3738,7 +3738,7 @@ YAML::Node Editor::Stream::encodeJoint2DComponent(const Joint2DComponent& joint)
     return node;
 }
 
-Joint2DComponent Editor::Stream::decodeJoint2DComponent(const YAML::Node& node, const Joint2DComponent* oldJoint) {
+Joint2DComponent editor::Stream::decodeJoint2DComponent(const YAML::Node& node, const Joint2DComponent* oldJoint) {
     Joint2DComponent joint;
 
     if (oldJoint) {
@@ -3766,7 +3766,7 @@ Joint2DComponent Editor::Stream::decodeJoint2DComponent(const YAML::Node& node, 
 // Joint3DComponent encode/decode
 // ==============================
 
-YAML::Node Editor::Stream::encodeJoint3DComponent(const Joint3DComponent& joint) {
+YAML::Node editor::Stream::encodeJoint3DComponent(const Joint3DComponent& joint) {
     YAML::Node node;
 
     node["type"] = joint3DTypeToString(joint.type);
@@ -3810,7 +3810,7 @@ YAML::Node Editor::Stream::encodeJoint3DComponent(const Joint3DComponent& joint)
     return node;
 }
 
-Joint3DComponent Editor::Stream::decodeJoint3DComponent(const YAML::Node& node, const Joint3DComponent* oldJoint) {
+Joint3DComponent editor::Stream::decodeJoint3DComponent(const YAML::Node& node, const Joint3DComponent* oldJoint) {
     Joint3DComponent joint;
 
     if (oldJoint) {
@@ -3865,7 +3865,7 @@ Joint3DComponent Editor::Stream::decodeJoint3DComponent(const YAML::Node& node, 
 
 // ── ActionComponent ──
 
-std::string Editor::Stream::actionStateToString(ActionState state) {
+std::string editor::Stream::actionStateToString(ActionState state) {
     switch (state) {
         case ActionState::Running: return "Running";
         case ActionState::Paused: return "Paused";
@@ -3874,13 +3874,13 @@ std::string Editor::Stream::actionStateToString(ActionState state) {
     }
 }
 
-ActionState Editor::Stream::stringToActionState(const std::string& str) {
+ActionState editor::Stream::stringToActionState(const std::string& str) {
     if (str == "Running") return ActionState::Running;
     if (str == "Paused") return ActionState::Paused;
     return ActionState::Stopped;
 }
 
-YAML::Node Editor::Stream::encodeActionComponent(const ActionComponent& action) {
+YAML::Node editor::Stream::encodeActionComponent(const ActionComponent& action) {
     YAML::Node node;
 
     node["state"] = actionStateToString(action.state);
@@ -3891,7 +3891,7 @@ YAML::Node Editor::Stream::encodeActionComponent(const ActionComponent& action) 
     return node;
 }
 
-ActionComponent Editor::Stream::decodeActionComponent(const YAML::Node& node, const ActionComponent* oldAction) {
+ActionComponent editor::Stream::decodeActionComponent(const YAML::Node& node, const ActionComponent* oldAction) {
     ActionComponent action;
 
     if (oldAction) {
@@ -3913,7 +3913,7 @@ ActionComponent Editor::Stream::decodeActionComponent(const YAML::Node& node, co
 
 // ── SpriteAnimationComponent ──
 
-YAML::Node Editor::Stream::encodeSpriteAnimationComponent(const SpriteAnimationComponent& spriteanim) {
+YAML::Node editor::Stream::encodeSpriteAnimationComponent(const SpriteAnimationComponent& spriteanim) {
     YAML::Node node;
 
     node["name"] = spriteanim.name;
@@ -3934,7 +3934,7 @@ YAML::Node Editor::Stream::encodeSpriteAnimationComponent(const SpriteAnimationC
     return node;
 }
 
-SpriteAnimationComponent Editor::Stream::decodeSpriteAnimationComponent(const YAML::Node& node, const SpriteAnimationComponent* oldSpriteanim) {
+SpriteAnimationComponent editor::Stream::decodeSpriteAnimationComponent(const YAML::Node& node, const SpriteAnimationComponent* oldSpriteanim) {
     SpriteAnimationComponent spriteanim;
 
     if (oldSpriteanim) {
@@ -3971,7 +3971,7 @@ SpriteAnimationComponent Editor::Stream::decodeSpriteAnimationComponent(const YA
 
 // ── AnimationComponent ──
 
-YAML::Node Editor::Stream::encodeAnimationComponent(const AnimationComponent& animation) {
+YAML::Node editor::Stream::encodeAnimationComponent(const AnimationComponent& animation) {
     YAML::Node node;
 
     node["name"] = animation.name;
@@ -3993,7 +3993,7 @@ YAML::Node Editor::Stream::encodeAnimationComponent(const AnimationComponent& an
     return node;
 }
 
-AnimationComponent Editor::Stream::decodeAnimationComponent(const YAML::Node& node, const AnimationComponent* oldAnimation) {
+AnimationComponent editor::Stream::decodeAnimationComponent(const YAML::Node& node, const AnimationComponent* oldAnimation) {
     AnimationComponent animation;
 
     if (oldAnimation) {
@@ -4020,7 +4020,7 @@ AnimationComponent Editor::Stream::decodeAnimationComponent(const YAML::Node& no
     return animation;
 }
 
-YAML::Node Editor::Stream::encodeBoneComponent(const BoneComponent& bone) {
+YAML::Node editor::Stream::encodeBoneComponent(const BoneComponent& bone) {
     YAML::Node node;
 
     node["model"] = static_cast<uint32_t>(bone.model);
@@ -4033,7 +4033,7 @@ YAML::Node Editor::Stream::encodeBoneComponent(const BoneComponent& bone) {
     return node;
 }
 
-BoneComponent Editor::Stream::decodeBoneComponent(const YAML::Node& node, const BoneComponent* oldBone) {
+BoneComponent editor::Stream::decodeBoneComponent(const YAML::Node& node, const BoneComponent* oldBone) {
     BoneComponent bone;
 
     if (oldBone) {
@@ -4050,7 +4050,7 @@ BoneComponent Editor::Stream::decodeBoneComponent(const YAML::Node& node, const 
     return bone;
 }
 
-YAML::Node Editor::Stream::encodeKeyframeTracksComponent(const KeyframeTracksComponent& tracks) {
+YAML::Node editor::Stream::encodeKeyframeTracksComponent(const KeyframeTracksComponent& tracks) {
     YAML::Node node;
 
     node["index"] = tracks.index;
@@ -4065,7 +4065,7 @@ YAML::Node Editor::Stream::encodeKeyframeTracksComponent(const KeyframeTracksCom
     return node;
 }
 
-KeyframeTracksComponent Editor::Stream::decodeKeyframeTracksComponent(const YAML::Node& node, const KeyframeTracksComponent* oldTracks) {
+KeyframeTracksComponent editor::Stream::decodeKeyframeTracksComponent(const YAML::Node& node, const KeyframeTracksComponent* oldTracks) {
     KeyframeTracksComponent tracks;
 
     if (oldTracks) {
@@ -4085,7 +4085,7 @@ KeyframeTracksComponent Editor::Stream::decodeKeyframeTracksComponent(const YAML
     return tracks;
 }
 
-YAML::Node Editor::Stream::encodeTranslateTracksComponent(const TranslateTracksComponent& tracks) {
+YAML::Node editor::Stream::encodeTranslateTracksComponent(const TranslateTracksComponent& tracks) {
     YAML::Node node;
 
     YAML::Node valuesNode;
@@ -4097,7 +4097,7 @@ YAML::Node Editor::Stream::encodeTranslateTracksComponent(const TranslateTracksC
     return node;
 }
 
-TranslateTracksComponent Editor::Stream::decodeTranslateTracksComponent(const YAML::Node& node, const TranslateTracksComponent* oldTracks) {
+TranslateTracksComponent editor::Stream::decodeTranslateTracksComponent(const YAML::Node& node, const TranslateTracksComponent* oldTracks) {
     TranslateTracksComponent tracks;
 
     if (oldTracks) {
@@ -4114,7 +4114,7 @@ TranslateTracksComponent Editor::Stream::decodeTranslateTracksComponent(const YA
     return tracks;
 }
 
-YAML::Node Editor::Stream::encodeRotateTracksComponent(const RotateTracksComponent& tracks) {
+YAML::Node editor::Stream::encodeRotateTracksComponent(const RotateTracksComponent& tracks) {
     YAML::Node node;
 
     YAML::Node valuesNode;
@@ -4126,7 +4126,7 @@ YAML::Node Editor::Stream::encodeRotateTracksComponent(const RotateTracksCompone
     return node;
 }
 
-RotateTracksComponent Editor::Stream::decodeRotateTracksComponent(const YAML::Node& node, const RotateTracksComponent* oldTracks) {
+RotateTracksComponent editor::Stream::decodeRotateTracksComponent(const YAML::Node& node, const RotateTracksComponent* oldTracks) {
     RotateTracksComponent tracks;
 
     if (oldTracks) {
@@ -4143,7 +4143,7 @@ RotateTracksComponent Editor::Stream::decodeRotateTracksComponent(const YAML::No
     return tracks;
 }
 
-YAML::Node Editor::Stream::encodeScaleTracksComponent(const ScaleTracksComponent& tracks) {
+YAML::Node editor::Stream::encodeScaleTracksComponent(const ScaleTracksComponent& tracks) {
     YAML::Node node;
 
     YAML::Node valuesNode;
@@ -4155,7 +4155,7 @@ YAML::Node Editor::Stream::encodeScaleTracksComponent(const ScaleTracksComponent
     return node;
 }
 
-ScaleTracksComponent Editor::Stream::decodeScaleTracksComponent(const YAML::Node& node, const ScaleTracksComponent* oldTracks) {
+ScaleTracksComponent editor::Stream::decodeScaleTracksComponent(const YAML::Node& node, const ScaleTracksComponent* oldTracks) {
     ScaleTracksComponent tracks;
 
     if (oldTracks) {
@@ -4172,7 +4172,7 @@ ScaleTracksComponent Editor::Stream::decodeScaleTracksComponent(const YAML::Node
     return tracks;
 }
 
-YAML::Node Editor::Stream::encodeMorphTracksComponent(const MorphTracksComponent& tracks) {
+YAML::Node editor::Stream::encodeMorphTracksComponent(const MorphTracksComponent& tracks) {
     YAML::Node node;
 
     YAML::Node valuesNode;
@@ -4188,7 +4188,7 @@ YAML::Node Editor::Stream::encodeMorphTracksComponent(const MorphTracksComponent
     return node;
 }
 
-MorphTracksComponent Editor::Stream::decodeMorphTracksComponent(const YAML::Node& node, const MorphTracksComponent* oldTracks) {
+MorphTracksComponent editor::Stream::decodeMorphTracksComponent(const YAML::Node& node, const MorphTracksComponent* oldTracks) {
     MorphTracksComponent tracks;
 
     if (oldTracks) {

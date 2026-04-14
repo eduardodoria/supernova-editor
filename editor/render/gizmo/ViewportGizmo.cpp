@@ -4,9 +4,9 @@
 #include "math/AABB.h"
 #include <limits>
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::ViewportGizmo::ViewportGizmo(){
+editor::ViewportGizmo::ViewportGizmo(){
     scene = new Scene(EntityPool::System);
     camera = new Camera(scene);
     mainObject = new Object(scene);
@@ -64,7 +64,7 @@ Editor::ViewportGizmo::ViewportGizmo(){
     camera->setRenderToTexture(true);
 }
 
-Editor::ViewportGizmo::~ViewportGizmo(){
+editor::ViewportGizmo::~ViewportGizmo(){
     delete camera;
     delete mainObject;
     delete cube;
@@ -78,7 +78,7 @@ Editor::ViewportGizmo::~ViewportGizmo(){
     delete scene;
 }
 
-void Editor::ViewportGizmo::applyRotation(Camera* sceneCam){
+void editor::ViewportGizmo::applyRotation(Camera* sceneCam){
     Vector3 direction = sceneCam->getWorldDirection();
     Vector3 right = sceneCam->getWorldRight();
     Vector3 up = direction.crossProduct(right);
@@ -86,23 +86,23 @@ void Editor::ViewportGizmo::applyRotation(Camera* sceneCam){
     mainObject->setRotation(Quaternion(right, up, direction).inverse());
 }
 
-Framebuffer* Editor::ViewportGizmo::getFramebuffer(){
+Framebuffer* editor::ViewportGizmo::getFramebuffer(){
     return camera->getFramebuffer();
 }
 
-TextureRender& Editor::ViewportGizmo::getTexture(){
+TextureRender& editor::ViewportGizmo::getTexture(){
     return getFramebuffer()->getRender().getColorTexture();
 }
 
-Scene* Editor::ViewportGizmo::getScene(){
+Scene* editor::ViewportGizmo::getScene(){
     return scene;
 }
 
-Object* Editor::ViewportGizmo::getObject(){
+Object* editor::ViewportGizmo::getObject(){
     return mainObject;
 }
 
-Editor::ViewportGizmoAxis Editor::ViewportGizmo::hitTest(float normalizedX, float normalizedY) const {
+editor::ViewportGizmoAxis editor::ViewportGizmo::hitTest(float normalizedX, float normalizedY) const {
     // Build a ray from the click position through the gizmo's 3D scene
     Matrix4 invVP = camera->getViewProjectionMatrix().inverse();
 

@@ -4,7 +4,7 @@
 #include "object/ui/Polygon.h"
 #include "math/Rect.h"
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     class AnchorGizmo: public Object{
     private:

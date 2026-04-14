@@ -1,5 +1,5 @@
 #include "Engine.h"
-#include "SupernovaSokol.h"
+#include "DoriaxSokol.h"
 #include "Input.h"
 
 #include "sokol_gfx.h"
@@ -7,12 +7,12 @@
 #include "sokol_glue.h"
 
 void sokol_init(void) {
-    Supernova::Engine::systemViewLoaded();
-    Supernova::Engine::systemViewChanged();
+    doriax::Engine::systemViewLoaded();
+    doriax::Engine::systemViewChanged();
 }
 
 void sokol_frame(void) {
-    Supernova::Engine::systemDraw();
+    doriax::Engine::systemDraw();
 }
 
 int convMouseButtom(sapp_mousebutton mouse_button){
@@ -28,48 +28,48 @@ int convMouseButtom(sapp_mousebutton mouse_button){
 
 static void sokol_event(const sapp_event* e) {
     if (e->type == SAPP_EVENTTYPE_RESIZED){
-        Supernova::Engine::systemViewChanged();
+        doriax::Engine::systemViewChanged();
     }else if (e->type == SAPP_EVENTTYPE_CHAR){
         if (e->char_code != 127) // fix macos backspace
-            Supernova::Engine::systemCharInput(e->char_code);
+            doriax::Engine::systemCharInput(e->char_code);
     }else if (e->type == SAPP_EVENTTYPE_KEY_DOWN){
         if (e->key_code == SAPP_KEYCODE_TAB)
-            Supernova::Engine::systemCharInput('\t');
+            doriax::Engine::systemCharInput('\t');
         if (e->key_code == SAPP_KEYCODE_BACKSPACE)
-            Supernova::Engine::systemCharInput('\b');
+            doriax::Engine::systemCharInput('\b');
         if (e->key_code == SAPP_KEYCODE_ENTER)
-            Supernova::Engine::systemCharInput('\r');
+            doriax::Engine::systemCharInput('\r');
         if (e->key_code == SAPP_KEYCODE_ESCAPE)
-            Supernova::Engine::systemCharInput('\33'); // removed 'e' to avoid warnings
+            doriax::Engine::systemCharInput('\33'); // removed 'e' to avoid warnings
         // use same keycode of GLFW
-        Supernova::Engine::systemKeyDown(e->key_code, e->key_repeat, e->modifiers);
+        doriax::Engine::systemKeyDown(e->key_code, e->key_repeat, e->modifiers);
     }else if (e->type == SAPP_EVENTTYPE_KEY_UP){
         // use same keycode of GLFW
-        Supernova::Engine::systemKeyUp(e->key_code, e->key_repeat, e->modifiers);
+        doriax::Engine::systemKeyUp(e->key_code, e->key_repeat, e->modifiers);
     }else if (e->type == SAPP_EVENTTYPE_SUSPENDED){
-        Supernova::Engine::systemPause();
+        doriax::Engine::systemPause();
     }else if (e->type == SAPP_EVENTTYPE_RESUMED){
-        Supernova::Engine::systemResume();  
+        doriax::Engine::systemResume();  
     }else if (e->type == SAPP_EVENTTYPE_MOUSE_UP){
-        Supernova::Engine::systemMouseUp(convMouseButtom(e->mouse_button), e->mouse_x, e->mouse_y, e->modifiers);  
+        doriax::Engine::systemMouseUp(convMouseButtom(e->mouse_button), e->mouse_x, e->mouse_y, e->modifiers);  
     }else if (e->type == SAPP_EVENTTYPE_MOUSE_DOWN){
-        Supernova::Engine::systemMouseDown(convMouseButtom(e->mouse_button), e->mouse_x, e->mouse_y, e->modifiers);
+        doriax::Engine::systemMouseDown(convMouseButtom(e->mouse_button), e->mouse_x, e->mouse_y, e->modifiers);
     }else if (e->type == SAPP_EVENTTYPE_MOUSE_UP){
-        Supernova::Engine::systemMouseUp(convMouseButtom(e->mouse_button), e->mouse_x, e->mouse_y, e->modifiers);
+        doriax::Engine::systemMouseUp(convMouseButtom(e->mouse_button), e->mouse_x, e->mouse_y, e->modifiers);
     }else if (e->type == SAPP_EVENTTYPE_MOUSE_MOVE){
-        Supernova::Engine::systemMouseMove(e->mouse_x, e->mouse_y, e->modifiers);
+        doriax::Engine::systemMouseMove(e->mouse_x, e->mouse_y, e->modifiers);
     }else if (e->type == SAPP_EVENTTYPE_MOUSE_SCROLL){
-        Supernova::Engine::systemMouseScroll(e->scroll_x, e->scroll_y, e->modifiers);
+        doriax::Engine::systemMouseScroll(e->scroll_x, e->scroll_y, e->modifiers);
     }else if (e->type == SAPP_EVENTTYPE_MOUSE_ENTER){
-        Supernova::Engine::systemMouseEnter();
+        doriax::Engine::systemMouseEnter();
     }else if (e->type == SAPP_EVENTTYPE_MOUSE_LEAVE){
-        Supernova::Engine::systemMouseLeave();
+        doriax::Engine::systemMouseLeave();
     }
 }
 
 void sokol_cleanup(void) {
-    Supernova::Engine::systemViewDestroyed();
-    Supernova::Engine::systemShutdown();
+    doriax::Engine::systemViewDestroyed();
+    doriax::Engine::systemShutdown();
 }
 
 sapp_desc sokol_main(int argc, char* argv[]) {
@@ -85,9 +85,9 @@ sapp_desc sokol_main(int argc, char* argv[]) {
     app_desc.width = DEFAULT_WINDOW_WIDTH;
     app_desc.height = DEFAULT_WINDOW_HEIGHT;
     app_desc.sample_count = 4;
-    app_desc.window_title = "Supernova";
+    app_desc.window_title = "Doriax";
 
-    Supernova::Engine::systemInit(argc, argv, new SupernovaSokol());
+    doriax::Engine::systemInit(argc, argv, new DoriaxSokol());
 
     return app_desc;
 }

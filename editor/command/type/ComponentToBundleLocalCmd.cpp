@@ -2,9 +2,9 @@
 
 #include "Stream.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::ComponentToBundleLocalCmd::ComponentToBundleLocalCmd(Project* project, uint32_t sceneId, Entity entity, ComponentType componentType){
+editor::ComponentToBundleLocalCmd::ComponentToBundleLocalCmd(Project* project, uint32_t sceneId, Entity entity, ComponentType componentType){
     this->project = project;
     this->sceneId = sceneId;
     this->entities.push_back(entity);
@@ -13,7 +13,7 @@ Editor::ComponentToBundleLocalCmd::ComponentToBundleLocalCmd(Project* project, u
     this->wasModified = project->getScene(sceneId)->isModified;
 }
 
-bool Editor::ComponentToBundleLocalCmd::execute() {
+bool editor::ComponentToBundleLocalCmd::execute() {
     SceneProject* sceneProject = project->getScene(sceneId);
     for (Entity entity : entities){
         fs::path filepath = project->findEntityBundlePathFor(sceneId, entity);
@@ -33,7 +33,7 @@ bool Editor::ComponentToBundleLocalCmd::execute() {
     return true;
 }
 
-void Editor::ComponentToBundleLocalCmd::undo() {
+void editor::ComponentToBundleLocalCmd::undo() {
     SceneProject* sceneProject = project->getScene(sceneId);
     for (Entity entity : entities){
         fs::path filepath = project->findEntityBundlePathFor(sceneId, entity);
@@ -50,7 +50,7 @@ void Editor::ComponentToBundleLocalCmd::undo() {
     sceneProject->isModified = wasModified;
 }
 
-bool Editor::ComponentToBundleLocalCmd::mergeWith(Command* otherCommand){
+bool editor::ComponentToBundleLocalCmd::mergeWith(Command* otherCommand){
     ComponentToBundleLocalCmd* otherCmd = dynamic_cast<ComponentToBundleLocalCmd*>(otherCommand);
     if (otherCmd != nullptr){
         if (sceneId == otherCmd->sceneId){

@@ -10,7 +10,7 @@
 #include <regex>
 #include <chrono>
 
-namespace Supernova::Editor {
+namespace doriax::editor {
 
     // Forward declarations
     class SemanticSuggestions;
@@ -378,4 +378,4 @@ namespace Supernova::Editor {
         int getOffsetFromColumn(int lineIndex, int column) const;
     };
 
-} // namespace Supernova::Editor
+} // namespace doriax::editor

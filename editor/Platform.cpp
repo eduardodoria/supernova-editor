@@ -1,19 +1,19 @@
 #include "Platform.h"
 #include "Out.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-int Editor::Platform::width = 0;
-int Editor::Platform::height = 0;
+int editor::Platform::width = 0;
+int editor::Platform::height = 0;
 
-Editor::Platform::Platform(Project* project) : System() {
+editor::Platform::Platform(Project* project) : System() {
     this->project = project;
 }
 
-bool Editor::Platform::setSizes(int width, int height){
-    if (Editor::Platform::width != width || Editor::Platform::height != height){
-        Editor::Platform::width = width;
-        Editor::Platform::height = height;
+bool editor::Platform::setSizes(int width, int height){
+    if (editor::Platform::width != width || editor::Platform::height != height){
+        editor::Platform::width = width;
+        editor::Platform::height = height;
 
         return true;
     }
@@ -21,31 +21,31 @@ bool Editor::Platform::setSizes(int width, int height){
     return false;
 }
 
-int Editor::Platform::getScreenWidth(){
+int editor::Platform::getScreenWidth(){
     return width;
 }
 
-int Editor::Platform::getScreenHeight(){
+int editor::Platform::getScreenHeight(){
     return height;
 }
 
-std::string Editor::Platform::getAssetPath(){
+std::string editor::Platform::getAssetPath(){
     return project->getProjectPath().string();
 }
 
-void Editor::Platform::platformLog(const int type, const char *fmt, va_list args){
+void editor::Platform::platformLog(const int type, const char *fmt, va_list args){
     char buf[4096];
     vsnprintf(buf, sizeof(buf), fmt, args);
 
     switch (type) {
         case S_LOG_WARN:
-            Editor::Out::warning(buf);
+            editor::Out::warning(buf);
             break;
         case S_LOG_ERROR:
-            Editor::Out::error(buf);
+            editor::Out::error(buf);
             break;
         default:
-            Editor::Out::info(buf);
+            editor::Out::info(buf);
             break;
     }
 }

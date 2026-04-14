@@ -1,15 +1,15 @@
 #include "EntityNameCmd.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::EntityNameCmd::EntityNameCmd(Project* project, uint32_t sceneId, Entity entity, std::string name){
+editor::EntityNameCmd::EntityNameCmd(Project* project, uint32_t sceneId, Entity entity, std::string name){
     this->project = project;
     this->sceneId = sceneId;
     this->entity = entity;
     this->newName = name;
 }
 
-bool Editor::EntityNameCmd::execute(){
+bool editor::EntityNameCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     oldName = sceneProject->scene->getEntityName(entity);
@@ -25,7 +25,7 @@ bool Editor::EntityNameCmd::execute(){
     return true;
 }
 
-void Editor::EntityNameCmd::undo(){
+void editor::EntityNameCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     if (project->isEntityInBundle(sceneId, entity)){
@@ -36,7 +36,7 @@ void Editor::EntityNameCmd::undo(){
     sceneProject->isModified = wasModified;
 }
 
-bool Editor::EntityNameCmd::mergeWith(Editor::Command* otherCommand){
+bool editor::EntityNameCmd::mergeWith(editor::Command* otherCommand){
     EntityNameCmd* otherCmd = dynamic_cast<EntityNameCmd*>(otherCommand);
     if (otherCmd != nullptr){
         if (sceneId == otherCmd->sceneId && entity == otherCmd->entity){

@@ -2,7 +2,7 @@
 #include "App.h"
 #include "external/IconsFontAwesome6.h"
 
-namespace Supernova::Editor {
+namespace doriax::editor {
 
 bool UIUtils::searchInput(const char* id, std::string hint, char* buffer, size_t bufferSize, bool autoFocus, bool* matchCase, float fixedWidth) {
     ImGui::BeginGroup();

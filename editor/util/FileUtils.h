@@ -6,7 +6,7 @@
 #include <system_error>
 #include <iterator>
 
-namespace Supernova::Editor {
+namespace doriax::editor {
 
 class FileUtils {
 public:
@@ -48,4 +48,4 @@ public:
     }
 };
 
-} // namespace Supernova::Editor
+} // namespace doriax::editor

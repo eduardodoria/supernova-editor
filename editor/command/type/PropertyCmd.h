@@ -10,7 +10,7 @@
 #include <type_traits>
 
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
 
     template<typename T, typename = void>
@@ -137,7 +137,7 @@ namespace Supernova::Editor{
             }
         }
 
-        bool mergeWith(Editor::Command* otherCommand) override{
+        bool mergeWith(editor::Command* otherCommand) override{
             PropertyCmd* otherCmd = dynamic_cast<PropertyCmd*>(otherCommand);
             if (otherCmd != nullptr){
                 if (sceneId == otherCmd->sceneId && propertyName == otherCmd->propertyName){

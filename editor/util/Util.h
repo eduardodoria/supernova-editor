@@ -9,7 +9,7 @@
 #include "Backend.h"
 #include "imgui.h"
 
-namespace Supernova::Editor{
+namespace doriax::editor{
     class Util{
 
     public:

@@ -2,8 +2,8 @@
 // (c) 2026 Eduardo Doria.
 //
 
-#include "SupernovaGLFW.h"
+#include "DoriaxGLFW.h"
 
 int main(int argc, char* argv[]) {
-    return SupernovaGLFW::init(argc, argv);
+    return DoriaxGLFW::init(argc, argv);
 }

@@ -5,14 +5,14 @@
 #include "util/ProjectUtils.h"
 #include "command/type/MoveEntityOrderCmd.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::DeleteEntityCmd::DeleteEntityCmd(Project* project, uint32_t sceneId, Entity entity, bool allowLockedRoots)
+editor::DeleteEntityCmd::DeleteEntityCmd(Project* project, uint32_t sceneId, Entity entity, bool allowLockedRoots)
     : DeleteEntityCmd(project, sceneId, std::vector<Entity>{entity}, allowLockedRoots){
 
 }
 
-Editor::DeleteEntityCmd::DeleteEntityCmd(Project* project, uint32_t sceneId, const std::vector<Entity>& entities, bool allowLockedRoots){
+editor::DeleteEntityCmd::DeleteEntityCmd(Project* project, uint32_t sceneId, const std::vector<Entity>& entities, bool allowLockedRoots){
     this->project = project;
     this->sceneId = sceneId;
     this->requestedEntities = entities;
@@ -46,7 +46,7 @@ Editor::DeleteEntityCmd::DeleteEntityCmd(Project* project, uint32_t sceneId, con
     this->wasModified = project->getScene(sceneId)->isModified;
 }
 
-void Editor::DeleteEntityCmd::destroyEntity(EntityRegistry* registry, Entity entity, std::vector<Entity>& entities, Project* project, uint32_t sceneId){
+void editor::DeleteEntityCmd::destroyEntity(EntityRegistry* registry, Entity entity, std::vector<Entity>& entities, Project* project, uint32_t sceneId){
     if (registry->isEntityCreated(entity)){ // locked child are deleted by systems when their parent is deleted
         registry->destroyEntity(entity);
     }
@@ -68,7 +68,7 @@ void Editor::DeleteEntityCmd::destroyEntity(EntityRegistry* registry, Entity ent
     }
 }
 
-bool Editor::DeleteEntityCmd::execute(){
+bool editor::DeleteEntityCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     std::vector<Entity> entitiesToDelete;
@@ -178,7 +178,7 @@ bool Editor::DeleteEntityCmd::execute(){
     return true;
 }
 
-void Editor::DeleteEntityCmd::undo(){
+void editor::DeleteEntityCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     for (DeleteEntityData& entityData : entities){
@@ -202,7 +202,7 @@ void Editor::DeleteEntityCmd::undo(){
     sceneProject->isModified = wasModified;
 }
 
-bool Editor::DeleteEntityCmd::mergeWith(Editor::Command* otherCommand){
+bool editor::DeleteEntityCmd::mergeWith(editor::Command* otherCommand){
     DeleteEntityCmd* otherCmd = dynamic_cast<DeleteEntityCmd*>(otherCommand);
     if (otherCmd != nullptr){
         if (sceneId == otherCmd->sceneId){

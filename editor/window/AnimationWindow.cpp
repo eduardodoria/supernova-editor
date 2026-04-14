@@ -28,9 +28,9 @@
 #include <numeric>
 #include <unordered_set>
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::AnimationWindow::AnimationWindow(Project* project){
+editor::AnimationWindow::AnimationWindow(Project* project){
     this->project = project;
 
     isPlaying = false;
@@ -67,20 +67,20 @@ Editor::AnimationWindow::AnimationWindow(Project* project){
     selectedSceneId = 0;
 }
 
-float Editor::AnimationWindow::snapTime(float time) const {
+float editor::AnimationWindow::snapTime(float time) const {
     if (!snapToGrid || snapInterval <= 0) return time;
     return std::round(time / snapInterval) * snapInterval;
 }
 
-float Editor::AnimationWindow::timeToX(float time, float timeStart, ImVec2 canvasPos) const {
+float editor::AnimationWindow::timeToX(float time, float timeStart, ImVec2 canvasPos) const {
     return canvasPos.x + (time - timeStart) * pixelsPerSecond;
 }
 
-float Editor::AnimationWindow::xToTime(float x, float timeStart, ImVec2 canvasPos) const {
+float editor::AnimationWindow::xToTime(float x, float timeStart, ImVec2 canvasPos) const {
     return timeStart + (x - canvasPos.x) / pixelsPerSecond;
 }
 
-std::string Editor::AnimationWindow::getActionLabel(Entity actionEntity, Scene* scene) const {
+std::string editor::AnimationWindow::getActionLabel(Entity actionEntity, Scene* scene) const {
     if (actionEntity == NULL_ENTITY) return "Empty";
 
     Signature sig = scene->getSignature(actionEntity);
@@ -124,7 +124,7 @@ std::string Editor::AnimationWindow::getActionLabel(Entity actionEntity, Scene* 
     return "Action";
 }
 
-void Editor::AnimationWindow::selectEntity(Entity entity, uint32_t sceneId) {
+void editor::AnimationWindow::selectEntity(Entity entity, uint32_t sceneId) {
     if (selectedEntity != entity || selectedSceneId != sceneId) {
         // Stop any active preview before changing entity
         if (isPreviewing) {
@@ -144,7 +144,7 @@ void Editor::AnimationWindow::selectEntity(Entity entity, uint32_t sceneId) {
     }
 }
 
-bool Editor::AnimationWindow::canPreviewEntity(Entity entity, Scene* scene) const {
+bool editor::AnimationWindow::canPreviewEntity(Entity entity, Scene* scene) const {
     if (!scene || entity == NULL_ENTITY || !scene->isEntityCreated(entity)) {
         return false;
     }
@@ -154,7 +154,7 @@ bool Editor::AnimationWindow::canPreviewEntity(Entity entity, Scene* scene) cons
            signature.test(scene->getComponentId<ActionComponent>());
 }
 
-void Editor::AnimationWindow::collectPreviewEntitiesRecursive(Scene* scene, Entity entity, std::vector<Entity>& entities,
+void editor::AnimationWindow::collectPreviewEntitiesRecursive(Scene* scene, Entity entity, std::vector<Entity>& entities,
                                                               std::unordered_set<Entity>& visitedAnimations,
                                                               std::unordered_set<Entity>& collectedEntities) const {
     if (!canPreviewEntity(entity, scene) || !visitedAnimations.insert(entity).second) {
@@ -192,7 +192,7 @@ void Editor::AnimationWindow::collectPreviewEntitiesRecursive(Scene* scene, Enti
     }
 }
 
-Editor::AnimationWindow::PreviewEntityState Editor::AnimationWindow::buildPreviewEntityState(Scene* scene, Entity entity) const {
+editor::AnimationWindow::PreviewEntityState editor::AnimationWindow::buildPreviewEntityState(Scene* scene, Entity entity) const {
     PreviewEntityState state;
     state.entity = entity;
 
@@ -207,7 +207,7 @@ Editor::AnimationWindow::PreviewEntityState Editor::AnimationWindow::buildPrevie
     return state;
 }
 
-void Editor::AnimationWindow::restorePreviewState(Scene* scene) const {
+void editor::AnimationWindow::restorePreviewState(Scene* scene) const {
     for (const PreviewEntityState& state : previewState) {
         if (state.entity == NULL_ENTITY || !scene->isEntityCreated(state.entity) || !state.components || state.components.IsNull()) {
             continue;
@@ -217,7 +217,7 @@ void Editor::AnimationWindow::restorePreviewState(Scene* scene) const {
     }
 }
 
-void Editor::AnimationWindow::applyPreviewModelBindPose(Scene* scene) const {
+void editor::AnimationWindow::applyPreviewModelBindPose(Scene* scene) const {
     std::unordered_set<Entity> modelEntities;
 
     for (const PreviewEntityState& state : previewState) {
@@ -245,7 +245,7 @@ void Editor::AnimationWindow::applyPreviewModelBindPose(Scene* scene) const {
     }
 }
 
-float Editor::AnimationWindow::getAnimationDuration(const AnimationComponent& anim) const {
+float editor::AnimationWindow::getAnimationDuration(const AnimationComponent& anim) const {
     if (anim.duration > 0) {
         return anim.duration;
     }
@@ -258,7 +258,7 @@ float Editor::AnimationWindow::getAnimationDuration(const AnimationComponent& an
     return duration;
 }
 
-void Editor::AnimationWindow::seekPreview(Scene* scene, SceneProject* sceneProject, float time) {
+void editor::AnimationWindow::seekPreview(Scene* scene, SceneProject* sceneProject, float time) {
     if (!scene || !sceneProject || !canPreviewEntity(selectedEntity, scene)) {
         return;
     }
@@ -283,7 +283,7 @@ void Editor::AnimationWindow::seekPreview(Scene* scene, SceneProject* sceneProje
     sceneProject->needUpdateRender = true;
 }
 
-void Editor::AnimationWindow::startPreview(Scene* scene, SceneProject* sceneProject) {
+void editor::AnimationWindow::startPreview(Scene* scene, SceneProject* sceneProject) {
     if (isPreviewing || !canPreviewEntity(selectedEntity, scene)) {
         return;
     }
@@ -309,7 +309,7 @@ void Editor::AnimationWindow::startPreview(Scene* scene, SceneProject* sceneProj
     isPreviewing = true;
 }
 
-void Editor::AnimationWindow::stopPreview(Scene* scene, SceneProject* sceneProject, bool applyBindPose) {
+void editor::AnimationWindow::stopPreview(Scene* scene, SceneProject* sceneProject, bool applyBindPose) {
     if (!isPreviewing) return;
 
     restorePreviewState(scene);
@@ -329,7 +329,7 @@ void Editor::AnimationWindow::stopPreview(Scene* scene, SceneProject* sceneProje
     }
 }
 
-std::string Editor::AnimationWindow::getAnimationEntityLabel(Entity entity, AnimationComponent& anim, Scene* scene) const {
+std::string editor::AnimationWindow::getAnimationEntityLabel(Entity entity, AnimationComponent& anim, Scene* scene) const {
     std::string label = anim.name.empty() ? "Animation" : anim.name;
 
     ActionComponent* actionComp = scene->findComponent<ActionComponent>(entity);
@@ -343,7 +343,7 @@ std::string Editor::AnimationWindow::getAnimationEntityLabel(Entity entity, Anim
     return label;
 }
 
-void Editor::AnimationWindow::drawToolbar(float width, AnimationComponent& anim, Scene* scene, SceneProject* sceneProject) {
+void editor::AnimationWindow::drawToolbar(float width, AnimationComponent& anim, Scene* scene, SceneProject* sceneProject) {
     // Animation entity combo selector
     auto animations = scene->getComponentArray<AnimationComponent>();
     std::string currentLabel = getAnimationEntityLabel(selectedEntity, anim, scene);
@@ -524,7 +524,7 @@ void Editor::AnimationWindow::drawToolbar(float width, AnimationComponent& anim,
     }
 }
 
-void Editor::AnimationWindow::drawTimeRuler(ImVec2 canvasPos, ImVec2 canvasSize, float timeStart, float timeEnd) {
+void editor::AnimationWindow::drawTimeRuler(ImVec2 canvasPos, ImVec2 canvasSize, float timeStart, float timeEnd) {
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     float rulerHeight = 20.0f;
     float labelWidth = 120.0f;
@@ -575,7 +575,7 @@ void Editor::AnimationWindow::drawTimeRuler(ImVec2 canvasPos, ImVec2 canvasSize,
     }
 }
 
-bool Editor::AnimationWindow::drawTracks(ImVec2 canvasPos, ImVec2 canvasSize, float timeStart, float timeEnd,
+bool editor::AnimationWindow::drawTracks(ImVec2 canvasPos, ImVec2 canvasSize, float timeStart, float timeEnd,
                                          AnimationComponent& anim, SceneProject* sceneProject) {
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     Scene* scene = sceneProject->scene;
@@ -959,7 +959,7 @@ bool Editor::AnimationWindow::drawTracks(ImVec2 canvasPos, ImVec2 canvasSize, fl
     return mouseOverFrame;
 }
 
-bool Editor::AnimationWindow::drawPlayhead(ImVec2 canvasPos, ImVec2 canvasSize, float timeStart, float timeEnd) {
+bool editor::AnimationWindow::drawPlayhead(ImVec2 canvasPos, ImVec2 canvasSize, float timeStart, float timeEnd) {
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     float labelWidth = 120.0f;
 
@@ -1000,7 +1000,7 @@ bool Editor::AnimationWindow::drawPlayhead(ImVec2 canvasPos, ImVec2 canvasSize, 
     return scrubbed;
 }
 
-void Editor::AnimationWindow::show() {
+void editor::AnimationWindow::show() {
     static bool preventScroll = false;
 
     if (hasNotification) {
@@ -1264,23 +1264,23 @@ void Editor::AnimationWindow::show() {
     ImGui::End();
 }
 
-bool Editor::AnimationWindow::isPreviewingEntity(Entity entity, uint32_t sceneId) const {
+bool editor::AnimationWindow::isPreviewingEntity(Entity entity, uint32_t sceneId) const {
     return isPreviewing && selectedEntity == entity && selectedSceneId == sceneId;
 }
 
-bool Editor::AnimationWindow::getIsPlaying() const {
+bool editor::AnimationWindow::getIsPlaying() const {
     return isPlaying;
 }
 
-bool Editor::AnimationWindow::getIsPreviewing() const {
+bool editor::AnimationWindow::getIsPreviewing() const {
     return isPreviewing;
 }
 
-float Editor::AnimationWindow::getCurrentTime() const {
+float editor::AnimationWindow::getCurrentTime() const {
     return currentTime;
 }
 
-void Editor::AnimationWindow::externalPlay(Entity entity, uint32_t sceneId) {
+void editor::AnimationWindow::externalPlay(Entity entity, uint32_t sceneId) {
     SceneProject* sceneProject = project->getScene(sceneId);
     if (!sceneProject || !sceneProject->scene) return;
     Scene* scene = sceneProject->scene;
@@ -1303,7 +1303,7 @@ void Editor::AnimationWindow::externalPlay(Entity entity, uint32_t sceneId) {
     isPlaying = true;
 }
 
-void Editor::AnimationWindow::externalStop() {
+void editor::AnimationWindow::externalStop() {
     SceneProject* sceneProject = project->getScene(selectedSceneId);
     if (!sceneProject || !sceneProject->scene) return;
 
@@ -1314,10 +1314,10 @@ void Editor::AnimationWindow::externalStop() {
     }
 }
 
-void Editor::AnimationWindow::externalPause() {
+void editor::AnimationWindow::externalPause() {
     isPlaying = false;
 }
 
-void Editor::AnimationWindow::seekPreviewExternal(Scene* scene, SceneProject* sceneProject, float time) {
+void editor::AnimationWindow::seekPreviewExternal(Scene* scene, SceneProject* sceneProject, float time) {
     seekPreview(scene, sceneProject, time);
 }

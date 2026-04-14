@@ -1,26 +1,26 @@
 cmake_minimum_required(VERSION 3.15)
 
 if(NOT DEFINED APP_NAME)
-   set(APP_NAME supernova-project)
+   set(APP_NAME doriax-project)
 endif()
 
 project(${APP_NAME})
 
-set(SUPERNOVA_SHARED OFF)
+set(DORIAX_SHARED OFF)
 
-if(NOT SUPERNOVA_ROOT)
-    set(SUPERNOVA_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
+if(NOT DORIAX_ROOT)
+    set(DORIAX_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 endif()
-if (NOT EXISTS "${SUPERNOVA_ROOT}")
-    message(FATAL_ERROR "Can't find Supernova root directory: ${SUPERNOVA_ROOT}")
+if (NOT EXISTS "${DORIAX_ROOT}")
+    message(FATAL_ERROR "Can't find Doriax root directory: ${DORIAX_ROOT}")
 endif()
-file(TO_CMAKE_PATH ${SUPERNOVA_ROOT} SUPERNOVA_ROOT)
+file(TO_CMAKE_PATH ${DORIAX_ROOT} DORIAX_ROOT)
 
 #add_definitions(-DDISABLE_LUA_BINDINGS)
 #add_definitions(-DNO_LUA_INIT)
 #add_definitions(-DNO_CPP_INIT)
 if(NOT PROJECT_ROOT)
-    set(PROJECT_ROOT ${SUPERNOVA_ROOT}/project)
+    set(PROJECT_ROOT ${DORIAX_ROOT}/project)
 endif()
 if (NOT EXISTS "${PROJECT_ROOT}")
     message(FATAL_ERROR "Can't find project root directory: ${PROJECT_ROOT}")
@@ -96,7 +96,7 @@ set(PLATFORM_OPTIONS)
 find_package(Threads REQUIRED)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
-    add_definitions("-DSUPERNOVA_WEB")
+    add_definitions("-DDORIAX_WEB")
 
     if(GRAPHIC_BACKEND STREQUAL "gles3")
         add_definitions("-DSOKOL_GLES3")
@@ -107,7 +107,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
 
     set(CMAKE_EXECUTABLE_SUFFIX ".html")
 
-    set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/emscripten)
+    set(PLATFORM_ROOT ${DORIAX_ROOT}/platform/emscripten)
 
     set(EM_PRELOAD_FILES)
     if (EXISTS "${PROJECT_ROOT}/assets")
@@ -118,7 +118,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
     endif()
 
     list(APPEND PLATFORM_SOURCE
-        ${PLATFORM_ROOT}/SupernovaWeb.cpp
+        ${PLATFORM_ROOT}/DoriaxWeb.cpp
         ${PLATFORM_ROOT}/main.cpp
     )
 
@@ -151,7 +151,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Android")
-    add_definitions("-DSUPERNOVA_ANDROID")
+    add_definitions("-DDORIAX_ANDROID")
 
     if(GRAPHIC_BACKEND STREQUAL "gles3")
         add_definitions("-DSOKOL_GLES3")
@@ -163,7 +163,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Android")
     add_definitions("-DLUA_USE_C89")
     add_definitions("-DWITH_MINIAUDIO") # For SoLoud
 
-    set(APP_NAME supernova-android) # Android uses a fixed library name
+    set(APP_NAME doriax-android) # Android uses a fixed library name
 
     if( ANDROID_ABI MATCHES "^arm(eabi)?(-v7a)?(64-v8a)?$" )
         #add_compile_options("-march=armv8.2a+fp16")
@@ -173,10 +173,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Android")
         set(IS_ARM ON)
     endif()
 
-    set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/android)
+    set(PLATFORM_ROOT ${DORIAX_ROOT}/platform/android)
 
     list(APPEND PLATFORM_SOURCE
-        ${PLATFORM_ROOT}/SupernovaAndroid.cpp
+        ${PLATFORM_ROOT}/DoriaxAndroid.cpp
         ${PLATFORM_ROOT}/AndroidMain.cpp
         ${PLATFORM_ROOT}/NativeEngine.cpp
     )
@@ -203,7 +203,7 @@ endif()
 
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    add_definitions("-DSUPERNOVA_SOKOL")
+    add_definitions("-DDORIAX_SOKOL")
 
     if(GRAPHIC_BACKEND STREQUAL "glcore")
         add_definitions("-DSOKOL_GLCORE")
@@ -222,10 +222,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 
     set(PLATFORM_EXEC_FLAGS WIN32)
 
-    set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/sokol)
+    set(PLATFORM_ROOT ${DORIAX_ROOT}/platform/sokol)
 
     list(APPEND PLATFORM_SOURCE
-        ${PLATFORM_ROOT}/SupernovaSokol.cpp
+        ${PLATFORM_ROOT}/DoriaxSokol.cpp
         ${PLATFORM_ROOT}/main.cpp
     )
 
@@ -235,7 +235,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
         )
     endif()
     if(MSVC)
-        if(SUPERNOVA_SHARED)
+        if(DORIAX_SHARED)
             set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
         else()
             set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -258,12 +258,12 @@ if((CMAKE_SYSTEM_NAME STREQUAL "Linux") OR (CMAKE_SYSTEM_NAME STREQUAL "FreeBSD"
     endif()
 
     if (APP_BACKEND STREQUAL "glfw")
-        add_definitions("-DSUPERNOVA_GLFW")
+        add_definitions("-DDORIAX_GLFW")
 
-        set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/glfw)
+        set(PLATFORM_ROOT ${DORIAX_ROOT}/platform/glfw)
 
         list(APPEND PLATFORM_SOURCE
-            ${PLATFORM_ROOT}/SupernovaGLFW.cpp
+            ${PLATFORM_ROOT}/DoriaxGLFW.cpp
             ${PLATFORM_ROOT}/main.cpp
         )
 
@@ -271,12 +271,12 @@ if((CMAKE_SYSTEM_NAME STREQUAL "Linux") OR (CMAKE_SYSTEM_NAME STREQUAL "FreeBSD"
             GL dl m glfw
         )
     else()
-        add_definitions("-DSUPERNOVA_SOKOL")
+        add_definitions("-DDORIAX_SOKOL")
 
-        set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/sokol)
+        set(PLATFORM_ROOT ${DORIAX_ROOT}/platform/sokol)
 
         list(APPEND PLATFORM_SOURCE
-            ${PLATFORM_ROOT}/SupernovaSokol.cpp
+            ${PLATFORM_ROOT}/DoriaxSokol.cpp
             ${PLATFORM_ROOT}/main.cpp
         )
 
@@ -300,11 +300,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15")
 
     if (APP_BACKEND STREQUAL "apple")
-        add_definitions("-DSUPERNOVA_APPLE")
+        add_definitions("-DDORIAX_APPLE")
 
-        set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/apple)
+        set(PLATFORM_ROOT ${DORIAX_ROOT}/platform/apple)
 
-        set(APP_BUNDLE_IDENTIFIER "org.supernovaengine.supernova")
+        set(APP_BUNDLE_IDENTIFIER "org.doriaxengine.doriax")
 
         set(PLATFORM_EXEC_FLAGS MACOSX_BUNDLE)
 
@@ -320,8 +320,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
             ${PLATFORM_ROOT}/macos/ViewController.m
             ${PLATFORM_ROOT}/Renderer.h
             ${PLATFORM_ROOT}/Renderer.mm
-            ${PLATFORM_ROOT}/SupernovaApple.h
-            ${PLATFORM_ROOT}/SupernovaApple.mm
+            ${PLATFORM_ROOT}/DoriaxApple.h
+            ${PLATFORM_ROOT}/DoriaxApple.mm
         )
 
         list(APPEND PLATFORM_RESOURCES
@@ -329,9 +329,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         )
 
         list(APPEND PLATFORM_PROPERTIES
-            MACOSX_BUNDLE_INFO_PLIST "${SUPERNOVA_ROOT}/workspaces/xcode/macos/Info.plist"
+            MACOSX_BUNDLE_INFO_PLIST "${DORIAX_ROOT}/workspaces/xcode/macos/Info.plist"
             XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC "YES"
-            #XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${PLATFORM_ROOT}/macos/Supernova_macOS.entitlements" # error EXC_BAD_INSTRUCTION
+            #XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${PLATFORM_ROOT}/macos/Doriax_macOS.entitlements" # error EXC_BAD_INSTRUCTION
         )
     else()
         if (EXISTS "${PROJECT_ROOT}/assets")
@@ -342,12 +342,12 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         endif()
 
         if (APP_BACKEND STREQUAL "glfw")
-            add_definitions("-DSUPERNOVA_GLFW")
+            add_definitions("-DDORIAX_GLFW")
 
-            set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/glfw)
+            set(PLATFORM_ROOT ${DORIAX_ROOT}/platform/glfw)
 
             list(APPEND PLATFORM_SOURCE
-                ${PLATFORM_ROOT}/SupernovaGLFW.cpp
+                ${PLATFORM_ROOT}/DoriaxGLFW.cpp
                 ${PLATFORM_ROOT}/main.cpp
             )
 
@@ -355,12 +355,12 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
                 glfw
             )
         else()
-            add_definitions("-DSUPERNOVA_SOKOL")
+            add_definitions("-DDORIAX_SOKOL")
 
-            set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/sokol)
+            set(PLATFORM_ROOT ${DORIAX_ROOT}/platform/sokol)
 
             list(APPEND PLATFORM_SOURCE
-                ${PLATFORM_ROOT}/SupernovaSokol.cpp
+                ${PLATFORM_ROOT}/DoriaxSokol.cpp
                 ${PLATFORM_ROOT}/main.cpp
             )
         endif()
@@ -368,7 +368,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
-    add_definitions("-DSUPERNOVA_APPLE")
+    add_definitions("-DDORIAX_APPLE")
 
     if(GRAPHIC_BACKEND STREQUAL "metal")
         add_definitions("-DSOKOL_METAL")
@@ -376,9 +376,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
 
     add_definitions("-DWITH_MINIAUDIO") # For SoLoud
 
-    set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/apple)
+    set(PLATFORM_ROOT ${DORIAX_ROOT}/platform/apple)
 
-    set(APP_BUNDLE_IDENTIFIER "org.supernovaengine.supernova")
+    set(APP_BUNDLE_IDENTIFIER "org.doriaxengine.doriax")
 
     include_directories (/System/Library/Frameworks)
 
@@ -394,8 +394,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
         ${PLATFORM_ROOT}/ios/AdMobAdapter.m
         ${PLATFORM_ROOT}/Renderer.h
         ${PLATFORM_ROOT}/Renderer.mm
-        ${PLATFORM_ROOT}/SupernovaApple.h
-        ${PLATFORM_ROOT}/SupernovaApple.mm
+        ${PLATFORM_ROOT}/DoriaxApple.h
+        ${PLATFORM_ROOT}/DoriaxApple.mm
     )
 
     list(APPEND PLATFORM_RESOURCES
@@ -433,7 +433,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
 
     list(APPEND PLATFORM_PROPERTIES
         XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER ${APP_BUNDLE_IDENTIFIER}
-        MACOSX_BUNDLE_INFO_PLIST "${SUPERNOVA_ROOT}/workspaces/xcode/ios/Info.plist"
+        MACOSX_BUNDLE_INFO_PLIST "${DORIAX_ROOT}/workspaces/xcode/ios/Info.plist"
         XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC "YES"
     )
 
@@ -441,35 +441,35 @@ endif()
 
 include_directories (${PLATFORM_ROOT})
 
-include_directories (${SUPERNOVA_ROOT}/libs/sokol)
-include_directories (${SUPERNOVA_ROOT}/libs/lua)
-include_directories (${SUPERNOVA_ROOT}/libs/box2d/include)
-include_directories (${SUPERNOVA_ROOT}/libs/joltphysics)
+include_directories (${DORIAX_ROOT}/libs/sokol)
+include_directories (${DORIAX_ROOT}/libs/lua)
+include_directories (${DORIAX_ROOT}/libs/box2d/include)
+include_directories (${DORIAX_ROOT}/libs/joltphysics)
 
-include_directories (${SUPERNOVA_ROOT}/core)
-include_directories (${SUPERNOVA_ROOT}/core/action)
-include_directories (${SUPERNOVA_ROOT}/core/buffer)
-include_directories (${SUPERNOVA_ROOT}/core/component)
-include_directories (${SUPERNOVA_ROOT}/core/ecs)
-include_directories (${SUPERNOVA_ROOT}/core/io)
-include_directories (${SUPERNOVA_ROOT}/core/manager)
-include_directories (${SUPERNOVA_ROOT}/core/math)
-include_directories (${SUPERNOVA_ROOT}/core/object)
-include_directories (${SUPERNOVA_ROOT}/core/object/audio)
-include_directories (${SUPERNOVA_ROOT}/core/object/ui)
-include_directories (${SUPERNOVA_ROOT}/core/object/environment)
-include_directories (${SUPERNOVA_ROOT}/core/object/physics)
-include_directories (${SUPERNOVA_ROOT}/core/pool)
-include_directories (${SUPERNOVA_ROOT}/core/registry)
-include_directories (${SUPERNOVA_ROOT}/core/render)
-include_directories (${SUPERNOVA_ROOT}/core/script)
-include_directories (${SUPERNOVA_ROOT}/core/shader)
-include_directories (${SUPERNOVA_ROOT}/core/subsystem)
-include_directories (${SUPERNOVA_ROOT}/core/texture)
-include_directories (${SUPERNOVA_ROOT}/core/util)
-include_directories (${SUPERNOVA_ROOT}/renders)
+include_directories (${DORIAX_ROOT}/core)
+include_directories (${DORIAX_ROOT}/core/action)
+include_directories (${DORIAX_ROOT}/core/buffer)
+include_directories (${DORIAX_ROOT}/core/component)
+include_directories (${DORIAX_ROOT}/core/ecs)
+include_directories (${DORIAX_ROOT}/core/io)
+include_directories (${DORIAX_ROOT}/core/manager)
+include_directories (${DORIAX_ROOT}/core/math)
+include_directories (${DORIAX_ROOT}/core/object)
+include_directories (${DORIAX_ROOT}/core/object/audio)
+include_directories (${DORIAX_ROOT}/core/object/ui)
+include_directories (${DORIAX_ROOT}/core/object/environment)
+include_directories (${DORIAX_ROOT}/core/object/physics)
+include_directories (${DORIAX_ROOT}/core/pool)
+include_directories (${DORIAX_ROOT}/core/registry)
+include_directories (${DORIAX_ROOT}/core/render)
+include_directories (${DORIAX_ROOT}/core/script)
+include_directories (${DORIAX_ROOT}/core/shader)
+include_directories (${DORIAX_ROOT}/core/subsystem)
+include_directories (${DORIAX_ROOT}/core/texture)
+include_directories (${DORIAX_ROOT}/core/util)
+include_directories (${DORIAX_ROOT}/renders)
 
-add_subdirectory(${SUPERNOVA_ROOT})
+add_subdirectory(${DORIAX_ROOT})
 
 include_directories (${PROJECT_ROOT})
 file(GLOB_RECURSE PROJECT_SOURCE ${PROJECT_ROOT}/*.cpp)
@@ -540,7 +540,7 @@ target_compile_options(
 target_link_libraries(
     ${APP_NAME}
 
-    supernova
+    doriax
     Threads::Threads
     ${PLATFORM_LIBS}
  )

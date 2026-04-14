@@ -1,7 +1,7 @@
 #include "Backend.h"
 
-using namespace Supernova;
+using namespace doriax;
 
 int main(int argc, char* argv[]){
-    return Editor::Backend::init(argc, argv);
+    return editor::Backend::init(argc, argv);
 }

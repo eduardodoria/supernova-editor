@@ -25,7 +25,7 @@
 #include <mutex>
 #include <queue>
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     enum class AlertType {
         Info,

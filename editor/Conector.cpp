@@ -13,21 +13,21 @@
 #include <dlfcn.h>
 #endif
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::Conector::Conector(){
+editor::Conector::Conector(){
     libHandle = nullptr;
 }
 
-Editor::Conector::~Conector(){
+editor::Conector::~Conector(){
     disconnect();
 }
 
-bool Editor::Conector::fileExists(const fs::path& path) {
+bool editor::Conector::fileExists(const fs::path& path) {
     return std::filesystem::exists(path);
 }
 
-void* Editor::Conector::loadSharedLibrary(const std::string& libPath) {
+void* editor::Conector::loadSharedLibrary(const std::string& libPath) {
     #ifdef _WIN32
         HMODULE libHandle = LoadLibrary(libPath.c_str());
         if (!libHandle) {
@@ -45,7 +45,7 @@ void* Editor::Conector::loadSharedLibrary(const std::string& libPath) {
     #endif
 }
 
-void Editor::Conector::unloadSharedLibrary(void* libHandle) {
+void editor::Conector::unloadSharedLibrary(void* libHandle) {
     #ifdef _WIN32
         if (libHandle) {
             FreeLibrary(static_cast<HMODULE>(libHandle));
@@ -59,7 +59,7 @@ void Editor::Conector::unloadSharedLibrary(void* libHandle) {
     #endif
 }
 
-bool Editor::Conector::connect(const fs::path& buildPath, std::string libName){
+bool editor::Conector::connect(const fs::path& buildPath, std::string libName){
     // Disconnect any existing connection first
     disconnect();
 
@@ -84,7 +84,7 @@ bool Editor::Conector::connect(const fs::path& buildPath, std::string libName){
     return false;
 }
 
-void Editor::Conector::disconnect(){
+void editor::Conector::disconnect(){
     if (libHandle) {
         unloadSharedLibrary(libHandle);
         libHandle = nullptr;
@@ -93,7 +93,7 @@ void Editor::Conector::disconnect(){
     }
 }
 
-void Editor::Conector::init(Scene* scene){
+void editor::Conector::init(Scene* scene){
     if (!libHandle) {
         Out::error("Cannot execute: Not connected to library");
         return;
@@ -126,7 +126,7 @@ void Editor::Conector::init(Scene* scene){
     }
 }
 
-void Editor::Conector::cleanup(Scene* scene){
+void editor::Conector::cleanup(Scene* scene){
     if (!libHandle) {
         Out::error("Cannot cleanup: Not connected to library");
         return;
@@ -161,6 +161,6 @@ void Editor::Conector::cleanup(Scene* scene){
     }
 }
 
-bool Editor::Conector::isLibraryConnected() const {
+bool editor::Conector::isLibraryConnected() const {
     return libHandle != nullptr;
 }

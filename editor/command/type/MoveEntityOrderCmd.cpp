@@ -3,9 +3,9 @@
 #include "Out.h"
 #include "util/ProjectUtils.h"
 
-using namespace Supernova;        
+using namespace doriax;        
         
-Editor::MoveEntityOrderCmd::MoveEntityOrderCmd(Project* project, uint32_t sceneId, Entity source, Entity target, InsertionType type){
+editor::MoveEntityOrderCmd::MoveEntityOrderCmd(Project* project, uint32_t sceneId, Entity source, Entity target, InsertionType type){
     this->project = project;
     this->sceneId = sceneId;
     this->source = source;
@@ -15,11 +15,11 @@ Editor::MoveEntityOrderCmd::MoveEntityOrderCmd(Project* project, uint32_t sceneI
     this->wasModified = project->getScene(sceneId)->isModified;
 }
 
-bool Editor::MoveEntityOrderCmd::execute(){
+bool editor::MoveEntityOrderCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     if (!ProjectUtils::canMoveLockedEntityOrder(sceneProject->scene, source, target, type)){
-        Editor::Out::warning("Cannot move entity '%u'. Locked entities can only be reordered within the same parent or virtual parent.", source);
+        editor::Out::warning("Cannot move entity '%u'. Locked entities can only be reordered within the same parent or virtual parent.", source);
         return false;
     }
 
@@ -61,7 +61,7 @@ bool Editor::MoveEntityOrderCmd::execute(){
     return true;
 }
 
-void Editor::MoveEntityOrderCmd::undo(){
+void editor::MoveEntityOrderCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     if (bundleMoveRecovery.size() > 0){
@@ -72,6 +72,6 @@ void Editor::MoveEntityOrderCmd::undo(){
     sceneProject->isModified = wasModified;
 }
 
-bool Editor::MoveEntityOrderCmd::mergeWith(Command* otherCommand){
+bool editor::MoveEntityOrderCmd::mergeWith(Command* otherCommand){
     return false;
 }

@@ -15,17 +15,17 @@ static nfdwindowhandle_t nativeWindow;
 static bool shouldClose = false;
 static SDL_Cursor* invisibleCursor = nullptr;
 
-using namespace Supernova;
+using namespace doriax;
 
 // for work with mingw32
 int SDL_main(int argc, char* argv[]) {
-    return Editor::Backend::init(argc, argv);
+    return editor::Backend::init(argc, argv);
 }
 
-Editor::App Editor::Backend::app;
-std::string Editor::Backend::title;
+editor::App editor::Backend::app;
+std::string editor::Backend::title;
 
-int Editor::Backend::init(int argc, char* argv[]) {
+int editor::Backend::init(int argc, char* argv[]) {
     // Initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
         return -1;
@@ -63,7 +63,7 @@ int Editor::Backend::init(int argc, char* argv[]) {
 
     // Create window with OpenGL context
     window = SDL_CreateWindow(
-        "Supernova Engine",
+        "Doriax Engine",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         windowWidth, windowHeight,
         SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI
@@ -203,11 +203,11 @@ int Editor::Backend::init(int argc, char* argv[]) {
     return 0;
 }
 
-Editor::App& Editor::Backend::getApp() {
+editor::App& editor::Backend::getApp() {
     return app;
 }
 
-void Editor::Backend::disableMouseCursor() {
+void editor::Backend::disableMouseCursor() {
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
     io.MouseDrawCursor = false;
@@ -221,7 +221,7 @@ void Editor::Backend::disableMouseCursor() {
     SDL_SetRelativeMouseMode(SDL_TRUE);
 }
 
-void Editor::Backend::enableMouseCursor() {
+void editor::Backend::enableMouseCursor() {
     // TODO: cursor is not leaving the window
     SDL_ShowCursor(SDL_ENABLE);
     SDL_SetRelativeMouseMode(SDL_FALSE);
@@ -231,21 +231,21 @@ void Editor::Backend::enableMouseCursor() {
     io.ConfigFlags &= ~ImGuiConfigFlags_NoMouseCursorChange;
 }
 
-void Editor::Backend::closeWindow() {
+void editor::Backend::closeWindow() {
     shouldClose = true;
 }
 
-void Editor::Backend::updateWindowTitle(const std::string& projectName) {
+void editor::Backend::updateWindowTitle(const std::string& projectName) {
     if (projectName.empty()) {
-        title = "Empty project - Supernova Engine";
+        title = "Empty project - Doriax Engine";
     } else {
-        title = projectName + " - Supernova Engine";
+        title = projectName + " - Doriax Engine";
     }
     if (window){
         SDL_SetWindowTitle(window, title.c_str());
     }
 }
 
-void* Editor::Backend::getNFDWindowHandle() {
+void* editor::Backend::getNFDWindowHandle() {
     return &nativeWindow;
 }

@@ -1,4 +1,4 @@
-package org.supernovaengine.supernova;
+package org.doriaxengine.doriax;
 
 import android.app.Activity;
 import android.content.Context;

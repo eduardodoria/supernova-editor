@@ -2,15 +2,15 @@
 // (c) 2026 Eduardo Doria.
 //
 
-#ifndef SupernovaGLFW_h
-#define SupernovaGLFW_h
+#ifndef DoriaxGLFW_h
+#define DoriaxGLFW_h
 
 #define GLFW_INCLUDE_NONE
 #include "GLFW/glfw3.h"
 
 #include "System.h"
 
-class SupernovaGLFW: public Supernova::System{
+class DoriaxGLFW: public doriax::System{
 
 private:
 
@@ -32,7 +32,7 @@ private:
 
 public:
 
-    SupernovaGLFW();
+    DoriaxGLFW();
 
     static int init(int argc, char **argv);
 
@@ -45,7 +45,7 @@ public:
     virtual void requestFullscreen();
     virtual void exitFullscreen();
 
-    virtual void setMouseCursor(Supernova::CursorType type);
+    virtual void setMouseCursor(doriax::CursorType type);
     virtual void setShowCursor(bool showCursor);
 
     virtual std::string getAssetPath();
@@ -55,4 +55,4 @@ public:
 };
 
 
-#endif /* SupernovaGLFW_h */
+#endif /* DoriaxGLFW_h */

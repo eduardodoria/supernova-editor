@@ -5,7 +5,7 @@
 #include <vector>
 #include <cstddef>
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     class CommandHistory{
 

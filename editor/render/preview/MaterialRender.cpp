@@ -2,9 +2,9 @@
 
 #include "Configs.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::MaterialRender::MaterialRender(){
+editor::MaterialRender::MaterialRender(){
     scene = new Scene(EntityPool::System);
     camera = new Camera(scene);
     light = new Light(scene);
@@ -26,33 +26,33 @@ Editor::MaterialRender::MaterialRender(){
     camera->setRenderToTexture(true);
 }
 
-Editor::MaterialRender::~MaterialRender(){
+editor::MaterialRender::~MaterialRender(){
     delete camera;
     delete light;
     delete sphere;
     delete scene;
 }
 
-void Editor::MaterialRender::applyMaterial(const Material& material){
+void editor::MaterialRender::applyMaterial(const Material& material){
     sphere->setMaterial(material);
 }
 
-const Material Editor::MaterialRender::getMaterial(){
+const Material editor::MaterialRender::getMaterial(){
     return sphere->getMaterial();
 }
 
-Framebuffer* Editor::MaterialRender::getFramebuffer(){
+Framebuffer* editor::MaterialRender::getFramebuffer(){
     return camera->getFramebuffer();
 }
 
-Texture Editor::MaterialRender::getTexture(){
+Texture editor::MaterialRender::getTexture(){
     return Texture(getFramebuffer());
 }
 
-Scene* Editor::MaterialRender::getScene(){
+Scene* editor::MaterialRender::getScene(){
     return scene;
 }
 
-Object* Editor::MaterialRender::getObject(){
+Object* editor::MaterialRender::getObject(){
     return sphere;
 }

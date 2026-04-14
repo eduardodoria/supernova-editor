@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     class RemoveEntityFromBundleCmd: public Command{
 

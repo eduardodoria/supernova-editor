@@ -9,7 +9,7 @@
 
 namespace fs = std::filesystem;
 
-namespace Supernova::Editor {
+namespace doriax::editor {
 
     struct EditorInstance {
         std::unique_ptr<CustomTextEditor> editor;

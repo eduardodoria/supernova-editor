@@ -2,9 +2,9 @@
 #include "editor/Out.h"
 #include "Stream.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::CreateEntityBundleCmd::CreateEntityBundleCmd(Project* project, uint32_t sceneId, const fs::path& filepath, const YAML::Node& bundleNode){
+editor::CreateEntityBundleCmd::CreateEntityBundleCmd(Project* project, uint32_t sceneId, const fs::path& filepath, const YAML::Node& bundleNode){
     this->project = project;
     this->sceneId = sceneId;
     this->filepath = filepath;
@@ -13,22 +13,22 @@ Editor::CreateEntityBundleCmd::CreateEntityBundleCmd(Project* project, uint32_t 
     this->bundleNode = bundleNode;
 }
 
-bool Editor::CreateEntityBundleCmd::execute(){
+bool editor::CreateEntityBundleCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     if (!sceneProject){
-        Editor::Out::error("Invalid scene ID: %u", sceneId);
+        editor::Out::error("Invalid scene ID: %u", sceneId);
         return false;
     }
 
     if (!filepath.is_relative()) {
-        Editor::Out::error("EntityBundle filepath must be relative: %s", filepath.string().c_str());
+        editor::Out::error("EntityBundle filepath must be relative: %s", filepath.string().c_str());
         return false;
     }
 
     // Check if a shared group already exists at this path
     if (project->getEntityBundle(filepath)) {
-        Editor::Out::error("EntityBundle already exists at %s", filepath.string().c_str());
+        editor::Out::error("EntityBundle already exists at %s", filepath.string().c_str());
         return false;
     }
 
@@ -40,14 +40,14 @@ bool Editor::CreateEntityBundleCmd::execute(){
     wasSuccessful = project->createEntityBundle(sceneId, filepath, bundleNode);
 
     if (wasSuccessful) {
-        Editor::Out::info("Created EntityBundle at '%s'", filepath.string().c_str());
+        editor::Out::info("Created EntityBundle at '%s'", filepath.string().c_str());
         return true;
     }
 
     return false;
 }
 
-void Editor::CreateEntityBundleCmd::undo(){
+void editor::CreateEntityBundleCmd::undo(){
     if (!wasSuccessful) {
         return;
     }
@@ -62,10 +62,10 @@ void Editor::CreateEntityBundleCmd::undo(){
         fs::path fullPath = project->getProjectPath() / filepath;
         if (fs::exists(fullPath)) {
             fs::remove(fullPath);
-            Editor::Out::info("Removed shared entity file: %s", fullPath.string().c_str());
+            editor::Out::info("Removed shared entity file: %s", fullPath.string().c_str());
         }
     } catch (const std::exception& e) {
-        Editor::Out::warning("Failed to remove shared entity file: %s", e.what());
+        editor::Out::warning("Failed to remove shared entity file: %s", e.what());
     }
 
     // Remove the bundle and its scene root entities
@@ -79,10 +79,10 @@ void Editor::CreateEntityBundleCmd::undo(){
     // Restore modified state
     sceneProject->isModified = wasModified;
 
-    //Editor::Out::info("Unmarked entity '%s' from shared group at '%s'", sceneProject->scene->getEntityName(entity).c_str(), filepath.string().c_str());
+    //editor::Out::info("Unmarked entity '%s' from shared group at '%s'", sceneProject->scene->getEntityName(entity).c_str(), filepath.string().c_str());
 }
 
-bool Editor::CreateEntityBundleCmd::mergeWith(Editor::Command* otherCommand){
+bool editor::CreateEntityBundleCmd::mergeWith(editor::Command* otherCommand){
     // Create EntityBundle commands typically don't merge with each other
     return false;
 }

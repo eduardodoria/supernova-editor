@@ -18,7 +18,7 @@ static float getElapsedSeconds() {
     return std::chrono::duration<float>(now - startTime).count();
 }
 
-using namespace Supernova::Editor;
+using namespace doriax::editor;
 
 static ImVec4 GetLogTypeColor(LogType type) {
     // Tune to taste

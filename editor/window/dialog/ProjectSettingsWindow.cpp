@@ -4,7 +4,7 @@
 #include "window/Widgets.h"
 #include "external/IconsFontAwesome6.h"
 
-namespace Supernova::Editor {
+namespace doriax::editor {
 
 static const char* scalingModeNames[] = { "Fit Width", "Fit Height", "Letterbox", "Crop", "Stretch", "Native" };
 static const Scaling scalingModeValues[] = { Scaling::FITWIDTH, Scaling::FITHEIGHT, Scaling::LETTERBOX, Scaling::CROP, Scaling::STRETCH, Scaling::NATIVE };
@@ -398,4 +398,4 @@ void ProjectSettingsWindow::drawSettings() {
     }
 }
 
-} // namespace Supernova::Editor
+} // namespace doriax::editor

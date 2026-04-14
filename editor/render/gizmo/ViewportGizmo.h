@@ -7,7 +7,7 @@
 #include "object/Shape.h"
 #include "math/Vector3.h"
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     enum class ViewportGizmoAxis {
         NONE,

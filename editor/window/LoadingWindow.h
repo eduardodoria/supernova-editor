@@ -2,7 +2,7 @@
 
 #include "thread/ResourceProgress.h"
 
-namespace Supernova::Editor {
+namespace doriax::editor {
 
     class LoadingWindow {
     private:

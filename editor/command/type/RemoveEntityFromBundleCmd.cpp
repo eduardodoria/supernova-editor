@@ -1,8 +1,8 @@
 #include "RemoveEntityFromBundleCmd.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::RemoveEntityFromBundleCmd::RemoveEntityFromBundleCmd(Project* project, uint32_t sceneId, Entity entity, Entity parent){
+editor::RemoveEntityFromBundleCmd::RemoveEntityFromBundleCmd(Project* project, uint32_t sceneId, Entity entity, Entity parent){
     this->project = project;
     this->sceneId = sceneId;
     this->entity = entity;
@@ -11,7 +11,7 @@ Editor::RemoveEntityFromBundleCmd::RemoveEntityFromBundleCmd(Project* project, u
     this->wasModified = project->getScene(sceneId)->isModified;
 }
 
-bool Editor::RemoveEntityFromBundleCmd::execute(){
+bool editor::RemoveEntityFromBundleCmd::execute(){
     recovery = project->removeEntityFromBundle(sceneId, entity, false);
 
     bool result = !recovery.empty();
@@ -22,13 +22,13 @@ bool Editor::RemoveEntityFromBundleCmd::execute(){
     return result;
 }
 
-void Editor::RemoveEntityFromBundleCmd::undo(){
+void editor::RemoveEntityFromBundleCmd::undo(){
     project->addEntityToBundle(sceneId, recovery, parent, false);
 
     project->getScene(sceneId)->isModified = wasModified;
 }
 
-bool Editor::RemoveEntityFromBundleCmd::mergeWith(Editor::Command* otherCommand){
+bool editor::RemoveEntityFromBundleCmd::mergeWith(editor::Command* otherCommand){
 
     return false;
 }

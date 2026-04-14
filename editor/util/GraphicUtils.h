@@ -5,7 +5,7 @@
 
 namespace fs = std::filesystem;
 
-namespace Supernova::Editor {
+namespace doriax::editor {
     class GraphicUtils {
     public:
         static void saveFramebufferImage(Framebuffer* framebuffer, fs::path path, bool flipY = false, std::function<void()> onComplete = nullptr);

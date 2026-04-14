@@ -9,7 +9,7 @@
 #include <set>
 #include <vector>
 
-namespace Supernova::Editor {
+namespace doriax::editor {
 
     namespace fs = std::filesystem;
 

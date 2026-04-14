@@ -13,7 +13,7 @@
 #include <locale>
 #include <assert.h>
 
-#include "SupernovaAndroid.h"
+#include "DoriaxAndroid.h"
 #include "Engine.h"
 #include "Input.h"
 #include "Log.h"
@@ -33,25 +33,25 @@ static void _handle_cmd_proxy(struct android_app *app, int32_t cmd) {
 static void _log_opengl_error(GLenum err) {
     switch (err) {
         case GL_NO_ERROR:
-            Supernova::Log::error("*** OpenGL error: GL_NO_ERROR");
+            doriax::Log::error("*** OpenGL error: GL_NO_ERROR");
             break;
         case GL_INVALID_ENUM:
-            Supernova::Log::error("*** OpenGL error: GL_INVALID_ENUM");
+            doriax::Log::error("*** OpenGL error: GL_INVALID_ENUM");
             break;
         case GL_INVALID_VALUE:
-            Supernova::Log::error("*** OpenGL error: GL_INVALID_VALUE");
+            doriax::Log::error("*** OpenGL error: GL_INVALID_VALUE");
             break;
         case GL_INVALID_OPERATION:
-            Supernova::Log::error("*** OpenGL error: GL_INVALID_OPERATION");
+            doriax::Log::error("*** OpenGL error: GL_INVALID_OPERATION");
             break;
         case GL_INVALID_FRAMEBUFFER_OPERATION:
-            Supernova::Log::error("*** OpenGL error: GL_INVALID_FRAMEBUFFER_OPERATION");
+            doriax::Log::error("*** OpenGL error: GL_INVALID_FRAMEBUFFER_OPERATION");
             break;
         case GL_OUT_OF_MEMORY:
-            Supernova::Log::error("*** OpenGL error: GL_OUT_OF_MEMORY");
+            doriax::Log::error("*** OpenGL error: GL_OUT_OF_MEMORY");
             break;
         default:
-            Supernova::Log::error("*** OpenGL error: error %d", err);
+            doriax::Log::error("*** OpenGL error: error %d", err);
             break;
     }
 }
@@ -110,11 +110,11 @@ NativeEngine::NativeEngine(struct android_app *app) {
 
     setupJNI();
 
-    Supernova::Engine::systemInit(0, nullptr, new SupernovaAndroid());
+    doriax::Engine::systemInit(0, nullptr, new DoriaxAndroid());
 }
 
 NativeEngine::~NativeEngine() {
-    Supernova::Engine::systemShutdown();
+    doriax::Engine::systemShutdown();
 
     SwappyGL_destroy();
 
@@ -147,7 +147,7 @@ JniData& NativeEngine::getJniData(){
 JNIEnv* NativeEngine::getJniEnv() {
     if (!mJniEnv) {
         if (0 != mApp->activity->vm->AttachCurrentThread(&mJniEnv, NULL)) {
-            Supernova::Log::error("*** FATAL ERROR: Failed to attach thread to JNI.");
+            doriax::Log::error("*** FATAL ERROR: Failed to attach thread to JNI.");
         }
         assert(mJniEnv != NULL);
     }
@@ -202,7 +202,7 @@ AAssetManager* NativeEngine::getAssetManager(){
 
 bool NativeEngine::initGLObjects() {
     if (!mHasGLObjects) {
-        Supernova::Engine::systemViewLoaded();
+        doriax::Engine::systemViewLoaded();
         mHasGLObjects = true;
     }
     return true;
@@ -210,7 +210,7 @@ bool NativeEngine::initGLObjects() {
 
 void NativeEngine::killGLObjects() {
     if (mHasGLObjects) {
-        Supernova::Engine::systemViewDestroyed();
+        doriax::Engine::systemViewDestroyed();
         mHasGLObjects = false;
     }
 }
@@ -255,7 +255,7 @@ void NativeEngine::gameLoop() {
 
                 while (textInputBuffer.length() > utf16Text.length()){
                     textInputBuffer.pop_back();
-                    Supernova::Engine::systemCharInput('\b');
+                    doriax::Engine::systemCharInput('\b');
                 }
 
                 int pos = 0;
@@ -264,10 +264,10 @@ void NativeEngine::gameLoop() {
                 }
 
                 for (int i = pos; i < textInputBuffer.length(); i++){
-                    Supernova::Engine::systemCharInput('\b');
+                    doriax::Engine::systemCharInput('\b');
                 }
                 for (int i = pos; i < utf16Text.length(); i++){
-                    Supernova::Engine::systemCharInput(utf16Text[i]);
+                    doriax::Engine::systemCharInput(utf16Text[i]);
                 }
                 textInputBuffer = utf16Text;
 
@@ -287,8 +287,8 @@ void NativeEngine::setupJNI(){
     mJniData.gameActivityObjRef = NativeEngine::getInstance()->getJavaGameActivity();
     mJniData.gameActivityClsRef = env->GetObjectClass(mJniData.gameActivityObjRef);
 
-    mJniData.getUserSettingsRef = env->GetMethodID(mJniData.gameActivityClsRef, "getUserSettings", "()Lorg/supernovaengine/supernova/UserSettings;");
-    mJniData.getAdMobWrapperRef = env->GetMethodID(mJniData.gameActivityClsRef, "getAdMobWrapper", "()Lorg/supernovaengine/supernova/AdMobWrapper;");
+    mJniData.getUserSettingsRef = env->GetMethodID(mJniData.gameActivityClsRef, "getUserSettings", "()Lorg/doriaxengine/doriax/UserSettings;");
+    mJniData.getAdMobWrapperRef = env->GetMethodID(mJniData.gameActivityClsRef, "getAdMobWrapper", "()Lorg/doriaxengine/doriax/AdMobWrapper;");
 
     mJniData.userSettingsObjRef = env->CallObjectMethod(mJniData.gameActivityObjRef, mJniData.getUserSettingsRef);
     mJniData.userSettingsClsRef = env->GetObjectClass(mJniData.userSettingsObjRef);
@@ -326,7 +326,7 @@ bool NativeEngine::initDisplay() {
 
     mEglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
     if (EGL_FALSE == eglInitialize(mEglDisplay, 0, 0)) {
-        Supernova::Log::error("NativeEngine: failed to init display, error %d", eglGetError());
+        doriax::Log::error("NativeEngine: failed to init display, error %d", eglGetError());
         return false;
     }
     return true;
@@ -370,14 +370,14 @@ bool NativeEngine::initSurface() {
     }
 
     if (!numConfigs) {
-        Supernova::Log::error("Unable to retrieve EGL config");
+        doriax::Log::error("Unable to retrieve EGL config");
         return false;
     }
 
     // create EGL surface
     mEglSurface = eglCreateWindowSurface(mEglDisplay, mEglConfig, mApp->window, NULL);
     if (mEglSurface == EGL_NO_SURFACE) {
-        Supernova::Log::error("Failed to create EGL surface, EGL error %d", eglGetError());
+        doriax::Log::error("Failed to create EGL surface, EGL error %d", eglGetError());
         return false;
     }
 
@@ -396,7 +396,7 @@ bool NativeEngine::initContext() {
 
     mEglContext = eglCreateContext(mEglDisplay, mEglConfig, NULL, attribList);
     if (mEglContext == EGL_NO_CONTEXT) {
-        Supernova::Log::error("Failed to create EGL context, EGL error %d", eglGetError());
+        doriax::Log::error("Failed to create EGL context, EGL error %d", eglGetError());
         return false;
     }
 
@@ -438,23 +438,23 @@ bool NativeEngine::handleEglError(EGLint error) {
             // nothing to do
             return true;
         case EGL_CONTEXT_LOST:
-            Supernova::Log::warn("NativeEngine: egl error: EGL_CONTEXT_LOST. Recreating context.");
+            doriax::Log::warn("NativeEngine: egl error: EGL_CONTEXT_LOST. Recreating context.");
             killContext();
             return true;
         case EGL_BAD_CONTEXT:
-            Supernova::Log::warn("NativeEngine: egl error: EGL_BAD_CONTEXT. Recreating context.");
+            doriax::Log::warn("NativeEngine: egl error: EGL_BAD_CONTEXT. Recreating context.");
             killContext();
             return true;
         case EGL_BAD_DISPLAY:
-            Supernova::Log::warn("NativeEngine: egl error: EGL_BAD_DISPLAY. Recreating display.");
+            doriax::Log::warn("NativeEngine: egl error: EGL_BAD_DISPLAY. Recreating display.");
             killDisplay();
             return true;
         case EGL_BAD_SURFACE:
-            Supernova::Log::warn("NativeEngine: egl error: EGL_BAD_SURFACE. Recreating display.");
+            doriax::Log::warn("NativeEngine: egl error: EGL_BAD_SURFACE. Recreating display.");
             killSurface();
             return true;
         default:
-            Supernova::Log::warn("NativeEngine: unknown egl error: %d", error);
+            doriax::Log::warn("NativeEngine: unknown egl error: %d", error);
             return false;
     }
 }
@@ -465,37 +465,37 @@ bool NativeEngine::prepareToRender() {
 
         // create display if needed
         if (!initDisplay()) {
-            Supernova::Log::error("NativeEngine: failed to create display.");
+            doriax::Log::error("NativeEngine: failed to create display.");
             return false;
         }
 
         // create surface if needed
         if (!initSurface()) {
-            Supernova::Log::error("NativeEngine: failed to create surface.");
+            doriax::Log::error("NativeEngine: failed to create surface.");
             return false;
         }
 
         // create context if needed
         if (!initContext()) {
-            Supernova::Log::error("NativeEngine: failed to create context.");
+            doriax::Log::error("NativeEngine: failed to create context.");
             return false;
         }
 
         // bind them
         if (EGL_FALSE == eglMakeCurrent(mEglDisplay, mEglSurface, mEglSurface, mEglContext)) {
-            Supernova::Log::error("NativeEngine: eglMakeCurrent failed, EGL error %d", eglGetError());
+            doriax::Log::error("NativeEngine: eglMakeCurrent failed, EGL error %d", eglGetError());
             handleEglError(eglGetError());
         }
 
     }
     if (!mHasGLObjects) {
         if (!initGLObjects()) {
-            Supernova::Log::error("NativeEngine: unable to initialize OpenGL objects.");
+            doriax::Log::error("NativeEngine: unable to initialize OpenGL objects.");
             return false;
         }
     }
 
-    Supernova::Engine::systemViewChanged();
+    doriax::Engine::systemViewChanged();
 
     // ready to render
     return true;
@@ -505,7 +505,7 @@ void NativeEngine::doFrame() {
     // prepare to render (create context, surfaces, etc, if needed)
     if (!prepareToRender()) {
         // not ready
-        Supernova::Log::error("NativeEngine: preparation to render failed.");
+        doriax::Log::error("NativeEngine: preparation to render failed.");
         return;
     }
 
@@ -519,7 +519,7 @@ void NativeEngine::doFrame() {
         mSurfWidth = width;
         mSurfHeight = height;
 
-        Supernova::Engine::systemViewChanged();
+        doriax::Engine::systemViewChanged();
 
         glViewport(0, 0, mSurfWidth, mSurfHeight);
     }
@@ -529,11 +529,11 @@ void NativeEngine::doFrame() {
         // if this is the first frame
     }
 
-    Supernova::Engine::systemDraw();
+    doriax::Engine::systemDraw();
 
     // swap buffers
     if (!SwappyGL_swap(mEglDisplay, mEglSurface)) {        // failed to swap buffers...
-        Supernova::Log::error("NativeEngine: SwappyGL_swap failed, EGL error %d", eglGetError());
+        doriax::Log::error("NativeEngine: SwappyGL_swap failed, EGL error %d", eglGetError());
         handleEglError(eglGetError());
     }
 
@@ -545,7 +545,7 @@ void NativeEngine::doFrame() {
             _log_opengl_error(e);
             ++errorsPrinted;
             if (errorsPrinted >= MAX_GL_ERRORS) {
-                Supernova::Log::error("*** NativeEngine: TOO MANY OPENGL ERRORS. NO LONGER PRINTING.");
+                doriax::Log::error("*** NativeEngine: TOO MANY OPENGL ERRORS. NO LONGER PRINTING.");
             }
         }
     }
@@ -562,7 +562,7 @@ void NativeEngine::updateSystemBarOffset() {
     mSystemBarOffset = insets.top;
 }
 
-int NativeEngine::getSupernovaKey(int32_t key){
+int NativeEngine::getDoriaxKey(int32_t key){
     if (key == AKEYCODE_SPACE)
         return S_KEY_SPACE;
     if (key == AKEYCODE_APOSTROPHE)
@@ -677,7 +677,7 @@ int NativeEngine::getSupernovaKey(int32_t key){
     return 0;
 }
 
-int NativeEngine::getSupernovaModifiers(int32_t mods){
+int NativeEngine::getDoriaxModifiers(int32_t mods){
     int modifiers = 0;
     if (mods & AMETA_CTRL_ON) modifiers |= S_MODIFIER_CONTROL;
     if (mods & AMETA_SHIFT_ON) modifiers |= S_MODIFIER_SHIFT;
@@ -699,18 +699,18 @@ void NativeEngine::handleGameActivityInput(){
             GameActivityKeyEvent* keyEvent = &inputBuffer->keyEvents[i];
 
             // metaState works with capslock, numlock and others
-            int keyCode = getSupernovaKey(keyEvent->keyCode);
-            int modifiers = getSupernovaModifiers(keyEvent->metaState);
+            int keyCode = getDoriaxKey(keyEvent->keyCode);
+            int modifiers = getDoriaxModifiers(keyEvent->metaState);
             bool repeat = (keyEvent->repeatCount > 0)?true:false;
 
             if (keyEvent->action == AKEY_EVENT_ACTION_DOWN) {
-                Supernova::Engine::systemKeyDown(keyCode, repeat, modifiers);
+                doriax::Engine::systemKeyDown(keyCode, repeat, modifiers);
             } else if (keyEvent->action == AKEY_EVENT_ACTION_UP) {
-                Supernova::Engine::systemKeyUp(keyCode, repeat, modifiers);
+                doriax::Engine::systemKeyUp(keyCode, repeat, modifiers);
             }
 
             if (keyEvent->keyCode == AKEYCODE_BACK && 0 == keyEvent->action) {
-                Supernova::Engine::systemCharInput('\b');
+                doriax::Engine::systemCharInput('\b');
             }
 
         }
@@ -733,13 +733,13 @@ void NativeEngine::handleGameActivityInput(){
                     float motionY = GameActivityPointerAxes_getY(&motionEvent->pointers[ptrIndex]);
 
                     if (actionMasked == AMOTION_EVENT_ACTION_DOWN || actionMasked == AMOTION_EVENT_ACTION_POINTER_DOWN) {
-                        Supernova::Engine::systemTouchStart(motionPointerId, motionX, motionY);
+                        doriax::Engine::systemTouchStart(motionPointerId, motionX, motionY);
                     } else if (actionMasked == AMOTION_EVENT_ACTION_UP || actionMasked == AMOTION_EVENT_ACTION_POINTER_UP) {
-                        Supernova::Engine::systemTouchEnd(motionPointerId, motionX, motionY);
+                        doriax::Engine::systemTouchEnd(motionPointerId, motionX, motionY);
                     } else if (actionMasked == AMOTION_EVENT_ACTION_MOVE) {
-                        Supernova::Engine::systemTouchMove(motionPointerId, motionX, motionY);
+                        doriax::Engine::systemTouchMove(motionPointerId, motionX, motionY);
                     } else if (actionMasked == AMOTION_EVENT_ACTION_CANCEL) {
-                        Supernova::Engine::systemTouchCancel();
+                        doriax::Engine::systemTouchCancel();
                     }
                 }
             }
@@ -786,10 +786,10 @@ void NativeEngine::handleCommand(int32_t cmd) {
             mState.mHasFocus = appState.mHasFocus = mHasFocus;
             break;
         case APP_CMD_PAUSE:
-            Supernova::Engine::systemPause();
+            doriax::Engine::systemPause();
             break;
         case APP_CMD_RESUME:
-            Supernova::Engine::systemResume();
+            doriax::Engine::systemResume();
             break;
         case APP_CMD_STOP:
             mIsVisible = false;

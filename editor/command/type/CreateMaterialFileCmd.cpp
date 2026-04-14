@@ -9,9 +9,9 @@
 #include <fstream>
 #include <system_error>
 
-using namespace Supernova;
+using namespace doriax;
 
-fs::path Editor::CreateMaterialFileCmd::findAvailableTargetFile(const fs::path& directory) {
+fs::path editor::CreateMaterialFileCmd::findAvailableTargetFile(const fs::path& directory) {
     std::string baseName = "Material";
     std::string fileName = baseName + ".material";
     fs::path targetFile = directory / fileName;
@@ -25,7 +25,7 @@ fs::path Editor::CreateMaterialFileCmd::findAvailableTargetFile(const fs::path& 
     return targetFile;
 }
 
-Editor::CreateMaterialFileCmd::CreateMaterialFileCmd(Project* project, const fs::path& directory,
+editor::CreateMaterialFileCmd::CreateMaterialFileCmd(Project* project, const fs::path& directory,
                                                      const char* materialContent, size_t contentLen,
                                                      const MaterialPayload* sourceMaterial) {
     this->project = project;
@@ -65,7 +65,7 @@ Editor::CreateMaterialFileCmd::CreateMaterialFileCmd(Project* project, const fs:
     }
 }
 
-bool Editor::CreateMaterialFileCmd::execute() {
+bool editor::CreateMaterialFileCmd::execute() {
     std::ofstream out(targetFile, std::ios::binary | std::ios::trunc);
     if (!out.is_open()) {
         return false;
@@ -83,7 +83,7 @@ bool Editor::CreateMaterialFileCmd::execute() {
     return true;
 }
 
-void Editor::CreateMaterialFileCmd::undo() {
+void editor::CreateMaterialFileCmd::undo() {
     if (materialCmd) {
         materialCmd->undo();
     }
@@ -92,6 +92,6 @@ void Editor::CreateMaterialFileCmd::undo() {
     fs::remove(targetFile, ec);
 }
 
-bool Editor::CreateMaterialFileCmd::mergeWith(Command* otherCommand) {
+bool editor::CreateMaterialFileCmd::mergeWith(Command* otherCommand) {
     return false;
 }

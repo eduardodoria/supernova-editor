@@ -27,7 +27,7 @@
     extern char **environ;
 #endif
 
-using namespace Supernova;
+using namespace doriax;
 
 namespace {
     constexpr std::chrono::milliseconds kReadSleepMs{10};
@@ -66,7 +66,7 @@ namespace {
 #endif
 }
 
-fs::path Editor::Generator::getExecutableDir() {
+fs::path editor::Generator::getExecutableDir() {
 #ifdef _WIN32
     char path[MAX_PATH];
     GetModuleFileNameA(nullptr, path, MAX_PATH);
@@ -76,11 +76,11 @@ fs::path Editor::Generator::getExecutableDir() {
 #endif
 }
 
-fs::path Editor::Generator::getGeneratedPath(const fs::path& projectInternalPath) {
+fs::path editor::Generator::getGeneratedPath(const fs::path& projectInternalPath) {
     return projectInternalPath / "generated";
 }
 
-Editor::Generator::Generator() :
+editor::Generator::Generator() :
     lastBuildSucceeded(false),
     cancelRequested(false)
 {
@@ -91,7 +91,7 @@ Editor::Generator::Generator() :
 #endif
 }
 
-Editor::Generator::~Generator() {
+editor::Generator::~Generator() {
     // Request cancellation and wait for it to finish before destroying
     try {
         auto f = cancelBuild();
@@ -100,7 +100,7 @@ Editor::Generator::~Generator() {
     waitForBuildToComplete();
 }
 
-void Editor::Generator::clearStaleCMakeCache(const fs::path& projectPath, const fs::path& buildPath) {
+void editor::Generator::clearStaleCMakeCache(const fs::path& projectPath, const fs::path& buildPath) {
     fs::path cacheFile = buildPath / "CMakeCache.txt";
     if (!fs::exists(cacheFile)) {
         return;
@@ -149,14 +149,14 @@ void Editor::Generator::clearStaleCMakeCache(const fs::path& projectPath, const 
     }
 }
 
-bool Editor::Generator::configureCMake(const fs::path& projectPath, const fs::path& buildPath, const std::string& configType, const std::string& cCompiler, const std::string& cxxCompiler, const std::string& generator) {
+bool editor::Generator::configureCMake(const fs::path& projectPath, const fs::path& buildPath, const std::string& configType, const std::string& cCompiler, const std::string& cxxCompiler, const std::string& generator) {
     clearStaleCMakeCache(projectPath, buildPath);
 
     // Detect kit change: if the compiler/generator selection changed since the
     // last configure, the build tree must be wiped (CMake does not support
     // switching generators or compilers in-place).
     {
-        fs::path kitMarker = buildPath / ".supernova_kit";
+        fs::path kitMarker = buildPath / ".doriax_kit";
         fs::path cacheFile = buildPath / "CMakeCache.txt";
         std::string currentKit = generator + "\n" + cCompiler + "\n" + cxxCompiler;
         if (fs::exists(kitMarker)) {
@@ -230,10 +230,10 @@ bool Editor::Generator::configureCMake(const fs::path& projectPath, const fs::pa
     cmakeCommand += "-DCMAKE_BUILD_TYPE=" + configType + " ";
     // When configuring from inside the editor, ensure the generated project builds
     // in "plugin" mode (no Factory main.cpp/scene sources added).
-    cmakeCommand += "-DSUPERNOVA_EDITOR_PLUGIN=ON ";
+    cmakeCommand += "-DDORIAX_EDITOR_PLUGIN=ON ";
     cmakeCommand += "\"" + projectPath.string() + "\" ";
     cmakeCommand += "-B \"" + buildPath.string() + "\" ";
-    cmakeCommand += "-DSUPERNOVA_LIB_DIR=\"" + exePath.string() + "\"";
+    cmakeCommand += "-DDORIAX_LIB_DIR=\"" + exePath.string() + "\"";
 
     Out::info("Configuring CMake project with command: %s", cmakeCommand.c_str());
     bool result = runCommand(cmakeCommand, projectPath);
@@ -242,7 +242,7 @@ bool Editor::Generator::configureCMake(const fs::path& projectPath, const fs::pa
     if (result) {
         std::error_code ec;
         fs::create_directories(buildPath, ec);
-        std::ofstream f(buildPath / ".supernova_kit");
+        std::ofstream f(buildPath / ".doriax_kit");
         if (f.is_open()) {
             f << generator << "\n" << cCompiler << "\n" << cxxCompiler;
         }
@@ -251,13 +251,13 @@ bool Editor::Generator::configureCMake(const fs::path& projectPath, const fs::pa
     return result;
 }
 
-bool Editor::Generator::buildProject(const fs::path& projectPath, const fs::path& buildPath, const std::string& configType) {
+bool editor::Generator::buildProject(const fs::path& projectPath, const fs::path& buildPath, const std::string& configType) {
     std::string buildCommand = "cmake --build \"" + buildPath.string() + "\" --config " + configType;
     Out::info("Building project...");
     return runCommand(buildCommand, buildPath);
 }
 
-bool Editor::Generator::runCommand(const std::string& command, const fs::path& workingDir) {
+bool editor::Generator::runCommand(const std::string& command, const fs::path& workingDir) {
     cancelRequested.store(false, std::memory_order_relaxed);
 
     #ifdef _WIN32
@@ -494,9 +494,9 @@ bool Editor::Generator::runCommand(const std::string& command, const fs::path& w
     #endif
 }
 
-std::string Editor::Generator::getPlatformCMakeConfig() {
+std::string editor::Generator::getPlatformCMakeConfig() {
     std::string content;
-    content += "if (NOT SUPERNOVA_EDITOR_PLUGIN)\n";
+    content += "if (NOT DORIAX_EDITOR_PLUGIN)\n";
     content += "    add_definitions(\"-DDEFAULT_WINDOW_WIDTH=960\")\n";
     content += "    add_definitions(\"-DDEFAULT_WINDOW_HEIGHT=540\")\n";
     content += "\n";
@@ -522,11 +522,11 @@ std::string Editor::Generator::getPlatformCMakeConfig() {
     return content;
 }
 
-std::string Editor::Generator::buildInitSceneScriptsSource(const std::vector<SceneScriptSource>& scriptFiles) {
+std::string editor::Generator::buildInitSceneScriptsSource(const std::vector<SceneScriptSource>& scriptFiles) {
     std::string sourceContent;
 
     sourceContent += "\n";
-    sourceContent += "using namespace Supernova;\n";
+    sourceContent += "using namespace doriax;\n";
 
     sourceContent += "\n";
     sourceContent += "#if defined(_MSC_VER)\n";
@@ -535,7 +535,7 @@ std::string Editor::Generator::buildInitSceneScriptsSource(const std::vector<Sce
     sourceContent += "    #define PROJECT_API\n";
     sourceContent += "#endif\n\n";
 
-    sourceContent += "extern \"C\" void PROJECT_API initScripts(Supernova::Scene* scene) {\n";
+    sourceContent += "extern \"C\" void PROJECT_API initScripts(doriax::Scene* scene) {\n";
     sourceContent += "    LuaBinding::initializeLuaScripts(scene);\n";
 
     if (!scriptFiles.empty()) {
@@ -546,8 +546,8 @@ std::string Editor::Generator::buildInitSceneScriptsSource(const std::vector<Sce
         sourceContent += "\n";
 
         sourceContent += "    for (size_t i = 0; i < scriptsArray->size(); i++) {\n";
-        sourceContent += "        Supernova::ScriptComponent& scriptComp = scriptsArray->getComponentFromIndex(i);\n";
-        sourceContent += "        Supernova::Entity entity = scriptsArray->getEntity(i);\n";
+        sourceContent += "        doriax::ScriptComponent& scriptComp = scriptsArray->getComponentFromIndex(i);\n";
+        sourceContent += "        doriax::Entity entity = scriptsArray->getEntity(i);\n";
         sourceContent += "        for (auto& scriptEntry : scriptComp.scripts) {\n";
         sourceContent += "            if (scriptEntry.type == ScriptType::SCRIPT_LUA) \n";
         sourceContent += "                continue; \n";
@@ -563,7 +563,7 @@ std::string Editor::Generator::buildInitSceneScriptsSource(const std::vector<Sce
         sourceContent += "    }\n";
 
         sourceContent += "    for (size_t i = 0; i < scriptsArray->size(); i++) {\n";
-        sourceContent += "        Supernova::ScriptComponent& scriptComp = scriptsArray->getComponentFromIndex(i);\n";
+        sourceContent += "        doriax::ScriptComponent& scriptComp = scriptsArray->getComponentFromIndex(i);\n";
         sourceContent += "        for (auto& scriptEntry : scriptComp.scripts) {\n";
         sourceContent += "            if (scriptEntry.type == ScriptType::SCRIPT_LUA) \n";
         sourceContent += "                continue; \n";
@@ -581,23 +581,23 @@ std::string Editor::Generator::buildInitSceneScriptsSource(const std::vector<Sce
                 sourceContent += "                    if (prop.name == \"" + prop.name + "\") {\n";
 
                 if (prop.isPtr && !prop.ptrTypeName.empty()) {
-                    sourceContent += "                        const auto& entRef = std::get<Supernova::EntityReference>(prop.value);\n";
-                    sourceContent += "                        Supernova::Entity targetEntity = entRef.entity;\n";
+                    sourceContent += "                        const auto& entRef = std::get<doriax::EntityReference>(prop.value);\n";
+                    sourceContent += "                        doriax::Entity targetEntity = entRef.entity;\n";
                     sourceContent += "                        void* instancePtr = nullptr;\n";
                     sourceContent += "\n";
                     sourceContent += "                        if (targetEntity != NULL_ENTITY) {\n";
-                    sourceContent += "                            Supernova::Scene* targetScene = scene;\n";
+                    sourceContent += "                            doriax::Scene* targetScene = scene;\n";
                     sourceContent += "                            if (entRef.sceneId != 0) {\n";
                     sourceContent += "                                targetScene = SceneManager::getScenePtr(entRef.sceneId);\n";
                     sourceContent += "                            }\n";
                     sourceContent += "                            if (targetScene) {\n";
-                    sourceContent += "                                Supernova::ScriptComponent* targetScriptComp = targetScene->findComponent<Supernova::ScriptComponent>(targetEntity);\n";
+                    sourceContent += "                                doriax::ScriptComponent* targetScriptComp = targetScene->findComponent<doriax::ScriptComponent>(targetEntity);\n";
                     sourceContent += "                                if (targetScriptComp) {\n";
                     sourceContent += "                                    for (auto& targetScript : targetScriptComp->scripts) {\n";
                     sourceContent += "                                        if (targetScript.type != ScriptType::SCRIPT_LUA) {\n";
                     sourceContent += "                                            if (targetScript.className == \"" + prop.ptrTypeName + "\" && targetScript.instance) {\n";
                     sourceContent += "                                                instancePtr = targetScript.instance;\n";
-                    sourceContent += "                                                #ifdef SUPERNOVA_EDITOR_PLUGIN\n";
+                    sourceContent += "                                                #ifdef DORIAX_EDITOR_PLUGIN\n";
                     sourceContent += "                                                printf(\"[DEBUG]   Found matching C++ script instance: '%s'\\n\", targetScript.className.c_str());\n";
                     sourceContent += "                                                #endif\n";
                     sourceContent += "                                                break;\n";
@@ -608,7 +608,7 @@ std::string Editor::Generator::buildInitSceneScriptsSource(const std::vector<Sce
                     sourceContent += "\n";
                     if (!prop.ptrTypeName.empty()) {
                         sourceContent += "                                if (!instancePtr) {\n";
-                        sourceContent += "                                    #ifdef SUPERNOVA_EDITOR_PLUGIN\n";
+                        sourceContent += "                                    #ifdef DORIAX_EDITOR_PLUGIN\n";
                         sourceContent += "                                    printf(\"[DEBUG]   No C++ script instance found, creating '" + prop.ptrTypeName + "' type\\n\");\n";
                         sourceContent += "                                    #endif\n";
                         sourceContent += "                                    instancePtr = new " + prop.ptrTypeName + "(targetScene, targetEntity);\n";
@@ -648,16 +648,16 @@ std::string Editor::Generator::buildInitSceneScriptsSource(const std::vector<Sce
     return sourceContent;
 }
 
-std::string Editor::Generator::buildCleanupSceneScriptsSource(const std::vector<SceneScriptSource>& scriptFiles) {
+std::string editor::Generator::buildCleanupSceneScriptsSource(const std::vector<SceneScriptSource>& scriptFiles) {
     std::string sourceContent;
 
-    sourceContent += "extern \"C\" void PROJECT_API cleanupScripts(Supernova::Scene* scene) {\n";
+    sourceContent += "extern \"C\" void PROJECT_API cleanupScripts(doriax::Scene* scene) {\n";
     sourceContent += "    LuaBinding::cleanupLuaScripts(scene);\n";
 
     if (!scriptFiles.empty()) {
         sourceContent += "    const auto& scriptsArray = scene->getComponentArray<ScriptComponent>();\n";
         sourceContent += "    for (size_t i = 0; i < scriptsArray->size(); i++) {\n";
-        sourceContent += "        Supernova::ScriptComponent& scriptComp = scriptsArray->getComponentFromIndex(i);\n";
+        sourceContent += "        doriax::ScriptComponent& scriptComp = scriptsArray->getComponentFromIndex(i);\n";
         sourceContent += "        for (auto& scriptEntry : scriptComp.scripts) {\n";
         sourceContent += "            if (scriptEntry.type == ScriptType::SCRIPT_LUA) continue;\n";
         sourceContent += "\n";
@@ -680,7 +680,7 @@ std::string Editor::Generator::buildCleanupSceneScriptsSource(const std::vector<
     return sourceContent;
 }
 
-void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, std::string libName, const std::vector<SceneScriptSource>& scriptFiles, const std::vector<Editor::SceneBuildInfo>& scenes, const std::vector<Editor::BundleSceneInfo>& bundles) {
+void editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::path& projectInternalPath, std::string libName, const std::vector<SceneScriptSource>& scriptFiles, const std::vector<editor::SceneBuildInfo>& scenes, const std::vector<editor::BundleSceneInfo>& bundles) {
     const fs::path exePath = getExecutableDir();
 
     fs::path relativeInternalPath = fs::relative(projectInternalPath, projectPath);
@@ -733,20 +733,20 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     }
 
     std::string cmakeContent;
-    cmakeContent += "# This file is auto-generated by Supernova Editor. Do not edit manually.\n\n";
+    cmakeContent += "# This file is auto-generated by Doriax Editor. Do not edit manually.\n\n";
     cmakeContent += "cmake_minimum_required(VERSION 3.15)\n";
     cmakeContent += "project(ProjectLib)\n\n";
     cmakeContent += "set(PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})\n";
-    cmakeContent += "set(INTERNAL_DIR ${PROJECT_ROOT}/.supernova)\n\n";
+    cmakeContent += "set(INTERNAL_DIR ${PROJECT_ROOT}/.doriax)\n\n";
 
     cmakeContent += "# Specify C++ standard\n";
     cmakeContent += "set(CMAKE_CXX_STANDARD 17)\n";
     cmakeContent += "set(CMAKE_CXX_STANDARD_REQUIRED ON)\n\n";
 
-    cmakeContent += "# Build mode: when ON, build as Supernova Editor plugin (shared library)\n";
-    cmakeContent += "option(SUPERNOVA_EDITOR_PLUGIN \"Build as Supernova Editor plugin\" OFF)\n";
-    cmakeContent += "if(SUPERNOVA_EDITOR_PLUGIN)\n";
-    cmakeContent += "    add_compile_definitions(SUPERNOVA_EDITOR_PLUGIN)\n";
+    cmakeContent += "# Build mode: when ON, build as Doriax Editor plugin (shared library)\n";
+    cmakeContent += "option(DORIAX_EDITOR_PLUGIN \"Build as Doriax Editor plugin\" OFF)\n";
+    cmakeContent += "if(DORIAX_EDITOR_PLUGIN)\n";
+    cmakeContent += "    add_compile_definitions(DORIAX_EDITOR_PLUGIN)\n";
     cmakeContent += "endif()\n\n";
 
     cmakeContent += getPlatformCMakeConfig() + "\n";
@@ -755,7 +755,7 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     cmakeContent += factorySources + "\n";
     cmakeContent += "set(PROJECT_SOURCE " + internalPathStr + "/scene_scripts.cpp)\n\n";
     cmakeContent += "# Project target\n";
-    cmakeContent += "if(NOT CMAKE_SYSTEM_NAME STREQUAL \"Android\" AND NOT SUPERNOVA_EDITOR_PLUGIN)\n";
+    cmakeContent += "if(NOT CMAKE_SYSTEM_NAME STREQUAL \"Android\" AND NOT DORIAX_EDITOR_PLUGIN)\n";
     cmakeContent += "    add_executable(" + libName + "\n";
     cmakeContent += "        ${PROJECT_SOURCE}\n";
     cmakeContent += "        ${SCRIPT_SOURCES}\n";
@@ -770,14 +770,14 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     cmakeContent += "endif()\n\n";
 
     cmakeContent += "# When building outside the editor, also compile Factory-generated sources\n";
-    cmakeContent += "if(NOT SUPERNOVA_EDITOR_PLUGIN)\n";
+    cmakeContent += "if(NOT DORIAX_EDITOR_PLUGIN)\n";
     cmakeContent += "    target_sources(" + libName + " PRIVATE ${FACTORY_SOURCES})\n";
     cmakeContent += "endif()\n\n";
     cmakeContent += "# To suppress warnings if not Debug\n";
     cmakeContent += "if(NOT CMAKE_BUILD_TYPE STREQUAL \"Debug\")\n";
-    cmakeContent += "    set(SUPERNOVA_LIB_SYSTEM SYSTEM)\n";
+    cmakeContent += "    set(DORIAX_LIB_SYSTEM SYSTEM)\n";
     cmakeContent += "endif()\n\n";
-    cmakeContent += "target_include_directories(" + libName + " ${SUPERNOVA_LIB_SYSTEM} PRIVATE\n";
+    cmakeContent += "target_include_directories(" + libName + " ${DORIAX_LIB_SYSTEM} PRIVATE\n";
     cmakeContent += scriptDirs + "\n";
     cmakeContent += "    " + engineApiPathStr + "\n";
     cmakeContent += "    " + engineApiPathStr + "/libs/sokol\n";
@@ -807,19 +807,19 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     cmakeContent += "    " + engineApiPathStr + "/core/util\n";
     cmakeContent += ")\n\n";
 
-    cmakeContent += "# Default SUPERNOVA_LIB_DIR if not provided\n";
-    cmakeContent += "if(NOT DEFINED SUPERNOVA_LIB_DIR OR SUPERNOVA_LIB_DIR STREQUAL \"\")\n";
-    cmakeContent += "    set(SUPERNOVA_LIB_DIR \"" + exePath.generic_string() + "\")\n";
+    cmakeContent += "# Default DORIAX_LIB_DIR if not provided\n";
+    cmakeContent += "if(NOT DEFINED DORIAX_LIB_DIR OR DORIAX_LIB_DIR STREQUAL \"\")\n";
+    cmakeContent += "    set(DORIAX_LIB_DIR \"" + exePath.generic_string() + "\")\n";
     cmakeContent += "    # Must be the same as the editor's library to not ODR violation / ABI mismatch\n";
-    cmakeContent += "    add_compile_definitions(SUPERNOVA_EDITOR)\n";
+    cmakeContent += "    add_compile_definitions(DORIAX_EDITOR)\n";
     cmakeContent += "endif()\n\n";
 
-    cmakeContent += "# Find supernova library in specified location\n";
-    cmakeContent += "find_library(SUPERNOVA_LIB supernova PATHS ${SUPERNOVA_LIB_DIR} NO_DEFAULT_PATH)\n";
-    cmakeContent += "if(NOT SUPERNOVA_LIB)\n";
-    cmakeContent += "    message(FATAL_ERROR \"Supernova library not found in ${SUPERNOVA_LIB_DIR}\")\n";
+    cmakeContent += "# Find doriax library in specified location\n";
+    cmakeContent += "find_library(DORIAX_LIB doriax PATHS ${DORIAX_LIB_DIR} NO_DEFAULT_PATH)\n";
+    cmakeContent += "if(NOT DORIAX_LIB)\n";
+    cmakeContent += "    message(FATAL_ERROR \"Doriax library not found in ${DORIAX_LIB_DIR}\")\n";
     cmakeContent += "endif()\n\n";
-    cmakeContent += "target_link_libraries(" + libName + " PRIVATE ${SUPERNOVA_LIB} ${PLATFORM_LIBS})\n\n";
+    cmakeContent += "target_link_libraries(" + libName + " PRIVATE ${DORIAX_LIB} ${PLATFORM_LIBS})\n\n";
     cmakeContent += "# Set compile options based on compiler and platform\n";
     cmakeContent += "if(MSVC)\n";
     cmakeContent += "    target_compile_options(" + libName + " PRIVATE /W4 /EHsc)\n";
@@ -843,11 +843,11 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
 
     // Build C++ source content
     std::string sourceContent;
-    sourceContent += "// This file is auto-generated by Supernova Editor. Do not edit manually.\n\n";
+    sourceContent += "// This file is auto-generated by Doriax Editor. Do not edit manually.\n\n";
     sourceContent += "#include <vector>\n";
     sourceContent += "#include <string>\n";
     sourceContent += "#include <stdio.h>\n";
-    sourceContent += "#include \"Supernova.h\"\n\n";
+    sourceContent += "#include \"Doriax.h\"\n\n";
 
     for (const auto& s : scriptFiles) {
         fs::path headerPath = s.headerPath;
@@ -885,7 +885,7 @@ void Editor::Generator::writeSourceFiles(const fs::path& projectPath, const fs::
     }
 }
 
-void Editor::Generator::terminateCurrentProcess() {
+void editor::Generator::terminateCurrentProcess() {
     #ifdef _WIN32
         HANDLE handleSnapshot = nullptr;
         {
@@ -914,7 +914,7 @@ void Editor::Generator::terminateCurrentProcess() {
     #endif
 }
 
-std::vector<Editor::BundleInstanceInfo> Editor::Generator::writeBundleSources(const std::map<fs::path, EntityBundle>& entityBundles, uint32_t sceneId, const fs::path& projectPath, const fs::path& projectInternalPath) {
+std::vector<editor::BundleInstanceInfo> editor::Generator::writeBundleSources(const std::map<fs::path, EntityBundle>& entityBundles, uint32_t sceneId, const fs::path& projectPath, const fs::path& projectInternalPath) {
     const fs::path generatedPath = getGeneratedPath(projectInternalPath);
 
     std::vector<BundleInstanceInfo> bundleInstances;
@@ -965,7 +965,7 @@ std::vector<Editor::BundleInstanceInfo> Editor::Generator::writeBundleSources(co
     return bundleInstances;
 }
 
-void Editor::Generator::writeSceneSource(Scene* scene, const std::string& sceneName, const std::vector<Entity>& entities, const Entity camera, const fs::path& projectPath, const fs::path& projectInternalPath, std::vector<BundleInstanceInfo>& bundleInstances){
+void editor::Generator::writeSceneSource(Scene* scene, const std::string& sceneName, const std::vector<Entity>& entities, const Entity camera, const fs::path& projectPath, const fs::path& projectInternalPath, std::vector<BundleInstanceInfo>& bundleInstances){
     const fs::path generatedPath = getGeneratedPath(projectInternalPath);
 
     std::string sceneIdStr = Factory::toIdentifier(sceneName);
@@ -978,7 +978,7 @@ void Editor::Generator::writeSceneSource(Scene* scene, const std::string& sceneN
     FileUtils::writeIfChanged(sourceFile, sceneContent);
 }
 
-void Editor::Generator::clearSceneSource(const std::string& sceneName, const fs::path& projectInternalPath) {
+void editor::Generator::clearSceneSource(const std::string& sceneName, const fs::path& projectInternalPath) {
     const fs::path generatedPath = getGeneratedPath(projectInternalPath);
     std::string filename = Factory::toIdentifier(sceneName) + ".cpp";
     const fs::path sourceFile = generatedPath / filename;
@@ -992,13 +992,13 @@ void Editor::Generator::clearSceneSource(const std::string& sceneName, const fs:
     }
 }
 
-void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& scenes, std::string libName, const std::vector<SceneScriptSource>& scriptFiles, const std::vector<Editor::BundleSceneInfo>& bundles, const fs::path& projectPath, const fs::path& projectInternalPath, Scaling scalingMode, TextureStrategy textureStrategy, unsigned int canvasWidth, unsigned int canvasHeight){
+void editor::Generator::configure(const std::vector<editor::SceneBuildInfo>& scenes, std::string libName, const std::vector<SceneScriptSource>& scriptFiles, const std::vector<editor::BundleSceneInfo>& bundles, const fs::path& projectPath, const fs::path& projectInternalPath, Scaling scalingMode, TextureStrategy textureStrategy, unsigned int canvasWidth, unsigned int canvasHeight){
     const fs::path generatedPath = getGeneratedPath(projectInternalPath);
 
     // Build main.cpp content
     std::string mainContent;
-    mainContent += "// This file is auto-generated by Supernova Editor. Do not edit manually.\n\n";
-    mainContent += "#include \"Supernova.h\"\n";
+    mainContent += "// This file is auto-generated by Doriax Editor. Do not edit manually.\n\n";
+    mainContent += "#include \"Doriax.h\"\n";
     mainContent += "#include \"PlatformEditor.h\"\n";
 
     // Include bundle headers (contain declarations for bundle creation functions)
@@ -1010,14 +1010,14 @@ void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& sce
         mainContent += "\n";
     }
 
-    mainContent += "using namespace Supernova;\n\n";
+    mainContent += "using namespace doriax;\n\n";
 
     // Forward declarations for per-scene initialization functions (defined in generated scene .cpp files)
     for (const auto& sceneData : scenes) {
         std::string sceneName = Factory::toIdentifier(sceneData.name);
         mainContent += "void create_" + sceneName + "(Scene* scene);\n";
     }
-    mainContent += "extern \"C\" void cleanupScripts(Supernova::Scene* scene);\n";
+    mainContent += "extern \"C\" void cleanupScripts(doriax::Scene* scene);\n";
     mainContent += "\n";
 
     std::map<uint32_t, std::string> sceneIdToName;
@@ -1069,7 +1069,7 @@ void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& sce
     mainContent += "    return PlatformEditor::init(argc, argv);\n";
     mainContent += "}\n\n";
 
-    mainContent += "SUPERNOVA_INIT void init() {\n";
+    mainContent += "DORIAX_INIT void init() {\n";
     mainContent += "    Engine::setCanvasSize(" + std::to_string(canvasWidth) + ", " + std::to_string(canvasHeight) + ");\n";
 
     // Scaling mode
@@ -1129,14 +1129,14 @@ void Editor::Generator::configure(const std::vector<Editor::SceneBuildInfo>& sce
     writeSourceFiles(projectPath, projectInternalPath, libName, scriptFiles, scenes, bundles);
 }
 
-std::string Editor::Generator::getPlatformEditorHeader() {
+std::string editor::Generator::getPlatformEditorHeader() {
     std::string content;
-    content += "// This file is auto-generated by Supernova Editor. Do not edit manually.\n\n";
+    content += "// This file is auto-generated by Doriax Editor. Do not edit manually.\n\n";
     content += "#pragma once\n\n";
     content += "#define GLFW_INCLUDE_NONE\n";
     content += "#include \"GLFW/glfw3.h\"\n\n";
     content += "#include \"System.h\"\n\n";
-    content += "class PlatformEditor: public Supernova::System{\n\n";
+    content += "class PlatformEditor: public doriax::System{\n\n";
     content += "private:\n\n";
     content += "    static int windowPosX;\n";
     content += "    static int windowPosY;\n";
@@ -1158,7 +1158,7 @@ std::string Editor::Generator::getPlatformEditorHeader() {
     content += "    virtual bool isFullscreen();\n";
     content += "    virtual void requestFullscreen();\n";
     content += "    virtual void exitFullscreen();\n\n";
-    content += "    virtual void setMouseCursor(Supernova::CursorType type);\n";
+    content += "    virtual void setMouseCursor(doriax::CursorType type);\n";
     content += "    virtual void setShowCursor(bool showCursor);\n\n";
     content += "    virtual std::string getAssetPath();\n";
     content += "    virtual std::string getUserDataPath();\n";
@@ -1168,9 +1168,9 @@ std::string Editor::Generator::getPlatformEditorHeader() {
     return content;
 }
 
-std::string Editor::Generator::getPlatformEditorSource(const fs::path& projectPath) {
+std::string editor::Generator::getPlatformEditorSource(const fs::path& projectPath) {
     std::string content;
-    content += "// This file is auto-generated by Supernova Editor. Do not edit manually.\n\n";
+    content += "// This file is auto-generated by Doriax Editor. Do not edit manually.\n\n";
     content += "#include \"PlatformEditor.h\"\n\n";
     content += "#include \"Engine.h\"\n\n";
     content += "int PlatformEditor::windowPosX;\n";
@@ -1190,7 +1190,7 @@ std::string Editor::Generator::getPlatformEditorSource(const fs::path& projectPa
     content += "    windowWidth = DEFAULT_WINDOW_WIDTH;\n";
     content += "    windowHeight = DEFAULT_WINDOW_HEIGHT;\n\n";
     content += "    sampleCount = 1;\n\n";
-    content += "    Supernova::Engine::systemInit(argc, argv, new PlatformEditor());\n\n";
+    content += "    doriax::Engine::systemInit(argc, argv, new PlatformEditor());\n\n";
     content += "    /* create window and GL context via GLFW */\n";
     content += "    glfwInit();\n";
     content += "    glfwWindowHint(GLFW_SAMPLES, (sampleCount == 1) ? 0 : sampleCount);\n";
@@ -1198,15 +1198,15 @@ std::string Editor::Generator::getPlatformEditorSource(const fs::path& projectPa
     content += "    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);\n";
     content += "    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);\n";
     content += "    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);\n";
-    content += "    window = glfwCreateWindow(windowWidth, windowHeight, \"Supernova\", 0, 0);\n\n";
+    content += "    window = glfwCreateWindow(windowWidth, windowHeight, \"Doriax\", 0, 0);\n\n";
     content += "    glfwMakeContextCurrent(window);\n";
     content += "    glfwSwapInterval(1);\n\n";
     content += "    monitor = glfwGetPrimaryMonitor();\n\n";
     content += "    glfwSetMouseButtonCallback(window, [](GLFWwindow*, int btn, int action, int mods) {\n";
     content += "        if (action==GLFW_PRESS){\n";
-    content += "            Supernova::Engine::systemMouseDown(btn, float(mousePosX), float(mousePosY), mods);\n";
+    content += "            doriax::Engine::systemMouseDown(btn, float(mousePosX), float(mousePosY), mods);\n";
     content += "        }else if (action==GLFW_RELEASE){\n";
-    content += "            Supernova::Engine::systemMouseUp(btn, float(mousePosX), float(mousePosY), mods);\n";
+    content += "            doriax::Engine::systemMouseUp(btn, float(mousePosX), float(mousePosY), mods);\n";
     content += "        }\n";
     content += "    });\n";
     content += "    glfwSetCursorPosCallback(window, [](GLFWwindow*, double pos_x, double pos_y) {\n";
@@ -1214,37 +1214,37 @@ std::string Editor::Generator::getPlatformEditorSource(const fs::path& projectPa
     content += "        glfwGetWindowContentScale(window, &xscale, &yscale);\n\n";
     content += "        mousePosX = pos_x * xscale;\n";
     content += "        mousePosY = pos_y * yscale;\n";
-    content += "        Supernova::Engine::systemMouseMove(float(mousePosX), float(mousePosY), 0);\n";
+    content += "        doriax::Engine::systemMouseMove(float(mousePosX), float(mousePosY), 0);\n";
     content += "    });\n";
     content += "    glfwSetScrollCallback(window, [](GLFWwindow*, double xoffset, double yoffset){\n";
-    content += "        Supernova::Engine::systemMouseScroll((float)xoffset, (float)yoffset, 0);\n";
+    content += "        doriax::Engine::systemMouseScroll((float)xoffset, (float)yoffset, 0);\n";
     content += "    });\n";
     content += "    glfwSetKeyCallback(window, [](GLFWwindow*, int key, int /*scancode*/, int action, int mods){\n";
     content += "        if (action==GLFW_PRESS){\n";
     content += "            if (key == GLFW_KEY_TAB)\n";
-    content += "                Supernova::Engine::systemCharInput('\\t');\n";
+    content += "                doriax::Engine::systemCharInput('\\t');\n";
     content += "            if (key == GLFW_KEY_BACKSPACE)\n";
-    content += "                Supernova::Engine::systemCharInput('\\b');\n";
+    content += "                doriax::Engine::systemCharInput('\\b');\n";
     content += "            if (key == GLFW_KEY_ENTER)\n";
-    content += "                Supernova::Engine::systemCharInput('\\r');\n";
+    content += "                doriax::Engine::systemCharInput('\\r');\n";
     content += "            if (key == GLFW_KEY_ESCAPE)\n";
-    content += "                Supernova::Engine::systemCharInput('\\e');\n";
-    content += "            Supernova::Engine::systemKeyDown(key, false, mods);\n";
+    content += "                doriax::Engine::systemCharInput('\\e');\n";
+    content += "            doriax::Engine::systemKeyDown(key, false, mods);\n";
     content += "        }else if (action==GLFW_REPEAT){\n";
-    content += "            Supernova::Engine::systemKeyDown(key, true, mods);\n";
+    content += "            doriax::Engine::systemKeyDown(key, true, mods);\n";
     content += "        }else if (action==GLFW_RELEASE){\n";
-    content += "            Supernova::Engine::systemKeyUp(key, false, mods);\n";
+    content += "            doriax::Engine::systemKeyUp(key, false, mods);\n";
     content += "        }\n";
     content += "    });\n";
     content += "    glfwSetCharCallback(window, [](GLFWwindow*, unsigned int codepoint){\n";
-    content += "        Supernova::Engine::systemCharInput(codepoint);\n";
+    content += "        doriax::Engine::systemCharInput(codepoint);\n";
     content += "    });\n\n";
     content += "    int cur_width, cur_height;\n";
     content += "    glfwGetFramebufferSize(window, &cur_width, &cur_height);\n\n";
     content += "    PlatformEditor::screenWidth = cur_width;\n";
     content += "    PlatformEditor::screenHeight = cur_height;\n\n";
-    content += "    Supernova::Engine::systemViewLoaded();\n";
-    content += "    Supernova::Engine::systemViewChanged();\n\n";
+    content += "    doriax::Engine::systemViewLoaded();\n";
+    content += "    doriax::Engine::systemViewChanged();\n\n";
     content += "    /* draw loop */\n";
     content += "    while (!glfwWindowShouldClose(window)) {\n";
     content += "        int cur_width, cur_height;\n";
@@ -1252,14 +1252,14 @@ std::string Editor::Generator::getPlatformEditorSource(const fs::path& projectPa
     content += "        if (cur_width != PlatformEditor::screenWidth || cur_height != PlatformEditor::screenHeight){\n";
     content += "            PlatformEditor::screenWidth = cur_width;\n";
     content += "            PlatformEditor::screenHeight = cur_height;\n";
-    content += "            Supernova::Engine::systemViewChanged();\n";
+    content += "            doriax::Engine::systemViewChanged();\n";
     content += "        }\n\n";
-    content += "        Supernova::Engine::systemDraw();\n\n";
+    content += "        doriax::Engine::systemDraw();\n\n";
     content += "        glfwSwapBuffers(window);\n";
     content += "        glfwPollEvents();\n";
     content += "    }\n\n";
-    content += "    Supernova::Engine::systemViewDestroyed();\n";
-    content += "    Supernova::Engine::systemShutdown();\n";
+    content += "    doriax::Engine::systemViewDestroyed();\n";
+    content += "    doriax::Engine::systemShutdown();\n";
     content += "    glfwTerminate();\n";
     content += "    return 0;\n";
     content += "}\n\n";
@@ -1292,51 +1292,51 @@ std::string Editor::Generator::getPlatformEditorSource(const fs::path& projectPa
     content += "    // restore last window size and position\n";
     content += "    glfwSetWindowMonitor(window, nullptr,  windowPosX, windowPosY, windowWidth, windowHeight, 0);\n";
     content += "}\n\n";
-    content += "void PlatformEditor::setMouseCursor(Supernova::CursorType type){\n";
+    content += "void PlatformEditor::setMouseCursor(doriax::CursorType type){\n";
     content += "    GLFWcursor* cursor = NULL;\n\n";
-    content += "    if (type == Supernova::CursorType::ARROW){\n";
+    content += "    if (type == doriax::CursorType::ARROW){\n";
     content += "        cursor = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);\n";
-    content += "    }else if (type == Supernova::CursorType::IBEAM){\n";
+    content += "    }else if (type == doriax::CursorType::IBEAM){\n";
     content += "        cursor = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);\n";
-    content += "    }else if (type == Supernova::CursorType::CROSSHAIR){\n";
+    content += "    }else if (type == doriax::CursorType::CROSSHAIR){\n";
     content += "        cursor = glfwCreateStandardCursor(GLFW_CROSSHAIR_CURSOR);\n";
-    content += "    }else if (type == Supernova::CursorType::POINTING_HAND){\n";
+    content += "    }else if (type == doriax::CursorType::POINTING_HAND){\n";
     content += "        #ifdef GLFW_POINTING_HAND_CURSOR\n";
     content += "        cursor = glfwCreateStandardCursor(GLFW_POINTING_HAND_CURSOR);\n";
     content += "        #else\n";
     content += "        cursor = glfwCreateStandardCursor(GLFW_HAND_CURSOR);\n";
     content += "        #endif\n";
-    content += "    }else if (type == Supernova::CursorType::RESIZE_EW){\n";
+    content += "    }else if (type == doriax::CursorType::RESIZE_EW){\n";
     content += "        #ifdef GLFW_RESIZE_EW_CURSOR\n";
     content += "        cursor = glfwCreateStandardCursor(GLFW_RESIZE_EW_CURSOR);\n";
     content += "        #else\n";
     content += "        cursor = glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR);\n";
     content += "        #endif\n";
-    content += "    }else if (type == Supernova::CursorType::RESIZE_NS){\n";
+    content += "    }else if (type == doriax::CursorType::RESIZE_NS){\n";
     content += "        #ifdef GLFW_RESIZE_NS_CURSOR\n";
     content += "        cursor = glfwCreateStandardCursor(GLFW_RESIZE_NS_CURSOR);\n";
     content += "        #else\n";
     content += "        cursor = glfwCreateStandardCursor(GLFW_VRESIZE_CURSOR);\n";
     content += "        #endif\n";
-    content += "    }else if (type == Supernova::CursorType::RESIZE_NWSE){\n";
+    content += "    }else if (type == doriax::CursorType::RESIZE_NWSE){\n";
     content += "        #ifdef GLFW_RESIZE_NWSE_CURSOR\n";
     content += "        cursor = glfwCreateStandardCursor(GLFW_RESIZE_NWSE_CURSOR);\n";
     content += "        #else\n";
     content += "        cursor = glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR);\n";
     content += "        #endif\n";
-    content += "    }else if (type == Supernova::CursorType::RESIZE_NESW){\n";
+    content += "    }else if (type == doriax::CursorType::RESIZE_NESW){\n";
     content += "        #ifdef GLFW_RESIZE_NESW_CURSOR\n";
     content += "        cursor = glfwCreateStandardCursor(GLFW_RESIZE_NESW_CURSOR);\n";
     content += "        #else\n";
     content += "        cursor = glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR);\n";
     content += "        #endif\n";
-    content += "    }else if (type == Supernova::CursorType::RESIZE_ALL){\n";
+    content += "    }else if (type == doriax::CursorType::RESIZE_ALL){\n";
     content += "        #ifdef GLFW_RESIZE_ALL_CURSOR\n";
     content += "        cursor = glfwCreateStandardCursor(GLFW_RESIZE_ALL_CURSOR);\n";
     content += "        #else\n";
     content += "        cursor = glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR);\n";
     content += "        #endif\n";
-    content += "    }else if (type == Supernova::CursorType::NOT_ALLOWED){\n";
+    content += "    }else if (type == doriax::CursorType::NOT_ALLOWED){\n";
     content += "        #ifdef GLFW_NOT_ALLOWED_CURSOR\n";
     content += "        cursor = glfwCreateStandardCursor(GLFW_NOT_ALLOWED_CURSOR);\n";
     content += "        #else\n";
@@ -1371,7 +1371,7 @@ std::string Editor::Generator::getPlatformEditorSource(const fs::path& projectPa
     return content;
 }
 
-std::vector<Editor::CMakeKit> Editor::Generator::detectAvailableKits() {
+std::vector<editor::CMakeKit> editor::Generator::detectAvailableKits() {
     std::vector<CMakeKit> kits;
 
     auto runCmd = [](const std::string& cmd) -> std::string {
@@ -1499,7 +1499,7 @@ std::vector<Editor::CMakeKit> Editor::Generator::detectAvailableKits() {
     return kits;
 }
 
-std::string Editor::Generator::checkBuildTools() {
+std::string editor::Generator::checkBuildTools() {
     std::string missing;
 
 #ifdef _WIN32
@@ -1546,7 +1546,7 @@ std::string Editor::Generator::checkBuildTools() {
     return missing;
 }
 
-void Editor::Generator::build(const fs::path projectPath, const fs::path projectInternalPath, const fs::path buildPath, const std::string& cCompiler, const std::string& cxxCompiler, const std::string& generator) {
+void editor::Generator::build(const fs::path projectPath, const fs::path projectInternalPath, const fs::path buildPath, const std::string& cCompiler, const std::string& cxxCompiler, const std::string& generator) {
     cancelBuild();
     waitForBuildToComplete();
 
@@ -1591,22 +1591,22 @@ void Editor::Generator::build(const fs::path projectPath, const fs::path project
     });
 }
 
-bool Editor::Generator::isBuildInProgress() const {
+bool editor::Generator::isBuildInProgress() const {
     return buildFuture.valid() &&
            buildFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready;
 }
 
-void Editor::Generator::waitForBuildToComplete() {
+void editor::Generator::waitForBuildToComplete() {
     if (buildFuture.valid()) {
         buildFuture.wait();
     }
 }
 
-bool Editor::Generator::didLastBuildSucceed() const {
+bool editor::Generator::didLastBuildSucceed() const {
     return lastBuildSucceeded.load(std::memory_order_relaxed);
 }
 
-std::future<void> Editor::Generator::cancelBuild() {
+std::future<void> editor::Generator::cancelBuild() {
     // Launch cancellation on a separate thread so the UI thread is not blocked.
     return std::async(std::launch::async, [this]() {
         // Check if build is in progress inside the async task

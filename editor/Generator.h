@@ -22,7 +22,7 @@
 
 namespace fs = std::filesystem;
 
-namespace Supernova::Editor {
+namespace doriax::editor {
 
     struct ScriptPropertyInfo {
         std::string name;

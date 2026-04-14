@@ -5,9 +5,9 @@
 #include "Stream.h"
 #include "command/type/DeleteEntityCmd.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, bool addToBundle){
+editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, bool addToBundle){
     this->project = project;
     this->sceneId = sceneId;
     this->entityName = entityName;
@@ -21,7 +21,7 @@ Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std
     this->updateFlags = 0;
 }
 
-Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type, bool addToBundle){
+editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type, bool addToBundle){
     this->project = project;
     this->sceneId = sceneId;
     this->entityName = entityName;
@@ -35,7 +35,7 @@ Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std
     this->updateFlags = 0;
 }
 
-Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type, Entity parent, bool addToBundle){
+editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std::string entityName, EntityCreationType type, Entity parent, bool addToBundle){
     this->project = project;
     this->sceneId = sceneId;
     this->entityName = entityName;
@@ -49,7 +49,7 @@ Editor::CreateEntityCmd::CreateEntityCmd(Project* project, uint32_t sceneId, std
     this->updateFlags = 0;
 }
 
-bool Editor::CreateEntityCmd::execute(){
+bool editor::CreateEntityCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     if (!sceneProject){
@@ -369,12 +369,12 @@ bool Editor::CreateEntityCmd::execute(){
 
     ImGui::SetWindowFocus(("###Scene" + std::to_string(sceneId)).c_str());
 
-    Editor::Out::info("Created entity '%s' at scene '%s'", entityName.c_str(), sceneProject->name.c_str());
+    editor::Out::info("Created entity '%s' at scene '%s'", entityName.c_str(), sceneProject->name.c_str());
 
     return true;
 }
 
-void Editor::CreateEntityCmd::undo(){
+void editor::CreateEntityCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     if (sceneProject){
@@ -398,10 +398,10 @@ void Editor::CreateEntityCmd::undo(){
     }
 }
 
-bool Editor::CreateEntityCmd::mergeWith(Editor::Command* otherCommand){
+bool editor::CreateEntityCmd::mergeWith(editor::Command* otherCommand){
     return false;
 }
 
-Entity Editor::CreateEntityCmd::getEntity(){
+Entity editor::CreateEntityCmd::getEntity(){
     return entity;
 }

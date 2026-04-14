@@ -9,9 +9,9 @@
 
 #include <cmath>
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, true, 40.0, 0.01){
+editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, true, 40.0, 0.01){
     ScopedDefaultEntityPool sys(*scene, EntityPool::System);
 
     linesOffset = Vector2(0, 0);
@@ -41,7 +41,7 @@ Editor::SceneRender3D::SceneRender3D(Scene* scene): SceneRender(scene, false, tr
 
 }
 
-Editor::SceneRender3D::~SceneRender3D(){
+editor::SceneRender3D::~SceneRender3D(){
     delete lines;
     delete selLines;
 
@@ -73,7 +73,7 @@ Editor::SceneRender3D::~SceneRender3D(){
     boneLines.clear();
 }
 
-void Editor::SceneRender3D::createLines(){
+void editor::SceneRender3D::createLines(){
     float spacing = displaySettings.gridSpacing3D;
     if (spacing <= 0.0f) spacing = 1.0f;
 
@@ -120,7 +120,7 @@ void Editor::SceneRender3D::createLines(){
     lines->addLine(Vector3(0, -gridSize, 0), Vector3(0, gridSize, 0), Vector4(0.5, 1.0, 0.5, 1.0));
 }
 
-bool Editor::SceneRender3D::instanciateLightObject(Entity entity){
+bool editor::SceneRender3D::instanciateLightObject(Entity entity){
     if (lightObjects.find(entity) == lightObjects.end()) {
         ScopedDefaultEntityPool sys(*scene, EntityPool::System);
         lightObjects[entity].icon = new Sprite(scene);
@@ -132,7 +132,7 @@ bool Editor::SceneRender3D::instanciateLightObject(Entity entity){
     return false;
 }
 
-bool Editor::SceneRender3D::instanciateCameraObject(Entity entity){
+bool editor::SceneRender3D::instanciateCameraObject(Entity entity){
     if (cameraObjects.find(entity) == cameraObjects.end()) {
         ScopedDefaultEntityPool sys(*scene, EntityPool::System);
         cameraObjects[entity].icon = new Sprite(scene);
@@ -144,7 +144,7 @@ bool Editor::SceneRender3D::instanciateCameraObject(Entity entity){
     return false;
 }
 
-bool Editor::SceneRender3D::instanciateBodyObject(Entity entity){
+bool editor::SceneRender3D::instanciateBodyObject(Entity entity){
     if (bodyObjects.find(entity) == bodyObjects.end()) {
         ScopedDefaultEntityPool sys(*scene, EntityPool::System);
         bodyObjects[entity].lines = new Lines(scene);
@@ -155,7 +155,7 @@ bool Editor::SceneRender3D::instanciateBodyObject(Entity entity){
     return false;
 }
 
-bool Editor::SceneRender3D::instanciateJointObject(Entity entity){
+bool editor::SceneRender3D::instanciateJointObject(Entity entity){
     if (jointLines.find(entity) == jointLines.end()) {
         ScopedDefaultEntityPool sys(*scene, EntityPool::System);
         jointLines[entity] = new Lines(scene);
@@ -166,7 +166,7 @@ bool Editor::SceneRender3D::instanciateJointObject(Entity entity){
     return false;
 }
 
-bool Editor::SceneRender3D::instanciateBoneLines(Entity entity){
+bool editor::SceneRender3D::instanciateBoneLines(Entity entity){
     if (boneLines.find(entity) == boneLines.end()) {
         ScopedDefaultEntityPool sys(*toolslayer.getScene(), EntityPool::System);
         boneLines[entity] = new Lines(toolslayer.getScene());
@@ -177,7 +177,7 @@ bool Editor::SceneRender3D::instanciateBoneLines(Entity entity){
     return false;
 }
 
-void Editor::SceneRender3D::createOrUpdateBoneLines(Entity entity, const ModelComponent& model, bool visible, bool highlighted){
+void editor::SceneRender3D::createOrUpdateBoneLines(Entity entity, const ModelComponent& model, bool visible, bool highlighted){
     Lines* boneLinesObj = boneLines[entity];
 
     boneLinesObj->clearLines();
@@ -261,7 +261,7 @@ void Editor::SceneRender3D::createOrUpdateBoneLines(Entity entity, const ModelCo
     }
 }
 
-void Editor::SceneRender3D::createOrUpdateBodyLines(Entity entity, const Transform& transform, const Body3DComponent& body) {
+void editor::SceneRender3D::createOrUpdateBodyLines(Entity entity, const Transform& transform, const Body3DComponent& body) {
     BodyObjects& bo = bodyObjects[entity];
 
     bo.lines->clearLines();
@@ -554,7 +554,7 @@ void Editor::SceneRender3D::createOrUpdateBodyLines(Entity entity, const Transfo
     }
 }
 
-void Editor::SceneRender3D::createOrUpdateJointLines(Entity entity, const Joint3DComponent& joint, bool visible, bool highlighted){
+void editor::SceneRender3D::createOrUpdateJointLines(Entity entity, const Joint3DComponent& joint, bool visible, bool highlighted){
     Lines* jointLinesObj = jointLines[entity];
 
     jointLinesObj->clearLines();
@@ -700,7 +700,7 @@ void Editor::SceneRender3D::createOrUpdateJointLines(Entity entity, const Joint3
     }
 }
 
-void Editor::SceneRender3D::createOrUpdateLightIcon(Entity entity, const Transform& transform, LightType lightType, bool newLight) {
+void editor::SceneRender3D::createOrUpdateLightIcon(Entity entity, const Transform& transform, LightType lightType, bool newLight) {
     LightObjects& lo = lightObjects[entity];
 
     if (newLight) {
@@ -744,7 +744,7 @@ void Editor::SceneRender3D::createOrUpdateLightIcon(Entity entity, const Transfo
     lo.icon->setScale(scale);
 }
 
-void Editor::SceneRender3D::createOrUpdateCameraIcon(Entity entity, const Transform& transform, bool newCamera) {
+void editor::SceneRender3D::createOrUpdateCameraIcon(Entity entity, const Transform& transform, bool newCamera) {
     CameraObjects& co = cameraObjects[entity];
 
     if (newCamera) {
@@ -772,7 +772,7 @@ void Editor::SceneRender3D::createOrUpdateCameraIcon(Entity entity, const Transf
     co.icon->setScale(scale);
 }
 
-void Editor::SceneRender3D::createCameraFrustum(Entity entity, const Transform& transform, const CameraComponent& cameraComponent, bool fixedSizeFrustum, bool isMainCamera) {
+void editor::SceneRender3D::createCameraFrustum(Entity entity, const Transform& transform, const CameraComponent& cameraComponent, bool fixedSizeFrustum, bool isMainCamera) {
     CameraObjects& co = cameraObjects[entity];
 
     co.lines->setPosition(transform.worldPosition);
@@ -786,7 +786,7 @@ void Editor::SceneRender3D::createCameraFrustum(Entity entity, const Transform& 
 }
 
 
-void Editor::SceneRender3D::createDirectionalLightArrow(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected) {
+void editor::SceneRender3D::createDirectionalLightArrow(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected) {
     LightObjects& lo = lightObjects[entity];
 
     lo.lines->setPosition(transform.worldPosition);
@@ -852,7 +852,7 @@ void Editor::SceneRender3D::createDirectionalLightArrow(Entity entity, const Tra
     lo.lines->addLine(arrowHead2, arrowHead4, arrowColor * 0.7f);
 }
 
-void Editor::SceneRender3D::createPointLightSphere(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected) {
+void editor::SceneRender3D::createPointLightSphere(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected) {
     LightObjects& lo = lightObjects[entity];
 
     lo.lines->setPosition(transform.worldPosition);
@@ -912,7 +912,7 @@ void Editor::SceneRender3D::createPointLightSphere(Entity entity, const Transfor
     }
 }
 
-void Editor::SceneRender3D::createSpotLightCones(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected) {
+void editor::SceneRender3D::createSpotLightCones(Entity entity, const Transform& transform, const LightComponent& light, bool isSelected) {
     LightObjects& lo = lightObjects[entity];
 
     lo.lines->setPosition(transform.worldPosition);
@@ -1003,7 +1003,7 @@ void Editor::SceneRender3D::createSpotLightCones(Entity entity, const Transform&
     lo.lines->addLine(position, endPos, Vector4(0.8, 0.8, 0.8, 1.0));
 }
 
-void Editor::SceneRender3D::hideAllGizmos(){
+void editor::SceneRender3D::hideAllGizmos(){
     SceneRender::hideAllGizmos();
 
     lines->setVisible(false);
@@ -1026,13 +1026,13 @@ void Editor::SceneRender3D::hideAllGizmos(){
     }
 }
 
-void Editor::SceneRender3D::activate(){
+void editor::SceneRender3D::activate(){
     SceneRender::activate();
 
     Engine::addSceneLayer(viewgizmo.getScene());
 }
 
-void Editor::SceneRender3D::updateSelLines(std::vector<OBB> obbs){
+void editor::SceneRender3D::updateSelLines(std::vector<OBB> obbs){
     Vector4 color = Vector4(1.0, 0.6, 0.0, 1.0);
 
     if (selLines->getNumLines() != obbs.size() * 12){
@@ -1075,7 +1075,7 @@ void Editor::SceneRender3D::updateSelLines(std::vector<OBB> obbs){
     }
 }
 
-void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<Entity> entities, Entity mainCamera, const SceneDisplaySettings& settings){
+void editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<Entity> entities, Entity mainCamera, const SceneDisplaySettings& settings){
     SceneRender::update(selEntities, entities, mainCamera, settings);
 
     if (isPlaying){
@@ -1256,22 +1256,22 @@ void Editor::SceneRender3D::update(std::vector<Entity> selEntities, std::vector<
     }
 }
 
-void Editor::SceneRender3D::mouseHoverEvent(float x, float y){
+void editor::SceneRender3D::mouseHoverEvent(float x, float y){
     SceneRender::mouseHoverEvent(x, y);
 }
 
-void Editor::SceneRender3D::mouseClickEvent(float x, float y, std::vector<Entity> selEntities){
+void editor::SceneRender3D::mouseClickEvent(float x, float y, std::vector<Entity> selEntities){
     SceneRender::mouseClickEvent(x, y, selEntities);
 }
 
-void Editor::SceneRender3D::mouseReleaseEvent(float x, float y){
+void editor::SceneRender3D::mouseReleaseEvent(float x, float y){
     SceneRender::mouseReleaseEvent(x, y);
 }
 
-void Editor::SceneRender3D::mouseDragEvent(float x, float y, float origX, float origY, Project* project, size_t sceneId, std::vector<Entity> selEntities, bool disableSelection){
+void editor::SceneRender3D::mouseDragEvent(float x, float y, float origX, float origY, Project* project, size_t sceneId, std::vector<Entity> selEntities, bool disableSelection){
     SceneRender::mouseDragEvent(x, y, origX, origY, project, sceneId, selEntities, disableSelection);
 }
 
-Editor::ViewportGizmo* Editor::SceneRender3D::getViewportGizmo(){
+editor::ViewportGizmo* editor::SceneRender3D::getViewportGizmo(){
     return &viewgizmo;
 }

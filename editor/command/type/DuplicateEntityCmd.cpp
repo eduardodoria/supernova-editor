@@ -4,16 +4,16 @@
 #include "Out.h"
 #include "command/type/DeleteEntityCmd.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::DuplicateEntityCmd::DuplicateEntityCmd(Project* project, uint32_t sceneId, const std::vector<Entity>& entities){
+editor::DuplicateEntityCmd::DuplicateEntityCmd(Project* project, uint32_t sceneId, const std::vector<Entity>& entities){
     this->project = project;
     this->sceneId = sceneId;
     this->sourceEntities = entities;
     this->wasModified = project->getScene(sceneId)->isModified;
 }
 
-void Editor::DuplicateEntityCmd::stripEntityIds(YAML::Node node){
+void editor::DuplicateEntityCmd::stripEntityIds(YAML::Node node){
     if (!node || !node.IsMap())
         return;
 
@@ -41,7 +41,7 @@ void Editor::DuplicateEntityCmd::stripEntityIds(YAML::Node node){
     }
 }
 
-std::string Editor::DuplicateEntityCmd::makeUniqueCopyName(const std::string& name, std::unordered_set<std::string>& existingNames){
+std::string editor::DuplicateEntityCmd::makeUniqueCopyName(const std::string& name, std::unordered_set<std::string>& existingNames){
     // Remove existing " (copy)" or " (copy N)" suffix
     std::string cleanBase = name;
     size_t pos = cleanBase.rfind(" (copy)");
@@ -66,7 +66,7 @@ std::string Editor::DuplicateEntityCmd::makeUniqueCopyName(const std::string& na
     return newName;
 }
 
-bool Editor::DuplicateEntityCmd::execute(){
+bool editor::DuplicateEntityCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     if (!sceneProject || sourceEntities.empty()){
@@ -160,12 +160,12 @@ bool Editor::DuplicateEntityCmd::execute(){
 
     sceneProject->isModified = true;
 
-    Editor::Out::info("Duplicated %zu entity(ies)", topLevel.size());
+    editor::Out::info("Duplicated %zu entity(ies)", topLevel.size());
 
     return true;
 }
 
-void Editor::DuplicateEntityCmd::undo(){
+void editor::DuplicateEntityCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     if (sceneProject){
@@ -185,10 +185,10 @@ void Editor::DuplicateEntityCmd::undo(){
     }
 }
 
-bool Editor::DuplicateEntityCmd::mergeWith(Editor::Command* otherCommand){
+bool editor::DuplicateEntityCmd::mergeWith(editor::Command* otherCommand){
     return false;
 }
 
-std::vector<Entity> Editor::DuplicateEntityCmd::getCreatedEntities() const{
+std::vector<Entity> editor::DuplicateEntityCmd::getCreatedEntities() const{
     return createdEntities;
 }

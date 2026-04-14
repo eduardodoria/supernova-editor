@@ -12,50 +12,50 @@
 #include <mach-o/dyld.h>
 #endif
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::Exporter::Exporter() {
+editor::Exporter::Exporter() {
 }
 
-Editor::Exporter::~Exporter() {
+editor::Exporter::~Exporter() {
     cancelRequested.store(true);
     if (exportThread.joinable()) {
         exportThread.join();
     }
 }
 
-void Editor::Exporter::setProgress(const std::string& step, float value) {
+void editor::Exporter::setProgress(const std::string& step, float value) {
     std::lock_guard<std::mutex> lock(progressMutex);
     progress.currentStep = step;
     progress.overallProgress = value;
 }
 
-void Editor::Exporter::setError(const std::string& message) {
+void editor::Exporter::setError(const std::string& message) {
     std::lock_guard<std::mutex> lock(progressMutex);
     progress.failed = true;
     progress.errorMessage = message;
     Out::error("Export failed: %s", message.c_str());
 }
 
-Editor::ExportProgress Editor::Exporter::getProgress() const {
+editor::ExportProgress editor::Exporter::getProgress() const {
     std::lock_guard<std::mutex> lock(progressMutex);
     return progress;
 }
 
-bool Editor::Exporter::isRunning() const {
+bool editor::Exporter::isRunning() const {
     std::lock_guard<std::mutex> lock(progressMutex);
     return progress.started && !progress.finished && !progress.failed;
 }
 
-void Editor::Exporter::cancelExport() {
+void editor::Exporter::cancelExport() {
     cancelRequested.store(true);
 }
 
-bool Editor::Exporter::isCancelled() const {
+bool editor::Exporter::isCancelled() const {
     return cancelRequested.load();
 }
 
-void Editor::Exporter::startExport(Project* proj, const ExportConfig& cfg) {
+void editor::Exporter::startExport(Project* proj, const ExportConfig& cfg) {
     if (exportThread.joinable()) {
         exportThread.join();
     }
@@ -73,7 +73,7 @@ void Editor::Exporter::startExport(Project* proj, const ExportConfig& cfg) {
     exportThread = std::thread(&Exporter::runExport, this);
 }
 
-void Editor::Exporter::runExport() {
+void editor::Exporter::runExport() {
     if (!checkTargetDir()) return;
     if (isCancelled()) { setError("Export cancelled"); return; }
     if (!clearGenerated()) return;
@@ -102,11 +102,11 @@ void Editor::Exporter::runExport() {
     Out::info("Project exported successfully to: %s", config.targetDir.string().c_str());
 }
 
-fs::path Editor::Exporter::getExportProjectRoot() const {
+fs::path editor::Exporter::getExportProjectRoot() const {
     return config.targetDir / "project";
 }
 
-bool Editor::Exporter::checkTargetDir() {
+bool editor::Exporter::checkTargetDir() {
     setProgress("Checking target directory...", 0.0f);
 
     if (config.targetDir.empty()) {
@@ -131,7 +131,7 @@ bool Editor::Exporter::checkTargetDir() {
     return true;
 }
 
-bool Editor::Exporter::clearGenerated() {
+bool editor::Exporter::clearGenerated() {
     setProgress("Clearing generated directory...", 0.05f);
 
     fs::path generatedDir = project->getProjectInternalPath() / "generated";
@@ -153,7 +153,7 @@ bool Editor::Exporter::clearGenerated() {
     return true;
 }
 
-bool Editor::Exporter::loadAndSaveAllScenes() {
+bool editor::Exporter::loadAndSaveAllScenes() {
     setProgress("Saving scene sources...", 0.1f);
 
     std::promise<bool> savePromise;
@@ -208,7 +208,7 @@ bool Editor::Exporter::loadAndSaveAllScenes() {
     return true;
 }
 
-bool Editor::Exporter::copyGenerated() {
+bool editor::Exporter::copyGenerated() {
     setProgress("Copying generated files...", 0.2f);
 
     fs::path generatedSrc = project->getProjectInternalPath() / "generated";
@@ -308,7 +308,7 @@ bool Editor::Exporter::copyGenerated() {
     return true;
 }
 
-bool Editor::Exporter::copyAssets() {
+bool editor::Exporter::copyAssets() {
     setProgress("Copying assets...", 0.3f);
 
     fs::path assetsSrc = config.assetsDir;
@@ -343,7 +343,7 @@ bool Editor::Exporter::copyAssets() {
         }
     }
 
-    // Copy assets, excluding .supernova directory and C++ scripts
+    // Copy assets, excluding .doriax directory and C++ scripts
     for (auto& entry : fs::recursive_directory_iterator(assetsSrc, fs::directory_options::skip_permission_denied, ec)) {
         fs::path relativePath = fs::relative(entry.path(), assetsSrc, ec);
 
@@ -373,7 +373,7 @@ bool Editor::Exporter::copyAssets() {
     return true;
 }
 
-bool Editor::Exporter::copyLua() {
+bool editor::Exporter::copyLua() {
     setProgress("Copying Lua scripts...", 0.35f);
 
     fs::path luaSrc = config.luaDir;
@@ -398,7 +398,7 @@ bool Editor::Exporter::copyLua() {
     return true;
 }
 
-bool Editor::Exporter::copyCppScripts() {
+bool editor::Exporter::copyCppScripts() {
     setProgress("Copying C++ scripts...", 0.4f);
 
     fs::path scriptsDst = getExportProjectRoot() / "scripts";
@@ -449,7 +449,7 @@ bool Editor::Exporter::copyCppScripts() {
     return true;
 }
 
-bool Editor::Exporter::copyEngine() {
+bool editor::Exporter::copyEngine() {
     setProgress("Copying engine...", 0.5f);
 
 #ifdef _WIN32
@@ -467,8 +467,8 @@ bool Editor::Exporter::copyEngine() {
 
     fs::path sdkRoot;
     const std::vector<fs::path> sdkCandidates = {
-        exeDir / "supernova",
-        exeDir.parent_path() / "supernova",
+        exeDir / "doriax",
+        exeDir.parent_path() / "doriax",
         exeDir
     };
 
@@ -481,7 +481,7 @@ bool Editor::Exporter::copyEngine() {
     }
 
     if (sdkRoot.empty()) {
-        setError("Supernova SDK root not found near executable");
+        setError("Doriax SDK root not found near executable");
         return false;
     }
 
@@ -525,7 +525,7 @@ bool Editor::Exporter::copyEngine() {
     return true;
 }
 
-bool Editor::Exporter::buildAndSaveShaders() {
+bool editor::Exporter::buildAndSaveShaders() {
     setProgress("Building shaders...", 0.6f);
 
     fs::path shadersDst = getExportProjectRoot() / "assets" / "shaders";
@@ -600,31 +600,31 @@ bool Editor::Exporter::buildAndSaveShaders() {
     return true;
 }
 
-bool Editor::Exporter::generateCMakeLists() {
+bool editor::Exporter::generateCMakeLists() {
     setProgress("Generating CMakeLists.txt...", 0.9f);
 
-    std::string cmakeContent = R"CMAKE(# This file is auto-generated by Supernova Editor Export. Do not edit manually.
+    std::string cmakeContent = R"CMAKE(# This file is auto-generated by Doriax Editor Export. Do not edit manually.
 
 cmake_minimum_required(VERSION 3.15)
 
 if(NOT DEFINED APP_NAME)
-   set(APP_NAME supernova-project)
+   set(APP_NAME doriax-project)
 endif()
 
 project(${APP_NAME})
 
-set(SUPERNOVA_SHARED OFF)
+set(DORIAX_SHARED OFF)
 
-if(NOT SUPERNOVA_ROOT)
-    set(SUPERNOVA_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
+if(NOT DORIAX_ROOT)
+    set(DORIAX_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 endif()
-if (NOT EXISTS "${SUPERNOVA_ROOT}")
-    message(FATAL_ERROR "Can't find Supernova root directory: ${SUPERNOVA_ROOT}")
+if (NOT EXISTS "${DORIAX_ROOT}")
+    message(FATAL_ERROR "Can't find Doriax root directory: ${DORIAX_ROOT}")
 endif()
-file(TO_CMAKE_PATH ${SUPERNOVA_ROOT} SUPERNOVA_ROOT)
+file(TO_CMAKE_PATH ${DORIAX_ROOT} DORIAX_ROOT)
 
 if(NOT PROJECT_ROOT)
-    set(PROJECT_ROOT ${SUPERNOVA_ROOT}/project)
+    set(PROJECT_ROOT ${DORIAX_ROOT}/project)
 endif()
 if (NOT EXISTS "${PROJECT_ROOT}")
     message(FATAL_ERROR "Can't find project root directory: ${PROJECT_ROOT}")
@@ -694,7 +694,7 @@ set(PLATFORM_OPTIONS)
 find_package(Threads REQUIRED)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
-    add_definitions("-DSUPERNOVA_WEB")
+    add_definitions("-DDORIAX_WEB")
 
     if(GRAPHIC_BACKEND STREQUAL "gles3")
         add_definitions("-DSOKOL_GLES3")
@@ -704,7 +704,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
     add_definitions("-DWITH_MINIAUDIO")
 
     set(CMAKE_EXECUTABLE_SUFFIX ".html")
-    set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/emscripten)
+    set(PLATFORM_ROOT ${DORIAX_ROOT}/platform/emscripten)
 
     set(EM_PRELOAD_FILES)
     if (EXISTS "${PROJECT_ROOT}/assets")
@@ -715,7 +715,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
     endif()
 
     list(APPEND PLATFORM_SOURCE
-        ${PLATFORM_ROOT}/SupernovaWeb.cpp
+        ${PLATFORM_ROOT}/DoriaxWeb.cpp
         ${PLATFORM_ROOT}/main.cpp
     )
 
@@ -748,7 +748,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Android")
-    add_definitions("-DSUPERNOVA_ANDROID")
+    add_definitions("-DDORIAX_ANDROID")
 
     if(GRAPHIC_BACKEND STREQUAL "gles3")
         add_definitions("-DSOKOL_GLES3")
@@ -760,7 +760,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Android")
     add_definitions("-DLUA_USE_C89")
     add_definitions("-DWITH_MINIAUDIO")
 
-    set(APP_NAME supernova-android)
+    set(APP_NAME doriax-android)
 
     if(ANDROID_ABI MATCHES "^arm(eabi)?(-v7a)?(64-v8a)?$")
         if(ANDROID_ABI MATCHES "^arm(eabi)?(-v7a)?$")
@@ -769,10 +769,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Android")
         set(IS_ARM ON)
     endif()
 
-    set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/android)
+    set(PLATFORM_ROOT ${DORIAX_ROOT}/platform/android)
 
     list(APPEND PLATFORM_SOURCE
-        ${PLATFORM_ROOT}/SupernovaAndroid.cpp
+        ${PLATFORM_ROOT}/DoriaxAndroid.cpp
         ${PLATFORM_ROOT}/AndroidMain.cpp
         ${PLATFORM_ROOT}/NativeEngine.cpp
     )
@@ -795,7 +795,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Android")
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    add_definitions("-DSUPERNOVA_SOKOL")
+    add_definitions("-DDORIAX_SOKOL")
 
     if(GRAPHIC_BACKEND STREQUAL "glcore")
         add_definitions("-DSOKOL_GLCORE")
@@ -813,10 +813,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     endif()
 
     set(PLATFORM_EXEC_FLAGS WIN32)
-    set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/sokol)
+    set(PLATFORM_ROOT ${DORIAX_ROOT}/platform/sokol)
 
     list(APPEND PLATFORM_SOURCE
-        ${PLATFORM_ROOT}/SupernovaSokol.cpp
+        ${PLATFORM_ROOT}/DoriaxSokol.cpp
         ${PLATFORM_ROOT}/main.cpp
     )
 
@@ -845,12 +845,12 @@ if((CMAKE_SYSTEM_NAME STREQUAL "Linux") OR (CMAKE_SYSTEM_NAME STREQUAL "FreeBSD"
     endif()
 
     if (APP_BACKEND STREQUAL "glfw")
-        add_definitions("-DSUPERNOVA_GLFW")
+        add_definitions("-DDORIAX_GLFW")
 
-        set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/glfw)
+        set(PLATFORM_ROOT ${DORIAX_ROOT}/platform/glfw)
 
         list(APPEND PLATFORM_SOURCE
-            ${PLATFORM_ROOT}/SupernovaGLFW.cpp
+            ${PLATFORM_ROOT}/DoriaxGLFW.cpp
             ${PLATFORM_ROOT}/main.cpp
         )
 
@@ -858,12 +858,12 @@ if((CMAKE_SYSTEM_NAME STREQUAL "Linux") OR (CMAKE_SYSTEM_NAME STREQUAL "FreeBSD"
             GL dl m glfw
         )
     else()
-        add_definitions("-DSUPERNOVA_SOKOL")
+        add_definitions("-DDORIAX_SOKOL")
 
-        set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/sokol)
+        set(PLATFORM_ROOT ${DORIAX_ROOT}/platform/sokol)
 
         list(APPEND PLATFORM_SOURCE
-            ${PLATFORM_ROOT}/SupernovaSokol.cpp
+            ${PLATFORM_ROOT}/DoriaxSokol.cpp
             ${PLATFORM_ROOT}/main.cpp
         )
     endif()
@@ -883,9 +883,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15")
 
     if (APP_BACKEND STREQUAL "apple")
-        add_definitions("-DSUPERNOVA_APPLE")
-        set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/apple)
-        set(APP_BUNDLE_IDENTIFIER "org.supernovaengine.supernova")
+        add_definitions("-DDORIAX_APPLE")
+        set(PLATFORM_ROOT ${DORIAX_ROOT}/platform/apple)
+        set(APP_BUNDLE_IDENTIFIER "org.doriaxengine.doriax")
         set(PLATFORM_EXEC_FLAGS MACOSX_BUNDLE)
 
         include_directories(/System/Library/Frameworks)
@@ -900,8 +900,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
             ${PLATFORM_ROOT}/macos/ViewController.m
             ${PLATFORM_ROOT}/Renderer.h
             ${PLATFORM_ROOT}/Renderer.mm
-            ${PLATFORM_ROOT}/SupernovaApple.h
-            ${PLATFORM_ROOT}/SupernovaApple.mm
+            ${PLATFORM_ROOT}/DoriaxApple.h
+            ${PLATFORM_ROOT}/DoriaxApple.mm
         )
 
         list(APPEND PLATFORM_RESOURCES
@@ -909,7 +909,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         )
 
         list(APPEND PLATFORM_PROPERTIES
-            MACOSX_BUNDLE_INFO_PLIST "${SUPERNOVA_ROOT}/workspaces/xcode/macos/Info.plist"
+            MACOSX_BUNDLE_INFO_PLIST "${DORIAX_ROOT}/workspaces/xcode/macos/Info.plist"
             XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC "YES"
         )
     else()
@@ -921,11 +921,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         endif()
 
         if (APP_BACKEND STREQUAL "glfw")
-            add_definitions("-DSUPERNOVA_GLFW")
-            set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/glfw)
+            add_definitions("-DDORIAX_GLFW")
+            set(PLATFORM_ROOT ${DORIAX_ROOT}/platform/glfw)
 
             list(APPEND PLATFORM_SOURCE
-                ${PLATFORM_ROOT}/SupernovaGLFW.cpp
+                ${PLATFORM_ROOT}/DoriaxGLFW.cpp
                 ${PLATFORM_ROOT}/main.cpp
             )
 
@@ -933,11 +933,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
                 glfw
             )
         else()
-            add_definitions("-DSUPERNOVA_SOKOL")
-            set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/sokol)
+            add_definitions("-DDORIAX_SOKOL")
+            set(PLATFORM_ROOT ${DORIAX_ROOT}/platform/sokol)
 
             list(APPEND PLATFORM_SOURCE
-                ${PLATFORM_ROOT}/SupernovaSokol.cpp
+                ${PLATFORM_ROOT}/DoriaxSokol.cpp
                 ${PLATFORM_ROOT}/main.cpp
             )
         endif()
@@ -945,7 +945,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
-    add_definitions("-DSUPERNOVA_APPLE")
+    add_definitions("-DDORIAX_APPLE")
 
     if(GRAPHIC_BACKEND STREQUAL "metal")
         add_definitions("-DSOKOL_METAL")
@@ -953,8 +953,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
 
     add_definitions("-DWITH_MINIAUDIO")
 
-    set(PLATFORM_ROOT ${SUPERNOVA_ROOT}/platform/apple)
-    set(APP_BUNDLE_IDENTIFIER "org.supernovaengine.supernova")
+    set(PLATFORM_ROOT ${DORIAX_ROOT}/platform/apple)
+    set(APP_BUNDLE_IDENTIFIER "org.doriaxengine.doriax")
 
     include_directories(/System/Library/Frameworks)
 
@@ -970,8 +970,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
         ${PLATFORM_ROOT}/ios/AdMobAdapter.m
         ${PLATFORM_ROOT}/Renderer.h
         ${PLATFORM_ROOT}/Renderer.mm
-        ${PLATFORM_ROOT}/SupernovaApple.h
-        ${PLATFORM_ROOT}/SupernovaApple.mm
+        ${PLATFORM_ROOT}/DoriaxApple.h
+        ${PLATFORM_ROOT}/DoriaxApple.mm
     )
 
     list(APPEND PLATFORM_RESOURCES
@@ -998,42 +998,42 @@ if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
 
     list(APPEND PLATFORM_PROPERTIES
         XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER ${APP_BUNDLE_IDENTIFIER}
-        MACOSX_BUNDLE_INFO_PLIST "${SUPERNOVA_ROOT}/workspaces/xcode/ios/Info.plist"
+        MACOSX_BUNDLE_INFO_PLIST "${DORIAX_ROOT}/workspaces/xcode/ios/Info.plist"
         XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC "YES"
     )
 endif()
 
 include_directories(${PLATFORM_ROOT})
 
-include_directories(${SUPERNOVA_ROOT}/engine/libs/sokol)
-include_directories(${SUPERNOVA_ROOT}/engine/libs/lua)
-include_directories(${SUPERNOVA_ROOT}/engine/libs/box2d/include)
-include_directories(${SUPERNOVA_ROOT}/engine/libs/joltphysics)
+include_directories(${DORIAX_ROOT}/engine/libs/sokol)
+include_directories(${DORIAX_ROOT}/engine/libs/lua)
+include_directories(${DORIAX_ROOT}/engine/libs/box2d/include)
+include_directories(${DORIAX_ROOT}/engine/libs/joltphysics)
 
-include_directories(${SUPERNOVA_ROOT}/engine/core)
-include_directories(${SUPERNOVA_ROOT}/engine/core/action)
-include_directories(${SUPERNOVA_ROOT}/engine/core/buffer)
-include_directories(${SUPERNOVA_ROOT}/engine/core/component)
-include_directories(${SUPERNOVA_ROOT}/engine/core/ecs)
-include_directories(${SUPERNOVA_ROOT}/engine/core/io)
-include_directories(${SUPERNOVA_ROOT}/engine/core/manager)
-include_directories(${SUPERNOVA_ROOT}/engine/core/math)
-include_directories(${SUPERNOVA_ROOT}/engine/core/object)
-include_directories(${SUPERNOVA_ROOT}/engine/core/object/audio)
-include_directories(${SUPERNOVA_ROOT}/engine/core/object/ui)
-include_directories(${SUPERNOVA_ROOT}/engine/core/object/environment)
-include_directories(${SUPERNOVA_ROOT}/engine/core/object/physics)
-include_directories(${SUPERNOVA_ROOT}/engine/core/pool)
-include_directories(${SUPERNOVA_ROOT}/engine/core/registry)
-include_directories(${SUPERNOVA_ROOT}/engine/core/render)
-include_directories(${SUPERNOVA_ROOT}/engine/core/script)
-include_directories(${SUPERNOVA_ROOT}/engine/core/shader)
-include_directories(${SUPERNOVA_ROOT}/engine/core/subsystem)
-include_directories(${SUPERNOVA_ROOT}/engine/core/texture)
-include_directories(${SUPERNOVA_ROOT}/engine/core/util)
-include_directories(${SUPERNOVA_ROOT}/engine/renders)
+include_directories(${DORIAX_ROOT}/engine/core)
+include_directories(${DORIAX_ROOT}/engine/core/action)
+include_directories(${DORIAX_ROOT}/engine/core/buffer)
+include_directories(${DORIAX_ROOT}/engine/core/component)
+include_directories(${DORIAX_ROOT}/engine/core/ecs)
+include_directories(${DORIAX_ROOT}/engine/core/io)
+include_directories(${DORIAX_ROOT}/engine/core/manager)
+include_directories(${DORIAX_ROOT}/engine/core/math)
+include_directories(${DORIAX_ROOT}/engine/core/object)
+include_directories(${DORIAX_ROOT}/engine/core/object/audio)
+include_directories(${DORIAX_ROOT}/engine/core/object/ui)
+include_directories(${DORIAX_ROOT}/engine/core/object/environment)
+include_directories(${DORIAX_ROOT}/engine/core/object/physics)
+include_directories(${DORIAX_ROOT}/engine/core/pool)
+include_directories(${DORIAX_ROOT}/engine/core/registry)
+include_directories(${DORIAX_ROOT}/engine/core/render)
+include_directories(${DORIAX_ROOT}/engine/core/script)
+include_directories(${DORIAX_ROOT}/engine/core/shader)
+include_directories(${DORIAX_ROOT}/engine/core/subsystem)
+include_directories(${DORIAX_ROOT}/engine/core/texture)
+include_directories(${DORIAX_ROOT}/engine/core/util)
+include_directories(${DORIAX_ROOT}/engine/renders)
 
-add_subdirectory(${SUPERNOVA_ROOT}/engine)
+add_subdirectory(${DORIAX_ROOT}/engine)
 
 include_directories(${PROJECT_ROOT})
 include_directories(${PROJECT_ROOT}/scripts)
@@ -1091,7 +1091,7 @@ target_compile_options(
 
 target_link_libraries(
     ${APP_NAME}
-    supernova
+    doriax
     Threads::Threads
     ${PLATFORM_LIBS}
 )
@@ -1105,7 +1105,7 @@ target_link_libraries(
 
 // Static helpers for UI display
 
-std::string Editor::Exporter::getShaderDisplayName(ShaderType type, uint32_t properties) {
+std::string editor::Exporter::getShaderDisplayName(ShaderType type, uint32_t properties) {
     std::string name = ShaderPool::getShaderTypeName(type);
     int propCount = ShaderPool::getShaderPropertyCount(type);
 
@@ -1124,7 +1124,7 @@ std::string Editor::Exporter::getShaderDisplayName(ShaderType type, uint32_t pro
     return name;
 }
 
-std::string Editor::Exporter::getPlatformName(Platform platform) {
+std::string editor::Exporter::getPlatformName(Platform platform) {
     switch (platform) {
         case Platform::MacOS:   return "macOS";
         case Platform::iOS:     return "iOS";

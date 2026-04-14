@@ -1,4 +1,4 @@
-package org.supernovaengine.supernova;
+package org.doriaxengine.doriax;
 
 import android.os.Build.VERSION;
 import android.os.Build.VERSION_CODES;
@@ -17,7 +17,7 @@ public class MainActivity extends GameActivity {
 
 	// Load our native library:
 	static {
-		System.loadLibrary("supernova-android");
+		System.loadLibrary("doriax-android");
 	}
 
 	private UserSettings userSettings;

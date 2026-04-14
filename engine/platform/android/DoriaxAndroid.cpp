@@ -1,4 +1,4 @@
-#include "SupernovaAndroid.h"
+#include "DoriaxAndroid.h"
 
 #include <errno.h>
 #include <android/log.h>
@@ -23,31 +23,31 @@ static int android_close(void* cookie) {
     return 0;
 }
 
-SupernovaAndroid::SupernovaAndroid(){
-    logtag = "Supernova";
+DoriaxAndroid::DoriaxAndroid(){
+    logtag = "Doriax";
 }
 
-int SupernovaAndroid::getScreenWidth(){
+int DoriaxAndroid::getScreenWidth(){
     return NativeEngine::getInstance()->getSurfWidth();
 }
 
-int SupernovaAndroid::getScreenHeight(){
+int DoriaxAndroid::getScreenHeight(){
     return NativeEngine::getInstance()->getSurfHeight();
 }
 
-void SupernovaAndroid::showVirtualKeyboard(std::wstring text){
+void DoriaxAndroid::showVirtualKeyboard(std::wstring text){
     NativeEngine::getInstance()->showSoftInput(text);
 }
 
-void SupernovaAndroid::hideVirtualKeyboard(){
+void DoriaxAndroid::hideVirtualKeyboard(){
     NativeEngine::getInstance()->hideSoftInput();
 }
 
-std::string SupernovaAndroid::getUserDataPath() {
+std::string DoriaxAndroid::getUserDataPath() {
     return NativeEngine::getInstance()->getInternalDataPath();
 }
 
-FILE* SupernovaAndroid::platformFopen(const char* fname, const char* mode) {
+FILE* DoriaxAndroid::platformFopen(const char* fname, const char* mode) {
     std::string path = fname;
 
     //Return regular fopen if writable path is in path
@@ -65,7 +65,7 @@ FILE* SupernovaAndroid::platformFopen(const char* fname, const char* mode) {
     return funopen(asset, android_read, android_write, android_seek, android_close);
 }
 
-void SupernovaAndroid::platformLog(const int type, const char *fmt, va_list args){
+void DoriaxAndroid::platformLog(const int type, const char *fmt, va_list args){
     int priority = ANDROID_LOG_VERBOSE;
 
     if (type == S_LOG_VERBOSE){
@@ -81,7 +81,7 @@ void SupernovaAndroid::platformLog(const int type, const char *fmt, va_list args
     __android_log_vprint(priority, logtag, fmt, args);
 }
 
-bool SupernovaAndroid::getBoolForKey(const char *key, bool defaultValue){
+bool DoriaxAndroid::getBoolForKey(const char *key, bool defaultValue){
     JniData& jniData = NativeEngine::getInstance()->getJniData();
     JNIEnv* env = NativeEngine::getInstance()->getJniEnv();
 
@@ -91,7 +91,7 @@ bool SupernovaAndroid::getBoolForKey(const char *key, bool defaultValue){
     return value;
 }
 
-int SupernovaAndroid::getIntegerForKey(const char *key, int defaultValue){
+int DoriaxAndroid::getIntegerForKey(const char *key, int defaultValue){
     JniData& jniData = NativeEngine::getInstance()->getJniData();
     JNIEnv* env = NativeEngine::getInstance()->getJniEnv();
 
@@ -101,7 +101,7 @@ int SupernovaAndroid::getIntegerForKey(const char *key, int defaultValue){
     return value;
 }
 
-long SupernovaAndroid::getLongForKey(const char *key, long defaultValue){
+long DoriaxAndroid::getLongForKey(const char *key, long defaultValue){
     JniData& jniData = NativeEngine::getInstance()->getJniData();
     JNIEnv* env = NativeEngine::getInstance()->getJniEnv();
 
@@ -111,7 +111,7 @@ long SupernovaAndroid::getLongForKey(const char *key, long defaultValue){
     return value;
 }
 
-float SupernovaAndroid::getFloatForKey(const char *key, float defaultValue){
+float DoriaxAndroid::getFloatForKey(const char *key, float defaultValue){
     JniData& jniData = NativeEngine::getInstance()->getJniData();
     JNIEnv* env = NativeEngine::getInstance()->getJniEnv();
 
@@ -121,7 +121,7 @@ float SupernovaAndroid::getFloatForKey(const char *key, float defaultValue){
     return value;
 }
 
-double SupernovaAndroid::getDoubleForKey(const char *key, double defaultValue){
+double DoriaxAndroid::getDoubleForKey(const char *key, double defaultValue){
     JniData& jniData = NativeEngine::getInstance()->getJniData();
     JNIEnv* env = NativeEngine::getInstance()->getJniEnv();
 
@@ -131,7 +131,7 @@ double SupernovaAndroid::getDoubleForKey(const char *key, double defaultValue){
     return value;
 }
 
-std::string SupernovaAndroid::getStringForKey(const char *key, const std::string& defaultValue){
+std::string DoriaxAndroid::getStringForKey(const char *key, const std::string& defaultValue){
     JniData& jniData = NativeEngine::getInstance()->getJniData();
     JNIEnv* env = NativeEngine::getInstance()->getJniEnv();
 
@@ -145,7 +145,7 @@ std::string SupernovaAndroid::getStringForKey(const char *key, const std::string
     return value;
 }
 
-void SupernovaAndroid::setBoolForKey(const char *key, bool value){
+void DoriaxAndroid::setBoolForKey(const char *key, bool value){
     JniData& jniData = NativeEngine::getInstance()->getJniData();
     JNIEnv* env = NativeEngine::getInstance()->getJniEnv();
 
@@ -154,7 +154,7 @@ void SupernovaAndroid::setBoolForKey(const char *key, bool value){
     env->DeleteLocalRef(strKey);
 }
 
-void SupernovaAndroid::setIntegerForKey(const char *key, int value){
+void DoriaxAndroid::setIntegerForKey(const char *key, int value){
     JniData& jniData = NativeEngine::getInstance()->getJniData();
     JNIEnv* env = NativeEngine::getInstance()->getJniEnv();
 
@@ -163,7 +163,7 @@ void SupernovaAndroid::setIntegerForKey(const char *key, int value){
     env->DeleteLocalRef(strKey);
 }
 
-void SupernovaAndroid::setLongForKey(const char *key, long value){
+void DoriaxAndroid::setLongForKey(const char *key, long value){
     JniData& jniData = NativeEngine::getInstance()->getJniData();
     JNIEnv* env = NativeEngine::getInstance()->getJniEnv();
 
@@ -172,7 +172,7 @@ void SupernovaAndroid::setLongForKey(const char *key, long value){
     env->DeleteLocalRef(strKey);
 }
 
-void SupernovaAndroid::setFloatForKey(const char *key, float value){
+void DoriaxAndroid::setFloatForKey(const char *key, float value){
     JniData& jniData = NativeEngine::getInstance()->getJniData();
     JNIEnv* env = NativeEngine::getInstance()->getJniEnv();
 
@@ -181,7 +181,7 @@ void SupernovaAndroid::setFloatForKey(const char *key, float value){
     env->DeleteLocalRef(strKey);
 }
 
-void SupernovaAndroid::setDoubleForKey(const char *key, double value){
+void DoriaxAndroid::setDoubleForKey(const char *key, double value){
     JniData& jniData = NativeEngine::getInstance()->getJniData();
     JNIEnv* env = NativeEngine::getInstance()->getJniEnv();
 
@@ -190,7 +190,7 @@ void SupernovaAndroid::setDoubleForKey(const char *key, double value){
     env->DeleteLocalRef(strKey);
 }
 
-void SupernovaAndroid::setStringForKey(const char* key, const std::string& value){
+void DoriaxAndroid::setStringForKey(const char* key, const std::string& value){
     JniData& jniData = NativeEngine::getInstance()->getJniData();
     JNIEnv* env = NativeEngine::getInstance()->getJniEnv();
 
@@ -201,7 +201,7 @@ void SupernovaAndroid::setStringForKey(const char* key, const std::string& value
     env->DeleteLocalRef(strValue);
 }
 
-void SupernovaAndroid::removeKey(const char* key){
+void DoriaxAndroid::removeKey(const char* key){
     JniData& jniData = NativeEngine::getInstance()->getJniData();
     JNIEnv* env = NativeEngine::getInstance()->getJniEnv();
 
@@ -210,22 +210,22 @@ void SupernovaAndroid::removeKey(const char* key){
     env->DeleteLocalRef(strKey);
 }
 
-void SupernovaAndroid::initializeAdMob(bool tagForChildDirectedTreatment, bool tagForUnderAgeOfConsent){
+void DoriaxAndroid::initializeAdMob(bool tagForChildDirectedTreatment, bool tagForUnderAgeOfConsent){
     JniData& jniData = NativeEngine::getInstance()->getJniData();
     JNIEnv* env = NativeEngine::getInstance()->getJniEnv();
 
     env->CallVoidMethod(jniData.adMobWrapperObjRef, jniData.initializeAdMob, tagForChildDirectedTreatment, tagForUnderAgeOfConsent);
 }
 
-void SupernovaAndroid::setMaxAdContentRating(Supernova::AdMobRating rating){
+void DoriaxAndroid::setMaxAdContentRating(doriax::AdMobRating rating){
     int irating = 0;
-    if (rating == Supernova::AdMobRating::General){
+    if (rating == doriax::AdMobRating::General){
         irating = 1;
-    }else if (rating == Supernova::AdMobRating::ParentalGuidance){
+    }else if (rating == doriax::AdMobRating::ParentalGuidance){
         irating = 2;
-    }else if (rating == Supernova::AdMobRating::Teen){
+    }else if (rating == doriax::AdMobRating::Teen){
         irating = 3;
-    }else if (rating == Supernova::AdMobRating::MatureAudience){
+    }else if (rating == doriax::AdMobRating::MatureAudience){
         irating = 4;
     }
 
@@ -235,7 +235,7 @@ void SupernovaAndroid::setMaxAdContentRating(Supernova::AdMobRating rating){
     env->CallVoidMethod(jniData.adMobWrapperObjRef, jniData.setMaxAdContentRating, irating);
 }
 
-void SupernovaAndroid::loadInterstitialAd(const std::string& adUnitID){
+void DoriaxAndroid::loadInterstitialAd(const std::string& adUnitID){
     JniData& jniData = NativeEngine::getInstance()->getJniData();
     JNIEnv* env = NativeEngine::getInstance()->getJniEnv();
 
@@ -244,7 +244,7 @@ void SupernovaAndroid::loadInterstitialAd(const std::string& adUnitID){
     env->DeleteLocalRef(strAdUnitID);
 }
 
-bool SupernovaAndroid::isInterstitialAdLoaded(){
+bool DoriaxAndroid::isInterstitialAdLoaded(){
     JniData& jniData = NativeEngine::getInstance()->getJniData();
     JNIEnv* env = NativeEngine::getInstance()->getJniEnv();
 
@@ -252,7 +252,7 @@ bool SupernovaAndroid::isInterstitialAdLoaded(){
     return value;
 }
 
-void SupernovaAndroid::showInterstitialAd(){
+void DoriaxAndroid::showInterstitialAd(){
     JniData& jniData = NativeEngine::getInstance()->getJniData();
     JNIEnv* env = NativeEngine::getInstance()->getJniEnv();
 

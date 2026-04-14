@@ -1,9 +1,9 @@
 #include "AddEntityToBundleCmd.h"
 #include "util/ProjectUtils.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::AddEntityToBundleCmd::AddEntityToBundleCmd(Project* project, uint32_t sceneId, Entity entity, Entity parent){
+editor::AddEntityToBundleCmd::AddEntityToBundleCmd(Project* project, uint32_t sceneId, Entity entity, Entity parent){
     this->project = project;
     this->sceneId = sceneId;
     this->entity = entity;
@@ -25,7 +25,7 @@ Editor::AddEntityToBundleCmd::AddEntityToBundleCmd(Project* project, uint32_t sc
     }
 }
 
-bool Editor::AddEntityToBundleCmd::execute(){
+bool editor::AddEntityToBundleCmd::execute(){
     bool result = project->addEntityToBundle(sceneId, entity, parent, false);
 
     if (result){
@@ -35,7 +35,7 @@ bool Editor::AddEntityToBundleCmd::execute(){
     return result;
 }
 
-void Editor::AddEntityToBundleCmd::undo(){
+void editor::AddEntityToBundleCmd::undo(){
     project->removeEntityFromBundle(sceneId, entity, false);
 
     if (hasTransform) {
@@ -48,7 +48,7 @@ void Editor::AddEntityToBundleCmd::undo(){
     project->getScene(sceneId)->isModified = wasModified;
 }
 
-bool Editor::AddEntityToBundleCmd::mergeWith(Editor::Command* otherCommand){
+bool editor::AddEntityToBundleCmd::mergeWith(editor::Command* otherCommand){
 
     return false;
 }

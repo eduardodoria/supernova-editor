@@ -1,5 +1,5 @@
-# supernova-editor
-Editor of Supernova Engine
+# doriax-editor
+Editor of Doriax Engine
 
 ## Install dependencies
 

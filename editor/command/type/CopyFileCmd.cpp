@@ -2,9 +2,9 @@
 
 #include "util/Util.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::CopyFileCmd::CopyFileCmd(Project* project, std::vector<std::string> sourceFiles, std::string currentDirectory, std::string targetDirectory, bool copy){
+editor::CopyFileCmd::CopyFileCmd(Project* project, std::vector<std::string> sourceFiles, std::string currentDirectory, std::string targetDirectory, bool copy){
     this->project = project;
     for (const auto& sourceFile : sourceFiles) {
         FileCopyData fdata;
@@ -17,7 +17,7 @@ Editor::CopyFileCmd::CopyFileCmd(Project* project, std::vector<std::string> sour
     this->copy = copy;
 }
 
-Editor::CopyFileCmd::CopyFileCmd(Project* project, std::vector<std::string> sourcePaths, std::string targetDirectory, bool copy){
+editor::CopyFileCmd::CopyFileCmd(Project* project, std::vector<std::string> sourcePaths, std::string targetDirectory, bool copy){
     this->project = project;
     for (const auto& sourcePath : sourcePaths) {
         FileCopyData fdata;
@@ -30,7 +30,7 @@ Editor::CopyFileCmd::CopyFileCmd(Project* project, std::vector<std::string> sour
     this->copy = copy;
 }
 
-bool Editor::CopyFileCmd::execute(){
+bool editor::CopyFileCmd::execute(){
     for (const auto& fdata : files) {
         fs::path sourceFs = fdata.sourceDirectory / fdata.filename;
         fs::path destFs = fdata.targetDirectory / fdata.filename;
@@ -80,7 +80,7 @@ bool Editor::CopyFileCmd::execute(){
     return true;
 }
 
-void Editor::CopyFileCmd::undo(){
+void editor::CopyFileCmd::undo(){
     for (const auto& fdata : files) {
         fs::path sourceFs = fdata.targetDirectory / fdata.filename;
         fs::path destFs = fdata.sourceDirectory / fdata.filename;
@@ -127,6 +127,6 @@ void Editor::CopyFileCmd::undo(){
     }
 }
 
-bool Editor::CopyFileCmd::mergeWith(Editor::Command* otherCommand){
+bool editor::CopyFileCmd::mergeWith(editor::Command* otherCommand){
     return false;
 }

@@ -1,8 +1,8 @@
 #include "AddChildSceneCmd.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::AddChildSceneCmd::AddChildSceneCmd(Project* project, uint32_t sceneId, uint32_t childSceneId){
+editor::AddChildSceneCmd::AddChildSceneCmd(Project* project, uint32_t sceneId, uint32_t childSceneId){
     this->project = project;
     this->sceneId = sceneId;
     this->childSceneId = childSceneId;
@@ -10,7 +10,7 @@ Editor::AddChildSceneCmd::AddChildSceneCmd(Project* project, uint32_t sceneId, u
     this->wasModified = project->getScene(sceneId)->isModified;
 }
 
-bool Editor::AddChildSceneCmd::execute() {
+bool editor::AddChildSceneCmd::execute() {
     SceneProject* sceneProject = project->getScene(sceneId);
     if (sceneProject) {
         auto& childScenes = sceneProject->childScenes;
@@ -23,11 +23,11 @@ bool Editor::AddChildSceneCmd::execute() {
     return true;
 }
 
-void Editor::AddChildSceneCmd::undo() {
+void editor::AddChildSceneCmd::undo() {
     project->removeChildScene(sceneId, childSceneId);
     project->getScene(sceneId)->isModified = wasModified;
 }
 
-bool Editor::AddChildSceneCmd::mergeWith(Command* otherCommand){
+bool editor::AddChildSceneCmd::mergeWith(Command* otherCommand){
     return false;
 }

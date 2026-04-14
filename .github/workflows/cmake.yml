@@ -9,7 +9,7 @@ on:
     
 env:
   BUILD_TYPE: Release
-  TARGET: supernova-editor
+  TARGET: doriax-editor
   GLFW_VERSION: 3.4
   SDL2_VERSION: 2.30.11
 
@@ -146,7 +146,7 @@ jobs:
           if [[ $VERSION == refs/tags/* ]]; then
             VERSION=${VERSION#refs/tags/}
           fi
-          echo "SUPERNOVA_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "DORIAX_VERSION=$VERSION" >> $GITHUB_ENV
           
       - name: Configure
         shell: bash
@@ -159,7 +159,7 @@ jobs:
           cmake \
             -S . \
             -B build \
-            -DSUPERNOVAEDITOR_VERSION:STRING="\"${{env.SUPERNOVA_VERSION}}\"" \
+            -DDORIAXEDITOR_VERSION:STRING="\"${{env.DORIAX_VERSION}}\"" \
             -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
             -G "${{ matrix.config.generators }}" \
             -DCMAKE_INSTALL_PREFIX:PATH=instdir \

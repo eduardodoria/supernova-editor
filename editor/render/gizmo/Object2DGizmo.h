@@ -7,7 +7,7 @@
 
 #include "render/RenderUtil.h"
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     class Object2DGizmo: public Object{
     private:

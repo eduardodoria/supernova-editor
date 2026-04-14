@@ -7,8 +7,8 @@
 #include "imgui.h"
 #include "Catalog.h"
 
-namespace Supernova {
-namespace Editor {
+namespace doriax {
+namespace editor {
 
 struct ComponentEntry {
     ComponentType type;
@@ -54,5 +54,5 @@ public:
     void close() { m_isOpen = false; }
 };
 
-} // namespace Editor
-} // namespace Supernova
+} // namespace editor
+} // namespace doriax

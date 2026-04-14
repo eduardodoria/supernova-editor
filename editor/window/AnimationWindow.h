@@ -7,7 +7,7 @@
 
 #include <unordered_set>
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     class AnimationWindow{
     private:

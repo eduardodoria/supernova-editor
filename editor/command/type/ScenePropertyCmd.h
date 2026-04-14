@@ -4,7 +4,7 @@
 #include "Scene.h"
 #include "Catalog.h"
 
-namespace Supernova::Editor {
+namespace doriax::editor {
 
     template <typename T>
     struct ScenePropertyCmdValue {
@@ -47,7 +47,7 @@ namespace Supernova::Editor {
             sceneProject->isModified = wasModified;
         }
 
-        bool mergeWith(Editor::Command* otherCommand) override {
+        bool mergeWith(editor::Command* otherCommand) override {
             ScenePropertyCmd* otherCmd = dynamic_cast<ScenePropertyCmd*>(otherCommand);
             if (otherCmd != nullptr) {
                 if (sceneProject->scene == otherCmd->sceneProject->scene && propertyName == otherCmd->propertyName) {

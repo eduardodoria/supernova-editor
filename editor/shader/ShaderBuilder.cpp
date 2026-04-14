@@ -13,22 +13,22 @@
 //#include <thread>
 //#include <chrono>
 
-using namespace Supernova;
+using namespace doriax;
 
 
-std::unordered_map<ShaderKey, ShaderData> Editor::ShaderBuilder::shaderDataCache;
-std::unordered_map<ShaderKey, std::future<ShaderData>> Editor::ShaderBuilder::pendingBuilds;
-std::mutex Editor::ShaderBuilder::cacheMutex;
-std::atomic<bool> Editor::ShaderBuilder::shutdownRequested{false};
+std::unordered_map<ShaderKey, ShaderData> editor::ShaderBuilder::shaderDataCache;
+std::unordered_map<ShaderKey, std::future<ShaderData>> editor::ShaderBuilder::pendingBuilds;
+std::mutex editor::ShaderBuilder::cacheMutex;
+std::atomic<bool> editor::ShaderBuilder::shutdownRequested{false};
 
-Editor::ShaderBuilder::ShaderBuilder(){
+editor::ShaderBuilder::ShaderBuilder(){
 }
 
-Editor::ShaderBuilder::~ShaderBuilder(){
+editor::ShaderBuilder::~ShaderBuilder(){
 }
 
 // Mapping functions implementation with camelCase
-ShaderVertexType Editor::ShaderBuilder::mapVertexType(shadercompiler::attribute_type_t type) {
+ShaderVertexType editor::ShaderBuilder::mapVertexType(shadercompiler::attribute_type_t type) {
     using namespace shadercompiler;
     switch(type) {
         case attribute_type_t::FLOAT:  return ShaderVertexType::FLOAT;
@@ -43,7 +43,7 @@ ShaderVertexType Editor::ShaderBuilder::mapVertexType(shadercompiler::attribute_
     }
 }
 
-ShaderUniformType Editor::ShaderBuilder::mapUniformType(shadercompiler::uniform_type_t type) {
+ShaderUniformType editor::ShaderBuilder::mapUniformType(shadercompiler::uniform_type_t type) {
     using namespace shadercompiler;
     switch(type) {
         case uniform_type_t::FLOAT:  return ShaderUniformType::FLOAT;
@@ -60,7 +60,7 @@ ShaderUniformType Editor::ShaderBuilder::mapUniformType(shadercompiler::uniform_
     }
 }
 
-TextureType Editor::ShaderBuilder::mapTextureType(shadercompiler::texture_type_t type) {
+TextureType editor::ShaderBuilder::mapTextureType(shadercompiler::texture_type_t type) {
     using namespace shadercompiler;
     switch(type) {
         case texture_type_t::TEXTURE_2D:    return TextureType::TEXTURE_2D;
@@ -71,7 +71,7 @@ TextureType Editor::ShaderBuilder::mapTextureType(shadercompiler::texture_type_t
     }
 }
 
-TextureSamplerType Editor::ShaderBuilder::mapSamplerType(shadercompiler::texture_samplertype_t type) {
+TextureSamplerType editor::ShaderBuilder::mapSamplerType(shadercompiler::texture_samplertype_t type) {
     using namespace shadercompiler;
     switch(type) {
         case texture_samplertype_t::FLOAT: return TextureSamplerType::FLOAT;
@@ -82,7 +82,7 @@ TextureSamplerType Editor::ShaderBuilder::mapSamplerType(shadercompiler::texture
     }
 }
 
-SamplerType Editor::ShaderBuilder::mapSamplerFilterType(shadercompiler::sampler_type_t type) {
+SamplerType editor::ShaderBuilder::mapSamplerFilterType(shadercompiler::sampler_type_t type) {
     using namespace shadercompiler;
     switch(type) {
         case sampler_type_t::FILTERING:   return SamplerType::FILTERING;
@@ -91,7 +91,7 @@ SamplerType Editor::ShaderBuilder::mapSamplerFilterType(shadercompiler::sampler_
     }
 }
 
-ShaderStorageBufferType Editor::ShaderBuilder::mapStorageType(shadercompiler::storage_buffer_type_t type) {
+ShaderStorageBufferType editor::ShaderBuilder::mapStorageType(shadercompiler::storage_buffer_type_t type) {
     using namespace shadercompiler;
     switch(type) {
         case storage_buffer_type_t::STRUCT: return ShaderStorageBufferType::STRUCT;
@@ -99,7 +99,7 @@ ShaderStorageBufferType Editor::ShaderBuilder::mapStorageType(shadercompiler::st
     }
 }
 
-ShaderStageType Editor::ShaderBuilder::mapStageType(shadercompiler::stage_type_t type) {
+ShaderStageType editor::ShaderBuilder::mapStageType(shadercompiler::stage_type_t type) {
     using namespace shadercompiler;
     switch(type) {
         case STAGE_VERTEX:   return ShaderStageType::VERTEX;
@@ -108,7 +108,7 @@ ShaderStageType Editor::ShaderBuilder::mapStageType(shadercompiler::stage_type_t
     }
 }
 
-ShaderLang Editor::ShaderBuilder::mapLang(shadercompiler::lang_type_t lang) {
+ShaderLang editor::ShaderBuilder::mapLang(shadercompiler::lang_type_t lang) {
     using namespace shadercompiler;
     switch(lang) {
         case LANG_GLSL: return ShaderLang::GLSL;
@@ -119,7 +119,7 @@ ShaderLang Editor::ShaderBuilder::mapLang(shadercompiler::lang_type_t lang) {
 }
 
 // Implementation of convertToShaderData
-ShaderData Editor::ShaderBuilder::convertToShaderData(
+ShaderData editor::ShaderBuilder::convertToShaderData(
     const std::vector<shadercompiler::spirvcross_t>& spirvcrossvec,
     const std::vector<shadercompiler::input_t>& inputs,
     const shadercompiler::args_t& args) {
@@ -224,7 +224,7 @@ ShaderData Editor::ShaderBuilder::convertToShaderData(
     return shaderData;
 }
 
-void Editor::ShaderBuilder::addMeshPropertyDefinitions(std::vector<shadercompiler::define_t>& defs, const uint32_t prop) {
+void editor::ShaderBuilder::addMeshPropertyDefinitions(std::vector<shadercompiler::define_t>& defs, const uint32_t prop) {
     if (prop & (1 << 0))  defs.push_back({"MATERIAL_UNLIT", "1"});            // 'Ult'
     if (prop & (1 << 1))  defs.push_back({"HAS_UV_SET1", "1"});               // 'Uv1'
     if (prop & (1 << 2))  defs.push_back({"HAS_UV_SET2", "1"});               // 'Uv2'
@@ -246,7 +246,7 @@ void Editor::ShaderBuilder::addMeshPropertyDefinitions(std::vector<shadercompile
     if (prop & (1 << 18)) defs.push_back({"HAS_INSTANCING", "1"});            // 'Ist'
 }
 
-void Editor::ShaderBuilder::addDepthMeshPropertyDefinitions(std::vector<shadercompiler::define_t>& defs, const uint32_t prop) {
+void editor::ShaderBuilder::addDepthMeshPropertyDefinitions(std::vector<shadercompiler::define_t>& defs, const uint32_t prop) {
     if (prop & (1 << 0))  defs.push_back({"HAS_TEXTURE", "1"});       // 'Tex'
     if (prop & (1 << 1))  defs.push_back({"HAS_SKINNING", "1"});      // 'Ski'
     if (prop & (1 << 2))  defs.push_back({"HAS_MORPHTARGET", "1"});   // 'Mta'
@@ -256,26 +256,26 @@ void Editor::ShaderBuilder::addDepthMeshPropertyDefinitions(std::vector<shaderco
     if (prop & (1 << 6))  defs.push_back({"HAS_INSTANCING", "1"});    // 'Ist'
 }
 
-void Editor::ShaderBuilder::addUIPropertyDefinitions(std::vector<shadercompiler::define_t>& defs, const uint32_t prop) {
+void editor::ShaderBuilder::addUIPropertyDefinitions(std::vector<shadercompiler::define_t>& defs, const uint32_t prop) {
     if (prop & (1 << 0))  defs.push_back({"HAS_TEXTURE", "1"});              // 'Tex'
     if (prop & (1 << 1))  defs.push_back({"HAS_FONTATLAS_TEXTURE", "1"});    // 'Ftx'
     if (prop & (1 << 2))  defs.push_back({"HAS_VERTEX_COLOR_VEC3", "1"});    // 'Vc3'
     if (prop & (1 << 3))  defs.push_back({"HAS_VERTEX_COLOR_VEC4", "1"});    // 'Vc4'
 }
 
-void Editor::ShaderBuilder::addPointsPropertyDefinitions(std::vector<shadercompiler::define_t>& defs, const uint32_t prop) {
+void editor::ShaderBuilder::addPointsPropertyDefinitions(std::vector<shadercompiler::define_t>& defs, const uint32_t prop) {
     if (prop & (1 << 0))  defs.push_back({"HAS_TEXTURE", "1"});              // 'Tex'
     if (prop & (1 << 1))  defs.push_back({"HAS_VERTEX_COLOR_VEC3", "1"});    // 'Vc3'
     if (prop & (1 << 2))  defs.push_back({"HAS_VERTEX_COLOR_VEC4", "1"});    // 'Vc4'
     if (prop & (1 << 3))  defs.push_back({"HAS_TEXTURERECT", "1"});          // 'Txr'
 }
 
-void Editor::ShaderBuilder::addLinesPropertyDefinitions(std::vector<shadercompiler::define_t>& defs, const uint32_t prop) {
+void editor::ShaderBuilder::addLinesPropertyDefinitions(std::vector<shadercompiler::define_t>& defs, const uint32_t prop) {
     if (prop & (1 << 0))  defs.push_back({"HAS_VERTEX_COLOR_VEC3", "1"});    // 'Vc3'
     if (prop & (1 << 1))  defs.push_back({"HAS_VERTEX_COLOR_VEC4", "1"});    // 'Vc4'
 }
 
-ShaderBuildResult Editor::ShaderBuilder::buildShader(ShaderKey shaderKey, Project* project) {
+ShaderBuildResult editor::ShaderBuilder::buildShader(ShaderKey shaderKey, Project* project) {
     std::unique_lock<std::mutex> lock(cacheMutex);
 
     // Check if already in cache
@@ -283,7 +283,7 @@ ShaderBuildResult Editor::ShaderBuilder::buildShader(ShaderKey shaderKey, Projec
         return ShaderBuildResult(shaderDataCache[shaderKey], ResourceLoadState::Finished);
     }
 
-    // Try disk cache (<cache>/supernova/shaders/<version>/<basename>.sdat)
+    // Try disk cache (<cache>/doriax/shaders/<version>/<basename>.sdat)
     if (project) {
         lock.unlock();
         ShaderData diskData;
@@ -337,7 +337,7 @@ ShaderBuildResult Editor::ShaderBuilder::buildShader(ShaderKey shaderKey, Projec
     return ShaderBuildResult({}, ResourceLoadState::Loading);
 }
 
-void Editor::ShaderBuilder::requestShutdown() {
+void editor::ShaderBuilder::requestShutdown() {
     std::lock_guard<std::mutex> lock(cacheMutex);
     shutdownRequested = true;
 
@@ -350,7 +350,7 @@ void Editor::ShaderBuilder::requestShutdown() {
     pendingBuilds.clear();
 }
 
-bool Editor::ShaderBuilder::setupShaderArgs(shadercompiler::args_t& args, ShaderType shaderType, uint32_t properties) {
+bool editor::ShaderBuilder::setupShaderArgs(shadercompiler::args_t& args, ShaderType shaderType, uint32_t properties) {
     if (shaderType == ShaderType::MESH){
         args.vert_file = "mesh.vert";
         args.frag_file = "mesh.frag";
@@ -392,7 +392,7 @@ bool Editor::ShaderBuilder::setupShaderArgs(shadercompiler::args_t& args, Shader
     return true;
 }
 
-std::string Editor::ShaderBuilder::getLangSuffix(shadercompiler::lang_type_t lang, int version, bool es, shadercompiler::platform_t platform) {
+std::string editor::ShaderBuilder::getLangSuffix(shadercompiler::lang_type_t lang, int version, bool es, shadercompiler::platform_t platform) {
     if (lang == shadercompiler::LANG_GLSL) {
         return es ? "_glsl" + std::to_string(version) + "es" : "_glsl" + std::to_string(version);
     } else if (lang == shadercompiler::LANG_HLSL) {
@@ -403,7 +403,7 @@ std::string Editor::ShaderBuilder::getLangSuffix(shadercompiler::lang_type_t lan
     return "";
 }
 
-ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey, Project* project){
+ShaderData editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey, Project* project){
     if (shutdownRequested) {
         throw std::runtime_error("Shutdown requested");
     }
@@ -416,7 +416,7 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey, Proje
     shadercompiler::args_t args = shadercompiler::initialize_args();
     args.isValid = true;
     args.useBuffers = true;
-    args.fileBuffers = Editor::shaderMap;
+    args.fileBuffers = editor::shaderMap;
     args.lang = shadercompiler::LANG_GLSL;
     args.version = 410;
 
@@ -482,7 +482,7 @@ ShaderData Editor::ShaderBuilder::buildShaderInternal(ShaderKey shaderKey, Proje
     return shaderData;
 }
 
-std::filesystem::path Editor::ShaderBuilder::getShaderCachePath(ShaderKey shaderKey, Project* project) {
+std::filesystem::path editor::ShaderBuilder::getShaderCachePath(ShaderKey shaderKey, Project* project) {
     if (!project) {
         return {};
     }
@@ -494,7 +494,7 @@ std::filesystem::path Editor::ShaderBuilder::getShaderCachePath(ShaderKey shader
     return App::getUserShaderCacheDir() / (basename + ".sdat");
 }
 
-bool Editor::ShaderBuilder::saveShaderDataCache(ShaderKey shaderKey, Project* project, const ShaderData& shaderData, std::string* err) {
+bool editor::ShaderBuilder::saveShaderDataCache(ShaderKey shaderKey, Project* project, const ShaderData& shaderData, std::string* err) {
     if (!project) {
         return false;
     }
@@ -516,7 +516,7 @@ bool Editor::ShaderBuilder::saveShaderDataCache(ShaderKey shaderKey, Project* pr
     return ShaderDataSerializer::writeToFile(cachePath.string(), shaderKey, shaderData, err);
 }
 
-std::string Editor::ShaderBuilder::getShaderDisplayName(ShaderKey key) {
+std::string editor::ShaderBuilder::getShaderDisplayName(ShaderKey key) {
     ShaderType type = ShaderPool::getShaderTypeFromKey(key);
     uint32_t properties = ShaderPool::getPropertiesFromKey(key);
     std::string shaderStr = ShaderPool::getShaderStr(type, properties);
@@ -546,12 +546,12 @@ std::string Editor::ShaderBuilder::getShaderDisplayName(ShaderKey key) {
     return result;
 }
 
-ShaderData& Editor::ShaderBuilder::getShaderData(ShaderKey shaderKey) { 
+ShaderData& editor::ShaderBuilder::getShaderData(ShaderKey shaderKey) { 
     std::lock_guard<std::mutex> lock(cacheMutex);
     return shaderDataCache[shaderKey]; 
 }
 
-ShaderData Editor::ShaderBuilder::buildShaderForExport(ShaderKey shaderKey, shadercompiler::lang_type_t lang, int version, bool es, shadercompiler::platform_t platform) {
+ShaderData editor::ShaderBuilder::buildShaderForExport(ShaderKey shaderKey, shadercompiler::lang_type_t lang, int version, bool es, shadercompiler::platform_t platform) {
     ShaderType shaderType = ShaderPool::getShaderTypeFromKey(shaderKey);
     uint32_t properties = ShaderPool::getPropertiesFromKey(shaderKey);
 
@@ -559,7 +559,7 @@ ShaderData Editor::ShaderBuilder::buildShaderForExport(ShaderKey shaderKey, shad
     shadercompiler::args_t args = shadercompiler::initialize_args();
     args.isValid = true;
     args.useBuffers = true;
-    args.fileBuffers = Editor::shaderMap;
+    args.fileBuffers = editor::shaderMap;
     args.lang = lang;
     args.version = version;
     args.es = es;

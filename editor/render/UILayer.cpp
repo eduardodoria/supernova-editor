@@ -1,8 +1,8 @@
 #include "UILayer.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::UILayer::UILayer(bool enableViewGizmo){
+editor::UILayer::UILayer(bool enableViewGizmo){
     Vector3 rectColor = Vector3(0.3, 0.1, 0.2);
 
     scene = new Scene(EntityPool::System);
@@ -45,7 +45,7 @@ Editor::UILayer::UILayer(bool enableViewGizmo){
     scene->setCamera(camera);
 }
 
-Editor::UILayer::~UILayer(){
+editor::UILayer::~UILayer(){
     delete camera;
     delete selectionRect;
     delete upRect;
@@ -60,21 +60,21 @@ Editor::UILayer::~UILayer(){
     delete scene;
 }
 
-void Editor::UILayer::setViewportGizmoTexture(Framebuffer* framebuffer){
+void editor::UILayer::setViewportGizmoTexture(Framebuffer* framebuffer){
     viewGizmoImage->setTexture(framebuffer);
 }
 
-void Editor::UILayer::setViewGizmoImageVisible(bool visible){
+void editor::UILayer::setViewGizmoImageVisible(bool visible){
     if (viewGizmoImage){
         viewGizmoImage->setVisible(visible);
     }
 }
 
-void Editor::UILayer::setSelectionBoxVisible(bool visible){
+void editor::UILayer::setSelectionBoxVisible(bool visible){
     selectionRect->setVisible(visible);
 }
 
-void Editor::UILayer::updateRect(Vector2 position, Vector2 size){
+void editor::UILayer::updateRect(Vector2 position, Vector2 size){
     float thickness = 2;
 
     if (size.x < 0 && size.y < 0){
@@ -116,18 +116,18 @@ void Editor::UILayer::updateRect(Vector2 position, Vector2 size){
     centralRect->addVertex(size.x, size.y);
 }
 
-Framebuffer* Editor::UILayer::getFramebuffer(){
+Framebuffer* editor::UILayer::getFramebuffer(){
     return camera->getFramebuffer();
 }
 
-TextureRender& Editor::UILayer::getTexture(){
+TextureRender& editor::UILayer::getTexture(){
     return getFramebuffer()->getRender().getColorTexture();
 }
 
-Camera* Editor::UILayer::getCamera(){
+Camera* editor::UILayer::getCamera(){
     return camera;
 }
 
-Scene* Editor::UILayer::getScene(){
+Scene* editor::UILayer::getScene(){
     return scene;
 }

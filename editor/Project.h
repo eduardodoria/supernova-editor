@@ -20,7 +20,7 @@
 #include <set>
 #include <tuple>
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     enum class SceneType{
         SCENE_3D,

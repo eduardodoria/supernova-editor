@@ -5,7 +5,7 @@
 #include <string>
 #include <memory>
 
-namespace Supernova::Editor {
+namespace doriax::editor {
     class Out {
     private:
         static OutputWindow* outputWindow;

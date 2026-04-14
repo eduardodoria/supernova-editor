@@ -41,9 +41,9 @@
 #include "SceneManager.h"
 #include "BundleManager.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-std::vector<Entity> Editor::Project::getTopLevelEntities(const EntityRegistry* registry, const std::vector<Entity>& orderedEntities) {
+std::vector<Entity> editor::Project::getTopLevelEntities(const EntityRegistry* registry, const std::vector<Entity>& orderedEntities) {
     std::unordered_set<Entity> entitySet(orderedEntities.begin(), orderedEntities.end());
     std::vector<Entity> topLevelEntities;
     topLevelEntities.reserve(orderedEntities.size());
@@ -61,7 +61,7 @@ std::vector<Entity> Editor::Project::getTopLevelEntities(const EntityRegistry* r
     return topLevelEntities;
 }
 
-void Editor::Project::remapEntityProperties(EntityRegistry* registry, const std::vector<Entity>& entities, const std::unordered_map<Entity, Entity>& entityMap) {
+void editor::Project::remapEntityProperties(EntityRegistry* registry, const std::vector<Entity>& entities, const std::unordered_map<Entity, Entity>& entityMap) {
     if (entityMap.empty()) {
         return;
     }
@@ -108,7 +108,7 @@ void Editor::Project::remapEntityProperties(EntityRegistry* registry, const std:
     }
 }
 
-void Editor::Project::remapEntityPropertiesInComponent(EntityRegistry* registry, Entity entity, ComponentType componentType, const std::vector<std::string>& properties, const std::unordered_map<Entity, Entity>& entityMap) {
+void editor::Project::remapEntityPropertiesInComponent(EntityRegistry* registry, Entity entity, ComponentType componentType, const std::vector<std::string>& properties, const std::unordered_map<Entity, Entity>& entityMap) {
     if (entityMap.empty()) return;
 
     auto allProperties = Catalog::findEntityProperties(registry, entity, componentType);
@@ -165,11 +165,11 @@ void Editor::Project::remapEntityPropertiesInComponent(EntityRegistry* registry,
     }
 }
 
-Editor::Project::Project(){
+editor::Project::Project(){
     resetConfigs();
 }
 
-fs::path Editor::Project::normalizeToProjectRelative(const fs::path& path) const {
+fs::path editor::Project::normalizeToProjectRelative(const fs::path& path) const {
     if (path.empty()) {
         return {};
     }
@@ -187,7 +187,7 @@ fs::path Editor::Project::normalizeToProjectRelative(const fs::path& path) const
     return normalizedPath;
 }
 
-bool Editor::Project::matchesRelativePath(const fs::path& relativeBase, const fs::path& currentPath) {
+bool editor::Project::matchesRelativePath(const fs::path& relativeBase, const fs::path& currentPath) {
     if (relativeBase.empty() || currentPath.empty()) {
         return false;
     }
@@ -200,7 +200,7 @@ bool Editor::Project::matchesRelativePath(const fs::path& relativeBase, const fs
            (!relativeBaseStr.empty() && currentPathStr.rfind(relativePrefix, 0) == 0);
 }
 
-bool Editor::Project::matchesRelativeString(const fs::path& relativeBase, const std::string& currentPath) {
+bool editor::Project::matchesRelativeString(const fs::path& relativeBase, const std::string& currentPath) {
     if (relativeBase.empty() || currentPath.empty()) {
         return false;
     }
@@ -208,7 +208,7 @@ bool Editor::Project::matchesRelativeString(const fs::path& relativeBase, const 
     return matchesRelativePath(relativeBase, fs::path(currentPath));
 }
 
-bool Editor::Project::remapRelativePath(const fs::path& oldRelative, const fs::path& newRelative,
+bool editor::Project::remapRelativePath(const fs::path& oldRelative, const fs::path& newRelative,
                                         const fs::path& currentPath, fs::path& updatedPath) {
     if (oldRelative.empty() || newRelative.empty() || currentPath.empty()) {
         return false;
@@ -232,7 +232,7 @@ bool Editor::Project::remapRelativePath(const fs::path& oldRelative, const fs::p
     return true;
 }
 
-bool Editor::Project::remapRelativeString(const fs::path& oldRelative, const fs::path& newRelative,
+bool editor::Project::remapRelativeString(const fs::path& oldRelative, const fs::path& newRelative,
                                           const std::string& currentPath, std::string& updatedPath) {
     fs::path updated;
     if (!remapRelativePath(oldRelative, newRelative, fs::path(currentPath), updated)) {
@@ -243,7 +243,7 @@ bool Editor::Project::remapRelativeString(const fs::path& oldRelative, const fs:
     return true;
 }
 
-bool Editor::Project::remapScriptEntryPaths(ScriptEntry& scriptEntry, const fs::path& oldRelative,
+bool editor::Project::remapScriptEntryPaths(ScriptEntry& scriptEntry, const fs::path& oldRelative,
                                             const fs::path& newRelative) {
     bool changed = false;
 
@@ -266,7 +266,7 @@ bool Editor::Project::remapScriptEntryPaths(ScriptEntry& scriptEntry, const fs::
     return changed;
 }
 
-bool Editor::Project::remapScriptPathsInRegistry(EntityRegistry* registry, const fs::path& oldRelative,
+bool editor::Project::remapScriptPathsInRegistry(EntityRegistry* registry, const fs::path& oldRelative,
                                                  const fs::path& newRelative) {
     if (!registry) {
         return false;
@@ -285,7 +285,7 @@ bool Editor::Project::remapScriptPathsInRegistry(EntityRegistry* registry, const
     return changed;
 }
 
-bool Editor::Project::cleanupScriptPathsInRegistry(EntityRegistry* registry, const fs::path& deletedRelative) {
+bool editor::Project::cleanupScriptPathsInRegistry(EntityRegistry* registry, const fs::path& deletedRelative) {
     if (!registry) {
         return false;
     }
@@ -311,7 +311,7 @@ bool Editor::Project::cleanupScriptPathsInRegistry(EntityRegistry* registry, con
     return changed;
 }
 
-void Editor::Project::linkMaterialFile(uint32_t sceneId, Entity entity, unsigned int submeshIndex, const std::string& filePath) {
+void editor::Project::linkMaterialFile(uint32_t sceneId, Entity entity, unsigned int submeshIndex, const std::string& filePath) {
     MaterialLinkKey key{sceneId, entity, submeshIndex};
     MaterialLinkEntry entry;
     entry.filePath = fs::path(filePath).lexically_normal().generic_string();
@@ -323,11 +323,11 @@ void Editor::Project::linkMaterialFile(uint32_t sceneId, Entity entity, unsigned
     materialFileLinks[key] = entry;
 }
 
-bool Editor::Project::isMaterialFileLinked(uint32_t sceneId, Entity entity, unsigned int submeshIndex) const {
+bool editor::Project::isMaterialFileLinked(uint32_t sceneId, Entity entity, unsigned int submeshIndex) const {
     return materialFileLinks.find(MaterialLinkKey{sceneId, entity, submeshIndex}) != materialFileLinks.end();
 }
 
-std::string Editor::Project::getMaterialFilePath(uint32_t sceneId, Entity entity, unsigned int submeshIndex) const {
+std::string editor::Project::getMaterialFilePath(uint32_t sceneId, Entity entity, unsigned int submeshIndex) const {
     auto it = materialFileLinks.find(MaterialLinkKey{sceneId, entity, submeshIndex});
     if (it != materialFileLinks.end()) {
         return it->second.filePath;
@@ -335,11 +335,11 @@ std::string Editor::Project::getMaterialFilePath(uint32_t sceneId, Entity entity
     return {};
 }
 
-void Editor::Project::unlinkMaterialFile(uint32_t sceneId, Entity entity, unsigned int submeshIndex) {
+void editor::Project::unlinkMaterialFile(uint32_t sceneId, Entity entity, unsigned int submeshIndex) {
     materialFileLinks.erase(MaterialLinkKey{sceneId, entity, submeshIndex});
 }
 
-void Editor::Project::unlinkAllMaterialFiles(uint32_t sceneId, Entity entity) {
+void editor::Project::unlinkAllMaterialFiles(uint32_t sceneId, Entity entity) {
     for (auto it = materialFileLinks.begin(); it != materialFileLinks.end();) {
         if (std::get<0>(it->first) == sceneId && std::get<1>(it->first) == entity) {
             it = materialFileLinks.erase(it);
@@ -349,7 +349,7 @@ void Editor::Project::unlinkAllMaterialFiles(uint32_t sceneId, Entity entity) {
     }
 }
 
-void Editor::Project::remapMaterialFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath) {
+void editor::Project::remapMaterialFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath) {
     if (projectPath.empty()) {
         return;
     }
@@ -406,7 +406,7 @@ void Editor::Project::remapMaterialFilePath(const std::filesystem::path& oldPath
     }
 }
 
-void Editor::Project::remapSceneFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath) {
+void editor::Project::remapSceneFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath) {
     if (projectPath.empty()) {
         return;
     }
@@ -444,7 +444,7 @@ void Editor::Project::remapSceneFilePath(const std::filesystem::path& oldPath, c
     }
 }
 
-void Editor::Project::remapEntityBundleFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath) {
+void editor::Project::remapEntityBundleFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath) {
     if (projectPath.empty()) {
         return;
     }
@@ -516,7 +516,7 @@ void Editor::Project::remapEntityBundleFilePath(const std::filesystem::path& old
     }
 }
 
-void Editor::Project::remapScriptFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath) {
+void editor::Project::remapScriptFilePath(const std::filesystem::path& oldPath, const std::filesystem::path& newPath) {
     if (projectPath.empty()) {
         return;
     }
@@ -551,7 +551,7 @@ void Editor::Project::remapScriptFilePath(const std::filesystem::path& oldPath, 
     }
 }
 
-void Editor::Project::cleanupMaterialFilePath(const std::filesystem::path& deletedPath) {
+void editor::Project::cleanupMaterialFilePath(const std::filesystem::path& deletedPath) {
     if (projectPath.empty()) {
         return;
     }
@@ -603,7 +603,7 @@ void Editor::Project::cleanupMaterialFilePath(const std::filesystem::path& delet
     }
 }
 
-void Editor::Project::cleanupSceneFilePath(const std::filesystem::path& deletedPath) {
+void editor::Project::cleanupSceneFilePath(const std::filesystem::path& deletedPath) {
     if (projectPath.empty()) {
         return;
     }
@@ -650,7 +650,7 @@ void Editor::Project::cleanupSceneFilePath(const std::filesystem::path& deletedP
     }
 }
 
-void Editor::Project::cleanupEntityBundleFilePath(const std::filesystem::path& deletedPath) {
+void editor::Project::cleanupEntityBundleFilePath(const std::filesystem::path& deletedPath) {
     if (projectPath.empty()) {
         return;
     }
@@ -711,7 +711,7 @@ void Editor::Project::cleanupEntityBundleFilePath(const std::filesystem::path& d
     }
 }
 
-void Editor::Project::cleanupScriptFilePath(const std::filesystem::path& deletedPath) {
+void editor::Project::cleanupScriptFilePath(const std::filesystem::path& deletedPath) {
     if (projectPath.empty()) {
         return;
     }
@@ -744,7 +744,7 @@ void Editor::Project::cleanupScriptFilePath(const std::filesystem::path& deleted
     }
 }
 
-void Editor::Project::refreshLinkedMaterials(bool force) {
+void editor::Project::refreshLinkedMaterials(bool force) {
     if (materialFileLinks.empty()) {
         return;
     }
@@ -872,7 +872,7 @@ void Editor::Project::refreshLinkedMaterials(bool force) {
     }
 }
 
-Editor::SceneRender* Editor::Project::createSceneRender(SceneType type, Scene* scene) const {
+editor::SceneRender* editor::Project::createSceneRender(SceneType type, Scene* scene) const {
     if (!scene) {
         return nullptr;
     }
@@ -892,7 +892,7 @@ Editor::SceneRender* Editor::Project::createSceneRender(SceneType type, Scene* s
     }
 }
 
-Entity Editor::Project::createDefaultCamera(SceneType type, Scene* scene) const {
+Entity editor::Project::createDefaultCamera(SceneType type, Scene* scene) const {
     if (!scene) {
         return NULL_ENTITY;
     }
@@ -922,7 +922,7 @@ Entity Editor::Project::createDefaultCamera(SceneType type, Scene* scene) const 
     return defaultCamera;
 }
 
-void Editor::Project::checkUnsavedAndExecute(uint32_t sceneId, std::function<void()> action) {
+void editor::Project::checkUnsavedAndExecute(uint32_t sceneId, std::function<void()> action) {
     SceneProject* sceneProject = getScene(sceneId);
 
     if (sceneProject && hasSceneUnsavedChanges(sceneId)) {
@@ -952,16 +952,16 @@ void Editor::Project::checkUnsavedAndExecute(uint32_t sceneId, std::function<voi
     }
 }
 
-std::string Editor::Project::getName() const {
+std::string editor::Project::getName() const {
     return name; 
 }
 
-void Editor::Project::setName(std::string name){
+void editor::Project::setName(std::string name){
     this->name = name;
     Backend::updateWindowTitle(name);
 }
 
-void Editor::Project::setCanvasSize(unsigned int width, unsigned int height){
+void editor::Project::setCanvasSize(unsigned int width, unsigned int height){
     this->canvasWidth = width;
     this->canvasHeight = height;
 
@@ -980,69 +980,69 @@ void Editor::Project::setCanvasSize(unsigned int width, unsigned int height){
     }
 }
 
-unsigned int Editor::Project::getCanvasWidth() const{
+unsigned int editor::Project::getCanvasWidth() const{
     return canvasWidth;
 }
 
-unsigned int Editor::Project::getCanvasHeight() const{
+unsigned int editor::Project::getCanvasHeight() const{
     return canvasHeight;
 }
 
-void Editor::Project::setScalingMode(Scaling scalingMode){
+void editor::Project::setScalingMode(Scaling scalingMode){
     this->scalingMode = scalingMode;
 }
 
-Scaling Editor::Project::getScalingMode() const{
+Scaling editor::Project::getScalingMode() const{
     return scalingMode;
 }
 
-void Editor::Project::setTextureStrategy(TextureStrategy textureStrategy){
+void editor::Project::setTextureStrategy(TextureStrategy textureStrategy){
     this->textureStrategy = textureStrategy;
 }
 
-TextureStrategy Editor::Project::getTextureStrategy() const{
+TextureStrategy editor::Project::getTextureStrategy() const{
     return textureStrategy;
 }
 
-void Editor::Project::setAssetsDir(const std::filesystem::path& assetsDir){
+void editor::Project::setAssetsDir(const std::filesystem::path& assetsDir){
     this->assetsDir = assetsDir;
 }
 
-std::filesystem::path Editor::Project::getAssetsDir() const{
+std::filesystem::path editor::Project::getAssetsDir() const{
     return assetsDir;
 }
 
-void Editor::Project::setLuaDir(const std::filesystem::path& luaDir){
+void editor::Project::setLuaDir(const std::filesystem::path& luaDir){
     this->luaDir = luaDir;
 }
 
-std::filesystem::path Editor::Project::getLuaDir() const{
+std::filesystem::path editor::Project::getLuaDir() const{
     return luaDir;
 }
 
-void Editor::Project::setCMakeKit(const std::string& cCompiler, const std::string& cxxCompiler, const std::string& generator){
+void editor::Project::setCMakeKit(const std::string& cCompiler, const std::string& cxxCompiler, const std::string& generator){
     this->cmakeCCompiler = cCompiler;
     this->cmakeCxxCompiler = cxxCompiler;
     this->cmakeGenerator = generator;
 }
 
-std::string Editor::Project::getCMakeCCompiler() const{
+std::string editor::Project::getCMakeCCompiler() const{
     return cmakeCCompiler;
 }
 
-std::string Editor::Project::getCMakeCxxCompiler() const{
+std::string editor::Project::getCMakeCxxCompiler() const{
     return cmakeCxxCompiler;
 }
 
-std::string Editor::Project::getCMakeGenerator() const{
+std::string editor::Project::getCMakeGenerator() const{
     return cmakeGenerator;
 }
 
-Editor::CommandHistory* Editor::Project::getProjectCommandHistory(){
+editor::CommandHistory* editor::Project::getProjectCommandHistory(){
     return &projectHistory;
 }
 
-uint32_t Editor::Project::createNewScene(std::string sceneName, SceneType type){
+uint32_t editor::Project::createNewScene(std::string sceneName, SceneType type){
     if (isAnyScenePlaying()){
         Out::warning("Cannot create a new scene while a scene is playing.");
         return NULL_PROJECT_SCENE;
@@ -1057,7 +1057,7 @@ uint32_t Editor::Project::createNewScene(std::string sceneName, SceneType type){
     return NULL_PROJECT_SCENE; // Scene may be created asynchronously
 }
 
-uint32_t Editor::Project::createNewSceneInternal(std::string sceneName, SceneType type, uint32_t previousSceneId){
+uint32_t editor::Project::createNewSceneInternal(std::string sceneName, SceneType type, uint32_t previousSceneId){
     uint32_t reusedSceneId = NULL_PROJECT_SCENE;
     if (previousSceneId != NULL_PROJECT_SCENE) {
         SceneProject* previousScene = getScene(previousSceneId);
@@ -1124,7 +1124,7 @@ uint32_t Editor::Project::createNewSceneInternal(std::string sceneName, SceneTyp
     return data.id;
 }
 
-Editor::SceneProject* Editor::Project::createRuntimeCloneFromSource(const SceneProject* source) {
+editor::SceneProject* editor::Project::createRuntimeCloneFromSource(const SceneProject* source) {
     if (!source) {
         return nullptr;
     }
@@ -1151,7 +1151,7 @@ Editor::SceneProject* Editor::Project::createRuntimeCloneFromSource(const SceneP
     return runtime;
 }
 
-void Editor::Project::updateSceneCppScripts(SceneProject* sceneProject) {
+void editor::Project::updateSceneCppScripts(SceneProject* sceneProject) {
     if (!sceneProject || !sceneProject->scene) {
         return;
     }
@@ -1207,7 +1207,7 @@ void Editor::Project::updateSceneCppScripts(SceneProject* sceneProject) {
     }
 }
 
-void Editor::Project::updateSceneBundles(SceneProject* sceneProject) {
+void editor::Project::updateSceneBundles(SceneProject* sceneProject) {
     if (!sceneProject) {
         return;
     }
@@ -1224,7 +1224,7 @@ void Editor::Project::updateSceneBundles(SceneProject* sceneProject) {
     }
 }
 
-void Editor::Project::calculateSceneMaxValues(const SceneProject* sceneProject, SceneMaxValues& maxValues) const {
+void editor::Project::calculateSceneMaxValues(const SceneProject* sceneProject, SceneMaxValues& maxValues) const {
     if (!sceneProject || !sceneProject->scene) {
         return;
     }
@@ -1256,7 +1256,7 @@ void Editor::Project::calculateSceneMaxValues(const SceneProject* sceneProject, 
     }
 }
 
-void Editor::Project::collectSceneShaderKeys(const SceneProject* sceneProject, std::set<ShaderKey>& keys) const {
+void editor::Project::collectSceneShaderKeys(const SceneProject* sceneProject, std::set<ShaderKey>& keys) const {
     if (!sceneProject || !sceneProject->scene) {
         return;
     }
@@ -1307,7 +1307,7 @@ void Editor::Project::collectSceneShaderKeys(const SceneProject* sceneProject, s
 
 }
 
-Entity Editor::Project::getSceneCamera(const SceneProject* sceneProject) const {
+Entity editor::Project::getSceneCamera(const SceneProject* sceneProject) const {
     if (sceneProject->mainCamera != NULL_ENTITY && sceneProject->scene->isEntityCreated(sceneProject->mainCamera)) {
         return sceneProject->mainCamera;
     } else if (sceneProject->defaultCamera != NULL_ENTITY) {
@@ -1317,7 +1317,7 @@ Entity Editor::Project::getSceneCamera(const SceneProject* sceneProject) const {
     }
 }
 
-void Editor::Project::prepareRuntimeScene(PlayRuntimeScene& entry) {
+void editor::Project::prepareRuntimeScene(PlayRuntimeScene& entry) {
     if (!entry.runtime || !entry.runtime->scene) return;
 
     Entity camera = getSceneCamera(entry.runtime);
@@ -1333,7 +1333,7 @@ void Editor::Project::prepareRuntimeScene(PlayRuntimeScene& entry) {
     }
 }
 
-void Editor::Project::cleanupPlaySession(const std::shared_ptr<PlaySession>& session) {
+void editor::Project::cleanupPlaySession(const std::shared_ptr<PlaySession>& session) {
     if (!session) {
         return;
     }
@@ -1353,7 +1353,7 @@ void Editor::Project::cleanupPlaySession(const std::shared_ptr<PlaySession>& ses
     }
 }
 
-void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene, bool loadSceneData){
+void editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene, bool loadSceneData){
     try {
         fs::path fullPath = filepath;
         if (fullPath.is_relative()) {
@@ -1479,7 +1479,7 @@ void Editor::Project::loadScene(fs::path filepath, bool opened, bool isNewScene,
     }
 }
 
-void Editor::Project::openScene(fs::path filepath, bool closePrevious){
+void editor::Project::openScene(fs::path filepath, bool closePrevious){
     if (isAnyScenePlaying()){
         Out::warning("Cannot open a new scene while a scene is playing.");
         return;
@@ -1498,7 +1498,7 @@ void Editor::Project::openScene(fs::path filepath, bool closePrevious){
     });
 }
 
-void Editor::Project::openSceneInternal(fs::path filepath, uint32_t sceneToClose){
+void editor::Project::openSceneInternal(fs::path filepath, uint32_t sceneToClose){
     if (filepath.is_relative()) {
         filepath = getProjectPath() / filepath;
     }
@@ -1550,7 +1550,7 @@ void Editor::Project::openSceneInternal(fs::path filepath, uint32_t sceneToClose
     );
 }
 
-void Editor::Project::closeScene(uint32_t sceneId, bool systemClose) {
+void editor::Project::closeScene(uint32_t sceneId, bool systemClose) {
     auto it = std::find_if(scenes.begin(), scenes.end(),
         [sceneId](const SceneProject& scene) { return scene.id == sceneId; });
 
@@ -1601,7 +1601,7 @@ void Editor::Project::closeScene(uint32_t sceneId, bool systemClose) {
     }
 }
 
-void Editor::Project::removeScene(uint32_t sceneId) {
+void editor::Project::removeScene(uint32_t sceneId) {
     auto it = std::find_if(scenes.begin(), scenes.end(),
         [sceneId](const SceneProject& scene) { return scene.id == sceneId; });
 
@@ -1639,7 +1639,7 @@ void Editor::Project::removeScene(uint32_t sceneId) {
     scenes.erase(it);
 }
 
-void Editor::Project::markParentScenesNeedUpdate(uint32_t childSceneId) {
+void editor::Project::markParentScenesNeedUpdate(uint32_t childSceneId) {
     for (auto& s : scenes) {
         auto& cs = s.childScenes;
         if (std::find(cs.begin(), cs.end(), childSceneId) != cs.end()) {
@@ -1648,7 +1648,7 @@ void Editor::Project::markParentScenesNeedUpdate(uint32_t childSceneId) {
     }
 }
 
-void Editor::Project::loadSceneProjectData(SceneProject* sceneProject, const YAML::Node& sceneNode) {
+void editor::Project::loadSceneProjectData(SceneProject* sceneProject, const YAML::Node& sceneNode) {
     sceneProject->defaultCamera = createDefaultCamera(sceneProject->sceneType, sceneProject->scene);
 
     Stream::decodeSceneProjectEntities(this, sceneProject, sceneNode);
@@ -1668,7 +1668,7 @@ void Editor::Project::loadSceneProjectData(SceneProject* sceneProject, const YAM
     updateSceneBundles(sceneProject);
 }
 
-bool Editor::Project::loadChildSceneInline(uint32_t childSceneId) {
+bool editor::Project::loadChildSceneInline(uint32_t childSceneId) {
     SceneProject* childScene = getScene(childSceneId);
     if (!childScene) {
         Out::error("Child scene with ID %u not found", childSceneId);
@@ -1716,7 +1716,7 @@ bool Editor::Project::loadChildSceneInline(uint32_t childSceneId) {
     }
 }
 
-void Editor::Project::unloadChildSceneInline(uint32_t childSceneId) {
+void editor::Project::unloadChildSceneInline(uint32_t childSceneId) {
     SceneProject* childScene = getScene(childSceneId);
     if (!childScene) {
         return;
@@ -1737,7 +1737,7 @@ void Editor::Project::unloadChildSceneInline(uint32_t childSceneId) {
     Out::info("Unloaded child scene '%s' from inline", childScene->name.c_str());
 }
 
-void Editor::Project::addChildScene(uint32_t sceneId, uint32_t childSceneId) {
+void editor::Project::addChildScene(uint32_t sceneId, uint32_t childSceneId) {
     SceneProject* sceneProject = getScene(sceneId);
     if (!sceneProject) {
         Out::error("Scene with ID %u not found", sceneId);
@@ -1769,7 +1769,7 @@ void Editor::Project::addChildScene(uint32_t sceneId, uint32_t childSceneId) {
     Out::info("Added child scene '%s' to scene '%s'", childScene->name.c_str(), sceneProject->name.c_str());
 }
 
-void Editor::Project::removeChildScene(uint32_t sceneId, uint32_t childSceneId) {
+void editor::Project::removeChildScene(uint32_t sceneId, uint32_t childSceneId) {
     SceneProject* sceneProject = getScene(sceneId);
     if (!sceneProject) {
         Out::error("Scene with ID %u not found", sceneId);
@@ -1789,7 +1789,7 @@ void Editor::Project::removeChildScene(uint32_t sceneId, uint32_t childSceneId) 
     }
 }
 
-bool Editor::Project::hasChildScene(uint32_t sceneId, uint32_t childSceneId) const {
+bool editor::Project::hasChildScene(uint32_t sceneId, uint32_t childSceneId) const {
     const SceneProject* sceneProject = getScene(sceneId);
     if (!sceneProject) {
         return false;
@@ -1799,7 +1799,7 @@ bool Editor::Project::hasChildScene(uint32_t sceneId, uint32_t childSceneId) con
     return std::find(childScenes.begin(), childScenes.end(), childSceneId) != childScenes.end();
 }
 
-std::vector<uint32_t> Editor::Project::getChildScenes(uint32_t sceneId) const {
+std::vector<uint32_t> editor::Project::getChildScenes(uint32_t sceneId) const {
     const SceneProject* sceneProject = getScene(sceneId);
     if (!sceneProject) {
         return {};
@@ -1807,7 +1807,7 @@ std::vector<uint32_t> Editor::Project::getChildScenes(uint32_t sceneId) const {
     return sceneProject->childScenes;
 }
 
-Entity Editor::Project::createNewEntity(uint32_t sceneId, std::string entityName){
+Entity editor::Project::createNewEntity(uint32_t sceneId, std::string entityName){
     for (int i = 0; i < scenes.size(); i++){
         if (scenes[i].id == sceneId){
             Entity entity = scenes[i].scene->createEntity();
@@ -1824,7 +1824,7 @@ Entity Editor::Project::createNewEntity(uint32_t sceneId, std::string entityName
     return NULL_ENTITY;
 }
 
-bool Editor::Project::createNewComponent(uint32_t sceneId, Entity entity, ComponentType component){
+bool editor::Project::createNewComponent(uint32_t sceneId, Entity entity, ComponentType component){
     for (int i = 0; i < scenes.size(); i++){
         if (scenes[i].id == sceneId){
             if (component == ComponentType::Transform){
@@ -1840,7 +1840,7 @@ bool Editor::Project::createNewComponent(uint32_t sceneId, Entity entity, Compon
     return false;
 }
 
-void Editor::Project::deleteSceneProject(SceneProject* sceneProject){
+void editor::Project::deleteSceneProject(SceneProject* sceneProject){
     if (sceneProject->sceneRender) {
         Camera* editorCam = sceneProject->sceneRender->getCamera();
         if (editorCam) {
@@ -1863,7 +1863,7 @@ void Editor::Project::deleteSceneProject(SceneProject* sceneProject){
     sceneProject->selectedEntities.clear();
 }
 
-void Editor::Project::resetEngineConfigs(bool executeViewChanged) {
+void editor::Project::resetEngineConfigs(bool executeViewChanged) {
     Engine::setScalingMode(Scaling::NATIVE);
     Engine::setTextureStrategy(TextureStrategy::RESIZE);
     Engine::setFixedTimeSceneUpdate(false);
@@ -1873,7 +1873,7 @@ void Editor::Project::resetEngineConfigs(bool executeViewChanged) {
     }
 }
 
-void Editor::Project::resetConfigs() {
+void editor::Project::resetConfigs() {
     // Clear existing scenes
     for (auto& sceneProject : scenes) {
         deleteSceneProject(&sceneProject);
@@ -1909,7 +1909,7 @@ void Editor::Project::resetConfigs() {
     //createNewScene("New Scene");
 }
 
-std::vector<Editor::SceneScriptSource> Editor::Project::collectAllSceneCppScripts() const {
+std::vector<editor::SceneScriptSource> editor::Project::collectAllSceneCppScripts() const {
     std::unordered_set<std::string> uniquePaths;
     std::vector<SceneScriptSource> mergedScripts;
 
@@ -1927,7 +1927,7 @@ std::vector<Editor::SceneScriptSource> Editor::Project::collectAllSceneCppScript
     return mergedScripts;
 }
 
-std::vector<Editor::BundleSceneInfo> Editor::Project::collectAllBundles() const {
+std::vector<editor::BundleSceneInfo> editor::Project::collectAllBundles() const {
     std::unordered_set<std::string> uniquePaths;
     std::vector<BundleSceneInfo> result;
 
@@ -1944,13 +1944,13 @@ std::vector<Editor::BundleSceneInfo> Editor::Project::collectAllBundles() const 
     return result;
 }
 
-void Editor::Project::pauseEngineScene(Scene* scene, bool pause) const{
+void editor::Project::pauseEngineScene(Scene* scene, bool pause) const{
     scene->getSystem<PhysicsSystem>()->setPaused(pause);
     scene->getSystem<ActionSystem>()->setPaused(pause);
     scene->getSystem<AudioSystem>()->setPaused(pause);
 }
 
-void Editor::Project::copyEngineApiToProject() {
+void editor::Project::copyEngineApiToProject() {
     try {
         std::filesystem::path exePath;
         #ifdef _WIN32
@@ -1994,7 +1994,7 @@ void Editor::Project::copyEngineApiToProject() {
     }
 }
 
-void Editor::Project::finalizeStart(SceneProject* mainSceneProject, std::vector<PlayRuntimeScene>& runtimeScenes) {
+void editor::Project::finalizeStart(SceneProject* mainSceneProject, std::vector<PlayRuntimeScene>& runtimeScenes) {
     for (auto& entry : runtimeScenes) {
         SceneProject* sceneProject = entry.runtime;
         if (!sceneProject || !sceneProject->scene) {
@@ -2022,7 +2022,7 @@ void Editor::Project::finalizeStart(SceneProject* mainSceneProject, std::vector<
     }
 }
 
-void Editor::Project::finalizeStop(SceneProject* mainSceneProject, std::vector<PlayRuntimeScene> runtimeScenes) {
+void editor::Project::finalizeStop(SceneProject* mainSceneProject, std::vector<PlayRuntimeScene> runtimeScenes) {
     for (const auto& entry : runtimeScenes) {
         SceneProject* sceneProject = entry.runtime;
         if (!sceneProject || !sceneProject->scene) {
@@ -2087,7 +2087,7 @@ void Editor::Project::finalizeStop(SceneProject* mainSceneProject, std::vector<P
     }
 }
 
-bool Editor::Project::createTempProject(std::string projectName, bool deleteIfExists) {
+bool editor::Project::createTempProject(std::string projectName, bool deleteIfExists) {
     if (isAnyScenePlaying()) {
         Out::warning("Cannot create a new project while a scene is running or stopping.");
         return false;
@@ -2129,7 +2129,7 @@ bool Editor::Project::createTempProject(std::string projectName, bool deleteIfEx
     return true;
 }
 
-bool Editor::Project::saveProject(bool userCalled, std::function<void()> callback) {
+bool editor::Project::saveProject(bool userCalled, std::function<void()> callback) {
     if (isTempProject() && userCalled) {
         Backend::getApp().registerProjectSaveDialog(callback);
         return true;
@@ -2144,7 +2144,7 @@ bool Editor::Project::saveProject(bool userCalled, std::function<void()> callbac
     return saveret;
 }
 
-void Editor::Project::clearTrash() {
+void editor::Project::clearTrash() {
     if (projectPath.empty())
         return;
 
@@ -2159,7 +2159,7 @@ void Editor::Project::clearTrash() {
     }
 }
 
-bool Editor::Project::saveProjectToPath(const std::filesystem::path& path) {
+bool editor::Project::saveProjectToPath(const std::filesystem::path& path) {
     // Try to create the directory if it doesn't exist
     if (!std::filesystem::exists(path)) {
         try {
@@ -2239,7 +2239,7 @@ bool Editor::Project::saveProjectToPath(const std::filesystem::path& path) {
     }
 }
 
-bool Editor::Project::loadProject(const std::filesystem::path path) {
+bool editor::Project::loadProject(const std::filesystem::path path) {
     if (isAnyScenePlaying()) {
         Out::warning("Cannot load a project while a scene is running or stopping.");
         return false;
@@ -2296,7 +2296,7 @@ bool Editor::Project::loadProject(const std::filesystem::path path) {
     }
 }
 
-bool Editor::Project::openProject() {
+bool editor::Project::openProject() {
     if (isAnyScenePlaying()) {
         Out::warning("Cannot open a project while a scene is running or stopping.");
         return false;
@@ -2335,7 +2335,7 @@ bool Editor::Project::openProject() {
     }
 }
 
-void Editor::Project::saveScene(uint32_t sceneId) {
+void editor::Project::saveScene(uint32_t sceneId) {
     SceneProject* sceneProject = getScene(sceneId);
     if (!sceneProject) {
         Out::error("Cannot save scene - invalid scene ID: %u", sceneId);
@@ -2359,7 +2359,7 @@ void Editor::Project::saveScene(uint32_t sceneId) {
     }
 }
 
-void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::path& path) {
+void editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::path& path) {
     SceneProject* sceneProject = getScene(sceneId);
     if (!sceneProject) {
         return;
@@ -2414,7 +2414,7 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
     std::vector<BundleInstanceInfo> bundleInstances = generator.writeBundleSources(entityBundles, sceneId, getProjectPath(),getProjectInternalPath());
     generator.writeSceneSource(sceneProject->scene, sceneProject->name, sceneProject->entities, getSceneCamera(sceneProject), getProjectPath(), getProjectInternalPath(), bundleInstances);
 
-    std::vector<Editor::SceneBuildInfo> scenesToConfig;
+    std::vector<editor::SceneBuildInfo> scenesToConfig;
     for (SceneProject& sceneConf : scenes) {
         bool isMain = (sceneId == sceneConf.id);
         std::vector<uint32_t> involvedSceneIds;
@@ -2430,7 +2430,7 @@ void Editor::Project::saveSceneToPath(uint32_t sceneId, const std::filesystem::p
     Out::info("Scene saved to: \"%s\"", fullPath.string().c_str());
 }
 
-void Editor::Project::saveAllScenes() {
+void editor::Project::saveAllScenes() {
     for (auto& sceneProject : scenes) {
         if (sceneProject.isModified) {
             saveScene(sceneProject.id);
@@ -2438,11 +2438,11 @@ void Editor::Project::saveAllScenes() {
     }
 }
 
-void Editor::Project::saveLastSelectedScene(){
+void editor::Project::saveLastSelectedScene(){
     saveScene(selectedScene);
 }
 
-Ray Editor::Project::screenToRayFromCamera(const CameraComponent& camera, float x, float y) const{
+Ray editor::Project::screenToRayFromCamera(const CameraComponent& camera, float x, float y) const{
     float normalized_x = ((2.0f * x) / Engine::getCanvasWidth()) - 1.0f;
     float normalized_y = -(((2.0f * y) / Engine::getCanvasHeight()) - 1.0f);
 
@@ -2468,7 +2468,7 @@ Ray Editor::Project::screenToRayFromCamera(const CameraComponent& camera, float 
     return Ray(ray_origin, ray_direction);
 }
 
-AABB Editor::Project::getEntityWorldAABB(Scene* scene, Entity entity, Scene* mainScene) const{
+AABB editor::Project::getEntityWorldAABB(Scene* scene, Entity entity, Scene* mainScene) const{
     AABB aabb;
     Signature signature = scene->getSignature(entity);
 
@@ -2497,7 +2497,7 @@ AABB Editor::Project::getEntityWorldAABB(Scene* scene, Entity entity, Scene* mai
     return aabb;
 }
 
-AABB Editor::Project::getEntityLocalAABB(Scene* scene, Entity entity) const{
+AABB editor::Project::getEntityLocalAABB(Scene* scene, Entity entity) const{
     AABB aabb;
     Signature signature = scene->getSignature(entity);
 
@@ -2520,7 +2520,7 @@ AABB Editor::Project::getEntityLocalAABB(Scene* scene, Entity entity) const{
     return aabb;
 }
 
-Entity Editor::Project::findBestEntityByRay(const std::vector<Entity>& entities, Scene* scene, const Ray& ray, Scene* mainScene, SceneType sceneType, float& distance, size_t& index) const{
+Entity editor::Project::findBestEntityByRay(const std::vector<Entity>& entities, Scene* scene, const Ray& ray, Scene* mainScene, SceneType sceneType, float& distance, size_t& index) const{
     Entity selEntity = NULL_ENTITY;
     for (auto& entity : entities) {
         if (!scene->getSignature(entity).test(scene->getComponentId<Transform>())) continue;
@@ -2542,7 +2542,7 @@ Entity Editor::Project::findBestEntityByRay(const std::vector<Entity>& entities,
     return selEntity;
 }
 
-bool Editor::Project::selectEntitiesInRect(uint32_t sceneId, const std::vector<Entity>& entities, Scene* scene, const Matrix4& vpMatrix, Vector2 start, Vector2 end){
+bool editor::Project::selectEntitiesInRect(uint32_t sceneId, const std::vector<Entity>& entities, Scene* scene, const Matrix4& vpMatrix, Vector2 start, Vector2 end){
     Vector2 minRect = Vector2(std::min(start.x, end.x), std::min(start.y, end.y));
     Vector2 maxRect = Vector2(std::max(start.x, end.x), std::max(start.y, end.y));
 
@@ -2576,7 +2576,7 @@ bool Editor::Project::selectEntitiesInRect(uint32_t sceneId, const std::vector<E
     return found;
 }
 
-Entity Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y, uint32_t* outSceneId){
+Entity editor::Project::findObjectByRay(uint32_t sceneId, float x, float y, uint32_t* outSceneId){
     SceneProject* scenedata = getScene(sceneId);
     Ray ray = scenedata->sceneRender->getCamera()->screenToRay(x, y);
 
@@ -2611,7 +2611,7 @@ Entity Editor::Project::findObjectByRay(uint32_t sceneId, float x, float y, uint
     return NULL_ENTITY;
 }
 
-bool Editor::Project::selectObjectByRay(uint32_t sceneId, float x, float y, bool shiftPressed){
+bool editor::Project::selectObjectByRay(uint32_t sceneId, float x, float y, bool shiftPressed){
     SceneProject* scenedata = getScene(sceneId);
 
     setSelectedSceneForProperties(sceneId);
@@ -2637,7 +2637,7 @@ bool Editor::Project::selectObjectByRay(uint32_t sceneId, float x, float y, bool
     return false;
 }
 
-bool Editor::Project::selectObjectsByRect(uint32_t sceneId, Vector2 start, Vector2 end){
+bool editor::Project::selectObjectsByRect(uint32_t sceneId, Vector2 start, Vector2 end){
     SceneProject* scenedata = getScene(sceneId);
 
     setSelectedSceneForProperties(sceneId);
@@ -2668,29 +2668,29 @@ bool Editor::Project::selectObjectsByRect(uint32_t sceneId, Vector2 start, Vecto
     return false;
 }
 
-std::vector<Editor::SceneProject>& Editor::Project::getScenes(){
+std::vector<editor::SceneProject>& editor::Project::getScenes(){
     return scenes;
 }
 
-const std::vector<Editor::SceneProject>& Editor::Project::getScenes() const{
+const std::vector<editor::SceneProject>& editor::Project::getScenes() const{
     return scenes;
 }
 
-std::vector<Editor::TabEntry>& Editor::Project::getTabs(){
+std::vector<editor::TabEntry>& editor::Project::getTabs(){
     return tabs;
 }
 
-const std::vector<Editor::TabEntry>& Editor::Project::getTabs() const{
+const std::vector<editor::TabEntry>& editor::Project::getTabs() const{
     return tabs;
 }
 
-void Editor::Project::addTab(TabType type, const std::string& filepath){
+void editor::Project::addTab(TabType type, const std::string& filepath){
     if (!hasTab(type, filepath)){
         tabs.push_back({type, filepath});
     }
 }
 
-void Editor::Project::removeTab(TabType type, const std::string& filepath){
+void editor::Project::removeTab(TabType type, const std::string& filepath){
     tabs.erase(
         std::remove_if(tabs.begin(), tabs.end(), [&](const TabEntry& t){
             return t.type == type && t.filepath == filepath;
@@ -2699,14 +2699,14 @@ void Editor::Project::removeTab(TabType type, const std::string& filepath){
     );
 }
 
-bool Editor::Project::hasTab(TabType type, const std::string& filepath) const{
+bool editor::Project::hasTab(TabType type, const std::string& filepath) const{
     return std::any_of(tabs.begin(), tabs.end(), [&](const TabEntry& t){
         return t.type == type && t.filepath == filepath;
     });
 }
 
 template<typename T>
-T* Editor::Project::findScene(uint32_t sceneId) const {
+T* editor::Project::findScene(uint32_t sceneId) const {
     for (int i = 0; i < scenes.size(); i++) {
         if (scenes[i].id == sceneId) {
             return const_cast<T*>(&scenes[i]);
@@ -2716,32 +2716,32 @@ T* Editor::Project::findScene(uint32_t sceneId) const {
 }
 
 // Non-const version
-Editor::SceneProject* Editor::Project::getScene(uint32_t sceneId) {
-    return findScene<Editor::SceneProject>(sceneId);
+editor::SceneProject* editor::Project::getScene(uint32_t sceneId) {
+    return findScene<editor::SceneProject>(sceneId);
 }
 
 // Const version
-const Editor::SceneProject* Editor::Project::getScene(uint32_t sceneId) const {
-    return findScene<const Editor::SceneProject>(sceneId);
+const editor::SceneProject* editor::Project::getScene(uint32_t sceneId) const {
+    return findScene<const editor::SceneProject>(sceneId);
 }
 
-Editor::SceneProject* Editor::Project::getSelectedScene(){
+editor::SceneProject* editor::Project::getSelectedScene(){
     return getScene(selectedScene);
 }
 
-const Editor::SceneProject* Editor::Project::getSelectedScene() const{
+const editor::SceneProject* editor::Project::getSelectedScene() const{
     return getScene(selectedScene);
 }
 
-void Editor::Project::setNextSceneId(uint32_t nextSceneId){
+void editor::Project::setNextSceneId(uint32_t nextSceneId){
     this->nextSceneId = nextSceneId;
 }
 
-uint32_t Editor::Project::getNextSceneId() const{
+uint32_t editor::Project::getNextSceneId() const{
     return nextSceneId;
 }
 
-void Editor::Project::setSelectedSceneId(uint32_t selectedScene){
+void editor::Project::setSelectedSceneId(uint32_t selectedScene){
     if (this->selectedScene != selectedScene){
         this->selectedScene = selectedScene;
         this->selectedSceneForProperties = selectedScene;
@@ -2750,19 +2750,19 @@ void Editor::Project::setSelectedSceneId(uint32_t selectedScene){
     }
 }
 
-uint32_t Editor::Project::getSelectedSceneId() const{
+uint32_t editor::Project::getSelectedSceneId() const{
     return selectedScene;
 }
 
-void Editor::Project::setSelectedSceneForProperties(uint32_t selectedScene){
+void editor::Project::setSelectedSceneForProperties(uint32_t selectedScene){
     this->selectedSceneForProperties = selectedScene;
 }
 
-uint32_t Editor::Project::getSelectedSceneForProperties() const{
+uint32_t editor::Project::getSelectedSceneForProperties() const{
     return selectedSceneForProperties;
 }
 
-bool Editor::Project::isTempProject() const{
+bool editor::Project::isTempProject() const{
     std::error_code ec;
     auto relPath = std::filesystem::relative(projectPath, std::filesystem::temp_directory_path(), ec);
 
@@ -2773,7 +2773,7 @@ bool Editor::Project::isTempProject() const{
     return relPath.string().find("..") == std::string::npos;
 }
 
-bool Editor::Project::isTempUnsavedProject() const{
+bool editor::Project::isTempUnsavedProject() const{
     bool isTemp = isTempProject();
 
     if (isTemp){
@@ -2787,19 +2787,19 @@ bool Editor::Project::isTempUnsavedProject() const{
     return false;
 }
 
-std::filesystem::path Editor::Project::getProjectPath() const{
+std::filesystem::path editor::Project::getProjectPath() const{
     return projectPath;
 }
 
-std::filesystem::path Editor::Project::getProjectInternalPath() const{
-    return projectPath / ".supernova";
+std::filesystem::path editor::Project::getProjectInternalPath() const{
+    return projectPath / ".doriax";
 }
 
-fs::path Editor::Project::getThumbsDir() const{
+fs::path editor::Project::getThumbsDir() const{
     return getProjectInternalPath() / "thumbs";
 }
 
-fs::path Editor::Project::getThumbnailPath(const fs::path& originalPath) const {
+fs::path editor::Project::getThumbnailPath(const fs::path& originalPath) const {
     fs::path thumbsDir = getThumbsDir();
     fs::path resolvedPath = originalPath;
 
@@ -2825,15 +2825,15 @@ fs::path Editor::Project::getThumbnailPath(const fs::path& originalPath) const {
     return thumbsDir / thumbFilename;
 }
 
-std::vector<Entity> Editor::Project::getEntities(uint32_t sceneId) const{
+std::vector<Entity> editor::Project::getEntities(uint32_t sceneId) const{
     return getScene(sceneId)->entities;
 }
 
-void Editor::Project::replaceSelectedEntities(uint32_t sceneId, std::vector<Entity> selectedEntities){
+void editor::Project::replaceSelectedEntities(uint32_t sceneId, std::vector<Entity> selectedEntities){
     getScene(sceneId)->selectedEntities = selectedEntities;
 }
 
-void Editor::Project::setSelectedEntity(uint32_t sceneId, Entity selectedEntity){
+void editor::Project::setSelectedEntity(uint32_t sceneId, Entity selectedEntity){
     std::vector<Entity>& entities = getScene(sceneId)->selectedEntities;
 
     entities.clear();
@@ -2842,7 +2842,7 @@ void Editor::Project::setSelectedEntity(uint32_t sceneId, Entity selectedEntity)
     }
 }
 
-void Editor::Project::addSelectedEntity(uint32_t sceneId, Entity selectedEntity){
+void editor::Project::addSelectedEntity(uint32_t sceneId, Entity selectedEntity){
     std::vector<Entity>& entities = getScene(sceneId)->selectedEntities;
     Scene* scene = getScene(sceneId)->scene;
     auto transforms = scene->getComponentArray<Transform>();
@@ -2878,7 +2878,7 @@ void Editor::Project::addSelectedEntity(uint32_t sceneId, Entity selectedEntity)
     );
 }
 
-bool Editor::Project::isSelectedEntity(uint32_t sceneId, Entity selectedEntity){
+bool editor::Project::isSelectedEntity(uint32_t sceneId, Entity selectedEntity){
     std::vector<Entity>& entities = getScene(sceneId)->selectedEntities;
 
     if (std::find(entities.begin(), entities.end(), selectedEntity) != entities.end()) {
@@ -2888,34 +2888,34 @@ bool Editor::Project::isSelectedEntity(uint32_t sceneId, Entity selectedEntity){
     return false;
 }
 
-void Editor::Project::clearSelectedEntities(uint32_t sceneId){
+void editor::Project::clearSelectedEntities(uint32_t sceneId){
     getScene(sceneId)->selectedEntities.clear();
 }
 
-void Editor::Project::clearAllSelections(uint32_t sceneId){
+void editor::Project::clearAllSelections(uint32_t sceneId){
     clearSelectedEntities(sceneId);
     for (uint32_t cId : getChildScenes(sceneId)) {
         clearSelectedEntities(cId);
     }
 }
 
-std::vector<Entity> Editor::Project::getSelectedEntities(uint32_t sceneId) const{
+std::vector<Entity> editor::Project::getSelectedEntities(uint32_t sceneId) const{
     return getScene(sceneId)->selectedEntities;
 }
 
-bool Editor::Project::hasSelectedEntities(uint32_t sceneId) const{
+bool editor::Project::hasSelectedEntities(uint32_t sceneId) const{
     return (getScene(sceneId)->selectedEntities.size() > 0);
 }
 
-bool Editor::Project::hasSelectedSceneUnsavedChanges() const{
+bool editor::Project::hasSelectedSceneUnsavedChanges() const{
     return hasSceneUnsavedChanges(selectedScene);
 }
 
-bool Editor::Project::hasSelectedSceneUnsavedEntityBundles() const{
+bool editor::Project::hasSelectedSceneUnsavedEntityBundles() const{
     return hasUnsavedEntityBundles(selectedScene);
 }
 
-bool Editor::Project::hasSceneUnsavedChanges(uint32_t sceneId) const{
+bool editor::Project::hasSceneUnsavedChanges(uint32_t sceneId) const{
     const SceneProject* sceneProject = getScene(sceneId);
     if (!sceneProject){
         return false;
@@ -2939,7 +2939,7 @@ bool Editor::Project::hasSceneUnsavedChanges(uint32_t sceneId) const{
     return false;
 }
 
-bool Editor::Project::hasUnsavedEntityBundles(uint32_t sceneId) const{
+bool editor::Project::hasUnsavedEntityBundles(uint32_t sceneId) const{
     for (const auto& [filepath, bundle] : entityBundles) {
         if (bundle.isModified && bundle.hasInstances(sceneId)) {
             return true;
@@ -2949,7 +2949,7 @@ bool Editor::Project::hasUnsavedEntityBundles(uint32_t sceneId) const{
     return false;
 }
 
-bool Editor::Project::hasScenesUnsavedChanges() const{
+bool editor::Project::hasScenesUnsavedChanges() const{
     for (auto& scene: scenes){
         if (scene.isModified){
             return true;
@@ -2963,7 +2963,7 @@ bool Editor::Project::hasScenesUnsavedChanges() const{
     return false;
 }
 
-bool Editor::Project::hasUnsavedEntityBundles() const{
+bool editor::Project::hasUnsavedEntityBundles() const{
     for (const auto& [filepath, bundle] : entityBundles) {
         if (bundle.isModified) {
             return true;
@@ -2974,7 +2974,7 @@ bool Editor::Project::hasUnsavedEntityBundles() const{
 }
 
 
-void Editor::Project::updateAllScriptsProperties(uint32_t sceneId){
+void editor::Project::updateAllScriptsProperties(uint32_t sceneId){
     SceneProject* sceneProject = getScene(sceneId);
     if (!sceneProject) return;
 
@@ -2987,7 +2987,7 @@ void Editor::Project::updateAllScriptsProperties(uint32_t sceneId){
     }
 }
 
-void Editor::Project::updateScriptProperties(SceneProject* sceneProject, Entity entity, std::vector<ScriptEntry>& scripts){
+void editor::Project::updateScriptProperties(SceneProject* sceneProject, Entity entity, std::vector<ScriptEntry>& scripts){
     bool hasChanges = false;
 
     // Update properties for each script in the component
@@ -3086,7 +3086,7 @@ void Editor::Project::updateScriptProperties(SceneProject* sceneProject, Entity 
     }
 }
 
-bool Editor::Project::createEntityBundle(uint32_t sceneId, fs::path filepath, YAML::Node entityNode){
+bool editor::Project::createEntityBundle(uint32_t sceneId, fs::path filepath, YAML::Node entityNode){
     if (!filepath.is_relative()) {
         Out::error("EntityBundle filepath must be relative: %s", filepath.string().c_str());
         return false;
@@ -3230,7 +3230,7 @@ bool Editor::Project::createEntityBundle(uint32_t sceneId, fs::path filepath, YA
     return true;
 }
 
-bool Editor::Project::removeEntityBundle(const std::filesystem::path& filepath) {
+bool editor::Project::removeEntityBundle(const std::filesystem::path& filepath) {
     auto it = entityBundles.find(filepath);
     if (it == entityBundles.end()) {
         return false;
@@ -3282,16 +3282,16 @@ bool Editor::Project::removeEntityBundle(const std::filesystem::path& filepath) 
 
     entityBundles.erase(it);
 
-    Editor::Out::info("Removed entity bundle: %s", filepath.string().c_str());
+    editor::Out::info("Removed entity bundle: %s", filepath.string().c_str());
     return true;
 }
 
-bool Editor::Project::addComponentToBundle(uint32_t sceneId, Entity entity, ComponentType componentType, bool addToItself){
+bool editor::Project::addComponentToBundle(uint32_t sceneId, Entity entity, ComponentType componentType, bool addToItself){
     ComponentRecovery recovery;
     return addComponentToBundle(sceneId, entity, componentType, recovery, addToItself);
 }
 
-bool Editor::Project::addComponentToBundle(uint32_t sceneId, Entity entity, ComponentType componentType, const ComponentRecovery& recovery, bool addToItself){
+bool editor::Project::addComponentToBundle(uint32_t sceneId, Entity entity, ComponentType componentType, const ComponentRecovery& recovery, bool addToItself){
     fs::path filepath = findEntityBundlePathFor(sceneId, entity);
     if (filepath.empty()) {
         Out::error("Entity %u in scene %u is not part of any bundle", entity, sceneId);
@@ -3372,7 +3372,7 @@ bool Editor::Project::addComponentToBundle(uint32_t sceneId, Entity entity, Comp
     return true;
 }
 
-Editor::ComponentRecovery Editor::Project::removeComponentFromBundle(uint32_t sceneId, Entity entity, ComponentType componentType, bool encodeComponent, bool removeToItself){
+editor::ComponentRecovery editor::Project::removeComponentFromBundle(uint32_t sceneId, Entity entity, ComponentType componentType, bool encodeComponent, bool removeToItself){
     fs::path filepath = findEntityBundlePathFor(sceneId, entity);
     if (filepath.empty()) {
         Out::error("Entity %u in scene %u is not part of any bundle", entity, sceneId);
@@ -3436,7 +3436,7 @@ Editor::ComponentRecovery Editor::Project::removeComponentFromBundle(uint32_t sc
     return recovery;
 }
 
-void Editor::Project::saveEntityBundleToDisk(const std::filesystem::path& filepath) {
+void editor::Project::saveEntityBundleToDisk(const std::filesystem::path& filepath) {
     EntityBundle* bundle = getEntityBundle(filepath);
     YAML::Node encodedNode = encodeEntityBundleNode(filepath);
     if (encodedNode && !encodedNode.IsNull()) {
@@ -3452,7 +3452,7 @@ void Editor::Project::saveEntityBundleToDisk(const std::filesystem::path& filepa
     }
 }
 
-Editor::EntityBundle* Editor::Project::getEntityBundle(const std::filesystem::path& filepath){
+editor::EntityBundle* editor::Project::getEntityBundle(const std::filesystem::path& filepath){
     if (filepath.empty()){
         return nullptr;
     }
@@ -3463,7 +3463,7 @@ Editor::EntityBundle* Editor::Project::getEntityBundle(const std::filesystem::pa
     return nullptr;
 }
 
-const Editor::EntityBundle* Editor::Project::getEntityBundle(const std::filesystem::path& filepath) const{
+const editor::EntityBundle* editor::Project::getEntityBundle(const std::filesystem::path& filepath) const{
     if (filepath.empty()){
         return nullptr;
     }
@@ -3474,7 +3474,7 @@ const Editor::EntityBundle* Editor::Project::getEntityBundle(const std::filesyst
     return nullptr;
 }
 
-std::map<std::filesystem::path, const Editor::EntityBundle*> Editor::Project::getEntityBundles(uint32_t sceneId) const {
+std::map<std::filesystem::path, const editor::EntityBundle*> editor::Project::getEntityBundles(uint32_t sceneId) const {
     std::map<std::filesystem::path, const EntityBundle*> bundlesInScene;
     for (const auto& [filepath, bundle] : entityBundles) {
         if (bundle.hasInstances(sceneId)) {
@@ -3484,7 +3484,7 @@ std::map<std::filesystem::path, const Editor::EntityBundle*> Editor::Project::ge
     return bundlesInScene;
 }
 
-std::filesystem::path Editor::Project::findEntityBundlePathFor(uint32_t sceneId, Entity entity) const {
+std::filesystem::path editor::Project::findEntityBundlePathFor(uint32_t sceneId, Entity entity) const {
     // First pass: prefer member matches (so nested bundle roots resolve to the outer bundle)
     for (const auto& [filepath, bundle] : entityBundles) {
         auto sceneIt = bundle.instances.find(sceneId);
@@ -3518,7 +3518,7 @@ std::filesystem::path Editor::Project::findEntityBundlePathFor(uint32_t sceneId,
     return std::filesystem::path();
 }
 
-YAML::Node Editor::Project::clearEntitiesNode(YAML::Node node) {
+YAML::Node editor::Project::clearEntitiesNode(YAML::Node node) {
     if (!node || !node.IsMap())
         return node;
 
@@ -3540,7 +3540,7 @@ YAML::Node Editor::Project::clearEntitiesNode(YAML::Node node) {
     return node;
 }
 
-YAML::Node Editor::Project::changeEntitiesNode(Entity& firstEntity, YAML::Node node) {
+YAML::Node editor::Project::changeEntitiesNode(Entity& firstEntity, YAML::Node node) {
     if (!node || !node.IsMap())
         return node;
 
@@ -3564,7 +3564,7 @@ YAML::Node Editor::Project::changeEntitiesNode(Entity& firstEntity, YAML::Node n
     return node;
 }
 
-YAML::Node Editor::Project::encodeEntityBundleNode(const std::filesystem::path& filepath) const {
+YAML::Node editor::Project::encodeEntityBundleNode(const std::filesystem::path& filepath) const {
     const EntityBundle* bundle = getEntityBundle(filepath);
     if (!bundle || !bundle->registry) {
         return YAML::Node();
@@ -3574,7 +3574,7 @@ YAML::Node Editor::Project::encodeEntityBundleNode(const std::filesystem::path& 
     return Stream::encodeEntitySelection(topLevelEntities, bundle->registry.get(), this);
 }
 
-std::vector<Entity> Editor::Project::importEntityBundle(SceneProject* sceneProject, std::vector<Entity>* entities, const std::filesystem::path& filepath, Entity rootEntity, bool needSaveScene, const YAML::Node& bundleOverrides, const YAML::Node& bundleLocalEntities) {
+std::vector<Entity> editor::Project::importEntityBundle(SceneProject* sceneProject, std::vector<Entity>* entities, const std::filesystem::path& filepath, Entity rootEntity, bool needSaveScene, const YAML::Node& bundleOverrides, const YAML::Node& bundleLocalEntities) {
     if (!filepath.is_relative()) {
         Out::error("EntityBundle filepath must be relative: %s", filepath.string().c_str());
         return {};
@@ -3853,7 +3853,7 @@ std::vector<Entity> Editor::Project::importEntityBundle(SceneProject* sceneProje
     return allResult;
 }
 
-bool Editor::Project::unimportEntityBundle(uint32_t sceneId, const std::filesystem::path& filepath, Entity rootEntity, const std::vector<Entity>& memberEntities) {
+bool editor::Project::unimportEntityBundle(uint32_t sceneId, const std::filesystem::path& filepath, Entity rootEntity, const std::vector<Entity>& memberEntities) {
     SceneProject* sceneProject = getScene(sceneId);
     if (!sceneProject) {
         return false;
@@ -3952,7 +3952,7 @@ bool Editor::Project::unimportEntityBundle(uint32_t sceneId, const std::filesyst
     return true;
 }
 
-bool Editor::Project::addEntityToBundle(uint32_t sceneId, Entity entity, Entity parent, bool createItself){
+bool editor::Project::addEntityToBundle(uint32_t sceneId, Entity entity, Entity parent, bool createItself){
     SceneProject* sceneProject = getScene(sceneId);
     if (!sceneProject){
         return false;
@@ -4109,7 +4109,7 @@ bool Editor::Project::addEntityToBundle(uint32_t sceneId, Entity entity, Entity 
     return true;
 }
 
-bool Editor::Project::addEntityToBundle(uint32_t sceneId, const NodeRecovery& recoveryData, Entity parent, bool createItself){
+bool editor::Project::addEntityToBundle(uint32_t sceneId, const NodeRecovery& recoveryData, Entity parent, bool createItself){
     fs::path filepath = findEntityBundlePathFor(sceneId, parent);
     if (filepath.empty()) {
         Out::error("Entity parent %u in scene %u is not part of any entity bundle", parent, sceneId);
@@ -4207,7 +4207,7 @@ bool Editor::Project::addEntityToBundle(uint32_t sceneId, const NodeRecovery& re
     return true;
 }
 
-Editor::NodeRecovery Editor::Project::removeEntityFromBundle(uint32_t sceneId, Entity entity, bool destroyItself) {
+editor::NodeRecovery editor::Project::removeEntityFromBundle(uint32_t sceneId, Entity entity, bool destroyItself) {
     fs::path filepath = findEntityBundlePathFor(sceneId, entity);
     if (filepath.empty()) {
         Out::error("Entity %u in scene %u is not part of any entity bundle", entity, sceneId);
@@ -4336,7 +4336,7 @@ Editor::NodeRecovery Editor::Project::removeEntityFromBundle(uint32_t sceneId, E
     return recovery;
 }
 
-bool Editor::Project::isEntityInBundle(uint32_t sceneId, Entity entity) const{
+bool editor::Project::isEntityInBundle(uint32_t sceneId, Entity entity) const{
     for (const auto& [filepath, bundle] : entityBundles){
         if (bundle.containsEntity(sceneId, entity)) {
             return true;
@@ -4345,7 +4345,7 @@ bool Editor::Project::isEntityInBundle(uint32_t sceneId, Entity entity) const{
     return false;
 }
 
-void Editor::Project::cleanupEntityBundlesForScene(uint32_t sceneId){
+void editor::Project::cleanupEntityBundlesForScene(uint32_t sceneId){
     for (auto it = entityBundles.begin(); it != entityBundles.end(); ) {
         it->second.instances.erase(sceneId);
         if (it->second.instances.empty()) {
@@ -4356,7 +4356,7 @@ void Editor::Project::cleanupEntityBundlesForScene(uint32_t sceneId){
     }
 }
 
-bool Editor::Project::bundlePropertyChanged(uint32_t sceneId, Entity entity, ComponentType componentType, std::vector<std::string> properties, bool changeItself){
+bool editor::Project::bundlePropertyChanged(uint32_t sceneId, Entity entity, ComponentType componentType, std::vector<std::string> properties, bool changeItself){
     fs::path filepath = findEntityBundlePathFor(sceneId, entity);
 
     if (filepath.empty()) {
@@ -4448,7 +4448,7 @@ bool Editor::Project::bundlePropertyChanged(uint32_t sceneId, Entity entity, Com
     return true;
 }
 
-bool Editor::Project::bundleNameChanged(uint32_t sceneId, Entity entity, std::string name, bool changeItself){
+bool editor::Project::bundleNameChanged(uint32_t sceneId, Entity entity, std::string name, bool changeItself){
     fs::path filepath = findEntityBundlePathFor(sceneId, entity);
 
     if (filepath.empty()) {
@@ -4504,7 +4504,7 @@ bool Editor::Project::bundleNameChanged(uint32_t sceneId, Entity entity, std::st
     return true;
 }
 
-Editor::SharedMoveRecovery Editor::Project::moveEntityFromBundle(uint32_t sceneId, Entity entity, Entity target, InsertionType type, bool moveItself){
+editor::SharedMoveRecovery editor::Project::moveEntityFromBundle(uint32_t sceneId, Entity entity, Entity target, InsertionType type, bool moveItself){
     fs::path filepath = findEntityBundlePathFor(sceneId, entity);
     if (filepath.empty()) {
         Out::error("Entity %u in scene %u is not part of any entity bundle", entity, sceneId);
@@ -4608,7 +4608,7 @@ Editor::SharedMoveRecovery Editor::Project::moveEntityFromBundle(uint32_t sceneI
     return recovery;
 }
 
-bool Editor::Project::undoMoveEntityInBundle(uint32_t sceneId, Entity entity, Entity target, const SharedMoveRecovery& recovery, bool moveItself){
+bool editor::Project::undoMoveEntityInBundle(uint32_t sceneId, Entity entity, Entity target, const SharedMoveRecovery& recovery, bool moveItself){
     fs::path filepath = findEntityBundlePathFor(sceneId, entity);
     if (filepath.empty()) {
         Out::error("Entity %u in scene %u is not part of any entity bundle", entity, sceneId);
@@ -4669,7 +4669,7 @@ bool Editor::Project::undoMoveEntityInBundle(uint32_t sceneId, Entity entity, En
     return true;
 }
 
-void Editor::Project::collectInvolvedScenes(uint32_t sceneId, std::vector<uint32_t>& involvedSceneIds) {
+void editor::Project::collectInvolvedScenes(uint32_t sceneId, std::vector<uint32_t>& involvedSceneIds) {
     SceneProject* sceneProject = getScene(sceneId);
     if (!sceneProject) return;
 
@@ -4683,7 +4683,7 @@ void Editor::Project::collectInvolvedScenes(uint32_t sceneId, std::vector<uint32
     }
 }
 
-bool Editor::Project::isAnyScenePlaying() const{
+bool editor::Project::isAnyScenePlaying() const{
     {
         std::scoped_lock lock(playSessionMutex);
         if (activePlaySession) {
@@ -4699,7 +4699,7 @@ bool Editor::Project::isAnyScenePlaying() const{
     return false;
 }
 
-void Editor::Project::registerSceneManager() {
+void editor::Project::registerSceneManager() {
     SceneManager::clearAll();
     for (SceneProject& sceneProject : scenes) {
         SceneManager::registerScene(sceneProject.id, sceneProject.name, [this, sceneId = sceneProject.id]() {
@@ -4804,7 +4804,7 @@ void Editor::Project::registerSceneManager() {
 
 // Safe: only called from BundleManager lambdas on the game thread (pauseGameEvents=false);
 // editor thread won't mutate scenes or runtimeScenes while game events are active.
-Editor::SceneProject* Editor::Project::findSceneProjectByScene(Scene* scene) {
+editor::SceneProject* editor::Project::findSceneProjectByScene(Scene* scene) {
     for (auto& sp : scenes) {
         if (sp.scene == scene) return &sp;
     }
@@ -4819,7 +4819,7 @@ Editor::SceneProject* Editor::Project::findSceneProjectByScene(Scene* scene) {
     return nullptr;
 }
 
-void Editor::Project::registerBundleManager() {
+void editor::Project::registerBundleManager() {
     BundleManager::clearAll();
     uint32_t bundleId = 0;
     for (const auto& [bundlePath, bundle] : entityBundles) {
@@ -4891,7 +4891,7 @@ void Editor::Project::registerBundleManager() {
     }
 }
 
-void Editor::Project::start(uint32_t sceneId) {
+void editor::Project::start(uint32_t sceneId) {
     SceneProject* sceneProject = getScene(sceneId);
     if (!sceneProject) {
         Out::error("Failed to find scene %u to start", sceneId);
@@ -4906,7 +4906,7 @@ void Editor::Project::start(uint32_t sceneId) {
         }
     }
 
-    Supernova::FunctionSubscribeGlobal::getCrashHandler() = 
+    doriax::FunctionSubscribeGlobal::getCrashHandler() = 
         [this, sceneId](const std::string& tag, const std::string& errorInfo) {
             // Log the scene and entity context
             SceneProject* sceneProject = getScene(sceneId);
@@ -4935,7 +4935,7 @@ void Editor::Project::start(uint32_t sceneId) {
     std::vector<uint32_t> involvedMainSceneIds;
     collectInvolvedScenes(sceneId, involvedMainSceneIds);
 
-    std::vector<Editor::SceneBuildInfo> scenesToGenerate;
+    std::vector<editor::SceneBuildInfo> scenesToGenerate;
     for (SceneProject& sceneProject : scenes) {
         bool savedNow = false;
         bool isInvolvedScene = std::find(involvedMainSceneIds.begin(), involvedMainSceneIds.end(), sceneProject.id) != involvedMainSceneIds.end();
@@ -5117,7 +5117,7 @@ void Editor::Project::start(uint32_t sceneId) {
     }
 }
 
-void Editor::Project::pause(uint32_t sceneId) {
+void editor::Project::pause(uint32_t sceneId) {
     SceneProject* sceneProject = getScene(sceneId);
     if (!sceneProject) {
         Out::error("Failed to find scene %u to pause", sceneId);
@@ -5153,7 +5153,7 @@ void Editor::Project::pause(uint32_t sceneId) {
     Engine::onPause.call();
 }
 
-void Editor::Project::resume(uint32_t sceneId) {
+void editor::Project::resume(uint32_t sceneId) {
     SceneProject* sceneProject = getScene(sceneId);
     if (!sceneProject) {
         Out::error("Failed to find scene %u to resume", sceneId);
@@ -5189,7 +5189,7 @@ void Editor::Project::resume(uint32_t sceneId) {
     Engine::onResume.call();
 }
 
-void Editor::Project::stop(uint32_t sceneId) {
+void editor::Project::stop(uint32_t sceneId) {
     SceneProject* sceneProject = getScene(sceneId);
     if (!sceneProject) {
         Out::error("Failed to find scene %u to stop", sceneId);
@@ -5223,7 +5223,7 @@ void Editor::Project::stop(uint32_t sceneId) {
     Engine::clearAllSubscriptions(true);
 
     // Clear crash handler when stopping
-    Supernova::FunctionSubscribeGlobal::getCrashHandler() = nullptr;
+    doriax::FunctionSubscribeGlobal::getCrashHandler() = nullptr;
 
     // Check if we have C++ library connected
     bool hasLibraryConnected = conector.isLibraryConnected();
@@ -5304,7 +5304,7 @@ void Editor::Project::stop(uint32_t sceneId) {
     }
 }
 
-void Editor::Project::waitForPlaySessionToFinish() {
+void editor::Project::waitForPlaySessionToFinish() {
     // Wait for the detached finalizeStop thread to complete
     // so that all cleanup finishes before the app tears down.
     // Also pump the main-thread task queue, because finalizeStop
@@ -5322,7 +5322,7 @@ void Editor::Project::waitForPlaySessionToFinish() {
     }
 }
 
-void Editor::Project::restoreRuntimeLayers(uint32_t sceneId) {
+void editor::Project::restoreRuntimeLayers(uint32_t sceneId) {
     std::scoped_lock lock(playSessionMutex);
     if (!activePlaySession || activePlaySession->mainSceneId != sceneId) {
         return;
@@ -5342,7 +5342,7 @@ void Editor::Project::restoreRuntimeLayers(uint32_t sceneId) {
     }
 }
 
-void Editor::Project::debugSceneHierarchy(){
+void editor::Project::debugSceneHierarchy(){
     if (SceneProject* sceneProject = getSelectedScene()){
         printf("Debug scene: %s\n", sceneProject->name.c_str());
         auto transforms = sceneProject->scene->getComponentArray<Transform>();

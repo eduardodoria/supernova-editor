@@ -16,4 +16,4 @@
 #   public *;
 #}
 
--keep class org.supernovaengine.supernova.* {*;}
+-keep class org.doriaxengine.doriax.* {*;}

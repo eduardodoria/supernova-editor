@@ -4,9 +4,9 @@
 #include "Out.h"
 #include "util/ProjectUtils.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::RemoveComponentCmd::RemoveComponentCmd(Project* project, size_t sceneId, Entity entity, ComponentType componentType){
+editor::RemoveComponentCmd::RemoveComponentCmd(Project* project, size_t sceneId, Entity entity, ComponentType componentType){
     this->project = project;
     this->sceneId = sceneId;
     this->componentType = componentType;
@@ -19,7 +19,7 @@ Editor::RemoveComponentCmd::RemoveComponentCmd(Project* project, size_t sceneId,
     this->wasModified = project->getScene(sceneId)->isModified;
 }
 
-bool Editor::RemoveComponentCmd::execute() {
+bool editor::RemoveComponentCmd::execute() {
     SceneProject* sceneProject = project->getScene(sceneId);
     if (sceneProject) {
         Scene* scene = sceneProject->scene;
@@ -58,7 +58,7 @@ bool Editor::RemoveComponentCmd::execute() {
     return true;
 }
 
-void Editor::RemoveComponentCmd::undo() {
+void editor::RemoveComponentCmd::undo() {
     SceneProject* sceneProject = project->getScene(sceneId);
     if (sceneProject) {
         Scene* scene = sceneProject->scene;
@@ -88,7 +88,7 @@ void Editor::RemoveComponentCmd::undo() {
     }
 }
 
-bool Editor::RemoveComponentCmd::mergeWith(Command* otherCommand){
+bool editor::RemoveComponentCmd::mergeWith(Command* otherCommand){
     RemoveComponentCmd* otherCmd = dynamic_cast<RemoveComponentCmd*>(otherCommand);
     if (otherCmd != nullptr){
         if (sceneId == otherCmd->sceneId){

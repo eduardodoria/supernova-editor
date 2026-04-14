@@ -402,11 +402,11 @@
 		713D82B7259D307F00567F9F /* SokolCamera.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7162FC9525962A0E0075B97D /* SokolCamera.cpp */; };
 		713D82C0259D316E00567F9F /* sokol.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7162FC9A25962A0E0075B97D /* sokol.cpp */; };
 		713D82CE259D31DF00567F9F /* libsokol-ios.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 713D82C5259D316E00567F9F /* libsokol-ios.a */; };
-		713D82D7259D324700567F9F /* libsupernova-ios.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 713D823E259CC4FF00567F9F /* libsupernova-ios.a */; };
-		713D82E4259D32FE00567F9F /* SupernovaApple.mm in Sources */ = {isa = PBXBuildFile; fileRef = 7162FE302597C7990075B97D /* SupernovaApple.mm */; };
+		713D82D7259D324700567F9F /* libdoriax-ios.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 713D823E259CC4FF00567F9F /* libdoriax-ios.a */; };
+		713D82E4259D32FE00567F9F /* DoriaxApple.mm in Sources */ = {isa = PBXBuildFile; fileRef = 7162FE302597C7990075B97D /* DoriaxApple.mm */; };
 		713D82EB259D333100567F9F /* Buffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7162FC7E25962A0E0075B97D /* Buffer.cpp */; };
 		713D8304259D34F900567F9F /* Ray.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7162FC5025962A0E0075B97D /* Ray.cpp */; };
-		713D8316259D3E7A00567F9F /* libsupernova-macos.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 7162FD0325963A310075B97D /* libsupernova-macos.a */; };
+		713D8316259D3E7A00567F9F /* libdoriax-macos.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 7162FD0325963A310075B97D /* libdoriax-macos.a */; };
 		713D8323259D3F8F00567F9F /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 713D831F259D3F8F00567F9F /* ViewController.m */; };
 		713D8324259D3F8F00567F9F /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 713D8320259D3F8F00567F9F /* main.m */; };
 		713D8325259D3F8F00567F9F /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 713D8321259D3F8F00567F9F /* AppDelegate.m */; };
@@ -509,7 +509,7 @@
 		7162FE0E2596A5BE0075B97D /* SokolShader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7162FC8C25962A0E0075B97D /* SokolShader.cpp */; };
 		7162FE0F2596A5BE0075B97D /* SokolTexture.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7162FC8F25962A0E0075B97D /* SokolTexture.cpp */; };
 		7162FE102596A5BE0075B97D /* SokolCamera.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7162FC9525962A0E0075B97D /* SokolCamera.cpp */; };
-		7162FE712597C99C0075B97D /* SupernovaApple.mm in Sources */ = {isa = PBXBuildFile; fileRef = 7162FE302597C7990075B97D /* SupernovaApple.mm */; };
+		7162FE712597C99C0075B97D /* DoriaxApple.mm in Sources */ = {isa = PBXBuildFile; fileRef = 7162FE302597C7990075B97D /* DoriaxApple.mm */; };
 		7162FEAC25993F810075B97D /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7162FEAB25993F810075B97D /* main.cpp */; };
 		7162FEAD25993F810075B97D /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7162FEAB25993F810075B97D /* main.cpp */; };
 		71651FF12AA804B4008D9BF5 /* Contact2D.h in Headers */ = {isa = PBXBuildFile; fileRef = 71651FE82AA804B4008D9BF5 /* Contact2D.h */; };
@@ -1124,14 +1124,14 @@
 			containerPortal = 7162F8C0259547D60075B97D /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 713D823D259CC4FF00567F9F;
-			remoteInfo = "supernova-ios";
+			remoteInfo = "doriax-ios";
 		};
 		713D8314259D3E6D00567F9F /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 7162F8C0259547D60075B97D /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 7162FD0225963A310075B97D;
-			remoteInfo = "supernova-macos";
+			remoteInfo = "doriax-macos";
 		};
 		7162FE04259644810075B97D /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -1755,7 +1755,7 @@
 		7128CEE325BA705600965B51 /* Main.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = Main.storyboard; sourceTree = "<group>"; };
 		7128CFAA25BA717500965B51 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		7128CFAB25BA717500965B51 /* Main.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = Main.storyboard; sourceTree = "<group>"; };
-		7128D00425BA74A000965B51 /* Supernova_macOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Supernova_macOS.entitlements; sourceTree = "<group>"; };
+		7128D00425BA74A000965B51 /* Doriax_macOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Doriax_macOS.entitlements; sourceTree = "<group>"; };
 		7128D05D25BB02F800965B51 /* Input.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Input.h; sourceTree = "<group>"; };
 		7128D08525BB033D00965B51 /* Input.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Input.cpp; sourceTree = "<group>"; };
 		7128D0AC25BB18DC00965B51 /* StringUtils.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = StringUtils.cpp; sourceTree = "<group>"; };
@@ -1768,7 +1768,7 @@
 		71393EC828F8EF0C0074442E /* libtinyxml2-macos.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libtinyxml2-macos.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		71393EE328F8EF9E0074442E /* XMLUtils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = XMLUtils.cpp; sourceTree = "<group>"; };
 		71393EE428F8EF9F0074442E /* XMLUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = XMLUtils.h; sourceTree = "<group>"; };
-		713D823E259CC4FF00567F9F /* libsupernova-ios.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libsupernova-ios.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		713D823E259CC4FF00567F9F /* libdoriax-ios.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libdoriax-ios.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		713D82C5259D316E00567F9F /* libsokol-ios.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libsokol-ios.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		713D831E259D3F8F00567F9F /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		713D831F259D3F8F00567F9F /* ViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ViewController.m; sourceTree = "<group>"; };
@@ -1841,8 +1841,8 @@
 		715CB115288CD40E0049344B /* Terrain.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Terrain.cpp; sourceTree = "<group>"; };
 		715CB116288CD40E0049344B /* Terrain.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Terrain.h; sourceTree = "<group>"; };
 		715CB11A288CD5790049344B /* Material.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Material.h; sourceTree = "<group>"; };
-		7162F8CE259547DA0075B97D /* Supernova.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Supernova.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		7162F8E4259547DA0075B97D /* Supernova.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Supernova.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7162F8CE259547DA0075B97D /* Doriax.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Doriax.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7162F8E4259547DA0075B97D /* Doriax.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Doriax.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7162FC2B25962A0E0075B97D /* Engine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Engine.h; sourceTree = "<group>"; };
 		7162FC2C25962A0E0075B97D /* Log.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Log.cpp; sourceTree = "<group>"; };
 		7162FC2D25962A0E0075B97D /* Scene.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Scene.cpp; sourceTree = "<group>"; };
@@ -1898,7 +1898,7 @@
 		7162FC7025962A0E0075B97D /* RenderSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RenderSystem.cpp; sourceTree = "<group>"; };
 		7162FC7125962A0E0075B97D /* RenderSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RenderSystem.h; sourceTree = "<group>"; };
 		7162FC7225962A0E0075B97D /* Engine.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Engine.cpp; sourceTree = "<group>"; };
-		7162FC7A25962A0E0075B97D /* Supernova.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Supernova.h; sourceTree = "<group>"; };
+		7162FC7A25962A0E0075B97D /* Doriax.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Doriax.h; sourceTree = "<group>"; };
 		7162FC7C25962A0E0075B97D /* IndexBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IndexBuffer.h; sourceTree = "<group>"; };
 		7162FC7D25962A0E0075B97D /* InterleavedBuffer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = InterleavedBuffer.cpp; sourceTree = "<group>"; };
 		7162FC7E25962A0E0075B97D /* Buffer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Buffer.cpp; sourceTree = "<group>"; };
@@ -1928,10 +1928,10 @@
 		7162FC9E25962A0E0075B97D /* sokol_time.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sokol_time.h; sourceTree = "<group>"; };
 		7162FC9F25962A0E0075B97D /* sokol_fetch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sokol_fetch.h; sourceTree = "<group>"; };
 		7162FCA025962A0E0075B97D /* sokol_glue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sokol_glue.h; sourceTree = "<group>"; };
-		7162FD0325963A310075B97D /* libsupernova-macos.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libsupernova-macos.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		7162FD0325963A310075B97D /* libdoriax-macos.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libdoriax-macos.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		7162FDD925963F300075B97D /* libsokol-macos.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libsokol-macos.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		7162FE2F2597C7990075B97D /* SupernovaApple.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SupernovaApple.h; sourceTree = "<group>"; };
-		7162FE302597C7990075B97D /* SupernovaApple.mm */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = SupernovaApple.mm; sourceTree = "<group>"; };
+		7162FE2F2597C7990075B97D /* DoriaxApple.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DoriaxApple.h; sourceTree = "<group>"; };
+		7162FE302597C7990075B97D /* DoriaxApple.mm */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = DoriaxApple.mm; sourceTree = "<group>"; };
 		7162FEAB25993F810075B97D /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		71651FE82AA804B4008D9BF5 /* Contact2D.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Contact2D.h; sourceTree = "<group>"; };
 		71651FE92AA804B4008D9BF5 /* Manifold2D.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Manifold2D.h; sourceTree = "<group>"; };
@@ -2404,7 +2404,7 @@
 				711607162A0D86500052A9C3 /* GoogleAppMeasurementIdentitySupport.xcframework in Frameworks */,
 				711607172A0D86500052A9C3 /* UserMessagingPlatform.xcframework in Frameworks */,
 				7116070B2A0D84660052A9C3 /* GoogleMobileAds.xcframework in Frameworks */,
-				713D82D7259D324700567F9F /* libsupernova-ios.a in Frameworks */,
+				713D82D7259D324700567F9F /* libdoriax-ios.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2412,7 +2412,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				713D8316259D3E7A00567F9F /* libsupernova-macos.a in Frameworks */,
+				713D8316259D3E7A00567F9F /* libdoriax-macos.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -3177,7 +3177,7 @@
 		713D831D259D3F8F00567F9F /* macos */ = {
 			isa = PBXGroup;
 			children = (
-				7128D00425BA74A000965B51 /* Supernova_macOS.entitlements */,
+				7128D00425BA74A000965B51 /* Doriax_macOS.entitlements */,
 				7128CEE325BA705600965B51 /* Main.storyboard */,
 				713D831E259D3F8F00567F9F /* AppDelegate.h */,
 				713D8321259D3F8F00567F9F /* AppDelegate.m */,
@@ -3254,11 +3254,11 @@
 		7162F8CF259547DA0075B97D /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				7162F8CE259547DA0075B97D /* Supernova.app */,
-				7162F8E4259547DA0075B97D /* Supernova.app */,
-				7162FD0325963A310075B97D /* libsupernova-macos.a */,
+				7162F8CE259547DA0075B97D /* Doriax.app */,
+				7162F8E4259547DA0075B97D /* Doriax.app */,
+				7162FD0325963A310075B97D /* libdoriax-macos.a */,
 				7162FDD925963F300075B97D /* libsokol-macos.a */,
-				713D823E259CC4FF00567F9F /* libsupernova-ios.a */,
+				713D823E259CC4FF00567F9F /* libdoriax-ios.a */,
 				713D82C5259D316E00567F9F /* libsokol-ios.a */,
 				71BE602825B1C49C006D6E02 /* liblua-macos.a */,
 				71BE612625B1D088006D6E02 /* libstb-macos.a */,
@@ -3317,7 +3317,7 @@
 				71BE622C25B1DB9D006D6E02 /* script */,
 				71CC839D26B8C54A00EEBB93 /* shader */,
 				7162FC6F25962A0E0075B97D /* subsystem */,
-				7162FC7A25962A0E0075B97D /* Supernova.h */,
+				7162FC7A25962A0E0075B97D /* Doriax.h */,
 				71BE61FE25B1DB22006D6E02 /* System.h */,
 				71BE61FF25B1DB22006D6E02 /* System.cpp */,
 				7162FC6A25962A0E0075B97D /* texture */,
@@ -3663,8 +3663,8 @@
 				713D831D259D3F8F00567F9F /* macos */,
 				7158F43D259C2C82006E55D3 /* Renderer.h */,
 				7158F43E259C2C82006E55D3 /* Renderer.mm */,
-				7162FE302597C7990075B97D /* SupernovaApple.mm */,
-				7162FE2F2597C7990075B97D /* SupernovaApple.h */,
+				7162FE302597C7990075B97D /* DoriaxApple.mm */,
+				7162FE2F2597C7990075B97D /* DoriaxApple.h */,
 			);
 			path = apple;
 			sourceTree = "<group>";
@@ -4699,9 +4699,9 @@
 			productReference = 71393EC828F8EF0C0074442E /* libtinyxml2-macos.a */;
 			productType = "com.apple.product-type.library.static";
 		};
-		713D823D259CC4FF00567F9F /* supernova-ios */ = {
+		713D823D259CC4FF00567F9F /* doriax-ios */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 713D8246259CC50000567F9F /* Build configuration list for PBXNativeTarget "supernova-ios" */;
+			buildConfigurationList = 713D8246259CC50000567F9F /* Build configuration list for PBXNativeTarget "doriax-ios" */;
 			buildPhases = (
 				713D823A259CC4FF00567F9F /* Sources */,
 				713D823B259CC4FF00567F9F /* Frameworks */,
@@ -4720,9 +4720,9 @@
 				710AD6FD25B6056300A7B12F /* PBXTargetDependency */,
 				713D82CD259D31D200567F9F /* PBXTargetDependency */,
 			);
-			name = "supernova-ios";
-			productName = "supernova-ios";
-			productReference = 713D823E259CC4FF00567F9F /* libsupernova-ios.a */;
+			name = "doriax-ios";
+			productName = "doriax-ios";
+			productReference = 713D823E259CC4FF00567F9F /* libdoriax-ios.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 		713D82BD259D316E00567F9F /* sokol-ios */ = {
@@ -4742,9 +4742,9 @@
 			productReference = 713D82C5259D316E00567F9F /* libsokol-ios.a */;
 			productType = "com.apple.product-type.library.static";
 		};
-		7162F8CD259547DA0075B97D /* Supernova iOS */ = {
+		7162F8CD259547DA0075B97D /* Doriax iOS */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 7162F8FB259547DA0075B97D /* Build configuration list for PBXNativeTarget "Supernova iOS" */;
+			buildConfigurationList = 7162F8FB259547DA0075B97D /* Build configuration list for PBXNativeTarget "Doriax iOS" */;
 			buildPhases = (
 				7162F8CA259547DA0075B97D /* Sources */,
 				7162F8CB259547DA0075B97D /* Frameworks */,
@@ -4755,14 +4755,14 @@
 			dependencies = (
 				713D82D6259D324200567F9F /* PBXTargetDependency */,
 			);
-			name = "Supernova iOS";
-			productName = "Supernova iOS";
-			productReference = 7162F8CE259547DA0075B97D /* Supernova.app */;
+			name = "Doriax iOS";
+			productName = "Doriax iOS";
+			productReference = 7162F8CE259547DA0075B97D /* Doriax.app */;
 			productType = "com.apple.product-type.application";
 		};
-		7162F8E3259547DA0075B97D /* Supernova macOS */ = {
+		7162F8E3259547DA0075B97D /* Doriax macOS */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 7162F8FE259547DA0075B97D /* Build configuration list for PBXNativeTarget "Supernova macOS" */;
+			buildConfigurationList = 7162F8FE259547DA0075B97D /* Build configuration list for PBXNativeTarget "Doriax macOS" */;
 			buildPhases = (
 				7162F8E0259547DA0075B97D /* Sources */,
 				7162F8E1259547DA0075B97D /* Frameworks */,
@@ -4773,14 +4773,14 @@
 			dependencies = (
 				713D8315259D3E6D00567F9F /* PBXTargetDependency */,
 			);
-			name = "Supernova macOS";
-			productName = "Supernova macOS";
-			productReference = 7162F8E4259547DA0075B97D /* Supernova.app */;
+			name = "Doriax macOS";
+			productName = "Doriax macOS";
+			productReference = 7162F8E4259547DA0075B97D /* Doriax.app */;
 			productType = "com.apple.product-type.application";
 		};
-		7162FD0225963A310075B97D /* supernova-macos */ = {
+		7162FD0225963A310075B97D /* doriax-macos */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 7162FD0B25963A310075B97D /* Build configuration list for PBXNativeTarget "supernova-macos" */;
+			buildConfigurationList = 7162FD0B25963A310075B97D /* Build configuration list for PBXNativeTarget "doriax-macos" */;
 			buildPhases = (
 				7162FCFF25963A310075B97D /* Headers */,
 				7162FD0025963A310075B97D /* Sources */,
@@ -4799,9 +4799,9 @@
 				71BE626725B1DC6E006D6E02 /* PBXTargetDependency */,
 				7162FE05259644810075B97D /* PBXTargetDependency */,
 			);
-			name = "supernova-macos";
-			productName = supernova;
-			productReference = 7162FD0325963A310075B97D /* libsupernova-macos.a */;
+			name = "doriax-macos";
+			productName = doriax;
+			productReference = 7162FD0325963A310075B97D /* libdoriax-macos.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 		7162FDD825963F300075B97D /* sokol-macos */ = {
@@ -5057,7 +5057,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 7162F8C3259547D60075B97D /* Build configuration list for PBXProject "Supernova" */;
+			buildConfigurationList = 7162F8C3259547D60075B97D /* Build configuration list for PBXProject "Doriax" */;
 			compatibilityVersion = "Xcode 9.3";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -5070,10 +5070,10 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				7162F8CD259547DA0075B97D /* Supernova iOS */,
-				7162F8E3259547DA0075B97D /* Supernova macOS */,
-				7162FD0225963A310075B97D /* supernova-macos */,
-				713D823D259CC4FF00567F9F /* supernova-ios */,
+				7162F8CD259547DA0075B97D /* Doriax iOS */,
+				7162F8E3259547DA0075B97D /* Doriax macOS */,
+				7162FD0225963A310075B97D /* doriax-macos */,
+				713D823D259CC4FF00567F9F /* doriax-ios */,
 				7162FDD825963F300075B97D /* sokol-macos */,
 				713D82BD259D316E00567F9F /* sokol-ios */,
 				71BE602725B1C49C006D6E02 /* lua-macos */,
@@ -5636,7 +5636,7 @@
 				710AD75225B7343400A7B12F /* EngineView.mm in Sources */,
 				713D8341259D408300567F9F /* ViewController.m in Sources */,
 				713D835B259D408C00567F9F /* AppDelegate.m in Sources */,
-				713D82E4259D32FE00567F9F /* SupernovaApple.mm in Sources */,
+				713D82E4259D32FE00567F9F /* DoriaxApple.mm in Sources */,
 				711607082A0D1F0C0052A9C3 /* AdMobAdapter.m in Sources */,
 				7158F43F259C2C82006E55D3 /* Renderer.mm in Sources */,
 				7162FEAC25993F810075B97D /* main.cpp in Sources */,
@@ -5651,7 +5651,7 @@
 				710AD78625B7A1F600A7B12F /* EngineView.mm in Sources */,
 				713D8323259D3F8F00567F9F /* ViewController.m in Sources */,
 				713D8325259D3F8F00567F9F /* AppDelegate.m in Sources */,
-				7162FE712597C99C0075B97D /* SupernovaApple.mm in Sources */,
+				7162FE712597C99C0075B97D /* DoriaxApple.mm in Sources */,
 				7162FEAD25993F810075B97D /* main.cpp in Sources */,
 				7158F440259C2C82006E55D3 /* Renderer.mm in Sources */,
 			);
@@ -6068,12 +6068,12 @@
 		};
 		713D82D6259D324200567F9F /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 713D823D259CC4FF00567F9F /* supernova-ios */;
+			target = 713D823D259CC4FF00567F9F /* doriax-ios */;
 			targetProxy = 713D82D5259D324200567F9F /* PBXContainerItemProxy */;
 		};
 		713D8315259D3E6D00567F9F /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 7162FD0225963A310075B97D /* supernova-macos */;
+			target = 7162FD0225963A310075B97D /* doriax-macos */;
 			targetProxy = 713D8314259D3E6D00567F9F /* PBXContainerItemProxy */;
 		};
 		7162FE05259644810075B97D /* PBXTargetDependency */ = {
@@ -6227,7 +6227,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
-					SUPERNOVA_APPLE,
+					DORIAX_APPLE,
 					"JPH_OBJECT_LAYER_BITS=32",
 					LUA_USE_IOS,
 				);
@@ -6247,7 +6247,7 @@
 				GCC_ENABLE_CPP_EXCEPTIONS = YES;
 				GCC_ENABLE_CPP_RTTI = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
-					SUPERNOVA_APPLE,
+					DORIAX_APPLE,
 					"JPH_OBJECT_LAYER_BITS=32",
 					LUA_USE_IOS,
 				);
@@ -6479,7 +6479,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
-					SUPERNOVA_APPLE,
+					DORIAX_APPLE,
 					"JPH_OBJECT_LAYER_BITS=32",
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -6534,7 +6534,7 @@
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
-					SUPERNOVA_APPLE,
+					DORIAX_APPLE,
 					"JPH_OBJECT_LAYER_BITS=32",
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -6570,8 +6570,8 @@
 				);
 				OTHER_CPLUSPLUSFLAGS = "$(OTHER_CFLAGS)";
 				OTHER_LDFLAGS = "-ObjC";
-				PRODUCT_BUNDLE_IDENTIFIER = SupernovaEngine.Supernova;
-				PRODUCT_NAME = Supernova;
+				PRODUCT_BUNDLE_IDENTIFIER = DoriaxEngine.Doriax;
+				PRODUCT_NAME = Doriax;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -6599,8 +6599,8 @@
 				);
 				OTHER_CPLUSPLUSFLAGS = "$(OTHER_CFLAGS)";
 				OTHER_LDFLAGS = "-ObjC";
-				PRODUCT_BUNDLE_IDENTIFIER = SupernovaEngine.Supernova;
-				PRODUCT_NAME = Supernova;
+				PRODUCT_BUNDLE_IDENTIFIER = DoriaxEngine.Doriax;
+				PRODUCT_NAME = Doriax;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
@@ -6614,7 +6614,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CODE_SIGN_ENTITLEMENTS = ../../platform/apple/macos/Supernova_macOS.entitlements;
+				CODE_SIGN_ENTITLEMENTS = ../../platform/apple/macos/Doriax_macOS.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -6632,8 +6632,8 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
-				PRODUCT_BUNDLE_IDENTIFIER = SupernovaEngine.Supernova;
-				PRODUCT_NAME = Supernova;
+				PRODUCT_BUNDLE_IDENTIFIER = DoriaxEngine.Doriax;
+				PRODUCT_NAME = Doriax;
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -6645,7 +6645,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CODE_SIGN_ENTITLEMENTS = ../../platform/apple/macos/Supernova_macOS.entitlements;
+				CODE_SIGN_ENTITLEMENTS = ../../platform/apple/macos/Doriax_macOS.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -6664,8 +6664,8 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
-				PRODUCT_BUNDLE_IDENTIFIER = SupernovaEngine.Supernova;
-				PRODUCT_NAME = Supernova;
+				PRODUCT_BUNDLE_IDENTIFIER = DoriaxEngine.Doriax;
+				PRODUCT_NAME = Doriax;
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -7153,7 +7153,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		713D8246259CC50000567F9F /* Build configuration list for PBXNativeTarget "supernova-ios" */ = {
+		713D8246259CC50000567F9F /* Build configuration list for PBXNativeTarget "doriax-ios" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				713D8244259CC50000567F9F /* Debug */,
@@ -7171,7 +7171,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		7162F8C3259547D60075B97D /* Build configuration list for PBXProject "Supernova" */ = {
+		7162F8C3259547D60075B97D /* Build configuration list for PBXProject "Doriax" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				7162F8F9259547DA0075B97D /* Debug */,
@@ -7180,7 +7180,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		7162F8FB259547DA0075B97D /* Build configuration list for PBXNativeTarget "Supernova iOS" */ = {
+		7162F8FB259547DA0075B97D /* Build configuration list for PBXNativeTarget "Doriax iOS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				7162F8FC259547DA0075B97D /* Debug */,
@@ -7189,7 +7189,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		7162F8FE259547DA0075B97D /* Build configuration list for PBXNativeTarget "Supernova macOS" */ = {
+		7162F8FE259547DA0075B97D /* Build configuration list for PBXNativeTarget "Doriax macOS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				7162F8FF259547DA0075B97D /* Debug */,
@@ -7198,7 +7198,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		7162FD0B25963A310075B97D /* Build configuration list for PBXNativeTarget "supernova-macos" */ = {
+		7162FD0B25963A310075B97D /* Build configuration list for PBXNativeTarget "doriax-macos" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				7162FD0C25963A310075B97D /* Debug */,

@@ -1,12 +1,12 @@
 #include "CreateDirCmd.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::CreateDirCmd::CreateDirCmd(std::string dirName, std::string dirPath){
+editor::CreateDirCmd::CreateDirCmd(std::string dirName, std::string dirPath){
     this->directory = fs::path(dirPath) / fs::path(dirName);
 }
 
-bool Editor::CreateDirCmd::execute(){
+bool editor::CreateDirCmd::execute(){
     try {
         fs::create_directory(directory);
     } catch (const fs::filesystem_error& e) {
@@ -17,7 +17,7 @@ bool Editor::CreateDirCmd::execute(){
     return true;
 }
 
-void Editor::CreateDirCmd::undo(){
+void editor::CreateDirCmd::undo(){
     try {
         fs::remove_all(directory);
     } catch (const fs::filesystem_error& e) {
@@ -25,6 +25,6 @@ void Editor::CreateDirCmd::undo(){
     }
 }
 
-bool Editor::CreateDirCmd::mergeWith(Editor::Command* otherCommand){
+bool editor::CreateDirCmd::mergeWith(editor::Command* otherCommand){
     return false;
 }

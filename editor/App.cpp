@@ -2,7 +2,7 @@
 
 #include "imgui_internal.h"
 #include "Platform.h"
-#include "Supernova.h"
+#include "Doriax.h"
 #include "Backend.h"
 
 #include "external/IconsFontAwesome6.h"
@@ -29,18 +29,18 @@
   #include <shlobj.h>
 #endif
 
-using namespace Supernova;
+using namespace doriax;
 
-ImVec4 Editor::App::ThemeColors::ButtonActivated;
-ImVec4 Editor::App::ThemeColors::FileCardBackground;
-ImVec4 Editor::App::ThemeColors::FileCardBackgroundHovered;
-ImVec4 Editor::App::ThemeColors::SubtleText;
-ImVec4 Editor::App::ThemeColors::filenameLabel;
-ImVec4 Editor::App::ThemeColors::ExtEntityButton;
-ImVec4 Editor::App::ThemeColors::ExtEntityButtonHovered;
-ImVec4 Editor::App::ThemeColors::ExtEntityButtonActive;
+ImVec4 editor::App::ThemeColors::ButtonActivated;
+ImVec4 editor::App::ThemeColors::FileCardBackground;
+ImVec4 editor::App::ThemeColors::FileCardBackgroundHovered;
+ImVec4 editor::App::ThemeColors::SubtleText;
+ImVec4 editor::App::ThemeColors::filenameLabel;
+ImVec4 editor::App::ThemeColors::ExtEntityButton;
+ImVec4 editor::App::ThemeColors::ExtEntityButtonHovered;
+ImVec4 editor::App::ThemeColors::ExtEntityButtonActive;
 
-Editor::App::App(){
+editor::App::App(){
     propertiesWindow = new Properties(&project);
     outputWindow = new OutputWindow();
     sceneWindow = new SceneWindow(&project);
@@ -61,7 +61,7 @@ Editor::App::App(){
     resetLastActivatedScene();
 }
 
-void Editor::App::saveFunc(){
+void editor::App::saveFunc(){
     if (lastFocusedWindow == LastFocusedWindow::Code) {
         codeEditor->saveLastFocused();
     }else{
@@ -69,12 +69,12 @@ void Editor::App::saveFunc(){
     }
 }
 
-void Editor::App::saveAllFunc(){
+void editor::App::saveAllFunc(){
     project.saveAllScenes();
     codeEditor->saveAll();
 }
 
-void Editor::App::openProjectFunc(){
+void editor::App::openProjectFunc(){
     if (project.isAnyScenePlaying()) {
         registerAlert("Scene Running", "A scene is currently running or stopping. Stop it before opening another project.");
         return;
@@ -103,7 +103,7 @@ void Editor::App::openProjectFunc(){
     }
 }
 
-void Editor::App::showMenu(){
+void editor::App::showMenu(){
     SceneProject* selectedScene = project.getSelectedScene();
     uint32_t selectedSceneId = project.getSelectedSceneId();
     bool hasSelectedScene = selectedScene != nullptr;
@@ -125,7 +125,7 @@ void Editor::App::showMenu(){
         if (ImGui::BeginMenu("File")) {
             ImGui::BeginDisabled(isProjectBusy);
             if (ImGui::MenuItem("New Project")) {
-                std::string projectName = "MySupernovaProject";
+                std::string projectName = "MyDoriaxProject";
                 if (project.hasScenesUnsavedChanges() || codeEditor->hasUnsavedChanges() || project.isTempUnsavedProject()) {
                     Backend::getApp().registerConfirmAlert(
                         "Unsaved Changes",
@@ -345,8 +345,8 @@ void Editor::App::showMenu(){
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Help")) {
-            if (ImGui::MenuItem("About Supernova")) {
-                registerAlert("About Supernova", "Supernova Engine Editor\n\nVersion: 0.1.0\n\nDeveloped by Supernova Team");
+            if (ImGui::MenuItem("About Doriax")) {
+                registerAlert("About Doriax", "Doriax Engine Editor\n\nVersion: 0.1.0\n\nDeveloped by Doriax Team");
             }
             if (ImGui::MenuItem("Documentation")) {
                 // TODO: Open URL
@@ -360,7 +360,7 @@ void Editor::App::showMenu(){
     //ImGui::PopStyleVar(2);
 }
 
-void Editor::App::showFooter(){
+void editor::App::showFooter(){
     ImGuiViewport* viewport = ImGui::GetMainViewport();
     if (!viewport) {
         return;
@@ -513,7 +513,7 @@ void Editor::App::showFooter(){
     viewport->WorkSize.y -= footerHeight;
 }
 
-void Editor::App::showAlert(){
+void editor::App::showAlert(){
     if (alert.needShow) {
         ImGui::OpenPopup((alert.title + "##AlertModal").c_str());
 
@@ -592,7 +592,7 @@ void Editor::App::showAlert(){
     }
 }
 
-void Editor::App::buildDockspace(){
+void editor::App::buildDockspace(){
     ImGuiID dock_id_left, dock_id_left_top, dock_id_left_bottom, dock_id_right, dock_id_middle, dock_id_middle_bottom;
     float size;
 
@@ -653,7 +653,7 @@ void Editor::App::buildDockspace(){
     ImGui::DockBuilderFinish(dockspace_id);
 }
 
-void Editor::App::showStyleEditor(){
+void editor::App::showStyleEditor(){
     ImGui::Begin("Dear ImGui Style Editor", nullptr);
     {
         // Get the current IO object to access display size
@@ -673,7 +673,7 @@ void Editor::App::showStyleEditor(){
     ImGui::End();
 }
 
-void Editor::App::setup() {
+void editor::App::setup() {
     // Initialize application settings
     initializeSettings();
 
@@ -722,7 +722,7 @@ void Editor::App::setup() {
     kewtStyleTheme();
 }
 
-void Editor::App::show(){
+void editor::App::show(){
     if (resourcesWindow->isFocused()) {
         lastFocusedWindow = LastFocusedWindow::Resources;
     } else if (codeEditor->isFocused()) {
@@ -924,7 +924,7 @@ void Editor::App::show(){
     loadingWindow->show();
 }
 
-void Editor::App::engineInit(int argc, char** argv) {
+void editor::App::engineInit(int argc, char** argv) {
     // Check if there's a last opened project
     std::filesystem::path lastProjectPath = AppSettings::getLastProjectPath();
 
@@ -934,29 +934,29 @@ void Editor::App::engineInit(int argc, char** argv) {
             Out::info("Loaded last opened project: \"%s\"", lastProjectPath.string().c_str());
         } else {
             // If loading fails, create a new temp project
-            project.createTempProject("MySupernovaProject");
+            project.createTempProject("MyDoriaxProject");
         }
     } else {
         // No last project, create a new temp project
-        project.createTempProject("MySupernovaProject");
+        project.createTempProject("MyDoriaxProject");
     }
 
-    Engine::systemInit(argc, argv, new Editor::Platform(&project));
+    Engine::systemInit(argc, argv, new editor::Platform(&project));
     Engine::pauseGameEvents(true);
 
-    ShaderPool::setShaderBuilder([this](Supernova::ShaderKey shaderKey) -> Supernova::ShaderBuildResult {
-        static Supernova::Editor::ShaderBuilder builder;  // Make static to reuse
+    ShaderPool::setShaderBuilder([this](doriax::ShaderKey shaderKey) -> doriax::ShaderBuildResult {
+        static doriax::editor::ShaderBuilder builder;  // Make static to reuse
         return builder.buildShader(shaderKey, &project);
     });
 
     TextureDataPool::setAsyncLoading(true);
 }
 
-void Editor::App::engineViewLoaded(){
+void editor::App::engineViewLoaded(){
     Engine::systemViewLoaded();
 }
 
-void Editor::App::engineRender(){
+void editor::App::engineRender(){
     processMainThreadTasks();
     project.refreshLinkedMaterials();
 
@@ -1033,27 +1033,27 @@ void Editor::App::engineRender(){
     }
 }
 
-void Editor::App::enqueueMainThreadTask(std::function<void()> task) {
+void editor::App::enqueueMainThreadTask(std::function<void()> task) {
     if (!task) return;
     std::lock_guard<std::mutex> lock(mainThreadTaskMutex);
     mainThreadTasks.push(std::move(task));
 }
 
-void Editor::App::engineViewDestroyed(){
+void editor::App::engineViewDestroyed(){
     Engine::systemViewDestroyed();
 }
 
-void Editor::App::engineShutdown(){
+void editor::App::engineShutdown(){
     Engine::systemShutdown();
 }
 
-void Editor::App::addNewSceneToDock(uint32_t sceneId){
+void editor::App::addNewSceneToDock(uint32_t sceneId){
     if (isInitialized){
         ImGui::DockBuilderDockWindow(("###Scene" + std::to_string(sceneId)).c_str(), dock_id_middle_top);
     }
 }
 
-void Editor::App::clearSceneWindowState(uint32_t sceneId) {
+void editor::App::clearSceneWindowState(uint32_t sceneId) {
     if (sceneWindow) {
         sceneWindow->clearSceneState(sceneId);
     }
@@ -1063,13 +1063,13 @@ void Editor::App::clearSceneWindowState(uint32_t sceneId) {
     }
 }
 
-void Editor::App::addNewCodeWindowToDock(fs::path path){
+void editor::App::addNewCodeWindowToDock(fs::path path){
     if (isInitialized){
         ImGui::DockBuilderDockWindow(("###" + path.string()).c_str(), dock_id_middle_top);
     }
 }
 
-void Editor::App::kewtStyleTheme(){
+void editor::App::kewtStyleTheme(){
     ImGuiStyle& style = ImGui::GetStyle();
     ImVec4* colors = style.Colors;
 
@@ -1189,31 +1189,31 @@ void Editor::App::kewtStyleTheme(){
     style.DockingSeparatorSize = 6;
 }
 
-void Editor::App::handleExternalDrop(const std::vector<std::string>& paths) {
+void editor::App::handleExternalDrop(const std::vector<std::string>& paths) {
     isDroppedExternalPaths = true;
     droppedExternalPaths = paths;
 }
 
-void Editor::App::handleExternalDragEnter() {
+void editor::App::handleExternalDragEnter() {
     resourcesWindow->handleExternalDragEnter();
 }
 
-void Editor::App::handleExternalDragLeave() {
+void editor::App::handleExternalDragLeave() {
     resourcesWindow->handleExternalDragLeave();
 }
 
-void Editor::App::resetLastActivatedScene(){
+void editor::App::resetLastActivatedScene(){
     lastActivatedScene = NULL_PROJECT_SCENE;
 }
 
-void Editor::App::updateResourcesPath(){
+void editor::App::updateResourcesPath(){
     if (isInitialized){
         resourcesWindow->notifyProjectPathChange();
     }
     resourcesWindow->cleanupThumbnails();
 }
 
-void Editor::App::registerAlert(std::string title, std::string message) {
+void editor::App::registerAlert(std::string title, std::string message) {
     alert.needShow = true;
     alert.title = title;
     alert.message = message;
@@ -1222,7 +1222,7 @@ void Editor::App::registerAlert(std::string title, std::string message) {
     alert.onNo = nullptr;
 }
 
-void Editor::App::registerConfirmAlert(std::string title, std::string message, std::function<void()> onYes, std::function<void()> onNo) {
+void editor::App::registerConfirmAlert(std::string title, std::string message, std::function<void()> onYes, std::function<void()> onNo) {
     alert.needShow = true;
     alert.title = title;
     alert.message = message;
@@ -1231,7 +1231,7 @@ void Editor::App::registerConfirmAlert(std::string title, std::string message, s
     alert.onNo = onNo;
 }
 
-void Editor::App::registerThreeButtonAlert(std::string title, std::string message, std::function<void()> onYes, std::function<void()> onNo, std::function<void()> onCancel) {
+void editor::App::registerThreeButtonAlert(std::string title, std::string message, std::function<void()> onYes, std::function<void()> onNo, std::function<void()> onCancel) {
     alert.needShow = true;
     alert.title = title;
     alert.message = message;
@@ -1241,7 +1241,7 @@ void Editor::App::registerThreeButtonAlert(std::string title, std::string messag
     alert.onCancel = onCancel;
 }
 
-void Editor::App::registerSaveSceneDialog(uint32_t sceneId, std::function<void()> callback) {
+void editor::App::registerSaveSceneDialog(uint32_t sceneId, std::function<void()> callback) {
     // Add scene to the save dialog queue with callback
     SaveDialogQueueItem item = {SaveDialogType::Scene, sceneId, callback};
     saveDialogQueue.push(item);
@@ -1253,7 +1253,7 @@ void Editor::App::registerSaveSceneDialog(uint32_t sceneId, std::function<void()
     // If queue has more items or another dialog is open, they'll be processed later
 }
 
-void Editor::App::registerProjectSaveDialog(std::function<void()> callback) {
+void editor::App::registerProjectSaveDialog(std::function<void()> callback) {
     // Add project save to the dialog queue with callback
     SaveDialogQueueItem item = {SaveDialogType::Project, 0, callback};  // sceneId is unused for Project saves
     saveDialogQueue.push(item);
@@ -1265,7 +1265,7 @@ void Editor::App::registerProjectSaveDialog(std::function<void()> callback) {
     // If queue has more items or another dialog is open, they'll be processed later
 }
 
-std::filesystem::path Editor::App::getUserCacheBaseDir() {
+std::filesystem::path editor::App::getUserCacheBaseDir() {
     // Cache the result to avoid repeated syscalls/env lookups
     static std::filesystem::path cached = []() -> std::filesystem::path {
     #if defined(_WIN32)
@@ -1313,41 +1313,41 @@ std::filesystem::path Editor::App::getUserCacheBaseDir() {
     return cached;
 }
 
-std::filesystem::path Editor::App::getUserShaderCacheDir(){
-    return App::getUserCacheBaseDir() / "supernova" / "shaders" / "v1";
+std::filesystem::path editor::App::getUserShaderCacheDir(){
+    return App::getUserCacheBaseDir() / "doriax" / "shaders" / "v1";
 }
 
-void Editor::App::pushTabNotificationStyle(){
+void editor::App::pushTabNotificationStyle(){
     ImGui::PushStyleColor(ImGuiCol_Tab,        ImVec4(0.22f, 0.30f, 0.40f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_TabDimmed,   ImVec4(0.22f, 0.30f, 0.40f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_TabHovered,  ImVec4(0.26f, 0.35f, 0.46f, 1.00f));
 }
 
-void Editor::App::popTabNotificationStyle(){
+void editor::App::popTabNotificationStyle(){
     ImGui::PopStyleColor(3);
 }
 
-Editor::Project* Editor::App::getProject(){
+editor::Project* editor::App::getProject(){
     return &project;
 }
 
-const Editor::Project* Editor::App::getProject() const{
+const editor::Project* editor::App::getProject() const{
     return &project;
 }
 
-Editor::CodeEditor* Editor::App::getCodeEditor() const{
+editor::CodeEditor* editor::App::getCodeEditor() const{
     return codeEditor;
 }
 
-Editor::ResourcesWindow* Editor::App::getResourcesWindow() const{
+editor::ResourcesWindow* editor::App::getResourcesWindow() const{
     return resourcesWindow;
 }
 
-Editor::AnimationWindow* Editor::App::getAnimationWindow() const{
+editor::AnimationWindow* editor::App::getAnimationWindow() const{
     return animationWindow;
 }
 
-void Editor::App::processNextSaveDialog() {
+void editor::App::processNextSaveDialog() {
     // Check if there's anything to process and no dialogs are currently open
     if (saveDialogQueue.empty() || sceneSaveDialog.isOpen() || projectSaveDialog.isOpen()) {
         return;
@@ -1458,7 +1458,7 @@ void Editor::App::processNextSaveDialog() {
     }
 }
 
-void Editor::App::processMainThreadTasks() {
+void editor::App::processMainThreadTasks() {
     std::queue<std::function<void()>> tasks;
     {
         std::lock_guard<std::mutex> lock(mainThreadTaskMutex);
@@ -1472,30 +1472,30 @@ void Editor::App::processMainThreadTasks() {
     }
 }
 
-void Editor::App::initializeSettings() {
+void editor::App::initializeSettings() {
     AppSettings::initialize();
 }
 
-int Editor::App::getInitialWindowWidth() const {
+int editor::App::getInitialWindowWidth() const {
     return AppSettings::getWindowWidth();
 }
 
-int Editor::App::getInitialWindowHeight() const {
+int editor::App::getInitialWindowHeight() const {
     return AppSettings::getWindowHeight();
 }
 
-bool Editor::App::getInitialWindowMaximized() const {
+bool editor::App::getInitialWindowMaximized() const {
     return AppSettings::getIsMaximized();
 }
 
-void Editor::App::saveWindowSettings(int width, int height, bool maximized) {
+void editor::App::saveWindowSettings(int width, int height, bool maximized) {
     AppSettings::setWindowWidth(width);
     AppSettings::setWindowHeight(height);
     AppSettings::setIsMaximized(maximized);
     AppSettings::saveSettings();
 }
 
-void Editor::App::exit() {
+void editor::App::exit() {
     // Check if any modal popup is currently open (including ComponentAddDialog, ScriptCreateDialog, etc.)
     ImGuiWindow* modal = ImGui::GetTopMostAndVisiblePopupModal();
     if (modal != nullptr) {
@@ -1536,7 +1536,7 @@ void Editor::App::exit() {
     }
 }
 
-void Editor::App::closeWindow(){
+void editor::App::closeWindow(){
     // Stop all playing scenes before shutdown to properly cleanup script instances
     for (auto& sceneProject : project.getScenes()) {
         if (sceneProject.playState == ScenePlayState::PLAYING || 
@@ -1549,6 +1549,6 @@ void Editor::App::closeWindow(){
 
     project.clearTrash();
 
-    Editor::ShaderBuilder::requestShutdown();
+    editor::ShaderBuilder::requestShutdown();
     Backend::closeWindow();
 }

@@ -8,8 +8,8 @@
 #include "Entity.h"
 #include "Scene.h"
 
-namespace Supernova {
-namespace Editor {
+namespace doriax {
+namespace editor {
 
 namespace fs = std::filesystem;
 
@@ -58,5 +58,5 @@ public:
     void close() { m_isOpen = false; }
 };
 
-} // namespace Editor
-} // namespace Supernova
+} // namespace editor
+} // namespace doriax

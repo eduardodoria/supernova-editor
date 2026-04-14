@@ -45,16 +45,16 @@
 #include <cstring>
 #include <fstream>
 
-using namespace Supernova;
+using namespace doriax;
 
-static std::vector<Editor::EnumEntry> entriesPrimitiveType = {
+static std::vector<editor::EnumEntry> entriesPrimitiveType = {
     { (int)PrimitiveType::TRIANGLES, "Triangles" },
     { (int)PrimitiveType::TRIANGLE_STRIP, "Triangle Strip" },
     { (int)PrimitiveType::POINTS, "Points" },
     { (int)PrimitiveType::LINES, "Lines" }
 };
 
-static std::vector<Editor::EnumEntry> entriesPivotPreset = {
+static std::vector<editor::EnumEntry> entriesPivotPreset = {
     { (int)PivotPreset::CENTER, "Center" },
     { (int)PivotPreset::TOP_CENTER, "Top Center" },
     { (int)PivotPreset::BOTTOM_CENTER, "Bottom Center" },
@@ -66,7 +66,7 @@ static std::vector<Editor::EnumEntry> entriesPivotPreset = {
     { (int)PivotPreset::BOTTOM_RIGHT, "Bottom Right" }
 };
 
-static std::vector<Editor::EnumEntry> entriesAnchorPreset = {
+static std::vector<editor::EnumEntry> entriesAnchorPreset = {
     { (int)AnchorPreset::NONE, "None" },
     { (int)AnchorPreset::TOP_LEFT, "Top Left" },
     { (int)AnchorPreset::TOP_RIGHT, "Top Right" },
@@ -86,24 +86,24 @@ static std::vector<Editor::EnumEntry> entriesAnchorPreset = {
     { (int)AnchorPreset::FULL_LAYOUT, "Full Layout" }
 };
 
-static std::vector<Editor::EnumEntry> entriesLightType = {
+static std::vector<editor::EnumEntry> entriesLightType = {
     { (int)LightType::DIRECTIONAL, "Directional" },
     { (int)LightType::POINT, "Point" },
     { (int)LightType::SPOT, "Spot" }
 };
 
-static std::vector<Editor::EnumEntry> entriesCameraType = {
+static std::vector<editor::EnumEntry> entriesCameraType = {
     { (int)CameraType::CAMERA_ORTHO, "Orthographic" },
     { (int)CameraType::CAMERA_PERSPECTIVE, "Perspective" }
 };
 
-static std::vector<Editor::EnumEntry> entriesBodyType = {
+static std::vector<editor::EnumEntry> entriesBodyType = {
     { (int)BodyType::STATIC, "Static" },
     { (int)BodyType::KINEMATIC, "Kinematic" },
     { (int)BodyType::DYNAMIC, "Dynamic" }
 };
 
-static std::vector<Editor::EnumEntry> entriesShape2DType = {
+static std::vector<editor::EnumEntry> entriesShape2DType = {
     { (int)Shape2DType::POLYGON, "Polygon" },
     { (int)Shape2DType::CIRCLE, "Circle" },
     { (int)Shape2DType::CAPSULE, "Capsule" },
@@ -111,7 +111,7 @@ static std::vector<Editor::EnumEntry> entriesShape2DType = {
     { (int)Shape2DType::CHAIN, "Chain" }
 };
 
-static std::vector<Editor::EnumEntry> entriesShape3DType = {
+static std::vector<editor::EnumEntry> entriesShape3DType = {
     { (int)Shape3DType::BOX, "Box" },
     { (int)Shape3DType::SPHERE, "Sphere" },
     { (int)Shape3DType::CAPSULE, "Capsule" },
@@ -122,7 +122,7 @@ static std::vector<Editor::EnumEntry> entriesShape3DType = {
     { (int)Shape3DType::HEIGHTFIELD, "Heightfield" }
 };
 
-static std::vector<Editor::EnumEntry> entriesShape3DSource = {
+static std::vector<editor::EnumEntry> entriesShape3DSource = {
     { (int)Shape3DSource::NONE, "None" },
     { (int)Shape3DSource::RAW_VERTICES, "Raw Vertices" },
     { (int)Shape3DSource::RAW_MESH, "Raw Mesh" },
@@ -130,21 +130,21 @@ static std::vector<Editor::EnumEntry> entriesShape3DSource = {
     { (int)Shape3DSource::ENTITY_HEIGHTFIELD, "Entity Heightfield" }
 };
 
-static std::vector<Editor::EnumEntry> entriesShape3DSourceConvexHull = {
+static std::vector<editor::EnumEntry> entriesShape3DSourceConvexHull = {
     { (int)Shape3DSource::RAW_VERTICES, "Raw Vertices" },
     { (int)Shape3DSource::ENTITY_MESH, "Entity Mesh" }
 };
 
-static std::vector<Editor::EnumEntry> entriesShape3DSourceMesh = {
+static std::vector<editor::EnumEntry> entriesShape3DSourceMesh = {
     { (int)Shape3DSource::RAW_MESH, "Raw Mesh" },
     { (int)Shape3DSource::ENTITY_MESH, "Entity Mesh" }
 };
 
-static std::vector<Editor::EnumEntry> entriesShape3DSourceHeightfield = {
+static std::vector<editor::EnumEntry> entriesShape3DSourceHeightfield = {
     { (int)Shape3DSource::ENTITY_HEIGHTFIELD, "Entity Heightfield" }
 };
 
-static std::vector<Editor::EnumEntry> entriesJoint2DType = {
+static std::vector<editor::EnumEntry> entriesJoint2DType = {
     { (int)Joint2DType::DISTANCE, "Distance" },
     { (int)Joint2DType::REVOLUTE, "Revolute" },
     { (int)Joint2DType::PRISMATIC, "Prismatic" },
@@ -154,7 +154,7 @@ static std::vector<Editor::EnumEntry> entriesJoint2DType = {
     { (int)Joint2DType::MOTOR, "Motor" }
 };
 
-static std::vector<Editor::EnumEntry> entriesJoint3DType = {
+static std::vector<editor::EnumEntry> entriesJoint3DType = {
     { (int)Joint3DType::FIXED, "Fixed" },
     { (int)Joint3DType::DISTANCE, "Distance" },
     { (int)Joint3DType::POINT, "Point" },
@@ -172,7 +172,7 @@ static std::vector<Editor::EnumEntry> entriesJoint3DType = {
 static std::vector<int> cascadeValues = { 1, 2, 3, 4, 5, 6 };
 static std::vector<int> po2Values = { 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384 };
 
-static std::vector<Editor::EnumEntry> entriesActionState = {
+static std::vector<editor::EnumEntry> entriesActionState = {
     { (int)ActionState::Running, "Running" },
     { (int)ActionState::Paused, "Paused" },
     { (int)ActionState::Stopped, "Stopped" }
@@ -211,7 +211,7 @@ namespace {
         dirtyMaterials.push_back({sceneId, entity, submeshIndex, relativePath, 0.0f});
     }
 
-    void flushDirtyMaterials(Editor::Project* project, float deltaTime) {
+    void flushDirtyMaterials(editor::Project* project, float deltaTime) {
         if (dirtyMaterials.empty()) {
             return;
         }
@@ -224,7 +224,7 @@ namespace {
                 continue;
             }
 
-            Editor::SceneProject* sp = project->getScene(it->sceneId);
+            editor::SceneProject* sp = project->getScene(it->sceneId);
             if (sp) {
                 MeshComponent* mesh = sp->scene->findComponent<MeshComponent>(it->entity);
                 if (mesh && it->submeshIndex < mesh->numSubmeshes) {
@@ -234,19 +234,19 @@ namespace {
                     try {
                         std::ofstream out(absolutePath, std::ios::binary | std::ios::trunc);
                         if (out.is_open()) {
-                            std::string payload = YAML::Dump(Editor::Stream::encodeMaterial(material));
+                            std::string payload = YAML::Dump(editor::Stream::encodeMaterial(material));
                             out.write(payload.c_str(), payload.size());
                             out.close();
 
                             project->linkMaterialFile(it->sceneId, it->entity, it->submeshIndex, it->relativePath);
                             project->refreshLinkedMaterials(true);
 
-                            if (Editor::ResourcesWindow* resourcesWindow = Editor::Backend::getApp().getResourcesWindow()) {
+                            if (editor::ResourcesWindow* resourcesWindow = editor::Backend::getApp().getResourcesWindow()) {
                                 resourcesWindow->notifyResourceFileChanged(absolutePath);
                             }
                         }
                     } catch (const std::exception& e) {
-                        Editor::Out::error("Error saving linked material file '%s': %s", absolutePath.string().c_str(), e.what());
+                        editor::Out::error("Error saving linked material file '%s': %s", absolutePath.string().c_str(), e.what());
                     }
                 }
             }
@@ -256,11 +256,11 @@ namespace {
     }
 
     template<typename T>
-    void drawScenePropertyRow(Editor::SceneProject* sceneProject, const std::string& propertyName, const char* label, ScenePropertyInputType inputType, float minValue = 0.0f, float maxValue = 1.0f) {
-        T value = Supernova::Editor::Catalog::getSceneProperty<T>(sceneProject->scene, propertyName);
+    void drawScenePropertyRow(editor::SceneProject* sceneProject, const std::string& propertyName, const char* label, ScenePropertyInputType inputType, float minValue = 0.0f, float maxValue = 1.0f) {
+        T value = doriax::editor::Catalog::getSceneProperty<T>(sceneProject->scene, propertyName);
         bool changed = false;
 
-        Editor::Command* cmd = nullptr;
+        editor::Command* cmd = nullptr;
 
         ImGui::TableNextRow();
         ImGui::TableSetColumnIndex(0);
@@ -311,8 +311,8 @@ namespace {
         }
 
         if (changed) {
-            cmd = new Editor::ScenePropertyCmd<T>(sceneProject, propertyName, value);
-            Editor::CommandHandle::get(sceneProject->id)->addCommand(cmd);
+            cmd = new editor::ScenePropertyCmd<T>(sceneProject, propertyName, value);
+            editor::CommandHandle::get(sceneProject->id)->addCommand(cmd);
         }
 
         if (ImGui::IsItemDeactivatedAfterEdit()) {
@@ -323,26 +323,26 @@ namespace {
         }
     }
 
-    std::string formatPropertyLabelValue(const Editor::PropertyData& prop) {
+    std::string formatPropertyLabelValue(const editor::PropertyData& prop) {
         if (!prop.ref) {
             return "-";
         }
 
         char buffer[64];
         switch (prop.type) {
-            case Editor::PropertyType::Bool:
+            case editor::PropertyType::Bool:
                 return (*static_cast<bool*>(prop.ref)) ? "true" : "false";
-            case Editor::PropertyType::Float:
+            case editor::PropertyType::Float:
                 snprintf(buffer, sizeof(buffer), "%.3f", *static_cast<float*>(prop.ref));
                 return buffer;
-            case Editor::PropertyType::Int:
+            case editor::PropertyType::Int:
                 return std::to_string(*static_cast<int*>(prop.ref));
-            case Editor::PropertyType::UInt:
+            case editor::PropertyType::UInt:
                 return std::to_string(*static_cast<unsigned int*>(prop.ref));
-            case Editor::PropertyType::Entity:
-            case Editor::PropertyType::EntityReference:
+            case editor::PropertyType::Entity:
+            case editor::PropertyType::EntityReference:
                 return std::to_string(*static_cast<Entity*>(prop.ref));
-            case Editor::PropertyType::String:
+            case editor::PropertyType::String:
                 return *static_cast<std::string*>(prop.ref);
             default:
                 return "-";
@@ -350,30 +350,30 @@ namespace {
     }
 }
 
-Editor::Properties::Properties(Project* project){
+editor::Properties::Properties(Project* project){
     this->project = project;
     this->cmd = nullptr;
 
     this->finishProperty = false;
 }
 
-Editor::RowPropertyType Editor::Properties::scriptPropertyTypeToRowPropertyType(ScriptPropertyType scriptType){
+editor::RowPropertyType editor::Properties::scriptPropertyTypeToRowPropertyType(ScriptPropertyType scriptType){
     switch (scriptType) {
-        case Supernova::ScriptPropertyType::Bool: return RowPropertyType::Bool;
-        case Supernova::ScriptPropertyType::Int: return RowPropertyType::Int;
-        case Supernova::ScriptPropertyType::Float: return RowPropertyType::Float;
-        case Supernova::ScriptPropertyType::String: return RowPropertyType::String;
-        case Supernova::ScriptPropertyType::Vector2: return RowPropertyType::Vector2;
-        case Supernova::ScriptPropertyType::Vector3: return RowPropertyType::Vector3;
-        case Supernova::ScriptPropertyType::Vector4: return RowPropertyType::Vector4;
-        case Supernova::ScriptPropertyType::Color3: return RowPropertyType::Color3L;
-        case Supernova::ScriptPropertyType::Color4: return RowPropertyType::Color4L;
-        case Supernova::ScriptPropertyType::EntityReference: return RowPropertyType::ExternalEntity;
+        case doriax::ScriptPropertyType::Bool: return RowPropertyType::Bool;
+        case doriax::ScriptPropertyType::Int: return RowPropertyType::Int;
+        case doriax::ScriptPropertyType::Float: return RowPropertyType::Float;
+        case doriax::ScriptPropertyType::String: return RowPropertyType::String;
+        case doriax::ScriptPropertyType::Vector2: return RowPropertyType::Vector2;
+        case doriax::ScriptPropertyType::Vector3: return RowPropertyType::Vector3;
+        case doriax::ScriptPropertyType::Vector4: return RowPropertyType::Vector4;
+        case doriax::ScriptPropertyType::Color3: return RowPropertyType::Color3L;
+        case doriax::ScriptPropertyType::Color4: return RowPropertyType::Color4L;
+        case doriax::ScriptPropertyType::EntityReference: return RowPropertyType::ExternalEntity;
         default: return RowPropertyType::Custom;
     }
 }
 
-std::string Editor::Properties::replaceNumberedBrackets(const std::string& input) {
+std::string editor::Properties::replaceNumberedBrackets(const std::string& input) {
     std::string result = input;
     size_t pos = 0;
 
@@ -390,7 +390,7 @@ std::string Editor::Properties::replaceNumberedBrackets(const std::string& input
     return result;
 }
 
-Vector3 Editor::Properties::roundZero(const Vector3& val, const float threshold){
+Vector3 editor::Properties::roundZero(const Vector3& val, const float threshold){
     return Vector3(
         (fabs(val.x) < threshold) ? 0.0f : val.x,
         (fabs(val.y) < threshold) ? 0.0f : val.y,
@@ -398,7 +398,7 @@ Vector3 Editor::Properties::roundZero(const Vector3& val, const float threshold)
     );
 }
 
-bool Editor::Properties::compareVectorFloat(const float* a, const float* b, size_t elements, const float threshold){
+bool editor::Properties::compareVectorFloat(const float* a, const float* b, size_t elements, const float threshold){
     for (size_t i = 0; i < elements; ++i) {
         if (fabs(a[i] - b[i]) > threshold) {
             return true;
@@ -407,13 +407,13 @@ bool Editor::Properties::compareVectorFloat(const float* a, const float* b, size
     return false;
 }
 
-float Editor::Properties::getLabelSize(std::string label, bool addRotateIconSpace){
+float editor::Properties::getLabelSize(std::string label, bool addRotateIconSpace){
     float iconSize = ImGui::CalcTextSize(ICON_FA_ROTATE_LEFT).x;
     float labelSize = ImGui::CalcTextSize(label.c_str()).x;
     return labelSize + (addRotateIconSpace ? iconSize : iconSize / 2.0f);
 }
 
-void Editor::Properties::helpMarker(std::string desc) {
+void editor::Properties::helpMarker(std::string desc) {
     ImGui::TextDisabled("(?)");
     if (ImGui::BeginItemTooltip())
     {
@@ -424,7 +424,7 @@ void Editor::Properties::helpMarker(std::string desc) {
     }
 }
 
-Texture* Editor::Properties::findThumbnail(const std::string& path) {
+Texture* editor::Properties::findThumbnail(const std::string& path) {
     if (path.empty()) return nullptr;
 
     // Compute the thumbnail path
@@ -466,7 +466,7 @@ Texture* Editor::Properties::findThumbnail(const std::string& path) {
     return nullptr;
 }
 
-void Editor::Properties::drawImageWithBorderAndRounding(Texture* texture, const ImVec2& size, float rounding, ImU32 border_col, float border_thickness, bool flipY) {
+void editor::Properties::drawImageWithBorderAndRounding(Texture* texture, const ImVec2& size, float rounding, ImU32 border_col, float border_thickness, bool flipY) {
     if (!texture) return;
 
     ImTextureID tex_id = (ImTextureID)(intptr_t)texture->getRender()->getGLHandler();
@@ -522,7 +522,7 @@ void Editor::Properties::drawImageWithBorderAndRounding(Texture* texture, const 
 }
 
 
-void Editor::Properties::dragDropResourcesFont(ComponentType cpType, std::string id, SceneProject* sceneProject, std::vector<Entity> entities, ComponentType componentType){
+void editor::Properties::dragDropResourcesFont(ComponentType cpType, std::string id, SceneProject* sceneProject, std::vector<Entity> entities, ComponentType componentType){
     // Block DnD while playing for non-script components
     if (sceneProject && sceneProject->playState != ScenePlayState::STOPPED) {
         return;
@@ -531,7 +531,7 @@ void Editor::Properties::dragDropResourcesFont(ComponentType cpType, std::string
     if (ImGui::BeginDragDropTarget()){
 
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
-            std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
+            std::vector<std::string> receivedStrings = editor::Util::getStringsFromPayload(payload);
             if (receivedStrings.size() > 0){
                 const std::string droppedRelativePath = std::filesystem::relative(receivedStrings[0], project->getProjectPath()).generic_string();
 
@@ -591,7 +591,7 @@ void Editor::Properties::dragDropResourcesFont(ComponentType cpType, std::string
 }
 
 
-void Editor::Properties::dragDropResourcesTexture(ComponentType cpType, std::string id, SceneProject* sceneProject, std::vector<Entity> entities, ComponentType componentType){
+void editor::Properties::dragDropResourcesTexture(ComponentType cpType, std::string id, SceneProject* sceneProject, std::vector<Entity> entities, ComponentType componentType){
     // Block DnD while playing for non-script components
     if (sceneProject && sceneProject->playState != ScenePlayState::STOPPED) {
         return;
@@ -600,7 +600,7 @@ void Editor::Properties::dragDropResourcesTexture(ComponentType cpType, std::str
     if (ImGui::BeginDragDropTarget()){
 
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
-            std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
+            std::vector<std::string> receivedStrings = editor::Util::getStringsFromPayload(payload);
             if (receivedStrings.size() > 0){
                 const std::string droppedRelativePath = std::filesystem::relative(receivedStrings[0], project->getProjectPath()).generic_string();
 
@@ -670,7 +670,7 @@ void Editor::Properties::dragDropResourcesTexture(ComponentType cpType, std::str
     }
 }
 
-void Editor::Properties::dragDropResourcesTextureCubeFace(ComponentType cpType, const std::string& id, size_t faceIndex, const ImVec2& rectMin, const ImVec2& rectMax, SceneProject* sceneProject, const std::vector<Entity>& entities, ComponentType componentType){
+void editor::Properties::dragDropResourcesTextureCubeFace(ComponentType cpType, const std::string& id, size_t faceIndex, const ImVec2& rectMin, const ImVec2& rectMax, SceneProject* sceneProject, const std::vector<Entity>& entities, ComponentType componentType){
     // Block DnD while playing for non-script components
     if (sceneProject && sceneProject->playState != ScenePlayState::STOPPED) {
         return;
@@ -681,7 +681,7 @@ void Editor::Properties::dragDropResourcesTextureCubeFace(ComponentType cpType, 
     const ImRect rect(rectMin, rectMax);
     if (ImGui::BeginDragDropTargetCustom(rect, ImGui::GetID(dragId.c_str()))){
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
-            std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
+            std::vector<std::string> receivedStrings = editor::Util::getStringsFromPayload(payload);
             if (!receivedStrings.empty()){
                 const std::string droppedRelativePath = std::filesystem::relative(receivedStrings[0], project->getProjectPath()).generic_string();
 
@@ -761,7 +761,7 @@ void Editor::Properties::dragDropResourcesTextureCubeFace(ComponentType cpType, 
     }
 }
 
-void Editor::Properties::dragDropResourcesTextureCubeSingleFile(ComponentType cpType, const std::string& id, const ImVec2& rectMin, const ImVec2& rectMax, SceneProject* sceneProject, const std::vector<Entity>& entities, ComponentType componentType){
+void editor::Properties::dragDropResourcesTextureCubeSingleFile(ComponentType cpType, const std::string& id, const ImVec2& rectMin, const ImVec2& rectMax, SceneProject* sceneProject, const std::vector<Entity>& entities, ComponentType componentType){
     // Block DnD while playing for non-script components
     if (sceneProject && sceneProject->playState != ScenePlayState::STOPPED) {
         return;
@@ -772,7 +772,7 @@ void Editor::Properties::dragDropResourcesTextureCubeSingleFile(ComponentType cp
     const ImRect rect(rectMin, rectMax);
     if (ImGui::BeginDragDropTargetCustom(rect, ImGui::GetID(dragId.c_str()))){
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
-            std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
+            std::vector<std::string> receivedStrings = editor::Util::getStringsFromPayload(payload);
             if (!receivedStrings.empty()){
                 const std::string droppedRelativePath = std::filesystem::relative(receivedStrings[0], project->getProjectPath()).generic_string();
 
@@ -852,7 +852,7 @@ void Editor::Properties::dragDropResourcesTextureCubeSingleFile(ComponentType cp
     }
 }
 
-void Editor::Properties::handleComponentMenu(SceneProject* sceneProject, std::vector<Entity> entities, ComponentType cpType, bool isBundle, bool isBundleOverridden, bool& headerOpen, bool readOnly) {
+void editor::Properties::handleComponentMenu(SceneProject* sceneProject, std::vector<Entity> entities, ComponentType cpType, bool isBundle, bool isBundleOverridden, bool& headerOpen, bool readOnly) {
     if (ImGui::BeginPopupContextItem(("component_options_menu_" + std::to_string(static_cast<int>(cpType))).c_str())) {
         ImGui::TextDisabled("Component options");
         ImGui::Separator();
@@ -897,13 +897,13 @@ void Editor::Properties::handleComponentMenu(SceneProject* sceneProject, std::ve
     }
 }
 
-bool Editor::Properties::canAddComponent(SceneProject* sceneProject, Entity entity, ComponentType cpType) {
+bool editor::Properties::canAddComponent(SceneProject* sceneProject, Entity entity, ComponentType cpType) {
     // Check if entity already has this component
     std::vector<ComponentType> existingComponents = Catalog::findComponents(sceneProject->scene, entity);
     return std::find(existingComponents.begin(), existingComponents.end(), cpType) == existingComponents.end();
 }
 
-Texture Editor::Properties::getMaterialPreview(const Material& material, const std::string id){
+Texture editor::Properties::getMaterialPreview(const Material& material, const std::string id){
     MaterialRender& materialRender = materialRenders[id];
 
     auto texPending = [](const Texture& t) {
@@ -925,7 +925,7 @@ Texture Editor::Properties::getMaterialPreview(const Material& material, const s
     return materialRender.getTexture();
 }
 
-Texture Editor::Properties::getDirectionPreview(const Vector3& direction, const std::string id){
+Texture editor::Properties::getDirectionPreview(const Vector3& direction, const std::string id){
     DirectionRender& directionRender = directionRenders[id];
 
     if ((directionRender.getDirection() != direction) || !directionRender.getFramebuffer()->isCreated()){
@@ -938,7 +938,7 @@ Texture Editor::Properties::getDirectionPreview(const Vector3& direction, const 
     return directionRender.getTexture();
 }
 
-bool Editor::Properties::drawSpriteFramePreview(Texture* texture, const Rect& rect, const ImVec2& size, const char* itemId){
+bool editor::Properties::drawSpriteFramePreview(Texture* texture, const Rect& rect, const ImVec2& size, const char* itemId){
     if (!texture || texture->empty() || !texture->getRender()) {
         return false;
     }
@@ -987,9 +987,9 @@ bool Editor::Properties::drawSpriteFramePreview(Texture* texture, const Rect& re
     return true;
 }
 
-void Editor::Properties::updateShapePreview(const ShapeParameters& shapeParams){
+void editor::Properties::updateShapePreview(const ShapeParameters& shapeParams){
     ImVec4 frameBgColor = ImGui::GetStyle().Colors[ImGuiCol_FrameBg];
-    std::shared_ptr<Supernova::MeshSystem> meshSys = shapePreviewRender.getScene()->getSystem<MeshSystem>();
+    std::shared_ptr<doriax::MeshSystem> meshSys = shapePreviewRender.getScene()->getSystem<MeshSystem>();
 
     MeshComponent meshComp;
 
@@ -1001,7 +1001,7 @@ void Editor::Properties::updateShapePreview(const ShapeParameters& shapeParams){
     Engine::executeSceneOnce(shapePreviewRender.getScene());
 }
 
-void Editor::Properties::updateMeshShape(MeshComponent& meshComp, MeshSystem* meshSys, const ShapeParameters& shapeParams){
+void editor::Properties::updateMeshShape(MeshComponent& meshComp, MeshSystem* meshSys, const ShapeParameters& shapeParams){
     switch (shapeParams.geometryType) {
         case 0: // Plane
             meshSys->createPlane(meshComp, shapeParams.planeWidth, shapeParams.planeDepth, shapeParams.planeTiles);
@@ -1024,7 +1024,7 @@ void Editor::Properties::updateMeshShape(MeshComponent& meshComp, MeshSystem* me
     }
 }
 
-void Editor::Properties::drawNinePatchesPreview(const ImageComponent& img, Texture* texture, Texture* thumbTexture, const ImVec2& size){
+void editor::Properties::drawNinePatchesPreview(const ImageComponent& img, Texture* texture, Texture* thumbTexture, const ImVec2& size){
     float availWidth = ImGui::GetContentRegionAvail().x;
 
     // Calculate display size based on input parameter or default to texture size
@@ -1107,7 +1107,7 @@ void Editor::Properties::drawNinePatchesPreview(const ImageComponent& img, Textu
 }
 
 
-void Editor::Properties::beginTable(ComponentType cpType, float firstColSize, std::string nameAddon){
+void editor::Properties::beginTable(ComponentType cpType, float firstColSize, std::string nameAddon){
     ImGui::PushItemWidth(-1);
     if (!nameAddon.empty()){
         nameAddon = "_"+nameAddon;
@@ -1118,11 +1118,11 @@ void Editor::Properties::beginTable(ComponentType cpType, float firstColSize, st
 
 }
 
-void Editor::Properties::endTable(){
+void editor::Properties::endTable(){
     ImGui::EndTable();
 }
 
-bool Editor::Properties::propertyHeader(std::string label, float secondColSize, bool defChanged, bool child){
+bool editor::Properties::propertyHeader(std::string label, float secondColSize, bool defChanged, bool child){
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2, ImGui::GetStyle().ItemSpacing.y));
     ImGui::TableNextRow();
     if (child){
@@ -1151,7 +1151,7 @@ bool Editor::Properties::propertyHeader(std::string label, float secondColSize, 
     return button;
 }
 
-bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType, std::string id, std::string label, SceneProject* sceneProject, std::vector<Entity> entities, RowSettings settings){
+bool editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType, std::string id, std::string label, SceneProject* sceneProject, std::vector<Entity> entities, RowSettings settings){
     bool result = true;
 
     constexpr float compThreshold = 1e-4;
@@ -2376,7 +2376,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         ImGui::SameLine();
 
         if (ImGui::Button(ICON_FA_FOLDER_OPEN)) {
-            std::string path = Editor::FileDialogs::openFileDialog(project->getProjectPath().string(), FILE_DIALOG_FONT);
+            std::string path = editor::FileDialogs::openFileDialog(project->getProjectPath().string(), FILE_DIALOG_FONT);
             if (!path.empty()) {
                 std::filesystem::path projectPath = project->getProjectPath();
                 std::filesystem::path filePath = std::filesystem::absolute(path);
@@ -2416,7 +2416,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
 
         if (ImGui::BeginDragDropTarget()){
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
-                std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
+                std::vector<std::string> receivedStrings = editor::Util::getStringsFromPayload(payload);
                 if (receivedStrings.size() > 0){
                     if (payload->IsDelivery()){
                         const std::string relativeFontPath = std::filesystem::relative(receivedStrings[0], project->getProjectPath()).generic_string();
@@ -2515,7 +2515,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
         ImGui::SameLine();
 
         if (ImGui::Button(ICON_FA_FOLDER_OPEN)) {
-            std::string path = Editor::FileDialogs::openFileDialog(project->getProjectPath().string(), FILE_DIALOG_IMAGE);
+            std::string path = editor::FileDialogs::openFileDialog(project->getProjectPath().string(), FILE_DIALOG_IMAGE);
             if (!path.empty()) {
                 std::filesystem::path projectPath = project->getProjectPath();
                 std::filesystem::path filePath = std::filesystem::absolute(path);
@@ -2685,7 +2685,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
             ImGui::SameLine();
 
             if (ImGui::Button(ICON_FA_FOLDER_OPEN)) {
-                std::string path = Editor::FileDialogs::openFileDialog(project->getProjectPath().string(), FILE_DIALOG_IMAGE);
+                std::string path = editor::FileDialogs::openFileDialog(project->getProjectPath().string(), FILE_DIALOG_IMAGE);
                 if (!path.empty()) {
                     std::filesystem::path projectPath = project->getProjectPath();
                     std::filesystem::path filePath = std::filesystem::absolute(path);
@@ -2799,7 +2799,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
                 ImGui::SameLine();
 
                 if (ImGui::Button(ICON_FA_FOLDER_OPEN)) {
-                    std::string path = Editor::FileDialogs::openFileDialog(project->getProjectPath().string(), FILE_DIALOG_IMAGE);
+                    std::string path = editor::FileDialogs::openFileDialog(project->getProjectPath().string(), FILE_DIALOG_IMAGE);
                     if (!path.empty()) {
                         std::filesystem::path projectPath = project->getProjectPath();
                         std::filesystem::path filePath = std::filesystem::absolute(path);
@@ -3554,7 +3554,7 @@ bool Editor::Properties::propertyRow(RowPropertyType type, ComponentType cpType,
     return result;
 }
 
-bool Editor::Properties::propertyRowWithAutoButton(RowPropertyType propType, ComponentType cpType, std::string id, std::string label, std::string autoId, std::string autoLabel, SceneProject* sceneProject, std::vector<Entity> entities, RowSettings settings) {
+bool editor::Properties::propertyRowWithAutoButton(RowPropertyType propType, ComponentType cpType, std::string id, std::string label, std::string autoId, std::string autoLabel, SceneProject* sceneProject, std::vector<Entity> entities, RowSettings settings) {
     auto onValueChanged = settings.onValueChanged;
     settings.onValueChanged = [this, sceneProject, entities, cpType, autoId, onValueChanged]() {
         if (onValueChanged) {
@@ -3564,7 +3564,7 @@ bool Editor::Properties::propertyRowWithAutoButton(RowPropertyType propType, Com
             PropertyData autoProp = Catalog::getProperty(sceneProject->scene, entity, cpType, autoId);
             bool* autoVal = static_cast<bool*>(autoProp.ref);
             if (autoVal && *autoVal) {
-                Editor::MultiPropertyCmd* cmd = new Editor::MultiPropertyCmd();
+                editor::MultiPropertyCmd* cmd = new editor::MultiPropertyCmd();
                 cmd->addPropertyCmd<bool>(project, sceneProject->id, entity, cpType, autoId, false);
                 cmd->setNoMerge();
                 CommandHandle::get(project->getSelectedSceneId())->addCommand(cmd);
@@ -3602,7 +3602,7 @@ bool Editor::Properties::propertyRowWithAutoButton(RowPropertyType propType, Com
     std::string autoBtnId = ICON_FA_WAND_MAGIC_SPARKLES "##auto_" + id;
     if (ImGui::Button(autoBtnId.c_str())) {
         bool targetValue = !allAuto;
-        Editor::MultiPropertyCmd* cmdAuto = new Editor::MultiPropertyCmd();
+        editor::MultiPropertyCmd* cmdAuto = new editor::MultiPropertyCmd();
         for (auto& entity : entities) {
             cmdAuto->addPropertyCmd<bool>(project, sceneProject->id, entity, cpType, autoId, targetValue);
         }
@@ -3629,7 +3629,7 @@ bool Editor::Properties::propertyRowWithAutoButton(RowPropertyType propType, Com
     return rowChanged;
 }
 
-void Editor::Properties::drawTransform(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawTransform(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     // Add this code to calculate appropriate step size based on selected scene
     RowSettings settingsPos;
     if (sceneProject && sceneProject->sceneRender) {
@@ -3678,7 +3678,7 @@ void Editor::Properties::drawTransform(ComponentType cpType, SceneProject* scene
     endTable();
 }
 
-void Editor::Properties::drawMeshComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawMeshComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     beginTable(cpType, getLabelSize("receive shadows"));
 
     // Static variables for shape parameters
@@ -3861,7 +3861,7 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, SceneProject* s
         // Create geometry button
         if (ImGui::Button("Apply", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
             for (Entity& entity : entities) {
-                std::shared_ptr<Supernova::MeshSystem> meshSys = sceneProject->scene->getSystem<MeshSystem>();
+                std::shared_ptr<doriax::MeshSystem> meshSys = sceneProject->scene->getSystem<MeshSystem>();
                 MeshComponent meshComp = sceneProject->scene->getComponent<MeshComponent>(entity);
 
                 updateMeshShape(meshComp, meshSys.get(), shapeParams);
@@ -4022,7 +4022,7 @@ void Editor::Properties::drawMeshComponent(ComponentType cpType, SceneProject* s
     }
 }
 
-void Editor::Properties::drawModelComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawModelComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     beginTable(cpType, getLabelSize("Model File"));
 
     propertyHeader("Model File");
@@ -4074,7 +4074,7 @@ void Editor::Properties::drawModelComponent(ComponentType cpType, SceneProject* 
         ImGui::SameLine();
 
         if (ImGui::Button(ICON_FA_FOLDER_OPEN "##model_load")) {
-            std::string path = Editor::FileDialogs::openFileDialog(project->getProjectPath().string(), FILE_DIALOG_MODEL);
+            std::string path = editor::FileDialogs::openFileDialog(project->getProjectPath().string(), FILE_DIALOG_MODEL);
             if (!path.empty()) {
                 std::filesystem::path projectPath = project->getProjectPath();
                 std::filesystem::path filePath = std::filesystem::absolute(path);
@@ -4107,7 +4107,7 @@ void Editor::Properties::drawModelComponent(ComponentType cpType, SceneProject* 
         if (sceneProject && sceneProject->playState == ScenePlayState::STOPPED) {
             if (ImGui::BeginDragDropTarget()) {
                 if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("resource_files")) {
-                    std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(payload);
+                    std::vector<std::string> receivedStrings = editor::Util::getStringsFromPayload(payload);
                     if (!receivedStrings.empty()) {
                         const std::string droppedRelativePath = std::filesystem::relative(receivedStrings[0], project->getProjectPath()).generic_string();
                         if (Util::isModelFile(droppedRelativePath)) {
@@ -4148,14 +4148,14 @@ void Editor::Properties::drawModelComponent(ComponentType cpType, SceneProject* 
     }
 }
 
-void Editor::Properties::drawUIComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawUIComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     beginTable(cpType, getLabelSize("Texture"));
     propertyRow(RowPropertyType::Color4L, cpType, "color", "Color", sceneProject, entities);
     propertyRow(RowPropertyType::Texture, cpType, "texture", "Texture", sceneProject, entities);
     endTable();
 }
 
-void Editor::Properties::drawButtonComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawButtonComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     RowSettings settings;
     settings.onValueChanged = [sceneProject, entities](){
         for (const Entity& entity : entities){
@@ -4176,7 +4176,7 @@ void Editor::Properties::drawButtonComponent(ComponentType cpType, SceneProject*
     endTable();
 }
 
-void Editor::Properties::drawTextComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawTextComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     RowSettings settingsInt;
     settingsInt.stepSize = 1.0f;
     settingsInt.secondColSize = 6 * ImGui::GetFontSize();
@@ -4206,7 +4206,7 @@ void Editor::Properties::drawTextComponent(ComponentType cpType, SceneProject* s
     endTable();
 }
 
-void Editor::Properties::drawUILayoutComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawUILayoutComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     RowSettings settingsInt;
     settingsInt.stepSize = 1.0f;
     settingsInt.secondColSize = 6 * ImGui::GetFontSize();
@@ -4261,8 +4261,8 @@ void Editor::Properties::drawUILayoutComponent(ComponentType cpType, SceneProjec
     endTable();
 }
 
-void Editor::Properties::drawUIContainerComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
-    static std::vector<Editor::EnumEntry> entriesContainerType = {
+void editor::Properties::drawUIContainerComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+    static std::vector<editor::EnumEntry> entriesContainerType = {
         { (int)ContainerType::VERTICAL, "Vertical" },
         { (int)ContainerType::HORIZONTAL, "Horizontal" },
         { (int)ContainerType::VERTICAL_WRAP, "Vertical Wrap" },
@@ -4342,7 +4342,7 @@ void Editor::Properties::drawUIContainerComponent(ComponentType cpType, ScenePro
 
 }
 
-void Editor::Properties::drawImageComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawImageComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     ImGui::SeparatorText("Nine-patch rect");
 
     if (entities.size() == 1) {
@@ -4374,7 +4374,7 @@ void Editor::Properties::drawImageComponent(ComponentType cpType, SceneProject* 
     endTable();
 }
 
-void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     RowSettings settingsInt;
     settingsInt.stepSize = 1.0f;
     settingsInt.secondColSize = 6 * ImGui::GetFontSize();
@@ -4419,7 +4419,7 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
                 static_cast<int>(sprite.width),
                 static_cast<int>(sprite.height),
                 [this, sceneProject, entities, cpType, previewTexture](const TextureSlicerToolDialog::SliceResult& result) {
-                    Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+                    editor::MultiPropertyCmd* multiCmd = new editor::MultiPropertyCmd();
 
                     // Clear existing frames beyond new count
                     SpriteComponent& sprite = sceneProject->scene->getComponent<SpriteComponent>(entities[0]);
@@ -4472,7 +4472,7 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
         if (ImGui::Button(ICON_FA_PLUS " Add Frame", ImVec2(buttonWidth, 0))) {
             int freeSlot = (int)sprite.numFramesRect;
             if (freeSlot < (int)sprite.framesRect.size()) {
-                Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+                editor::MultiPropertyCmd* multiCmd = new editor::MultiPropertyCmd();
                 std::string prefix = "framesRect[" + std::to_string(freeSlot) + "]";
                 multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
                     prefix + ".name", "frame_" + std::to_string(freeSlot));
@@ -4588,7 +4588,7 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
                     ImGui::BeginDisabled(!canApplyFrame || isAppliedFrame);
                     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
                     if (ImGui::Button(ICON_FA_CHECK "##apply_frame", applyButtonSize)) {
-                        Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+                        editor::MultiPropertyCmd* multiCmd = new editor::MultiPropertyCmd();
                         multiCmd->addPropertyCmd<Vector4>(project, sceneProject->id, entities[0], ComponentType::MeshComponent,
                             "submeshes[0].textureRect", Vector4(normalizedFrameRect.getX(), normalizedFrameRect.getY(), normalizedFrameRect.getWidth(), normalizedFrameRect.getHeight()));
                         multiCmd->setNoMerge();
@@ -4613,7 +4613,7 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
                     ImGui::BeginDisabled(!canResizeToFrame || isSizedToFrame);
                     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
                     if (ImGui::Button(ICON_FA_EXPAND "##resize_to_frame", resizeButtonSize)) {
-                        Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+                        editor::MultiPropertyCmd* multiCmd = new editor::MultiPropertyCmd();
                         multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entities[0], cpType,
                             "width", frameWidth);
                         multiCmd->addPropertyCmd<unsigned int>(project, sceneProject->id, entities[0], cpType,
@@ -4639,7 +4639,7 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
                     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
                     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
                     if (ImGui::Button(ICON_FA_TRASH_CAN"##delete_frame")) {
-                        Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+                        editor::MultiPropertyCmd* multiCmd = new editor::MultiPropertyCmd();
 
                         // Shift frames after deleted one
                         for (unsigned int j = i; j + 1 < sprite.numFramesRect; j++) {
@@ -4687,7 +4687,7 @@ void Editor::Properties::drawSpriteComponent(ComponentType cpType, SceneProject*
     }
 }
 
-void Editor::Properties::drawCameraComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawCameraComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     Scene* scene = sceneProject->scene;
     CameraComponent& camera = scene->getComponent<CameraComponent>(entities[0]);
 
@@ -4734,7 +4734,7 @@ void Editor::Properties::drawCameraComponent(ComponentType cpType, SceneProject*
     endTable();
 }
 
-void Editor::Properties::drawTilemapComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawTilemapComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     RowSettings settingsInt;
     settingsInt.stepSize = 1.0f;
     settingsInt.secondColSize = 6 * ImGui::GetFontSize();
@@ -4780,7 +4780,7 @@ void Editor::Properties::drawTilemapComponent(ComponentType cpType, SceneProject
                 static_cast<int>(tilemap.width),
                 static_cast<int>(tilemap.height),
                 [this, sceneProject, entities, cpType](const TextureSlicerToolDialog::SliceResult& result) {
-                    Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+                    editor::MultiPropertyCmd* multiCmd = new editor::MultiPropertyCmd();
 
                     TilemapComponent& tilemap = sceneProject->scene->getComponent<TilemapComponent>(entities[0]);
 
@@ -4855,7 +4855,7 @@ void Editor::Properties::drawTilemapComponent(ComponentType cpType, SceneProject
         if (ImGui::Button(ICON_FA_PLUS " Add Tile Rect", ImVec2(buttonWidth, 0))) {
             int freeSlot = (int)tilemap.numTilesRect;
             if (freeSlot < (int)tilemap.tilesRect.size()) {
-                Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+                editor::MultiPropertyCmd* multiCmd = new editor::MultiPropertyCmd();
                 std::string prefix = "tilesRect[" + std::to_string(freeSlot) + "]";
                 multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
                     prefix + ".name", "rect_" + std::to_string(freeSlot));
@@ -4961,7 +4961,7 @@ void Editor::Properties::drawTilemapComponent(ComponentType cpType, SceneProject
                     if (ImGui::Button(ICON_FA_SQUARE_PLUS "##add_tile_from_rect")) {
                         int freeSlot = (int)tilemap.numTiles;
                         if (freeSlot < (int)tilemap.tiles.size()) {
-                            Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+                            editor::MultiPropertyCmd* multiCmd = new editor::MultiPropertyCmd();
                             std::string tilePrefix = "tiles[" + std::to_string(freeSlot) + "]";
                             multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
                                 tilePrefix + ".name", tilemap.tilesRect[i].name);
@@ -4987,7 +4987,7 @@ void Editor::Properties::drawTilemapComponent(ComponentType cpType, SceneProject
                     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
                     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(clearButtonFramePadding, ImGui::GetStyle().FramePadding.y));
                     if (ImGui::Button(ICON_FA_TRASH_CAN "##delete_rect", deleteButtonSize)) {
-                        Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+                        editor::MultiPropertyCmd* multiCmd = new editor::MultiPropertyCmd();
                         // Shift subsequent rects down
                         for (unsigned int j = i; j < tilemap.numTilesRect - 1; j++) {
                             std::string dstPrefix = "tilesRect[" + std::to_string(j) + "]";
@@ -5058,7 +5058,7 @@ void Editor::Properties::drawTilemapComponent(ComponentType cpType, SceneProject
                                 std::string itemLabel = "Submesh " + std::to_string(s);
                                 if (ImGui::Selectable(itemLabel.c_str(), isSelected)) {
                                     if ((int)s != currentSubmeshId) {
-                                        Editor::PropertyCmd<int>* propCmd = new Editor::PropertyCmd<int>(
+                                        editor::PropertyCmd<int>* propCmd = new editor::PropertyCmd<int>(
                                             project, sceneProject->id, entities[0], cpType,
                                             prefix + ".submeshId", (int)s);
                                         propCmd->setNoMerge();
@@ -5092,7 +5092,7 @@ void Editor::Properties::drawTilemapComponent(ComponentType cpType, SceneProject
                     defaultWidth = tilemap.tilesRect[0].rect.getWidth();
                     defaultHeight = tilemap.tilesRect[0].rect.getHeight();
                 }
-                Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+                editor::MultiPropertyCmd* multiCmd = new editor::MultiPropertyCmd();
                 std::string prefix = "tiles[" + std::to_string(freeSlot) + "]";
                 multiCmd->addPropertyCmd<std::string>(project, sceneProject->id, entities[0], cpType,
                     prefix + ".name", "tile_" + std::to_string(freeSlot));
@@ -5231,7 +5231,7 @@ void Editor::Properties::drawTilemapComponent(ComponentType cpType, SceneProject
     }
 }
 
-void Editor::Properties::drawLightComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawLightComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     LightComponent& light = sceneProject->scene->getComponent<LightComponent>(entities[0]);
 
     RowSettings settingsFloat;
@@ -5305,7 +5305,7 @@ void Editor::Properties::drawLightComponent(ComponentType cpType, SceneProject* 
     endTable();
 }
 
-void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     if (entities.empty()) return;
 
     ScriptComponent& firstScriptComp = sceneProject->scene->getComponent<ScriptComponent>(entities[0]);
@@ -5724,7 +5724,7 @@ void Editor::Properties::drawScriptComponent(ComponentType cpType, SceneProject*
     }
 }
 
-void Editor::Properties::drawSkyComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawSkyComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     beginTable(cpType, getLabelSize("Default sky"));
 
     bool allDefault = true;
@@ -5770,7 +5770,7 @@ void Editor::Properties::drawSkyComponent(ComponentType cpType, SceneProject* sc
     endTable();
 }
 
-void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     Body2DComponent& body = sceneProject->scene->getComponent<Body2DComponent>(entities[0]);
 
     auto getSizeForShape = [sceneProject](Entity entity, float defaultSize = 100.0f) -> Vector2 {
@@ -6230,7 +6230,7 @@ void Editor::Properties::drawBody2DComponent(ComponentType cpType, SceneProject*
     }
 }
 
-void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     Body3DComponent& body = sceneProject->scene->getComponent<Body3DComponent>(entities[0]);
 
     RowSettings settingsBodyType;
@@ -6746,7 +6746,7 @@ void Editor::Properties::drawBody3DComponent(ComponentType cpType, SceneProject*
     }
 }
 
-void Editor::Properties::drawJoint2DComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawJoint2DComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     Joint2DComponent& joint = sceneProject->scene->getComponent<Joint2DComponent>(entities[0]);
 
     auto markJoint2DDirty = [sceneProject, entities](){
@@ -6806,7 +6806,7 @@ void Editor::Properties::drawJoint2DComponent(ComponentType cpType, SceneProject
     endTable();
 }
 
-void Editor::Properties::drawJoint3DComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawJoint3DComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     Joint3DComponent& joint = sceneProject->scene->getComponent<Joint3DComponent>(entities[0]);
 
     auto markJoint3DDirty = [sceneProject, entities](){
@@ -7013,7 +7013,7 @@ void Editor::Properties::drawJoint3DComponent(ComponentType cpType, SceneProject
     endTable();
 }
 
-void Editor::Properties::startActionPreview(Entity entity, Scene* scene, SceneProject* sceneProject) {
+void editor::Properties::startActionPreview(Entity entity, Scene* scene, SceneProject* sceneProject) {
     if (actionPreviewing) return;
 
     actionPreviewStates.clear();
@@ -7066,7 +7066,7 @@ void Editor::Properties::startActionPreview(Entity entity, Scene* scene, ScenePr
     actionPreviewing = true;
 }
 
-void Editor::Properties::stopActionPreview(Scene* scene, SceneProject* sceneProject) {
+void editor::Properties::stopActionPreview(Scene* scene, SceneProject* sceneProject) {
     if (!actionPreviewing) return;
 
     for (const ActionPreviewState& state : actionPreviewStates) {
@@ -7084,7 +7084,7 @@ void Editor::Properties::stopActionPreview(Scene* scene, SceneProject* sceneProj
     }
 }
 
-void Editor::Properties::drawActionComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawActionComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     RowSettings settingsState;
     settingsState.enumEntries = &entriesActionState;
 
@@ -7306,7 +7306,7 @@ void Editor::Properties::drawActionComponent(ComponentType cpType, SceneProject*
     ImGui::EndDisabled();
 }
 
-void Editor::Properties::drawSpriteAnimationComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawSpriteAnimationComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     beginTable(cpType, getLabelSize("Sprite counter"));
     propertyRow(RowPropertyType::String, cpType, "name", "Name", sceneProject, entities);
     propertyRow(RowPropertyType::Bool, cpType, "loop", "Loop", sceneProject, entities);
@@ -7584,7 +7584,7 @@ void Editor::Properties::drawSpriteAnimationComponent(ComponentType cpType, Scen
     }
 }
 
-void Editor::Properties::drawAnimationComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawAnimationComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     beginTable(cpType, getLabelSize("Owned actions"));
     propertyRow(RowPropertyType::String, cpType, "name", "Name", sceneProject, entities);
     propertyRow(RowPropertyType::Bool, cpType, "loop", "Loop", sceneProject, entities);
@@ -7677,13 +7677,13 @@ void Editor::Properties::drawAnimationComponent(ComponentType cpType, SceneProje
     }
 }
 
-void Editor::Properties::drawBundleComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawBundleComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     beginTable(cpType, getLabelSize("Name"));
     propertyRow(RowPropertyType::Label, cpType, "name", "Name", sceneProject, entities);
     endTable();
 }
 
-void Editor::Properties::drawBoneComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawBoneComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     beginTable(cpType, getLabelSize("Bind Rotation"));
     propertyRow(RowPropertyType::LocalEntity, cpType, "model", "Model", sceneProject, entities);
     propertyRow(RowPropertyType::Int, cpType, "index", "Index", sceneProject, entities);
@@ -7693,7 +7693,7 @@ void Editor::Properties::drawBoneComponent(ComponentType cpType, SceneProject* s
     endTable();
 }
 
-void Editor::Properties::drawKeyframeTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawKeyframeTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     KeyframeTracksComponent& comp = sceneProject->scene->getComponent<KeyframeTracksComponent>(entities[0]);
 
     beginTable(cpType, getLabelSize("Interpolation"));
@@ -7705,7 +7705,7 @@ void Editor::Properties::drawKeyframeTracksComponent(ComponentType cpType, Scene
 }
 
 template<typename Component, typename ValueType>
-void Editor::Properties::drawTrackValues(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities, RowPropertyType rowType, const ValueType& defaultNewValue, const char* idPrefix, std::vector<ValueType> Component::*memberPtr, const char* propertyName){
+void editor::Properties::drawTrackValues(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities, RowPropertyType rowType, const ValueType& defaultNewValue, const char* idPrefix, std::vector<ValueType> Component::*memberPtr, const char* propertyName){
     Component& comp = sceneProject->scene->getComponent<Component>(entities[0]);
 
     float firstColSize = getLabelSize("Value 000");
@@ -7806,19 +7806,19 @@ void Editor::Properties::drawTrackValues(ComponentType cpType, SceneProject* sce
     endTable();
 }
 
-void Editor::Properties::drawTranslateTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawTranslateTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     drawTrackValues<TranslateTracksComponent, Vector3>(cpType, sceneProject, entities, RowPropertyType::Vector3, Vector3::ZERO, "translate", &TranslateTracksComponent::values, "values");
 }
 
-void Editor::Properties::drawRotateTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawRotateTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     drawTrackValues<RotateTracksComponent, Quaternion>(cpType, sceneProject, entities, RowPropertyType::Quat, Quaternion::IDENTITY, "rotate", &RotateTracksComponent::values, "values");
 }
 
-void Editor::Properties::drawScaleTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawScaleTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     drawTrackValues<ScaleTracksComponent, Vector3>(cpType, sceneProject, entities, RowPropertyType::Vector3, Vector3(1.0f, 1.0f, 1.0f), "scale", &ScaleTracksComponent::values, "values");
 }
 
-void Editor::Properties::drawMorphTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
+void editor::Properties::drawMorphTracksComponent(ComponentType cpType, SceneProject* sceneProject, std::vector<Entity> entities){
     MorphTracksComponent& comp = sceneProject->scene->getComponent<MorphTracksComponent>(entities[0]);
 
     float firstColSize = getLabelSize("Value 000");
@@ -7934,7 +7934,7 @@ void Editor::Properties::drawMorphTracksComponent(ComponentType cpType, ScenePro
     endTable();
 }
 
-void Editor::Properties::show(){
+void editor::Properties::show(){
     // Flush any debounced material file writes
     flushDirtyMaterials(project, ImGui::GetIO().DeltaTime);
 
@@ -8065,7 +8065,7 @@ void Editor::Properties::show(){
                                             const std::string& name,
                                             ScriptType type) {
 
-                    Editor::MultiPropertyCmd* multiCmd = new Editor::MultiPropertyCmd();
+                    editor::MultiPropertyCmd* multiCmd = new editor::MultiPropertyCmd();
 
                     for (const Entity& entity : entities) {
                         bool hasScriptComponent = false;
@@ -8080,7 +8080,7 @@ void Editor::Properties::show(){
                         std::vector<ScriptEntry> newScripts;
 
                         if (!hasScriptComponent) {
-                            auto addCmd = std::make_unique<Editor::AddComponentCmd>(project, sceneProject->id, entity, ComponentType::ScriptComponent);
+                            auto addCmd = std::make_unique<editor::AddComponentCmd>(project, sceneProject->id, entity, ComponentType::ScriptComponent);
                             multiCmd->addCommand(std::move(addCmd));
                         } else {
                             ScriptComponent& scriptComp = sceneProject->scene->getComponent<ScriptComponent>(entity);
@@ -8105,7 +8105,7 @@ void Editor::Properties::show(){
 
                         project->updateScriptProperties(sceneProject, entity, newScripts);
 
-                        auto propCmd = std::make_unique<Editor::PropertyCmd<std::vector<ScriptEntry>>>(
+                        auto propCmd = std::make_unique<editor::PropertyCmd<std::vector<ScriptEntry>>>(
                             project, sceneProject->id, entity, ComponentType::ScriptComponent, "scripts", newScripts
                         );
                         multiCmd->addCommand(std::move(propCmd));
@@ -8292,7 +8292,7 @@ void Editor::Properties::show(){
                 ImGui::EndTable();
             }
 
-            LightState currentLightState = Supernova::Editor::Catalog::getSceneProperty<LightState>(sceneProject->scene, "light_state");
+            LightState currentLightState = doriax::editor::Catalog::getSceneProperty<LightState>(sceneProject->scene, "light_state");
             if (currentLightState != LightState::OFF) {
                 ImGui::SeparatorText("Global Illumination");
 

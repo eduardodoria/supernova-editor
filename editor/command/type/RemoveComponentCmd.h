@@ -5,7 +5,7 @@
 #include "Catalog.h"
 #include "yaml-cpp/yaml.h"
 
-namespace Supernova::Editor {
+namespace doriax::editor {
 
     struct RemoveComponentData {
         Entity entity;

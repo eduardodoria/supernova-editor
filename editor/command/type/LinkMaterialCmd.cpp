@@ -1,8 +1,8 @@
 #include "LinkMaterialCmd.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::LinkMaterialCmd::LinkMaterialCmd(Project* project, uint32_t sceneId, Entity entity, ComponentType componentType,
+editor::LinkMaterialCmd::LinkMaterialCmd(Project* project, uint32_t sceneId, Entity entity, ComponentType componentType,
                                           std::string propertyName, unsigned int submeshIndex,
                                           Material newMaterial, std::function<void()> onValueChanged){
     this->project = project;
@@ -25,7 +25,7 @@ Editor::LinkMaterialCmd::LinkMaterialCmd(Project* project, uint32_t sceneId, Ent
     oldLinkedFilePath = project->getMaterialFilePath(sceneId, entity, submeshIndex);
 }
 
-bool Editor::LinkMaterialCmd::execute(){
+bool editor::LinkMaterialCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
     if (!sceneProject) {
         return false;
@@ -56,7 +56,7 @@ bool Editor::LinkMaterialCmd::execute(){
     return true;
 }
 
-void Editor::LinkMaterialCmd::undo(){
+void editor::LinkMaterialCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
     if (!sceneProject) {
         return;
@@ -89,6 +89,6 @@ void Editor::LinkMaterialCmd::undo(){
     }
 }
 
-bool Editor::LinkMaterialCmd::mergeWith(Editor::Command* otherCommand){
+bool editor::LinkMaterialCmd::mergeWith(editor::Command* otherCommand){
     return false;
 }

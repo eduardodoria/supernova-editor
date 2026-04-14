@@ -1,8 +1,8 @@
 #include "ToolsLayer.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::ToolsLayer::ToolsLayer(bool use2DGizmos){
+editor::ToolsLayer::ToolsLayer(bool use2DGizmos){
     if (use2DGizmos){
         gizmoSelected = GizmoSelected::OBJECT2D;
     }else{
@@ -27,7 +27,7 @@ Editor::ToolsLayer::ToolsLayer(bool use2DGizmos){
     gizmoScale = 1.0f;
 }
 
-Editor::ToolsLayer::~ToolsLayer(){
+editor::ToolsLayer::~ToolsLayer(){
     delete camera;
 
     delete tGizmo;
@@ -39,7 +39,7 @@ Editor::ToolsLayer::~ToolsLayer(){
     delete scene;
 }
 
-void Editor::ToolsLayer::updateCamera(CameraComponent& extCamera, Transform& extCameraTransform){
+void editor::ToolsLayer::updateCamera(CameraComponent& extCamera, Transform& extCameraTransform){
     Entity entity = camera->getEntity();
     CameraComponent& cameracomp = scene->getComponent<CameraComponent>(entity);
 
@@ -62,7 +62,7 @@ void Editor::ToolsLayer::updateCamera(CameraComponent& extCamera, Transform& ext
     }
 }
 
-void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quaternion& rotation, float scale, OBB obb, Ray& mouseRay, bool mouseClicked, Vector4& anchorData, Rect& anchorArea){
+void editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quaternion& rotation, float scale, OBB obb, Ray& mouseRay, bool mouseClicked, Vector4& anchorData, Rect& anchorArea){
     gizmoScale = scale;
 
     if (gizmoSelected == GizmoSelected::TRANSLATE){
@@ -119,43 +119,43 @@ void Editor::ToolsLayer::updateGizmo(Camera* sceneCam, Vector3& position, Quater
     }
 }
 
-void Editor::ToolsLayer::mouseDrag(Vector3 point){
+void editor::ToolsLayer::mouseDrag(Vector3 point){
     if (gizmoSelected == GizmoSelected::ROTATE && gizmoSideSelected != GizmoSideSelected::NONE){
         rGizmo->drawLine(point);
     }
 }
 
-void Editor::ToolsLayer::mouseRelease(){
+void editor::ToolsLayer::mouseRelease(){
     if (gizmoSelected == GizmoSelected::ROTATE){
         rGizmo->removeLine();
     }
 }
 
-void Editor::ToolsLayer::enableTranslateGizmo(){
+void editor::ToolsLayer::enableTranslateGizmo(){
      gizmoSelected = GizmoSelected::TRANSLATE;
 }
 
-void Editor::ToolsLayer::enableRotateGizmo(){
+void editor::ToolsLayer::enableRotateGizmo(){
     gizmoSelected = GizmoSelected::ROTATE;
 }
 
-void Editor::ToolsLayer::enableScaleGizmo(){
+void editor::ToolsLayer::enableScaleGizmo(){
     gizmoSelected = GizmoSelected::SCALE;
 }
 
-void Editor::ToolsLayer::enableObject2DGizmo(){
+void editor::ToolsLayer::enableObject2DGizmo(){
     gizmoSelected = GizmoSelected::OBJECT2D;
 }
 
-void Editor::ToolsLayer::setShowAnchorGizmo(bool enabled){
+void editor::ToolsLayer::setShowAnchorGizmo(bool enabled){
     anchorGizmoEnabled = enabled;
 }
 
-void Editor::ToolsLayer::setShowObject2DRects(bool show){
+void editor::ToolsLayer::setShowObject2DRects(bool show){
     oGizmo->setShowRects(show);
 }
 
-void Editor::ToolsLayer::setGizmoVisible(bool visible){
+void editor::ToolsLayer::setGizmoVisible(bool visible){
     tGizmo->setVisible(false);
     rGizmo->setVisible(false);
     sGizmo->setVisible(false);
@@ -184,23 +184,23 @@ void Editor::ToolsLayer::setGizmoVisible(bool visible){
     }
 }
 
-Framebuffer* Editor::ToolsLayer::getFramebuffer(){
+Framebuffer* editor::ToolsLayer::getFramebuffer(){
     return camera->getFramebuffer();
 }
 
-TextureRender& Editor::ToolsLayer::getTexture(){
+TextureRender& editor::ToolsLayer::getTexture(){
     return getFramebuffer()->getRender().getColorTexture();
 }
 
-Camera* Editor::ToolsLayer::getCamera(){
+Camera* editor::ToolsLayer::getCamera(){
     return camera;
 }
 
-Scene* Editor::ToolsLayer::getScene(){
+Scene* editor::ToolsLayer::getScene(){
     return scene;
 }
 
-Object* Editor::ToolsLayer::getGizmoObject() const{
+Object* editor::ToolsLayer::getGizmoObject() const{
     if (gizmoSelected == GizmoSelected::TRANSLATE){
         return tGizmo;
     }
@@ -217,22 +217,22 @@ Object* Editor::ToolsLayer::getGizmoObject() const{
     return nullptr;
 }
 
-Vector3 Editor::ToolsLayer::getGizmoPosition() const{
+Vector3 editor::ToolsLayer::getGizmoPosition() const{
     return getGizmoObject()->getPosition();
 }
 
-Quaternion Editor::ToolsLayer::getGizmoRotation() const{
+Quaternion editor::ToolsLayer::getGizmoRotation() const{
     return getGizmoObject()->getRotation();
 }
 
-Editor::GizmoSelected Editor::ToolsLayer::getGizmoSelected() const{
+editor::GizmoSelected editor::ToolsLayer::getGizmoSelected() const{
     return gizmoSelected;
 }
 
-Editor::GizmoSideSelected Editor::ToolsLayer::getGizmoSideSelected() const{
+editor::GizmoSideSelected editor::ToolsLayer::getGizmoSideSelected() const{
     return gizmoSideSelected;
 }
 
-Editor::Gizmo2DSideSelected Editor::ToolsLayer::getGizmo2DSideSelected() const{
+editor::Gizmo2DSideSelected editor::ToolsLayer::getGizmo2DSideSelected() const{
     return gizmo2DSideSelected;
 }

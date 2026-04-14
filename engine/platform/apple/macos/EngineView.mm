@@ -43,7 +43,7 @@ static const NSRange _emptyRange = { NSNotFound, 0 };
     const int key = (int)[self convertKey:[event keyCode]];
     const int mods = (int)[self convertModFlags:[event modifierFlags]];
 
-    Supernova::Engine::systemKeyDown(key, [event isARepeat], mods);
+    doriax::Engine::systemKeyDown(key, [event isARepeat], mods);
 
     [self interpretKeyEvents:@[event]];
 }
@@ -52,7 +52,7 @@ static const NSRange _emptyRange = { NSNotFound, 0 };
     const int key = (int)[self convertKey:[event keyCode]];
     const int mods = (int)[self convertModFlags:[event modifierFlags]];
     
-    Supernova::Engine::systemKeyUp(key, [event isARepeat], mods);
+    doriax::Engine::systemKeyUp(key, [event isARepeat], mods);
 }
 
 - (void)flagsChanged:(NSEvent *)event{
@@ -62,9 +62,9 @@ static const NSRange _emptyRange = { NSNotFound, 0 };
     const NSUInteger keyFlag = [self convertKeyToModFlag:key];
 
     if (modifierFlags & keyFlag)
-        Supernova::Engine::systemKeyDown(key, false, mods);
+        doriax::Engine::systemKeyDown(key, false, mods);
     else if (modifierFlags | keyFlag)
-        Supernova::Engine::systemKeyUp(key, false, mods);
+        doriax::Engine::systemKeyUp(key, false, mods);
  
 }
 
@@ -94,50 +94,50 @@ static const NSRange _emptyRange = { NSNotFound, 0 };
 }
 
 - (void)mouseEntered:(NSEvent*)event {
-    Supernova::Engine::systemMouseEnter();
-    if (Supernova::Engine::getMouseCursor() != Supernova::CursorType::ARROW){
-        Supernova::Engine::setMouseCursor(Supernova::Engine::getMouseCursor());
+    doriax::Engine::systemMouseEnter();
+    if (doriax::Engine::getMouseCursor() != doriax::CursorType::ARROW){
+        doriax::Engine::setMouseCursor(doriax::Engine::getMouseCursor());
     }
 }
 
 - (void)mouseExited:(NSEvent*)event {
-    Supernova::Engine::systemMouseLeave();
+    doriax::Engine::systemMouseLeave();
 }
 
 - (void)mouseDown:(NSEvent*)event {
     const int mods = (int)[self convertModFlags:[event modifierFlags]];
     const CGPoint point = [self getMousePoint:event];
-    Supernova::Engine::systemMouseDown(S_MOUSE_BUTTON_LEFT, point.x, point.y, mods);
+    doriax::Engine::systemMouseDown(S_MOUSE_BUTTON_LEFT, point.x, point.y, mods);
 }
 
 - (void)rightMouseDown:(NSEvent*)event {
     const int mods = (int)[self convertModFlags:[event modifierFlags]];
     const CGPoint point = [self getMousePoint:event];
-    Supernova::Engine::systemMouseDown(S_MOUSE_BUTTON_RIGHT, point.x, point.y, mods);
+    doriax::Engine::systemMouseDown(S_MOUSE_BUTTON_RIGHT, point.x, point.y, mods);
 }
 
 - (void)otherMouseDown:(NSEvent*)event {
     const int mods = (int)[self convertModFlags:[event modifierFlags]];
     const CGPoint point = [self getMousePoint:event];
-    Supernova::Engine::systemMouseDown(S_MOUSE_BUTTON_MIDDLE, point.x, point.y, mods);
+    doriax::Engine::systemMouseDown(S_MOUSE_BUTTON_MIDDLE, point.x, point.y, mods);
 }
 
 - (void)mouseUp:(NSEvent*)event {
     const int mods = (int)[self convertModFlags:[event modifierFlags]];
     const CGPoint point = [self getMousePoint:event];
-    Supernova::Engine::systemMouseUp(S_MOUSE_BUTTON_LEFT, point.x, point.y, mods);
+    doriax::Engine::systemMouseUp(S_MOUSE_BUTTON_LEFT, point.x, point.y, mods);
 }
 
 - (void)rightMouseUp:(NSEvent*)event {
     const int mods = (int)[self convertModFlags:[event modifierFlags]];
     const CGPoint point = [self getMousePoint:event];
-    Supernova::Engine::systemMouseUp(S_MOUSE_BUTTON_RIGHT, point.x, point.y, mods);
+    doriax::Engine::systemMouseUp(S_MOUSE_BUTTON_RIGHT, point.x, point.y, mods);
 }
 
 - (void)otherMouseUp:(NSEvent*)event {
     const int mods = (int)[self convertModFlags:[event modifierFlags]];
     const CGPoint point = [self getMousePoint:event];
-    Supernova::Engine::systemMouseUp(S_MOUSE_BUTTON_MIDDLE, point.x, point.y, mods);
+    doriax::Engine::systemMouseUp(S_MOUSE_BUTTON_MIDDLE, point.x, point.y, mods);
 }
 
 - (void)mouseDragged:(NSEvent*)event {
@@ -155,7 +155,7 @@ static const NSRange _emptyRange = { NSNotFound, 0 };
 - (void)mouseMoved:(NSEvent*)event {
     const int mods = (int)[self convertModFlags:[event modifierFlags]];
     const CGPoint point = [self getMousePoint:event];
-    Supernova::Engine::systemMouseMove(point.x, point.y, mods);
+    doriax::Engine::systemMouseMove(point.x, point.y, mods);
 }
 
 - (void)scrollWheel:(NSEvent*)event {
@@ -167,7 +167,7 @@ static const NSRange _emptyRange = { NSNotFound, 0 };
         dy *= 0.1;
     }
     if (dx != 0.0f || dy != 0.0f) {
-        Supernova::Engine::systemMouseScroll(dx, dy, mods);
+        doriax::Engine::systemMouseScroll(dx, dy, mods);
     }
 }
 
@@ -197,7 +197,7 @@ static const NSRange _emptyRange = { NSNotFound, 0 };
         if ((codepoint & 0xFF00) == 0xF700)
             continue;
 
-        Supernova::Engine::systemCharInput(codepoint);
+        doriax::Engine::systemCharInput(codepoint);
     }
 }
 

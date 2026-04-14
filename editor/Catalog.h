@@ -5,7 +5,7 @@
 #include <vector>
 #include "Scene.h"
 
-namespace Supernova::Editor{
+namespace doriax::editor{
     enum UpdateFlags{
         UpdateFlags_None                = 0,
         UpdateFlags_Transform           = 1 << 0,

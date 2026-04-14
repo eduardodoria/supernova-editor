@@ -6,7 +6,7 @@ get_filename_component(OUTPUT_DIR "${SHADERS_HEADER}" DIRECTORY)
 file(MAKE_DIRECTORY "${OUTPUT_DIR}")
 
 # Start writing the header file with a guard
-file(WRITE "${SHADERS_HEADER}" "#pragma once\n\n#include <string>\n#include <unordered_map>\n\nnamespace Supernova::Editor {\n\n")
+file(WRITE "${SHADERS_HEADER}" "#pragma once\n\n#include <string>\n#include <unordered_map>\n\nnamespace doriax::editor {\n\n")
 
 # Process each shader file
 foreach(shader_file IN LISTS SHADER_FILES)

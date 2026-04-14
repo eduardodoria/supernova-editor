@@ -5,7 +5,7 @@
 #include <vector>
 #include "yaml-cpp/yaml.h"
 
-namespace Supernova::Editor {
+namespace doriax::editor {
 
 class AppSettings {
 private:
@@ -67,4 +67,4 @@ public:
     static bool saveSettings();
 };
 
-} // namespace Supernova::Editor
+} // namespace doriax::editor

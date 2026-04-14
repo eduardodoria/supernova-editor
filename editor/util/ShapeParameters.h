@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Supernova::Editor{
+namespace doriax::editor{
     
     struct ShapeParameters{
         int geometryType = 0;

@@ -1,18 +1,18 @@
 #include "ScaleGizmo.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-const Vector3 Editor::ScaleGizmo::centerColor = Vector3(0.8, 0.8, 0.8);
-const Vector3 Editor::ScaleGizmo::xaxisColor = Vector3(0.7, 0.2, 0.2);
-const Vector3 Editor::ScaleGizmo::yaxisColor = Vector3(0.2, 0.7, 0.2);
-const Vector3 Editor::ScaleGizmo::zaxisColor = Vector3(0.2, 0.2, 0.7);
-const Vector3 Editor::ScaleGizmo::centerColorHightlight = Vector3(0.9, 0.9, 0.9);
-const Vector3 Editor::ScaleGizmo::xaxisColorHightlight = Vector3(0.9, 0.7, 0.7);
-const Vector3 Editor::ScaleGizmo::yaxisColorHightlight = Vector3(0.7, 0.9, 0.7);
-const Vector3 Editor::ScaleGizmo::zaxisColorHightlight = Vector3(0.7, 0.7, 0.9);
-const float Editor::ScaleGizmo::rectAlpha = 0.6;
+const Vector3 editor::ScaleGizmo::centerColor = Vector3(0.8, 0.8, 0.8);
+const Vector3 editor::ScaleGizmo::xaxisColor = Vector3(0.7, 0.2, 0.2);
+const Vector3 editor::ScaleGizmo::yaxisColor = Vector3(0.2, 0.7, 0.2);
+const Vector3 editor::ScaleGizmo::zaxisColor = Vector3(0.2, 0.2, 0.7);
+const Vector3 editor::ScaleGizmo::centerColorHightlight = Vector3(0.9, 0.9, 0.9);
+const Vector3 editor::ScaleGizmo::xaxisColorHightlight = Vector3(0.9, 0.7, 0.7);
+const Vector3 editor::ScaleGizmo::yaxisColorHightlight = Vector3(0.7, 0.9, 0.7);
+const Vector3 editor::ScaleGizmo::zaxisColorHightlight = Vector3(0.7, 0.7, 0.9);
+const float editor::ScaleGizmo::rectAlpha = 0.6;
 
-Editor::ScaleGizmo::ScaleGizmo(Scene* scene, bool use2DGizmo): Object(scene){
+editor::ScaleGizmo::ScaleGizmo(Scene* scene, bool use2DGizmo): Object(scene){
     float cylinderRadius = 0.05;
     float cylinderHeight = 2;
     float centerSize = 0.3;
@@ -93,7 +93,7 @@ Editor::ScaleGizmo::ScaleGizmo(Scene* scene, bool use2DGizmo): Object(scene){
     }
 }
 
-Editor::ScaleGizmo::~ScaleGizmo(){
+editor::ScaleGizmo::~ScaleGizmo(){
     delete centerbox;
     delete xaxis;
     delete xbox;
@@ -109,9 +109,9 @@ Editor::ScaleGizmo::~ScaleGizmo(){
     }
 }
 
-Editor::GizmoSideSelected Editor::ScaleGizmo::checkHover(const Ray& ray){
+editor::GizmoSideSelected editor::ScaleGizmo::checkHover(const Ray& ray){
 
-    Editor::GizmoSideSelected gizmoSideSelected = GizmoSideSelected::NONE;
+    editor::GizmoSideSelected gizmoSideSelected = GizmoSideSelected::NONE;
 
     AABB xaabb = xaxis->getModelMatrix() * Matrix4::scaleMatrix(Vector3(2, 1, 2)) * xaxis->getAABB().merge(xbox->getAABB());
     AABB yaabb = yaxis->getModelMatrix() * Matrix4::scaleMatrix(Vector3(2, 1, 2)) * yaxis->getAABB().merge(ybox->getAABB());

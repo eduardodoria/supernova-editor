@@ -10,7 +10,7 @@
 #include <filesystem>
 #include <unordered_set>
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     struct TreeNode {
         std::string icon;

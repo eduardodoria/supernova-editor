@@ -8,7 +8,7 @@
 #include "object/ui/Image.h"
 #include "object/ui/Polygon.h"
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     class UILayer{
     private:

@@ -2,11 +2,11 @@
 
 #include "SceneRender.h"
 
-#include "Supernova.h"
+#include "Doriax.h"
 #include "UILayer.h"
 #include "command/Command.h"
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     class SceneRender2D: public SceneRender{
     private:

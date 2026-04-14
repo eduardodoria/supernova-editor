@@ -2,16 +2,16 @@
 
 #include "util/Util.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::RenameFileCmd::RenameFileCmd(Project* project, std::string oldName, std::string newName, std::string directory){
+editor::RenameFileCmd::RenameFileCmd(Project* project, std::string oldName, std::string newName, std::string directory){
     this->project = project;
     this->oldFilename = fs::path(oldName).filename();
     this->newFilename = fs::path(newName).filename();
     this->directory = fs::path(directory);
 }
 
-bool Editor::RenameFileCmd::execute(){
+bool editor::RenameFileCmd::execute(){
     fs::path sourceFs = directory / oldFilename;
     fs::path destFs = directory / newFilename;
     try {
@@ -42,7 +42,7 @@ bool Editor::RenameFileCmd::execute(){
     return true;
 }
 
-void Editor::RenameFileCmd::undo(){
+void editor::RenameFileCmd::undo(){
     fs::path sourceFs = directory / newFilename;
     fs::path destFs = directory / oldFilename;
     try {
@@ -70,6 +70,6 @@ void Editor::RenameFileCmd::undo(){
     }
 }
 
-bool Editor::RenameFileCmd::mergeWith(Editor::Command* otherCommand){
+bool editor::RenameFileCmd::mergeWith(editor::Command* otherCommand){
     return false;
 }

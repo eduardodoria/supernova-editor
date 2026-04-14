@@ -6,10 +6,10 @@
 #include <algorithm>
 #include <unordered_set>
 
-using namespace Supernova;
+using namespace doriax;
 
 
-ScriptPropertyType Editor::ScriptParser::inferTypeFromCppType(const std::string& cppType, std::string& ptrTypeName) {
+ScriptPropertyType editor::ScriptParser::inferTypeFromCppType(const std::string& cppType, std::string& ptrTypeName) {
     // Remove const, &, and whitespace for comparison
     std::string cleanType = cppType;
     cleanType.erase(std::remove_if(cleanType.begin(), cleanType.end(), ::isspace), cleanType.end());
@@ -52,15 +52,15 @@ ScriptPropertyType Editor::ScriptParser::inferTypeFromCppType(const std::string&
         return ScriptPropertyType::String;
     }
 
-    if (bareType == "Vector2" || bareType == "Supernova::Vector2") {
+    if (bareType == "Vector2" || bareType == "doriax::Vector2") {
         return ScriptPropertyType::Vector2;
     }
 
-    if (bareType == "Vector3" || bareType == "Supernova::Vector3") {
+    if (bareType == "Vector3" || bareType == "doriax::Vector3") {
         return ScriptPropertyType::Vector3;
     }
 
-    if (bareType == "Vector4" || bareType == "Supernova::Vector4") {
+    if (bareType == "Vector4" || bareType == "doriax::Vector4") {
         return ScriptPropertyType::Vector4;
     }
 
@@ -69,7 +69,7 @@ ScriptPropertyType Editor::ScriptParser::inferTypeFromCppType(const std::string&
     return ScriptPropertyType::Int;
 }
 
-ScriptPropertyType Editor::ScriptParser::parseExplicitType(const std::string& typeStr, const std::string& cppType) {
+ScriptPropertyType editor::ScriptParser::parseExplicitType(const std::string& typeStr, const std::string& cppType) {
     std::string cleanType = typeStr;
     cleanType.erase(std::remove_if(cleanType.begin(), cleanType.end(), ::isspace), cleanType.end());
 
@@ -100,7 +100,7 @@ ScriptPropertyType Editor::ScriptParser::parseExplicitType(const std::string& ty
         bareCppType.erase(std::remove(bareCppType.begin(), bareCppType.end(), '*'), bareCppType.end());
 
         // Check if it's Vector4 or Vector3
-        if (bareCppType == "Vector4" || bareCppType == "Supernova::Vector4") {
+        if (bareCppType == "Vector4" || bareCppType == "doriax::Vector4") {
             return ScriptPropertyType::Color4;
         } else {
             // Default to Color3 for Vector3 or any other type
@@ -112,7 +112,7 @@ ScriptPropertyType Editor::ScriptParser::parseExplicitType(const std::string& ty
     return ScriptPropertyType::Int; // Placeholder, will be overridden
 }
 
-std::string Editor::ScriptParser::removeComments(const std::string& content) {
+std::string editor::ScriptParser::removeComments(const std::string& content) {
     std::string result;
     result.reserve(content.size());
 
@@ -181,7 +181,7 @@ std::string Editor::ScriptParser::removeComments(const std::string& content) {
     return result;
 }
 
-std::vector<ScriptProperty> Editor::ScriptParser::parseScriptProperties(const std::filesystem::path& scriptPath) {
+std::vector<ScriptProperty> editor::ScriptParser::parseScriptProperties(const std::filesystem::path& scriptPath) {
     std::vector<ScriptProperty> properties;
 
     if (!std::filesystem::exists(scriptPath)) {
@@ -314,8 +314,8 @@ std::vector<ScriptProperty> Editor::ScriptParser::parseScriptProperties(const st
                 case ScriptPropertyType::Vector2: {
                     Vector2 val = Vector2(); // default value
                     if (!defaultValueStr.empty()) {
-                        // Parse Vector2(x, y) or Supernova::Vector2(x, y)
-                        std::regex vecRegex("(?:Supernova::)?Vector2\\(([^,]+),([^)]+)\\)");
+                        // Parse Vector2(x, y) or doriax::Vector2(x, y)
+                        std::regex vecRegex("(?:doriax::)?Vector2\\(([^,]+),([^)]+)\\)");
                         std::smatch vecMatch;
                         if (std::regex_search(defaultValueStr, vecMatch, vecRegex)) {
                             std::string xStr = vecMatch[1].str();
@@ -337,8 +337,8 @@ std::vector<ScriptProperty> Editor::ScriptParser::parseScriptProperties(const st
                 case ScriptPropertyType::Color3: {
                     Vector3 val = Vector3(); // default value
                     if (!defaultValueStr.empty()) {
-                        // Parse Vector3(x, y, z) or Supernova::Vector3(x, y, z)
-                        std::regex vecRegex("(?:Supernova::)?Vector3\\(([^,]+),([^,]+),([^)]+)\\)");
+                        // Parse Vector3(x, y, z) or doriax::Vector3(x, y, z)
+                        std::regex vecRegex("(?:doriax::)?Vector3\\(([^,]+),([^,]+),([^)]+)\\)");
                         std::smatch vecMatch;
                         if (std::regex_search(defaultValueStr, vecMatch, vecRegex)) {
                             std::string xStr = vecMatch[1].str();
@@ -363,8 +363,8 @@ std::vector<ScriptProperty> Editor::ScriptParser::parseScriptProperties(const st
                 case ScriptPropertyType::Color4: {
                     Vector4 val = Vector4(); // default value
                     if (!defaultValueStr.empty()) {
-                        // Parse Vector4(x, y, z, w) or Supernova::Vector4(x, y, z, w)
-                        std::regex vecRegex("(?:Supernova::)?Vector4\\(([^,]+),([^,]+),([^,]+),([^)]+)\\)");
+                        // Parse Vector4(x, y, z, w) or doriax::Vector4(x, y, z, w)
+                        std::regex vecRegex("(?:doriax::)?Vector4\\(([^,]+),([^,]+),([^,]+),([^)]+)\\)");
                         std::smatch vecMatch;
                         if (std::regex_search(defaultValueStr, vecMatch, vecRegex)) {
                             std::string xStr = vecMatch[1].str();

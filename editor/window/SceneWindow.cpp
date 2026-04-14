@@ -23,7 +23,7 @@
 #include <algorithm>
 #include <cmath>
 
-using namespace Supernova;
+using namespace doriax;
 
 namespace {
 
@@ -31,13 +31,13 @@ constexpr float VIEWPORT_GIZMO_SIZE = 100.0f;
 
 }
 
-Editor::SceneWindow::SceneWindow(Project* project) {
+editor::SceneWindow::SceneWindow(Project* project) {
     this->project = project;
     this->mouseLeftDraggedInside = false;
     this->windowFocused = false;
 }
 
-void Editor::SceneWindow::handleCloseScene(uint32_t sceneId) {
+void editor::SceneWindow::handleCloseScene(uint32_t sceneId) {
     SceneProject* sceneProject = project->getScene(sceneId);
     if (sceneProject) {
         project->checkUnsavedAndExecute(sceneId, [this, sceneId]() {
@@ -46,7 +46,7 @@ void Editor::SceneWindow::handleCloseScene(uint32_t sceneId) {
     }
 }
 
-void Editor::SceneWindow::closeSceneInternal(uint32_t sceneId) {
+void editor::SceneWindow::closeSceneInternal(uint32_t sceneId) {
     SceneProject* sceneProject = project->getScene(sceneId);
     if (sceneProject) {
         // If we're closing the currently selected scene
@@ -64,11 +64,11 @@ void Editor::SceneWindow::closeSceneInternal(uint32_t sceneId) {
     }
 }
 
-bool Editor::SceneWindow::isFocused() const {
+bool editor::SceneWindow::isFocused() const {
     return windowFocused;
 }
 
-void Editor::SceneWindow::clearSceneState(uint32_t sceneId) {
+void editor::SceneWindow::clearSceneState(uint32_t sceneId) {
     draggingMouse.erase(sceneId);
     suppressLeftMouseUntilRelease.erase(sceneId);
     walkSpeed.erase(sceneId);
@@ -82,12 +82,12 @@ void Editor::SceneWindow::clearSceneState(uint32_t sceneId) {
         closeSceneQueue.end());
 }
 
-void Editor::SceneWindow::focusSceneWindow(const SceneProject& sceneProject) const {
+void editor::SceneWindow::focusSceneWindow(const SceneProject& sceneProject) const {
     const std::string windowTitle = getWindowTitle(sceneProject);
     ImGui::SetWindowFocus(windowTitle.c_str());
 }
 
-std::string Editor::SceneWindow::getWindowTitle(const SceneProject& sceneProject) const {
+std::string editor::SceneWindow::getWindowTitle(const SceneProject& sceneProject) const {
     std::string icon;
     if (sceneProject.sceneType == SceneType::SCENE_3D){
         icon = ICON_FA_CUBES + std::string("  ");
@@ -99,7 +99,7 @@ std::string Editor::SceneWindow::getWindowTitle(const SceneProject& sceneProject
     return icon + sceneProject.name + ((project->hasSceneUnsavedChanges(sceneProject.id)) ? " *" : "") + "###Scene" + std::to_string(sceneProject.id);
 }
 
-void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject) {
+void editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject) {
     static bool draggingResourceFile = false;
     static Image* tempImage = nullptr;
     static MeshComponent* selMesh = nullptr;
@@ -116,7 +116,7 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
     if (ImGui::BeginDragDropTarget()) {
         const ImGuiPayload* peekPayload = ImGui::GetDragDropPayload();
         if (peekPayload && peekPayload->IsDataType("resource_files")) {
-            std::vector<std::string> receivedStrings = Editor::Util::getStringsFromPayload(peekPayload);
+            std::vector<std::string> receivedStrings = editor::Util::getStringsFromPayload(peekPayload);
             if (receivedStrings.size() > 0) {
                 const std::string droppedRelativePath = std::filesystem::relative(receivedStrings[0], project->getProjectPath()).generic_string();
                 bool isFont = Util::isFontFile(droppedRelativePath);
@@ -403,7 +403,7 @@ void Editor::SceneWindow::handleResourceFileDragDrop(SceneProject* sceneProject)
     }
 }
 
-void Editor::SceneWindow::handleTileRectDragDrop(SceneProject* sceneProject) {
+void editor::SceneWindow::handleTileRectDragDrop(SceneProject* sceneProject) {
     if (ImGui::BeginDragDropTarget()) {
         const ImGuiPayload* peekPayload = ImGui::GetDragDropPayload();
         if (peekPayload && peekPayload->IsDataType("tile_rect")) {
@@ -470,7 +470,7 @@ void Editor::SceneWindow::handleTileRectDragDrop(SceneProject* sceneProject) {
     }
 }
 
-void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
+void editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
     // Get the current window's position and size
     ImVec2 windowPos = ImGui::GetWindowPos();
     ImVec2 windowSize = ImGui::GetWindowSize();
@@ -901,7 +901,7 @@ void Editor::SceneWindow::sceneEventHandler(SceneProject* sceneProject) {
 
 }
 
-void Editor::SceneWindow::focusOnEntities(SceneProject* sceneProject, const std::vector<Entity>& entities) {
+void editor::SceneWindow::focusOnEntities(SceneProject* sceneProject, const std::vector<Entity>& entities) {
     if (entities.empty() || !sceneProject || !sceneProject->sceneRender) return;
     if (sceneProject->sceneType != SceneType::SCENE_3D) return;
 
@@ -936,7 +936,7 @@ void Editor::SceneWindow::focusOnEntities(SceneProject* sceneProject, const std:
     camera->setTarget(center.x, center.y, center.z);
 }
 
-void Editor::SceneWindow::snapCameraToDirection(Camera* camera, const Vector3& direction) {
+void editor::SceneWindow::snapCameraToDirection(Camera* camera, const Vector3& direction) {
     Vector3 target = camera->getWorldTarget();
     float distance = camera->getDistanceFromTarget();
 
@@ -953,7 +953,7 @@ void Editor::SceneWindow::snapCameraToDirection(Camera* camera, const Vector3& d
     camera->setTarget(target.x, target.y, target.z);
 }
 
-bool Editor::SceneWindow::handleViewportGizmoClick(SceneProject* sceneProject, float canvasX, float canvasY, int canvasWidth, int canvasHeight) {
+bool editor::SceneWindow::handleViewportGizmoClick(SceneProject* sceneProject, float canvasX, float canvasY, int canvasWidth, int canvasHeight) {
     if (sceneProject->sceneType != SceneType::SCENE_3D) return false;
 
     SceneRender3D* sceneRender3D = static_cast<SceneRender3D*>(sceneProject->sceneRender);
@@ -992,7 +992,7 @@ bool Editor::SceneWindow::handleViewportGizmoClick(SceneProject* sceneProject, f
     return true;
 }
 
-void Editor::SceneWindow::show() {
+void editor::SceneWindow::show() {
     for (uint32_t sceneId: closeSceneQueue){
         project->closeScene(sceneId);
     }
@@ -1299,7 +1299,7 @@ void Editor::SceneWindow::show() {
     }
 }
 
-int Editor::SceneWindow::getWidth(uint32_t sceneId) const{
+int editor::SceneWindow::getWidth(uint32_t sceneId) const{
     if (width.count(sceneId)){
         return width.at(sceneId);
     }
@@ -1307,7 +1307,7 @@ int Editor::SceneWindow::getWidth(uint32_t sceneId) const{
     return 0;
 }
 
-int Editor::SceneWindow::getHeight(uint32_t sceneId) const{
+int editor::SceneWindow::getHeight(uint32_t sceneId) const{
     if (height.count(sceneId)){
         return height.at(sceneId);
     }

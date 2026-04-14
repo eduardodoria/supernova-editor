@@ -4,20 +4,20 @@
 #include "util/Angle.h"
 #include "math/Sphere.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-const Vector3 Editor::RotateGizmo::mainColor = Vector3(0.8, 0.8, 0.8);
-const Vector3 Editor::RotateGizmo::xaxisColor = Vector3(0.7, 0.2, 0.2);
-const Vector3 Editor::RotateGizmo::yaxisColor = Vector3(0.2, 0.7, 0.2);
-const Vector3 Editor::RotateGizmo::zaxisColor = Vector3(0.2, 0.2, 0.7);
-const Vector3 Editor::RotateGizmo::lineColor = Vector3(0.2, 0.1, 0.2);
-const Vector3 Editor::RotateGizmo::mainColorHightlight = Vector3(0.9, 0.9, 0.9);
-const Vector3 Editor::RotateGizmo::xaxisColorHightlight = Vector3(0.9, 0.7, 0.7);
-const Vector3 Editor::RotateGizmo::yaxisColorHightlight = Vector3(0.7, 0.9, 0.7);
-const Vector3 Editor::RotateGizmo::zaxisColorHightlight = Vector3(0.7, 0.7, 0.9);
-const float Editor::RotateGizmo::circleAlpha = 0.6;
+const Vector3 editor::RotateGizmo::mainColor = Vector3(0.8, 0.8, 0.8);
+const Vector3 editor::RotateGizmo::xaxisColor = Vector3(0.7, 0.2, 0.2);
+const Vector3 editor::RotateGizmo::yaxisColor = Vector3(0.2, 0.7, 0.2);
+const Vector3 editor::RotateGizmo::zaxisColor = Vector3(0.2, 0.2, 0.7);
+const Vector3 editor::RotateGizmo::lineColor = Vector3(0.2, 0.1, 0.2);
+const Vector3 editor::RotateGizmo::mainColorHightlight = Vector3(0.9, 0.9, 0.9);
+const Vector3 editor::RotateGizmo::xaxisColorHightlight = Vector3(0.9, 0.7, 0.7);
+const Vector3 editor::RotateGizmo::yaxisColorHightlight = Vector3(0.7, 0.9, 0.7);
+const Vector3 editor::RotateGizmo::zaxisColorHightlight = Vector3(0.7, 0.7, 0.9);
+const float editor::RotateGizmo::circleAlpha = 0.6;
 
-Editor::RotateGizmo::RotateGizmo(Scene* scene, bool use2DGizmo): Object(scene){
+editor::RotateGizmo::RotateGizmo(Scene* scene, bool use2DGizmo): Object(scene){
     float mainRadius = 0.02;
     float axisRadius = 0.05;
     float torusHeight = 2;
@@ -68,7 +68,7 @@ Editor::RotateGizmo::RotateGizmo(Scene* scene, bool use2DGizmo): Object(scene){
     this->addChild(zcircle);
 }
 
-Editor::RotateGizmo::~RotateGizmo(){
+editor::RotateGizmo::~RotateGizmo(){
     delete maincircle;
     if (!use2DGizmo) {
         delete xcircle;
@@ -78,7 +78,7 @@ Editor::RotateGizmo::~RotateGizmo(){
     delete line;
 }
 
-std::vector<AABB> Editor::RotateGizmo::createHalfTorus(Entity entity, float radius, float ringRadius, unsigned int sides, unsigned int rings) {
+std::vector<AABB> editor::RotateGizmo::createHalfTorus(Entity entity, float radius, float ringRadius, unsigned int sides, unsigned int rings) {
     std::vector<AABB> aabbs;
     aabbs.resize(rings);
 
@@ -217,7 +217,7 @@ std::vector<AABB> Editor::RotateGizmo::createHalfTorus(Entity entity, float radi
     return aabbs;
 }
 
-void Editor::RotateGizmo::updateRotations(Camera* camera){
+void editor::RotateGizmo::updateRotations(Camera* camera){
     Matrix4 rotMatrixInv = getWorldRotation().getRotationMatrix().inverse();
 
     Plane planeZ(Vector3(0,0,1), 0);
@@ -239,18 +239,18 @@ void Editor::RotateGizmo::updateRotations(Camera* camera){
     }
 }
 
-void Editor::RotateGizmo::drawLine(Vector3 point){
+void editor::RotateGizmo::drawLine(Vector3 point){
     line->setVisible(true);
     line->updateLine(0, getWorldPosition(), point);
 }
 
-void Editor::RotateGizmo::removeLine(){
+void editor::RotateGizmo::removeLine(){
     line->setVisible(false);
 }
 
-Editor::GizmoSideSelected Editor::RotateGizmo::checkHover(const Ray& ray){
+editor::GizmoSideSelected editor::RotateGizmo::checkHover(const Ray& ray){
 
-    Editor::GizmoSideSelected gizmoSideSelected = GizmoSideSelected::NONE;
+    editor::GizmoSideSelected gizmoSideSelected = GizmoSideSelected::NONE;
 
     Sphere sphere(getWorldPosition(), 2 * getWorldScale().x);
 

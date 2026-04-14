@@ -2,7 +2,7 @@
 
 #include "App.h"
 
-namespace Supernova::Editor{
+namespace doriax::editor{
     class Backend{
     private:
         static App app;

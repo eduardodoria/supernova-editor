@@ -6,7 +6,7 @@
 #include <cstring>
 #include <stdint.h>
 
-namespace Supernova::Editor{
+namespace doriax::editor{
     class SHA1{
 
     public:

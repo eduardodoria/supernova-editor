@@ -3,7 +3,7 @@
 #include <fstream>
 #include <algorithm>
 
-namespace Supernova::Editor {
+namespace doriax::editor {
 
 // Initialize static members
 std::filesystem::path AppSettings::configFilePath;
@@ -253,4 +253,4 @@ void AppSettings::setResourcesLeftPanelWidth(float width) {
     resourcesLeftPanelWidth = width;
 }
 
-} // namespace Supernova::Editor
+} // namespace doriax::editor

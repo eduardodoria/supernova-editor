@@ -38,12 +38,12 @@ static UITouch* touches[MAX_TOUCHES];
         if ((codepoint & 0xFF00) == 0xF700)
             continue;
 
-        Supernova::Engine::systemCharInput(codepoint);
+        doriax::Engine::systemCharInput(codepoint);
     }
 }
 
 - (void)deleteBackward {
-    Supernova::Engine::systemCharInput('\b');
+    doriax::Engine::systemCharInput('\b');
 }
 
 - (BOOL)hasText {
@@ -100,7 +100,7 @@ static UITouch* touches[MAX_TOUCHES];
     for (UITouch *touch in touches) {
         const CGPoint point = [self getTouchPoint:touch];
         const int identifier = (int)[self getTouchId:touch];
-        Supernova::Engine::systemTouchStart(identifier, point.x, point.y);
+        doriax::Engine::systemTouchStart(identifier, point.x, point.y);
     }
 }
 
@@ -109,7 +109,7 @@ static UITouch* touches[MAX_TOUCHES];
     for (UITouch *touch in touches) {
         const CGPoint point = [self getTouchPoint:touch];
         const int identifier = (int)[self getTouchId:touch];
-        Supernova::Engine::systemTouchMove(identifier, point.x, point.y);
+        doriax::Engine::systemTouchMove(identifier, point.x, point.y);
     }
 }
 
@@ -118,14 +118,14 @@ static UITouch* touches[MAX_TOUCHES];
     for (UITouch *touch in touches) {
         const CGPoint point = [self getTouchPoint:touch];
         const int identifier = (int)[self getTouchId:touch andRemove:true];
-        Supernova::Engine::systemTouchEnd(identifier, point.x, point.y);
+        doriax::Engine::systemTouchEnd(identifier, point.x, point.y);
     }
 }
 
 - (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent*)event{
     [super touchesCancelled:touches withEvent:event];
     [self clearTouches];
-    Supernova::Engine::systemTouchCancel();
+    doriax::Engine::systemTouchCancel();
 }
 
 @end

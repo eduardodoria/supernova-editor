@@ -1,11 +1,11 @@
-#ifndef SupernovaWeb_h
-#define SupernovaWeb_h
+#ifndef DoriaxWeb_h
+#define DoriaxWeb_h
 
 #include <emscripten/html5.h>
 
 #include "System.h"
 
-class SupernovaWeb: public Supernova::System{
+class DoriaxWeb: public doriax::System{
 
 private:
 
@@ -32,13 +32,13 @@ private:
 
     static wchar_t toCodepoint(const std::string &u);
     static std::string toUTF8(wchar_t cp);
-    static int supernova_mouse_button(int button);
-    static int supernova_legacy_input(int code);
-    static int supernova_input(const char code[32]);
+    static int doriax_mouse_button(int button);
+    static int doriax_legacy_input(int code);
+    static int doriax_input(const char code[32]);
 
 public:
 
-    SupernovaWeb();
+    DoriaxWeb();
 
     static void setEnabledIDB(bool enabledIDB);
 
@@ -54,7 +54,7 @@ public:
     virtual void requestFullscreen();
     virtual void exitFullscreen();
 
-    virtual void setMouseCursor(Supernova::CursorType type);
+    virtual void setMouseCursor(doriax::CursorType type);
     virtual void setShowCursor(bool showCursor);
 
     virtual std::string getUserDataPath();
@@ -76,4 +76,4 @@ public:
 };
 
 
-#endif /* SupernovaWeb_h */
+#endif /* DoriaxWeb_h */

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Supernova.h"
+#include "Doriax.h"
 #include <cmath>
 #include <tuple>
 
-namespace Supernova::Editor::LineDrawUtils{
+namespace doriax::editor::LineDrawUtils{
 
     inline void addCircle2D(Lines* lines, const Vector3& center, float radius, const Vector4& color, int segments = 20){
         if (radius <= 0.0f) return;

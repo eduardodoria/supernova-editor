@@ -5,7 +5,7 @@
 #include "Project.h"
 #include <cstdarg>
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     class Platform : public System{
     private:

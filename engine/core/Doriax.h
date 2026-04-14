@@ -2,8 +2,8 @@
 // (c) 2026 Eduardo Doria.
 //
 
-#ifndef supernova_h
-#define supernova_h
+#ifndef doriax_h
+#define doriax_h
 
 #include "Engine.h"
 //#include "Export.h"
@@ -200,4 +200,4 @@
 #include "thread/ResourceProgress.h"
 #include "thread/ThreadPoolManager.h"
 
-#endif /* supernova_h */
+#endif /* doriax_h */

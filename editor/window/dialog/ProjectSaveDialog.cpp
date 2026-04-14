@@ -5,8 +5,8 @@
 #include "window/Widgets.h"
 #include "external/IconsFontAwesome6.h"
 
-namespace Supernova {
-namespace Editor {
+namespace doriax {
+namespace editor {
 
 void ProjectSaveDialog::open(const std::string& defaultName,
         std::function<void(const std::string&, const fs::path&)> onSave,
@@ -127,5 +127,5 @@ void ProjectSaveDialog::show() {
     }
 }
 
-} // namespace Editor
-} // namespace Supernova
+} // namespace editor
+} // namespace doriax

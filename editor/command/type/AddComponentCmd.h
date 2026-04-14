@@ -4,7 +4,7 @@
 #include "Project.h"
 #include "Catalog.h"
 
-namespace Supernova::Editor {
+namespace doriax::editor {
     class AddComponentCmd : public Command {
     private:
         Project* project;

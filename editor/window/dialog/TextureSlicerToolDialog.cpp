@@ -5,8 +5,8 @@
 #include <cmath>
 #include <climits>
 
-namespace Supernova {
-namespace Editor {
+namespace doriax {
+namespace editor {
 
 void TextureSlicerToolDialog::open(const Texture& previewTexture,
                                     int sheetWidth, int sheetHeight,
@@ -430,5 +430,5 @@ void TextureSlicerToolDialog::show() {
     ImGui::EndPopup();
 }
 
-} // namespace Editor
-} // namespace Supernova
+} // namespace editor
+} // namespace doriax

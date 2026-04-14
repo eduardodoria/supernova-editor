@@ -11,7 +11,7 @@
 #include "imgui.h"
 #include "yaml-cpp/yaml.h"
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     enum class RowPropertyType{
         Label,

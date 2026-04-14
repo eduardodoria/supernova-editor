@@ -1,8 +1,8 @@
 #include "ObjectTransformCmd.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::ObjectTransformCmd::ObjectTransformCmd(Project* project, size_t sceneId, Entity entity, Matrix4 localMatrix){
+editor::ObjectTransformCmd::ObjectTransformCmd(Project* project, size_t sceneId, Entity entity, Matrix4 localMatrix){
     this->project = project;
     this->sceneId = sceneId;
     
@@ -11,7 +11,7 @@ Editor::ObjectTransformCmd::ObjectTransformCmd(Project* project, size_t sceneId,
     this->wasModified = project->getScene(sceneId)->isModified;
 }
 
-Editor::ObjectTransformCmd::ObjectTransformCmd(Project* project, size_t sceneId, Entity entity, Vector3 position, Quaternion rotation, Vector3 scale){
+editor::ObjectTransformCmd::ObjectTransformCmd(Project* project, size_t sceneId, Entity entity, Vector3 position, Quaternion rotation, Vector3 scale){
     this->project = project;
     this->sceneId = sceneId;
 
@@ -22,7 +22,7 @@ Editor::ObjectTransformCmd::ObjectTransformCmd(Project* project, size_t sceneId,
     this->wasModified = project->getScene(sceneId)->isModified;
 }
 
-bool Editor::ObjectTransformCmd::execute(){
+bool editor::ObjectTransformCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
     if (!sceneProject){
         return false;
@@ -50,7 +50,7 @@ bool Editor::ObjectTransformCmd::execute(){
     return true;
 }
 
-void Editor::ObjectTransformCmd::undo(){
+void editor::ObjectTransformCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
     if (!sceneProject){
         return;
@@ -72,7 +72,7 @@ void Editor::ObjectTransformCmd::undo(){
     sceneProject->isModified = wasModified;
 }
 
-bool Editor::ObjectTransformCmd::mergeWith(Editor::Command* otherCommand){
+bool editor::ObjectTransformCmd::mergeWith(editor::Command* otherCommand){
     ObjectTransformCmd* otherCmd = dynamic_cast<ObjectTransformCmd*>(otherCommand);
     if (otherCmd != nullptr){
         if (sceneId == otherCmd->sceneId){

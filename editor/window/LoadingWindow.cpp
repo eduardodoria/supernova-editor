@@ -3,7 +3,7 @@
 #include "imgui_internal.h"
 #include <vector>
 
-using namespace Supernova::Editor;
+using namespace doriax::editor;
 
 LoadingWindow::LoadingWindow() {
 }

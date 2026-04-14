@@ -2,9 +2,9 @@
 
 #include "Stream.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::MeshChangeCmd::MeshChangeCmd(Project* project, uint32_t sceneId, Entity entity, MeshComponent mesh){
+editor::MeshChangeCmd::MeshChangeCmd(Project* project, uint32_t sceneId, Entity entity, MeshComponent mesh){
     this->project = project;
     this->sceneId = sceneId;
     this->entity = entity;
@@ -13,7 +13,7 @@ Editor::MeshChangeCmd::MeshChangeCmd(Project* project, uint32_t sceneId, Entity 
     this->wasModified = project->getScene(sceneId)->isModified;
 }
 
-bool Editor::MeshChangeCmd::execute(){
+bool editor::MeshChangeCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     oldMesh = Stream::encodeMeshComponent(sceneProject->scene->getComponent<MeshComponent>(entity));
@@ -28,7 +28,7 @@ bool Editor::MeshChangeCmd::execute(){
     return true;
 }
 
-void Editor::MeshChangeCmd::undo(){
+void editor::MeshChangeCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
 
     sceneProject->scene->getComponent<MeshComponent>(entity) = Stream::decodeMeshComponent(oldMesh);
@@ -40,7 +40,7 @@ void Editor::MeshChangeCmd::undo(){
     }
 }
 
-bool Editor::MeshChangeCmd::mergeWith(Editor::Command* otherCommand){
+bool editor::MeshChangeCmd::mergeWith(editor::Command* otherCommand){
     MeshChangeCmd* otherCmd = dynamic_cast<MeshChangeCmd*>(otherCommand);
     if (otherCmd != nullptr){
         if (sceneId == otherCmd->sceneId && entity == otherCmd->entity){

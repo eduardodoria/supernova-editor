@@ -5,8 +5,8 @@
 #include <algorithm>
 #include <vector>
 
-namespace Supernova {
-namespace Editor {
+namespace doriax {
+namespace editor {
 
 void SceneSaveDialog::open(const fs::path& projectPath, const std::string& defaultName,
         std::function<void(const fs::path&)> onSave,
@@ -256,5 +256,5 @@ void SceneSaveDialog::displayDirectoryTree(const fs::path& rootPath, const fs::p
     }
 }
 
-} // namespace Editor
-} // namespace Supernova
+} // namespace editor
+} // namespace doriax

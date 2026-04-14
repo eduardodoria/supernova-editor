@@ -1,8 +1,8 @@
 #include "SetMainCameraCmd.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::SetMainCameraCmd::SetMainCameraCmd(Project* project, uint32_t sceneId, Entity newMainCamera){
+editor::SetMainCameraCmd::SetMainCameraCmd(Project* project, uint32_t sceneId, Entity newMainCamera){
     this->project = project;
     this->sceneId = sceneId;
     this->newMainCamera = newMainCamera;
@@ -17,7 +17,7 @@ Editor::SetMainCameraCmd::SetMainCameraCmd(Project* project, uint32_t sceneId, E
     }
 }
 
-bool Editor::SetMainCameraCmd::execute(){
+bool editor::SetMainCameraCmd::execute(){
     SceneProject* sceneProject = project->getScene(sceneId);
     if (!sceneProject){
         return false;
@@ -29,7 +29,7 @@ bool Editor::SetMainCameraCmd::execute(){
     return true;
 }
 
-void Editor::SetMainCameraCmd::undo(){
+void editor::SetMainCameraCmd::undo(){
     SceneProject* sceneProject = project->getScene(sceneId);
     if (!sceneProject){
         return;
@@ -39,7 +39,7 @@ void Editor::SetMainCameraCmd::undo(){
     sceneProject->isModified = wasModified;
 }
 
-bool Editor::SetMainCameraCmd::mergeWith(Editor::Command* otherCommand){
+bool editor::SetMainCameraCmd::mergeWith(editor::Command* otherCommand){
 
     return false;
 }

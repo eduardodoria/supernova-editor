@@ -4,7 +4,7 @@
 #include <string>
 #include "imgui.h"
 
-namespace Supernova::Editor {
+namespace doriax::editor {
     enum class LogType {
         Info,
         Warning,

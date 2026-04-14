@@ -4,7 +4,7 @@
 #include "CommandHistory.h"
 #include <map>
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     class CommandHandle{
 

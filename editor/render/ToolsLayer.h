@@ -14,7 +14,7 @@
 #include "gizmo/Object2DGizmo.h"
 #include "gizmo/AnchorGizmo.h"
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     class ToolsLayer{
     private:

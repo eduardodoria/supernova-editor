@@ -11,9 +11,9 @@
 
 #include <cmath>
 
-using namespace Supernova;
+using namespace doriax;
 
-Editor::SceneRender::SceneRender(Scene* scene, bool use2DGizmos, bool enableViewGizmo, float gizmoScale, float selectionOffset): toolslayer(use2DGizmos), uilayer(enableViewGizmo){
+editor::SceneRender::SceneRender(Scene* scene, bool use2DGizmos, bool enableViewGizmo, float gizmoScale, float selectionOffset): toolslayer(use2DGizmos), uilayer(enableViewGizmo){
     ScopedDefaultEntityPool sys(*scene, EntityPool::System);
 
     this->mouseClicked = false;
@@ -41,13 +41,13 @@ Editor::SceneRender::SceneRender(Scene* scene, bool use2DGizmos, bool enableView
     cursorSelected = CursorSelected::POINTER;
 }
 
-Editor::SceneRender::~SceneRender(){
+editor::SceneRender::~SceneRender(){
     framebuffer.destroy();
 
     delete camera;
 }
 
-AABB Editor::SceneRender::getAABB(Entity entity, bool local){
+AABB editor::SceneRender::getAABB(Entity entity, bool local){
     Signature signature = scene->getSignature(entity);
     if (signature.test(scene->getComponentId<MeshComponent>())){
         MeshComponent& mesh = scene->getComponent<MeshComponent>(entity);
@@ -99,7 +99,7 @@ AABB Editor::SceneRender::getAABB(Entity entity, bool local){
     return AABB();
 }
 
-AABB Editor::SceneRender::getFamilyAABB(Entity entity, float offset){
+AABB editor::SceneRender::getFamilyAABB(Entity entity, float offset){
     auto transforms = scene->getComponentArray<Transform>();
     size_t index = transforms->getIndex(entity);
 
@@ -132,7 +132,7 @@ AABB Editor::SceneRender::getFamilyAABB(Entity entity, float offset){
     return aabb;
 }
 
-AABB Editor::SceneRender::getEntitiesAABB(const std::vector<Entity>& entities){
+AABB editor::SceneRender::getEntitiesAABB(const std::vector<Entity>& entities){
     AABB aabb;
     for (Entity entity : entities) {
         AABB entityAABB = getFamilyAABB(entity, 0.0f);
@@ -143,7 +143,7 @@ AABB Editor::SceneRender::getEntitiesAABB(const std::vector<Entity>& entities){
     return aabb;
 }
 
-OBB Editor::SceneRender::getOBB(Entity entity, bool local){
+OBB editor::SceneRender::getOBB(Entity entity, bool local){
     Signature signature = scene->getSignature(entity);
 
     Matrix4 modelMatrix;
@@ -202,7 +202,7 @@ OBB Editor::SceneRender::getOBB(Entity entity, bool local){
     return OBB(); // null OBB
 }
 
-OBB Editor::SceneRender::getFamilyOBB(Entity entity, float offset){
+OBB editor::SceneRender::getFamilyOBB(Entity entity, float offset){
     auto transforms = scene->getComponentArray<Transform>();
     size_t index = transforms->getIndex(entity);
 
@@ -233,14 +233,14 @@ OBB Editor::SceneRender::getFamilyOBB(Entity entity, float offset){
     return obb;
 }
 
-void Editor::SceneRender::hideAllGizmos(){
+void editor::SceneRender::hideAllGizmos(){
     selLines->setVisible(false);
     toolslayer.setGizmoVisible(false);
     uilayer.setViewGizmoImageVisible(false);
     uilayer.setSelectionBoxVisible(false);
 }
 
-void Editor::SceneRender::setPlayMode(bool isPlaying){
+void editor::SceneRender::setPlayMode(bool isPlaying){
     this->isPlaying = isPlaying;
     if (isPlaying){
         hideAllGizmos();
@@ -249,7 +249,7 @@ void Editor::SceneRender::setPlayMode(bool isPlaying){
     }
 }
 
-void Editor::SceneRender::activate(){
+void editor::SceneRender::activate(){
     Engine::setFramebuffer(&framebuffer);
     Engine::setScene(scene);
 
@@ -263,15 +263,15 @@ void Editor::SceneRender::activate(){
     Engine::addSceneLayer(uilayer.getScene());
 }
 
-void Editor::SceneRender::setChildSceneLayers(const std::vector<Scene*>& layers){
+void editor::SceneRender::setChildSceneLayers(const std::vector<Scene*>& layers){
     childSceneLayers = layers;
 }
 
-void Editor::SceneRender::updateSize(int width, int height){
+void editor::SceneRender::updateSize(int width, int height){
 
 }
 
-void Editor::SceneRender::updateRenderSystem(){
+void editor::SceneRender::updateRenderSystem(){
     // Meshes and UIs are created in update, without this can affect worldAABB
     scene->getSystem<MeshSystem>()->update(0);
     scene->getSystem<UISystem>()->update(0);
@@ -279,7 +279,7 @@ void Editor::SceneRender::updateRenderSystem(){
     scene->getSystem<RenderSystem>()->update(0);
 }
 
-void Editor::SceneRender::update(std::vector<Entity> selEntities, std::vector<Entity> entities, Entity mainCamera, const SceneDisplaySettings& settings){
+void editor::SceneRender::update(std::vector<Entity> selEntities, std::vector<Entity> entities, Entity mainCamera, const SceneDisplaySettings& settings){
     displaySettings = settings;
     if (isPlaying){
         return;
@@ -408,11 +408,11 @@ void Editor::SceneRender::update(std::vector<Entity> selEntities, std::vector<En
     uilayer.setViewGizmoImageVisible(true);
 }
 
-void Editor::SceneRender::mouseHoverEvent(float x, float y){
+void editor::SceneRender::mouseHoverEvent(float x, float y){
     mouseRay = camera->screenToRay(x, y);
 }
 
-void Editor::SceneRender::mouseClickEvent(float x, float y, std::vector<Entity> selEntities){
+void editor::SceneRender::mouseClickEvent(float x, float y, std::vector<Entity> selEntities){
     mouseClicked = true;
 
     Vector3 viewDir = camera->getWorldDirection();
@@ -510,7 +510,7 @@ void Editor::SceneRender::mouseClickEvent(float x, float y, std::vector<Entity> 
 
 }
 
-void Editor::SceneRender::mouseReleaseEvent(float x, float y){
+void editor::SceneRender::mouseReleaseEvent(float x, float y){
     uilayer.setSelectionBoxVisible(false);
 
     mouseClicked = false;
@@ -523,7 +523,7 @@ void Editor::SceneRender::mouseReleaseEvent(float x, float y){
     }
 }
 
-void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float origY, Project* project, size_t sceneId, std::vector<Entity> selEntities, bool disableSelection){
+void editor::SceneRender::mouseDragEvent(float x, float y, float origX, float origY, Project* project, size_t sceneId, std::vector<Entity> selEntities, bool disableSelection){
     if (!disableSelection && !isPlaying){
         uilayer.setSelectionBoxVisible(true);
         uilayer.updateRect(Vector2(origX, origY), Vector2(x, y) - Vector2(origX, origY));
@@ -898,66 +898,66 @@ void Editor::SceneRender::mouseDragEvent(float x, float y, float origX, float or
     }
 }
 
-bool Editor::SceneRender::isAnyGizmoSideSelected() const{
-    return (toolslayer.getGizmoSideSelected() != Editor::GizmoSideSelected::NONE || toolslayer.getGizmo2DSideSelected() != Gizmo2DSideSelected::NONE);
+bool editor::SceneRender::isAnyGizmoSideSelected() const{
+    return (toolslayer.getGizmoSideSelected() != editor::GizmoSideSelected::NONE || toolslayer.getGizmo2DSideSelected() != Gizmo2DSideSelected::NONE);
 }
 
-TextureRender& Editor::SceneRender::getTexture(){
+TextureRender& editor::SceneRender::getTexture(){
     //return camera->getFramebuffer()->getRender().getColorTexture();
     return framebuffer.getRender().getColorTexture();
 }
 
-Camera* Editor::SceneRender::getCamera(){
+Camera* editor::SceneRender::getCamera(){
     return camera;
 }
 
-Editor::ToolsLayer* Editor::SceneRender::getToolsLayer(){
+editor::ToolsLayer* editor::SceneRender::getToolsLayer(){
     return &toolslayer;
 }
 
-Editor::UILayer* Editor::SceneRender::getUILayer(){
+editor::UILayer* editor::SceneRender::getUILayer(){
     return &uilayer;
 }
 
-bool Editor::SceneRender::isUseGlobalTransform() const{
+bool editor::SceneRender::isUseGlobalTransform() const{
     return useGlobalTransform;
 }
 
-void Editor::SceneRender::setUseGlobalTransform(bool useGlobalTransform){
+void editor::SceneRender::setUseGlobalTransform(bool useGlobalTransform){
     this->useGlobalTransform = useGlobalTransform;
 }
 
-void Editor::SceneRender::changeUseGlobalTransform(){
+void editor::SceneRender::changeUseGlobalTransform(){
     this->useGlobalTransform = !this->useGlobalTransform;
 }
 
-void Editor::SceneRender::enableCursorPointer(){
+void editor::SceneRender::enableCursorPointer(){
     cursorSelected = CursorSelected::POINTER;
 }
 
-void Editor::SceneRender::enableCursorHand(){
+void editor::SceneRender::enableCursorHand(){
     cursorSelected = CursorSelected::HAND;
 }
 
-Editor::CursorSelected Editor::SceneRender::getCursorSelected() const{
+editor::CursorSelected editor::SceneRender::getCursorSelected() const{
     return cursorSelected;
 }
 
-bool Editor::SceneRender::isMultipleEntitesSelected() const{
+bool editor::SceneRender::isMultipleEntitesSelected() const{
     return multipleEntitiesSelected;
 }
 
-void Editor::SceneRender::selectTile(Entity entity, int tileIndex){
+void editor::SceneRender::selectTile(Entity entity, int tileIndex){
     selectedTileEntity = entity;
     selectedTileIndex = tileIndex;
 }
 
-void Editor::SceneRender::clearTileSelection(){
+void editor::SceneRender::clearTileSelection(){
     selectedTileEntity = 0;
     selectedTileIndex = -1;
 }
 
-int Editor::SceneRender::hitTestTile(Entity entity, float x, float y){
+int editor::SceneRender::hitTestTile(Entity entity, float x, float y){
     if (!scene->getComponentArray<TilemapComponent>()->hasEntity(entity)) return -1;
     if (!scene->getComponentArray<Transform>()->hasEntity(entity)) return -1;
 
@@ -985,7 +985,7 @@ int Editor::SceneRender::hitTestTile(Entity entity, float x, float y){
     return -1;
 }
 
-OBB Editor::SceneRender::getTileOBB(Entity entity, int tileIndex){
+OBB editor::SceneRender::getTileOBB(Entity entity, int tileIndex){
     if (!scene->getComponentArray<TilemapComponent>()->hasEntity(entity)) return OBB();
     if (!scene->getComponentArray<Transform>()->hasEntity(entity)) return OBB();
 
@@ -1001,7 +1001,7 @@ OBB Editor::SceneRender::getTileOBB(Entity entity, int tileIndex){
     return transform.modelMatrix * tileAABB.getOBB();
 }
 
-void Editor::SceneRender::setupCameraIcon(CameraObjects& co){
+void editor::SceneRender::setupCameraIcon(CameraObjects& co){
     TextureData iconData;
     iconData.loadTextureFromMemory(camera_icon_png, camera_icon_png_len);
     co.icon->setTexture("editor:resources:camera_icon", iconData);
@@ -1012,7 +1012,7 @@ void Editor::SceneRender::setupCameraIcon(CameraObjects& co){
     co.icon->setPivotPreset(PivotPreset::CENTER);
 }
 
-void Editor::SceneRender::updateCameraFrustum(CameraObjects& co, const CameraComponent& cameraComponent, bool isMainCamera, bool fixedSizeFrustum){
+void editor::SceneRender::updateCameraFrustum(CameraObjects& co, const CameraComponent& cameraComponent, bool isMainCamera, bool fixedSizeFrustum){
     if (cameraComponent.type == CameraType::CAMERA_UI){
         co.lines->clearLines();
         co.type = CameraType::CAMERA_UI;
@@ -1051,7 +1051,7 @@ void Editor::SceneRender::updateCameraFrustum(CameraObjects& co, const CameraCom
     drawCameraFrustumLines(co.lines, cameraComponent, isMainCamera, fixedSizeFrustum);
 }
 
-void Editor::SceneRender::drawCameraFrustumLines(Lines* lines, const CameraComponent& cameraComponent, bool isMainCamera, bool fixedSizeFrustum){
+void editor::SceneRender::drawCameraFrustumLines(Lines* lines, const CameraComponent& cameraComponent, bool isMainCamera, bool fixedSizeFrustum){
     lines->clearLines();
 
     if (cameraComponent.type == CameraType::CAMERA_UI){

@@ -3,7 +3,7 @@
 #include "command/Command.h"
 #include "Project.h"
 
-namespace Supernova::Editor{
+namespace doriax::editor{
 
     class SetMainCameraCmd: public Command{
 

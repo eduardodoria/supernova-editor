@@ -1,18 +1,18 @@
 #include "TranslateGizmo.h"
 
-using namespace Supernova;
+using namespace doriax;
 
-const Vector3 Editor::TranslateGizmo::centerColor = Vector3(0.8, 0.8, 0.8);
-const Vector3 Editor::TranslateGizmo::xaxisColor = Vector3(0.7, 0.2, 0.2);
-const Vector3 Editor::TranslateGizmo::yaxisColor = Vector3(0.2, 0.7, 0.2);
-const Vector3 Editor::TranslateGizmo::zaxisColor = Vector3(0.2, 0.2, 0.7);
-const Vector3 Editor::TranslateGizmo::centerColorHightlight = Vector3(0.9, 0.9, 0.9);
-const Vector3 Editor::TranslateGizmo::xaxisColorHightlight = Vector3(0.9, 0.7, 0.7);
-const Vector3 Editor::TranslateGizmo::yaxisColorHightlight = Vector3(0.7, 0.9, 0.7);
-const Vector3 Editor::TranslateGizmo::zaxisColorHightlight = Vector3(0.7, 0.7, 0.9);
-const float Editor::TranslateGizmo::rectAlpha = 0.6;
+const Vector3 editor::TranslateGizmo::centerColor = Vector3(0.8, 0.8, 0.8);
+const Vector3 editor::TranslateGizmo::xaxisColor = Vector3(0.7, 0.2, 0.2);
+const Vector3 editor::TranslateGizmo::yaxisColor = Vector3(0.2, 0.7, 0.2);
+const Vector3 editor::TranslateGizmo::zaxisColor = Vector3(0.2, 0.2, 0.7);
+const Vector3 editor::TranslateGizmo::centerColorHightlight = Vector3(0.9, 0.9, 0.9);
+const Vector3 editor::TranslateGizmo::xaxisColorHightlight = Vector3(0.9, 0.7, 0.7);
+const Vector3 editor::TranslateGizmo::yaxisColorHightlight = Vector3(0.7, 0.9, 0.7);
+const Vector3 editor::TranslateGizmo::zaxisColorHightlight = Vector3(0.7, 0.7, 0.9);
+const float editor::TranslateGizmo::rectAlpha = 0.6;
 
-Editor::TranslateGizmo::TranslateGizmo(Scene* scene, bool use2DGizmo): Object(scene){
+editor::TranslateGizmo::TranslateGizmo(Scene* scene, bool use2DGizmo): Object(scene){
     float cylinderRadius = 0.05;
     float cylinderHeight = 2;
     float centerSize = 0.2;
@@ -98,7 +98,7 @@ Editor::TranslateGizmo::TranslateGizmo(Scene* scene, bool use2DGizmo): Object(sc
     }
 }
 
-Editor::TranslateGizmo::~TranslateGizmo(){
+editor::TranslateGizmo::~TranslateGizmo(){
     delete sphere;
     delete xaxis;
     delete xarrow;
@@ -114,9 +114,9 @@ Editor::TranslateGizmo::~TranslateGizmo(){
     }
 }
 
-Editor::GizmoSideSelected Editor::TranslateGizmo::checkHover(const Ray& ray){
+editor::GizmoSideSelected editor::TranslateGizmo::checkHover(const Ray& ray){
 
-    Editor::GizmoSideSelected gizmoSideSelected = GizmoSideSelected::NONE;
+    editor::GizmoSideSelected gizmoSideSelected = GizmoSideSelected::NONE;
 
     AABB xaabb = xaxis->getModelMatrix() * Matrix4::scaleMatrix(Vector3(2, 1, 2)) * xaxis->getAABB().merge(xarrow->getAABB());
     AABB yaabb = yaxis->getModelMatrix() * Matrix4::scaleMatrix(Vector3(2, 1, 2)) * yaxis->getAABB().merge(yarrow->getAABB());

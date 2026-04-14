@@ -1,6 +1,6 @@
 //
 //  AdMob.h
-//  Supernova iOS
+//  Doriax iOS
 //
 //  Created by Eduardo Doria Lima on 11/05/23.
 //

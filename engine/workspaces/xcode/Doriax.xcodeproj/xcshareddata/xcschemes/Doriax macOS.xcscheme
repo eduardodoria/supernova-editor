@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "7162F8E3259547DA0075B97D"
-               BuildableName = "Supernova.app"
-               BlueprintName = "Supernova macOS"
-               ReferencedContainer = "container:Supernova.xcodeproj">
+               BuildableName = "Doriax.app"
+               BlueprintName = "Doriax macOS"
+               ReferencedContainer = "container:Doriax.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -45,9 +45,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "7162F8E3259547DA0075B97D"
-            BuildableName = "Supernova.app"
-            BlueprintName = "Supernova macOS"
-            ReferencedContainer = "container:Supernova.xcodeproj">
+            BuildableName = "Doriax.app"
+            BlueprintName = "Doriax macOS"
+            ReferencedContainer = "container:Doriax.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -62,9 +62,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "7162F8E3259547DA0075B97D"
-            BuildableName = "Supernova.app"
-            BlueprintName = "Supernova macOS"
-            ReferencedContainer = "container:Supernova.xcodeproj">
+            BuildableName = "Doriax.app"
+            BlueprintName = "Doriax macOS"
+            ReferencedContainer = "container:Doriax.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

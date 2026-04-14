@@ -1,13 +1,13 @@
-#ifndef SupernovaSokol_h
-#define SupernovaSokol_h
+#ifndef DoriaxSokol_h
+#define DoriaxSokol_h
 
 #include "System.h"
 
-class SupernovaSokol: public Supernova::System{
+class DoriaxSokol: public doriax::System{
 
 public:
 
-    SupernovaSokol();
+    DoriaxSokol();
 
     virtual int getScreenWidth();
     virtual int getScreenHeight();
@@ -19,7 +19,7 @@ public:
     virtual void requestFullscreen();
     virtual void exitFullscreen();
 
-    virtual void setMouseCursor(Supernova::CursorType type);
+    virtual void setMouseCursor(doriax::CursorType type);
     virtual void setShowCursor(bool showCursor);
 
     virtual std::string getAssetPath();
@@ -28,4 +28,4 @@ public:
     
 };
 
-#endif /* SupernovaSokol_h */
+#endif /* DoriaxSokol_h */
