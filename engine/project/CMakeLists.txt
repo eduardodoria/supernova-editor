@@ -9,7 +9,7 @@ project(${APP_NAME})
 set(DORIAX_SHARED OFF)
 
 if(NOT DORIAX_ROOT)
-    set(DORIAX_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
+    set(DORIAX_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/..)
 endif()
 if (NOT EXISTS "${DORIAX_ROOT}")
     message(FATAL_ERROR "Can't find Doriax root directory: ${DORIAX_ROOT}")
@@ -469,7 +469,7 @@ include_directories (${DORIAX_ROOT}/core/texture)
 include_directories (${DORIAX_ROOT}/core/util)
 include_directories (${DORIAX_ROOT}/renders)
 
-add_subdirectory(${DORIAX_ROOT})
+add_subdirectory(${DORIAX_ROOT} ${CMAKE_BINARY_DIR}/engine)
 
 include_directories (${PROJECT_ROOT})
 file(GLOB_RECURSE PROJECT_SOURCE ${PROJECT_ROOT}/*.cpp)

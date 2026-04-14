@@ -3289,7 +3289,7 @@
 				718FDDEE2837CA9A00AF314C /* shaders */,
 			);
 			name = engine;
-			path = ../../engine;
+			path = ../..;
 			sourceTree = "<group>";
 		};
 		7162FC2A25962A0E0075B97D /* core */ = {
@@ -6162,7 +6162,7 @@
 				EXECUTABLE_PREFIX = lib;
 				GCC_ENABLE_CPP_EXCEPTIONS = YES;
 				GCC_ENABLE_CPP_RTTI = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../engine/libs/joltphysics";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../libs/joltphysics";
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -6178,7 +6178,7 @@
 				EXECUTABLE_PREFIX = lib;
 				GCC_ENABLE_CPP_EXCEPTIONS = YES;
 				GCC_ENABLE_CPP_RTTI = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../engine/libs/joltphysics";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../libs/joltphysics";
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -6191,7 +6191,7 @@
 			buildSettings = {
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_STYLE = Automatic;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../engine/libs/joltphysics";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../libs/joltphysics";
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -6206,7 +6206,7 @@
 			buildSettings = {
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_STYLE = Automatic;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../engine/libs/joltphysics";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../libs/joltphysics";
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -6358,11 +6358,11 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CODE_SIGN_STYLE = Automatic;
 				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/../../engine/core",
-					"$(SRCROOT)/../../engine/renders",
-					"$(SRCROOT)/../../engine/libs",
-					"$(SRCROOT)/../../engine/libs/joltphysics",
-					"$(SRCROOT)/../../engine/libs/box2d/include",
+					"$(SRCROOT)/../../core",
+					"$(SRCROOT)/../../renders",
+					"$(SRCROOT)/../../libs",
+					"$(SRCROOT)/../../libs/joltphysics",
+					"$(SRCROOT)/../../libs/box2d/include",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				OTHER_LDFLAGS = "-ObjC";
@@ -6379,11 +6379,11 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CODE_SIGN_STYLE = Automatic;
 				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/../../engine/core",
-					"$(SRCROOT)/../../engine/renders",
-					"$(SRCROOT)/../../engine/libs",
-					"$(SRCROOT)/../../engine/libs/joltphysics",
-					"$(SRCROOT)/../../engine/libs/box2d/include",
+					"$(SRCROOT)/../../core",
+					"$(SRCROOT)/../../renders",
+					"$(SRCROOT)/../../libs",
+					"$(SRCROOT)/../../libs/joltphysics",
+					"$(SRCROOT)/../../libs/box2d/include",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				OTHER_LDFLAGS = "-ObjC";
@@ -6406,7 +6406,7 @@
 					SOKOL_TIME_IMPL,
 					SOKOL_GFX_IMPL,
 				);
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../engine/core";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../core";
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -6426,7 +6426,7 @@
 					SOKOL_TIME_IMPL,
 					SOKOL_GFX_IMPL,
 				);
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../engine/core";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../core";
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -6556,11 +6556,11 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CODE_SIGN_STYLE = Automatic;
 				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/../../engine/core",
-					"$(SRCROOT)/../../engine/renders",
-					"$(SRCROOT)/../../engine/libs",
-					"$(SRCROOT)/../../engine/libs/box2d/include",
-					"$(SRCROOT)/../../engine/libs/joltphysics",
+					"$(SRCROOT)/../../core",
+					"$(SRCROOT)/../../renders",
+					"$(SRCROOT)/../../libs",
+					"$(SRCROOT)/../../libs/box2d/include",
+					"$(SRCROOT)/../../libs/joltphysics",
 				);
 				INFOPLIST_FILE = ios/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
@@ -6585,11 +6585,11 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CODE_SIGN_STYLE = Automatic;
 				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/../../engine/core",
-					"$(SRCROOT)/../../engine/renders",
-					"$(SRCROOT)/../../engine/libs",
-					"$(SRCROOT)/../../engine/libs/box2d/include",
-					"$(SRCROOT)/../../engine/libs/joltphysics",
+					"$(SRCROOT)/../../core",
+					"$(SRCROOT)/../../renders",
+					"$(SRCROOT)/../../libs",
+					"$(SRCROOT)/../../libs/box2d/include",
+					"$(SRCROOT)/../../libs/joltphysics",
 				);
 				INFOPLIST_FILE = ios/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
@@ -6620,11 +6620,11 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				DEAD_CODE_STRIPPING = YES;
 				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/../../engine/core",
-					"$(SRCROOT)/../../engine/renders",
-					"$(SRCROOT)/../../engine/libs",
-					"$(SRCROOT)/../../engine/libs/box2d/include",
-					"$(SRCROOT)/../../engine/libs/joltphysics",
+					"$(SRCROOT)/../../core",
+					"$(SRCROOT)/../../renders",
+					"$(SRCROOT)/../../libs",
+					"$(SRCROOT)/../../libs/box2d/include",
+					"$(SRCROOT)/../../libs/joltphysics",
 				);
 				INFOPLIST_FILE = macos/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -6652,11 +6652,11 @@
 				DEAD_CODE_STRIPPING = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = "";
 				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/../../engine/core",
-					"$(SRCROOT)/../../engine/renders",
-					"$(SRCROOT)/../../engine/libs",
-					"$(SRCROOT)/../../engine/libs/box2d/include",
-					"$(SRCROOT)/../../engine/libs/joltphysics",
+					"$(SRCROOT)/../../core",
+					"$(SRCROOT)/../../renders",
+					"$(SRCROOT)/../../libs",
+					"$(SRCROOT)/../../libs/box2d/include",
+					"$(SRCROOT)/../../libs/joltphysics",
 				);
 				INFOPLIST_FILE = macos/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -6681,11 +6681,11 @@
 				GCC_ENABLE_CPP_EXCEPTIONS = YES;
 				GCC_ENABLE_CPP_RTTI = YES;
 				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/../../engine/core",
-					"$(SRCROOT)/../../engine/renders",
-					"$(SRCROOT)/../../engine/libs",
-					"$(SRCROOT)/../../engine/libs/joltphysics",
-					"$(SRCROOT)/../../engine/libs/box2d/include",
+					"$(SRCROOT)/../../core",
+					"$(SRCROOT)/../../renders",
+					"$(SRCROOT)/../../libs",
+					"$(SRCROOT)/../../libs/joltphysics",
+					"$(SRCROOT)/../../libs/box2d/include",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -6705,11 +6705,11 @@
 				GCC_ENABLE_CPP_EXCEPTIONS = YES;
 				GCC_ENABLE_CPP_RTTI = YES;
 				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/../../engine/core",
-					"$(SRCROOT)/../../engine/renders",
-					"$(SRCROOT)/../../engine/libs",
-					"$(SRCROOT)/../../engine/libs/joltphysics",
-					"$(SRCROOT)/../../engine/libs/box2d/include",
+					"$(SRCROOT)/../../core",
+					"$(SRCROOT)/../../renders",
+					"$(SRCROOT)/../../libs",
+					"$(SRCROOT)/../../libs/joltphysics",
+					"$(SRCROOT)/../../libs/box2d/include",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -6730,7 +6730,7 @@
 					SOKOL_TIME_IMPL,
 					SOKOL_GFX_IMPL,
 				);
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../engine/core";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../core";
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -6750,7 +6750,7 @@
 					SOKOL_TIME_IMPL,
 					SOKOL_GFX_IMPL,
 				);
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../engine/core";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../core";
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -6771,7 +6771,7 @@
 					"$(inherited)",
 					WITH_MINIAUDIO,
 				);
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../engine/libs/stb";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../libs/stb";
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -6792,7 +6792,7 @@
 					"$(inherited)",
 					WITH_MINIAUDIO,
 				);
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../engine/libs/stb";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../libs/stb";
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -6809,7 +6809,7 @@
 					"$(inherited)",
 					WITH_MINIAUDIO,
 				);
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../engine/libs/stb";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../libs/stb";
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -6828,7 +6828,7 @@
 					"$(inherited)",
 					WITH_MINIAUDIO,
 				);
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../engine/libs/stb";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../libs/stb";
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -6963,8 +6963,8 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_STYLE = Automatic;
 				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/../../engine/libs/box2d/include",
-					"$(SRCROOT)/../../engine/libs/box2d/src",
+					"$(SRCROOT)/../../libs/box2d/include",
+					"$(SRCROOT)/../../libs/box2d/src",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				OTHER_LDFLAGS = "-ObjC";
@@ -6981,8 +6981,8 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_STYLE = Automatic;
 				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/../../engine/libs/box2d/include",
-					"$(SRCROOT)/../../engine/libs/box2d/src",
+					"$(SRCROOT)/../../libs/box2d/include",
+					"$(SRCROOT)/../../libs/box2d/src",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				OTHER_LDFLAGS = "-ObjC";
@@ -7003,8 +7003,8 @@
 				GCC_ENABLE_CPP_EXCEPTIONS = YES;
 				GCC_ENABLE_CPP_RTTI = YES;
 				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/../../engine/libs/box2d/include",
-					"$(SRCROOT)/../../engine/libs/box2d/src",
+					"$(SRCROOT)/../../libs/box2d/include",
+					"$(SRCROOT)/../../libs/box2d/src",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -7022,8 +7022,8 @@
 				GCC_ENABLE_CPP_EXCEPTIONS = YES;
 				GCC_ENABLE_CPP_RTTI = YES;
 				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/../../engine/libs/box2d/include",
-					"$(SRCROOT)/../../engine/libs/box2d/src",
+					"$(SRCROOT)/../../libs/box2d/include",
+					"$(SRCROOT)/../../libs/box2d/src",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -7040,7 +7040,7 @@
 				EXECUTABLE_PREFIX = lib;
 				GCC_ENABLE_CPP_EXCEPTIONS = YES;
 				GCC_ENABLE_CPP_RTTI = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../engine/libs/json";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../libs/json";
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -7056,7 +7056,7 @@
 				EXECUTABLE_PREFIX = lib;
 				GCC_ENABLE_CPP_EXCEPTIONS = YES;
 				GCC_ENABLE_CPP_RTTI = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../engine/libs/json";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../libs/json";
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -7071,7 +7071,7 @@
 				EXECUTABLE_PREFIX = lib;
 				GCC_ENABLE_CPP_EXCEPTIONS = YES;
 				GCC_ENABLE_CPP_RTTI = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../engine/libs/json";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../libs/json";
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -7087,7 +7087,7 @@
 				EXECUTABLE_PREFIX = lib;
 				GCC_ENABLE_CPP_EXCEPTIONS = YES;
 				GCC_ENABLE_CPP_RTTI = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../engine/libs/json";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../libs/json";
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
