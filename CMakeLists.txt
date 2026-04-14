@@ -75,7 +75,7 @@ if(API_BACKEND STREQUAL "sdl")
     )
 endif()
 
-set(SUPERNOVA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/supernova)
+set(SUPERNOVA_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/engine)
 set(SHADERCOMPILER_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/shadercompiler)
 
 add_definitions("-DSUPERNOVA_EDITOR")
@@ -87,7 +87,7 @@ add_definitions("-DSOKOL_GLCORE")
 add_definitions("-DWITH_MINIAUDIO") # For SoLoud
 set(NFD_PORTAL ON CACHE BOOL "Use xdg-desktop-portal instead of GTK") # For NFD
 
-set(SHADERS_DIR "${CMAKE_SOURCE_DIR}/supernova/tools/shaderlib")
+set(SHADERS_DIR "${CMAKE_SOURCE_DIR}/engine/tools/shaderlib")
 set(GENERATED_DIR "${CMAKE_BINARY_DIR}/generated")
 set(SHADERS_HEADER "${GENERATED_DIR}/shaders.h")
 set(GENERATE_SHADERS_SCRIPT "${CMAKE_SOURCE_DIR}/generate_shaders.cmake")
@@ -108,39 +108,39 @@ add_custom_command(
 
 include_directories (${CMAKE_CURRENT_SOURCE_DIR})
 
-include_directories (${SUPERNOVA_ROOT}/engine/libs/sokol)
-include_directories (${SUPERNOVA_ROOT}/engine/libs/lua)
-include_directories (${SUPERNOVA_ROOT}/engine/libs/luabridge3)
-include_directories (${SUPERNOVA_ROOT}/engine/libs/box2d/include)
-include_directories (${SUPERNOVA_ROOT}/engine/libs/joltphysics)
-include_directories (${SUPERNOVA_ROOT}/engine/libs/stb)
+include_directories (${SUPERNOVA_ROOT}/libs/sokol)
+include_directories (${SUPERNOVA_ROOT}/libs/lua)
+include_directories (${SUPERNOVA_ROOT}/libs/luabridge3)
+include_directories (${SUPERNOVA_ROOT}/libs/box2d/include)
+include_directories (${SUPERNOVA_ROOT}/libs/joltphysics)
+include_directories (${SUPERNOVA_ROOT}/libs/stb)
 
-include_directories (${SUPERNOVA_ROOT}/engine/core)
-include_directories (${SUPERNOVA_ROOT}/engine/core/action)
-include_directories (${SUPERNOVA_ROOT}/engine/core/buffer)
-include_directories (${SUPERNOVA_ROOT}/engine/core/component)
-include_directories (${SUPERNOVA_ROOT}/engine/core/ecs)
-include_directories (${SUPERNOVA_ROOT}/engine/core/io)
-include_directories (${SUPERNOVA_ROOT}/engine/core/manager)
-include_directories (${SUPERNOVA_ROOT}/engine/core/math)
-include_directories (${SUPERNOVA_ROOT}/engine/core/object)
-include_directories (${SUPERNOVA_ROOT}/engine/core/object/audio)
-include_directories (${SUPERNOVA_ROOT}/engine/core/object/ui)
-include_directories (${SUPERNOVA_ROOT}/engine/core/object/environment)
-include_directories (${SUPERNOVA_ROOT}/engine/core/object/physics)
-include_directories (${SUPERNOVA_ROOT}/engine/core/pool)
-include_directories (${SUPERNOVA_ROOT}/engine/core/registry)
-include_directories (${SUPERNOVA_ROOT}/engine/core/render)
-include_directories (${SUPERNOVA_ROOT}/engine/core/script)
-include_directories (${SUPERNOVA_ROOT}/engine/core/shader)
-include_directories (${SUPERNOVA_ROOT}/engine/core/subsystem)
-include_directories (${SUPERNOVA_ROOT}/engine/core/texture)
-include_directories (${SUPERNOVA_ROOT}/engine/core/util)
-include_directories (${SUPERNOVA_ROOT}/engine/renders)
+include_directories (${SUPERNOVA_ROOT}/core)
+include_directories (${SUPERNOVA_ROOT}/core/action)
+include_directories (${SUPERNOVA_ROOT}/core/buffer)
+include_directories (${SUPERNOVA_ROOT}/core/component)
+include_directories (${SUPERNOVA_ROOT}/core/ecs)
+include_directories (${SUPERNOVA_ROOT}/core/io)
+include_directories (${SUPERNOVA_ROOT}/core/manager)
+include_directories (${SUPERNOVA_ROOT}/core/math)
+include_directories (${SUPERNOVA_ROOT}/core/object)
+include_directories (${SUPERNOVA_ROOT}/core/object/audio)
+include_directories (${SUPERNOVA_ROOT}/core/object/ui)
+include_directories (${SUPERNOVA_ROOT}/core/object/environment)
+include_directories (${SUPERNOVA_ROOT}/core/object/physics)
+include_directories (${SUPERNOVA_ROOT}/core/pool)
+include_directories (${SUPERNOVA_ROOT}/core/registry)
+include_directories (${SUPERNOVA_ROOT}/core/render)
+include_directories (${SUPERNOVA_ROOT}/core/script)
+include_directories (${SUPERNOVA_ROOT}/core/shader)
+include_directories (${SUPERNOVA_ROOT}/core/subsystem)
+include_directories (${SUPERNOVA_ROOT}/core/texture)
+include_directories (${SUPERNOVA_ROOT}/core/util)
+include_directories (${SUPERNOVA_ROOT}/renders)
 
 include_directories (${SHADERCOMPILER_ROOT}/src)
 
-add_subdirectory(${SUPERNOVA_ROOT}/engine)
+add_subdirectory(${SUPERNOVA_ROOT})
 add_subdirectory(${SHADERCOMPILER_ROOT} EXCLUDE_FROM_ALL)
 
 add_subdirectory(libs/nfd)
@@ -298,9 +298,9 @@ set_target_properties(
 # Copy supernova engine directory to executable output directory for supernova-editor
 add_custom_command(TARGET supernova-editor POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/supernova/engine
+        ${CMAKE_SOURCE_DIR}/engine
         $<TARGET_FILE_DIR:supernova-editor>/engine
-    COMMENT "Copying supernova engine to executable directory"
+    COMMENT "Copying engine to executable directory"
 )
 
 install(TARGETS supernova-editor supernova
@@ -310,7 +310,7 @@ install(TARGETS supernova-editor supernova
         ARCHIVE DESTINATION bin
 )
 
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/supernova/engine
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/engine
         DESTINATION bin
         CONFIGURATIONS Release MinSizeRel
 )
