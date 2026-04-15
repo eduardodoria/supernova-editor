@@ -1,4 +1,4 @@
-name: CMake Build Matrix
+name: Editor Desktop
 
 on:
   push:
@@ -55,7 +55,7 @@ jobs:
           }
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: true
 
