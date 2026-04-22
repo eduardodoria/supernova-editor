@@ -1,4 +1,7 @@
 # doriax-editor
+
+**Archived**. Use: https://github.com/doriaxengine/doriax
+
 Editor of Doriax Engine
 
 ## Install dependencies
